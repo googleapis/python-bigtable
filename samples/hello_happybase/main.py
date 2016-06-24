@@ -22,8 +22,6 @@ Prerequisites:
   https://cloud.google.com/bigtable/docs/creating-cluster
 - Set your Google Application Default Credentials.
   https://developers.google.com/identity/protocols/application-default-credentials
-- Set the GCLOUD_PROJECT environment variable to your project ID.
-  https://support.google.com/cloud/answer/6158840
 """
 
 import argparse
@@ -61,6 +59,7 @@ def main(project_id, cluster_id, zone, table_name):
             'Hello Cloud Bigtable!',
             'Hello HappyBase!',
         ]
+
         for i, value in enumerate(greetings):
             # Note: This example uses sequential numeric IDs for simplicity,
             # but this can result in poor performance in a production
@@ -85,6 +84,7 @@ def main(project_id, cluster_id, zone, table_name):
 
         # [START scanning_all_rows]
         print('Scanning for all greetings:')
+
         for key, row in table.scan():
             print('\t{}: {}'.format(key, row[column_name]))
         # [END scanning_all_rows]
@@ -93,19 +93,16 @@ def main(project_id, cluster_id, zone, table_name):
         print('Deleting the {} table.'.format(table_name))
         connection.delete_table(table_name)
         # [END deleting_a_table]
+
     finally:
         connection.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='A sample application that connects to Cloud' +
-                    ' Bigtable.',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        'project_id',
-        help='Google Cloud Platform project ID that contains the Cloud' +
-             ' Bigtable cluster.')
+    parser.add_argument('project_id', help='Your Cloud Platform project ID.')
     parser.add_argument(
         'cluster', help='ID of the Cloud Bigtable cluster to connect to.')
     parser.add_argument(
