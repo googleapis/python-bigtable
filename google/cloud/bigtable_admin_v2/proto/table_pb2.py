@@ -16,6 +16,8 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.api import resource_pb2 as google_dot_api_dot_resource__pb2
 from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
@@ -28,10 +30,12 @@ DESCRIPTOR = _descriptor.FileDescriptor(
         "\n\034com.google.bigtable.admin.v2B\nTableProtoP\001Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\252\002\036Google.Cloud.Bigtable.Admin.V2\312\002\036Google\\Cloud\\Bigtable\\Admin\\V2"
     ),
     serialized_pb=_b(
-        '\n0google/cloud/bigtable/admin_v2/proto/table.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\xcb\x06\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12J\n\x0e\x63luster_states\x18\x02 \x03(\x0b\x32\x32.google.bigtable.admin.v2.Table.ClusterStatesEntry\x12L\n\x0f\x63olumn_families\x18\x03 \x03(\x0b\x32\x33.google.bigtable.admin.v2.Table.ColumnFamiliesEntry\x12I\n\x0bgranularity\x18\x04 \x01(\x0e\x32\x34.google.bigtable.admin.v2.Table.TimestampGranularity\x1a\xe2\x01\n\x0c\x43lusterState\x12X\n\x11replication_state\x18\x01 \x01(\x0e\x32=.google.bigtable.admin.v2.Table.ClusterState.ReplicationState"x\n\x10ReplicationState\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\x10\n\x0cINITIALIZING\x10\x01\x12\x17\n\x13PLANNED_MAINTENANCE\x10\x02\x12\x19\n\x15UNPLANNED_MAINTENANCE\x10\x03\x12\t\n\x05READY\x10\x04\x1a\x62\n\x12\x43lusterStatesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12;\n\x05value\x18\x02 \x01(\x0b\x32,.google.bigtable.admin.v2.Table.ClusterState:\x02\x38\x01\x1a]\n\x13\x43olumnFamiliesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x35\n\x05value\x18\x02 \x01(\x0b\x32&.google.bigtable.admin.v2.ColumnFamily:\x02\x38\x01"I\n\x14TimestampGranularity\x12%\n!TIMESTAMP_GRANULARITY_UNSPECIFIED\x10\x00\x12\n\n\x06MILLIS\x10\x01"\\\n\x04View\x12\x14\n\x10VIEW_UNSPECIFIED\x10\x00\x12\r\n\tNAME_ONLY\x10\x01\x12\x0f\n\x0bSCHEMA_VIEW\x10\x02\x12\x14\n\x10REPLICATION_VIEW\x10\x03\x12\x08\n\x04\x46ULL\x10\x04"A\n\x0c\x43olumnFamily\x12\x31\n\x07gc_rule\x18\x01 \x01(\x0b\x32 .google.bigtable.admin.v2.GcRule"\xd5\x02\n\x06GcRule\x12\x1a\n\x10max_num_versions\x18\x01 \x01(\x05H\x00\x12,\n\x07max_age\x18\x02 \x01(\x0b\x32\x19.google.protobuf.DurationH\x00\x12\x45\n\x0cintersection\x18\x03 \x01(\x0b\x32-.google.bigtable.admin.v2.GcRule.IntersectionH\x00\x12\x37\n\x05union\x18\x04 \x01(\x0b\x32&.google.bigtable.admin.v2.GcRule.UnionH\x00\x1a?\n\x0cIntersection\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRule\x1a\x38\n\x05Union\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRuleB\x06\n\x04rule"\xcf\x02\n\x08Snapshot\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x35\n\x0csource_table\x18\x02 \x01(\x0b\x32\x1f.google.bigtable.admin.v2.Table\x12\x17\n\x0f\x64\x61ta_size_bytes\x18\x03 \x01(\x03\x12/\n\x0b\x63reate_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x64\x65lete_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x37\n\x05state\x18\x06 \x01(\x0e\x32(.google.bigtable.admin.v2.Snapshot.State\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02\x42\xad\x01\n\x1c\x63om.google.bigtable.admin.v2B\nTableProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
+        '\n0google/cloud/bigtable/admin_v2/proto/table.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\xa7\x07\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12J\n\x0e\x63luster_states\x18\x02 \x03(\x0b\x32\x32.google.bigtable.admin.v2.Table.ClusterStatesEntry\x12L\n\x0f\x63olumn_families\x18\x03 \x03(\x0b\x32\x33.google.bigtable.admin.v2.Table.ColumnFamiliesEntry\x12I\n\x0bgranularity\x18\x04 \x01(\x0e\x32\x34.google.bigtable.admin.v2.Table.TimestampGranularity\x1a\xe2\x01\n\x0c\x43lusterState\x12X\n\x11replication_state\x18\x01 \x01(\x0e\x32=.google.bigtable.admin.v2.Table.ClusterState.ReplicationState"x\n\x10ReplicationState\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\x10\n\x0cINITIALIZING\x10\x01\x12\x17\n\x13PLANNED_MAINTENANCE\x10\x02\x12\x19\n\x15UNPLANNED_MAINTENANCE\x10\x03\x12\t\n\x05READY\x10\x04\x1a\x62\n\x12\x43lusterStatesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12;\n\x05value\x18\x02 \x01(\x0b\x32,.google.bigtable.admin.v2.Table.ClusterState:\x02\x38\x01\x1a]\n\x13\x43olumnFamiliesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x35\n\x05value\x18\x02 \x01(\x0b\x32&.google.bigtable.admin.v2.ColumnFamily:\x02\x38\x01"I\n\x14TimestampGranularity\x12%\n!TIMESTAMP_GRANULARITY_UNSPECIFIED\x10\x00\x12\n\n\x06MILLIS\x10\x01"\\\n\x04View\x12\x14\n\x10VIEW_UNSPECIFIED\x10\x00\x12\r\n\tNAME_ONLY\x10\x01\x12\x0f\n\x0bSCHEMA_VIEW\x10\x02\x12\x14\n\x10REPLICATION_VIEW\x10\x03\x12\x08\n\x04\x46ULL\x10\x04:Z\xea\x41W\n\x1d\x62igtable.googleapis.com/Table\x12\x36projects/{project}/instances/{instance}/tables/{table}"A\n\x0c\x43olumnFamily\x12\x31\n\x07gc_rule\x18\x01 \x01(\x0b\x32 .google.bigtable.admin.v2.GcRule"\xd5\x02\n\x06GcRule\x12\x1a\n\x10max_num_versions\x18\x01 \x01(\x05H\x00\x12,\n\x07max_age\x18\x02 \x01(\x0b\x32\x19.google.protobuf.DurationH\x00\x12\x45\n\x0cintersection\x18\x03 \x01(\x0b\x32-.google.bigtable.admin.v2.GcRule.IntersectionH\x00\x12\x37\n\x05union\x18\x04 \x01(\x0b\x32&.google.bigtable.admin.v2.GcRule.UnionH\x00\x1a?\n\x0cIntersection\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRule\x1a\x38\n\x05Union\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRuleB\x06\n\x04rule"\xc7\x03\n\x08Snapshot\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x35\n\x0csource_table\x18\x02 \x01(\x0b\x32\x1f.google.bigtable.admin.v2.Table\x12\x17\n\x0f\x64\x61ta_size_bytes\x18\x03 \x01(\x03\x12/\n\x0b\x63reate_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x64\x65lete_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x37\n\x05state\x18\x06 \x01(\x0e\x32(.google.bigtable.admin.v2.Snapshot.State\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02:v\xea\x41s\n bigtable.googleapis.com/Snapshot\x12Oprojects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}B\xad\x01\n\x1c\x63om.google.bigtable.admin.v2B\nTableProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
     ),
     dependencies=[
         google_dot_api_dot_annotations__pb2.DESCRIPTOR,
+        google_dot_api_dot_field__behavior__pb2.DESCRIPTOR,
+        google_dot_api_dot_resource__pb2.DESCRIPTOR,
         google_dot_protobuf_dot_duration__pb2.DESCRIPTOR,
         google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,
     ],
@@ -74,8 +78,8 @@ _TABLE_CLUSTERSTATE_REPLICATIONSTATE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=533,
-    serialized_end=653,
+    serialized_start=593,
+    serialized_end=713,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_CLUSTERSTATE_REPLICATIONSTATE)
 
@@ -98,8 +102,8 @@ _TABLE_TIMESTAMPGRANULARITY = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=850,
-    serialized_end=923,
+    serialized_start=910,
+    serialized_end=983,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_TIMESTAMPGRANULARITY)
 
@@ -135,8 +139,8 @@ _TABLE_VIEW = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=925,
-    serialized_end=1017,
+    serialized_start=985,
+    serialized_end=1077,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_VIEW)
 
@@ -162,8 +166,8 @@ _SNAPSHOT_STATE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=1713,
-    serialized_end=1766,
+    serialized_start=1865,
+    serialized_end=1918,
 )
 _sym_db.RegisterEnumDescriptor(_SNAPSHOT_STATE)
 
@@ -202,8 +206,8 @@ _TABLE_CLUSTERSTATE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=427,
-    serialized_end=653,
+    serialized_start=487,
+    serialized_end=713,
 )
 
 _TABLE_CLUSTERSTATESENTRY = _descriptor.Descriptor(
@@ -258,8 +262,8 @@ _TABLE_CLUSTERSTATESENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=655,
-    serialized_end=753,
+    serialized_start=715,
+    serialized_end=813,
 )
 
 _TABLE_COLUMNFAMILIESENTRY = _descriptor.Descriptor(
@@ -314,8 +318,8 @@ _TABLE_COLUMNFAMILIESENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=755,
-    serialized_end=848,
+    serialized_start=815,
+    serialized_end=908,
 )
 
 _TABLE = _descriptor.Descriptor(
@@ -405,13 +409,15 @@ _TABLE = _descriptor.Descriptor(
         _TABLE_COLUMNFAMILIESENTRY,
     ],
     enum_types=[_TABLE_TIMESTAMPGRANULARITY, _TABLE_VIEW,],
-    serialized_options=None,
+    serialized_options=_b(
+        "\352AW\n\035bigtable.googleapis.com/Table\0226projects/{project}/instances/{instance}/tables/{table}"
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=174,
-    serialized_end=1017,
+    serialized_start=234,
+    serialized_end=1169,
 )
 
 
@@ -449,8 +455,8 @@ _COLUMNFAMILY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1019,
-    serialized_end=1084,
+    serialized_start=1171,
+    serialized_end=1236,
 )
 
 
@@ -488,8 +494,8 @@ _GCRULE_INTERSECTION = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1299,
-    serialized_end=1362,
+    serialized_start=1451,
+    serialized_end=1514,
 )
 
 _GCRULE_UNION = _descriptor.Descriptor(
@@ -526,8 +532,8 @@ _GCRULE_UNION = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1364,
-    serialized_end=1420,
+    serialized_start=1516,
+    serialized_end=1572,
 )
 
 _GCRULE = _descriptor.Descriptor(
@@ -626,8 +632,8 @@ _GCRULE = _descriptor.Descriptor(
             fields=[],
         ),
     ],
-    serialized_start=1087,
-    serialized_end=1428,
+    serialized_start=1239,
+    serialized_end=1580,
 )
 
 
@@ -768,13 +774,15 @@ _SNAPSHOT = _descriptor.Descriptor(
     extensions=[],
     nested_types=[],
     enum_types=[_SNAPSHOT_STATE,],
-    serialized_options=None,
+    serialized_options=_b(
+        "\352As\n bigtable.googleapis.com/Snapshot\022Oprojects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}"
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1431,
-    serialized_end=1766,
+    serialized_start=1583,
+    serialized_end=2038,
 )
 
 _TABLE_CLUSTERSTATE.fields_by_name[
@@ -841,8 +849,8 @@ Table = _reflection.GeneratedProtocolMessageType(
     
     Attributes:
         replication_state:
-            (\ ``OutputOnly``) The state of replication for the table in
-            this cluster.
+            Output only. The state of replication for the table in this
+            cluster.
     """,
                 # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Table.ClusterState)
             ),
@@ -874,14 +882,14 @@ Table = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the table. Values are of
-          the form ``projects/<project>/instances/<instance>/tables/[_a-
+          Output only. The unique name of the table. Values are of the
+          form ``projects/<project>/instances/<instance>/tables/[_a-
           zA-Z0-9][-_.a-zA-Z0-9]*``. Views: ``NAME_ONLY``,
           ``SCHEMA_VIEW``, ``REPLICATION_VIEW``, ``FULL``
       cluster_states:
-          (\ ``OutputOnly``) Map from cluster ID to per-cluster table
-          state. If it could not be determined whether or not the table
-          has data in a particular cluster (for example, if its zone is
+          Output only. Map from cluster ID to per-cluster table state.
+          If it could not be determined whether or not the table has
+          data in a particular cluster (for example, if its zone is
           unavailable), then there will be an entry for the cluster with
           UNKNOWN ``replication_status``. Views: ``REPLICATION_VIEW``,
           ``FULL``
@@ -894,7 +902,7 @@ Table = _reflection.GeneratedProtocolMessageType(
           which timestamps are stored in this table. Timestamps not
           matching the granularity will be rejected. If unspecified at
           creation time, the value will be set to ``MILLIS``. Views:
-          ``SCHEMA_VIEW``, ``FULL``
+          ``SCHEMA_VIEW``, ``FULL``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Table)
     ),
@@ -1013,28 +1021,28 @@ Snapshot = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the snapshot. Values are
-          of the form ``projects/<project>/instances/<instance>/clusters
-          /<cluster>/snapshots/<snapshot>``.
+          Output only. The unique name of the snapshot. Values are of
+          the form ``projects/<project>/instances/<instance>/clusters/<c
+          luster>/snapshots/<snapshot>``.
       source_table:
-          (\ ``OutputOnly``) The source table at the time the snapshot
-          was taken.
+          Output only. The source table at the time the snapshot was
+          taken.
       data_size_bytes:
-          (\ ``OutputOnly``) The size of the data in the source table at
-          the time the snapshot was taken. In some cases, this value may
-          be computed asynchronously via a background process and a
+          Output only. The size of the data in the source table at the
+          time the snapshot was taken. In some cases, this value may be
+          computed asynchronously via a background process and a
           placeholder of 0 will be used in the meantime.
       create_time:
-          (\ ``OutputOnly``) The time when the snapshot is created.
+          Output only. The time when the snapshot is created.
       delete_time:
-          (\ ``OutputOnly``) The time when the snapshot will be deleted.
-          The maximum amount of time a snapshot can stay active is 365
-          days. If 'ttl' is not specified, the default maximum of 365
-          days will be used.
+          Output only. The time when the snapshot will be deleted. The
+          maximum amount of time a snapshot can stay active is 365 days.
+          If 'ttl' is not specified, the default maximum of 365 days
+          will be used.
       state:
-          (\ ``OutputOnly``) The current state of the snapshot.
+          Output only. The current state of the snapshot.
       description:
-          (\ ``OutputOnly``) Description of the snapshot.
+          Output only. Description of the snapshot.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Snapshot)
     ),
@@ -1045,4 +1053,6 @@ _sym_db.RegisterMessage(Snapshot)
 DESCRIPTOR._options = None
 _TABLE_CLUSTERSTATESENTRY._options = None
 _TABLE_COLUMNFAMILIESENTRY._options = None
+_TABLE._options = None
+_SNAPSHOT._options = None
 # @@protoc_insertion_point(module_scope)

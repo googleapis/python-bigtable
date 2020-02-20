@@ -255,16 +255,17 @@ class BigtableTableAdminServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def GetIamPolicy(self, request, context):
-        """Gets the access control policy for a table resource. Returns an empty
-    policy if an table exists but does not have a policy set.
+        """Gets the access control policy for a resource.
+    Returns an empty policy if the resource exists but does not have a policy
+    set.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def SetIamPolicy(self, request, context):
-        """Sets the access control policy on a table resource. Replaces any existing
-    policy.
+        """Sets the access control policy on a Table or Backup resource.
+    Replaces any existing policy.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")

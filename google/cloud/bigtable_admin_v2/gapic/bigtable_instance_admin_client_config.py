@@ -36,7 +36,7 @@ config = {
             },
             "methods": {
                 "CreateInstance": {
-                    "timeout_millis": 60000,
+                    "timeout_millis": 300000,
                     "retry_codes_name": "non_idempotent",
                     "retry_params_name": "non_idempotent_heavy_params",
                 },

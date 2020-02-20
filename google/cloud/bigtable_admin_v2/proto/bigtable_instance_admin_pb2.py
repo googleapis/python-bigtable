@@ -16,6 +16,9 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.api import client_pb2 as google_dot_api_dot_client__pb2
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.api import resource_pb2 as google_dot_api_dot_resource__pb2
 from google.cloud.bigtable_admin_v2.proto import (
     instance_pb2 as google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2,
 )
@@ -37,10 +40,13 @@ DESCRIPTOR = _descriptor.FileDescriptor(
         "\n\034com.google.bigtable.admin.v2B\032BigtableInstanceAdminProtoP\001Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\252\002\036Google.Cloud.Bigtable.Admin.V2\312\002\036Google\\Cloud\\Bigtable\\Admin\\V2"
     ),
     serialized_pb=_b(
-        '\nBgoogle/cloud/bigtable/admin_v2/proto/bigtable_instance_admin.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x33google/cloud/bigtable/admin_v2/proto/instance.proto\x1a\x1egoogle/iam/v1/iam_policy.proto\x1a\x1agoogle/iam/v1/policy.proto\x1a#google/longrunning/operations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\x97\x02\n\x15\x43reateInstanceRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x13\n\x0binstance_id\x18\x02 \x01(\t\x12\x34\n\x08instance\x18\x03 \x01(\x0b\x32".google.bigtable.admin.v2.Instance\x12O\n\x08\x63lusters\x18\x04 \x03(\x0b\x32=.google.bigtable.admin.v2.CreateInstanceRequest.ClustersEntry\x1aR\n\rClustersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x30\n\x05value\x18\x02 \x01(\x0b\x32!.google.bigtable.admin.v2.Cluster:\x02\x38\x01""\n\x12GetInstanceRequest\x12\x0c\n\x04name\x18\x01 \x01(\t":\n\x14ListInstancesRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x12\n\npage_token\x18\x02 \x01(\t"\x81\x01\n\x15ListInstancesResponse\x12\x35\n\tinstances\x18\x01 \x03(\x0b\x32".google.bigtable.admin.v2.Instance\x12\x18\n\x10\x66\x61iled_locations\x18\x02 \x03(\t\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t"\x85\x01\n\x1cPartialUpdateInstanceRequest\x12\x34\n\x08instance\x18\x01 \x01(\x0b\x32".google.bigtable.admin.v2.Instance\x12/\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMask"%\n\x15\x44\x65leteInstanceRequest\x12\x0c\n\x04name\x18\x01 \x01(\t"n\n\x14\x43reateClusterRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x12\n\ncluster_id\x18\x02 \x01(\t\x12\x32\n\x07\x63luster\x18\x03 \x01(\x0b\x32!.google.bigtable.admin.v2.Cluster"!\n\x11GetClusterRequest\x12\x0c\n\x04name\x18\x01 \x01(\t"9\n\x13ListClustersRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x12\n\npage_token\x18\x02 \x01(\t"~\n\x14ListClustersResponse\x12\x33\n\x08\x63lusters\x18\x01 \x03(\x0b\x32!.google.bigtable.admin.v2.Cluster\x12\x18\n\x10\x66\x61iled_locations\x18\x02 \x03(\t\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t"$\n\x14\x44\x65leteClusterRequest\x12\x0c\n\x04name\x18\x01 \x01(\t"\xc6\x01\n\x16\x43reateInstanceMetadata\x12I\n\x10original_request\x18\x01 \x01(\x0b\x32/.google.bigtable.admin.v2.CreateInstanceRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xcd\x01\n\x16UpdateInstanceMetadata\x12P\n\x10original_request\x18\x01 \x01(\x0b\x32\x36.google.bigtable.admin.v2.PartialUpdateInstanceRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xc4\x01\n\x15\x43reateClusterMetadata\x12H\n\x10original_request\x18\x01 \x01(\x0b\x32..google.bigtable.admin.v2.CreateClusterRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xb7\x01\n\x15UpdateClusterMetadata\x12;\n\x10original_request\x18\x01 \x01(\x0b\x32!.google.bigtable.admin.v2.Cluster\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\x95\x01\n\x17\x43reateAppProfileRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x16\n\x0e\x61pp_profile_id\x18\x02 \x01(\t\x12\x39\n\x0b\x61pp_profile\x18\x03 \x01(\x0b\x32$.google.bigtable.admin.v2.AppProfile\x12\x17\n\x0fignore_warnings\x18\x04 \x01(\x08"$\n\x14GetAppProfileRequest\x12\x0c\n\x04name\x18\x01 \x01(\t"O\n\x16ListAppProfilesRequest\x12\x0e\n\x06parent\x18\x01 \x01(\t\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x12\n\npage_token\x18\x02 \x01(\t"\x88\x01\n\x17ListAppProfilesResponse\x12:\n\x0c\x61pp_profiles\x18\x01 \x03(\x0b\x32$.google.bigtable.admin.v2.AppProfile\x12\x17\n\x0fnext_page_token\x18\x02 \x01(\t\x12\x18\n\x10\x66\x61iled_locations\x18\x03 \x03(\t"\x9e\x01\n\x17UpdateAppProfileRequest\x12\x39\n\x0b\x61pp_profile\x18\x01 \x01(\x0b\x32$.google.bigtable.admin.v2.AppProfile\x12/\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMask\x12\x17\n\x0fignore_warnings\x18\x03 \x01(\x08"@\n\x17\x44\x65leteAppProfileRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x17\n\x0fignore_warnings\x18\x02 \x01(\x08"\x1a\n\x18UpdateAppProfileMetadata2\xaa\x17\n\x15\x42igtableInstanceAdmin\x12\x8e\x01\n\x0e\x43reateInstance\x12/.google.bigtable.admin.v2.CreateInstanceRequest\x1a\x1d.google.longrunning.Operation",\x82\xd3\xe4\x93\x02&"!/v2/{parent=projects/*}/instances:\x01*\x12\x8a\x01\n\x0bGetInstance\x12,.google.bigtable.admin.v2.GetInstanceRequest\x1a".google.bigtable.admin.v2.Instance")\x82\xd3\xe4\x93\x02#\x12!/v2/{name=projects/*/instances/*}\x12\x9b\x01\n\rListInstances\x12..google.bigtable.admin.v2.ListInstancesRequest\x1a/.google.bigtable.admin.v2.ListInstancesResponse")\x82\xd3\xe4\x93\x02#\x12!/v2/{parent=projects/*}/instances\x12\x86\x01\n\x0eUpdateInstance\x12".google.bigtable.admin.v2.Instance\x1a".google.bigtable.admin.v2.Instance",\x82\xd3\xe4\x93\x02&\x1a!/v2/{name=projects/*/instances/*}:\x01*\x12\xac\x01\n\x15PartialUpdateInstance\x12\x36.google.bigtable.admin.v2.PartialUpdateInstanceRequest\x1a\x1d.google.longrunning.Operation"<\x82\xd3\xe4\x93\x02\x36\x32*/v2/{instance.name=projects/*/instances/*}:\x08instance\x12\x84\x01\n\x0e\x44\x65leteInstance\x12/.google.bigtable.admin.v2.DeleteInstanceRequest\x1a\x16.google.protobuf.Empty")\x82\xd3\xe4\x93\x02#*!/v2/{name=projects/*/instances/*}\x12\x9d\x01\n\rCreateCluster\x12..google.bigtable.admin.v2.CreateClusterRequest\x1a\x1d.google.longrunning.Operation"=\x82\xd3\xe4\x93\x02\x37",/v2/{parent=projects/*/instances/*}/clusters:\x07\x63luster\x12\x92\x01\n\nGetCluster\x12+.google.bigtable.admin.v2.GetClusterRequest\x1a!.google.bigtable.admin.v2.Cluster"4\x82\xd3\xe4\x93\x02.\x12,/v2/{name=projects/*/instances/*/clusters/*}\x12\xa3\x01\n\x0cListClusters\x12-.google.bigtable.admin.v2.ListClustersRequest\x1a..google.bigtable.admin.v2.ListClustersResponse"4\x82\xd3\xe4\x93\x02.\x12,/v2/{parent=projects/*/instances/*}/clusters\x12\x8a\x01\n\rUpdateCluster\x12!.google.bigtable.admin.v2.Cluster\x1a\x1d.google.longrunning.Operation"7\x82\xd3\xe4\x93\x02\x31\x1a,/v2/{name=projects/*/instances/*/clusters/*}:\x01*\x12\x8d\x01\n\rDeleteCluster\x12..google.bigtable.admin.v2.DeleteClusterRequest\x1a\x16.google.protobuf.Empty"4\x82\xd3\xe4\x93\x02.*,/v2/{name=projects/*/instances/*/clusters/*}\x12\xb1\x01\n\x10\x43reateAppProfile\x12\x31.google.bigtable.admin.v2.CreateAppProfileRequest\x1a$.google.bigtable.admin.v2.AppProfile"D\x82\xd3\xe4\x93\x02>"//v2/{parent=projects/*/instances/*}/appProfiles:\x0b\x61pp_profile\x12\x9e\x01\n\rGetAppProfile\x12..google.bigtable.admin.v2.GetAppProfileRequest\x1a$.google.bigtable.admin.v2.AppProfile"7\x82\xd3\xe4\x93\x02\x31\x12//v2/{name=projects/*/instances/*/appProfiles/*}\x12\xaf\x01\n\x0fListAppProfiles\x12\x30.google.bigtable.admin.v2.ListAppProfilesRequest\x1a\x31.google.bigtable.admin.v2.ListAppProfilesResponse"7\x82\xd3\xe4\x93\x02\x31\x12//v2/{parent=projects/*/instances/*}/appProfiles\x12\xb6\x01\n\x10UpdateAppProfile\x12\x31.google.bigtable.admin.v2.UpdateAppProfileRequest\x1a\x1d.google.longrunning.Operation"P\x82\xd3\xe4\x93\x02J2;/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}:\x0b\x61pp_profile\x12\x96\x01\n\x10\x44\x65leteAppProfile\x12\x31.google.bigtable.admin.v2.DeleteAppProfileRequest\x1a\x16.google.protobuf.Empty"7\x82\xd3\xe4\x93\x02\x31*//v2/{name=projects/*/instances/*/appProfiles/*}\x12\x88\x01\n\x0cGetIamPolicy\x12".google.iam.v1.GetIamPolicyRequest\x1a\x15.google.iam.v1.Policy"=\x82\xd3\xe4\x93\x02\x37"2/v2/{resource=projects/*/instances/*}:getIamPolicy:\x01*\x12\x88\x01\n\x0cSetIamPolicy\x12".google.iam.v1.SetIamPolicyRequest\x1a\x15.google.iam.v1.Policy"=\x82\xd3\xe4\x93\x02\x37"2/v2/{resource=projects/*/instances/*}:setIamPolicy:\x01*\x12\xae\x01\n\x12TestIamPermissions\x12(.google.iam.v1.TestIamPermissionsRequest\x1a).google.iam.v1.TestIamPermissionsResponse"C\x82\xd3\xe4\x93\x02="8/v2/{resource=projects/*/instances/*}:testIamPermissions:\x01*B\xbd\x01\n\x1c\x63om.google.bigtable.admin.v2B\x1a\x42igtableInstanceAdminProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
+        '\nBgoogle/cloud/bigtable/admin_v2/proto/bigtable_instance_admin.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x17google/api/client.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x33google/cloud/bigtable/admin_v2/proto/instance.proto\x1a\x1egoogle/iam/v1/iam_policy.proto\x1a\x1agoogle/iam/v1/policy.proto\x1a#google/longrunning/operations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\xdb\x02\n\x15\x43reateInstanceRequest\x12\x43\n\x06parent\x18\x01 \x01(\tB3\xe0\x41\x02\xfa\x41-\n+cloudresourcemanager.googleapis.com/Project\x12\x18\n\x0binstance_id\x18\x02 \x01(\tB\x03\xe0\x41\x02\x12\x39\n\x08instance\x18\x03 \x01(\x0b\x32".google.bigtable.admin.v2.InstanceB\x03\xe0\x41\x02\x12T\n\x08\x63lusters\x18\x04 \x03(\x0b\x32=.google.bigtable.admin.v2.CreateInstanceRequest.ClustersEntryB\x03\xe0\x41\x02\x1aR\n\rClustersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x30\n\x05value\x18\x02 \x01(\x0b\x32!.google.bigtable.admin.v2.Cluster:\x02\x38\x01"L\n\x12GetInstanceRequest\x12\x36\n\x04name\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance"o\n\x14ListInstancesRequest\x12\x43\n\x06parent\x18\x01 \x01(\tB3\xe0\x41\x02\xfa\x41-\n+cloudresourcemanager.googleapis.com/Project\x12\x12\n\npage_token\x18\x02 \x01(\t"\x81\x01\n\x15ListInstancesResponse\x12\x35\n\tinstances\x18\x01 \x03(\x0b\x32".google.bigtable.admin.v2.Instance\x12\x18\n\x10\x66\x61iled_locations\x18\x02 \x03(\t\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t"\x8f\x01\n\x1cPartialUpdateInstanceRequest\x12\x39\n\x08instance\x18\x01 \x01(\x0b\x32".google.bigtable.admin.v2.InstanceB\x03\xe0\x41\x02\x12\x34\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02"O\n\x15\x44\x65leteInstanceRequest\x12\x36\n\x04name\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance"\xa2\x01\n\x14\x43reateClusterRequest\x12\x38\n\x06parent\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance\x12\x17\n\ncluster_id\x18\x02 \x01(\tB\x03\xe0\x41\x02\x12\x37\n\x07\x63luster\x18\x03 \x01(\x0b\x32!.google.bigtable.admin.v2.ClusterB\x03\xe0\x41\x02"J\n\x11GetClusterRequest\x12\x35\n\x04name\x18\x01 \x01(\tB\'\xe0\x41\x02\xfa\x41!\n\x1f\x62igtable.googleapis.com/Cluster"c\n\x13ListClustersRequest\x12\x38\n\x06parent\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance\x12\x12\n\npage_token\x18\x02 \x01(\t"~\n\x14ListClustersResponse\x12\x33\n\x08\x63lusters\x18\x01 \x03(\x0b\x32!.google.bigtable.admin.v2.Cluster\x12\x18\n\x10\x66\x61iled_locations\x18\x02 \x03(\t\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t"M\n\x14\x44\x65leteClusterRequest\x12\x35\n\x04name\x18\x01 \x01(\tB\'\xe0\x41\x02\xfa\x41!\n\x1f\x62igtable.googleapis.com/Cluster"\xc6\x01\n\x16\x43reateInstanceMetadata\x12I\n\x10original_request\x18\x01 \x01(\x0b\x32/.google.bigtable.admin.v2.CreateInstanceRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xcd\x01\n\x16UpdateInstanceMetadata\x12P\n\x10original_request\x18\x01 \x01(\x0b\x32\x36.google.bigtable.admin.v2.PartialUpdateInstanceRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xc4\x01\n\x15\x43reateClusterMetadata\x12H\n\x10original_request\x18\x01 \x01(\x0b\x32..google.bigtable.admin.v2.CreateClusterRequest\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xb7\x01\n\x15UpdateClusterMetadata\x12;\n\x10original_request\x18\x01 \x01(\x0b\x32!.google.bigtable.admin.v2.Cluster\x12\x30\n\x0crequest_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x66inish_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp"\xc9\x01\n\x17\x43reateAppProfileRequest\x12\x38\n\x06parent\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance\x12\x1b\n\x0e\x61pp_profile_id\x18\x02 \x01(\tB\x03\xe0\x41\x02\x12>\n\x0b\x61pp_profile\x18\x03 \x01(\x0b\x32$.google.bigtable.admin.v2.AppProfileB\x03\xe0\x41\x02\x12\x17\n\x0fignore_warnings\x18\x04 \x01(\x08"P\n\x14GetAppProfileRequest\x12\x38\n\x04name\x18\x01 \x01(\tB*\xe0\x41\x02\xfa\x41$\n"bigtable.googleapis.com/AppProfile"y\n\x16ListAppProfilesRequest\x12\x38\n\x06parent\x18\x01 \x01(\tB(\xe0\x41\x02\xfa\x41"\n bigtable.googleapis.com/Instance\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x12\n\npage_token\x18\x02 \x01(\t"\x88\x01\n\x17ListAppProfilesResponse\x12:\n\x0c\x61pp_profiles\x18\x01 \x03(\x0b\x32$.google.bigtable.admin.v2.AppProfile\x12\x17\n\x0fnext_page_token\x18\x02 \x01(\t\x12\x18\n\x10\x66\x61iled_locations\x18\x03 \x03(\t"\xa8\x01\n\x17UpdateAppProfileRequest\x12>\n\x0b\x61pp_profile\x18\x01 \x01(\x0b\x32$.google.bigtable.admin.v2.AppProfileB\x03\xe0\x41\x02\x12\x34\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02\x12\x17\n\x0fignore_warnings\x18\x03 \x01(\x08"l\n\x17\x44\x65leteAppProfileRequest\x12\x38\n\x04name\x18\x01 \x01(\tB*\xe0\x41\x02\xfa\x41$\n"bigtable.googleapis.com/AppProfile\x12\x17\n\x0fignore_warnings\x18\x02 \x01(\x08"\x1a\n\x18UpdateAppProfileMetadata2\x92\x1e\n\x15\x42igtableInstanceAdmin\x12\xda\x01\n\x0e\x43reateInstance\x12/.google.bigtable.admin.v2.CreateInstanceRequest\x1a\x1d.google.longrunning.Operation"x\x82\xd3\xe4\x93\x02&"!/v2/{parent=projects/*}/instances:\x01*\xda\x41$parent,instance_id,instance,clusters\xca\x41"\n\x08Instance\x12\x16\x43reateInstanceMetadata\x12\x91\x01\n\x0bGetInstance\x12,.google.bigtable.admin.v2.GetInstanceRequest\x1a".google.bigtable.admin.v2.Instance"0\x82\xd3\xe4\x93\x02#\x12!/v2/{name=projects/*/instances/*}\xda\x41\x04name\x12\xa4\x01\n\rListInstances\x12..google.bigtable.admin.v2.ListInstancesRequest\x1a/.google.bigtable.admin.v2.ListInstancesResponse"2\x82\xd3\xe4\x93\x02#\x12!/v2/{parent=projects/*}/instances\xda\x41\x06parent\x12\x86\x01\n\x0eUpdateInstance\x12".google.bigtable.admin.v2.Instance\x1a".google.bigtable.admin.v2.Instance",\x82\xd3\xe4\x93\x02&\x1a!/v2/{name=projects/*/instances/*}:\x01*\x12\xe8\x01\n\x15PartialUpdateInstance\x12\x36.google.bigtable.admin.v2.PartialUpdateInstanceRequest\x1a\x1d.google.longrunning.Operation"x\x82\xd3\xe4\x93\x02\x36\x32*/v2/{instance.name=projects/*/instances/*}:\x08instance\xda\x41\x14instance,update_mask\xca\x41"\n\x08Instance\x12\x16UpdateInstanceMetadata\x12\x8b\x01\n\x0e\x44\x65leteInstance\x12/.google.bigtable.admin.v2.DeleteInstanceRequest\x1a\x16.google.protobuf.Empty"0\x82\xd3\xe4\x93\x02#*!/v2/{name=projects/*/instances/*}\xda\x41\x04name\x12\xdc\x01\n\rCreateCluster\x12..google.bigtable.admin.v2.CreateClusterRequest\x1a\x1d.google.longrunning.Operation"|\x82\xd3\xe4\x93\x02\x37",/v2/{parent=projects/*/instances/*}/clusters:\x07\x63luster\xda\x41\x19parent,cluster_id,cluster\xca\x41 \n\x07\x43luster\x12\x15\x43reateClusterMetadata\x12\x99\x01\n\nGetCluster\x12+.google.bigtable.admin.v2.GetClusterRequest\x1a!.google.bigtable.admin.v2.Cluster";\x82\xd3\xe4\x93\x02.\x12,/v2/{name=projects/*/instances/*/clusters/*}\xda\x41\x04name\x12\xac\x01\n\x0cListClusters\x12-.google.bigtable.admin.v2.ListClustersRequest\x1a..google.bigtable.admin.v2.ListClustersResponse"=\x82\xd3\xe4\x93\x02.\x12,/v2/{parent=projects/*/instances/*}/clusters\xda\x41\x06parent\x12\xad\x01\n\rUpdateCluster\x12!.google.bigtable.admin.v2.Cluster\x1a\x1d.google.longrunning.Operation"Z\x82\xd3\xe4\x93\x02\x31\x1a,/v2/{name=projects/*/instances/*/clusters/*}:\x01*\xca\x41 \n\x07\x43luster\x12\x15UpdateClusterMetadata\x12\x94\x01\n\rDeleteCluster\x12..google.bigtable.admin.v2.DeleteClusterRequest\x1a\x16.google.protobuf.Empty";\x82\xd3\xe4\x93\x02.*,/v2/{name=projects/*/instances/*/clusters/*}\xda\x41\x04name\x12\xd5\x01\n\x10\x43reateAppProfile\x12\x31.google.bigtable.admin.v2.CreateAppProfileRequest\x1a$.google.bigtable.admin.v2.AppProfile"h\x82\xd3\xe4\x93\x02>"//v2/{parent=projects/*/instances/*}/appProfiles:\x0b\x61pp_profile\xda\x41!parent,app_profile_id,app_profile\x12\xa5\x01\n\rGetAppProfile\x12..google.bigtable.admin.v2.GetAppProfileRequest\x1a$.google.bigtable.admin.v2.AppProfile">\x82\xd3\xe4\x93\x02\x31\x12//v2/{name=projects/*/instances/*/appProfiles/*}\xda\x41\x04name\x12\xb8\x01\n\x0fListAppProfiles\x12\x30.google.bigtable.admin.v2.ListAppProfilesRequest\x1a\x31.google.bigtable.admin.v2.ListAppProfilesResponse"@\x82\xd3\xe4\x93\x02\x31\x12//v2/{parent=projects/*/instances/*}/appProfiles\xda\x41\x06parent\x12\xfa\x01\n\x10UpdateAppProfile\x12\x31.google.bigtable.admin.v2.UpdateAppProfileRequest\x1a\x1d.google.longrunning.Operation"\x93\x01\x82\xd3\xe4\x93\x02J2;/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}:\x0b\x61pp_profile\xda\x41\x17\x61pp_profile,update_mask\xca\x41&\n\nAppProfile\x12\x18UpdateAppProfileMetadata\x12\x9d\x01\n\x10\x44\x65leteAppProfile\x12\x31.google.bigtable.admin.v2.DeleteAppProfileRequest\x1a\x16.google.protobuf.Empty">\x82\xd3\xe4\x93\x02\x31*//v2/{name=projects/*/instances/*/appProfiles/*}\xda\x41\x04name\x12\x93\x01\n\x0cGetIamPolicy\x12".google.iam.v1.GetIamPolicyRequest\x1a\x15.google.iam.v1.Policy"H\x82\xd3\xe4\x93\x02\x37"2/v2/{resource=projects/*/instances/*}:getIamPolicy:\x01*\xda\x41\x08resource\x12\x9a\x01\n\x0cSetIamPolicy\x12".google.iam.v1.SetIamPolicyRequest\x1a\x15.google.iam.v1.Policy"O\x82\xd3\xe4\x93\x02\x37"2/v2/{resource=projects/*/instances/*}:setIamPolicy:\x01*\xda\x41\x0fresource,policy\x12\xc5\x01\n\x12TestIamPermissions\x12(.google.iam.v1.TestIamPermissionsRequest\x1a).google.iam.v1.TestIamPermissionsResponse"Z\x82\xd3\xe4\x93\x02="8/v2/{resource=projects/*/instances/*}:testIamPermissions:\x01*\xda\x41\x14resource,permissions\x1a\x9a\x03\xca\x41\x1c\x62igtableadmin.googleapis.com\xd2\x41\xf7\x02https://www.googleapis.com/auth/bigtable.admin,https://www.googleapis.com/auth/bigtable.admin.cluster,https://www.googleapis.com/auth/bigtable.admin.instance,https://www.googleapis.com/auth/cloud-bigtable.admin,https://www.googleapis.com/auth/cloud-bigtable.admin.cluster,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/cloud-platform.read-onlyB\xbd\x01\n\x1c\x63om.google.bigtable.admin.v2B\x1a\x42igtableInstanceAdminProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
     ),
     dependencies=[
         google_dot_api_dot_annotations__pb2.DESCRIPTOR,
+        google_dot_api_dot_client__pb2.DESCRIPTOR,
+        google_dot_api_dot_field__behavior__pb2.DESCRIPTOR,
+        google_dot_api_dot_resource__pb2.DESCRIPTOR,
         google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2.DESCRIPTOR,
         google_dot_iam_dot_v1_dot_iam__policy__pb2.DESCRIPTOR,
         google_dot_iam_dot_v1_dot_policy__pb2.DESCRIPTOR,
@@ -104,8 +110,8 @@ _CREATEINSTANCEREQUEST_CLUSTERSENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=570,
-    serialized_end=652,
+    serialized_start=723,
+    serialized_end=805,
 )
 
 _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
@@ -130,7 +136,9 @@ _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                "\340A\002\372A-\n+cloudresourcemanager.googleapis.com/Project"
+            ),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -148,7 +156,7 @@ _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -166,7 +174,7 @@ _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -184,7 +192,7 @@ _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
     ],
@@ -196,8 +204,8 @@ _CREATEINSTANCEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=373,
-    serialized_end=652,
+    serialized_start=458,
+    serialized_end=805,
 )
 
 
@@ -223,7 +231,7 @@ _GETINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
     ],
@@ -235,8 +243,8 @@ _GETINSTANCEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=654,
-    serialized_end=688,
+    serialized_start=807,
+    serialized_end=883,
 )
 
 
@@ -262,7 +270,9 @@ _LISTINSTANCESREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                "\340A\002\372A-\n+cloudresourcemanager.googleapis.com/Project"
+            ),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -292,8 +302,8 @@ _LISTINSTANCESREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=690,
-    serialized_end=748,
+    serialized_start=885,
+    serialized_end=996,
 )
 
 
@@ -367,8 +377,8 @@ _LISTINSTANCESRESPONSE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=751,
-    serialized_end=880,
+    serialized_start=999,
+    serialized_end=1128,
 )
 
 
@@ -394,7 +404,7 @@ _PARTIALUPDATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -412,7 +422,7 @@ _PARTIALUPDATEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
     ],
@@ -424,8 +434,8 @@ _PARTIALUPDATEINSTANCEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=883,
-    serialized_end=1016,
+    serialized_start=1131,
+    serialized_end=1274,
 )
 
 
@@ -451,7 +461,7 @@ _DELETEINSTANCEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
     ],
@@ -463,8 +473,8 @@ _DELETEINSTANCEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1018,
-    serialized_end=1055,
+    serialized_start=1276,
+    serialized_end=1355,
 )
 
 
@@ -490,7 +500,7 @@ _CREATECLUSTERREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -508,7 +518,7 @@ _CREATECLUSTERREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -526,7 +536,7 @@ _CREATECLUSTERREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
     ],
@@ -538,8 +548,8 @@ _CREATECLUSTERREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1057,
-    serialized_end=1167,
+    serialized_start=1358,
+    serialized_end=1520,
 )
 
 
@@ -565,7 +575,9 @@ _GETCLUSTERREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                "\340A\002\372A!\n\037bigtable.googleapis.com/Cluster"
+            ),
             file=DESCRIPTOR,
         ),
     ],
@@ -577,8 +589,8 @@ _GETCLUSTERREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1169,
-    serialized_end=1202,
+    serialized_start=1522,
+    serialized_end=1596,
 )
 
 
@@ -604,7 +616,7 @@ _LISTCLUSTERSREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -634,8 +646,8 @@ _LISTCLUSTERSREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1204,
-    serialized_end=1261,
+    serialized_start=1598,
+    serialized_end=1697,
 )
 
 
@@ -709,8 +721,8 @@ _LISTCLUSTERSRESPONSE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1263,
-    serialized_end=1389,
+    serialized_start=1699,
+    serialized_end=1825,
 )
 
 
@@ -736,7 +748,9 @@ _DELETECLUSTERREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                "\340A\002\372A!\n\037bigtable.googleapis.com/Cluster"
+            ),
             file=DESCRIPTOR,
         ),
     ],
@@ -748,8 +762,8 @@ _DELETECLUSTERREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1391,
-    serialized_end=1427,
+    serialized_start=1827,
+    serialized_end=1904,
 )
 
 
@@ -823,8 +837,8 @@ _CREATEINSTANCEMETADATA = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1430,
-    serialized_end=1628,
+    serialized_start=1907,
+    serialized_end=2105,
 )
 
 
@@ -898,8 +912,8 @@ _UPDATEINSTANCEMETADATA = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1631,
-    serialized_end=1836,
+    serialized_start=2108,
+    serialized_end=2313,
 )
 
 
@@ -973,8 +987,8 @@ _CREATECLUSTERMETADATA = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1839,
-    serialized_end=2035,
+    serialized_start=2316,
+    serialized_end=2512,
 )
 
 
@@ -1048,8 +1062,8 @@ _UPDATECLUSTERMETADATA = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2038,
-    serialized_end=2221,
+    serialized_start=2515,
+    serialized_end=2698,
 )
 
 
@@ -1075,7 +1089,7 @@ _CREATEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1093,7 +1107,7 @@ _CREATEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1111,7 +1125,7 @@ _CREATEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1141,8 +1155,8 @@ _CREATEAPPPROFILEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2224,
-    serialized_end=2373,
+    serialized_start=2701,
+    serialized_end=2902,
 )
 
 
@@ -1168,7 +1182,9 @@ _GETAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                '\340A\002\372A$\n"bigtable.googleapis.com/AppProfile'
+            ),
             file=DESCRIPTOR,
         ),
     ],
@@ -1180,8 +1196,8 @@ _GETAPPPROFILEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2375,
-    serialized_end=2411,
+    serialized_start=2904,
+    serialized_end=2984,
 )
 
 
@@ -1207,7 +1223,7 @@ _LISTAPPPROFILESREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b('\340A\002\372A"\n bigtable.googleapis.com/Instance'),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1255,8 +1271,8 @@ _LISTAPPPROFILESREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2413,
-    serialized_end=2492,
+    serialized_start=2986,
+    serialized_end=3107,
 )
 
 
@@ -1330,8 +1346,8 @@ _LISTAPPPROFILESRESPONSE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2495,
-    serialized_end=2631,
+    serialized_start=3110,
+    serialized_end=3246,
 )
 
 
@@ -1357,7 +1373,7 @@ _UPDATEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1375,7 +1391,7 @@ _UPDATEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1405,8 +1421,8 @@ _UPDATEAPPPROFILEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2634,
-    serialized_end=2792,
+    serialized_start=3249,
+    serialized_end=3417,
 )
 
 
@@ -1432,7 +1448,9 @@ _DELETEAPPPROFILEREQUEST = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b(
+                '\340A\002\372A$\n"bigtable.googleapis.com/AppProfile'
+            ),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -1462,8 +1480,8 @@ _DELETEAPPPROFILEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2794,
-    serialized_end=2858,
+    serialized_start=3419,
+    serialized_end=3527,
 )
 
 
@@ -1482,8 +1500,8 @@ _UPDATEAPPPROFILEMETADATA = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=2860,
-    serialized_end=2886,
+    serialized_start=3529,
+    serialized_end=3555,
 )
 
 _CREATEINSTANCEREQUEST_CLUSTERSENTRY.fields_by_name[
@@ -1625,21 +1643,22 @@ CreateInstanceRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the project in which to create the new
-          instance. Values are of the form ``projects/<project>``.
+          Required. The unique name of the project in which to create
+          the new instance. Values are of the form
+          ``projects/{project}``.
       instance_id:
-          The ID to be used when referring to the new instance within
-          its project, e.g., just ``myinstance`` rather than
+          Required. The ID to be used when referring to the new instance
+          within its project, e.g., just ``myinstance`` rather than
           ``projects/myproject/instances/myinstance``.
       instance:
-          The instance to create. Fields marked ``OutputOnly`` must be
-          left blank.
+          Required. The instance to create. Fields marked ``OutputOnly``
+          must be left blank.
       clusters:
-          The clusters to be created within the instance, mapped by
-          desired cluster ID, e.g., just ``mycluster`` rather than ``pro
-          jects/myproject/instances/myinstance/clusters/mycluster``.
-          Fields marked ``OutputOnly`` must be left blank. Currently, at
-          most two clusters can be specified.
+          Required. The clusters to be created within the instance,
+          mapped by desired cluster ID, e.g., just ``mycluster`` rather
+          than ``projects/myproject/instances/myinstance/clusters/myclus
+          ter``. Fields marked ``OutputOnly`` must be left blank.
+          Currently, at most four clusters can be specified.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.CreateInstanceRequest)
     ),
@@ -1658,8 +1677,8 @@ GetInstanceRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the requested instance. Values are of the
-          form ``projects/<project>/instances/<instance>``.
+          Required. The unique name of the requested instance. Values
+          are of the form ``projects/{project}/instances/{instance}``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.GetInstanceRequest)
     ),
@@ -1677,8 +1696,9 @@ ListInstancesRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the project for which a list of instances
-          is requested. Values are of the form ``projects/<project>``.
+          Required. The unique name of the project for which a list of
+          instances is requested. Values are of the form
+          ``projects/{project}``.
       page_token:
           DEPRECATED: This field is unused and ignored.
   """,
@@ -1727,10 +1747,11 @@ PartialUpdateInstanceRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       instance:
-          The Instance which will (partially) replace the current value.
+          Required. The Instance which will (partially) replace the
+          current value.
       update_mask:
-          The subset of Instance fields which should be replaced. Must
-          be explicitly set.
+          Required. The subset of Instance fields which should be
+          replaced. Must be explicitly set.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.PartialUpdateInstanceRequest)
     ),
@@ -1748,8 +1769,9 @@ DeleteInstanceRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the instance to be deleted. Values are of
-          the form ``projects/<project>/instances/<instance>``.
+          Required. The unique name of the instance to be deleted.
+          Values are of the form
+          ``projects/{project}/instances/{instance}``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.DeleteInstanceRequest)
     ),
@@ -1767,16 +1789,16 @@ CreateClusterRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the instance in which to create the new
-          cluster. Values are of the form
-          ``projects/<project>/instances/<instance>``.
+          Required. The unique name of the instance in which to create
+          the new cluster. Values are of the form
+          ``projects/{project}/instances/{instance}``.
       cluster_id:
-          The ID to be used when referring to the new cluster within its
-          instance, e.g., just ``mycluster`` rather than ``projects/mypr
-          oject/instances/myinstance/clusters/mycluster``.
+          Required. The ID to be used when referring to the new cluster
+          within its instance, e.g., just ``mycluster`` rather than ``pr
+          ojects/myproject/instances/myinstance/clusters/mycluster``.
       cluster:
-          The cluster to be created. Fields marked ``OutputOnly`` must
-          be left blank.
+          Required. The cluster to be created. Fields marked
+          ``OutputOnly`` must be left blank.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.CreateClusterRequest)
     ),
@@ -1794,9 +1816,9 @@ GetClusterRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the requested cluster. Values are of the
-          form ``projects/<project>/instances/<instance>/clusters/<clust
-          er>``.
+          Required. The unique name of the requested cluster. Values are
+          of the form ``projects/{project}/instances/{instance}/clusters
+          /{cluster}``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.GetClusterRequest)
     ),
@@ -1814,9 +1836,9 @@ ListClustersRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the instance for which a list of clusters
-          is requested. Values are of the form
-          ``projects/<project>/instances/<instance>``. Use ``<instance>
+          Required. The unique name of the instance for which a list of
+          clusters is requested. Values are of the form
+          ``projects/{project}/instances/{instance}``. Use ``{instance}
           = '-'`` to list Clusters for all Instances in a project, e.g.,
           ``projects/myproject/instances/-``.
       page_token:
@@ -1865,9 +1887,9 @@ DeleteClusterRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the cluster to be deleted. Values are of
-          the form ``projects/<project>/instances/<instance>/clusters/<c
-          luster>``.
+          Required. The unique name of the cluster to be deleted. Values
+          are of the form ``projects/{project}/instances/{instance}/clus
+          ters/{cluster}``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.DeleteClusterRequest)
     ),
@@ -1982,16 +2004,17 @@ CreateAppProfileRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the instance in which to create the new app
-          profile. Values are of the form
-          ``projects/<project>/instances/<instance>``.
+          Required. The unique name of the instance in which to create
+          the new app profile. Values are of the form
+          ``projects/{project}/instances/{instance}``.
       app_profile_id:
-          The ID to be used when referring to the new app profile within
-          its instance, e.g., just ``myprofile`` rather than ``projects/
-          myproject/instances/myinstance/appProfiles/myprofile``.
+          Required. The ID to be used when referring to the new app
+          profile within its instance, e.g., just ``myprofile`` rather
+          than ``projects/myproject/instances/myinstance/appProfiles/myp
+          rofile``.
       app_profile:
-          The app profile to be created. Fields marked ``OutputOnly``
-          will be ignored.
+          Required. The app profile to be created. Fields marked
+          ``OutputOnly`` will be ignored.
       ignore_warnings:
           If true, ignore safety checks when creating the app profile.
   """,
@@ -2011,9 +2034,9 @@ GetAppProfileRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the requested app profile. Values are of
-          the form ``projects/<project>/instances/<instance>/appProfiles
-          /<app_profile>``.
+          Required. The unique name of the requested app profile. Values
+          are of the form ``projects/{project}/instances/{instance}/appP
+          rofiles/{app_profile}``.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.GetAppProfileRequest)
     ),
@@ -2031,14 +2054,20 @@ ListAppProfilesRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       parent:
-          The unique name of the instance for which a list of app
-          profiles is requested. Values are of the form
-          ``projects/<project>/instances/<instance>``. Use ``<instance>
+          Required. The unique name of the instance for which a list of
+          app profiles is requested. Values are of the form
+          ``projects/{project}/instances/{instance}``. Use ``{instance}
           = '-'`` to list AppProfiles for all Instances in a project,
           e.g., ``projects/myproject/instances/-``.
       page_size:
-          Maximum number of results per page. CURRENTLY UNIMPLEMENTED
-          AND IGNORED.
+          Maximum number of results per page.  A page\_size of zero lets
+          the server choose the number of items to return. A page\_size
+          which is strictly positive will return at most that many
+          items. A negative page\_size will cause an error.  Following
+          the first request, subsequent paginated calls are not required
+          to pass a page\_size. If a page\_size is set in subsequent
+          calls, it must match the page\_size given in the first
+          request.
       page_token:
           The value of ``next_page_token`` returned by a previous call.
   """,
@@ -2088,11 +2117,11 @@ UpdateAppProfileRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       app_profile:
-          The app profile which will (partially) replace the current
-          value.
+          Required. The app profile which will (partially) replace the
+          current value.
       update_mask:
-          The subset of app profile fields which should be replaced. If
-          unset, all fields will be replaced.
+          Required. The subset of app profile fields which should be
+          replaced. If unset, all fields will be replaced.
       ignore_warnings:
           If true, ignore safety checks when updating the app profile.
   """,
@@ -2113,9 +2142,9 @@ DeleteAppProfileRequest = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          The unique name of the app profile to be deleted. Values are
-          of the form ``projects/<project>/instances/<instance>/appProfi
-          les/<app_profile>``.
+          Required. The unique name of the app profile to be deleted.
+          Values are of the form ``projects/{project}/instances/{instanc
+          e}/appProfiles/{app_profile}``.
       ignore_warnings:
           If true, ignore safety checks when deleting the app profile.
   """,
@@ -2142,15 +2171,40 @@ _sym_db.RegisterMessage(UpdateAppProfileMetadata)
 
 DESCRIPTOR._options = None
 _CREATEINSTANCEREQUEST_CLUSTERSENTRY._options = None
+_CREATEINSTANCEREQUEST.fields_by_name["parent"]._options = None
+_CREATEINSTANCEREQUEST.fields_by_name["instance_id"]._options = None
+_CREATEINSTANCEREQUEST.fields_by_name["instance"]._options = None
+_CREATEINSTANCEREQUEST.fields_by_name["clusters"]._options = None
+_GETINSTANCEREQUEST.fields_by_name["name"]._options = None
+_LISTINSTANCESREQUEST.fields_by_name["parent"]._options = None
+_PARTIALUPDATEINSTANCEREQUEST.fields_by_name["instance"]._options = None
+_PARTIALUPDATEINSTANCEREQUEST.fields_by_name["update_mask"]._options = None
+_DELETEINSTANCEREQUEST.fields_by_name["name"]._options = None
+_CREATECLUSTERREQUEST.fields_by_name["parent"]._options = None
+_CREATECLUSTERREQUEST.fields_by_name["cluster_id"]._options = None
+_CREATECLUSTERREQUEST.fields_by_name["cluster"]._options = None
+_GETCLUSTERREQUEST.fields_by_name["name"]._options = None
+_LISTCLUSTERSREQUEST.fields_by_name["parent"]._options = None
+_DELETECLUSTERREQUEST.fields_by_name["name"]._options = None
+_CREATEAPPPROFILEREQUEST.fields_by_name["parent"]._options = None
+_CREATEAPPPROFILEREQUEST.fields_by_name["app_profile_id"]._options = None
+_CREATEAPPPROFILEREQUEST.fields_by_name["app_profile"]._options = None
+_GETAPPPROFILEREQUEST.fields_by_name["name"]._options = None
+_LISTAPPPROFILESREQUEST.fields_by_name["parent"]._options = None
+_UPDATEAPPPROFILEREQUEST.fields_by_name["app_profile"]._options = None
+_UPDATEAPPPROFILEREQUEST.fields_by_name["update_mask"]._options = None
+_DELETEAPPPROFILEREQUEST.fields_by_name["name"]._options = None
 
 _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
     name="BigtableInstanceAdmin",
     full_name="google.bigtable.admin.v2.BigtableInstanceAdmin",
     file=DESCRIPTOR,
     index=0,
-    serialized_options=None,
-    serialized_start=2889,
-    serialized_end=5875,
+    serialized_options=_b(
+        "\312A\034bigtableadmin.googleapis.com\322A\367\002https://www.googleapis.com/auth/bigtable.admin,https://www.googleapis.com/auth/bigtable.admin.cluster,https://www.googleapis.com/auth/bigtable.admin.instance,https://www.googleapis.com/auth/cloud-bigtable.admin,https://www.googleapis.com/auth/cloud-bigtable.admin.cluster,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/cloud-platform.read-only"
+    ),
+    serialized_start=3558,
+    serialized_end=7416,
     methods=[
         _descriptor.MethodDescriptor(
             name="CreateInstance",
@@ -2160,7 +2214,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_CREATEINSTANCEREQUEST,
             output_type=google_dot_longrunning_dot_operations__pb2._OPERATION,
             serialized_options=_b(
-                '\202\323\344\223\002&"!/v2/{parent=projects/*}/instances:\001*'
+                '\202\323\344\223\002&"!/v2/{parent=projects/*}/instances:\001*\332A$parent,instance_id,instance,clusters\312A"\n\010Instance\022\026CreateInstanceMetadata'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2171,7 +2225,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_GETINSTANCEREQUEST,
             output_type=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2._INSTANCE,
             serialized_options=_b(
-                "\202\323\344\223\002#\022!/v2/{name=projects/*/instances/*}"
+                "\202\323\344\223\002#\022!/v2/{name=projects/*/instances/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2182,7 +2236,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_LISTINSTANCESREQUEST,
             output_type=_LISTINSTANCESRESPONSE,
             serialized_options=_b(
-                "\202\323\344\223\002#\022!/v2/{parent=projects/*}/instances"
+                "\202\323\344\223\002#\022!/v2/{parent=projects/*}/instances\332A\006parent"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2204,7 +2258,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_PARTIALUPDATEINSTANCEREQUEST,
             output_type=google_dot_longrunning_dot_operations__pb2._OPERATION,
             serialized_options=_b(
-                "\202\323\344\223\00262*/v2/{instance.name=projects/*/instances/*}:\010instance"
+                '\202\323\344\223\00262*/v2/{instance.name=projects/*/instances/*}:\010instance\332A\024instance,update_mask\312A"\n\010Instance\022\026UpdateInstanceMetadata'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2215,7 +2269,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_DELETEINSTANCEREQUEST,
             output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
             serialized_options=_b(
-                "\202\323\344\223\002#*!/v2/{name=projects/*/instances/*}"
+                "\202\323\344\223\002#*!/v2/{name=projects/*/instances/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2226,7 +2280,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_CREATECLUSTERREQUEST,
             output_type=google_dot_longrunning_dot_operations__pb2._OPERATION,
             serialized_options=_b(
-                '\202\323\344\223\0027",/v2/{parent=projects/*/instances/*}/clusters:\007cluster'
+                '\202\323\344\223\0027",/v2/{parent=projects/*/instances/*}/clusters:\007cluster\332A\031parent,cluster_id,cluster\312A \n\007Cluster\022\025CreateClusterMetadata'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2237,7 +2291,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_GETCLUSTERREQUEST,
             output_type=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2._CLUSTER,
             serialized_options=_b(
-                "\202\323\344\223\002.\022,/v2/{name=projects/*/instances/*/clusters/*}"
+                "\202\323\344\223\002.\022,/v2/{name=projects/*/instances/*/clusters/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2248,7 +2302,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_LISTCLUSTERSREQUEST,
             output_type=_LISTCLUSTERSRESPONSE,
             serialized_options=_b(
-                "\202\323\344\223\002.\022,/v2/{parent=projects/*/instances/*}/clusters"
+                "\202\323\344\223\002.\022,/v2/{parent=projects/*/instances/*}/clusters\332A\006parent"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2259,7 +2313,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2._CLUSTER,
             output_type=google_dot_longrunning_dot_operations__pb2._OPERATION,
             serialized_options=_b(
-                "\202\323\344\223\0021\032,/v2/{name=projects/*/instances/*/clusters/*}:\001*"
+                "\202\323\344\223\0021\032,/v2/{name=projects/*/instances/*/clusters/*}:\001*\312A \n\007Cluster\022\025UpdateClusterMetadata"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2270,7 +2324,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_DELETECLUSTERREQUEST,
             output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
             serialized_options=_b(
-                "\202\323\344\223\002.*,/v2/{name=projects/*/instances/*/clusters/*}"
+                "\202\323\344\223\002.*,/v2/{name=projects/*/instances/*/clusters/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2281,7 +2335,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_CREATEAPPPROFILEREQUEST,
             output_type=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2._APPPROFILE,
             serialized_options=_b(
-                '\202\323\344\223\002>"//v2/{parent=projects/*/instances/*}/appProfiles:\013app_profile'
+                '\202\323\344\223\002>"//v2/{parent=projects/*/instances/*}/appProfiles:\013app_profile\332A!parent,app_profile_id,app_profile'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2292,7 +2346,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_GETAPPPROFILEREQUEST,
             output_type=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_instance__pb2._APPPROFILE,
             serialized_options=_b(
-                "\202\323\344\223\0021\022//v2/{name=projects/*/instances/*/appProfiles/*}"
+                "\202\323\344\223\0021\022//v2/{name=projects/*/instances/*/appProfiles/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2303,7 +2357,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_LISTAPPPROFILESREQUEST,
             output_type=_LISTAPPPROFILESRESPONSE,
             serialized_options=_b(
-                "\202\323\344\223\0021\022//v2/{parent=projects/*/instances/*}/appProfiles"
+                "\202\323\344\223\0021\022//v2/{parent=projects/*/instances/*}/appProfiles\332A\006parent"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2314,7 +2368,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_UPDATEAPPPROFILEREQUEST,
             output_type=google_dot_longrunning_dot_operations__pb2._OPERATION,
             serialized_options=_b(
-                "\202\323\344\223\002J2;/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}:\013app_profile"
+                "\202\323\344\223\002J2;/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}:\013app_profile\332A\027app_profile,update_mask\312A&\n\nAppProfile\022\030UpdateAppProfileMetadata"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2325,7 +2379,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=_DELETEAPPPROFILEREQUEST,
             output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
             serialized_options=_b(
-                "\202\323\344\223\0021*//v2/{name=projects/*/instances/*/appProfiles/*}"
+                "\202\323\344\223\0021*//v2/{name=projects/*/instances/*/appProfiles/*}\332A\004name"
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2336,7 +2390,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=google_dot_iam_dot_v1_dot_iam__policy__pb2._GETIAMPOLICYREQUEST,
             output_type=google_dot_iam_dot_v1_dot_policy__pb2._POLICY,
             serialized_options=_b(
-                '\202\323\344\223\0027"2/v2/{resource=projects/*/instances/*}:getIamPolicy:\001*'
+                '\202\323\344\223\0027"2/v2/{resource=projects/*/instances/*}:getIamPolicy:\001*\332A\010resource'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2347,7 +2401,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=google_dot_iam_dot_v1_dot_iam__policy__pb2._SETIAMPOLICYREQUEST,
             output_type=google_dot_iam_dot_v1_dot_policy__pb2._POLICY,
             serialized_options=_b(
-                '\202\323\344\223\0027"2/v2/{resource=projects/*/instances/*}:setIamPolicy:\001*'
+                '\202\323\344\223\0027"2/v2/{resource=projects/*/instances/*}:setIamPolicy:\001*\332A\017resource,policy'
             ),
         ),
         _descriptor.MethodDescriptor(
@@ -2358,7 +2412,7 @@ _BIGTABLEINSTANCEADMIN = _descriptor.ServiceDescriptor(
             input_type=google_dot_iam_dot_v1_dot_iam__policy__pb2._TESTIAMPERMISSIONSREQUEST,
             output_type=google_dot_iam_dot_v1_dot_iam__policy__pb2._TESTIAMPERMISSIONSRESPONSE,
             serialized_options=_b(
-                '\202\323\344\223\002="8/v2/{resource=projects/*/instances/*}:testIamPermissions:\001*'
+                '\202\323\344\223\002="8/v2/{resource=projects/*/instances/*}:testIamPermissions:\001*\332A\024resource,permissions'
             ),
         ),
     ],

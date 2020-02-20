@@ -267,8 +267,9 @@ class BigtableTableAdminGrpcTransport(object):
     def get_iam_policy(self):
         """Return the gRPC stub for :meth:`BigtableTableAdminClient.get_iam_policy`.
 
-        Gets the access control policy for a table resource. Returns an empty
-        policy if an table exists but does not have a policy set.
+        Gets the access control policy for a resource.
+        Returns an empty policy if the resource exists but does not have a policy
+        set.
 
         Returns:
             Callable: A callable which accepts the appropriate
@@ -281,8 +282,8 @@ class BigtableTableAdminGrpcTransport(object):
     def set_iam_policy(self):
         """Return the gRPC stub for :meth:`BigtableTableAdminClient.set_iam_policy`.
 
-        Sets the access control policy on a table resource. Replaces any existing
-        policy.
+        Sets the access control policy on a Table or Backup resource.
+        Replaces any existing policy.
 
         Returns:
             Callable: A callable which accepts the appropriate

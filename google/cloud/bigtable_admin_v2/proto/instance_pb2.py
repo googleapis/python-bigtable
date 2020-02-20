@@ -16,6 +16,8 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.api import resource_pb2 as google_dot_api_dot_resource__pb2
 from google.cloud.bigtable_admin_v2.proto import (
     common_pb2 as google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_common__pb2,
 )
@@ -29,10 +31,12 @@ DESCRIPTOR = _descriptor.FileDescriptor(
         "\n\034com.google.bigtable.admin.v2B\rInstanceProtoP\001Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\252\002\036Google.Cloud.Bigtable.Admin.V2\312\002\036Google\\Cloud\\Bigtable\\Admin\\V2"
     ),
     serialized_pb=_b(
-        '\n3google/cloud/bigtable/admin_v2/proto/instance.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x31google/cloud/bigtable/admin_v2/proto/common.proto"\x83\x03\n\x08Instance\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\x37\n\x05state\x18\x03 \x01(\x0e\x32(.google.bigtable.admin.v2.Instance.State\x12\x35\n\x04type\x18\x04 \x01(\x0e\x32\'.google.bigtable.admin.v2.Instance.Type\x12>\n\x06labels\x18\x05 \x03(\x0b\x32..google.bigtable.admin.v2.Instance.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02"=\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x0e\n\nPRODUCTION\x10\x01\x12\x0f\n\x0b\x44\x45VELOPMENT\x10\x02"\x8e\x02\n\x07\x43luster\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08location\x18\x02 \x01(\t\x12\x36\n\x05state\x18\x03 \x01(\x0e\x32\'.google.bigtable.admin.v2.Cluster.State\x12\x13\n\x0bserve_nodes\x18\x04 \x01(\x05\x12\x43\n\x14\x64\x65\x66\x61ult_storage_type\x18\x05 \x01(\x0e\x32%.google.bigtable.admin.v2.StorageType"Q\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02\x12\x0c\n\x08RESIZING\x10\x03\x12\x0c\n\x08\x44ISABLED\x10\x04"\x82\x03\n\nAppProfile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x65tag\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12g\n\x1dmulti_cluster_routing_use_any\x18\x05 \x01(\x0b\x32>.google.bigtable.admin.v2.AppProfile.MultiClusterRoutingUseAnyH\x00\x12[\n\x16single_cluster_routing\x18\x06 \x01(\x0b\x32\x39.google.bigtable.admin.v2.AppProfile.SingleClusterRoutingH\x00\x1a\x1b\n\x19MultiClusterRoutingUseAny\x1aN\n\x14SingleClusterRouting\x12\x12\n\ncluster_id\x18\x01 \x01(\t\x12"\n\x1a\x61llow_transactional_writes\x18\x02 \x01(\x08\x42\x10\n\x0erouting_policyB\xb0\x01\n\x1c\x63om.google.bigtable.admin.v2B\rInstanceProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
+        '\n3google/cloud/bigtable/admin_v2/proto/instance.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x31google/cloud/bigtable/admin_v2/proto/common.proto"\xdd\x03\n\x08Instance\x12\x11\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x03\x12\x19\n\x0c\x64isplay_name\x18\x02 \x01(\tB\x03\xe0\x41\x02\x12\x37\n\x05state\x18\x03 \x01(\x0e\x32(.google.bigtable.admin.v2.Instance.State\x12\x35\n\x04type\x18\x04 \x01(\x0e\x32\'.google.bigtable.admin.v2.Instance.Type\x12>\n\x06labels\x18\x05 \x03(\x0b\x32..google.bigtable.admin.v2.Instance.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02"=\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x0e\n\nPRODUCTION\x10\x01\x12\x0f\n\x0b\x44\x45VELOPMENT\x10\x02:N\xea\x41K\n bigtable.googleapis.com/Instance\x12\'projects/{project}/instances/{instance}"\xa7\x03\n\x07\x43luster\x12\x11\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x03\x12\x38\n\x08location\x18\x02 \x01(\tB&\xfa\x41#\n!locations.googleapis.com/Location\x12;\n\x05state\x18\x03 \x01(\x0e\x32\'.google.bigtable.admin.v2.Cluster.StateB\x03\xe0\x41\x03\x12\x18\n\x0bserve_nodes\x18\x04 \x01(\x05\x42\x03\xe0\x41\x02\x12\x43\n\x14\x64\x65\x66\x61ult_storage_type\x18\x05 \x01(\x0e\x32%.google.bigtable.admin.v2.StorageType"Q\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02\x12\x0c\n\x08RESIZING\x10\x03\x12\x0c\n\x08\x44ISABLED\x10\x04:`\xea\x41]\n\x1f\x62igtable.googleapis.com/Cluster\x12:projects/{project}/instances/{instance}/clusters/{cluster}"\xee\x03\n\nAppProfile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x65tag\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12g\n\x1dmulti_cluster_routing_use_any\x18\x05 \x01(\x0b\x32>.google.bigtable.admin.v2.AppProfile.MultiClusterRoutingUseAnyH\x00\x12[\n\x16single_cluster_routing\x18\x06 \x01(\x0b\x32\x39.google.bigtable.admin.v2.AppProfile.SingleClusterRoutingH\x00\x1a\x1b\n\x19MultiClusterRoutingUseAny\x1aN\n\x14SingleClusterRouting\x12\x12\n\ncluster_id\x18\x01 \x01(\t\x12"\n\x1a\x61llow_transactional_writes\x18\x02 \x01(\x08:j\xea\x41g\n"bigtable.googleapis.com/AppProfile\x12\x41projects/{project}/instances/{instance}/appProfiles/{app_profile}B\x10\n\x0erouting_policyB\xb0\x01\n\x1c\x63om.google.bigtable.admin.v2B\rInstanceProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
     ),
     dependencies=[
         google_dot_api_dot_annotations__pb2.DESCRIPTOR,
+        google_dot_api_dot_field__behavior__pb2.DESCRIPTOR,
+        google_dot_api_dot_resource__pb2.DESCRIPTOR,
         google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_common__pb2.DESCRIPTOR,
     ],
 )
@@ -60,8 +64,8 @@ _INSTANCE_STATE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=434,
-    serialized_end=487,
+    serialized_start=504,
+    serialized_end=557,
 )
 _sym_db.RegisterEnumDescriptor(_INSTANCE_STATE)
 
@@ -87,8 +91,8 @@ _INSTANCE_TYPE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=489,
-    serialized_end=550,
+    serialized_start=559,
+    serialized_end=620,
 )
 _sym_db.RegisterEnumDescriptor(_INSTANCE_TYPE)
 
@@ -120,8 +124,8 @@ _CLUSTER_STATE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=742,
-    serialized_end=823,
+    serialized_start=947,
+    serialized_end=1028,
 )
 _sym_db.RegisterEnumDescriptor(_CLUSTER_STATE)
 
@@ -178,8 +182,8 @@ _INSTANCE_LABELSENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=387,
-    serialized_end=432,
+    serialized_start=457,
+    serialized_end=502,
 )
 
 _INSTANCE = _descriptor.Descriptor(
@@ -204,7 +208,7 @@ _INSTANCE = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\003"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -222,7 +226,7 @@ _INSTANCE = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -283,13 +287,15 @@ _INSTANCE = _descriptor.Descriptor(
     extensions=[],
     nested_types=[_INSTANCE_LABELSENTRY,],
     enum_types=[_INSTANCE_STATE, _INSTANCE_TYPE,],
-    serialized_options=None,
+    serialized_options=_b(
+        "\352AK\n bigtable.googleapis.com/Instance\022'projects/{project}/instances/{instance}"
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=163,
-    serialized_end=550,
+    serialized_start=223,
+    serialized_end=700,
 )
 
 
@@ -315,7 +321,7 @@ _CLUSTER = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\003"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -333,7 +339,7 @@ _CLUSTER = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\372A#\n!locations.googleapis.com/Location"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -351,7 +357,7 @@ _CLUSTER = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\003"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -369,7 +375,7 @@ _CLUSTER = _descriptor.Descriptor(
             containing_type=None,
             is_extension=False,
             extension_scope=None,
-            serialized_options=None,
+            serialized_options=_b("\340A\002"),
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
@@ -394,13 +400,15 @@ _CLUSTER = _descriptor.Descriptor(
     extensions=[],
     nested_types=[],
     enum_types=[_CLUSTER_STATE,],
-    serialized_options=None,
+    serialized_options=_b(
+        "\352A]\n\037bigtable.googleapis.com/Cluster\022:projects/{project}/instances/{instance}/clusters/{cluster}"
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=553,
-    serialized_end=823,
+    serialized_start=703,
+    serialized_end=1126,
 )
 
 
@@ -419,8 +427,8 @@ _APPPROFILE_MULTICLUSTERROUTINGUSEANY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1087,
-    serialized_end=1114,
+    serialized_start=1390,
+    serialized_end=1417,
 )
 
 _APPPROFILE_SINGLECLUSTERROUTING = _descriptor.Descriptor(
@@ -475,8 +483,8 @@ _APPPROFILE_SINGLECLUSTERROUTING = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1116,
-    serialized_end=1194,
+    serialized_start=1419,
+    serialized_end=1497,
 )
 
 _APPPROFILE = _descriptor.Descriptor(
@@ -583,7 +591,9 @@ _APPPROFILE = _descriptor.Descriptor(
         _APPPROFILE_SINGLECLUSTERROUTING,
     ],
     enum_types=[],
-    serialized_options=None,
+    serialized_options=_b(
+        '\352Ag\n"bigtable.googleapis.com/AppProfile\022Aprojects/{project}/instances/{instance}/appProfiles/{app_profile}'
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
@@ -596,8 +606,8 @@ _APPPROFILE = _descriptor.Descriptor(
             fields=[],
         ),
     ],
-    serialized_start=826,
-    serialized_end=1212,
+    serialized_start=1129,
+    serialized_end=1623,
 )
 
 _INSTANCE_LABELSENTRY.containing_type = _INSTANCE
@@ -655,19 +665,18 @@ Instance = _reflection.GeneratedProtocolMessageType(
         __module__="google.cloud.bigtable.admin_v2.proto.instance_pb2",
         __doc__="""A collection of Bigtable
   [Tables][google.bigtable.admin.v2.Table] and the resources that serve
-  them. All tables in an instance are served from a single
-  [Cluster][google.bigtable.admin.v2.Cluster].
+  them. All tables in an instance are served from all
+  [Clusters][google.bigtable.admin.v2.Cluster] in the instance.
   
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the instance. Values are
-          of the form
-          ``projects/<project>/instances/[a-z][a-z0-9\\-]+[a-z0-9]``.
+          The unique name of the instance. Values are of the form
+          ``projects/{project}/instances/[a-z][a-z0-9\\-]+[a-z0-9]``.
       display_name:
-          The descriptive name for this instance as it appears in UIs.
-          Can be changed at any time, but should be kept globally unique
-          to avoid confusion.
+          Required. The descriptive name for this instance as it appears
+          in UIs. Can be changed at any time, but should be kept
+          globally unique to avoid confusion.
       state:
           (\ ``OutputOnly``) The current state of the instance.
       type:
@@ -704,20 +713,20 @@ Cluster = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the cluster. Values are
-          of the form ``projects/<project>/instances/<instance>/clusters
-          /[a-z][-a-z0-9]*``.
+          The unique name of the cluster. Values are of the form ``proje
+          cts/{project}/instances/{instance}/clusters/[a-z][-a-z0-9]*``.
       location:
           (\ ``CreationOnly``) The location where this cluster's nodes
           and storage reside. For best performance, clients should be
           located as close as possible to this cluster. Currently only
           zones are supported, so values should be of the form
-          ``projects/<project>/locations/<zone>``.
+          ``projects/{project}/locations/{zone}``.
       state:
-          (\ ``OutputOnly``) The current state of the cluster.
+          The current state of the cluster.
       serve_nodes:
-          The number of nodes allocated to this cluster. More nodes
-          enable higher throughput and more consistent performance.
+          Required. The number of nodes allocated to this cluster. More
+          nodes enable higher throughput and more consistent
+          performance.
       default_storage_type:
           (\ ``CreationOnly``) The type of storage used by this cluster
           to serve its parent instance's tables, unless explicitly
@@ -738,9 +747,10 @@ AppProfile = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_APPPROFILE_MULTICLUSTERROUTINGUSEANY,
                 __module__="google.cloud.bigtable.admin_v2.proto.instance_pb2",
-                __doc__="""Read/write requests may be routed to any cluster in the
-    instance, and will fail over to another cluster in the event of
-    transient errors or delays. Choosing this option sacrifices
+                __doc__="""Read/write requests are routed to the nearest cluster in
+    the instance, and will fail over to the nearest cluster that is
+    available in the event of transient errors or delays. Clusters in a
+    region are considered equidistant. Choosing this option sacrifices
     read-your-writes consistency to improve availability.
     
     """,
@@ -753,9 +763,9 @@ AppProfile = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_APPPROFILE_SINGLECLUSTERROUTING,
                 __module__="google.cloud.bigtable.admin_v2.proto.instance_pb2",
-                __doc__="""Unconditionally routes all read/write requests to a
-    specific cluster. This option preserves read-your-writes consistency,
-    but does not improve availability.
+                __doc__="""Unconditionally routes all read/write requests to a specific cluster.
+    This option preserves read-your-writes consistency but does not improve
+    availability.
     
     
     Attributes:
@@ -796,10 +806,10 @@ AppProfile = _reflection.GeneratedProtocolMessageType(
           Optional long form description of the use case for this
           AppProfile.
       routing_policy:
-          The routing policy for all read/write requests which use this
+          The routing policy for all read/write requests that use this
           app profile. A value must be explicitly set.
       multi_cluster_routing_use_any:
-          Use a multi-cluster routing policy that may pick any cluster.
+          Use a multi-cluster routing policy.
       single_cluster_routing:
           Use a single-cluster routing policy.
   """,
@@ -813,4 +823,13 @@ _sym_db.RegisterMessage(AppProfile.SingleClusterRouting)
 
 DESCRIPTOR._options = None
 _INSTANCE_LABELSENTRY._options = None
+_INSTANCE.fields_by_name["name"]._options = None
+_INSTANCE.fields_by_name["display_name"]._options = None
+_INSTANCE._options = None
+_CLUSTER.fields_by_name["name"]._options = None
+_CLUSTER.fields_by_name["location"]._options = None
+_CLUSTER.fields_by_name["state"]._options = None
+_CLUSTER.fields_by_name["serve_nodes"]._options = None
+_CLUSTER._options = None
+_APPPROFILE._options = None
 # @@protoc_insertion_point(module_scope)
