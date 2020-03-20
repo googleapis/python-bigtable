@@ -5,6 +5,7 @@
 import sys
 
 _b = sys.version_info[0] < 3 and (lambda x: x) or (lambda x: x.encode("latin1"))
+from google.protobuf.internal import enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
@@ -16,6 +17,8 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.api import resource_pb2 as google_dot_api_dot_resource__pb2
 from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
@@ -28,14 +31,44 @@ DESCRIPTOR = _descriptor.FileDescriptor(
         "\n\034com.google.bigtable.admin.v2B\nTableProtoP\001Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\252\002\036Google.Cloud.Bigtable.Admin.V2\312\002\036Google\\Cloud\\Bigtable\\Admin\\V2"
     ),
     serialized_pb=_b(
-        '\n0google/cloud/bigtable/admin_v2/proto/table.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\xcb\x06\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12J\n\x0e\x63luster_states\x18\x02 \x03(\x0b\x32\x32.google.bigtable.admin.v2.Table.ClusterStatesEntry\x12L\n\x0f\x63olumn_families\x18\x03 \x03(\x0b\x32\x33.google.bigtable.admin.v2.Table.ColumnFamiliesEntry\x12I\n\x0bgranularity\x18\x04 \x01(\x0e\x32\x34.google.bigtable.admin.v2.Table.TimestampGranularity\x1a\xe2\x01\n\x0c\x43lusterState\x12X\n\x11replication_state\x18\x01 \x01(\x0e\x32=.google.bigtable.admin.v2.Table.ClusterState.ReplicationState"x\n\x10ReplicationState\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\x10\n\x0cINITIALIZING\x10\x01\x12\x17\n\x13PLANNED_MAINTENANCE\x10\x02\x12\x19\n\x15UNPLANNED_MAINTENANCE\x10\x03\x12\t\n\x05READY\x10\x04\x1a\x62\n\x12\x43lusterStatesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12;\n\x05value\x18\x02 \x01(\x0b\x32,.google.bigtable.admin.v2.Table.ClusterState:\x02\x38\x01\x1a]\n\x13\x43olumnFamiliesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x35\n\x05value\x18\x02 \x01(\x0b\x32&.google.bigtable.admin.v2.ColumnFamily:\x02\x38\x01"I\n\x14TimestampGranularity\x12%\n!TIMESTAMP_GRANULARITY_UNSPECIFIED\x10\x00\x12\n\n\x06MILLIS\x10\x01"\\\n\x04View\x12\x14\n\x10VIEW_UNSPECIFIED\x10\x00\x12\r\n\tNAME_ONLY\x10\x01\x12\x0f\n\x0bSCHEMA_VIEW\x10\x02\x12\x14\n\x10REPLICATION_VIEW\x10\x03\x12\x08\n\x04\x46ULL\x10\x04"A\n\x0c\x43olumnFamily\x12\x31\n\x07gc_rule\x18\x01 \x01(\x0b\x32 .google.bigtable.admin.v2.GcRule"\xd5\x02\n\x06GcRule\x12\x1a\n\x10max_num_versions\x18\x01 \x01(\x05H\x00\x12,\n\x07max_age\x18\x02 \x01(\x0b\x32\x19.google.protobuf.DurationH\x00\x12\x45\n\x0cintersection\x18\x03 \x01(\x0b\x32-.google.bigtable.admin.v2.GcRule.IntersectionH\x00\x12\x37\n\x05union\x18\x04 \x01(\x0b\x32&.google.bigtable.admin.v2.GcRule.UnionH\x00\x1a?\n\x0cIntersection\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRule\x1a\x38\n\x05Union\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRuleB\x06\n\x04rule"\xcf\x02\n\x08Snapshot\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x35\n\x0csource_table\x18\x02 \x01(\x0b\x32\x1f.google.bigtable.admin.v2.Table\x12\x17\n\x0f\x64\x61ta_size_bytes\x18\x03 \x01(\x03\x12/\n\x0b\x63reate_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x64\x65lete_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x37\n\x05state\x18\x06 \x01(\x0e\x32(.google.bigtable.admin.v2.Snapshot.State\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02\x42\xad\x01\n\x1c\x63om.google.bigtable.admin.v2B\nTableProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
+        '\n0google/cloud/bigtable/admin_v2/proto/table.proto\x12\x18google.bigtable.admin.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto"\x9b\x01\n\x0bRestoreInfo\x12@\n\x0bsource_type\x18\x01 \x01(\x0e\x32+.google.bigtable.admin.v2.RestoreSourceType\x12;\n\x0b\x62\x61\x63kup_info\x18\x02 \x01(\x0b\x32$.google.bigtable.admin.v2.BackupInfoH\x00\x42\r\n\x0bsource_info"\xfb\x07\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12J\n\x0e\x63luster_states\x18\x02 \x03(\x0b\x32\x32.google.bigtable.admin.v2.Table.ClusterStatesEntry\x12L\n\x0f\x63olumn_families\x18\x03 \x03(\x0b\x32\x33.google.bigtable.admin.v2.Table.ColumnFamiliesEntry\x12I\n\x0bgranularity\x18\x04 \x01(\x0e\x32\x34.google.bigtable.admin.v2.Table.TimestampGranularity\x12;\n\x0crestore_info\x18\x06 \x01(\x0b\x32%.google.bigtable.admin.v2.RestoreInfo\x1a\xf9\x01\n\x0c\x43lusterState\x12X\n\x11replication_state\x18\x01 \x01(\x0e\x32=.google.bigtable.admin.v2.Table.ClusterState.ReplicationState"\x8e\x01\n\x10ReplicationState\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\x10\n\x0cINITIALIZING\x10\x01\x12\x17\n\x13PLANNED_MAINTENANCE\x10\x02\x12\x19\n\x15UNPLANNED_MAINTENANCE\x10\x03\x12\t\n\x05READY\x10\x04\x12\x14\n\x10READY_OPTIMIZING\x10\x05\x1a\x62\n\x12\x43lusterStatesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12;\n\x05value\x18\x02 \x01(\x0b\x32,.google.bigtable.admin.v2.Table.ClusterState:\x02\x38\x01\x1a]\n\x13\x43olumnFamiliesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x35\n\x05value\x18\x02 \x01(\x0b\x32&.google.bigtable.admin.v2.ColumnFamily:\x02\x38\x01"I\n\x14TimestampGranularity\x12%\n!TIMESTAMP_GRANULARITY_UNSPECIFIED\x10\x00\x12\n\n\x06MILLIS\x10\x01"\\\n\x04View\x12\x14\n\x10VIEW_UNSPECIFIED\x10\x00\x12\r\n\tNAME_ONLY\x10\x01\x12\x0f\n\x0bSCHEMA_VIEW\x10\x02\x12\x14\n\x10REPLICATION_VIEW\x10\x03\x12\x08\n\x04\x46ULL\x10\x04:Z\xea\x41W\n\x1d\x62igtable.googleapis.com/Table\x12\x36projects/{project}/instances/{instance}/tables/{table}"A\n\x0c\x43olumnFamily\x12\x31\n\x07gc_rule\x18\x01 \x01(\x0b\x32 .google.bigtable.admin.v2.GcRule"\xd5\x02\n\x06GcRule\x12\x1a\n\x10max_num_versions\x18\x01 \x01(\x05H\x00\x12,\n\x07max_age\x18\x02 \x01(\x0b\x32\x19.google.protobuf.DurationH\x00\x12\x45\n\x0cintersection\x18\x03 \x01(\x0b\x32-.google.bigtable.admin.v2.GcRule.IntersectionH\x00\x12\x37\n\x05union\x18\x04 \x01(\x0b\x32&.google.bigtable.admin.v2.GcRule.UnionH\x00\x1a?\n\x0cIntersection\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRule\x1a\x38\n\x05Union\x12/\n\x05rules\x18\x01 \x03(\x0b\x32 .google.bigtable.admin.v2.GcRuleB\x06\n\x04rule"\xc7\x03\n\x08Snapshot\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x35\n\x0csource_table\x18\x02 \x01(\x0b\x32\x1f.google.bigtable.admin.v2.Table\x12\x17\n\x0f\x64\x61ta_size_bytes\x18\x03 \x01(\x03\x12/\n\x0b\x63reate_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12/\n\x0b\x64\x65lete_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x37\n\x05state\x18\x06 \x01(\x0e\x32(.google.bigtable.admin.v2.Snapshot.State\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t"5\n\x05State\x12\x13\n\x0fSTATE_NOT_KNOWN\x10\x00\x12\t\n\x05READY\x10\x01\x12\x0c\n\x08\x43REATING\x10\x02:v\xea\x41s\n bigtable.googleapis.com/Snapshot\x12Oprojects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}"\xd7\x03\n\x06\x42\x61\x63kup\x12\x11\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x03\x12\x1c\n\x0csource_table\x18\x02 \x01(\tB\x06\xe0\x41\x05\xe0\x41\x02\x12\x34\n\x0b\x65xpire_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02\x12\x33\n\nstart_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03\x12\x31\n\x08\x65nd_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03\x12\x17\n\nsize_bytes\x18\x06 \x01(\x03\x42\x03\xe0\x41\x03\x12:\n\x05state\x18\x07 \x01(\x0e\x32&.google.bigtable.admin.v2.Backup.StateB\x03\xe0\x41\x03"7\n\x05State\x12\x15\n\x11STATE_UNSPECIFIED\x10\x00\x12\x0c\n\x08\x43REATING\x10\x01\x12\t\n\x05READY\x10\x02:p\xea\x41m\n\x1e\x62igtable.googleapis.com/Backup\x12Kprojects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}"\xa4\x01\n\nBackupInfo\x12\x13\n\x06\x62\x61\x63kup\x18\x01 \x01(\tB\x03\xe0\x41\x03\x12\x33\n\nstart_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03\x12\x31\n\x08\x65nd_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03\x12\x19\n\x0csource_table\x18\x04 \x01(\tB\x03\xe0\x41\x03*D\n\x11RestoreSourceType\x12#\n\x1fRESTORE_SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\n\n\x06\x42\x41\x43KUP\x10\x01\x42\xad\x01\n\x1c\x63om.google.bigtable.admin.v2B\nTableProtoP\x01Z=google.golang.org/genproto/googleapis/bigtable/admin/v2;admin\xaa\x02\x1eGoogle.Cloud.Bigtable.Admin.V2\xca\x02\x1eGoogle\\Cloud\\Bigtable\\Admin\\V2b\x06proto3'
     ),
     dependencies=[
         google_dot_api_dot_annotations__pb2.DESCRIPTOR,
+        google_dot_api_dot_field__behavior__pb2.DESCRIPTOR,
+        google_dot_api_dot_resource__pb2.DESCRIPTOR,
         google_dot_protobuf_dot_duration__pb2.DESCRIPTOR,
         google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,
     ],
 )
+
+_RESTORESOURCETYPE = _descriptor.EnumDescriptor(
+    name="RestoreSourceType",
+    full_name="google.bigtable.admin.v2.RestoreSourceType",
+    filename=None,
+    file=DESCRIPTOR,
+    values=[
+        _descriptor.EnumValueDescriptor(
+            name="RESTORE_SOURCE_TYPE_UNSPECIFIED",
+            index=0,
+            number=0,
+            serialized_options=None,
+            type=None,
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="BACKUP", index=1, number=1, serialized_options=None, type=None
+        ),
+    ],
+    containing_type=None,
+    serialized_options=None,
+    serialized_start=2923,
+    serialized_end=2991,
+)
+_sym_db.RegisterEnumDescriptor(_RESTORESOURCETYPE)
+
+RestoreSourceType = enum_type_wrapper.EnumTypeWrapper(_RESTORESOURCETYPE)
+RESTORE_SOURCE_TYPE_UNSPECIFIED = 0
+BACKUP = 1
 
 
 _TABLE_CLUSTERSTATE_REPLICATIONSTATE = _descriptor.EnumDescriptor(
@@ -71,11 +104,18 @@ _TABLE_CLUSTERSTATE_REPLICATIONSTATE = _descriptor.EnumDescriptor(
         _descriptor.EnumValueDescriptor(
             name="READY", index=4, number=4, serialized_options=None, type=None
         ),
+        _descriptor.EnumValueDescriptor(
+            name="READY_OPTIMIZING",
+            index=5,
+            number=5,
+            serialized_options=None,
+            type=None,
+        ),
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=533,
-    serialized_end=653,
+    serialized_start=813,
+    serialized_end=955,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_CLUSTERSTATE_REPLICATIONSTATE)
 
@@ -98,8 +138,8 @@ _TABLE_TIMESTAMPGRANULARITY = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=850,
-    serialized_end=923,
+    serialized_start=1152,
+    serialized_end=1225,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_TIMESTAMPGRANULARITY)
 
@@ -135,8 +175,8 @@ _TABLE_VIEW = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=925,
-    serialized_end=1017,
+    serialized_start=1227,
+    serialized_end=1319,
 )
 _sym_db.RegisterEnumDescriptor(_TABLE_VIEW)
 
@@ -162,10 +202,102 @@ _SNAPSHOT_STATE = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=1713,
-    serialized_end=1766,
+    serialized_start=2107,
+    serialized_end=2160,
 )
 _sym_db.RegisterEnumDescriptor(_SNAPSHOT_STATE)
+
+_BACKUP_STATE = _descriptor.EnumDescriptor(
+    name="State",
+    full_name="google.bigtable.admin.v2.Backup.State",
+    filename=None,
+    file=DESCRIPTOR,
+    values=[
+        _descriptor.EnumValueDescriptor(
+            name="STATE_UNSPECIFIED",
+            index=0,
+            number=0,
+            serialized_options=None,
+            type=None,
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="CREATING", index=1, number=1, serialized_options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="READY", index=2, number=2, serialized_options=None, type=None
+        ),
+    ],
+    containing_type=None,
+    serialized_options=None,
+    serialized_start=2585,
+    serialized_end=2640,
+)
+_sym_db.RegisterEnumDescriptor(_BACKUP_STATE)
+
+
+_RESTOREINFO = _descriptor.Descriptor(
+    name="RestoreInfo",
+    full_name="google.bigtable.admin.v2.RestoreInfo",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="source_type",
+            full_name="google.bigtable.admin.v2.RestoreInfo.source_type",
+            index=0,
+            number=1,
+            type=14,
+            cpp_type=8,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="backup_info",
+            full_name="google.bigtable.admin.v2.RestoreInfo.backup_info",
+            index=1,
+            number=2,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    serialized_options=None,
+    is_extendable=False,
+    syntax="proto3",
+    extension_ranges=[],
+    oneofs=[
+        _descriptor.OneofDescriptor(
+            name="source_info",
+            full_name="google.bigtable.admin.v2.RestoreInfo.source_info",
+            index=0,
+            containing_type=None,
+            fields=[],
+        ),
+    ],
+    serialized_start=234,
+    serialized_end=389,
+)
 
 
 _TABLE_CLUSTERSTATE = _descriptor.Descriptor(
@@ -202,8 +334,8 @@ _TABLE_CLUSTERSTATE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=427,
-    serialized_end=653,
+    serialized_start=706,
+    serialized_end=955,
 )
 
 _TABLE_CLUSTERSTATESENTRY = _descriptor.Descriptor(
@@ -258,8 +390,8 @@ _TABLE_CLUSTERSTATESENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=655,
-    serialized_end=753,
+    serialized_start=957,
+    serialized_end=1055,
 )
 
 _TABLE_COLUMNFAMILIESENTRY = _descriptor.Descriptor(
@@ -314,8 +446,8 @@ _TABLE_COLUMNFAMILIESENTRY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=755,
-    serialized_end=848,
+    serialized_start=1057,
+    serialized_end=1150,
 )
 
 _TABLE = _descriptor.Descriptor(
@@ -397,6 +529,24 @@ _TABLE = _descriptor.Descriptor(
             serialized_options=None,
             file=DESCRIPTOR,
         ),
+        _descriptor.FieldDescriptor(
+            name="restore_info",
+            full_name="google.bigtable.admin.v2.Table.restore_info",
+            index=4,
+            number=6,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
     ],
     extensions=[],
     nested_types=[
@@ -405,13 +555,15 @@ _TABLE = _descriptor.Descriptor(
         _TABLE_COLUMNFAMILIESENTRY,
     ],
     enum_types=[_TABLE_TIMESTAMPGRANULARITY, _TABLE_VIEW,],
-    serialized_options=None,
+    serialized_options=_b(
+        "\352AW\n\035bigtable.googleapis.com/Table\0226projects/{project}/instances/{instance}/tables/{table}"
+    ),
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=174,
-    serialized_end=1017,
+    serialized_start=392,
+    serialized_end=1411,
 )
 
 
@@ -449,8 +601,8 @@ _COLUMNFAMILY = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1019,
-    serialized_end=1084,
+    serialized_start=1413,
+    serialized_end=1478,
 )
 
 
@@ -488,8 +640,8 @@ _GCRULE_INTERSECTION = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1299,
-    serialized_end=1362,
+    serialized_start=1693,
+    serialized_end=1756,
 )
 
 _GCRULE_UNION = _descriptor.Descriptor(
@@ -526,8 +678,8 @@ _GCRULE_UNION = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1364,
-    serialized_end=1420,
+    serialized_start=1758,
+    serialized_end=1814,
 )
 
 _GCRULE = _descriptor.Descriptor(
@@ -626,8 +778,8 @@ _GCRULE = _descriptor.Descriptor(
             fields=[],
         ),
     ],
-    serialized_start=1087,
-    serialized_end=1428,
+    serialized_start=1481,
+    serialized_end=1822,
 )
 
 
@@ -768,15 +920,267 @@ _SNAPSHOT = _descriptor.Descriptor(
     extensions=[],
     nested_types=[],
     enum_types=[_SNAPSHOT_STATE,],
+    serialized_options=_b(
+        "\352As\n bigtable.googleapis.com/Snapshot\022Oprojects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}"
+    ),
+    is_extendable=False,
+    syntax="proto3",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=1825,
+    serialized_end=2280,
+)
+
+
+_BACKUP = _descriptor.Descriptor(
+    name="Backup",
+    full_name="google.bigtable.admin.v2.Backup",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="name",
+            full_name="google.bigtable.admin.v2.Backup.name",
+            index=0,
+            number=1,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="source_table",
+            full_name="google.bigtable.admin.v2.Backup.source_table",
+            index=1,
+            number=2,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\005\340A\002"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="expire_time",
+            full_name="google.bigtable.admin.v2.Backup.expire_time",
+            index=2,
+            number=3,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\002"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="start_time",
+            full_name="google.bigtable.admin.v2.Backup.start_time",
+            index=3,
+            number=4,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="end_time",
+            full_name="google.bigtable.admin.v2.Backup.end_time",
+            index=4,
+            number=5,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="size_bytes",
+            full_name="google.bigtable.admin.v2.Backup.size_bytes",
+            index=5,
+            number=6,
+            type=3,
+            cpp_type=2,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="state",
+            full_name="google.bigtable.admin.v2.Backup.state",
+            index=6,
+            number=7,
+            type=14,
+            cpp_type=8,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[_BACKUP_STATE,],
+    serialized_options=_b(
+        "\352Am\n\036bigtable.googleapis.com/Backup\022Kprojects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}"
+    ),
+    is_extendable=False,
+    syntax="proto3",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=2283,
+    serialized_end=2754,
+)
+
+
+_BACKUPINFO = _descriptor.Descriptor(
+    name="BackupInfo",
+    full_name="google.bigtable.admin.v2.BackupInfo",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="backup",
+            full_name="google.bigtable.admin.v2.BackupInfo.backup",
+            index=0,
+            number=1,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="start_time",
+            full_name="google.bigtable.admin.v2.BackupInfo.start_time",
+            index=1,
+            number=2,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="end_time",
+            full_name="google.bigtable.admin.v2.BackupInfo.end_time",
+            index=2,
+            number=3,
+            type=11,
+            cpp_type=10,
+            label=1,
+            has_default_value=False,
+            default_value=None,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="source_table",
+            full_name="google.bigtable.admin.v2.BackupInfo.source_table",
+            index=3,
+            number=4,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=_b("\340A\003"),
+            file=DESCRIPTOR,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
     serialized_options=None,
     is_extendable=False,
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1431,
-    serialized_end=1766,
+    serialized_start=2757,
+    serialized_end=2921,
 )
 
+_RESTOREINFO.fields_by_name["source_type"].enum_type = _RESTORESOURCETYPE
+_RESTOREINFO.fields_by_name["backup_info"].message_type = _BACKUPINFO
+_RESTOREINFO.oneofs_by_name["source_info"].fields.append(
+    _RESTOREINFO.fields_by_name["backup_info"]
+)
+_RESTOREINFO.fields_by_name[
+    "backup_info"
+].containing_oneof = _RESTOREINFO.oneofs_by_name["source_info"]
 _TABLE_CLUSTERSTATE.fields_by_name[
     "replication_state"
 ].enum_type = _TABLE_CLUSTERSTATE_REPLICATIONSTATE
@@ -789,6 +1193,7 @@ _TABLE_COLUMNFAMILIESENTRY.containing_type = _TABLE
 _TABLE.fields_by_name["cluster_states"].message_type = _TABLE_CLUSTERSTATESENTRY
 _TABLE.fields_by_name["column_families"].message_type = _TABLE_COLUMNFAMILIESENTRY
 _TABLE.fields_by_name["granularity"].enum_type = _TABLE_TIMESTAMPGRANULARITY
+_TABLE.fields_by_name["restore_info"].message_type = _RESTOREINFO
 _TABLE_TIMESTAMPGRANULARITY.containing_type = _TABLE
 _TABLE_VIEW.containing_type = _TABLE
 _COLUMNFAMILY.fields_by_name["gc_rule"].message_type = _GCRULE
@@ -820,11 +1225,55 @@ _SNAPSHOT.fields_by_name[
 ].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _SNAPSHOT.fields_by_name["state"].enum_type = _SNAPSHOT_STATE
 _SNAPSHOT_STATE.containing_type = _SNAPSHOT
+_BACKUP.fields_by_name[
+    "expire_time"
+].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_BACKUP.fields_by_name[
+    "start_time"
+].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_BACKUP.fields_by_name[
+    "end_time"
+].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_BACKUP.fields_by_name["state"].enum_type = _BACKUP_STATE
+_BACKUP_STATE.containing_type = _BACKUP
+_BACKUPINFO.fields_by_name[
+    "start_time"
+].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_BACKUPINFO.fields_by_name[
+    "end_time"
+].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+DESCRIPTOR.message_types_by_name["RestoreInfo"] = _RESTOREINFO
 DESCRIPTOR.message_types_by_name["Table"] = _TABLE
 DESCRIPTOR.message_types_by_name["ColumnFamily"] = _COLUMNFAMILY
 DESCRIPTOR.message_types_by_name["GcRule"] = _GCRULE
 DESCRIPTOR.message_types_by_name["Snapshot"] = _SNAPSHOT
+DESCRIPTOR.message_types_by_name["Backup"] = _BACKUP
+DESCRIPTOR.message_types_by_name["BackupInfo"] = _BACKUPINFO
+DESCRIPTOR.enum_types_by_name["RestoreSourceType"] = _RESTORESOURCETYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+RestoreInfo = _reflection.GeneratedProtocolMessageType(
+    "RestoreInfo",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_RESTOREINFO,
+        __module__="google.cloud.bigtable.admin_v2.proto.table_pb2",
+        __doc__="""Information about a table restore.
+  
+  
+  Attributes:
+      source_type:
+          The type of the restore source.
+      source_info:
+          Information about the source used to restore the table.
+      backup_info:
+          Information about the backup used to restore the table. The
+          backup may no longer exist.
+  """,
+        # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.RestoreInfo)
+    ),
+)
+_sym_db.RegisterMessage(RestoreInfo)
 
 Table = _reflection.GeneratedProtocolMessageType(
     "Table",
@@ -841,8 +1290,8 @@ Table = _reflection.GeneratedProtocolMessageType(
     
     Attributes:
         replication_state:
-            (\ ``OutputOnly``) The state of replication for the table in
-            this cluster.
+            Output only. The state of replication for the table in this
+            cluster.
     """,
                 # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Table.ClusterState)
             ),
@@ -874,14 +1323,14 @@ Table = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the table. Values are of
-          the form ``projects/<project>/instances/<instance>/tables/[_a-
+          Output only. The unique name of the table. Values are of the
+          form ``projects/<project>/instances/<instance>/tables/[_a-
           zA-Z0-9][-_.a-zA-Z0-9]*``. Views: ``NAME_ONLY``,
           ``SCHEMA_VIEW``, ``REPLICATION_VIEW``, ``FULL``
       cluster_states:
-          (\ ``OutputOnly``) Map from cluster ID to per-cluster table
-          state. If it could not be determined whether or not the table
-          has data in a particular cluster (for example, if its zone is
+          Output only. Map from cluster ID to per-cluster table state.
+          If it could not be determined whether or not the table has
+          data in a particular cluster (for example, if its zone is
           unavailable), then there will be an entry for the cluster with
           UNKNOWN ``replication_status``. Views: ``REPLICATION_VIEW``,
           ``FULL``
@@ -894,7 +1343,11 @@ Table = _reflection.GeneratedProtocolMessageType(
           which timestamps are stored in this table. Timestamps not
           matching the granularity will be rejected. If unspecified at
           creation time, the value will be set to ``MILLIS``. Views:
-          ``SCHEMA_VIEW``, ``FULL``
+          ``SCHEMA_VIEW``, ``FULL``.
+      restore_info:
+          Output only. If this table was restored from another data
+          source (e.g. a backup), this field will be populated with
+          information about the restore.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Table)
     ),
@@ -1013,36 +1466,126 @@ Snapshot = _reflection.GeneratedProtocolMessageType(
   
   Attributes:
       name:
-          (\ ``OutputOnly``) The unique name of the snapshot. Values are
-          of the form ``projects/<project>/instances/<instance>/clusters
-          /<cluster>/snapshots/<snapshot>``.
+          Output only. The unique name of the snapshot. Values are of
+          the form ``projects/<project>/instances/<instance>/clusters/<c
+          luster>/snapshots/<snapshot>``.
       source_table:
-          (\ ``OutputOnly``) The source table at the time the snapshot
-          was taken.
+          Output only. The source table at the time the snapshot was
+          taken.
       data_size_bytes:
-          (\ ``OutputOnly``) The size of the data in the source table at
-          the time the snapshot was taken. In some cases, this value may
-          be computed asynchronously via a background process and a
+          Output only. The size of the data in the source table at the
+          time the snapshot was taken. In some cases, this value may be
+          computed asynchronously via a background process and a
           placeholder of 0 will be used in the meantime.
       create_time:
-          (\ ``OutputOnly``) The time when the snapshot is created.
+          Output only. The time when the snapshot is created.
       delete_time:
-          (\ ``OutputOnly``) The time when the snapshot will be deleted.
-          The maximum amount of time a snapshot can stay active is 365
-          days. If 'ttl' is not specified, the default maximum of 365
-          days will be used.
+          Output only. The time when the snapshot will be deleted. The
+          maximum amount of time a snapshot can stay active is 365 days.
+          If 'ttl' is not specified, the default maximum of 365 days
+          will be used.
       state:
-          (\ ``OutputOnly``) The current state of the snapshot.
+          Output only. The current state of the snapshot.
       description:
-          (\ ``OutputOnly``) Description of the snapshot.
+          Output only. Description of the snapshot.
   """,
         # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Snapshot)
     ),
 )
 _sym_db.RegisterMessage(Snapshot)
 
+Backup = _reflection.GeneratedProtocolMessageType(
+    "Backup",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_BACKUP,
+        __module__="google.cloud.bigtable.admin_v2.proto.table_pb2",
+        __doc__="""A backup of a Cloud Bigtable table.
+  
+  
+  Attributes:
+      name:
+          Output only. A globally unique identifier for the backup which
+          cannot be changed. Values are of the form
+          ``projects/{project}/instances/{instance}/clusters/{cluster}/
+          backups/[_a-zA-Z0-9][-_.a-zA-Z0-9]*`` The final segment of the
+          name must be between 1 and 50 characters in length.  The
+          backup is stored in the cluster identified by the prefix of
+          the backup name of the form ``projects/{project}/instances/{in
+          stance}/clusters/{cluster}``.
+      source_table:
+          Required. Immutable. Name of the table from which this backup
+          was created. This needs to be in the same instance as the
+          backup. Values are of the form ``projects/{project}/instances/
+          {instance}/tables/{source_table}``.
+      expire_time:
+          Required. The expiration time of the backup, with microseconds
+          granularity that must be at least 6 hours and at most 30 days
+          from the time the request is received. Once the
+          ``expire_time`` has passed, Cloud Bigtable will delete the
+          backup and free the resources used by the backup.
+      start_time:
+          Output only. ``start_time`` is the time that the backup was
+          started (i.e. approximately the time the [CreateBackup][google
+          .bigtable.admin.v2.BigtableTableAdmin.CreateBackup] request is
+          received). The row data in this backup will be no older than
+          this timestamp.
+      end_time:
+          Output only. ``end_time`` is the time that the backup was
+          finished. The row data in the backup will be no newer than
+          this timestamp.
+      size_bytes:
+          Output only. Size of the backup in bytes.
+      state:
+          Output only. The current state of the backup.
+  """,
+        # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.Backup)
+    ),
+)
+_sym_db.RegisterMessage(Backup)
+
+BackupInfo = _reflection.GeneratedProtocolMessageType(
+    "BackupInfo",
+    (_message.Message,),
+    dict(
+        DESCRIPTOR=_BACKUPINFO,
+        __module__="google.cloud.bigtable.admin_v2.proto.table_pb2",
+        __doc__="""Information about a backup.
+  
+  
+  Attributes:
+      backup:
+          Output only. Name of the backup.
+      start_time:
+          Output only. The time that the backup was started. Row data in
+          the backup will be no older than this timestamp.
+      end_time:
+          Output only. This time that the backup was finished. Row data
+          in the backup will be no newer than this timestamp.
+      source_table:
+          Output only. Name of the table the backup was created from.
+  """,
+        # @@protoc_insertion_point(class_scope:google.bigtable.admin.v2.BackupInfo)
+    ),
+)
+_sym_db.RegisterMessage(BackupInfo)
+
 
 DESCRIPTOR._options = None
 _TABLE_CLUSTERSTATESENTRY._options = None
 _TABLE_COLUMNFAMILIESENTRY._options = None
+_TABLE._options = None
+_SNAPSHOT._options = None
+_BACKUP.fields_by_name["name"]._options = None
+_BACKUP.fields_by_name["source_table"]._options = None
+_BACKUP.fields_by_name["expire_time"]._options = None
+_BACKUP.fields_by_name["start_time"]._options = None
+_BACKUP.fields_by_name["end_time"]._options = None
+_BACKUP.fields_by_name["size_bytes"]._options = None
+_BACKUP.fields_by_name["state"]._options = None
+_BACKUP._options = None
+_BACKUPINFO.fields_by_name["backup"]._options = None
+_BACKUPINFO.fields_by_name["start_time"]._options = None
+_BACKUPINFO.fields_by_name["end_time"]._options = None
+_BACKUPINFO.fields_by_name["source_table"]._options = None
 # @@protoc_insertion_point(module_scope)

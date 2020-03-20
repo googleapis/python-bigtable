@@ -94,6 +94,36 @@ class BigtableTableAdminStub(object):
             request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.DeleteSnapshotRequest.SerializeToString,
             response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
         )
+        self.CreateBackup = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/CreateBackup",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.CreateBackupRequest.SerializeToString,
+            response_deserializer=google_dot_longrunning_dot_operations__pb2.Operation.FromString,
+        )
+        self.GetBackup = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/GetBackup",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.GetBackupRequest.SerializeToString,
+            response_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_table__pb2.Backup.FromString,
+        )
+        self.UpdateBackup = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/UpdateBackup",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.UpdateBackupRequest.SerializeToString,
+            response_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_table__pb2.Backup.FromString,
+        )
+        self.DeleteBackup = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/DeleteBackup",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.DeleteBackupRequest.SerializeToString,
+            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+        )
+        self.ListBackups = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/ListBackups",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.ListBackupsRequest.SerializeToString,
+            response_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.ListBackupsResponse.FromString,
+        )
+        self.RestoreTable = channel.unary_unary(
+            "/google.bigtable.admin.v2.BigtableTableAdmin/RestoreTable",
+            request_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.RestoreTableRequest.SerializeToString,
+            response_deserializer=google_dot_longrunning_dot_operations__pb2.Operation.FromString,
+        )
         self.GetIamPolicy = channel.unary_unary(
             "/google.bigtable.admin.v2.BigtableTableAdmin/GetIamPolicy",
             request_serializer=google_dot_iam_dot_v1_dot_iam__policy__pb2.GetIamPolicyRequest.SerializeToString,
@@ -254,17 +284,75 @@ class BigtableTableAdminServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def CreateBackup(self, request, context):
+        """Starts creating a new Cloud Bigtable Backup. The returned backup
+    [long-running operation][google.longrunning.Operation] can be used to
+    track creation of the backup. The
+    [metadata][google.longrunning.Operation.metadata] field type is
+    [CreateBackupMetadata][google.bigtable.admin.v2.CreateBackupMetadata]. The
+    [response][google.longrunning.Operation.response] field type is
+    [Backup][google.bigtable.admin.v2.Backup], if successful. Cancelling the
+    returned operation will stop the creation and delete the backup.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def GetBackup(self, request, context):
+        """Gets metadata on a pending or completed Cloud Bigtable Backup.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def UpdateBackup(self, request, context):
+        """Updates a pending or completed Cloud Bigtable Backup.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def DeleteBackup(self, request, context):
+        """Deletes a pending or completed Cloud Bigtable backup.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ListBackups(self, request, context):
+        """Lists Cloud Bigtable backups. Returns both completed and pending
+    backups.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def RestoreTable(self, request, context):
+        """Create a new table by restoring from a completed backup. The new table
+    must be in the same instance as the instance containing the backup. The
+    returned table [long-running operation][google.longrunning.Operation] can
+    be used to track the progress of the operation, and to cancel it. The
+    [metadata][google.longrunning.Operation.metadata] field type is
+    [RestoreTableMetadata][google.bigtable.admin.RestoreTableMetadata]. The
+    [response][google.longrunning.Operation.response] type is
+    [Table][google.bigtable.admin.v2.Table], if successful.
+    """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def GetIamPolicy(self, request, context):
-        """Gets the access control policy for a table resource. Returns an empty
-    policy if an table exists but does not have a policy set.
+        """Gets the access control policy for a resource.
+    Returns an empty policy if the resource exists but does not have a policy
+    set.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def SetIamPolicy(self, request, context):
-        """Sets the access control policy on a table resource. Replaces any existing
-    policy.
+        """Sets the access control policy on a Table or Backup resource.
+    Replaces any existing policy.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -344,6 +432,36 @@ def add_BigtableTableAdminServicer_to_server(servicer, server):
             servicer.DeleteSnapshot,
             request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.DeleteSnapshotRequest.FromString,
             response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        ),
+        "CreateBackup": grpc.unary_unary_rpc_method_handler(
+            servicer.CreateBackup,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.CreateBackupRequest.FromString,
+            response_serializer=google_dot_longrunning_dot_operations__pb2.Operation.SerializeToString,
+        ),
+        "GetBackup": grpc.unary_unary_rpc_method_handler(
+            servicer.GetBackup,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.GetBackupRequest.FromString,
+            response_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_table__pb2.Backup.SerializeToString,
+        ),
+        "UpdateBackup": grpc.unary_unary_rpc_method_handler(
+            servicer.UpdateBackup,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.UpdateBackupRequest.FromString,
+            response_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_table__pb2.Backup.SerializeToString,
+        ),
+        "DeleteBackup": grpc.unary_unary_rpc_method_handler(
+            servicer.DeleteBackup,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.DeleteBackupRequest.FromString,
+            response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        ),
+        "ListBackups": grpc.unary_unary_rpc_method_handler(
+            servicer.ListBackups,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.ListBackupsRequest.FromString,
+            response_serializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.ListBackupsResponse.SerializeToString,
+        ),
+        "RestoreTable": grpc.unary_unary_rpc_method_handler(
+            servicer.RestoreTable,
+            request_deserializer=google_dot_cloud_dot_bigtable_dot_admin__v2_dot_proto_dot_bigtable__table__admin__pb2.RestoreTableRequest.FromString,
+            response_serializer=google_dot_longrunning_dot_operations__pb2.Operation.SerializeToString,
         ),
         "GetIamPolicy": grpc.unary_unary_rpc_method_handler(
             servicer.GetIamPolicy,

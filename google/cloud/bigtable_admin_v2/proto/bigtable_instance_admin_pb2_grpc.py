@@ -152,14 +152,17 @@ class BigtableInstanceAdminServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def UpdateInstance(self, request, context):
-        """Updates an instance within a project.
+        """Updates an instance within a project. This method updates only the display
+    name and type for an Instance. To update other Instance properties, such as
+    labels, use PartialUpdateInstance.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def PartialUpdateInstance(self, request, context):
-        """Partially updates an instance within a project.
+        """Partially updates an instance within a project. This method can modify all
+    fields of an Instance and is the preferred way to update an Instance.
     """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
