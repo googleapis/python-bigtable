@@ -400,7 +400,7 @@ class PartialRowsData(object):
         self.read_method = read_method
         self.request = request
         self.retry = retry
-        self.response_iterator = read_method(request)
+        self.response_iterator = read_method(request, timeout=self.retry.deadline + 1)
 
         self.rows = {}
         self._state = self.STATE_NEW_ROW
