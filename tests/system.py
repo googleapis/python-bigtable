@@ -752,7 +752,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(retrieved_col_fam.gc_rule, gc_rule)
 
     def test_create_table_with_split_keys(self):
-        self._maybe_emulator_skip("Split keys not supported by Bigtable emulator")
+        self._maybe_emulator_skip("Split keys are not supported by Bigtable emulator")
         temp_table_id = "foo-bar-baz-split-table"
         initial_split_keys = [b"split_key_1", b"split_key_10", b"split_key_20"]
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
@@ -1026,7 +1026,7 @@ class TestDataAPI(unittest.TestCase):
 
     def test_read_large_cell_limit(self):
         self._maybe_emulator_skip(
-            "Maximum grpc received message size for emulator is 4194304"
+            "Maximum gRPC received message size for emulator is 4194304 bytes."
         )
         row = self._table.row(ROW_KEY)
         self.rows_to_delete.append(row)
