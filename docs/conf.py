@@ -38,7 +38,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
-    "recommonmark"
+    "recommonmark",
 ]
 
 # autodoc/autosummary flags
