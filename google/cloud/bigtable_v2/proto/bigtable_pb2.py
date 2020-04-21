@@ -1253,8 +1253,6 @@ ReadRowsRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_READROWSREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for Bigtable.ReadRows.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table from which to read.
@@ -1290,8 +1288,6 @@ ReadRowsResponse = _reflection.GeneratedProtocolMessageType(
                 __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
                 __doc__="""Specifies a piece of a row's contents returned as part of the read
     response stream.
-    
-    
     Attributes:
         row_key:
             The row key for this chunk of data. If the row key is empty,
@@ -1350,8 +1346,6 @@ ReadRowsResponse = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_READROWSRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Response message for Bigtable.ReadRows.
-  
-  
   Attributes:
       chunks:
           A collection of a row's contents as part of the read request.
@@ -1377,8 +1371,6 @@ SampleRowKeysRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_SAMPLEROWKEYSREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for Bigtable.SampleRowKeys.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table from which to sample
@@ -1400,8 +1392,6 @@ SampleRowKeysResponse = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_SAMPLEROWKEYSRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Response message for Bigtable.SampleRowKeys.
-  
-  
   Attributes:
       row_key:
           Sorted streamed sequence of sample row keys in the table. The
@@ -1430,8 +1420,6 @@ MutateRowRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_MUTATEROWREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for Bigtable.MutateRow.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table to which the mutation
@@ -1460,9 +1448,7 @@ MutateRowResponse = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_MUTATEROWRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
-        __doc__="""Response message for Bigtable.MutateRow.
-  
-  """,
+        __doc__="""Response message for Bigtable.MutateRow.""",
         # @@protoc_insertion_point(class_scope:google.bigtable.v2.MutateRowResponse)
     ),
 )
@@ -1479,8 +1465,6 @@ MutateRowsRequest = _reflection.GeneratedProtocolMessageType(
                 DESCRIPTOR=_MUTATEROWSREQUEST_ENTRY,
                 __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
                 __doc__="""A mutation for a given row.
-    
-    
     Attributes:
         row_key:
             The key of the row to which the ``mutations`` should be
@@ -1497,8 +1481,6 @@ MutateRowsRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_MUTATEROWSREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for BigtableService.MutateRows.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table to which the mutations
@@ -1530,10 +1512,7 @@ MutateRowsResponse = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_MUTATEROWSRESPONSE_ENTRY,
                 __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
-                __doc__="""The result of applying a passed mutation in the original
-    request.
-    
-    
+                __doc__="""The result of applying a passed mutation in the original request.
     Attributes:
         index:
             The index into the original request's ``entries`` list of the
@@ -1551,8 +1530,6 @@ MutateRowsResponse = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_MUTATEROWSRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Response message for BigtableService.MutateRows.
-  
-  
   Attributes:
       entries:
           One or more results for Entries from the batch request.
@@ -1570,8 +1547,6 @@ CheckAndMutateRowRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_CHECKANDMUTATEROWREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for Bigtable.CheckAndMutateRow.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table to which the
@@ -1615,8 +1590,6 @@ CheckAndMutateRowResponse = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_CHECKANDMUTATEROWRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Response message for Bigtable.CheckAndMutateRow.
-  
-  
   Attributes:
       predicate_matched:
           Whether or not the request's ``predicate_filter`` yielded any
@@ -1634,8 +1607,6 @@ ReadModifyWriteRowRequest = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_READMODIFYWRITEROWREQUEST,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Request message for Bigtable.ReadModifyWriteRow.
-  
-  
   Attributes:
       table_name:
           Required. The unique name of the table to which the
@@ -1666,8 +1637,6 @@ ReadModifyWriteRowResponse = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_READMODIFYWRITEROWRESPONSE,
         __module__="google.cloud.bigtable_v2.proto.bigtable_pb2",
         __doc__="""Response message for Bigtable.ReadModifyWriteRow.
-  
-  
   Attributes:
       row:
           A Row containing the new contents of all cells modified by the

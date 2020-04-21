@@ -1941,10 +1941,8 @@ Row = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_ROW,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies the complete (requested) contents of a single
-  row of a table. Rows which exceed 256MiB in size cannot be read in full.
-  
-  
+        __doc__="""Specifies the complete (requested) contents of a single row of a
+  table. Rows which exceed 256MiB in size cannot be read in full.
   Attributes:
       key:
           The unique key which identifies this row within its table.
@@ -1966,10 +1964,8 @@ Family = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_FAMILY,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies (some of) the contents of a single row/column
-  family intersection of a table.
-  
-  
+        __doc__="""Specifies (some of) the contents of a single row/column family
+  intersection of a table.
   Attributes:
       name:
           The unique key which identifies this family within its row.
@@ -1993,10 +1989,8 @@ Column = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_COLUMN,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies (some of) the contents of a single row/column
-  intersection of a table.
-  
-  
+        __doc__="""Specifies (some of) the contents of a single row/column intersection
+  of a table.
   Attributes:
       qualifier:
           The unique key which identifies this column within its family.
@@ -2019,10 +2013,8 @@ Cell = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_CELL,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies (some of) the contents of a single
-  row/column/timestamp of a table.
-  
-  
+        __doc__="""Specifies (some of) the contents of a single row/column/timestamp of a
+  table.
   Attributes:
       timestamp_micros:
           The cell's stored timestamp, which also uniquely identifies it
@@ -2051,8 +2043,6 @@ RowRange = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_ROWRANGE,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
         __doc__="""Specifies a contiguous range of rows.
-  
-  
   Attributes:
       start_key:
           The row key at which to start the range. If neither field is
@@ -2081,8 +2071,6 @@ RowSet = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_ROWSET,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
         __doc__="""Specifies a non-contiguous set of rows.
-  
-  
   Attributes:
       row_keys:
           Single rows included in the set.
@@ -2100,12 +2088,10 @@ ColumnRange = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_COLUMNRANGE,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies a contiguous range of columns within a single
-  column family. The range spans from <column\_family>:<start\_qualifier>
-  to <column\_family>:<end\_qualifier>, where both bounds can be either
+        __doc__="""Specifies a contiguous range of columns within a single column family.
+  The range spans from <column\_family>:<start\_qualifier> to
+  <column\_family>:<end\_qualifier>, where both bounds can be either
   inclusive or exclusive.
-  
-  
   Attributes:
       family_name:
           The name of the column family within which this range falls.
@@ -2138,8 +2124,6 @@ TimestampRange = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_TIMESTAMPRANGE,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
         __doc__="""Specified a contiguous range of microsecond timestamps.
-  
-  
   Attributes:
       start_timestamp_micros:
           Inclusive lower bound. If left empty, interpreted as 0.
@@ -2158,8 +2142,6 @@ ValueRange = _reflection.GeneratedProtocolMessageType(
         DESCRIPTOR=_VALUERANGE,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
         __doc__="""Specifies a contiguous range of raw byte values.
-  
-  
   Attributes:
       start_value:
           The value at which to start the range. If neither field is
@@ -2191,10 +2173,7 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_ROWFILTER_CHAIN,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A RowFilter which sends rows through several RowFilters in
-    sequence.
-    
-    
+                __doc__="""A RowFilter which sends rows through several RowFilters in sequence.
     Attributes:
         filters:
             The elements of "filters" are chained together to process the
@@ -2210,10 +2189,8 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_ROWFILTER_INTERLEAVE,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A RowFilter which sends each row to each of several
-    component RowFilters and interleaves the results.
-    
-    
+                __doc__="""A RowFilter which sends each row to each of several component
+    RowFilters and interleaves the results.
     Attributes:
         filters:
             The elements of "filters" all process a copy of the input row,
@@ -2249,16 +2226,13 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_ROWFILTER_CONDITION,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A RowFilter which evaluates one of two possible
-    RowFilters, depending on whether or not a predicate RowFilter outputs
-    any cells from the input row.
-    
-    IMPORTANT NOTE: The predicate filter does not execute atomically with
-    the true and false filters, which may lead to inconsistent or unexpected
-    results. Additionally, Condition filters have poor performance,
-    especially when filters are set for the false condition.
-    
-    
+                __doc__="""A RowFilter which evaluates one of two possible RowFilters, depending
+    on whether or not a predicate RowFilter outputs any cells from the
+    input row.  IMPORTANT NOTE: The predicate filter does not execute
+    atomically with the true and false filters, which may lead to
+    inconsistent or unexpected results. Additionally, Condition filters
+    have poor performance, especially when filters are set for the false
+    condition.
     Attributes:
         predicate_filter:
             If ``predicate_filter`` outputs any cells, then
@@ -2278,44 +2252,36 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
         ),
         DESCRIPTOR=_ROWFILTER,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Takes a row as input and produces an alternate view of the
-  row based on specified rules. For example, a RowFilter might trim down a
-  row to include just the cells from columns matching a given regular
-  expression, or might return all the cells of a row but not their values.
-  More complicated filters can be composed out of these components to
-  express requests such as, "within every column of a particular family,
-  give just the two most recent cells which are older than timestamp X."
-  
-  There are two broad categories of RowFilters (true filters and
-  transformers), as well as two ways to compose simple filters into more
-  complex ones (chains and interleaves). They work as follows:
-  
-  -  True filters alter the input row by excluding some of its cells
-     wholesale from the output row. An example of a true filter is the
-     ``value_regex_filter``, which excludes cells whose values don't match
-     the specified pattern. All regex true filters use RE2 syntax
-     (https://github.com/google/re2/wiki/Syntax) in raw byte mode
-     (RE2::Latin1), and are evaluated as full matches. An important point
-     to keep in mind is that ``RE2(.)`` is equivalent by default to
-     ``RE2([^\n])``, meaning that it does not match newlines. When
-     attempting to match an arbitrary byte, you should therefore use the
-     escape sequence ``\C``, which may need to be further escaped as
-     ``\\C`` in your client language.
-  
-  -  Transformers alter the input row by changing the values of some of
-     its cells in the output, without excluding them completely.
-     Currently, the only supported transformer is the
-     ``strip_value_transformer``, which replaces every cell's value with
-     the empty string.
-  
-  -  Chains and interleaves are described in more detail in the
-     RowFilter.Chain and RowFilter.Interleave documentation.
-  
-  The total serialized size of a RowFilter message must not exceed 4096
-  bytes, and RowFilters may not be nested within each other (in Chains or
-  Interleaves) to a depth of more than 20.
-  
-  
+        __doc__="""Takes a row as input and produces an alternate view of the row based
+  on specified rules. For example, a RowFilter might trim down a row to
+  include just the cells from columns matching a given regular
+  expression, or might return all the cells of a row but not their
+  values. More complicated filters can be composed out of these
+  components to express requests such as, "within every column of a
+  particular family, give just the two most recent cells which are older
+  than timestamp X."  There are two broad categories of RowFilters (true
+  filters and transformers), as well as two ways to compose simple
+  filters into more complex ones (chains and interleaves). They work as
+  follows:  -  True filters alter the input row by excluding some of its
+  cells    wholesale from the output row. An example of a true filter is
+  the    ``value_regex_filter``, which excludes cells whose values don't
+  match    the specified pattern. All regex true filters use RE2 syntax
+  (https://github.com/google/re2/wiki/Syntax) in raw byte mode
+  (RE2::Latin1), and are evaluated as full matches. An important point
+  to keep in mind is that ``RE2(.)`` is equivalent by default to
+  ``RE2([^\n])``, meaning that it does not match newlines. When
+  attempting to match an arbitrary byte, you should therefore use the
+  escape sequence ``\C``, which may need to be further escaped as
+  ``\\C`` in your client language.  -  Transformers alter the input row
+  by changing the values of some of    its cells in the output, without
+  excluding them completely.    Currently, the only supported
+  transformer is the    ``strip_value_transformer``, which replaces
+  every cell's value with    the empty string.  -  Chains and
+  interleaves are described in more detail in the    RowFilter.Chain and
+  RowFilter.Interleave documentation.  The total serialized size of a
+  RowFilter message must not exceed 4096 bytes, and RowFilters may not
+  be nested within each other (in Chains or Interleaves) to a depth of
+  more than 20.
   Attributes:
       filter:
           Which of the possible RowFilter types to apply. If none are
@@ -2468,8 +2434,6 @@ Mutation = _reflection.GeneratedProtocolMessageType(
                 DESCRIPTOR=_MUTATION_SETCELL,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
                 __doc__="""A Mutation which sets the value of the specified cell.
-    
-    
     Attributes:
         family_name:
             The name of the family into which new data should be written.
@@ -2496,10 +2460,8 @@ Mutation = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_MUTATION_DELETEFROMCOLUMN,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A Mutation which deletes cells from the specified column,
-    optionally restricting the deletions to a given timestamp range.
-    
-    
+                __doc__="""A Mutation which deletes cells from the specified column, optionally
+    restricting the deletions to a given timestamp range.
     Attributes:
         family_name:
             The name of the family from which cells should be deleted.
@@ -2519,10 +2481,7 @@ Mutation = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_MUTATION_DELETEFROMFAMILY,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A Mutation which deletes all cells from the specified
-    column family.
-    
-    
+                __doc__="""A Mutation which deletes all cells from the specified column family.
     Attributes:
         family_name:
             The name of the family from which cells should be deleted.
@@ -2537,19 +2496,13 @@ Mutation = _reflection.GeneratedProtocolMessageType(
             dict(
                 DESCRIPTOR=_MUTATION_DELETEFROMROW,
                 __module__="google.cloud.bigtable_v2.proto.data_pb2",
-                __doc__="""A Mutation which deletes all cells from the containing
-    row.
-    
-    """,
+                __doc__="""A Mutation which deletes all cells from the containing row.""",
                 # @@protoc_insertion_point(class_scope:google.bigtable.v2.Mutation.DeleteFromRow)
             ),
         ),
         DESCRIPTOR=_MUTATION,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies a particular change to be made to the contents
-  of a row.
-  
-  
+        __doc__="""Specifies a particular change to be made to the contents of a row.
   Attributes:
       mutation:
           Which of the possible Mutation types to apply.
@@ -2577,10 +2530,8 @@ ReadModifyWriteRule = _reflection.GeneratedProtocolMessageType(
     dict(
         DESCRIPTOR=_READMODIFYWRITERULE,
         __module__="google.cloud.bigtable_v2.proto.data_pb2",
-        __doc__="""Specifies an atomic read/modify/write operation on the
-  latest value of the specified column.
-  
-  
+        __doc__="""Specifies an atomic read/modify/write operation on the latest value of
+  the specified column.
   Attributes:
       family_name:
           The name of the family to which the read/modify/write should

@@ -19,6 +19,19 @@
 import enum
 
 
+class RestoreSourceType(enum.IntEnum):
+    """
+    Indicates the type of the restore source.
+
+    Attributes:
+      RESTORE_SOURCE_TYPE_UNSPECIFIED (int): No restore associated.
+      BACKUP (int): A backup was used as the source of the restore.
+    """
+
+    RESTORE_SOURCE_TYPE_UNSPECIFIED = 0
+    BACKUP = 1
+
+
 class StorageType(enum.IntEnum):
     """
     Storage media types for persisting Bigtable data.
@@ -32,6 +45,23 @@ class StorageType(enum.IntEnum):
     STORAGE_TYPE_UNSPECIFIED = 0
     SSD = 1
     HDD = 2
+
+
+class Backup(object):
+    class State(enum.IntEnum):
+        """
+        Indicates the current state of the backup.
+
+        Attributes:
+          STATE_UNSPECIFIED (int): Not specified.
+          CREATING (int): The pending backup is still being created. Operations on the backup may
+          fail with ``FAILED_PRECONDITION`` in this state.
+          READY (int): The backup is complete and ready for use.
+        """
+
+        STATE_UNSPECIFIED = 0
+        CREATING = 1
+        READY = 2
 
 
 class Cluster(object):
@@ -170,6 +200,9 @@ class Table(object):
               READY (int): The table can serve Data API requests from this cluster. Depending on
               replication delay, reads may not immediately reflect the state of the
               table in other clusters.
+              READY_OPTIMIZING (int): The table is fully created and ready for use after a restore, and is
+              being optimized for performance. When optimizations are complete, the
+              table will transition to ``READY`` state.
             """
 
             STATE_NOT_KNOWN = 0
@@ -177,3 +210,4 @@ class Table(object):
             PLANNED_MAINTENANCE = 2
             UNPLANNED_MAINTENANCE = 3
             READY = 4
+            READY_OPTIMIZING = 5
