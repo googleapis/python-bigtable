@@ -620,7 +620,7 @@ def test_bigtable_create_update_delete_column_family():
     assert column_family_id not in column_families
 
 
-def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
+def test_bigtable_add_row_add_row_range_add_row_range_from_keys_add_row_range_by_prefix_from_keys():
     row_keys = [
         b"row_key_1",
         b"row_key_2",
@@ -631,6 +631,7 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
         b"row_key_7",
         b"row_key_8",
         b"row_key_9",
+        b"sample_row_key_1",
     ]
 
     rows = []
@@ -689,6 +690,33 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
 
     read_rows = table.read_rows(row_set=row_set)
     expected_row_keys = [b"row_key_3", b"row_key_4", b"row_key_5", b"row_key_6"]
+    found_row_keys = [row.row_key for row in read_rows]
+    assert found_row_keys == expected_row_keys
+
+    # [START bigtable_row_range_by_prefix_from_keys]
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.row_set import RowSet
+
+    client = Client(admin=True)
+    instance = client.instance(INSTANCE_ID)
+    table = instance.table(TABLE_ID)
+
+    row_set = RowSet()
+    row_set.add_row_range_by_prefix_from_keys("row")
+    # [END bigtable_row_range_by_prefix_from_keys]
+
+    read_rows = table.read_rows(row_set=row_set)
+    expected_row_keys = [
+        b"row_key_1",
+        b"row_key_2",
+        b"row_key_3",
+        b"row_key_4",
+        b"row_key_5",
+        b"row_key_6",
+        b"row_key_7",
+        b"row_key_8",
+        b"row_key_9",
+    ]
     found_row_keys = [row.row_key for row in read_rows]
     assert found_row_keys == expected_row_keys
 
