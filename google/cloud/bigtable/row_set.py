@@ -119,7 +119,7 @@ class RowSet(object):
             :end-before: [END bigtable_row_range_by_prefix_from_keys]
 
         :type row_key_prefix: str
-        :param row_key_prefix: Add all rows that start with this row key prefix.
+        :param row_key_prefix: To retrieve  all rows that start with this row key prefix.
                             Prefix cannot be zero length."""
 
         end_key = row_key_prefix[:-1] + chr(ord(row_key_prefix[-1]) + 1)
