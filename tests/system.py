@@ -1032,7 +1032,7 @@ class TestDataAPI(unittest.TestCase):
         self._table.mutate_rows(rows)
 
         row_set = RowSet()
-        row_set.add_row_range_by_prefix_from_keys("row")
+        row_set.add_row_range_with_prefix("row")
 
         read_rows = self._table.yield_rows(row_set=row_set)
 

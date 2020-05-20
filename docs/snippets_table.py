@@ -620,7 +620,7 @@ def test_bigtable_create_update_delete_column_family():
     assert column_family_id not in column_families
 
 
-def test_bigtable_add_row_add_row_range_add_row_range_from_keys_add_row_range_by_prefix_from_keys():
+def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
     row_keys = [
         b"row_key_1",
         b"row_key_2",
@@ -631,7 +631,6 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys_add_row_range_by
         b"row_key_7",
         b"row_key_8",
         b"row_key_9",
-        b"sample_row_key_1",
     ]
 
     rows = []
@@ -692,8 +691,26 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys_add_row_range_by
     expected_row_keys = [b"row_key_3", b"row_key_4", b"row_key_5", b"row_key_6"]
     found_row_keys = [row.row_key for row in read_rows]
     assert found_row_keys == expected_row_keys
+    table.truncate(timeout=200)
 
-    # [START bigtable_row_range_by_prefix_from_keys]
+
+def test_bigtable_add_row_range_with_prefix():
+    row_keys = [
+        b"row_key_1",
+        b"row_key_2",
+        b"row_key_3",
+        b"sample_row_key_1",
+        b"sample_row_key_2",
+    ]
+
+    rows = []
+    for row_key in row_keys:
+        row = Config.TABLE.row(row_key)
+        row.set_cell(COLUMN_FAMILY_ID, COL_NAME1, CELL_VAL1)
+        rows.append(row)
+    Config.TABLE.mutate_rows(rows)
+
+    # [START bigtable_add_row_range_with_prefix]
     from google.cloud.bigtable import Client
     from google.cloud.bigtable.row_set import RowSet
 
@@ -702,24 +719,17 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys_add_row_range_by
     table = instance.table(TABLE_ID)
 
     row_set = RowSet()
-    row_set.add_row_range_by_prefix_from_keys("row")
-    # [END bigtable_row_range_by_prefix_from_keys]
+    row_set.add_row_range_with_prefix("row")
+    # [END bigtable_add_row_range_with_prefix]
 
     read_rows = table.read_rows(row_set=row_set)
     expected_row_keys = [
         b"row_key_1",
         b"row_key_2",
         b"row_key_3",
-        b"row_key_4",
-        b"row_key_5",
-        b"row_key_6",
-        b"row_key_7",
-        b"row_key_8",
-        b"row_key_9",
     ]
     found_row_keys = [row.row_key for row in read_rows]
     assert found_row_keys == expected_row_keys
-
     table.truncate(timeout=200)
 
 

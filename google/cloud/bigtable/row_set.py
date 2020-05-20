@@ -109,14 +109,14 @@ class RowSet(object):
         row_range = RowRange(start_key, end_key, start_inclusive, end_inclusive)
         self.row_ranges.append(row_range)
 
-    def add_row_range_by_prefix_from_keys(self, row_key_prefix):
+    def add_row_range_with_prefix(self, row_key_prefix):
         """Add row range to row_ranges list that start with the row_key_prefix from the row keys
 
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_row_range_by_prefix_from_keys]
-            :end-before: [END bigtable_row_range_by_prefix_from_keys]
+            :start-after: [START bigtable_add_row_range_with_prefix]
+            :end-before: [END bigtable_add_row_range_with_prefix]
 
         :type row_key_prefix: str
         :param row_key_prefix: To retrieve  all rows that start with this row key prefix.
