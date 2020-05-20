@@ -657,7 +657,7 @@ class TestTableAdminAPI(unittest.TestCase):
         for table in self.tables_to_delete:
             table.delete()
 
-    def _maybe_emulator_skip(self, message):
+    def _skip_if_emulated(self, message):
         # NOTE: This method is necessary because ``Config.IN_EMULATOR``
         #       is set at runtime rather than import time, which means we
         #       can't use the @unittest.skipIf decorator.
@@ -698,7 +698,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(sorted_tables, expected_tables)
 
     def test_test_iam_permissions(self):
-        self._maybe_emulator_skip("Method not implemented in bigtable emulator")
+        self._skip_if_emulated("Method not implemented in bigtable emulator")
         temp_table_id = "test-test-iam-policy-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
@@ -709,7 +709,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(permissions, permissions_allowed)
 
     def test_get_iam_policy(self):
-        self._maybe_emulator_skip("Method not implemented in bigtable emulator")
+        self._skip_if_emulated("Method not implemented in bigtable emulator")
         temp_table_id = "test-get-iam-policy-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
@@ -720,7 +720,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(policy["version"], 0)
 
     def test_set_iam_policy(self):
-        self._maybe_emulator_skip("Method not implemented in bigtable emulator")
+        self._skip_if_emulated("Method not implemented in bigtable emulator")
         temp_table_id = "test-set-iam-policy-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
@@ -752,7 +752,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(retrieved_col_fam.gc_rule, gc_rule)
 
     def test_create_table_with_split_keys(self):
-        self._maybe_emulator_skip("Split keys are not supported by Bigtable emulator")
+        self._skip_if_emulated("Split keys are not supported by Bigtable emulator")
         temp_table_id = "foo-bar-baz-split-table"
         initial_split_keys = [b"split_key_1", b"split_key_10", b"split_key_20"]
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
