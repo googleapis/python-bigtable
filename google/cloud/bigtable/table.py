@@ -119,6 +119,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_name]
             :end-before: [END bigtable_table_name]
+            :dedent: 4
 
         .. note::
 
@@ -147,6 +148,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_get_iam_policy]
             :end-before: [END bigtable_table_get_iam_policy]
+            :dedent: 4
 
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this table.
@@ -167,6 +169,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_set_iam_policy]
             :end-before: [END bigtable_table_set_iam_policy]
+            :dedent: 4
 
         :type policy: :class:`google.cloud.bigtable.policy.Policy`
         :param policy: A new IAM policy to replace the current IAM policy
@@ -188,6 +191,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_test_iam_permissions]
             :end-before: [END bigtable_table_test_iam_permissions]
+            :dedent: 4
 
         :type permissions: list
         :param permissions: The set of permissions to check for
@@ -215,6 +219,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_column_family]
             :end-before: [END bigtable_table_column_family]
+            :dedent: 4
 
         :type column_family_id: str
         :param column_family_id: The ID of the column family. Must be of the
@@ -237,6 +242,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_row]
             :end-before: [END bigtable_table_row]
+            :dedent: 4
 
         .. warning::
 
@@ -284,6 +290,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_append_row]
             :end-before: [END bigtable_table_append_row]
+            :dedent: 4
 
         Args:
             row_key (bytes): The key for the row being created.
@@ -301,6 +308,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_direct_row]
             :end-before: [END bigtable_table_direct_row]
+            :dedent: 4
 
         Args:
             row_key (bytes): The key for the row being created.
@@ -318,6 +326,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_table_conditional_row]
             :end-before: [END bigtable_table_conditional_row]
+            :dedent: 4
 
         Args:
             row_key (bytes): The key for the row being created.
@@ -346,6 +355,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_create_table]
             :end-before: [END bigtable_create_table]
+            :dedent: 4
 
         .. note::
 
@@ -390,6 +400,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_check_table_exists]
             :end-before: [END bigtable_check_table_exists]
+            :dedent: 4
 
         :rtype: bool
         :returns: True if the table exists, else False.
@@ -409,7 +420,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_delete_table]
             :end-before: [END bigtable_delete_table]
-
+            :dedent: 4
         """
         table_client = self._instance._client.table_admin_client
         table_client.delete_table(name=self.name)
@@ -422,6 +433,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_list_column_families]
             :end-before: [END bigtable_list_column_families]
+            :dedent: 4
 
         :rtype: dict
         :returns: Dictionary of column families attached to this table. Keys
@@ -449,6 +461,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_get_cluster_states]
             :end-before: [END bigtable_get_cluster_states]
+            :dedent: 4
 
         :rtype: dict
         :returns: Dictionary of cluster states for this table.
@@ -473,6 +486,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_read_row]
             :end-before: [END bigtable_read_row]
+            :dedent: 4
 
         :type row_key: bytes
         :param row_key: The key of the row to read from.
@@ -512,6 +526,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_read_rows]
             :end-before: [END bigtable_read_rows]
+            :dedent: 4
 
         :type start_key: bytes
         :param start_key: (Optional) The beginning of a range of row keys to
@@ -615,6 +630,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_mutate_rows]
             :end-before: [END bigtable_mutate_rows]
+            :dedent: 4
 
         The method tries to update all specified rows.
         If some of the rows weren't updated, it would not remove mutations.
@@ -659,6 +675,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_sample_row_keys]
             :end-before: [END bigtable_sample_row_keys]
+            :dedent: 4
 
         The returned row keys will delimit contiguous sections of the table of
         approximately equal size, which can be used to break up the data for
@@ -703,6 +720,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_truncate_table]
             :end-before: [END bigtable_truncate_table]
+            :dedent: 4
 
         :type timeout: float
         :param timeout: (Optional) The amount of time, in seconds, to wait
@@ -733,6 +751,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_drop_by_prefix]
             :end-before: [END bigtable_drop_by_prefix]
+            :dedent: 4
 
         :type row_key_prefix: bytes
         :param row_key_prefix: Delete all rows that start with this row key
@@ -767,6 +786,7 @@ class Table(object):
         .. literalinclude:: snippets_table.py
             :start-after: [START bigtable_mutations_batcher]
             :end-before: [END bigtable_mutations_batcher]
+            :dedent: 4
 
         :type flush_count: int
         :param flush_count: (Optional) Maximum number of rows per batch. If it
