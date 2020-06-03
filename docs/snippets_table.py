@@ -203,6 +203,11 @@ def test_bigtable_write_read_drop_truncate():
     # Read full table
     partial_rows = table.read_rows()
     read_rows = [row for row in partial_rows]
+
+    # Read row's value
+    for row in read_rows:
+        cell = row.cells[COLUMN_FAMILY_ID][col_name][0]
+        print(cell.value.decode("utf-8"))
     # [END bigtable_read_rows]
     assert len(read_rows) == len(rows)
     # [START bigtable_drop_by_prefix]
