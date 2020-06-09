@@ -22,12 +22,7 @@ To create an :class:`Instance <google.cloud.bigtable.instance.Instance>` object:
 
 .. code:: python
 
-    instance = client.instance(instance_id, location_id,
-                               display_name=display_name)
-
-- ``location_id`` is the ID of the location in which the instance's cluster
-  will be hosted, e.g.  ``'us-central1-c'``.  ``location_id`` is required for
-  instances which do not already exist.
+    instance = client.instance(instance_id, display_name=display_name)
 
 - ``display_name`` is optional. When not provided, ``display_name`` defaults
   to the ``instance_id`` value.
@@ -103,7 +98,7 @@ with :meth:`update() <google.cloud.bigtable.instance.Instance.update>`:
 
 .. code:: python
 
-    client.display_name = 'New display_name'
+    instance.display_name = 'New display_name'
     instance.update()
 
 Delete an existing Instance
