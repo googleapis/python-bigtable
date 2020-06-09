@@ -143,11 +143,11 @@ data directly via a :class:`Table <google.cloud.bigtable.table.Table>`.
 
 Head next to learn about the :doc:`data-api`.
 
-.. _ListTables: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L88-L93
-.. _CreateTable: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L58-L64
-.. _DeleteTable: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L104-L109
-.. _GetTable: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L96-L101
-.. _CreateColumnFamily: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L115-L121
-.. _UpdateColumnFamily: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L115-L121
-.. _DeleteColumnFamily: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_table_admin.proto#L115-L121
+.. _ListTables: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L69-L73
+.. _CreateTable: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L45-L50
+.. _DeleteTable: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L83-L87
+.. _GetTable: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L76-L80
+.. _CreateColumnFamily: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L93-L98
+.. _UpdateColumnFamily: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L93-L98
+.. _DeleteColumnFamily: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_table_admin.proto#L93-L98
 .. _column families: https://cloud.google.com/bigtable/docs/schema-design#column_families_and_column_qualifiers

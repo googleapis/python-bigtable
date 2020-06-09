@@ -64,4 +64,4 @@ level. For example:
   :members:
   :show-inheritance:
 
-.. _RowFilter definition: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-v2/src/main/proto/google/bigtable/v2/data.proto#L214
+.. _RowFilter definition: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_v2/proto/bigtable_data.proto#L196

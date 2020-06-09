@@ -126,10 +126,10 @@ Now we go down the hierarchy from
 Head next to learn about the :doc:`table-api`.
 
 .. _Instance Admin API: https://cloud.google.com/bigtable/docs/creating-instance
-.. _CreateInstance: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_instance_admin.proto#L54-L64
-.. _GetInstance: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_instance_admin.proto#L67-L72
-.. _UpdateInstance: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_instance_admin.proto#L85-L90
-.. _DeleteInstance: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_instance_admin.proto#L107-L112
-.. _ListInstances: https://github.com/googleapis/java-bigtable/blob/master/proto-google-cloud-bigtable-admin-v2/src/main/proto/google/bigtable/admin/v2/bigtable_instance_admin.proto#L75-L80
+.. _CreateInstance: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_instance_admin.proto#L41-L47
+.. _GetInstance: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_instance_admin.proto#L50-L54
+.. _UpdateInstance: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_instance_admin.proto#L64-L69
+.. _DeleteInstance: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_instance_admin.proto#L81-L85
+.. _ListInstances: https://github.com/googleapis/python-bigtable/blob/master/google/cloud/bigtable_admin_v2/proto/bigtable_instance_admin.proto#L57-L61
 .. _GetOperation: https://github.com/googleapis/googleapis/blob/master/google/longrunning/operations.proto#L77-L82
 .. _long-running operation: https://github.com/googleapis/googleapis/blob/master/google/longrunning/operations.proto#L128-L162
