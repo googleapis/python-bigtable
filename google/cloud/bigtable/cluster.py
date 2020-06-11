@@ -295,9 +295,7 @@ class Cluster(object):
         # Location is set only at the time of creation of a cluster
         # and can not be changed after cluster has been created.
         return client.instance_admin_client.update_cluster(
-            name=self.name, 
-            serve_nodes=self.serve_nodes, 
-            location=None
+            name=self.name, serve_nodes=self.serve_nodes, location=None
         )
 
     def delete(self):
