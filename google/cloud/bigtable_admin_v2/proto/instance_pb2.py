@@ -724,6 +724,7 @@ Instance = _reflection.GeneratedProtocolMessageType(
         "__doc__": """A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
   the resources that serve them. All tables in an instance are served
   from all [Clusters][google.bigtable.admin.v2.Cluster] in the instance.
+  
   Attributes:
       name:
           The unique name of the instance. Values are of the form
@@ -764,6 +765,7 @@ Cluster = _reflection.GeneratedProtocolMessageType(
         "__doc__": """A resizable group of nodes in a particular cloud location, capable of
   serving all [Tables][google.bigtable.admin.v2.Table] in the parent
   [Instance][google.bigtable.admin.v2.Instance].
+  
   Attributes:
       name:
           The unique name of the cluster. Values are of the form ``proje
@@ -817,6 +819,7 @@ AppProfile = _reflection.GeneratedProtocolMessageType(
                 "__doc__": """Unconditionally routes all read/write requests to a specific cluster.
     This option preserves read-your-writes consistency but does not
     improve availability.
+    
     Attributes:
         cluster_id:
             The cluster to which read/write requests should be routed.
@@ -833,6 +836,7 @@ AppProfile = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.instance_pb2",
         "__doc__": """A configuration object describing how Cloud Bigtable should treat
   traffic from a particular end user application.
+  
   Attributes:
       name:
           (\ ``OutputOnly``) The unique name of the app profile. Values

@@ -1367,6 +1367,7 @@ RestoreInfo = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _RESTOREINFO,
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """Information about a table restore.
+  
   Attributes:
       source_type:
           The type of the restore source.
@@ -1392,6 +1393,7 @@ Table = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _TABLE_CLUSTERSTATE,
                 "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
                 "__doc__": """The state of a table’s data in a particular cluster.
+    
     Attributes:
         replication_state:
             Output only. The state of replication for the table in this
@@ -1422,6 +1424,7 @@ Table = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """A collection of user data indexed by row, column, and timestamp. Each
   table is served using the resources of its parent cluster.
+  
   Attributes:
       name:
           Output only. The unique name of the table. Values are of the
@@ -1465,6 +1468,7 @@ ColumnFamily = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _COLUMNFAMILY,
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """A set of columns within a table which share a common configuration.
+  
   Attributes:
       gc_rule:
           Garbage collection rule specified as a protobuf. Must
@@ -1489,6 +1493,7 @@ GcRule = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _GCRULE_INTERSECTION,
                 "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
                 "__doc__": """A GcRule which deletes cells matching all of the given rules.
+    
     Attributes:
         rules:
             Only delete cells which would be deleted by every element of
@@ -1504,6 +1509,7 @@ GcRule = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _GCRULE_UNION,
                 "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
                 "__doc__": """A GcRule which deletes cells matching any of the given rules.
+    
     Attributes:
         rules:
             Delete cells which would be deleted by any element of
@@ -1515,6 +1521,7 @@ GcRule = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _GCRULE,
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """Rule for determining which cells to delete during garbage collection.
+  
   Attributes:
       rule:
           Garbage collection rules.
@@ -1549,6 +1556,7 @@ Snapshot = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       name:
           Output only. The unique name of the snapshot. Values are of
@@ -1586,6 +1594,7 @@ Backup = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _BACKUP,
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """A backup of a Cloud Bigtable table.
+  
   Attributes:
       name:
           Output only. A globally unique identifier for the backup which
@@ -1634,6 +1643,7 @@ BackupInfo = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _BACKUPINFO,
         "__module__": "google.cloud.bigtable_admin_v2.proto.table_pb2",
         "__doc__": """Information about a backup.
+  
   Attributes:
       backup:
           Output only. Name of the backup.

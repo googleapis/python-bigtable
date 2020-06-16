@@ -2031,6 +2031,7 @@ Row = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies the complete (requested) contents of a single row of a
   table. Rows which exceed 256MiB in size cannot be read in full.
+  
   Attributes:
       key:
           The unique key which identifies this row within its table.
@@ -2054,6 +2055,7 @@ Family = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies (some of) the contents of a single row/column family
   intersection of a table.
+  
   Attributes:
       name:
           The unique key which identifies this family within its row.
@@ -2079,6 +2081,7 @@ Column = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies (some of) the contents of a single row/column intersection
   of a table.
+  
   Attributes:
       qualifier:
           The unique key which identifies this column within its family.
@@ -2103,6 +2106,7 @@ Cell = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies (some of) the contents of a single row/column/timestamp of a
   table.
+  
   Attributes:
       timestamp_micros:
           The cell’s stored timestamp, which also uniquely identifies it
@@ -2131,6 +2135,7 @@ RowRange = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _ROWRANGE,
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies a contiguous range of rows.
+  
   Attributes:
       start_key:
           The row key at which to start the range. If neither field is
@@ -2159,6 +2164,7 @@ RowSet = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _ROWSET,
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies a non-contiguous set of rows.
+  
   Attributes:
       row_keys:
           Single rows included in the set.
@@ -2180,6 +2186,7 @@ ColumnRange = _reflection.GeneratedProtocolMessageType(
   The range spans from <column_family>:<start_qualifier> to
   <column_family>:<end_qualifier>, where both bounds can be either
   inclusive or exclusive.
+  
   Attributes:
       family_name:
           The name of the column family within which this range falls.
@@ -2212,6 +2219,7 @@ TimestampRange = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _TIMESTAMPRANGE,
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specified a contiguous range of microsecond timestamps.
+  
   Attributes:
       start_timestamp_micros:
           Inclusive lower bound. If left empty, interpreted as 0.
@@ -2230,6 +2238,7 @@ ValueRange = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _VALUERANGE,
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies a contiguous range of raw byte values.
+  
   Attributes:
       start_value:
           The value at which to start the range. If neither field is
@@ -2262,6 +2271,7 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _ROWFILTER_CHAIN,
                 "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
                 "__doc__": """A RowFilter which sends rows through several RowFilters in sequence.
+    
     Attributes:
         filters:
             The elements of “filters” are chained together to process the
@@ -2279,6 +2289,7 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
                 "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
                 "__doc__": """A RowFilter which sends each row to each of several component
     RowFilters and interleaves the results.
+    
     Attributes:
         filters:
             The elements of “filters” all process a copy of the input row,
@@ -2321,6 +2332,7 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
     inconsistent or unexpected results. Additionally, Condition filters
     have poor performance, especially when filters are set for the false
     condition.
+    
     Attributes:
         predicate_filter:
             If ``predicate_filter`` outputs any cells, then
@@ -2370,6 +2382,7 @@ RowFilter = _reflection.GeneratedProtocolMessageType(
   RowFilter message must not exceed 4096 bytes, and RowFilters may not
   be nested within each other (in Chains or Interleaves) to a depth of
   more than 20.
+  
   Attributes:
       filter:
           Which of the possible RowFilter types to apply. If none are
@@ -2520,6 +2533,7 @@ Mutation = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _MUTATION_SETCELL,
                 "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
                 "__doc__": """A Mutation which sets the value of the specified cell.
+    
     Attributes:
         family_name:
             The name of the family into which new data should be written.
@@ -2548,6 +2562,7 @@ Mutation = _reflection.GeneratedProtocolMessageType(
                 "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
                 "__doc__": """A Mutation which deletes cells from the specified column, optionally
     restricting the deletions to a given timestamp range.
+    
     Attributes:
         family_name:
             The name of the family from which cells should be deleted.
@@ -2568,6 +2583,7 @@ Mutation = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _MUTATION_DELETEFROMFAMILY,
                 "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
                 "__doc__": """A Mutation which deletes all cells from the specified column family.
+    
     Attributes:
         family_name:
             The name of the family from which cells should be deleted.
@@ -2589,6 +2605,7 @@ Mutation = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _MUTATION,
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies a particular change to be made to the contents of a row.
+  
   Attributes:
       mutation:
           Which of the possible Mutation types to apply.
@@ -2618,6 +2635,7 @@ ReadModifyWriteRule = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_v2.proto.data_pb2",
         "__doc__": """Specifies an atomic read/modify/write operation on the latest value of
   the specified column.
+  
   Attributes:
       family_name:
           The name of the family to which the read/modify/write should

@@ -167,6 +167,7 @@ OperationProgress = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.common_pb2",
         "__doc__": """Encapsulates progress related information for a Cloud Bigtable long
   running operation.
+  
   Attributes:
       progress_percent:
           Percent completion of the operation. Values are between 0 and

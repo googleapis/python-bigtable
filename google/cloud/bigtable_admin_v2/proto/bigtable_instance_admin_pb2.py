@@ -1697,6 +1697,7 @@ CreateInstanceRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _CREATEINSTANCEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.CreateInstance.
+  
   Attributes:
       parent:
           Required. The unique name of the project in which to create
@@ -1729,6 +1730,7 @@ GetInstanceRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _GETINSTANCEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.GetInstance.
+  
   Attributes:
       name:
           Required. The unique name of the requested instance. Values
@@ -1746,6 +1748,7 @@ ListInstancesRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTINSTANCESREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.ListInstances.
+  
   Attributes:
       parent:
           Required. The unique name of the project for which a list of
@@ -1766,6 +1769,7 @@ ListInstancesResponse = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTINSTANCESRESPONSE,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Response message for BigtableInstanceAdmin.ListInstances.
+  
   Attributes:
       instances:
           The list of requested instances.
@@ -1792,6 +1796,7 @@ PartialUpdateInstanceRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _PARTIALUPDATEINSTANCEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.PartialUpdateInstance.
+  
   Attributes:
       instance:
           Required. The Instance which will (partially) replace the
@@ -1812,6 +1817,7 @@ DeleteInstanceRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _DELETEINSTANCEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.DeleteInstance.
+  
   Attributes:
       name:
           Required. The unique name of the instance to be deleted.
@@ -1830,6 +1836,7 @@ CreateClusterRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _CREATECLUSTERREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.CreateCluster.
+  
   Attributes:
       parent:
           Required. The unique name of the instance in which to create
@@ -1855,6 +1862,7 @@ GetClusterRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _GETCLUSTERREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.GetCluster.
+  
   Attributes:
       name:
           Required. The unique name of the requested cluster. Values are
@@ -1873,6 +1881,7 @@ ListClustersRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTCLUSTERSREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.ListClusters.
+  
   Attributes:
       parent:
           Required. The unique name of the instance for which a list of
@@ -1895,6 +1904,7 @@ ListClustersResponse = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTCLUSTERSRESPONSE,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Response message for BigtableInstanceAdmin.ListClusters.
+  
   Attributes:
       clusters:
           The list of requested clusters.
@@ -1920,6 +1930,7 @@ DeleteClusterRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _DELETECLUSTERREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.DeleteCluster.
+  
   Attributes:
       name:
           Required. The unique name of the cluster to be deleted. Values
@@ -1938,6 +1949,7 @@ CreateInstanceMetadata = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _CREATEINSTANCEMETADATA,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """The metadata for the Operation returned by CreateInstance.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this
@@ -1960,6 +1972,7 @@ UpdateInstanceMetadata = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _UPDATEINSTANCEMETADATA,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """The metadata for the Operation returned by UpdateInstance.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this
@@ -1982,6 +1995,7 @@ CreateClusterMetadata = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _CREATECLUSTERMETADATA,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """The metadata for the Operation returned by CreateCluster.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this CreateCluster
@@ -2004,6 +2018,7 @@ UpdateClusterMetadata = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _UPDATECLUSTERMETADATA,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """The metadata for the Operation returned by UpdateCluster.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this UpdateCluster
@@ -2026,6 +2041,7 @@ CreateAppProfileRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _CREATEAPPPROFILEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.CreateAppProfile.
+  
   Attributes:
       parent:
           Required. The unique name of the instance in which to create
@@ -2054,6 +2070,7 @@ GetAppProfileRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _GETAPPPROFILEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.GetAppProfile.
+  
   Attributes:
       name:
           Required. The unique name of the requested app profile. Values
@@ -2072,6 +2089,7 @@ ListAppProfilesRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTAPPPROFILESREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.ListAppProfiles.
+  
   Attributes:
       parent:
           Required. The unique name of the instance for which a list of
@@ -2102,6 +2120,7 @@ ListAppProfilesResponse = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _LISTAPPPROFILESRESPONSE,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Response message for BigtableInstanceAdmin.ListAppProfiles.
+  
   Attributes:
       app_profiles:
           The list of requested app profiles.
@@ -2128,6 +2147,7 @@ UpdateAppProfileRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _UPDATEAPPPROFILEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.UpdateAppProfile.
+  
   Attributes:
       app_profile:
           Required. The app profile which will (partially) replace the
@@ -2150,6 +2170,7 @@ DeleteAppProfileRequest = _reflection.GeneratedProtocolMessageType(
         "DESCRIPTOR": _DELETEAPPPROFILEREQUEST,
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_instance_admin_pb2",
         "__doc__": """Request message for BigtableInstanceAdmin.DeleteAppProfile.
+  
   Attributes:
       name:
           Required. The unique name of the app profile to be deleted.

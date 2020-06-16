@@ -2440,6 +2440,7 @@ CreateTableRequest = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _CREATETABLEREQUEST_SPLIT,
                 "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
                 "__doc__": """An initial split point for a newly created table.
+    
     Attributes:
         key:
             Row key to use as an initial tablet boundary.
@@ -2451,6 +2452,7 @@ CreateTableRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.Creat
   eTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
+  
   Attributes:
       parent:
           Required. The unique name of the instance in which to create
@@ -2496,6 +2498,7 @@ CreateTableFromSnapshotRequest = _reflection.GeneratedProtocolMessageType(
   Cloud Bigtable customers. This feature might be changed in backward-
   incompatible ways and is not recommended for production use. It is not
   subject to any SLA or deprecation policy.
+  
   Attributes:
       parent:
           Required. The unique name of the instance in which to create
@@ -2524,6 +2527,7 @@ DropRowRangeRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.DropR
   owRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
+  
   Attributes:
       name:
           Required. The unique name of the table on which to drop a
@@ -2551,6 +2555,7 @@ ListTablesRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.ListT
   ables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+  
   Attributes:
       parent:
           Required. The unique name of the instance for which tables
@@ -2583,6 +2588,7 @@ ListTablesResponse = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Response message for [google.bigtable.admin.v2.BigtableTableAdmin.List
   Tables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+  
   Attributes:
       tables:
           The tables present in the requested instance.
@@ -2604,6 +2610,7 @@ GetTableRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.GetTa
   ble][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
+  
   Attributes:
       name:
           Required. The unique name of the requested table. Values are
@@ -2626,6 +2633,7 @@ DeleteTableRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.Delet
   eTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
+  
   Attributes:
       name:
           Required. The unique name of the table to be deleted. Values
@@ -2648,6 +2656,7 @@ ModifyColumnFamiliesRequest = _reflection.GeneratedProtocolMessageType(
                 "DESCRIPTOR": _MODIFYCOLUMNFAMILIESREQUEST_MODIFICATION,
                 "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
                 "__doc__": """A create, update, or delete of a particular column family.
+    
     Attributes:
         id:
             The ID of the column family to be modified.
@@ -2671,6 +2680,7 @@ ModifyColumnFamiliesRequest = _reflection.GeneratedProtocolMessageType(
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.Modif
   yColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyCol
   umnFamilies]
+  
   Attributes:
       name:
           Required. The unique name of the table whose families should
@@ -2698,6 +2708,7 @@ GenerateConsistencyTokenRequest = _reflection.GeneratedProtocolMessageType(
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.Gener
   ateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.Gener
   ateConsistencyToken]
+  
   Attributes:
       name:
           Required. The unique name of the Table for which to create a
@@ -2718,6 +2729,7 @@ GenerateConsistencyTokenResponse = _reflection.GeneratedProtocolMessageType(
         "__doc__": """Response message for [google.bigtable.admin.v2.BigtableTableAdmin.Gene
   rateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.Gene
   rateConsistencyToken]
+  
   Attributes:
       consistency_token:
           The generated consistency token.
@@ -2736,6 +2748,7 @@ CheckConsistencyRequest = _reflection.GeneratedProtocolMessageType(
         "__doc__": """Request message for [google.bigtable.admin.v2.BigtableTableAdmin.Check
   Consistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsiste
   ncy]
+  
   Attributes:
       name:
           Required. The unique name of the Table for which to check
@@ -2759,6 +2772,7 @@ CheckConsistencyResponse = _reflection.GeneratedProtocolMessageType(
         "__doc__": """Response message for [google.bigtable.admin.v2.BigtableTableAdmin.Chec
   kConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsist
   ency]
+  
   Attributes:
       consistent:
           True only if the token is consistent. A token is consistent if
@@ -2783,6 +2797,7 @@ SnapshotTableRequest = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       name:
           Required. The unique name of the table to have the snapshot
@@ -2825,6 +2840,7 @@ GetSnapshotRequest = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       name:
           Required. The unique name of the requested snapshot. Values
@@ -2849,6 +2865,7 @@ ListSnapshotsRequest = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       parent:
           Required. The unique name of the cluster for which snapshots
@@ -2880,6 +2897,7 @@ ListSnapshotsResponse = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       snapshots:
           The snapshots present in the requested cluster.
@@ -2906,6 +2924,7 @@ DeleteSnapshotRequest = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       name:
           Required. The unique name of the snapshot to be deleted.
@@ -2929,6 +2948,7 @@ SnapshotTableMetadata = _reflection.GeneratedProtocolMessageType(
   feature might be changed in backward-incompatible ways and is not
   recommended for production use. It is not subject to any SLA or
   deprecation policy.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this SnapshotTable
@@ -2956,6 +2976,7 @@ CreateTableFromSnapshotMetadata = _reflection.GeneratedProtocolMessageType(
   customers. This feature might be changed in backward-incompatible ways
   and is not recommended for production use. It is not subject to any
   SLA or deprecation policy.
+  
   Attributes:
       original_request:
           The request that prompted the initiation of this
@@ -2979,6 +3000,7 @@ CreateBackupRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for [CreateBackup][google.bigtable.admin.v2.BigtableTableA
   dmin.CreateBackup].
+  
   Attributes:
       parent:
           Required. This must be one of the clusters in the instance in
@@ -3009,6 +3031,7 @@ CreateBackupMetadata = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Metadata type for the operation returned by [CreateBackup][google.bigt
   able.admin.v2.BigtableTableAdmin.CreateBackup].
+  
   Attributes:
       name:
           The name of the backup being created.
@@ -3033,6 +3056,7 @@ GetBackupRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for
   [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
+  
   Attributes:
       name:
           Required. Name of the backup. Values are of the form ``project
@@ -3052,6 +3076,7 @@ UpdateBackupRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for [UpdateBackup][google.bigtable.admin.v2.BigtableTableA
   dmin.UpdateBackup].
+  
   Attributes:
       backup:
           Required. The backup to update. ``backup.name``, and the
@@ -3079,6 +3104,7 @@ DeleteBackupRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for [DeleteBackup][google.bigtable.admin.v2.BigtableTableA
   dmin.DeleteBackup].
+  
   Attributes:
       name:
           Required. Name of the backup to delete. Values are of the form
@@ -3098,6 +3124,7 @@ ListBackupsRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for [ListBackups][google.bigtable.admin.v2.BigtableTableAd
   min.ListBackups].
+  
   Attributes:
       parent:
           Required. The cluster to list backups from. Values are of the
@@ -3170,6 +3197,7 @@ ListBackupsResponse = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The response for [ListBackups][google.bigtable.admin.v2.BigtableTableA
   dmin.ListBackups].
+  
   Attributes:
       backups:
           The list of matching backups.
@@ -3191,6 +3219,7 @@ RestoreTableRequest = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """The request for [RestoreTable][google.bigtable.admin.v2.BigtableTableA
   dmin.RestoreTable].
+  
   Attributes:
       parent:
           Required. The name of the instance in which to create the
@@ -3222,6 +3251,7 @@ RestoreTableMetadata = _reflection.GeneratedProtocolMessageType(
         "__module__": "google.cloud.bigtable_admin_v2.proto.bigtable_table_admin_pb2",
         "__doc__": """Metadata type for the long-running operation returned by [RestoreTable
   ][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+  
   Attributes:
       name:
           Name of the table being created and restored to.
@@ -3261,6 +3291,7 @@ OptimizeRestoredTableMetadata = _reflection.GeneratedProtocolMessageType(
   progress of optimizations performed on a newly restored table. This
   long-running operation is automatically created by the system after
   the successful completion of a table restore, and cannot be cancelled.
+  
   Attributes:
       name:
           Name of the restored table being optimized.
