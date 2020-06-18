@@ -645,7 +645,7 @@ class Instance(object):
         return result
 
     def backup(self, backup_id, cluster_id=None, table=None, expire_time=None):
-        """ Factory to create a Backup within this Instance.
+        """Factory to create a Backup within this Instance.
 
         :type backup_id: str
         :param backup_id: The ID of the Backup to be created.
@@ -682,12 +682,12 @@ class Instance(object):
     def list_backups(
         self, cluster_id=None, filter_=None, order_by=None, page_size=None
     ):
-        """ List Backups for the Instance.
+        """List Backups for the Instance.
 
         :type cluster_id: str
         :param cluster_id: (Optional) Specifies a single cluster to list
-                        Backups from. If none is specified, the returned list
-                        contains all the Backups in this Instance.
+                           Backups from. If none is specified, the returned list
+                           contains all the Backups in this Instance.
 
         :type filter_: str
         :param filter_: (Optional) A filter expression that filters backups
@@ -757,7 +757,7 @@ class Instance(object):
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of :class:`~google.cloud.bigtable.backup.Backup`
-            resources within the current Instance.
+                  resources within the current Instance.
         :raises: :class:`ValueError <exceptions.ValueError>` if one of the
                  returned Backups' name is not of the expected format.
         """
@@ -808,11 +808,11 @@ class Instance(object):
 			 :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
 
 		:raises: google.api_core.exceptions.AlreadyExists: If the table
-					already exists.
+                 already exists.
 		:raises: google.api_core.exceptions.GoogleAPICallError: If the request
-					failed for any reason.
+                 failed for any reason.
 		:raises: google.api_core.exceptions.RetryError: If the request failed
-					 due to a retryable error and retry attempts failed.
+                 due to a retryable error and retry attempts failed.
 		:raises: ValueError: If the parameters are invalid.
 		"""
         api = self._client.table_admin_client

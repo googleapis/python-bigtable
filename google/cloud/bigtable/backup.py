@@ -102,6 +102,11 @@ class Backup(object):
 
     @property
     def cluster(self):
+        """The ID of the [parent] cluster used in requests.
+
+        :rtype: str
+        :returns: The ID of the cluster containing the Backup.
+        """
         return self._cluster
 
     @cluster.setter
@@ -110,6 +115,18 @@ class Backup(object):
 
     @property
     def parent(self):
+        """Name of the parent cluster used in requests.
+
+        .. note::
+          This property will return None if ``cluster`` is not set.
+
+        The parent name is of the form
+
+            ``"projects/{project}/instances/{instance_id}/clusters/{cluster}"``
+
+        :rtype: str
+        :returns: A full path to the parent cluster.
+        """
         if not self._parent and self._cluster:
             self._parent = self._instance.name + "/clusters/" + self._cluster
         return self._parent
@@ -117,6 +134,7 @@ class Backup(object):
     @property
     def source_table(self):
         """The full name of the Table from which this Backup is created.
+
         The table name is of the form
 
             ``"projects/../instances/../tables/{source_table}"``
@@ -194,10 +212,10 @@ class Backup(object):
 
         :rtype: :class:`~google.cloud.bigtable.backup.Backup`
         :returns: The backup parsed from the protobuf response.
-        :raises ValueError:
-            If the backup name does not match the expected format or the parsed
-            project ID does not match the project ID on the instance's client,
-            or if the parsed instance ID does not match the instance's ID.
+        :raises: ValueError: If the backup name does not match the expected
+                             format or the parsed project ID does not match the
+                             project ID on the Instance's client, or if the
+                             parsed instance ID does not match the Instance ID.
         """
         match = _BACKUP_NAME_RE.match(backup_pb.name)
         if match is None:
@@ -223,7 +241,8 @@ class Backup(object):
         """Creates this backup within its instance.
 
         :type cluster_id: str
-        :param cluster_id: The ID of the Cluster for the newly created Backup.
+        :param cluster_id: (Optional) The ID of the Cluster for the newly
+                           created Backup.
 
         :rtype: :class:`~google.api_core.operation.Operation`
         :returns: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
@@ -261,9 +280,9 @@ class Backup(object):
                  :class:`~google.cloud.bigtable_admin_v2.types.Backup`
 
         :raises google.api_core.exceptions.GoogleAPICallError: If the request
-                    failed for any reason.
+                failed for any reason.
         :raises google.api_core.exceptions.RetryError: If the request failed
-                    due to a retryable error and retry attempts failed.
+                due to a retryable error and retry attempts failed.
         :raises ValueError: If the parameters are invalid.
         """
         api = self._instance._client.table_admin_client
@@ -273,8 +292,7 @@ class Backup(object):
             return None
 
     def refresh(self):
-        """ Refreshes the stored backup properties
-        """
+        """Refreshes the stored backup properties."""
         backup = self.get()
         self._source_table = backup.source_table
         self._expire_time = backup.expire_time
@@ -327,7 +345,7 @@ class Backup(object):
 
         :param table_id: The ID of the Table to create and restore to.
                          This Table must not already exist.
-        :return: An instance of
+        :returns: An instance of
              :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
 
         :raises: google.api_core.exceptions.AlreadyExists: If the table
