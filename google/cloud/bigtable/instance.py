@@ -14,12 +14,12 @@
 
 """User-friendly container for Google Cloud Bigtable Instance."""
 
-
 import re
 
-from google.cloud.bigtable.table import Table
-from google.cloud.bigtable.cluster import Cluster
 from google.cloud.bigtable.app_profile import AppProfile
+from google.cloud.bigtable.backup import Backup
+from google.cloud.bigtable.cluster import Cluster
+from google.cloud.bigtable.table import Table
 
 from google.protobuf import field_mask_pb2
 
@@ -537,6 +537,9 @@ class Instance(object):
         :type cluster_id: str
         :param cluster_id: The ID of the cluster.
 
+        :type instance: :class:`~google.cloud.bigtable.instance.Instance`
+        :param instance: The instance where the cluster resides.
+
         :type location_id: str
         :param location_id: (Creation Only) The location where this cluster's
                             nodes and storage reside. For best performance,
@@ -640,6 +643,184 @@ class Instance(object):
             result.append(self.table(table_id))
 
         return result
+
+    def backup(self, backup_id, cluster_id=None, table=None, expire_time=None):
+        """ Factory to create a Backup within this Instance.
+
+        :type backup_id: str
+        :param backup_id: The ID of the Backup to be created.
+
+        :type cluster_id: str
+        :param cluster_id: (Optional) The ID of the Cluster. Required for
+                           calling 'delete', 'exists' etc. methods.
+
+        :type table: :class:`~google.cloud.bigtable.table.Table`
+        :param table: (Optional) The Table create the Backup from.
+            Required, if the `create` method needs to be called.
+
+        :type expire_time: :class:`datetime.datetime`
+        :param expire_time: (Optional) The expiration time of this new Backup.
+            Required, if the `create` method needs to be called.
+        """
+        try:
+            return Backup(
+                backup_id,
+                self,
+                cluster_id=cluster_id,
+                table_id=table.name.split("/")[-1],
+                expire_time=expire_time,
+            )
+        except AttributeError:
+            return Backup(
+                backup_id,
+                self,
+                cluster_id=cluster_id,
+                table_id=table,
+                expire_time=expire_time,
+            )
+
+    def list_backups(
+        self, cluster_id=None, filter_=None, order_by=None, page_size=None
+    ):
+        """ List Backups for the Instance.
+
+        :type cluster_id: str
+        :param cluster_id: (Optional) Specifies a single cluster to list
+                        Backups from. If none is specified, the returned list
+                        contains all the Backups in this Instance.
+
+        :type filter_: str
+        :param filter_: (Optional) A filter expression that filters backups
+        				listed in the response. The expression must specify
+        				the field name, a comparison operator, and the value
+        				that you want to use for filtering. The value must be
+        				a string, a number, or a boolean. The comparison
+        				operator must be <, >, <=, >=, !=, =, or :. Colon ‘:’
+        				represents a HAS operator which is roughly synonymous
+        				with equality. Filter rules are case insensitive.
+
+        				The fields eligible for filtering are:
+
+                -  ``name``
+                -  ``source_table``
+                -  ``state``
+                -  ``start_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``end_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``expire_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``size_bytes``
+
+                		To filter on multiple expressions, provide each
+                		separate expression within parentheses. By default,
+                		each expression is an AND expression. However, you can
+                		include AND, OR, and NOT expressions explicitly.
+
+                		Some examples of using filters are:
+
+                -  ``name:"exact"`` --> The Backup name is the string "exact".
+                -  ``name:howl`` --> The Backup name contains the string "howl"
+                -  ``source_table:prod`` --> The source table's name contains
+                		the string "prod".
+                -  ``state:CREATING`` --> The Backup is pending creation.
+                -  ``state:READY`` --> The Backup is created and ready for use.
+                -  ``(name:howl) AND (start_time < \"2020-05-28T14:50:00Z\")``
+                		--> The Backup name contains the string "howl" and
+                		the Backup start time is before 2020-05-28T14:50:00Z.
+                -  ``size_bytes > 10000000000`` --> The Backup size is greater
+                		than 10GB
+
+        :type order_by: str
+        :param order_by: (Optional) An expression for specifying the sort order
+        				 of the results of the request. The string value should
+        				 specify one or more fields in ``Backup``. The full
+        				 syntax is described at https://aip.dev/132#ordering.
+
+                		 Fields supported are: \* name \* source\_table \*
+                		 expire\_time \* start\_time \* end\_time \*
+                		 size\_bytes \* state
+
+                		 For example, "start\_time". The default sorting order
+                		 is ascending. To specify descending order for the
+                		 field, a suffix " desc" should be appended to the
+                		 field name. For example, "start\_time desc". Redundant
+                		 space characters in the syntax are insigificant. If
+                		 order_by is empty, results will be sorted by
+                		 ``start_time`` in descending order starting from
+                		 the most recently created backup.
+
+        :type page_size: int
+        :param page_size: (Optional) The maximum number of resources contained
+        				  in the underlying API response. If page streaming is
+        				  performed per-resource, this parameter does not
+        				  affect the return value. If page streaming is
+        				  performed per-page, this determines the maximum
+        				  number of resources in a page.
+
+        :rtype: :class:`~google.api_core.page_iterator.Iterator`
+        :returns: Iterator of :class:`~google.cloud.bigtable.backup.Backup`
+            resources within the current Instance.
+        :raises: :class:`ValueError <exceptions.ValueError>` if one of the
+                 returned Backups' name is not of the expected format.
+        """
+        cluster_id = cluster_id or "-"
+
+        backup_list_pb = self._client.table_admin_client.list_backups(
+            self.name + "/clusters/" + cluster_id,
+            filter_=filter_,
+            order_by=order_by,
+            page_size=page_size,
+        )
+
+        result = []
+        for backup_pb in backup_list_pb:
+            backup_id = backup_pb.name.split("/")[-1]
+            result.append(self.backup(backup_id))
+
+        return result
+
+    def restore_table(
+        self, table_id, cluster_id=None, backup_id=None, backup_name=None
+    ):
+        """Creates a new Table by restoring from the Backup specified by either
+        `backup_id` or `backup_name`. The returned ``long-running operation``
+        can be used to track the progress of the operation and to cancel it.
+        The ``response`` type is ``Table``, if successful.
+
+		:type table_id: str
+		:param table_id: The ID of the Table to create and restore to.
+						 This Table must not already exist.
+
+		:type cluster_id: str
+		:param cluster_id: The ID of the Cluster containing the Backup.
+		                   This parameter gets overriden by `backup_name`, if
+                           the latter is provided.
+
+		:type backup_id: str
+		:param backup_id: The ID of the Backup to restore the Table from.
+	                      This parameter gets overriden by `backup_name`, if
+                          the latter is provided.
+
+		:type backup_name: str
+		:param backup_name: (Optional) The full name of the Backup to restore
+		                    from. If specified, it overrides the `cluster_id`
+		                    and `backup_id` parameters even of such specified.
+
+		:return: An instance of
+			 :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
+
+		:raises: google.api_core.exceptions.AlreadyExists: If the table
+					already exists.
+		:raises: google.api_core.exceptions.GoogleAPICallError: If the request
+					failed for any reason.
+		:raises: google.api_core.exceptions.RetryError: If the request failed
+					 due to a retryable error and retry attempts failed.
+		:raises: ValueError: If the parameters are invalid.
+		"""
+        api = self._client.table_admin_client
+        if not backup_name:
+            backup_name = "{}/clusters/{}/backups/{}".format(
+                self.name, cluster_id, backup_id
+            )
+        return api.restore_table(self.name, table_id, backup_name)
 
     def app_profile(
         self,
