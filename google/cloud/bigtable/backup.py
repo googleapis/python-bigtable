@@ -1,4 +1,4 @@
-# Copyright 2015 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ _BACKUP_NAME_RE = re.compile(
     r"clusters/(?P<cluster_id>[a-z][-a-z0-9]*)/"
     r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
 )
-_DEFAULT_EXPIRE_PERIOD = 604800  # 7 days
 
 
 class Backup(object):

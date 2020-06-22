@@ -680,7 +680,7 @@ class Instance(object):
             )
 
     def list_backups(
-        self, cluster_id=None, filter_=None, order_by=None, page_size=None
+        self, cluster_id=None, filter_=None, order_by=None, page_size=0
     ):
         """List Backups for the Instance.
 
