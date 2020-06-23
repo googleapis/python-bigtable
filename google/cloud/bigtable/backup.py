@@ -12,20 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""User friendly container for Cloud Bigtable Backup."""
+"""A user-friendly container for Cloud Bigtable Backup."""
 
 import re
 
 from google.cloud._helpers import _datetime_to_pb_timestamp
-from google.cloud.bigtable_admin_v2.gapic import enums
 from google.cloud.exceptions import NotFound
-
-_BACKUP_NAME_RE = re.compile(
-    r"^projects/(?P<project>[^/]+)/"
-    r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
-    r"clusters/(?P<cluster_id>[a-z][-a-z0-9]*)/"
-    r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
-)
 
 
 class Backup(object):
@@ -210,7 +202,12 @@ class Backup(object):
                              project ID on the Instance's client, or if the
                              parsed instance ID does not match the Instance ID.
         """
-        match = _BACKUP_NAME_RE.match(backup_pb.name)
+        match = re.compile(
+            r"^projects/(?P<project>[^/]+)/"
+            r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
+            r"clusters/(?P<cluster_id>[a-z][-a-z0-9]*)/"
+            r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
+        ).match(backup_pb.name)
         if match is None:
             raise ValueError(
                 "Backup protobuf name was not in the expected format.", backup_pb.name
