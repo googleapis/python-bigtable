@@ -421,7 +421,7 @@ class TestBackup(unittest.TestCase):
 
         self.assertEqual(backup.get(), backup_pb)
 
-    def test_refresh(self):
+    def test_reload(self):
         from google.cloud.bigtable_admin_v2.gapic import enums
         from google.cloud.bigtable_admin_v2.proto import table_pb2
         from google.cloud._helpers import _datetime_to_pb_timestamp
@@ -445,7 +445,7 @@ class TestBackup(unittest.TestCase):
         instance = _Instance(self.INSTANCE_NAME, client=client)
         backup = self._make_one(self.BACKUP_ID, instance, cluster_id=self.CLUSTER_ID)
 
-        backup.refresh()
+        backup.reload()
         self.assertEqual(backup._source_table, self.TABLE_NAME)
         self.assertEqual(backup._expire_time, timestamp)
         self.assertEqual(backup._start_time, timestamp)

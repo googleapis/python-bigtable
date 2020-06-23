@@ -290,7 +290,7 @@ class Backup(object):
         except NotFound:
             return None
 
-    def refresh(self):
+    def reload(self):
         """Refreshes the stored backup properties."""
         backup = self.get()
         self._source_table = backup.source_table
