@@ -421,38 +421,6 @@ class TestBackup(unittest.TestCase):
 
         self.assertEqual(backup.get(), backup_pb)
 
-    def test_reload(self):
-        from google.cloud.bigtable_admin_v2.gapic import enums
-        from google.cloud.bigtable_admin_v2.proto import table_pb2
-        from google.cloud._helpers import _datetime_to_pb_timestamp
-
-        timestamp = _datetime_to_pb_timestamp(self._make_timestamp())
-        state = enums.Backup.State.READY
-
-        client = _Client()
-        backup_pb = table_pb2.Backup(
-            name=self.BACKUP_NAME,
-            source_table=self.TABLE_NAME,
-            expire_time=timestamp,
-            start_time=timestamp,
-            end_time=timestamp,
-            size_bytes=0,
-            state=state,
-        )
-        api = client.table_admin_client = self._make_table_admin_client()
-        api.get_backup.return_value = backup_pb
-
-        instance = _Instance(self.INSTANCE_NAME, client=client)
-        backup = self._make_one(self.BACKUP_ID, instance, cluster_id=self.CLUSTER_ID)
-
-        backup.reload()
-        self.assertEqual(backup._source_table, self.TABLE_NAME)
-        self.assertEqual(backup._expire_time, timestamp)
-        self.assertEqual(backup._start_time, timestamp)
-        self.assertEqual(backup._end_time, timestamp)
-        self.assertEqual(backup._size_bytes, 0)
-        self.assertEqual(backup._state, state)
-
     def test_exists_success(self):
         from google.cloud.bigtable_admin_v2.proto import table_pb2
 
@@ -576,17 +544,6 @@ class TestBackup(unittest.TestCase):
         api.update_backup.assert_called_once_with(
             backup_update, update_mask,
         )
-
-    def test_is_ready(self):
-        from google.cloud.bigtable_admin_v2.gapic import enums
-
-        client = _Client()
-        instance = _Instance(self.INSTANCE_NAME, client=client)
-        backup = self._make_one(self.BACKUP_ID, instance)
-        backup._state = enums.Backup.State.READY
-        self.assertTrue(backup.is_ready())
-        backup._state = enums.Backup.State.CREATING
-        self.assertFalse(backup.is_ready())
 
     def test_restore_grpc_error(self):
         from google.api_core.exceptions import GoogleAPICallError

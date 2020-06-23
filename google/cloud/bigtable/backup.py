@@ -16,14 +16,8 @@
 
 import re
 
-# import warnings
-# from datetime import datetime
-
 from google.cloud._helpers import _datetime_to_pb_timestamp
 from google.cloud.bigtable_admin_v2.gapic import enums
-
-# from google.cloud.bigtable_admin_v2.proto import table_pb2
-# from google.cloud.bigtable_admin_v2.proto import bigtable_table_admin_pb2
 from google.cloud.exceptions import NotFound
 
 _BACKUP_NAME_RE = re.compile(
@@ -290,16 +284,6 @@ class Backup(object):
         except NotFound:
             return None
 
-    def reload(self):
-        """Refreshes the stored backup properties."""
-        backup = self.get()
-        self._source_table = backup.source_table
-        self._expire_time = backup.expire_time
-        self._start_time = backup.start_time
-        self._end_time = backup.end_time
-        self._size_bytes = backup.size_bytes
-        self._state = backup.state
-
     def exists(self):
         """Tests whether this Backup exists.
 
@@ -322,14 +306,6 @@ class Backup(object):
         api = self._instance._client.table_admin_client
         api.update_backup(backup_update, update_mask)
         self._expire_time = new_expire_time
-
-    def is_ready(self):
-        """Tests whether this Backup is ready for use.
-
-        :rtype: bool
-        :returns: True if the Backup state is READY, otherwise False.
-        """
-        return self._state == enums.Backup.State.READY
 
     def delete(self):
         """Delete this Backup."""
