@@ -899,7 +899,13 @@ class Table(object):
         result = []
         for backup_pb in backup_list_pb:
             backup_id = backup_pb.name.split("/")[-1]
-            result.append(self.backup(backup_id))
+            backup_cluster_id = backup_pb.name.split("/")[-3]
+            backup_expire_time = backup_pb.expire_time
+            result.append(self.backup(
+                backup_id,
+                cluster_id=backup_cluster_id,
+                expire_time=backup_expire_time
+            ))
 
         return result
 
