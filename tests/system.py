@@ -868,7 +868,9 @@ class TestTableAdminAPI(unittest.TestCase):
 
         # Testing `Backup.update_expire_time()` method
         expire += 3600 # A one-hour change in the `expire_time` parameter
-        temp_backup.update_expire_time(datetime.datetime.utcfromtimestamp(expire))
+        temp_backup.update_expire_time(
+            datetime.datetime.utcfromtimestamp(expire)
+        )
 
         # Testing `Backup.get()` method
         temp_table_backup = temp_backup.get()
