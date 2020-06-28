@@ -17,7 +17,12 @@
 import re
 
 from google.cloud._helpers import _datetime_to_pb_timestamp
+from google.cloud.bigtable_admin_v2.gapic.bigtable_table_admin_client import (
+    BigtableTableAdminClient
+)
+from google.cloud.bigtable_admin_v2.types import table_pb2
 from google.cloud.exceptions import NotFound
+from google.protobuf import field_mask_pb2
 
 
 class Backup(object):
@@ -81,8 +86,14 @@ class Backup(object):
         if not self._cluster:
             raise ValueError('"cluster" parameter must be set')
 
-        return "{}/clusters/{}/backups/{}".format(
-            self._instance.name, self._cluster, self.backup_id
+        # return "{}/clusters/{}/backups/{}".format(
+        #     self._instance.name, self._cluster, self.backup_id
+        # )
+        return BigtableTableAdminClient.backup_path(
+            project=self._instance._client.project,
+            instance=self._instance.instance_id,
+            cluster=self._cluster,
+            backup=self.backup_id
         )
 
     @property
@@ -113,12 +124,20 @@ class Backup(object):
         :returns: A full path to the parent cluster.
         """
         if not self._parent and self._cluster:
-            self._parent = self._instance.name + "/clusters/" + self._cluster
+            # self._parent = self._instance.name + "/clusters/" + self._cluster
+            self._parent = BigtableTableAdminClient.cluster_path(
+                project=self._instance._client.project,
+                instance=self._instance.instance_id,
+                cluster=self._cluster
+            )
         return self._parent
 
     @property
     def source_table(self):
         """The full name of the Table from which this Backup is created.
+
+        .. note::
+          This property will return None if ``table_id`` is not set.
 
         The table name is of the form
 
@@ -227,6 +246,14 @@ class Backup(object):
         backup_id = match.group("backup_id")
         return cls(backup_id, instance)
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return other.backup_id == self.backup_id and other._instance == self._instance
+
+    def __ne__(self, other):
+        return not self == other
+
     def create(self, cluster_id=None):
         """Creates this backup within its instance.
 
@@ -255,10 +282,14 @@ class Backup(object):
         if not self._cluster:
             raise ValueError('"cluster" parameter must be set')
 
-        backup = {
-            "source_table": self.source_table,
-            "expire_time": _datetime_to_pb_timestamp(self.expire_time),
-        }
+        # backup = {
+        #     "source_table": self.source_table,
+        #     "expire_time": _datetime_to_pb_timestamp(self.expire_time),
+        # }
+        backup = table_pb2.Backup(
+            source_table=self.source_table,
+            expire_time=_datetime_to_pb_timestamp(self.expire_time),
+        )
 
         api = self._instance._client.table_admin_client
         return api.create_backup(self.parent, self.backup_id, backup)
@@ -295,11 +326,16 @@ class Backup(object):
         :type new_expire_time: :class:`datetime.datetime`
         :param new_expire_time: the new expiration time timestamp
         """
-        backup_update = {
-            "name": self.name,
-            "expire_time": _datetime_to_pb_timestamp(new_expire_time),
-        }
-        update_mask = {"paths": ["expire_time"]}
+        # backup_update = {
+        #     "name": self.name,
+        #     "expire_time": _datetime_to_pb_timestamp(new_expire_time),
+        # }
+        backup_update = table_pb2.Backup(
+            name=self.name,
+            expire_time=_datetime_to_pb_timestamp(new_expire_time),
+        )
+        # update_mask = {"paths": ["expire_time"]}
+        update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api = self._instance._client.table_admin_client
         api.update_backup(backup_update, update_mask)
         self._expire_time = new_expire_time

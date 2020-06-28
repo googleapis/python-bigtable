@@ -1240,6 +1240,10 @@ class TestTable(unittest.TestCase):
             return_value=backups_pb
         )
 
+        backups_filter = "source_table:{}".format(self.TABLE_NAME)
+        if filter_:
+            backups_filter = "({}) AND ({})".format(backups_filter, filter_)
+
         backups = table.list_backups(
             cluster_id=cluster_id, filter_=filter_, **kwargs
         )
@@ -1256,7 +1260,7 @@ class TestTable(unittest.TestCase):
         ]
         api.assert_called_once_with(
             bigtable_table_admin_pb2.ListBackupsRequest(
-                parent=parent, filter=filter_, **kwargs
+                parent=parent, filter=backups_filter, **kwargs
             ),
             retry=mock.ANY,
             timeout=mock.ANY,

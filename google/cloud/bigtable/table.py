@@ -39,6 +39,9 @@ from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable import enums
 from google.cloud.bigtable_v2.proto import bigtable_pb2 as data_messages_v2_pb2
+from google.cloud.bigtable_admin_v2.gapic.bigtable_table_admin_client import (
+    BigtableTableAdminClient
+)
 from google.cloud.bigtable_admin_v2.proto import table_pb2 as admin_messages_v2_pb2
 from google.cloud.bigtable_admin_v2.proto import (
     bigtable_table_admin_pb2 as table_admin_messages_v2_pb2,
@@ -889,9 +892,19 @@ class Table(object):
         """
         cluster_id = cluster_id or "-"
 
+        backups_filter = "source_table:{}".format(self.name)
+        if filter_:
+            backups_filter = "({}) AND ({})".format(backups_filter, filter_)
+
+        parent = BigtableTableAdminClient.cluster_path(
+            project=self._instance._client.project,
+            instance=self._instance.instance_id,
+            cluster=cluster_id
+        )
         backup_list_pb = self._instance._client.table_admin_client.list_backups(
-            self._instance.name + "/clusters/" + cluster_id,
-            filter_=filter_,
+            # self._instance.name + "/clusters/" + cluster_id,
+            parent=parent,
+            filter_=backups_filter,
             order_by=order_by,
             page_size=page_size,
         )
@@ -910,15 +923,15 @@ class Table(object):
         return result
 
     def restore(
-        self, table_id, cluster_id=None, backup_id=None, backup_name=None
+        self, new_table_id, cluster_id=None, backup_id=None, backup_name=None
     ):
         """Creates a new Table by restoring from the Backup specified by either
         `backup_id` or `backup_name`. The returned ``long-running operation``
         can be used to track the progress of the operation and to cancel it.
         The ``response`` type is ``Table``, if successful.
 
-		:type table_id: str
-		:param table_id: The ID of the Table to create and restore to.
+		:type new_table_id: str
+		:param new_table_id: The ID of the Table to create and restore to.
 						 This Table must not already exist.
 
 		:type cluster_id: str
@@ -952,7 +965,7 @@ class Table(object):
             backup_name = "{}/clusters/{}/backups/{}".format(
                 self._instance.name, cluster_id, backup_id
             )
-        return api.restore_table(self._instance.name, table_id, backup_name)
+        return api.restore_table(self._instance.name, new_table_id, backup_name)
 
 
 class _RetryableMutateRowsWorker(object):
