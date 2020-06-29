@@ -1227,7 +1227,7 @@ class TestTable(unittest.TestCase):
         client._instance_admin_client = instance_api
         client._table_admin_client = table_api
 
-        parent = self.INSTANCE_NAME + "/clusters/cluster/"
+        parent = self.INSTANCE_NAME + "/clusters/cluster"
         backups_pb = bigtable_table_admin_pb2.ListBackupsResponse(
             backups=[
                 table_pb2.Backup(name=parent + "/backups/op1"),

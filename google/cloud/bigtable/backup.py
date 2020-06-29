@@ -24,6 +24,13 @@ from google.cloud.bigtable_admin_v2.types import table_pb2
 from google.cloud.exceptions import NotFound
 from google.protobuf import field_mask_pb2
 
+_BACKUP_NAME_RE = re.compile(
+    r"^projects/(?P<project>[^/]+)/"
+    r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
+    r"clusters/(?P<cluster_id>[a-z][-a-z0-9]*)/"
+    r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
+)
+
 
 class Backup(object):
     """Representation of a Google Cloud Bigtable Backup.
@@ -226,12 +233,7 @@ class Backup(object):
                              project ID on the Instance's client, or if the
                              parsed instance ID does not match the Instance ID.
         """
-        match = re.compile(
-            r"^projects/(?P<project>[^/]+)/"
-            r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
-            r"clusters/(?P<cluster_id>[a-z][-a-z0-9]*)/"
-            r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
-        ).match(backup_pb.name)
+        match = _BACKUP_NAME_RE.match(backup_pb.name)
         if match is None:
             raise ValueError(
                 "Backup protobuf name was not in the expected format.", backup_pb.name
@@ -249,7 +251,29 @@ class Backup(object):
                 "of the instance"
             )
         backup_id = match.group("backup_id")
-        return cls(backup_id, instance)
+        cluster_id = match.group("cluster_id")
+
+        match = re.compile(
+            r"^projects/(?P<project>[^/]+)/"
+            r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
+            r"tables/(?P<table_id>[_a-zA-Z0-9][-_.a-zA-Z0-9]*)$"
+        ).match(backup_pb.source_table)
+        table_id = match.group("table_id") if match else None
+
+        expire_time = backup_pb.expire_time
+
+        backup = cls(
+            backup_id, instance,
+            cluster_id=cluster_id,
+            table_id=table_id,
+            expire_time=expire_time,
+        )
+        backup._start_time = backup_pb.start_time
+        backup._end_time = backup_pb.end_time
+        backup._size_bytes = backup_pb.size_bytes
+        backup._state = backup_pb.state
+
+        return backup
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

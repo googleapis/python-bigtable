@@ -128,11 +128,24 @@ class TestBackup(unittest.TestCase):
             klasse.from_pb(backup_pb, instance)
 
     def test_from_pb_success(self):
+        from google.cloud.bigtable_admin_v2.gapic import enums
         from google.cloud.bigtable_admin_v2.proto import table_pb2
+        from google.cloud._helpers import _datetime_to_pb_timestamp
 
         client = _Client()
         instance = _Instance(self.INSTANCE_NAME, client)
-        backup_pb = table_pb2.Backup(name=self.BACKUP_NAME)
+        timestamp = _datetime_to_pb_timestamp(self._make_timestamp())
+        size_bytes = 1234
+        state = enums.Backup.State.READY
+        backup_pb = table_pb2.Backup(
+            name=self.BACKUP_NAME,
+            source_table=self.TABLE_NAME,
+            expire_time=timestamp,
+            start_time=timestamp,
+            end_time=timestamp,
+            size_bytes=size_bytes,
+            state=state
+        )
         klasse = self._get_target_class()
 
         backup = klasse.from_pb(backup_pb, instance)
@@ -140,12 +153,13 @@ class TestBackup(unittest.TestCase):
         self.assertTrue(isinstance(backup, klasse))
         self.assertEqual(backup._instance, instance)
         self.assertEqual(backup.backup_id, self.BACKUP_ID)
-        self.assertIsNone(backup.table_id)
-        self.assertIsNone(backup._expire_time)
-        self.assertIsNone(backup._start_time)
-        self.assertIsNone(backup._end_time)
-        self.assertIsNone(backup._size_bytes)
-        self.assertIsNone(backup._state)
+        self.assertEqual(backup.cluster, self.CLUSTER_ID)
+        self.assertEqual(backup.table_id, self.TABLE_ID)
+        self.assertEqual(backup._expire_time, timestamp)
+        self.assertEqual(backup._start_time, timestamp)
+        self.assertEqual(backup._end_time, timestamp)
+        self.assertEqual(backup._size_bytes, size_bytes)
+        self.assertEqual(backup._state, state)
 
     def test_property_name(self):
         from google.cloud.bigtable.client import Client
@@ -237,7 +251,6 @@ class TestBackup(unittest.TestCase):
             table_id=self.TABLE_ID
         )
         self.assertEqual(backup.source_table, self.TABLE_NAME)
-
 
     def test_property_expire_time(self):
         instance = _Instance(self.INSTANCE_NAME)
