@@ -93,9 +93,6 @@ class Backup(object):
         if not self._cluster:
             raise ValueError('"cluster" parameter must be set')
 
-        # return "{}/clusters/{}/backups/{}".format(
-        #     self._instance.name, self._cluster, self.backup_id
-        # )
         return BigtableTableAdminClient.backup_path(
             project=self._instance._client.project,
             instance=self._instance.instance_id,
@@ -131,7 +128,6 @@ class Backup(object):
         :returns: A full path to the parent cluster.
         """
         if not self._parent and self._cluster:
-            # self._parent = self._instance.name + "/clusters/" + self._cluster
             self._parent = BigtableTableAdminClient.cluster_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
@@ -154,9 +150,6 @@ class Backup(object):
         :returns: The Table name.
         """
         if not self._source_table and self.table_id:
-            # self._source_table = "{}/tables/{}".format(
-            #     self._instance.name, self.table_id
-            # )
             self._source_table = BigtableTableAdminClient.table_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
@@ -311,10 +304,6 @@ class Backup(object):
         if not self._cluster:
             raise ValueError('"cluster" parameter must be set')
 
-        # backup = {
-        #     "source_table": self.source_table,
-        #     "expire_time": _datetime_to_pb_timestamp(self.expire_time),
-        # }
         backup = table_pb2.Backup(
             source_table=self.source_table,
             expire_time=_datetime_to_pb_timestamp(self.expire_time),
@@ -355,10 +344,6 @@ class Backup(object):
         :type new_expire_time: :class:`datetime.datetime`
         :param new_expire_time: the new expiration time timestamp
         """
-        # backup_update = {
-        #     "name": self.name,
-        #     "expire_time": _datetime_to_pb_timestamp(new_expire_time),
-        # }
         backup_update = table_pb2.Backup(
             name=self.name,
             expire_time=_datetime_to_pb_timestamp(new_expire_time),

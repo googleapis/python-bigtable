@@ -912,14 +912,6 @@ class Table(object):
 
         result = []
         for backup_pb in backup_list_pb:
-            # backup_id = backup_pb.name.split("/")[-1]
-            # backup_cluster_id = backup_pb.name.split("/")[-3]
-            # backup_expire_time = backup_pb.expire_time
-            # result.append(self.backup(
-            #     backup_id,
-            #     cluster_id=backup_cluster_id,
-            #     expire_time=backup_expire_time
-            # ))
             result.append(Backup.from_pb(backup_pb, self._instance))
 
         return result
@@ -964,9 +956,6 @@ class Table(object):
 		"""
         api = self._instance._client.table_admin_client
         if not backup_name:
-            # backup_name = "{}/clusters/{}/backups/{}".format(
-            #     self._instance.name, cluster_id, backup_id
-            # )
             backup_name = BigtableTableAdminClient.backup_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,

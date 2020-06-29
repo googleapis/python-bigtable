@@ -332,10 +332,6 @@ class TestBackup(unittest.TestCase):
             expire_time=timestamp,
         )
 
-        # backup_pb = {
-        #     "source_table": self.TABLE_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(timestamp),
-        # }
         backup_pb = table_pb2.Backup(
             source_table=self.TABLE_NAME,
             expire_time=_datetime_to_pb_timestamp(timestamp),
@@ -365,10 +361,6 @@ class TestBackup(unittest.TestCase):
             expire_time=timestamp,
         )
 
-        # backup_pb = {
-        #     "source_table": self.TABLE_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(timestamp),
-        # }
         backup_pb = table_pb2.Backup(
             source_table=self.TABLE_NAME,
             expire_time=_datetime_to_pb_timestamp(timestamp),
@@ -398,10 +390,6 @@ class TestBackup(unittest.TestCase):
             expire_time=timestamp,
         )
 
-        # backup_pb = {
-        #     "source_table": self.TABLE_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(timestamp),
-        # }
         backup_pb = table_pb2.Backup(
             source_table=self.TABLE_NAME,
             expire_time=_datetime_to_pb_timestamp(timestamp),
@@ -460,10 +448,6 @@ class TestBackup(unittest.TestCase):
             expire_time=timestamp,
         )
 
-        # backup_pb = {
-        #     "source_table": self.TABLE_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(timestamp),
-        # }
         backup_pb = table_pb2.Backup(
             source_table=self.TABLE_NAME,
             expire_time=_datetime_to_pb_timestamp(timestamp),
@@ -604,15 +588,10 @@ class TestBackup(unittest.TestCase):
         with self.assertRaises(Unknown):
             backup.update_expire_time(expire_time)
 
-        # backup_update = {
-        #     "name": self.BACKUP_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(expire_time),
-        # }
         backup_update = table_pb2.Backup(
             name=self.BACKUP_NAME,
             expire_time=_datetime_to_pb_timestamp(expire_time),
         )
-        # update_mask = {"paths": ["expire_time"]}
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
             backup_update, update_mask,
@@ -634,15 +613,10 @@ class TestBackup(unittest.TestCase):
         with self.assertRaises(NotFound):
             backup.update_expire_time(expire_time)
 
-        # backup_update = {
-        #     "name": self.BACKUP_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(expire_time),
-        # }
         backup_update = table_pb2.Backup(
             name=self.BACKUP_NAME,
             expire_time=_datetime_to_pb_timestamp(expire_time),
         )
-        # update_mask = {"paths": ["expire_time"]}
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
             backup_update, update_mask,
@@ -662,15 +636,10 @@ class TestBackup(unittest.TestCase):
 
         backup.update_expire_time(expire_time)
 
-        # backup_update = {
-        #     "name": self.BACKUP_NAME,
-        #     "expire_time": _datetime_to_pb_timestamp(expire_time),
-        # }
         backup_update = table_pb2.Backup(
             name=self.BACKUP_NAME,
             expire_time=_datetime_to_pb_timestamp(expire_time),
         )
-        # update_mask = {"paths": ["expire_time"]}
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
             backup_update, update_mask,
