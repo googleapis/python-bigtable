@@ -202,14 +202,42 @@ class TestBackup(unittest.TestCase):
         self.assertEqual(backup.parent, self.CLUSTER_NAME)
 
     def test_property_source_table_none(self):
-        instance = _Instance(self.INSTANCE_NAME)
-        backup = self._make_one(self.BACKUP_ID, instance)
+        from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+
+        api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
+        credentials = _make_credentials()
+        client = Client(
+            project=self.PROJECT_ID, credentials=credentials, admin=True
+        )
+        client._table_admin_client = api
+        instance = _Instance(self.INSTANCE_NAME, client)
+
+        backup = self._make_one(
+            self.BACKUP_ID,
+            instance
+        )
         self.assertIsNone(backup.source_table)
 
     def test_property_source_table_valid(self):
-        instance = _Instance(self.INSTANCE_NAME)
-        backup = self._make_one(self.BACKUP_ID, instance, table_id=self.TABLE_ID)
+        from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+
+        api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
+        credentials = _make_credentials()
+        client = Client(
+            project=self.PROJECT_ID, credentials=credentials, admin=True
+        )
+        client._table_admin_client = api
+        instance = _Instance(self.INSTANCE_NAME, client)
+
+        backup = self._make_one(
+            self.BACKUP_ID,
+            instance,
+            table_id=self.TABLE_ID
+        )
         self.assertEqual(backup.source_table, self.TABLE_NAME)
+
 
     def test_property_expire_time(self):
         instance = _Instance(self.INSTANCE_NAME)

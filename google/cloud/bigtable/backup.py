@@ -147,8 +147,13 @@ class Backup(object):
         :returns: The Table name.
         """
         if not self._source_table and self.table_id:
-            self._source_table = "{}/tables/{}".format(
-                self._instance.name, self.table_id
+            # self._source_table = "{}/tables/{}".format(
+            #     self._instance.name, self.table_id
+            # )
+            self._source_table = BigtableTableAdminClient.table_path(
+                project=self._instance._client.project,
+                instance=self._instance.instance_id,
+                table=self.table_id
             )
         return self._source_table
 
