@@ -144,7 +144,7 @@ class TestBackup(unittest.TestCase):
             start_time=timestamp,
             end_time=timestamp,
             size_bytes=size_bytes,
-            state=state
+            state=state,
         )
         klasse = self._get_target_class()
 
@@ -167,17 +167,11 @@ class TestBackup(unittest.TestCase):
 
         api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
         credentials = _make_credentials()
-        client = Client(
-            project=self.PROJECT_ID, credentials=credentials, admin=True
-        )
+        client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
         instance = _Instance(self.INSTANCE_NAME, client)
 
-        backup = self._make_one(
-            self.BACKUP_ID,
-            instance,
-            cluster_id=self.CLUSTER_ID
-        )
+        backup = self._make_one(self.BACKUP_ID, instance, cluster_id=self.CLUSTER_ID)
         self.assertEqual(backup.name, self.BACKUP_NAME)
 
     def test_property_cluster(self):
@@ -201,17 +195,11 @@ class TestBackup(unittest.TestCase):
 
         api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
         credentials = _make_credentials()
-        client = Client(
-            project=self.PROJECT_ID, credentials=credentials, admin=True
-        )
+        client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
         instance = _Instance(self.INSTANCE_NAME, client)
 
-        backup = self._make_one(
-            self.BACKUP_ID,
-            instance,
-            cluster_id=self.CLUSTER_ID
-        )
+        backup = self._make_one(self.BACKUP_ID, instance, cluster_id=self.CLUSTER_ID)
         self.assertEqual(backup._cluster, self.CLUSTER_ID)
         self.assertEqual(backup.parent, self.CLUSTER_NAME)
 
@@ -221,16 +209,11 @@ class TestBackup(unittest.TestCase):
 
         api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
         credentials = _make_credentials()
-        client = Client(
-            project=self.PROJECT_ID, credentials=credentials, admin=True
-        )
+        client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
         instance = _Instance(self.INSTANCE_NAME, client)
 
-        backup = self._make_one(
-            self.BACKUP_ID,
-            instance
-        )
+        backup = self._make_one(self.BACKUP_ID, instance)
         self.assertIsNone(backup.source_table)
 
     def test_property_source_table_valid(self):
@@ -239,17 +222,11 @@ class TestBackup(unittest.TestCase):
 
         api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
         credentials = _make_credentials()
-        client = Client(
-            project=self.PROJECT_ID, credentials=credentials, admin=True
-        )
+        client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
         instance = _Instance(self.INSTANCE_NAME, client)
 
-        backup = self._make_one(
-            self.BACKUP_ID,
-            instance,
-            table_id=self.TABLE_ID
-        )
+        backup = self._make_one(self.BACKUP_ID, instance, table_id=self.TABLE_ID)
         self.assertEqual(backup.source_table, self.TABLE_NAME)
 
     def test_property_expire_time(self):
@@ -589,8 +566,7 @@ class TestBackup(unittest.TestCase):
             backup.update_expire_time(expire_time)
 
         backup_update = table_pb2.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
@@ -614,8 +590,7 @@ class TestBackup(unittest.TestCase):
             backup.update_expire_time(expire_time)
 
         backup_update = table_pb2.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
@@ -637,8 +612,7 @@ class TestBackup(unittest.TestCase):
         backup.update_expire_time(expire_time)
 
         backup_update = table_pb2.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(

@@ -1187,9 +1187,7 @@ class TestTable(unittest.TestCase):
         table = self._make_one(self.TABLE_ID, instance)
         timestamp = datetime.datetime.utcnow().replace(tzinfo=UTC)
         backup = table.backup(
-            self.BACKUP_ID,
-            cluster_id=self.CLUSTER_ID,
-            expire_time=timestamp,
+            self.BACKUP_ID, cluster_id=self.CLUSTER_ID, expire_time=timestamp,
         )
 
         self.assertIsInstance(backup, Backup)
@@ -1244,9 +1242,7 @@ class TestTable(unittest.TestCase):
         if filter_:
             backups_filter = "({}) AND ({})".format(backups_filter, filter_)
 
-        backups = table.list_backups(
-            cluster_id=cluster_id, filter_=filter_, **kwargs
-        )
+        backups = table.list_backups(cluster_id=cluster_id, filter_=filter_, **kwargs)
 
         for backup in backups:
             self.assertIsInstance(backup, Backup)
@@ -1272,10 +1268,7 @@ class TestTable(unittest.TestCase):
 
     def test_list_backups_w_options(self):
         self._list_backups_helper(
-            cluster_id="cluster",
-            filter_="filter",
-            order_by="order_by",
-            page_size=10
+            cluster_id="cluster", filter_="filter", order_by="order_by", page_size=10
         )
 
     def _restore_helper(self, backup_name=None):
@@ -1298,9 +1291,7 @@ class TestTable(unittest.TestCase):
         if backup_name:
             future = table.restore(self.TABLE_ID, backup_name=self.BACKUP_NAME)
         else:
-            future = table.restore(
-                self.TABLE_ID, self.CLUSTER_ID, self.BACKUP_ID
-            )
+            future = table.restore(self.TABLE_ID, self.CLUSTER_ID, self.BACKUP_ID)
         self.assertIs(future, op_future)
 
         api.restore_table.assert_called_once_with(

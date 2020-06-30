@@ -18,7 +18,7 @@ import re
 
 from google.cloud._helpers import _datetime_to_pb_timestamp
 from google.cloud.bigtable_admin_v2.gapic.bigtable_table_admin_client import (
-    BigtableTableAdminClient
+    BigtableTableAdminClient,
 )
 from google.cloud.bigtable_admin_v2.types import table_pb2
 from google.cloud.exceptions import NotFound
@@ -97,7 +97,7 @@ class Backup(object):
             project=self._instance._client.project,
             instance=self._instance.instance_id,
             cluster=self._cluster,
-            backup=self.backup_id
+            backup=self.backup_id,
         )
 
     @property
@@ -131,7 +131,7 @@ class Backup(object):
             self._parent = BigtableTableAdminClient.cluster_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
-                cluster=self._cluster
+                cluster=self._cluster,
             )
         return self._parent
 
@@ -153,7 +153,7 @@ class Backup(object):
             self._source_table = BigtableTableAdminClient.table_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
-                table=self.table_id
+                table=self.table_id,
             )
         return self._source_table
 
@@ -256,7 +256,8 @@ class Backup(object):
         expire_time = backup_pb.expire_time
 
         backup = cls(
-            backup_id, instance,
+            backup_id,
+            instance,
             cluster_id=cluster_id,
             table_id=table_id,
             expire_time=expire_time,
@@ -345,8 +346,7 @@ class Backup(object):
         :param new_expire_time: the new expiration time timestamp
         """
         backup_update = table_pb2.Backup(
-            name=self.name,
-            expire_time=_datetime_to_pb_timestamp(new_expire_time),
+            name=self.name, expire_time=_datetime_to_pb_timestamp(new_expire_time),
         )
         # update_mask = {"paths": ["expire_time"]}
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])

@@ -833,19 +833,19 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(temp_table.list_column_families(), {})
 
     def test_backup(self):
-        temp_table_id = 'test-backup-table'
+        temp_table_id = "test-backup-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
         self.tables_to_delete.append(temp_table)
 
-        temp_backup_id = 'test-backup'
+        temp_backup_id = "test-backup"
         expire = int(datetime.datetime.now().timestamp()) + 604800
 
         # Testing `Table.backup()` factory
         temp_backup = temp_table.backup(
             temp_backup_id,
             cluster_id=CLUSTER_ID_DATA,
-            expire_time=datetime.datetime.utcfromtimestamp(expire)
+            expire_time=datetime.datetime.utcfromtimestamp(expire),
         )
 
         # Sanity check for `Backup.exists()` method
@@ -867,22 +867,18 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(expire, temp_table_backup.expire_time.seconds)
 
         # Testing `Backup.update_expire_time()` method
-        expire += 3600 # A one-hour change in the `expire_time` parameter
-        temp_backup.update_expire_time(
-            datetime.datetime.utcfromtimestamp(expire)
-        )
+        expire += 3600  # A one-hour change in the `expire_time` parameter
+        temp_backup.update_expire_time(datetime.datetime.utcfromtimestamp(expire))
 
         # Testing `Backup.get()` method
         temp_table_backup = temp_backup.get()
         self.assertEqual(expire, temp_table_backup.expire_time.seconds)
 
         # Testing `Table.restore()` and `Backup.retore()` methods
-        restored_table_id = 'test-backup-table-restored'
+        restored_table_id = "test-backup-table-restored"
         restored_table = Config.INSTANCE_DATA.table(restored_table_id)
         _ = temp_table.restore(
-            restored_table_id,
-            cluster_id=CLUSTER_ID_DATA,
-            backup_id=temp_backup_id
+            restored_table_id, cluster_id=CLUSTER_ID_DATA, backup_id=temp_backup_id
         ).result()
         tables = Config.INSTANCE_DATA.list_tables()
         self.assertIn(restored_table, tables)
