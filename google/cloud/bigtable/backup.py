@@ -331,6 +331,16 @@ class Backup(object):
         except NotFound:
             return None
 
+    def reload(self):
+        """Refreshes the stored backup properties."""
+        backup = self.get()
+        self._source_table = backup.source_table
+        self._expire_time = backup.expire_time
+        self._start_time = backup.start_time
+        self._end_time = backup.end_time
+        self._size_bytes = backup.size_bytes
+        self._state = backup.state
+
     def exists(self):
         """Tests whether this Backup exists.
 
