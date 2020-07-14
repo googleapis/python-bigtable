@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A user-friendly container for Cloud Bigtable Backup."""
+"""A user-friendly wrapper for a Google Cloud Bigtable Backup."""
 
 import re
 
@@ -44,7 +44,7 @@ class Backup(object):
     :type backup_id: str
     :param backup_id: The ID of the backup.
 
-    :type instance: :class:`~google.cloud.spanner_v1.instance.Instance`
+    :type instance: :class:`~google.cloud.bigtable.instance.Instance`
     :param instance: The Instance that owns this Backup.
 
     :type cluster_id: str
@@ -358,7 +358,6 @@ class Backup(object):
         backup_update = table_pb2.Backup(
             name=self.name, expire_time=_datetime_to_pb_timestamp(new_expire_time),
         )
-        # update_mask = {"paths": ["expire_time"]}
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api = self._instance._client.table_admin_client
         api.update_backup(backup_update, update_mask)

@@ -851,7 +851,7 @@ class TestTableAdminAPI(unittest.TestCase):
         # Sanity check for `Backup.exists()` method
         self.assertFalse(temp_backup.exists())
 
-        # Tesing `Backup.create()` method
+        # Testing `Backup.create()` method
         _ = temp_backup.create().result()
 
         # Implicit testing of `Backup.delete()` method
