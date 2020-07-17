@@ -899,7 +899,6 @@ class Table(object):
         )
         client = self._instance._client.table_admin_client
         backup_list_pb = client.list_backups(
-            # self._instance.name + "/clusters/" + cluster_id,
             parent=parent,
             filter_=backups_filter,
             order_by=order_by,
