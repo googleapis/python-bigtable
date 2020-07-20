@@ -852,7 +852,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertFalse(temp_backup.exists())
 
         # Testing `Backup.create()` method
-        _ = temp_backup.create().result()
+        temp_backup.create().result()
 
         # Implicit testing of `Backup.delete()` method
         self.backups_to_delete.append(temp_backup)
@@ -877,7 +877,7 @@ class TestTableAdminAPI(unittest.TestCase):
         # Testing `Table.restore()` and `Backup.retore()` methods
         restored_table_id = "test-backup-table-restored"
         restored_table = Config.INSTANCE_DATA.table(restored_table_id)
-        _ = temp_table.restore(
+        temp_table.restore(
             restored_table_id, cluster_id=CLUSTER_ID_DATA, backup_id=temp_backup_id
         ).result()
         tables = Config.INSTANCE_DATA.list_tables()

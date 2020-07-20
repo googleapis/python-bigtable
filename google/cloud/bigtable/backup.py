@@ -31,6 +31,12 @@ _BACKUP_NAME_RE = re.compile(
     r"backups/(?P<backup_id>[a-z][a-z0-9_\-]*[a-z0-9])$"
 )
 
+_TABLE_NAME_RE = re.compile(
+    r"^projects/(?P<project>[^/]+)/"
+    r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
+    r"tables/(?P<table_id>[_a-zA-Z0-9][-_.a-zA-Z0-9]*)$"
+)
+
 
 class Backup(object):
     """Representation of a Google Cloud Bigtable Backup.
@@ -246,11 +252,7 @@ class Backup(object):
         backup_id = match.group("backup_id")
         cluster_id = match.group("cluster_id")
 
-        match = re.compile(
-            r"^projects/(?P<project>[^/]+)/"
-            r"instances/(?P<instance_id>[a-z][-a-z0-9]*)/"
-            r"tables/(?P<table_id>[_a-zA-Z0-9][-_.a-zA-Z0-9]*)$"
-        ).match(backup_pb.source_table)
+        match = _TABLE_NAME_RE.match(backup_pb.source_table)
         table_id = match.group("table_id") if match else None
 
         expire_time = backup_pb.expire_time
