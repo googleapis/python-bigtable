@@ -859,14 +859,14 @@ class Table(object):
                          specify one or more fields in ``Backup``. The full
                          syntax is described at https://aip.dev/132#ordering.
 
-                         Fields supported are: \* name \* source\_table \*
-                         expire\_time \* start\_time \* end\_time \*
-                         size\_bytes \* state
+                         Fields supported are: \\* name \\* source_table \\*
+                         expire_time \\* start_time \\* end_time \\*
+                         size_bytes \\* state
 
-                         For example, "start\_time". The default sorting order
+                         For example, "start_time". The default sorting order
                          is ascending. To specify descending order for the
                          field, a suffix " desc" should be appended to the
-                         field name. For example, "start\_time desc". Redundant
+                         field name. For example, "start_time desc". Redundant
                          space characters in the syntax are insigificant. If
                          order_by is empty, results will be sorted by
                          ``start_time`` in descending order starting from
