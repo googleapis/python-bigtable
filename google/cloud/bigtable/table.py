@@ -820,7 +820,7 @@ class Table(object):
                         the field name, a comparison operator, and the value
                         that you want to use for filtering. The value must be
                         a string, a number, or a boolean. The comparison
-                        operator must be <, >, <=, >=, !=, =, or :. Colon `:'
+                        operator must be <, >, <=, >=, !=, =, or :. Colon ':'
                         represents a HAS operator which is roughly synonymous
                         with equality. Filter rules are case insensitive.
 
