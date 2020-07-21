@@ -15,6 +15,7 @@
 import datetime
 import operator
 import os
+import time
 import unittest
 
 from google.api_core.exceptions import TooManyRequests
@@ -839,7 +840,10 @@ class TestTableAdminAPI(unittest.TestCase):
         self.tables_to_delete.append(temp_table)
 
         temp_backup_id = "test-backup"
-        expire = int(datetime.datetime.now().timestamp()) + 604800
+
+        # TODO: consider using `datetime.datetime.now().timestamp()`
+        #  when support for Python 2 is fully dropped
+        expire = int(time.mktime(datetime.datetime.now().timetuple())) + 604800
 
         # Testing `Table.backup()` factory
         temp_backup = temp_table.backup(
