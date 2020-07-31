@@ -14,7 +14,7 @@
 import os
 import uuid
 
-from beam import hello_world_write
+import hello_world_write
 
 from google.cloud import bigtable
 import pytest
