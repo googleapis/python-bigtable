@@ -54,7 +54,7 @@ class TestCell(unittest.TestCase):
 
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_data import Cell
+        from google.cloud.bigtable.base_row_data import Cell
 
         return Cell
 
@@ -125,7 +125,7 @@ class TestCell(unittest.TestCase):
 class TestPartialRowData(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_data import PartialRowData
+        from google.cloud.bigtable.base_row_data import PartialRowData
 
         return PartialRowData
 
@@ -290,7 +290,7 @@ class _Client(object):
 class Test_retry_read_rows_exception(unittest.TestCase):
     @staticmethod
     def _call_fut(exc):
-        from google.cloud.bigtable.row_data import _retry_read_rows_exception
+        from google.cloud.bigtable.base_row_data import _retry_read_rows_exception
 
         return _retry_read_rows_exception(exc)
 
@@ -609,7 +609,7 @@ class TestPartialRowsData(unittest.TestCase):
         self.assertEqual(yrd.last_scanned_row_key, "2.AFTER")
 
     def test_invalid_empty_chunk(self):
-        from google.cloud.bigtable.row_data import InvalidChunk
+        from google.cloud.bigtable.base_row_data import InvalidChunk
 
         client = _Client()
         chunks = _generate_cell_chunks([""])
@@ -725,7 +725,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
 
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_data import _ReadRowsRequestManager
+        from google.cloud.bigtable.base_row_data import _ReadRowsRequestManager
 
         return _ReadRowsRequestManager
 
@@ -976,7 +976,7 @@ class TestPartialRowsData_JSON_acceptance_tests(unittest.TestCase):
     # JSON Error cases:  invalid chunks
 
     def _fail_during_consume(self, testcase_name):
-        from google.cloud.bigtable.row_data import InvalidChunk
+        from google.cloud.bigtable.base_row_data import InvalidChunk
 
         client = _Client()
         chunks, results = self._load_json_test(testcase_name)
@@ -1294,9 +1294,9 @@ def _ReadRowsResponseCellChunkPB(*args, **kw):
 
 
 def _make_cell(value):
-    from google.cloud.bigtable import row_data
+    from google.cloud.bigtable import base_row_data
 
-    return row_data.Cell(value, TestCell.timestamp_micros)
+    return base_row_data.Cell(value, TestCell.timestamp_micros)
 
 
 def _ReadRowsRequestPB(*args, **kw):

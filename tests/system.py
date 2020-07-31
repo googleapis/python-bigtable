@@ -36,8 +36,8 @@ from google.cloud.bigtable.row_filters import ApplyLabelFilter
 from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
 from google.cloud.bigtable.row_filters import RowFilterChain
 from google.cloud.bigtable.row_filters import RowFilterUnion
-from google.cloud.bigtable.row_data import Cell
-from google.cloud.bigtable.row_data import PartialRowData
+from google.cloud.bigtable.base_row_data import Cell
+from google.cloud.bigtable.base_row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable_admin_v2.gapic import (

@@ -22,7 +22,7 @@ from ._testing import _make_credentials
 
 class Test__create_gapic_client(unittest.TestCase):
     def _invoke_client_factory(self, client_class, **kw):
-        from google.cloud.bigtable.client import _create_gapic_client
+        from google.cloud.bigtable.base_client import _create_gapic_client
 
         return _create_gapic_client(client_class, **kw)
 
@@ -100,8 +100,8 @@ class TestClient(unittest.TestCase):
         return self._get_target_class()(*args, **kwargs)
 
     def test_constructor_defaults(self):
-        from google.cloud.bigtable.client import _CLIENT_INFO
-        from google.cloud.bigtable.client import DATA_SCOPE
+        from google.cloud.bigtable.base_client import _CLIENT_INFO
+        from google.cloud.bigtable.base_client import DATA_SCOPE
 
         credentials = _make_credentials()
 
@@ -121,8 +121,8 @@ class TestClient(unittest.TestCase):
 
     def test_constructor_explicit(self):
         import warnings
-        from google.cloud.bigtable.client import ADMIN_SCOPE
-        from google.cloud.bigtable.client import DATA_SCOPE
+        from google.cloud.bigtable.base_client import ADMIN_SCOPE
+        from google.cloud.bigtable.base_client import DATA_SCOPE
 
         credentials = _make_credentials()
         client_info = mock.Mock()
@@ -174,14 +174,14 @@ class TestClient(unittest.TestCase):
         getenv.assert_called_once_with(BIGTABLE_EMULATOR)
 
     def test__get_scopes_default(self):
-        from google.cloud.bigtable.client import DATA_SCOPE
+        from google.cloud.bigtable.base_client import DATA_SCOPE
 
         client = self._make_one(project=self.PROJECT, credentials=_make_credentials())
         self.assertEqual(client._get_scopes(), (DATA_SCOPE,))
 
     def test__get_scopes_admin(self):
-        from google.cloud.bigtable.client import ADMIN_SCOPE
-        from google.cloud.bigtable.client import DATA_SCOPE
+        from google.cloud.bigtable.base_client import ADMIN_SCOPE
+        from google.cloud.bigtable.base_client import DATA_SCOPE
 
         client = self._make_one(
             project=self.PROJECT, credentials=_make_credentials(), admin=True
@@ -190,7 +190,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(client._get_scopes(), expected_scopes)
 
     def test__get_scopes_read_only(self):
-        from google.cloud.bigtable.client import READ_ONLY_SCOPE
+        from google.cloud.bigtable.base_client import READ_ONLY_SCOPE
 
         client = self._make_one(
             project=self.PROJECT, credentials=_make_credentials(), read_only=True
@@ -205,7 +205,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(client.project_path, project_name)
 
     def test_table_data_client_not_initialized(self):
-        from google.cloud.bigtable.client import _CLIENT_INFO
+        from google.cloud.bigtable.base_client import _CLIENT_INFO
         from google.cloud.bigtable_v2 import BigtableClient
 
         credentials = _make_credentials()
@@ -266,7 +266,7 @@ class TestClient(unittest.TestCase):
             client.table_admin_client()
 
     def test_table_admin_client_not_initialized_w_admin_flag(self):
-        from google.cloud.bigtable.client import _CLIENT_INFO
+        from google.cloud.bigtable.base_client import _CLIENT_INFO
         from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 
         credentials = _make_credentials()
@@ -335,7 +335,7 @@ class TestClient(unittest.TestCase):
             client.instance_admin_client()
 
     def test_instance_admin_client_not_initialized_w_admin_flag(self):
-        from google.cloud.bigtable.client import _CLIENT_INFO
+        from google.cloud.bigtable.base_client import _CLIENT_INFO
         from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
 
         credentials = _make_credentials()

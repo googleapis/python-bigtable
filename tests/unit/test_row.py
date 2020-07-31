@@ -23,7 +23,7 @@ from ._testing import _make_credentials
 class TestRow(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row import Row
+        from google.cloud.bigtable.base_row import Row
 
         return Row
 
@@ -42,7 +42,7 @@ class TestRow(unittest.TestCase):
 class Test_SetDeleteRow(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row import _SetDeleteRow
+        from google.cloud.bigtable.base_row import _SetDeleteRow
 
         return _SetDeleteRow
 
@@ -706,7 +706,7 @@ class Test__parse_rmw_row_response(unittest.TestCase):
 
 class Test__parse_family_pb(unittest.TestCase):
     def _call_fut(self, family_pb):
-        from google.cloud.bigtable.row import _parse_family_pb
+        from google.cloud.bigtable.base_row import _parse_family_pb
 
         return _parse_family_pb(family_pb)
 

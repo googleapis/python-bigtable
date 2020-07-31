@@ -22,7 +22,7 @@ from ._testing import _make_credentials
 class TestMaxVersionsGCRule(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         return MaxVersionsGCRule
 
@@ -56,7 +56,7 @@ class TestMaxVersionsGCRule(unittest.TestCase):
 class TestMaxAgeGCRule(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
 
         return MaxAgeGCRule
 
@@ -96,7 +96,7 @@ class TestMaxAgeGCRule(unittest.TestCase):
 class TestGCRuleUnion(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.column_family import GCRuleUnion
+        from google.cloud.bigtable.base_column_family import GCRuleUnion
 
         return GCRuleUnion
 
@@ -130,8 +130,8 @@ class TestGCRuleUnion(unittest.TestCase):
     def test_to_pb(self):
         import datetime
         from google.protobuf import duration_pb2
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         max_num_versions = 42
         rule1 = MaxVersionsGCRule(max_num_versions)
@@ -150,8 +150,8 @@ class TestGCRuleUnion(unittest.TestCase):
     def test_to_pb_nested(self):
         import datetime
         from google.protobuf import duration_pb2
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         max_num_versions1 = 42
         rule1 = MaxVersionsGCRule(max_num_versions1)
@@ -178,7 +178,7 @@ class TestGCRuleUnion(unittest.TestCase):
 class TestGCRuleIntersection(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.column_family import GCRuleIntersection
+        from google.cloud.bigtable.base_column_family import GCRuleIntersection
 
         return GCRuleIntersection
 
@@ -212,8 +212,8 @@ class TestGCRuleIntersection(unittest.TestCase):
     def test_to_pb(self):
         import datetime
         from google.protobuf import duration_pb2
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         max_num_versions = 42
         rule1 = MaxVersionsGCRule(max_num_versions)
@@ -234,8 +234,8 @@ class TestGCRuleIntersection(unittest.TestCase):
     def test_to_pb_nested(self):
         import datetime
         from google.protobuf import duration_pb2
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         max_num_versions1 = 42
         rule1 = MaxVersionsGCRule(max_num_versions1)
@@ -335,7 +335,7 @@ class TestColumnFamily(unittest.TestCase):
         self.assertEqual(pb_val, expected)
 
     def test_to_pb_with_rule(self):
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         gc_rule = MaxVersionsGCRule(1)
         column_family = self._make_one("column_family_id", None, gc_rule=gc_rule)
@@ -402,7 +402,7 @@ class TestColumnFamily(unittest.TestCase):
         self._create_test_helper(gc_rule=None)
 
     def test_create_with_gc_rule(self):
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         gc_rule = MaxVersionsGCRule(1337)
         self._create_test_helper(gc_rule=gc_rule)
@@ -466,7 +466,7 @@ class TestColumnFamily(unittest.TestCase):
         self._update_test_helper(gc_rule=None)
 
     def test_update_with_gc_rule(self):
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         gc_rule = MaxVersionsGCRule(1337)
         self._update_test_helper(gc_rule=gc_rule)
@@ -526,7 +526,7 @@ class TestColumnFamily(unittest.TestCase):
 
 class Test__gc_rule_from_pb(unittest.TestCase):
     def _call_fut(self, *args, **kwargs):
-        from google.cloud.bigtable.column_family import _gc_rule_from_pb
+        from google.cloud.bigtable.base_column_family import _gc_rule_from_pb
 
         return _gc_rule_from_pb(*args, **kwargs)
 
@@ -536,7 +536,7 @@ class Test__gc_rule_from_pb(unittest.TestCase):
         self.assertIsNone(self._call_fut(gc_rule_pb))
 
     def test_max_num_versions(self):
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         orig_rule = MaxVersionsGCRule(1)
         gc_rule_pb = orig_rule.to_pb()
@@ -546,7 +546,7 @@ class Test__gc_rule_from_pb(unittest.TestCase):
 
     def test_max_age(self):
         import datetime
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
 
         orig_rule = MaxAgeGCRule(datetime.timedelta(seconds=1))
         gc_rule_pb = orig_rule.to_pb()
@@ -556,9 +556,9 @@ class Test__gc_rule_from_pb(unittest.TestCase):
 
     def test_union(self):
         import datetime
-        from google.cloud.bigtable.column_family import GCRuleUnion
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import GCRuleUnion
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         rule1 = MaxVersionsGCRule(1)
         rule2 = MaxAgeGCRule(datetime.timedelta(seconds=1))
@@ -570,9 +570,9 @@ class Test__gc_rule_from_pb(unittest.TestCase):
 
     def test_intersection(self):
         import datetime
-        from google.cloud.bigtable.column_family import GCRuleIntersection
-        from google.cloud.bigtable.column_family import MaxAgeGCRule
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import GCRuleIntersection
+        from google.cloud.bigtable.base_column_family import MaxAgeGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         rule1 = MaxVersionsGCRule(1)
         rule2 = MaxAgeGCRule(datetime.timedelta(seconds=1))
