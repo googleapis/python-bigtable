@@ -21,7 +21,11 @@ from google.cloud.bigtable_admin_v2.proto import (
 
 from google.cloud.bigtable.base_column_family import (  # noqa: F401
     BaseColumnFamily,
+    GarbageCollectionRule,
     MaxVersionsGCRule,
+    MaxAgeGCRule,
+    GCRuleUnion,
+    GCRuleIntersection,
 )
 
 
