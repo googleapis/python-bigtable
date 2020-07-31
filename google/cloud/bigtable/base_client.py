@@ -37,13 +37,10 @@ from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
 
 from google.cloud.bigtable import __version__
-from google.cloud.bigtable.instance import Instance
-from google.cloud.bigtable.cluster import Cluster
 
 from google.cloud.client import ClientWithProject
 
 from google.cloud.bigtable_admin_v2 import enums
-from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 
@@ -76,7 +73,7 @@ def _create_gapic_client(client_class, client_options=None):
     return inner
 
 
-class Client(ClientWithProject):
+class BaseClient(ClientWithProject):
     """Client for interacting with Google Cloud Bigtable API.
 
     .. note::
@@ -174,7 +171,7 @@ class Client(ClientWithProject):
         self._admin_client_options = admin_client_options
         self._channel = channel
         self.SCOPE = self._get_scopes()
-        super(Client, self).__init__(project=project, credentials=credentials)
+        super(BaseClient, self).__init__(project=project, credentials=credentials)
 
     def _get_scopes(self):
         """Get the scopes corresponding to admin / read-only state.
@@ -289,99 +286,10 @@ class Client(ClientWithProject):
         return self._instance_admin_client
 
     def instance(self, instance_id, display_name=None, instance_type=None, labels=None):
-        """Factory to create a instance associated with this client.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_prod_instance]
-            :end-before: [END bigtable_create_prod_instance]
-
-        :type instance_id: str
-        :param instance_id: The ID of the instance.
-
-        :type display_name: str
-        :param display_name: (Optional) The display name for the instance in
-                             the Cloud Console UI. (Must be between 4 and 30
-                             characters.) If this value is not set in the
-                             constructor, will fall back to the instance ID.
-
-        :type instance_type: int
-        :param instance_type: (Optional) The type of the instance.
-                               Possible values are represented
-                               by the following constants:
-                               :data:`google.cloud.bigtable.enums.InstanceType.PRODUCTION`.
-                               :data:`google.cloud.bigtable.enums.InstanceType.DEVELOPMENT`,
-                               Defaults to
-                               :data:`google.cloud.bigtable.enums.InstanceType.UNSPECIFIED`.
-
-        :type labels: dict
-        :param labels: (Optional) Labels are a flexible and lightweight
-                       mechanism for organizing cloud resources into groups
-                       that reflect a customer's organizational needs and
-                       deployment strategies. They can be used to filter
-                       resources and aggregate metrics. Label keys must be
-                       between 1 and 63 characters long. Maximum 64 labels can
-                       be associated with a given resource. Label values must
-                       be between 0 and 63 characters long. Keys and values
-                       must both be under 128 bytes.
-
-        :rtype: :class:`~google.cloud.bigtable.instance.Instance`
-        :returns: an instance owned by this client.
-        """
-        return Instance(
-            instance_id,
-            self,
-            display_name=display_name,
-            instance_type=instance_type,
-            labels=labels,
-        )
+        raise NotImplementedError
 
     def list_instances(self):
-        """List instances owned by the project.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_instances]
-            :end-before: [END bigtable_list_instances]
-
-        :rtype: tuple
-        :returns:
-            (instances, failed_locations), where 'instances' is list of
-            :class:`google.cloud.bigtable.instance.Instance`, and
-            'failed_locations' is a list of locations which could not
-            be resolved.
-        """
-        resp = self.instance_admin_client.list_instances(self.project_path)
-        instances = [Instance.from_pb(instance, self) for instance in resp.instances]
-        return instances, resp.failed_locations
+        raise NotImplementedError
 
     def list_clusters(self):
-        """List the clusters in the project.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_clusters_in_project]
-            :end-before: [END bigtable_list_clusters_in_project]
-
-        :rtype: tuple
-        :returns:
-            (clusters, failed_locations), where 'clusters' is list of
-            :class:`google.cloud.bigtable.instance.Cluster`, and
-            'failed_locations' is a list of strings representing
-            locations which could not be resolved.
-        """
-        resp = self.instance_admin_client.list_clusters(
-            self.instance_admin_client.instance_path(self.project, "-")
-        )
-        clusters = []
-        instances = {}
-        for cluster in resp.clusters:
-            match_cluster_name = _CLUSTER_NAME_RE.match(cluster.name)
-            instance_id = match_cluster_name.group("instance")
-            if instance_id not in instances:
-                instances[instance_id] = self.instance(instance_id)
-            clusters.append(Cluster.from_pb(cluster, instances[instance_id]))
-        return clusters, resp.failed_locations
+        raise NotImplementedError

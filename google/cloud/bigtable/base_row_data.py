@@ -345,7 +345,7 @@ Used by
 """
 
 
-class PartialRowsData(object):
+class BasePartialRowsData(object):
     """Convenience wrapper for consuming a ``ReadRows`` streaming response.
 
     :type read_method: :class:`client._table_data_client.read_rows`
@@ -384,29 +384,7 @@ class PartialRowsData(object):
     }
 
     def __init__(self, read_method, request, retry=DEFAULT_RETRY_READ_ROWS):
-        # Counter for rows returned to the user
-        self._counter = 0
-        # In-progress row, unset until first response, after commit/reset
-        self._row = None
-        # Last complete row, unset until first commit
-        self._previous_row = None
-        # In-progress cell, unset until first response, after completion
-        self._cell = None
-        # Last complete cell, unset until first completion, after new row
-        self._previous_cell = None
-
-        # May be cached from previous response
-        self.last_scanned_row_key = None
-        self.read_method = read_method
-        self.request = request
-        self.retry = retry
-        self.response_iterator = read_method(request)
-
-        self.rows = {}
-        self._state = self.STATE_NEW_ROW
-
-        # Flag to stop iteration, for any reason not related to self.retry()
-        self._cancelled = False
+        raise NotImplementedError
 
     @property
     def state(self):
@@ -446,13 +424,7 @@ class PartialRowsData(object):
         return req_manager.build_updated_request()
 
     def _on_error(self, exc):
-        """Helper for :meth:`__iter__`."""
-        # restart the read scan from AFTER the last successfully read row
-        retry_request = self.request
-        if self.last_scanned_row_key:
-            retry_request = self._create_retry_request()
-
-        self.response_iterator = self.read_method(retry_request)
+        raise NotImplementedError
 
     def _read_next(self):
         """Helper for :meth:`__iter__`."""

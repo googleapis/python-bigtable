@@ -17,9 +17,6 @@
 
 from google.cloud import _helpers
 from google.cloud.bigtable_admin_v2.proto import table_pb2 as table_v2_pb2
-from google.cloud.bigtable_admin_v2.proto import (
-    bigtable_table_admin_pb2 as table_admin_v2_pb2,
-)
 
 
 class GarbageCollectionRule(object):
@@ -177,7 +174,7 @@ class GCRuleIntersection(GarbageCollectionRule):
         return table_v2_pb2.GcRule(intersection=intersection)
 
 
-class ColumnFamily(object):
+class BaseColumnFamily(object):
     """Representation of a Google Cloud Bigtable Column Family.
 
     We can use a :class:`ColumnFamily` to:
@@ -251,73 +248,13 @@ class ColumnFamily(object):
             return table_v2_pb2.ColumnFamily(gc_rule=self.gc_rule.to_pb())
 
     def create(self):
-        """Create this column family.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_create_column_family]
-            :end-before: [END bigtable_create_column_family]
-
-        """
-        column_family = self.to_pb()
-        modification = table_admin_v2_pb2.ModifyColumnFamiliesRequest.Modification(
-            id=self.column_family_id, create=column_family
-        )
-
-        client = self._table._instance._client
-        # data it contains are the GC rule and the column family ID already
-        # stored on this instance.
-        client.table_admin_client.modify_column_families(
-            self._table.name, [modification]
-        )
+        raise NotImplementedError
 
     def update(self):
-        """Update this column family.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_update_column_family]
-            :end-before: [END bigtable_update_column_family]
-
-        .. note::
-
-            Only the GC rule can be updated. By changing the column family ID,
-            you will simply be referring to a different column family.
-        """
-        column_family = self.to_pb()
-        modification = table_admin_v2_pb2.ModifyColumnFamiliesRequest.Modification(
-            id=self.column_family_id, update=column_family
-        )
-
-        client = self._table._instance._client
-        # data it contains are the GC rule and the column family ID already
-        # stored on this instance.
-        client.table_admin_client.modify_column_families(
-            self._table.name, [modification]
-        )
+        raise NotImplementedError
 
     def delete(self):
-        """Delete this column family.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_delete_column_family]
-            :end-before: [END bigtable_delete_column_family]
-
-        """
-        modification = table_admin_v2_pb2.ModifyColumnFamiliesRequest.Modification(
-            id=self.column_family_id, drop=True
-        )
-
-        client = self._table._instance._client
-        # data it contains are the GC rule and the column family ID already
-        # stored on this instance.
-        client.table_admin_client.modify_column_families(
-            self._table.name, [modification]
-        )
+        raise NotImplementedError
 
 
 def _gc_rule_from_pb(gc_rule_pb):

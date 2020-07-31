@@ -240,7 +240,7 @@ class _SetDeleteRow(Row):
             mutations_list.extend(to_append)
 
 
-class DirectRow(_SetDeleteRow):
+class BaseDirectRow(_SetDeleteRow):
     """Google Cloud Bigtable Row for sending "direct" mutations.
 
     These mutations directly set or delete cell contents:
@@ -274,7 +274,7 @@ class DirectRow(_SetDeleteRow):
     """
 
     def __init__(self, row_key, table=None):
-        super(DirectRow, self).__init__(row_key, table)
+        super(BaseDirectRow, self).__init__(row_key, table)
         self._pb_mutations = []
 
     def _get_mutations(self, state=None):  # pylint: disable=unused-argument
@@ -434,28 +434,7 @@ class DirectRow(_SetDeleteRow):
         self._delete_cells(column_family_id, columns, time_range=time_range, state=None)
 
     def commit(self):
-        """Makes a ``MutateRow`` API request.
-
-        If no mutations have been created in the row, no request is made.
-
-        Mutations are applied atomically and in order, meaning that earlier
-        mutations can be masked / negated by later ones. Cells already present
-        in the row are left unchanged unless explicitly changed by a mutation.
-
-        After committing the accumulated mutations, resets the local
-        mutations to an empty list.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_row_commit]
-            :end-before: [END bigtable_row_commit]
-
-        :raises: :exc:`~.table.TooManyMutationsError` if the number of
-                 mutations is greater than 100,000.
-        """
-        self._table.mutate_rows([self])
-        self.clear()
+        raise NotImplementedError
 
     def clear(self):
         """Removes all currently accumulated mutations on the current row.
@@ -470,7 +449,7 @@ class DirectRow(_SetDeleteRow):
         del self._pb_mutations[:]
 
 
-class ConditionalRow(_SetDeleteRow):
+class BaseConditionalRow(_SetDeleteRow):
     """Google Cloud Bigtable Row for sending mutations conditionally.
 
     Each mutation has an associated state: :data:`True` or :data:`False`.
@@ -508,7 +487,7 @@ class ConditionalRow(_SetDeleteRow):
     """
 
     def __init__(self, row_key, table, filter_):
-        super(ConditionalRow, self).__init__(row_key, table)
+        super(BaseConditionalRow, self).__init__(row_key, table)
         self._filter = filter_
         self._true_pb_mutations = []
         self._false_pb_mutations = []
@@ -536,58 +515,7 @@ class ConditionalRow(_SetDeleteRow):
             return self._false_pb_mutations
 
     def commit(self):
-        """Makes a ``CheckAndMutateRow`` API request.
-
-        If no mutations have been created in the row, no request is made.
-
-        The mutations will be applied conditionally, based on whether the
-        filter matches any cells in the :class:`ConditionalRow` or not. (Each
-        method which adds a mutation has a ``state`` parameter for this
-        purpose.)
-
-        Mutations are applied atomically and in order, meaning that earlier
-        mutations can be masked / negated by later ones. Cells already present
-        in the row are left unchanged unless explicitly changed by a mutation.
-
-        After committing the accumulated mutations, resets the local
-        mutations.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_row_commit]
-            :end-before: [END bigtable_row_commit]
-
-        :rtype: bool
-        :returns: Flag indicating if the filter was matched (which also
-                  indicates which set of mutations were applied by the server).
-        :raises: :class:`ValueError <exceptions.ValueError>` if the number of
-                 mutations exceeds the :data:`MAX_MUTATIONS`.
-        """
-        true_mutations = self._get_mutations(state=True)
-        false_mutations = self._get_mutations(state=False)
-        num_true_mutations = len(true_mutations)
-        num_false_mutations = len(false_mutations)
-        if num_true_mutations == 0 and num_false_mutations == 0:
-            return
-        if num_true_mutations > MAX_MUTATIONS or num_false_mutations > MAX_MUTATIONS:
-            raise ValueError(
-                "Exceed the maximum allowable mutations (%d). Had %s true "
-                "mutations and %d false mutations."
-                % (MAX_MUTATIONS, num_true_mutations, num_false_mutations)
-            )
-
-        data_client = self._table._instance._client.table_data_client
-        resp = data_client.check_and_mutate_row(
-            table_name=self._table.name,
-            row_key=self._row_key,
-            predicate_filter=self._filter.to_pb(),
-            app_profile_id=self._table._app_profile_id,
-            true_mutations=true_mutations,
-            false_mutations=false_mutations,
-        )
-        self.clear()
-        return resp.predicate_matched
+        raise NotImplementedError
 
     # pylint: disable=arguments-differ
     def set_cell(self, column_family_id, column, value, timestamp=None, state=True):
@@ -750,7 +678,7 @@ class ConditionalRow(_SetDeleteRow):
         del self._false_pb_mutations[:]
 
 
-class AppendRow(Row):
+class BaseAppendRow(Row):
     """Google Cloud Bigtable Row for sending append mutations.
 
     These mutations are intended to augment the value of an existing cell
@@ -772,7 +700,7 @@ class AppendRow(Row):
     """
 
     def __init__(self, row_key, table):
-        super(AppendRow, self).__init__(row_key, table)
+        super(BaseAppendRow, self).__init__(row_key, table)
         self._rule_pb_list = []
 
     def clear(self):
@@ -869,57 +797,7 @@ class AppendRow(Row):
         self._rule_pb_list.append(rule_pb)
 
     def commit(self):
-        """Makes a ``ReadModifyWriteRow`` API request.
-
-        This commits modifications made by :meth:`append_cell_value` and
-        :meth:`increment_cell_value`. If no modifications were made, makes
-        no API request and just returns ``{}``.
-
-        Modifies a row atomically, reading the latest existing
-        timestamp / value from the specified columns and writing a new value by
-        appending / incrementing. The new cell created uses either the current
-        server time or the highest timestamp of a cell in that column (if it
-        exceeds the server time).
-
-        After committing the accumulated mutations, resets the local mutations.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_row_commit]
-            :end-before: [END bigtable_row_commit]
-
-        :rtype: dict
-        :returns: The new contents of all modified cells. Returned as a
-                  dictionary of column families, each of which holds a
-                  dictionary of columns. Each column contains a list of cells
-                  modified. Each cell is represented with a two-tuple with the
-                  value (in bytes) and the timestamp for the cell.
-        :raises: :class:`ValueError <exceptions.ValueError>` if the number of
-                 mutations exceeds the :data:`MAX_MUTATIONS`.
-        """
-        num_mutations = len(self._rule_pb_list)
-        if num_mutations == 0:
-            return {}
-        if num_mutations > MAX_MUTATIONS:
-            raise ValueError(
-                "%d total append mutations exceed the maximum "
-                "allowable %d." % (num_mutations, MAX_MUTATIONS)
-            )
-
-        data_client = self._table._instance._client.table_data_client
-        row_response = data_client.read_modify_write_row(
-            table_name=self._table.name,
-            row_key=self._row_key,
-            rules=self._rule_pb_list,
-            app_profile_id=self._table._app_profile_id,
-        )
-
-        # Reset modifications after commit-ing request.
-        self.clear()
-
-        # NOTE: We expect row_response.key == self._row_key but don't check.
-        return _parse_rmw_row_response(row_response)
+        raise NotImplementedError
 
 
 def _parse_rmw_row_response(row_response):

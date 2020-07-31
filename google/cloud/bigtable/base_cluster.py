@@ -17,7 +17,6 @@
 
 import re
 from google.cloud.bigtable_admin_v2.types import instance_pb2
-from google.api_core.exceptions import NotFound
 
 
 _CLUSTER_NAME_RE = re.compile(
@@ -27,7 +26,7 @@ _CLUSTER_NAME_RE = re.compile(
 )
 
 
-class Cluster(object):
+class BaseCluster(object):
     """Representation of a Google Cloud Bigtable Cluster.
 
     We can use a :class:`Cluster` to:
@@ -199,133 +198,19 @@ class Cluster(object):
         return not self == other
 
     def reload(self):
-        """Reload the metadata for this cluster.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_reload_cluster]
-            :end-before: [END bigtable_reload_cluster]
-        """
-        cluster_pb = self._instance._client.instance_admin_client.get_cluster(self.name)
-
-        # NOTE: _update_from_pb does not check that the project and
-        #       cluster ID on the response match the request.
-        self._update_from_pb(cluster_pb)
+        raise NotImplementedError
 
     def exists(self):
-        """Check whether the cluster already exists.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_check_cluster_exists]
-            :end-before: [END bigtable_check_cluster_exists]
-
-        :rtype: bool
-        :returns: True if the table exists, else False.
-        """
-        client = self._instance._client
-        try:
-            client.instance_admin_client.get_cluster(name=self.name)
-            return True
-        # NOTE: There could be other exceptions that are returned to the user.
-        except NotFound:
-            return False
+        raise NotImplementedError
 
     def create(self):
-        """Create this cluster.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_cluster]
-            :end-before: [END bigtable_create_cluster]
-
-        .. note::
-
-            Uses the ``project``, ``instance`` and ``cluster_id`` on the
-            current :class:`Cluster` in addition to the ``serve_nodes``.
-            To change them before creating, reset the values via
-
-            .. code:: python
-
-                cluster.serve_nodes = 8
-                cluster.cluster_id = 'i-changed-my-mind'
-
-            before calling :meth:`create`.
-
-        :rtype: :class:`~google.api_core.operation.Operation`
-        :returns: The long-running operation corresponding to the
-                  create operation.
-        """
-        client = self._instance._client
-        cluster_pb = self._to_pb()
-
-        return client.instance_admin_client.create_cluster(
-            self._instance.name, self.cluster_id, cluster_pb
-        )
+        raise NotImplementedError
 
     def update(self):
-        """Update this cluster.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_update_cluster]
-            :end-before: [END bigtable_update_cluster]
-
-        .. note::
-
-            Updates the ``serve_nodes``. If you'd like to
-            change them before updating, reset the values via
-
-            .. code:: python
-
-                cluster.serve_nodes = 8
-
-            before calling :meth:`update`.
-
-        :rtype: :class:`Operation`
-        :returns: The long-running operation corresponding to the
-                  update operation.
-        """
-        client = self._instance._client
-        # We are passing `None` for third argument location.
-        # Location is set only at the time of creation of a cluster
-        # and can not be changed after cluster has been created.
-        return client.instance_admin_client.update_cluster(
-            name=self.name, serve_nodes=self.serve_nodes, location=None
-        )
+        raise NotImplementedError
 
     def delete(self):
-        """Delete this cluster.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_delete_cluster]
-            :end-before: [END bigtable_delete_cluster]
-
-        Marks a cluster and all of its tables for permanent deletion in 7 days.
-
-        Immediately upon completion of the request:
-
-        * Billing will cease for all of the cluster's reserved resources.
-        * The cluster's ``delete_time`` field will be set 7 days in the future.
-
-        Soon afterward:
-
-        * All tables within the cluster will become unavailable.
-
-        At the cluster's ``delete_time``:
-
-        * The cluster and **all of its tables** will immediately and
-          irrevocably disappear from the API, and their data will be
-          permanently deleted.
-        """
-        client = self._instance._client
-        client.instance_admin_client.delete_cluster(self.name)
+        raise NotImplementedError
 
     def _to_pb(self):
         """ Create cluster proto buff message for API calls """

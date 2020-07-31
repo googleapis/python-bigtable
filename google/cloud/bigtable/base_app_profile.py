@@ -19,8 +19,6 @@ import re
 
 from google.cloud.bigtable.enums import RoutingPolicyType
 from google.cloud.bigtable_admin_v2.types import instance_pb2
-from google.protobuf import field_mask_pb2
-from google.api_core.exceptions import NotFound
 
 _APP_PROFILE_NAME_RE = re.compile(
     r"^projects/(?P<project>[^/]+)/"
@@ -29,7 +27,7 @@ _APP_PROFILE_NAME_RE = re.compile(
 )
 
 
-class AppProfile(object):
+class BaseAppProfile(object):
     """Representation of a Google Cloud Bigtable AppProfile.
 
     We can use a :class:`AppProfile` to:
@@ -231,119 +229,16 @@ class AppProfile(object):
         return app_profile_pb
 
     def reload(self):
-        """Reload the metadata for this cluster
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_reload_app_profile]
-            :end-before: [END bigtable_reload_app_profile]
-        """
-
-        app_profile_pb = self.instance_admin_client.get_app_profile(self.name)
-
-        # NOTE: _update_from_pb does not check that the project and
-        #       app_profile ID on the response match the request.
-        self._update_from_pb(app_profile_pb)
+        raise NotImplementedError
 
     def exists(self):
-        """Check whether the AppProfile already exists.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_app_profile_exists]
-            :end-before: [END bigtable_app_profile_exists]
-
-        :rtype: bool
-        :returns: True if the AppProfile exists, else False.
-        """
-        try:
-            self.instance_admin_client.get_app_profile(self.name)
-            return True
-        # NOTE: There could be other exceptions that are returned to the user.
-        except NotFound:
-            return False
+        raise NotImplementedError
 
     def create(self, ignore_warnings=None):
-        """Create this AppProfile.
-
-        .. note::
-
-            Uses the ``instance`` and ``app_profile_id`` on the current
-            :class:`AppProfile` in addition to the ``routing_policy_type``,
-            ``description``, ``cluster_id`` and ``allow_transactional_writes``.
-            To change them before creating, reset the values via
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_app_profile]
-            :end-before: [END bigtable_create_app_profile]
-
-        :type: ignore_warnings: bool
-        :param: ignore_warnings: (Optional) If true, ignore safety checks when
-                                 creating the AppProfile.
-        """
-        return self.from_pb(
-            self.instance_admin_client.create_app_profile(
-                parent=self._instance.name,
-                app_profile_id=self.app_profile_id,
-                app_profile=self._to_pb(),
-                ignore_warnings=ignore_warnings,
-            ),
-            self._instance,
-        )
+        raise NotImplementedError
 
     def update(self, ignore_warnings=None):
-        """Update this app_profile.
-
-        .. note::
-
-            Update any or all of the following values:
-            ``routing_policy_type``
-            ``description``
-            ``cluster_id``
-            ``allow_transactional_writes``
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_update_app_profile]
-            :end-before: [END bigtable_update_app_profile]
-        """
-        update_mask_pb = field_mask_pb2.FieldMask()
-
-        if self.description is not None:
-            update_mask_pb.paths.append("description")
-
-        if self.routing_policy_type == RoutingPolicyType.ANY:
-            update_mask_pb.paths.append("multi_cluster_routing_use_any")
-        else:
-            update_mask_pb.paths.append("single_cluster_routing")
-
-        return self.instance_admin_client.update_app_profile(
-            app_profile=self._to_pb(),
-            update_mask=update_mask_pb,
-            ignore_warnings=ignore_warnings,
-        )
+        raise NotImplementedError
 
     def delete(self, ignore_warnings=None):
-        """Delete this AppProfile.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_delete_app_profile]
-            :end-before: [END bigtable_delete_app_profile]
-
-        :type: ignore_warnings: bool
-        :param: ignore_warnings: If true, ignore safety checks when deleting
-                the AppProfile.
-
-        :raises: google.api_core.exceptions.GoogleAPICallError: If the request
-                 failed for any reason. google.api_core.exceptions.RetryError:
-                 If the request failed due to a retryable error and retry
-                 attempts failed. ValueError: If the parameters are invalid.
-        """
-        self.instance_admin_client.delete_app_profile(self.name, ignore_warnings)
+        raise NotImplementedError
