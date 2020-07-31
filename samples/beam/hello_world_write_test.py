@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import pytest
 import uuid
 
-from google.cloud import bigtable
-
 from beam import hello_world_write
+
+from google.cloud import bigtable
+import pytest
 
 PROJECT = os.environ['GOOGLE_CLOUD_PROJECT']
 BIGTABLE_INSTANCE = os.environ['BIGTABLE_INSTANCE']

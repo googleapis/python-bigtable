@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-import apache_beam as beam
 
-from apache_beam.options.pipeline_options import PipelineOptions
+import apache_beam as beam
 from apache_beam.io.gcp.bigtableio import WriteToBigTable
+from apache_beam.options.pipeline_options import PipelineOptions
 from google.cloud.bigtable import row
 
 
