@@ -14,10 +14,10 @@
 import os
 import uuid
 
-import hello_world_write
-
 from google.cloud import bigtable
 import pytest
+
+import hello_world_write
 
 PROJECT = os.environ['GOOGLE_CLOUD_PROJECT']
 BIGTABLE_INSTANCE = os.environ['BIGTABLE_INSTANCE']
