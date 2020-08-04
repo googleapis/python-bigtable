@@ -484,8 +484,7 @@ class TestInstanceAdminAPI(unittest.TestCase):
         instance = Config.CLIENT.instance(
             ALT_INSTANCE_ID, instance_type=_DEVELOPMENT, labels=LABELS
         )
-        serve_nodes = 1
-        operation = instance.create(location_id=LOCATION_ID, serve_nodes=serve_nodes)
+        operation = instance.create(location_id=LOCATION_ID)
 
         # Make sure this instance gets deleted after the test case.
         self.instances_to_delete.append(instance)
