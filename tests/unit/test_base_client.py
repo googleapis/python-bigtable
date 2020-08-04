@@ -83,13 +83,14 @@ class _Client(object):
         self._emulator_channel = emulator_channel
 
 
-class TestClient(unittest.TestCase):
-
+class TestClientConstants:
     PROJECT = "PROJECT"
     INSTANCE_ID = "instance-id"
     DISPLAY_NAME = "display-name"
     USER_AGENT = "you-sir-age-int"
 
+
+class TestBaseClient(unittest.TestCase, TestClientConstants):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.base_client import BaseClient

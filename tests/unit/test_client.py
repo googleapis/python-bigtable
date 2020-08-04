@@ -19,21 +19,10 @@ import mock
 
 from ._testing import _make_credentials
 
-
-class _Client(object):
-    def __init__(self, credentials, emulator_host=None, emulator_channel=None):
-        self._credentials = credentials
-        self._emulator_host = emulator_host
-        self._emulator_channel = emulator_channel
+from tests.unit.test_base_client import TestClientConstants
 
 
-class TestClient(unittest.TestCase):
-
-    PROJECT = "PROJECT"
-    INSTANCE_ID = "instance-id"
-    DISPLAY_NAME = "display-name"
-    USER_AGENT = "you-sir-age-int"
-
+class TestClient(unittest.TestCase, TestClientConstants):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.client import Client
