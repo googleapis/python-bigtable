@@ -95,7 +95,6 @@ def dev_instance():
 
     if not instance.exists():
         cluster = instance.cluster(cluster_id, location_id=BIGTABLE_ZONE,
-                                   serve_nodes=serve_nodes,
                                    default_storage_type=storage_type)
         instance.create(clusters=[cluster])
 
