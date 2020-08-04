@@ -4,6 +4,16 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+### [1.4.1](https://www.github.com/googleapis/python-bigtable/compare/v1.4.0...v1.4.1) (2020-08-04)
+
+
+### Documentation
+
+* document 'row_set' module explicitly ([#29](https://www.github.com/googleapis/python-bigtable/issues/29)) ([0e0291e](https://www.github.com/googleapis/python-bigtable/commit/0e0291e56cbaeec00ede5275e17af2968a12251c))
+* remove indent from snippet code blocks ([#49](https://www.github.com/googleapis/python-bigtable/issues/49)) ([1fbadf9](https://www.github.com/googleapis/python-bigtable/commit/1fbadf906204c622b9cff3fa073d8fc43d3597f7))
+* update links to reflect new Github org ([#48](https://www.github.com/googleapis/python-bigtable/issues/48)) ([9bb11ed](https://www.github.com/googleapis/python-bigtable/commit/9bb11edc885958286b5b31fa18cfd0db95338cb4))
+* **samples:** filter cpu query to get metrics for the correct resources [([#4238](https://www.github.com/googleapis/python-bigtable/issues/4238))](https://github.com/GoogleCloudPlatform/python-docs-samples/issues/4238) ([#81](https://www.github.com/googleapis/python-bigtable/issues/81)) ([2c8c386](https://www.github.com/googleapis/python-bigtable/commit/2c8c3864c43a7ac9c85a0cd7c9cd4eec7434b42d))
+
 ## [1.4.0](https://www.github.com/googleapis/python-bigtable/compare/v1.3.0...v1.4.0) (2020-07-21)
 
 
