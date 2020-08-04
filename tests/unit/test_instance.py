@@ -20,30 +20,10 @@ import mock
 from ._testing import _make_credentials
 from google.cloud.bigtable.cluster import Cluster
 
+from tests.unit.test_base_instance import TestInstanceConstants
 
-class TestInstance(unittest.TestCase):
 
-    PROJECT = "project"
-    INSTANCE_ID = "instance-id"
-    INSTANCE_NAME = "projects/" + PROJECT + "/instances/" + INSTANCE_ID
-    LOCATION_ID = "locid"
-    LOCATION = "projects/" + PROJECT + "/locations/" + LOCATION_ID
-    APP_PROFILE_PATH = (
-        "projects/" + PROJECT + "/instances/" + INSTANCE_ID + "/appProfiles/"
-    )
-    DISPLAY_NAME = "display_name"
-    LABELS = {"foo": "bar"}
-    OP_ID = 8915
-    OP_NAME = "operations/projects/{}/instances/{}operations/{}".format(
-        PROJECT, INSTANCE_ID, OP_ID
-    )
-    TABLE_ID = "table_id"
-    TABLE_NAME = INSTANCE_NAME + "/tables/" + TABLE_ID
-    CLUSTER_ID = "cluster-id"
-    CLUSTER_NAME = INSTANCE_NAME + "/clusters/" + CLUSTER_ID
-    BACKUP_ID = "backup-id"
-    BACKUP_NAME = CLUSTER_NAME + "/backups/" + BACKUP_ID
-
+class TestInstance(unittest.TestCase, TestInstanceConstants):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.instance import Instance

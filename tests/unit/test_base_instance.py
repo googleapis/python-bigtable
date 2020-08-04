@@ -18,11 +18,9 @@ import unittest
 import mock
 
 from ._testing import _make_credentials
-from google.cloud.bigtable.cluster import Cluster
 
 
-class TestInstance(unittest.TestCase):
-
+class TestInstanceConstants:
     PROJECT = "project"
     INSTANCE_ID = "instance-id"
     INSTANCE_NAME = "projects/" + PROJECT + "/instances/" + INSTANCE_ID
@@ -44,6 +42,8 @@ class TestInstance(unittest.TestCase):
     BACKUP_ID = "backup-id"
     BACKUP_NAME = CLUSTER_NAME + "/backups/" + BACKUP_ID
 
+
+class TestBaseInstance(unittest.TestCase, TestInstanceConstants):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.instance import Instance
