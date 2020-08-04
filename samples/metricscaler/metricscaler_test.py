@@ -85,7 +85,6 @@ def dev_instance():
 
     client = bigtable.Client(project=PROJECT, admin=True)
 
-    serve_nodes = 1
     storage_type = enums.StorageType.SSD
     development = enums.Instance.Type.DEVELOPMENT
     labels = {'dev-label': 'dev-label'}
