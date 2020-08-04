@@ -210,7 +210,7 @@ def test_bigtable_write_read_drop_truncate():
         print(cell.value.decode("utf-8"))
         total_rows.append(cell)
     # [END bigtable_read_rows]
-    assert len(list(total_rows)) == len(rows)
+    assert len(total_rows) == len(rows)
     # [START bigtable_drop_by_prefix]
     from google.cloud.bigtable import Client
 
