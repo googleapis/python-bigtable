@@ -122,7 +122,7 @@ Head next to learn about the :doc:`table-api`.
 
 .. _Instance Admin API: https://cloud.google.com/bigtable/docs/creating-instance
 .. _CreateInstance: https://googleapis.dev/python/bigtable/latest/instance-api.html#create-a-new-instance
-.. _GetInstance: hhttps://googleapis.dev/python/bigtable/latest/instance-api.html#get-metadata-for-an-existing-instance
+.. _GetInstance: https://googleapis.dev/python/bigtable/latest/instance-api.html#get-metadata-for-an-existing-instance
 .. _UpdateInstance: https://googleapis.dev/python/bigtable/latest/instance-api.html#update-an-existing-instance
 .. _DeleteInstance: https://googleapis.dev/python/bigtable/latest/instance-api.html#delete-an-existing-instance
 .. _ListInstances: https://googleapis.dev/python/bigtable/latest/instance-api.html#list-instances
