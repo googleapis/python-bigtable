@@ -28,21 +28,19 @@ class BigtableGrpcTransport(object):
     which can be used to take advantage of advanced
     features of gRPC.
     """
-
     # The scopes needed to make gRPC calls to all of the methods defined
     # in this service.
     _OAUTH_SCOPES = (
-        "https://www.googleapis.com/auth/bigtable.data",
-        "https://www.googleapis.com/auth/bigtable.data.readonly",
-        "https://www.googleapis.com/auth/cloud-bigtable.data",
-        "https://www.googleapis.com/auth/cloud-bigtable.data.readonly",
-        "https://www.googleapis.com/auth/cloud-platform",
-        "https://www.googleapis.com/auth/cloud-platform.read-only",
+        'https://www.googleapis.com/auth/bigtable.data',
+        'https://www.googleapis.com/auth/bigtable.data.readonly',
+        'https://www.googleapis.com/auth/cloud-bigtable.data',
+        'https://www.googleapis.com/auth/cloud-bigtable.data.readonly',
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/cloud-platform.read-only',
     )
 
-    def __init__(
-        self, channel=None, credentials=None, address="bigtable.googleapis.com:443"
-    ):
+    def __init__(self, channel=None, credentials=None,
+                 address='bigtable.googleapis.com:443'):
         """Instantiate the transport class.
 
         Args:
@@ -60,7 +58,8 @@ class BigtableGrpcTransport(object):
         # exception (channels come with credentials baked in already).
         if channel is not None and credentials is not None:
             raise ValueError(
-                "The `channel` and `credentials` arguments are mutually " "exclusive.",
+                'The `channel` and `credentials` arguments are mutually '
+                'exclusive.',
             )
 
         # Create the channel.
@@ -69,8 +68,8 @@ class BigtableGrpcTransport(object):
                 address=address,
                 credentials=credentials,
                 options={
-                    "grpc.max_send_message_length": -1,
-                    "grpc.max_receive_message_length": -1,
+                    'grpc.max_send_message_length': -1,
+                    'grpc.max_receive_message_length': -1,
                 }.items(),
             )
 
@@ -79,13 +78,16 @@ class BigtableGrpcTransport(object):
         # gRPC uses objects called "stubs" that are bound to the
         # channel and provide a basic method for each RPC.
         self._stubs = {
-            "bigtable_stub": bigtable_pb2_grpc.BigtableStub(channel),
+            'bigtable_stub': bigtable_pb2_grpc.BigtableStub(channel),
         }
+
 
     @classmethod
     def create_channel(
-        cls, address="bigtable.googleapis.com:443", credentials=None, **kwargs
-    ):
+                cls,
+                address='bigtable.googleapis.com:443',
+                credentials=None,
+                **kwargs):
         """Create and return a gRPC channel object.
 
         Args:
@@ -102,7 +104,10 @@ class BigtableGrpcTransport(object):
             grpc.Channel: A gRPC channel object.
         """
         return google.api_core.grpc_helpers.create_channel(
-            address, credentials=credentials, scopes=cls._OAUTH_SCOPES, **kwargs
+            address,
+            credentials=credentials,
+            scopes=cls._OAUTH_SCOPES,
+            **kwargs
         )
 
     @property
@@ -129,7 +134,7 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].ReadRows
+        return self._stubs['bigtable_stub'].ReadRows
 
     @property
     def sample_row_keys(self):
@@ -145,7 +150,7 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].SampleRowKeys
+        return self._stubs['bigtable_stub'].SampleRowKeys
 
     @property
     def mutate_row(self):
@@ -159,7 +164,7 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].MutateRow
+        return self._stubs['bigtable_stub'].MutateRow
 
     @property
     def mutate_rows(self):
@@ -174,7 +179,7 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].MutateRows
+        return self._stubs['bigtable_stub'].MutateRows
 
     @property
     def check_and_mutate_row(self):
@@ -187,7 +192,7 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].CheckAndMutateRow
+        return self._stubs['bigtable_stub'].CheckAndMutateRow
 
     @property
     def read_modify_write_row(self):
@@ -204,4 +209,4 @@ class BigtableGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_stub"].ReadModifyWriteRow
+        return self._stubs['bigtable_stub'].ReadModifyWriteRow
