@@ -29,22 +29,24 @@ class BigtableTableAdminGrpcTransport(object):
     which can be used to take advantage of advanced
     features of gRPC.
     """
+
     # The scopes needed to make gRPC calls to all of the methods defined
     # in this service.
     _OAUTH_SCOPES = (
-        'https://www.googleapis.com/auth/bigtable.admin',
-        'https://www.googleapis.com/auth/bigtable.admin.cluster',
-        'https://www.googleapis.com/auth/bigtable.admin.instance',
-        'https://www.googleapis.com/auth/bigtable.admin.table',
-        'https://www.googleapis.com/auth/cloud-bigtable.admin',
-        'https://www.googleapis.com/auth/cloud-bigtable.admin.cluster',
-        'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
-        'https://www.googleapis.com/auth/cloud-platform',
-        'https://www.googleapis.com/auth/cloud-platform.read-only',
+        "https://www.googleapis.com/auth/bigtable.admin",
+        "https://www.googleapis.com/auth/bigtable.admin.cluster",
+        "https://www.googleapis.com/auth/bigtable.admin.instance",
+        "https://www.googleapis.com/auth/bigtable.admin.table",
+        "https://www.googleapis.com/auth/cloud-bigtable.admin",
+        "https://www.googleapis.com/auth/cloud-bigtable.admin.cluster",
+        "https://www.googleapis.com/auth/cloud-bigtable.admin.table",
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/cloud-platform.read-only",
     )
 
-    def __init__(self, channel=None, credentials=None,
-                 address='bigtableadmin.googleapis.com:443'):
+    def __init__(
+        self, channel=None, credentials=None, address="bigtableadmin.googleapis.com:443"
+    ):
         """Instantiate the transport class.
 
         Args:
@@ -62,8 +64,7 @@ class BigtableTableAdminGrpcTransport(object):
         # exception (channels come with credentials baked in already).
         if channel is not None and credentials is not None:
             raise ValueError(
-                'The `channel` and `credentials` arguments are mutually '
-                'exclusive.',
+                "The `channel` and `credentials` arguments are mutually " "exclusive.",
             )
 
         # Create the channel.
@@ -72,8 +73,8 @@ class BigtableTableAdminGrpcTransport(object):
                 address=address,
                 credentials=credentials,
                 options={
-                    'grpc.max_send_message_length': -1,
-                    'grpc.max_receive_message_length': -1,
+                    "grpc.max_send_message_length": -1,
+                    "grpc.max_receive_message_length": -1,
                 }.items(),
             )
 
@@ -82,20 +83,22 @@ class BigtableTableAdminGrpcTransport(object):
         # gRPC uses objects called "stubs" that are bound to the
         # channel and provide a basic method for each RPC.
         self._stubs = {
-            'bigtable_table_admin_stub': bigtable_table_admin_pb2_grpc.BigtableTableAdminStub(channel),
+            "bigtable_table_admin_stub": bigtable_table_admin_pb2_grpc.BigtableTableAdminStub(
+                channel
+            ),
         }
 
         # Because this API includes a method that returns a
         # long-running operation (proto: google.longrunning.Operation),
         # instantiate an LRO client.
-        self._operations_client = google.api_core.operations_v1.OperationsClient(channel)
+        self._operations_client = google.api_core.operations_v1.OperationsClient(
+            channel
+        )
 
     @classmethod
     def create_channel(
-                cls,
-                address='bigtableadmin.googleapis.com:443',
-                credentials=None,
-                **kwargs):
+        cls, address="bigtableadmin.googleapis.com:443", credentials=None, **kwargs
+    ):
         """Create and return a gRPC channel object.
 
         Args:
@@ -112,10 +115,7 @@ class BigtableTableAdminGrpcTransport(object):
             grpc.Channel: A gRPC channel object.
         """
         return google.api_core.grpc_helpers.create_channel(
-            address,
-            credentials=credentials,
-            scopes=cls._OAUTH_SCOPES,
-            **kwargs
+            address, credentials=credentials, scopes=cls._OAUTH_SCOPES, **kwargs
         )
 
     @property
@@ -140,7 +140,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].CreateTable
+        return self._stubs["bigtable_table_admin_stub"].CreateTable
 
     @property
     def create_table_from_snapshot(self):
@@ -160,7 +160,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].CreateTableFromSnapshot
+        return self._stubs["bigtable_table_admin_stub"].CreateTableFromSnapshot
 
     @property
     def list_tables(self):
@@ -173,7 +173,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].ListTables
+        return self._stubs["bigtable_table_admin_stub"].ListTables
 
     @property
     def get_table(self):
@@ -186,7 +186,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].GetTable
+        return self._stubs["bigtable_table_admin_stub"].GetTable
 
     @property
     def delete_table(self):
@@ -199,7 +199,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].DeleteTable
+        return self._stubs["bigtable_table_admin_stub"].DeleteTable
 
     @property
     def modify_column_families(self):
@@ -215,7 +215,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].ModifyColumnFamilies
+        return self._stubs["bigtable_table_admin_stub"].ModifyColumnFamilies
 
     @property
     def drop_row_range(self):
@@ -230,7 +230,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].DropRowRange
+        return self._stubs["bigtable_table_admin_stub"].DropRowRange
 
     @property
     def generate_consistency_token(self):
@@ -246,7 +246,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].GenerateConsistencyToken
+        return self._stubs["bigtable_table_admin_stub"].GenerateConsistencyToken
 
     @property
     def check_consistency(self):
@@ -261,7 +261,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].CheckConsistency
+        return self._stubs["bigtable_table_admin_stub"].CheckConsistency
 
     @property
     def get_iam_policy(self):
@@ -276,7 +276,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].GetIamPolicy
+        return self._stubs["bigtable_table_admin_stub"].GetIamPolicy
 
     @property
     def set_iam_policy(self):
@@ -290,7 +290,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].SetIamPolicy
+        return self._stubs["bigtable_table_admin_stub"].SetIamPolicy
 
     @property
     def test_iam_permissions(self):
@@ -303,7 +303,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].TestIamPermissions
+        return self._stubs["bigtable_table_admin_stub"].TestIamPermissions
 
     @property
     def snapshot_table(self):
@@ -323,7 +323,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].SnapshotTable
+        return self._stubs["bigtable_table_admin_stub"].SnapshotTable
 
     @property
     def get_snapshot(self):
@@ -342,7 +342,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].GetSnapshot
+        return self._stubs["bigtable_table_admin_stub"].GetSnapshot
 
     @property
     def list_snapshots(self):
@@ -361,7 +361,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].ListSnapshots
+        return self._stubs["bigtable_table_admin_stub"].ListSnapshots
 
     @property
     def delete_snapshot(self):
@@ -380,7 +380,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].DeleteSnapshot
+        return self._stubs["bigtable_table_admin_stub"].DeleteSnapshot
 
     @property
     def create_backup(self):
@@ -397,7 +397,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].CreateBackup
+        return self._stubs["bigtable_table_admin_stub"].CreateBackup
 
     @property
     def get_backup(self):
@@ -410,7 +410,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].GetBackup
+        return self._stubs["bigtable_table_admin_stub"].GetBackup
 
     @property
     def list_backups(self):
@@ -424,7 +424,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].ListBackups
+        return self._stubs["bigtable_table_admin_stub"].ListBackups
 
     @property
     def update_backup(self):
@@ -437,7 +437,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].UpdateBackup
+        return self._stubs["bigtable_table_admin_stub"].UpdateBackup
 
     @property
     def delete_backup(self):
@@ -450,7 +450,7 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].DeleteBackup
+        return self._stubs["bigtable_table_admin_stub"].DeleteBackup
 
     @property
     def restore_table(self):
@@ -468,4 +468,4 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs['bigtable_table_admin_stub'].RestoreTable
+        return self._stubs["bigtable_table_admin_stub"].RestoreTable

@@ -27,6 +27,7 @@ class RestoreSourceType(enum.IntEnum):
       RESTORE_SOURCE_TYPE_UNSPECIFIED (int): No restore associated.
       BACKUP (int): A backup was used as the source of the restore.
     """
+
     RESTORE_SOURCE_TYPE_UNSPECIFIED = 0
     BACKUP = 1
 
@@ -40,6 +41,7 @@ class StorageType(enum.IntEnum):
       SSD (int): Flash (SSD) storage should be used.
       HDD (int): Magnetic drive (HDD) storage should be used.
     """
+
     STORAGE_TYPE_UNSPECIFIED = 0
     SSD = 1
     HDD = 2
@@ -56,6 +58,7 @@ class Backup(object):
           may fail with ``FAILED_PRECONDITION`` in this state.
           READY (int): The backup is complete and ready for use.
         """
+
         STATE_UNSPECIFIED = 0
         CREATING = 1
         READY = 2
@@ -80,6 +83,7 @@ class Cluster(object):
           DISABLED (int): The cluster has no backing nodes. The data (tables) still
           exist, but no operations can be performed on the cluster.
         """
+
         STATE_NOT_KNOWN = 0
         READY = 1
         CREATING = 2
@@ -99,10 +103,10 @@ class Instance(object):
           CREATING (int): The instance is currently being created, and may be destroyed
           if the creation process encounters an error.
         """
+
         STATE_NOT_KNOWN = 0
         READY = 1
         CREATING = 2
-
 
     class Type(enum.IntEnum):
         """
@@ -121,6 +125,7 @@ class Instance(object):
           instance cannot be changed to a development instance. When creating a
           development instance, ``serve_nodes`` on the cluster must not be set.
         """
+
         TYPE_UNSPECIFIED = 0
         PRODUCTION = 1
         DEVELOPMENT = 2
@@ -138,6 +143,7 @@ class Snapshot(object):
           creation process encounters an error. A snapshot may not be restored to a
           table while it is being created.
         """
+
         STATE_NOT_KNOWN = 0
         READY = 1
         CREATING = 2
@@ -154,9 +160,9 @@ class Table(object):
           When specified during table creation, MILLIS will be used.
           MILLIS (int): The table keeps data versioned at a granularity of 1ms.
         """
+
         TIMESTAMP_GRANULARITY_UNSPECIFIED = 0
         MILLIS = 1
-
 
     class View(enum.IntEnum):
         """
@@ -170,12 +176,12 @@ class Table(object):
           replication state.
           FULL (int): Populates all fields.
         """
+
         VIEW_UNSPECIFIED = 0
         NAME_ONLY = 1
         SCHEMA_VIEW = 2
         REPLICATION_VIEW = 3
         FULL = 4
-
 
     class ClusterState(object):
         class ReplicationState(enum.IntEnum):
@@ -198,10 +204,10 @@ class Table(object):
               being optimized for performance. When optimizations are complete, the
               table will transition to ``READY`` state.
             """
+
             STATE_NOT_KNOWN = 0
             INITIALIZING = 1
             PLANNED_MAINTENANCE = 2
             UNPLANNED_MAINTENANCE = 3
             READY = 4
             READY_OPTIMIZING = 5
-        

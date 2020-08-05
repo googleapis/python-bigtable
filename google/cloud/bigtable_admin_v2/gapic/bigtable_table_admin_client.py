@@ -36,7 +36,9 @@ import grpc
 
 from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client_config
 from google.cloud.bigtable_admin_v2.gapic import enums
-from google.cloud.bigtable_admin_v2.gapic.transports import bigtable_table_admin_grpc_transport
+from google.cloud.bigtable_admin_v2.gapic.transports import (
+    bigtable_table_admin_grpc_transport,
+)
 from google.cloud.bigtable_admin_v2.proto import bigtable_instance_admin_pb2
 from google.cloud.bigtable_admin_v2.proto import bigtable_instance_admin_pb2_grpc
 from google.cloud.bigtable_admin_v2.proto import bigtable_table_admin_pb2
@@ -52,9 +54,8 @@ from google.protobuf import empty_pb2
 from google.protobuf import field_mask_pb2
 
 
-
 _GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution(
-    'google-cloud-bigtable',
+    "google-cloud-bigtable",
 ).version
 
 
@@ -67,13 +68,12 @@ class BigtableTableAdminClient(object):
     the tables.
     """
 
-    SERVICE_ADDRESS = 'bigtableadmin.googleapis.com:443'
+    SERVICE_ADDRESS = "bigtableadmin.googleapis.com:443"
     """The default address of the service."""
 
     # The name of the interface for this client. This is the key used to
     # find the method configuration in the client_config dictionary.
-    _INTERFACE_NAME = 'google.bigtable.admin.v2.BigtableTableAdmin'
-
+    _INTERFACE_NAME = "google.bigtable.admin.v2.BigtableTableAdmin"
 
     @classmethod
     def from_service_account_file(cls, filename, *args, **kwargs):
@@ -89,19 +89,17 @@ class BigtableTableAdminClient(object):
         Returns:
             BigtableTableAdminClient: The constructed client.
         """
-        credentials = service_account.Credentials.from_service_account_file(
-            filename)
-        kwargs['credentials'] = credentials
+        credentials = service_account.Credentials.from_service_account_file(filename)
+        kwargs["credentials"] = credentials
         return cls(*args, **kwargs)
 
     from_service_account_json = from_service_account_file
-
 
     @classmethod
     def backup_path(cls, project, instance, cluster, backup):
         """Return a fully-qualified backup string."""
         return google.api_core.path_template.expand(
-            'projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}',
+            "projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}",
             project=project,
             instance=instance,
             cluster=cluster,
@@ -112,7 +110,7 @@ class BigtableTableAdminClient(object):
     def cluster_path(cls, project, instance, cluster):
         """Return a fully-qualified cluster string."""
         return google.api_core.path_template.expand(
-            'projects/{project}/instances/{instance}/clusters/{cluster}',
+            "projects/{project}/instances/{instance}/clusters/{cluster}",
             project=project,
             instance=instance,
             cluster=cluster,
@@ -122,7 +120,7 @@ class BigtableTableAdminClient(object):
     def instance_path(cls, project, instance):
         """Return a fully-qualified instance string."""
         return google.api_core.path_template.expand(
-            'projects/{project}/instances/{instance}',
+            "projects/{project}/instances/{instance}",
             project=project,
             instance=instance,
         )
@@ -131,7 +129,7 @@ class BigtableTableAdminClient(object):
     def snapshot_path(cls, project, instance, cluster, snapshot):
         """Return a fully-qualified snapshot string."""
         return google.api_core.path_template.expand(
-            'projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}',
+            "projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}",
             project=project,
             instance=instance,
             cluster=cluster,
@@ -142,14 +140,21 @@ class BigtableTableAdminClient(object):
     def table_path(cls, project, instance, table):
         """Return a fully-qualified table string."""
         return google.api_core.path_template.expand(
-            'projects/{project}/instances/{instance}/tables/{table}',
+            "projects/{project}/instances/{instance}/tables/{table}",
             project=project,
             instance=instance,
             table=table,
         )
 
-    def __init__(self, transport=None, channel=None, credentials=None,
-            client_config=None, client_info=None, client_options=None):
+    def __init__(
+        self,
+        transport=None,
+        channel=None,
+        credentials=None,
+        client_config=None,
+        client_info=None,
+        client_options=None,
+    ):
         """Constructor.
 
         Args:
@@ -185,20 +190,27 @@ class BigtableTableAdminClient(object):
         """
         # Raise deprecation warnings for things we want to go away.
         if client_config is not None:
-            warnings.warn('The `client_config` argument is deprecated.',
-                          PendingDeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "The `client_config` argument is deprecated.",
+                PendingDeprecationWarning,
+                stacklevel=2,
+            )
         else:
             client_config = bigtable_table_admin_client_config.config
 
         if channel:
-            warnings.warn('The `channel` argument is deprecated; use '
-                          '`transport` instead.',
-                          PendingDeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "The `channel` argument is deprecated; use " "`transport` instead.",
+                PendingDeprecationWarning,
+                stacklevel=2,
+            )
 
         api_endpoint = self.SERVICE_ADDRESS
         if client_options:
             if type(client_options) == dict:
-                client_options = google.api_core.client_options.from_dict(client_options)
+                client_options = google.api_core.client_options.from_dict(
+                    client_options
+                )
             if client_options.api_endpoint:
                 api_endpoint = client_options.api_endpoint
 
@@ -215,15 +227,13 @@ class BigtableTableAdminClient(object):
             else:
                 if credentials:
                     raise ValueError(
-                        'Received both a transport instance and '
-                        'credentials; these are mutually exclusive.'
+                        "Received both a transport instance and "
+                        "credentials; these are mutually exclusive."
                     )
                 self.transport = transport
         else:
             self.transport = bigtable_table_admin_grpc_transport.BigtableTableAdminGrpcTransport(
-                address=api_endpoint,
-                channel=channel,
-                credentials=credentials,
+                address=api_endpoint, channel=channel, credentials=credentials,
             )
 
         if client_info is None:
@@ -239,7 +249,7 @@ class BigtableTableAdminClient(object):
         # (Ordinarily, these are the defaults specified in the `*_config.py`
         # file next to this one.)
         self._method_configs = google.api_core.gapic_v1.config.parse_method_configs(
-            client_config['interfaces'][self._INTERFACE_NAME],
+            client_config["interfaces"][self._INTERFACE_NAME],
         )
 
         # Save a dictionary of cached API call functions.
@@ -250,14 +260,15 @@ class BigtableTableAdminClient(object):
 
     # Service calls
     def create_table(
-            self,
-            parent,
-            table_id,
-            table,
-            initial_splits=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        table_id,
+        table,
+        initial_splits=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Creates a new table in the specified instance.
         The table can be created with a full set of initial column families,
@@ -330,11 +341,13 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'create_table' not in self._inner_api_calls:
-            self._inner_api_calls['create_table'] = google.api_core.gapic_v1.method.wrap_method(
+        if "create_table" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "create_table"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.create_table,
-                default_retry=self._method_configs['CreateTable'].retry,
-                default_timeout=self._method_configs['CreateTable'].timeout,
+                default_retry=self._method_configs["CreateTable"].retry,
+                default_timeout=self._method_configs["CreateTable"].timeout,
                 client_info=self._client_info,
             )
 
@@ -348,23 +361,28 @@ class BigtableTableAdminClient(object):
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['create_table'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["create_table"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def create_table_from_snapshot(
-            self,
-            parent,
-            table_id,
-            source_snapshot,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        table_id,
+        source_snapshot,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Creates a new table from the specified snapshot. The target table must
         not exist. The snapshot and the table must be in the same instance.
@@ -428,31 +446,35 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'create_table_from_snapshot' not in self._inner_api_calls:
-            self._inner_api_calls['create_table_from_snapshot'] = google.api_core.gapic_v1.method.wrap_method(
+        if "create_table_from_snapshot" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "create_table_from_snapshot"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.create_table_from_snapshot,
-                default_retry=self._method_configs['CreateTableFromSnapshot'].retry,
-                default_timeout=self._method_configs['CreateTableFromSnapshot'].timeout,
+                default_retry=self._method_configs["CreateTableFromSnapshot"].retry,
+                default_timeout=self._method_configs["CreateTableFromSnapshot"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.CreateTableFromSnapshotRequest(
-            parent=parent,
-            table_id=table_id,
-            source_snapshot=source_snapshot,
+            parent=parent, table_id=table_id, source_snapshot=source_snapshot,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        operation = self._inner_api_calls['create_table_from_snapshot'](request, retry=retry, timeout=timeout, metadata=metadata)
+        operation = self._inner_api_calls["create_table_from_snapshot"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
         return google.api_core.operation.from_gapic(
             operation,
             self.transport._operations_client,
@@ -461,13 +483,14 @@ class BigtableTableAdminClient(object):
         )
 
     def list_tables(
-            self,
-            parent,
-            view=None,
-            page_size=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        view=None,
+        page_size=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Lists all tables served from a specified instance.
 
@@ -526,47 +549,55 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'list_tables' not in self._inner_api_calls:
-            self._inner_api_calls['list_tables'] = google.api_core.gapic_v1.method.wrap_method(
+        if "list_tables" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "list_tables"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.list_tables,
-                default_retry=self._method_configs['ListTables'].retry,
-                default_timeout=self._method_configs['ListTables'].timeout,
+                default_retry=self._method_configs["ListTables"].retry,
+                default_timeout=self._method_configs["ListTables"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.ListTablesRequest(
-            parent=parent,
-            view=view,
-            page_size=page_size,
+            parent=parent, view=view, page_size=page_size,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
         iterator = google.api_core.page_iterator.GRPCIterator(
             client=None,
-            method=functools.partial(self._inner_api_calls['list_tables'], retry=retry, timeout=timeout, metadata=metadata),
+            method=functools.partial(
+                self._inner_api_calls["list_tables"],
+                retry=retry,
+                timeout=timeout,
+                metadata=metadata,
+            ),
             request=request,
-            items_field='tables',
-            request_token_field='page_token',
-            response_token_field='next_page_token',
+            items_field="tables",
+            request_token_field="page_token",
+            response_token_field="next_page_token",
         )
         return iterator
 
     def get_table(
-            self,
-            name,
-            view=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        view=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Gets metadata information about the specified table.
 
@@ -604,37 +635,41 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'get_table' not in self._inner_api_calls:
-            self._inner_api_calls['get_table'] = google.api_core.gapic_v1.method.wrap_method(
+        if "get_table" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "get_table"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.get_table,
-                default_retry=self._method_configs['GetTable'].retry,
-                default_timeout=self._method_configs['GetTable'].timeout,
+                default_retry=self._method_configs["GetTable"].retry,
+                default_timeout=self._method_configs["GetTable"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.GetTableRequest(
-            name=name,
-            view=view,
-        )
+        request = bigtable_table_admin_pb2.GetTableRequest(name=name, view=view,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['get_table'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["get_table"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def delete_table(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Permanently deletes a specified table and all of its data.
 
@@ -667,37 +702,42 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'delete_table' not in self._inner_api_calls:
-            self._inner_api_calls['delete_table'] = google.api_core.gapic_v1.method.wrap_method(
+        if "delete_table" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "delete_table"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.delete_table,
-                default_retry=self._method_configs['DeleteTable'].retry,
-                default_timeout=self._method_configs['DeleteTable'].timeout,
+                default_retry=self._method_configs["DeleteTable"].retry,
+                default_timeout=self._method_configs["DeleteTable"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.DeleteTableRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.DeleteTableRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        self._inner_api_calls['delete_table'](request, retry=retry, timeout=timeout, metadata=metadata)
+        self._inner_api_calls["delete_table"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def modify_column_families(
-            self,
-            name,
-            modifications,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        modifications,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Performs a series of column family modifications on the specified table.
         Either all or none of the modifications will occur before this method
@@ -747,39 +787,45 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'modify_column_families' not in self._inner_api_calls:
-            self._inner_api_calls['modify_column_families'] = google.api_core.gapic_v1.method.wrap_method(
+        if "modify_column_families" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "modify_column_families"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.modify_column_families,
-                default_retry=self._method_configs['ModifyColumnFamilies'].retry,
-                default_timeout=self._method_configs['ModifyColumnFamilies'].timeout,
+                default_retry=self._method_configs["ModifyColumnFamilies"].retry,
+                default_timeout=self._method_configs["ModifyColumnFamilies"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.ModifyColumnFamiliesRequest(
-            name=name,
-            modifications=modifications,
+            name=name, modifications=modifications,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['modify_column_families'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["modify_column_families"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def drop_row_range(
-            self,
-            name,
-            row_key_prefix=None,
-            delete_all_data_from_table=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        row_key_prefix=None,
+        delete_all_data_from_table=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Permanently drop/delete a row range from a specified table. The request can
         specify whether to delete all rows in a table, or only those that match a
@@ -818,11 +864,13 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'drop_row_range' not in self._inner_api_calls:
-            self._inner_api_calls['drop_row_range'] = google.api_core.gapic_v1.method.wrap_method(
+        if "drop_row_range" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "drop_row_range"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.drop_row_range,
-                default_retry=self._method_configs['DropRowRange'].retry,
-                default_timeout=self._method_configs['DropRowRange'].timeout,
+                default_retry=self._method_configs["DropRowRange"].retry,
+                default_timeout=self._method_configs["DropRowRange"].timeout,
                 client_info=self._client_info,
             )
 
@@ -842,21 +890,26 @@ class BigtableTableAdminClient(object):
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        self._inner_api_calls['drop_row_range'](request, retry=retry, timeout=timeout, metadata=metadata)
+        self._inner_api_calls["drop_row_range"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def generate_consistency_token(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Generates a consistency token for a Table, which can be used in
         CheckConsistency to check whether mutations to the table that finished
@@ -896,37 +949,44 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'generate_consistency_token' not in self._inner_api_calls:
-            self._inner_api_calls['generate_consistency_token'] = google.api_core.gapic_v1.method.wrap_method(
+        if "generate_consistency_token" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "generate_consistency_token"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.generate_consistency_token,
-                default_retry=self._method_configs['GenerateConsistencyToken'].retry,
-                default_timeout=self._method_configs['GenerateConsistencyToken'].timeout,
+                default_retry=self._method_configs["GenerateConsistencyToken"].retry,
+                default_timeout=self._method_configs[
+                    "GenerateConsistencyToken"
+                ].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.GenerateConsistencyTokenRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.GenerateConsistencyTokenRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['generate_consistency_token'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["generate_consistency_token"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def check_consistency(
-            self,
-            name,
-            consistency_token,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        consistency_token,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Checks replication consistency based on a consistency token, that is, if
         replication has caught up based on the conditions specified in the token
@@ -969,38 +1029,44 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'check_consistency' not in self._inner_api_calls:
-            self._inner_api_calls['check_consistency'] = google.api_core.gapic_v1.method.wrap_method(
+        if "check_consistency" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "check_consistency"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.check_consistency,
-                default_retry=self._method_configs['CheckConsistency'].retry,
-                default_timeout=self._method_configs['CheckConsistency'].timeout,
+                default_retry=self._method_configs["CheckConsistency"].retry,
+                default_timeout=self._method_configs["CheckConsistency"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.CheckConsistencyRequest(
-            name=name,
-            consistency_token=consistency_token,
+            name=name, consistency_token=consistency_token,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['check_consistency'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["check_consistency"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def get_iam_policy(
-            self,
-            resource,
-            options_=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        resource,
+        options_=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Gets the access control policy for a resource.
         Returns an empty policy if the resource exists but does not have a policy
@@ -1044,38 +1110,44 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'get_iam_policy' not in self._inner_api_calls:
-            self._inner_api_calls['get_iam_policy'] = google.api_core.gapic_v1.method.wrap_method(
+        if "get_iam_policy" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "get_iam_policy"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.get_iam_policy,
-                default_retry=self._method_configs['GetIamPolicy'].retry,
-                default_timeout=self._method_configs['GetIamPolicy'].timeout,
+                default_retry=self._method_configs["GetIamPolicy"].retry,
+                default_timeout=self._method_configs["GetIamPolicy"].timeout,
                 client_info=self._client_info,
             )
 
         request = iam_policy_pb2.GetIamPolicyRequest(
-            resource=resource,
-            options=options_,
+            resource=resource, options=options_,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('resource', resource)]
+            routing_header = [("resource", resource)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['get_iam_policy'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["get_iam_policy"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def set_iam_policy(
-            self,
-            resource,
-            policy,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        resource,
+        policy,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Sets the access control policy on a Table or Backup resource.
         Replaces any existing policy.
@@ -1123,38 +1195,42 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'set_iam_policy' not in self._inner_api_calls:
-            self._inner_api_calls['set_iam_policy'] = google.api_core.gapic_v1.method.wrap_method(
+        if "set_iam_policy" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "set_iam_policy"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.set_iam_policy,
-                default_retry=self._method_configs['SetIamPolicy'].retry,
-                default_timeout=self._method_configs['SetIamPolicy'].timeout,
+                default_retry=self._method_configs["SetIamPolicy"].retry,
+                default_timeout=self._method_configs["SetIamPolicy"].timeout,
                 client_info=self._client_info,
             )
 
-        request = iam_policy_pb2.SetIamPolicyRequest(
-            resource=resource,
-            policy=policy,
-        )
+        request = iam_policy_pb2.SetIamPolicyRequest(resource=resource, policy=policy,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('resource', resource)]
+            routing_header = [("resource", resource)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['set_iam_policy'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["set_iam_policy"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def test_iam_permissions(
-            self,
-            resource,
-            permissions,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        resource,
+        permissions,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Returns permissions that the caller has on the specified table resource.
 
@@ -1198,41 +1274,47 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'test_iam_permissions' not in self._inner_api_calls:
-            self._inner_api_calls['test_iam_permissions'] = google.api_core.gapic_v1.method.wrap_method(
+        if "test_iam_permissions" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "test_iam_permissions"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.test_iam_permissions,
-                default_retry=self._method_configs['TestIamPermissions'].retry,
-                default_timeout=self._method_configs['TestIamPermissions'].timeout,
+                default_retry=self._method_configs["TestIamPermissions"].retry,
+                default_timeout=self._method_configs["TestIamPermissions"].timeout,
                 client_info=self._client_info,
             )
 
         request = iam_policy_pb2.TestIamPermissionsRequest(
-            resource=resource,
-            permissions=permissions,
+            resource=resource, permissions=permissions,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('resource', resource)]
+            routing_header = [("resource", resource)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['test_iam_permissions'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["test_iam_permissions"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def snapshot_table(
-            self,
-            name,
-            cluster,
-            snapshot_id,
-            ttl=None,
-            description=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        cluster,
+        snapshot_id,
+        ttl=None,
+        description=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Creates a new snapshot in the specified cluster from the specified
         source table. The cluster and the table must be in the same instance.
@@ -1304,11 +1386,13 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'snapshot_table' not in self._inner_api_calls:
-            self._inner_api_calls['snapshot_table'] = google.api_core.gapic_v1.method.wrap_method(
+        if "snapshot_table" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "snapshot_table"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.snapshot_table,
-                default_retry=self._method_configs['SnapshotTable'].retry,
-                default_timeout=self._method_configs['SnapshotTable'].timeout,
+                default_retry=self._method_configs["SnapshotTable"].retry,
+                default_timeout=self._method_configs["SnapshotTable"].timeout,
                 client_info=self._client_info,
             )
 
@@ -1323,14 +1407,18 @@ class BigtableTableAdminClient(object):
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        operation = self._inner_api_calls['snapshot_table'](request, retry=retry, timeout=timeout, metadata=metadata)
+        operation = self._inner_api_calls["snapshot_table"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
         return google.api_core.operation.from_gapic(
             operation,
             self.transport._operations_client,
@@ -1339,11 +1427,12 @@ class BigtableTableAdminClient(object):
         )
 
     def get_snapshot(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Gets metadata information about the specified snapshot.
 
@@ -1386,37 +1475,42 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'get_snapshot' not in self._inner_api_calls:
-            self._inner_api_calls['get_snapshot'] = google.api_core.gapic_v1.method.wrap_method(
+        if "get_snapshot" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "get_snapshot"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.get_snapshot,
-                default_retry=self._method_configs['GetSnapshot'].retry,
-                default_timeout=self._method_configs['GetSnapshot'].timeout,
+                default_retry=self._method_configs["GetSnapshot"].retry,
+                default_timeout=self._method_configs["GetSnapshot"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.GetSnapshotRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.GetSnapshotRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['get_snapshot'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["get_snapshot"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def list_snapshots(
-            self,
-            parent,
-            page_size=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        page_size=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Lists all snapshots associated with the specified cluster.
 
@@ -1481,45 +1575,54 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'list_snapshots' not in self._inner_api_calls:
-            self._inner_api_calls['list_snapshots'] = google.api_core.gapic_v1.method.wrap_method(
+        if "list_snapshots" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "list_snapshots"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.list_snapshots,
-                default_retry=self._method_configs['ListSnapshots'].retry,
-                default_timeout=self._method_configs['ListSnapshots'].timeout,
+                default_retry=self._method_configs["ListSnapshots"].retry,
+                default_timeout=self._method_configs["ListSnapshots"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.ListSnapshotsRequest(
-            parent=parent,
-            page_size=page_size,
+            parent=parent, page_size=page_size,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
         iterator = google.api_core.page_iterator.GRPCIterator(
             client=None,
-            method=functools.partial(self._inner_api_calls['list_snapshots'], retry=retry, timeout=timeout, metadata=metadata),
+            method=functools.partial(
+                self._inner_api_calls["list_snapshots"],
+                retry=retry,
+                timeout=timeout,
+                metadata=metadata,
+            ),
             request=request,
-            items_field='snapshots',
-            request_token_field='page_token',
-            response_token_field='next_page_token',
+            items_field="snapshots",
+            request_token_field="page_token",
+            response_token_field="next_page_token",
         )
         return iterator
 
     def delete_snapshot(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Permanently deletes the specified snapshot.
 
@@ -1559,38 +1662,43 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'delete_snapshot' not in self._inner_api_calls:
-            self._inner_api_calls['delete_snapshot'] = google.api_core.gapic_v1.method.wrap_method(
+        if "delete_snapshot" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "delete_snapshot"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.delete_snapshot,
-                default_retry=self._method_configs['DeleteSnapshot'].retry,
-                default_timeout=self._method_configs['DeleteSnapshot'].timeout,
+                default_retry=self._method_configs["DeleteSnapshot"].retry,
+                default_timeout=self._method_configs["DeleteSnapshot"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.DeleteSnapshotRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.DeleteSnapshotRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        self._inner_api_calls['delete_snapshot'](request, retry=retry, timeout=timeout, metadata=metadata)
+        self._inner_api_calls["delete_snapshot"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def create_backup(
-            self,
-            parent,
-            backup_id,
-            backup,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        backup_id,
+        backup,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Starts creating a new Cloud Bigtable Backup. The returned backup
         ``long-running operation`` can be used to track creation of the backup.
@@ -1658,31 +1766,35 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'create_backup' not in self._inner_api_calls:
-            self._inner_api_calls['create_backup'] = google.api_core.gapic_v1.method.wrap_method(
+        if "create_backup" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "create_backup"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.create_backup,
-                default_retry=self._method_configs['CreateBackup'].retry,
-                default_timeout=self._method_configs['CreateBackup'].timeout,
+                default_retry=self._method_configs["CreateBackup"].retry,
+                default_timeout=self._method_configs["CreateBackup"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.CreateBackupRequest(
-            parent=parent,
-            backup_id=backup_id,
-            backup=backup,
+            parent=parent, backup_id=backup_id, backup=backup,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        operation = self._inner_api_calls['create_backup'](request, retry=retry, timeout=timeout, metadata=metadata)
+        operation = self._inner_api_calls["create_backup"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
         return google.api_core.operation.from_gapic(
             operation,
             self.transport._operations_client,
@@ -1691,11 +1803,12 @@ class BigtableTableAdminClient(object):
         )
 
     def get_backup(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Gets metadata on a pending or completed Cloud Bigtable Backup.
 
@@ -1731,39 +1844,44 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'get_backup' not in self._inner_api_calls:
-            self._inner_api_calls['get_backup'] = google.api_core.gapic_v1.method.wrap_method(
+        if "get_backup" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "get_backup"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.get_backup,
-                default_retry=self._method_configs['GetBackup'].retry,
-                default_timeout=self._method_configs['GetBackup'].timeout,
+                default_retry=self._method_configs["GetBackup"].retry,
+                default_timeout=self._method_configs["GetBackup"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.GetBackupRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.GetBackupRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['get_backup'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["get_backup"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def list_backups(
-            self,
-            parent,
-            filter_=None,
-            order_by=None,
-            page_size=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent,
+        filter_=None,
+        order_by=None,
+        page_size=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Lists Cloud Bigtable backups. Returns both completed and pending
         backups.
@@ -1871,48 +1989,55 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'list_backups' not in self._inner_api_calls:
-            self._inner_api_calls['list_backups'] = google.api_core.gapic_v1.method.wrap_method(
+        if "list_backups" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "list_backups"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.list_backups,
-                default_retry=self._method_configs['ListBackups'].retry,
-                default_timeout=self._method_configs['ListBackups'].timeout,
+                default_retry=self._method_configs["ListBackups"].retry,
+                default_timeout=self._method_configs["ListBackups"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.ListBackupsRequest(
-            parent=parent,
-            filter=filter_,
-            order_by=order_by,
-            page_size=page_size,
+            parent=parent, filter=filter_, order_by=order_by, page_size=page_size,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
         iterator = google.api_core.page_iterator.GRPCIterator(
             client=None,
-            method=functools.partial(self._inner_api_calls['list_backups'], retry=retry, timeout=timeout, metadata=metadata),
+            method=functools.partial(
+                self._inner_api_calls["list_backups"],
+                retry=retry,
+                timeout=timeout,
+                metadata=metadata,
+            ),
             request=request,
-            items_field='backups',
-            request_token_field='page_token',
-            response_token_field='next_page_token',
+            items_field="backups",
+            request_token_field="page_token",
+            response_token_field="next_page_token",
         )
         return iterator
 
     def update_backup(
-            self,
-            backup,
-            update_mask,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        backup,
+        update_mask,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Updates a pending or completed Cloud Bigtable Backup.
 
@@ -1966,37 +2091,43 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'update_backup' not in self._inner_api_calls:
-            self._inner_api_calls['update_backup'] = google.api_core.gapic_v1.method.wrap_method(
+        if "update_backup" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "update_backup"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.update_backup,
-                default_retry=self._method_configs['UpdateBackup'].retry,
-                default_timeout=self._method_configs['UpdateBackup'].timeout,
+                default_retry=self._method_configs["UpdateBackup"].retry,
+                default_timeout=self._method_configs["UpdateBackup"].timeout,
                 client_info=self._client_info,
             )
 
         request = bigtable_table_admin_pb2.UpdateBackupRequest(
-            backup=backup,
-            update_mask=update_mask,
+            backup=backup, update_mask=update_mask,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('backup.name', backup.name)]
+            routing_header = [("backup.name", backup.name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        return self._inner_api_calls['update_backup'](request, retry=retry, timeout=timeout, metadata=metadata)
+        return self._inner_api_calls["update_backup"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def delete_backup(
-            self,
-            name,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        name,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Deletes a pending or completed Cloud Bigtable backup.
 
@@ -2029,38 +2160,43 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'delete_backup' not in self._inner_api_calls:
-            self._inner_api_calls['delete_backup'] = google.api_core.gapic_v1.method.wrap_method(
+        if "delete_backup" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "delete_backup"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.delete_backup,
-                default_retry=self._method_configs['DeleteBackup'].retry,
-                default_timeout=self._method_configs['DeleteBackup'].timeout,
+                default_retry=self._method_configs["DeleteBackup"].retry,
+                default_timeout=self._method_configs["DeleteBackup"].timeout,
                 client_info=self._client_info,
             )
 
-        request = bigtable_table_admin_pb2.DeleteBackupRequest(
-            name=name,
-        )
+        request = bigtable_table_admin_pb2.DeleteBackupRequest(name=name,)
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('name', name)]
+            routing_header = [("name", name)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        self._inner_api_calls['delete_backup'](request, retry=retry, timeout=timeout, metadata=metadata)
+        self._inner_api_calls["delete_backup"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
 
     def restore_table(
-            self,
-            parent=None,
-            table_id=None,
-            backup=None,
-            retry=google.api_core.gapic_v1.method.DEFAULT,
-            timeout=google.api_core.gapic_v1.method.DEFAULT,
-            metadata=None):
+        self,
+        parent=None,
+        table_id=None,
+        backup=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
         """
         Create a new table by restoring from a completed backup. The new
         table must be in the same instance as the instance containing the
@@ -2115,37 +2251,39 @@ class BigtableTableAdminClient(object):
             ValueError: If the parameters are invalid.
         """
         # Wrap the transport method to add retry and timeout logic.
-        if 'restore_table' not in self._inner_api_calls:
-            self._inner_api_calls['restore_table'] = google.api_core.gapic_v1.method.wrap_method(
+        if "restore_table" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "restore_table"
+            ] = google.api_core.gapic_v1.method.wrap_method(
                 self.transport.restore_table,
-                default_retry=self._method_configs['RestoreTable'].retry,
-                default_timeout=self._method_configs['RestoreTable'].timeout,
+                default_retry=self._method_configs["RestoreTable"].retry,
+                default_timeout=self._method_configs["RestoreTable"].timeout,
                 client_info=self._client_info,
             )
 
         # Sanity check: We have some fields which are mutually exclusive;
         # raise ValueError if more than one is sent.
-        google.api_core.protobuf_helpers.check_oneof(
-            backup=backup,
-        )
+        google.api_core.protobuf_helpers.check_oneof(backup=backup,)
 
         request = bigtable_table_admin_pb2.RestoreTableRequest(
-            parent=parent,
-            table_id=table_id,
-            backup=backup,
+            parent=parent, table_id=table_id, backup=backup,
         )
         if metadata is None:
             metadata = []
         metadata = list(metadata)
         try:
-            routing_header = [('parent', parent)]
+            routing_header = [("parent", parent)]
         except AttributeError:
             pass
         else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(routing_header)
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
             metadata.append(routing_metadata)
 
-        operation = self._inner_api_calls['restore_table'](request, retry=retry, timeout=timeout, metadata=metadata)
+        operation = self._inner_api_calls["restore_table"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
         return google.api_core.operation.from_gapic(
             operation,
             self.transport._operations_client,

@@ -27,16 +27,19 @@ from google.cloud.bigtable_admin_v2.gapic import enums
 
 if sys.version_info[:2] == (2, 7):
     message = (
-        'A future version of this library will drop support for Python 2.7. '
-        'More details about Python 2 support for Google Cloud Client Libraries '
-        'can be found at https://cloud.google.com/python/docs/python2-sunset/'
+        "A future version of this library will drop support for Python 2.7. "
+        "More details about Python 2 support for Google Cloud Client Libraries "
+        "can be found at https://cloud.google.com/python/docs/python2-sunset/"
     )
     warnings.warn(message, DeprecationWarning)
 
-class BigtableInstanceAdminClient(bigtable_instance_admin_client.BigtableInstanceAdminClient):
-    __doc__ = (
-        bigtable_instance_admin_client.BigtableInstanceAdminClient.__doc__)
+
+class BigtableInstanceAdminClient(
+    bigtable_instance_admin_client.BigtableInstanceAdminClient
+):
+    __doc__ = bigtable_instance_admin_client.BigtableInstanceAdminClient.__doc__
     enums = enums
+
 
 class BigtableTableAdminClient(bigtable_table_admin_client.BigtableTableAdminClient):
     __doc__ = bigtable_table_admin_client.BigtableTableAdminClient.__doc__
@@ -44,8 +47,8 @@ class BigtableTableAdminClient(bigtable_table_admin_client.BigtableTableAdminCli
 
 
 __all__ = (
-    'enums',
-    'types',
-    'BigtableInstanceAdminClient',
-    'BigtableTableAdminClient',
+    "enums",
+    "types",
+    "BigtableInstanceAdminClient",
+    "BigtableTableAdminClient",
 )
