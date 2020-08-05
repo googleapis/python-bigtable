@@ -14,8 +14,6 @@
 
 """User-friendly container for Google Cloud Bigtable Instance."""
 
-import re
-
 from google.cloud.bigtable.app_profile import AppProfile
 from google.cloud.bigtable.cluster import Cluster
 from google.cloud.bigtable.table import Table
@@ -30,18 +28,13 @@ from google.cloud.bigtable.policy import Policy
 
 import warnings
 
-_INSTANCE_NAME_RE = re.compile(
-    r"^projects/(?P<project>[^/]+)/" r"instances/(?P<instance_id>[a-z][-a-z0-9]*)$"
+from google.cloud.bigtable.base_instance import (
+    BaseInstance,
+    _INSTANCE_CREATE_WARNING,
 )
 
-_INSTANCE_CREATE_WARNING = """
-Use of `instance.create({0}, {1}, {2})` will be deprecated.
-Please replace with
-`cluster = instance.cluster({0}, {1}, {2})`
-`instance.create(clusters=[cluster])`."""
 
-
-class Instance(object):
+class Instance(BaseInstance):
     """Representation of a Google Cloud Bigtable Instance.
 
     We can use an :class:`Instance` to:
@@ -107,115 +100,14 @@ class Instance(object):
         labels=None,
         _state=None,
     ):
-        self.instance_id = instance_id
-        self._client = client
-        self.display_name = display_name or instance_id
-        self.type_ = instance_type
-        self.labels = labels
-        self._state = _state
-
-    def _update_from_pb(self, instance_pb):
-        """Refresh self from the server-provided protobuf.
-        Helper for :meth:`from_pb` and :meth:`reload`.
-        """
-        if not instance_pb.display_name:  # Simple field (string)
-            raise ValueError("Instance protobuf does not contain display_name")
-        self.display_name = instance_pb.display_name
-        self.type_ = instance_pb.type
-        self.labels = dict(instance_pb.labels)
-        self._state = instance_pb.state
-
-    @classmethod
-    def from_pb(cls, instance_pb, client):
-        """Creates an instance instance from a protobuf.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_from_pb]
-            :end-before: [END bigtable_instance_from_pb]
-
-        :type instance_pb: :class:`instance_pb2.Instance`
-        :param instance_pb: An instance protobuf object.
-
-        :type client: :class:`Client <google.cloud.bigtable.client.Client>`
-        :param client: The client that owns the instance.
-
-        :rtype: :class:`Instance`
-        :returns: The instance parsed from the protobuf response.
-        :raises: :class:`ValueError <exceptions.ValueError>` if the instance
-                 name does not match
-                 ``projects/{project}/instances/{instance_id}``
-                 or if the parsed project ID does not match the project ID
-                 on the client.
-        """
-        match = _INSTANCE_NAME_RE.match(instance_pb.name)
-        if match is None:
-            raise ValueError(
-                "Instance protobuf name was not in the " "expected format.",
-                instance_pb.name,
-            )
-        if match.group("project") != client.project:
-            raise ValueError(
-                "Project ID on instance does not match the " "project ID on the client"
-            )
-        instance_id = match.group("instance_id")
-
-        result = cls(instance_id, client)
-        result._update_from_pb(instance_pb)
-        return result
-
-    @property
-    def name(self):
-        """Instance name used in requests.
-
-        .. note::
-          This property will not change if ``instance_id`` does not,
-          but the return value is not cached.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_name]
-            :end-before: [END bigtable_instance_name]
-
-        The instance name is of the form
-
-            ``"projects/{project}/instances/{instance_id}"``
-
-        :rtype: str
-        :returns: Return a fully-qualified instance string.
-        """
-        return self._client.instance_admin_client.instance_path(
-            project=self._client.project, instance=self.instance_id
+        super(Instance, self).__init__(
+            instance_id,
+            client,
+            display_name=display_name,
+            instance_type=instance_type,
+            labels=labels,
+            _state=_state,
         )
-
-    @property
-    def state(self):
-        """google.cloud.bigtable.enums.Instance.State: state of Instance.
-
-        For example:
-
-        .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_state]
-            :end-before: [END bigtable_instance_state]
-
-        """
-        return self._state
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        # NOTE: This does not compare the configuration values, such as
-        #       the display_name. Instead, it only compares
-        #       identifying values instance ID and client. This is
-        #       intentional, since the same instance can be in different states
-        #       if not synchronized. Instances with similar instance
-        #       settings but different clients can't be used in the same way.
-        return other.instance_id == self.instance_id and other._client == self._client
-
-    def __ne__(self, other):
-        return not self == other
 
     def create(
         self,

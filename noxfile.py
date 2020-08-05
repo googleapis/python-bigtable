@@ -20,10 +20,14 @@ import shutil
 
 import nox
 
+DEFAULT_PYTHON_VERSION = "3.7"
+SYSTEM_TEST_PYTHON_VERSIONS = ["3.7"]
+UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8"]
 
 LOCAL_DEPS = ()
 
-@nox.session(python="3.7")
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
     """Run linters.
 
@@ -56,7 +60,7 @@ def blacken(session):
     )
 
 
-@nox.session(python="3.7")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install("docutils", "pygments")
@@ -85,13 +89,13 @@ def default(session):
     )
 
 
-@nox.session(python=["2.7", "3.5", "3.6", "3.7"])
+@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
     """Run the unit test suite."""
     default(session)
 
 
-@nox.session(python=["2.7", "3.7"])
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def system(session):
     """Run the system test suite."""
     system_test_path = os.path.join("tests", "system.py")
@@ -124,7 +128,7 @@ def system(session):
         session.run("py.test", "--quiet", system_test_folder_path, *session.posargs)
 
 
-@nox.session(python="3.7")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def cover(session):
     """Run the final coverage report.
 
@@ -136,7 +140,7 @@ def cover(session):
 
     session.run("coverage", "erase")
 
-@nox.session(python="3.7")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def docs(session):
     """Build the docs for this library."""
 
@@ -157,7 +161,7 @@ def docs(session):
         os.path.join("docs", "_build", "html", ""),
     )
 
-@nox.session(python=['2.7', '3.7'])
+@nox.session(python=[DEFAULT_PYTHON_VERSION])
 def snippets(session):
     """Run the documentation example snippets."""
     # Sanity check: Only run snippets system tests if the environment variable

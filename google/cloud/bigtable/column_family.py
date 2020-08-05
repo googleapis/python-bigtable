@@ -15,169 +15,21 @@
 """User friendly container for Google Cloud Bigtable Column Family."""
 
 
-from google.cloud import _helpers
-from google.cloud.bigtable_admin_v2.proto import table_pb2 as table_v2_pb2
 from google.cloud.bigtable_admin_v2.proto import (
     bigtable_table_admin_pb2 as table_admin_v2_pb2,
 )
 
-
-class GarbageCollectionRule(object):
-    """Garbage collection rule for column families within a table.
-
-    Cells in the column family (within a table) fitting the rule will be
-    deleted during garbage collection.
-
-    .. note::
-
-        This class is a do-nothing base class for all GC rules.
-
-    .. note::
-
-        A string ``gc_expression`` can also be used with API requests, but
-        that value would be superceded by a ``gc_rule``. As a result, we
-        don't support that feature and instead support via native classes.
-    """
+from google.cloud.bigtable.base_column_family import (  # noqa: F401
+    BaseColumnFamily,
+    GarbageCollectionRule,
+    MaxVersionsGCRule,
+    MaxAgeGCRule,
+    GCRuleUnion,
+    GCRuleIntersection,
+)
 
 
-class MaxVersionsGCRule(GarbageCollectionRule):
-    """Garbage collection limiting the number of versions of a cell.
-
-    For example:
-
-    .. literalinclude:: snippets_table.py
-        :start-after: [START bigtable_create_family_gc_max_versions]
-        :end-before: [END bigtable_create_family_gc_max_versions]
-
-    :type max_num_versions: int
-    :param max_num_versions: The maximum number of versions
-    """
-
-    def __init__(self, max_num_versions):
-        self.max_num_versions = max_num_versions
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return other.max_num_versions == self.max_num_versions
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_pb(self):
-        """Converts the garbage collection rule to a protobuf.
-
-        :rtype: :class:`.table_v2_pb2.GcRule`
-        :returns: The converted current object.
-        """
-        return table_v2_pb2.GcRule(max_num_versions=self.max_num_versions)
-
-
-class MaxAgeGCRule(GarbageCollectionRule):
-    """Garbage collection limiting the age of a cell.
-
-    For example:
-
-    .. literalinclude:: snippets_table.py
-        :start-after: [START bigtable_create_family_gc_max_age]
-        :end-before: [END bigtable_create_family_gc_max_age]
-
-    :type max_age: :class:`datetime.timedelta`
-    :param max_age: The maximum age allowed for a cell in the table.
-    """
-
-    def __init__(self, max_age):
-        self.max_age = max_age
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return other.max_age == self.max_age
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_pb(self):
-        """Converts the garbage collection rule to a protobuf.
-
-        :rtype: :class:`.table_v2_pb2.GcRule`
-        :returns: The converted current object.
-        """
-        max_age = _helpers._timedelta_to_duration_pb(self.max_age)
-        return table_v2_pb2.GcRule(max_age=max_age)
-
-
-class GCRuleUnion(GarbageCollectionRule):
-    """Union of garbage collection rules.
-
-    For example:
-
-    .. literalinclude:: snippets_table.py
-        :start-after: [START bigtable_create_family_gc_union]
-        :end-before: [END bigtable_create_family_gc_union]
-
-    :type rules: list
-    :param rules: List of :class:`GarbageCollectionRule`.
-    """
-
-    def __init__(self, rules):
-        self.rules = rules
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return other.rules == self.rules
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_pb(self):
-        """Converts the union into a single GC rule as a protobuf.
-
-        :rtype: :class:`.table_v2_pb2.GcRule`
-        :returns: The converted current object.
-        """
-        union = table_v2_pb2.GcRule.Union(rules=[rule.to_pb() for rule in self.rules])
-        return table_v2_pb2.GcRule(union=union)
-
-
-class GCRuleIntersection(GarbageCollectionRule):
-    """Intersection of garbage collection rules.
-
-    For example:
-
-    .. literalinclude:: snippets_table.py
-        :start-after: [START bigtable_create_family_gc_intersection]
-        :end-before: [END bigtable_create_family_gc_intersection]
-
-    :type rules: list
-    :param rules: List of :class:`GarbageCollectionRule`.
-    """
-
-    def __init__(self, rules):
-        self.rules = rules
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return other.rules == self.rules
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_pb(self):
-        """Converts the intersection into a single GC rule as a protobuf.
-
-        :rtype: :class:`.table_v2_pb2.GcRule`
-        :returns: The converted current object.
-        """
-        intersection = table_v2_pb2.GcRule.Intersection(
-            rules=[rule.to_pb() for rule in self.rules]
-        )
-        return table_v2_pb2.GcRule(intersection=intersection)
-
-
-class ColumnFamily(object):
+class ColumnFamily(BaseColumnFamily):
     """Representation of a Google Cloud Bigtable Column Family.
 
     We can use a :class:`ColumnFamily` to:
@@ -199,56 +51,7 @@ class ColumnFamily(object):
     """
 
     def __init__(self, column_family_id, table, gc_rule=None):
-        self.column_family_id = column_family_id
-        self._table = table
-        self.gc_rule = gc_rule
-
-    @property
-    def name(self):
-        """Column family name used in requests.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_column_family_name]
-            :end-before: [END bigtable_column_family_name]
-
-        .. note::
-
-          This property will not change if ``column_family_id`` does not, but
-          the return value is not cached.
-
-        The Column family name is of the form
-
-            ``"projects/../zones/../clusters/../tables/../columnFamilies/.."``
-
-        :rtype: str
-        :returns: The column family name.
-        """
-        return self._table.name + "/columnFamilies/" + self.column_family_id
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return (
-            other.column_family_id == self.column_family_id
-            and other._table == self._table
-            and other.gc_rule == self.gc_rule
-        )
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_pb(self):
-        """Converts the column family to a protobuf.
-
-        :rtype: :class:`.table_v2_pb2.ColumnFamily`
-        :returns: The converted current object.
-        """
-        if self.gc_rule is None:
-            return table_v2_pb2.ColumnFamily()
-        else:
-            return table_v2_pb2.ColumnFamily(gc_rule=self.gc_rule.to_pb())
+        super(ColumnFamily, self).__init__(column_family_id, table, gc_rule=gc_rule)
 
     def create(self):
         """Create this column family.
@@ -318,34 +121,3 @@ class ColumnFamily(object):
         client.table_admin_client.modify_column_families(
             self._table.name, [modification]
         )
-
-
-def _gc_rule_from_pb(gc_rule_pb):
-    """Convert a protobuf GC rule to a native object.
-
-    :type gc_rule_pb: :class:`.table_v2_pb2.GcRule`
-    :param gc_rule_pb: The GC rule to convert.
-
-    :rtype: :class:`GarbageCollectionRule` or :data:`NoneType <types.NoneType>`
-    :returns: An instance of one of the native rules defined
-              in :module:`column_family` or :data:`None` if no values were
-              set on the protobuf passed in.
-    :raises: :class:`ValueError <exceptions.ValueError>` if the rule name
-             is unexpected.
-    """
-    rule_name = gc_rule_pb.WhichOneof("rule")
-    if rule_name is None:
-        return None
-
-    if rule_name == "max_num_versions":
-        return MaxVersionsGCRule(gc_rule_pb.max_num_versions)
-    elif rule_name == "max_age":
-        max_age = _helpers._duration_pb_to_timedelta(gc_rule_pb.max_age)
-        return MaxAgeGCRule(max_age)
-    elif rule_name == "union":
-        return GCRuleUnion([_gc_rule_from_pb(rule) for rule in gc_rule_pb.union.rules])
-    elif rule_name == "intersection":
-        rules = [_gc_rule_from_pb(rule) for rule in gc_rule_pb.intersection.rules]
-        return GCRuleIntersection(rules)
-    else:
-        raise ValueError("Unexpected rule name", rule_name)

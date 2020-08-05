@@ -22,14 +22,14 @@ from google.api_core.exceptions import DeadlineExceeded
 
 class Test___mutate_rows_request(unittest.TestCase):
     def _call_fut(self, table_name, rows):
-        from google.cloud.bigtable.table import _mutate_rows_request
+        from google.cloud.bigtable.base_table import _mutate_rows_request
 
         return _mutate_rows_request(table_name, rows)
 
-    @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
+    @mock.patch("google.cloud.bigtable.base_table._MAX_BULK_MUTATIONS", new=3)
     def test__mutate_rows_too_many_mutations(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable.table import TooManyMutationsError
+        from google.cloud.bigtable.base_table import TooManyMutationsError
 
         table = mock.Mock(name="table", spec=["name"])
         table.name = "table"
@@ -78,12 +78,12 @@ class Test___mutate_rows_request(unittest.TestCase):
 
 class Test__check_row_table_name(unittest.TestCase):
     def _call_fut(self, table_name, row):
-        from google.cloud.bigtable.table import _check_row_table_name
+        from google.cloud.bigtable.base_table import _check_row_table_name
 
         return _check_row_table_name(table_name, row)
 
     def test_wrong_table_name(self):
-        from google.cloud.bigtable.table import TableMismatchError
+        from google.cloud.bigtable.base_table import TableMismatchError
         from google.cloud.bigtable.row import DirectRow
 
         table = mock.Mock(name="table", spec=["name"])
@@ -104,7 +104,7 @@ class Test__check_row_table_name(unittest.TestCase):
 
 class Test__check_row_type(unittest.TestCase):
     def _call_fut(self, row):
-        from google.cloud.bigtable.table import _check_row_type
+        from google.cloud.bigtable.base_table import _check_row_type
 
         return _check_row_type(row)
 
@@ -339,7 +339,7 @@ class TestTable(unittest.TestCase):
         self._create_test_helper()
 
     def test_create_with_families(self):
-        from google.cloud.bigtable.column_family import MaxVersionsGCRule
+        from google.cloud.bigtable.base_column_family import MaxVersionsGCRule
 
         families = {"family": MaxVersionsGCRule(5)}
         self._create_test_helper(column_families=families)
@@ -565,8 +565,8 @@ class TestTable(unittest.TestCase):
         self._read_row_helper(chunks, None)
 
     def test_read_row_complete(self):
-        from google.cloud.bigtable.row_data import Cell
-        from google.cloud.bigtable.row_data import PartialRowData
+        from google.cloud.bigtable.base_row_data import Cell
+        from google.cloud.bigtable.base_row_data import PartialRowData
 
         app_profile_id = "app-profile-id"
         chunk = _ReadRowsResponseCellChunkPB(
@@ -1422,7 +1422,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
             [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
         )
 
-        with mock.patch("google.cloud.bigtable.table.wrap_method") as patched:
+        with mock.patch("google.cloud.bigtable.base_table.wrap_method") as patched:
             patched.return_value = mock.Mock(return_value=[response])
 
             worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
@@ -1554,7 +1554,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
     def test_do_mutate_retryable_rows_retry(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable.table import _BigtableRetryableError
+        from google.cloud.bigtable.base_table import _BigtableRetryableError
         from google.cloud.bigtable_v2.gapic import bigtable_client
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
@@ -1606,7 +1606,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
     def test_do_mutate_retryable_rows_second_retry(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable.table import _BigtableRetryableError
+        from google.cloud.bigtable.base_table import _BigtableRetryableError
         from google.cloud.bigtable_v2.gapic import bigtable_client
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
