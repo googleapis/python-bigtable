@@ -202,9 +202,15 @@ def test_bigtable_write_read_drop_truncate():
 
     # Read full table
     partial_rows = table.read_rows()
-    read_rows = [row for row in partial_rows]
+
+    # Read row's value
+    total_rows = []
+    for row in partial_rows:
+        cell = row.cells[COLUMN_FAMILY_ID][col_name][0]
+        print(cell.value.decode("utf-8"))
+        total_rows.append(cell)
     # [END bigtable_read_rows]
-    assert len(read_rows) == len(rows)
+    assert len(total_rows) == len(rows)
     # [START bigtable_drop_by_prefix]
     from google.cloud.bigtable import Client
 
@@ -691,7 +697,45 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
     expected_row_keys = [b"row_key_3", b"row_key_4", b"row_key_5", b"row_key_6"]
     found_row_keys = [row.row_key for row in read_rows]
     assert found_row_keys == expected_row_keys
+    table.truncate(timeout=200)
 
+
+def test_bigtable_add_row_range_with_prefix():
+    row_keys = [
+        b"row_key_1",
+        b"row_key_2",
+        b"row_key_3",
+        b"sample_row_key_1",
+        b"sample_row_key_2",
+    ]
+
+    rows = []
+    for row_key in row_keys:
+        row = Config.TABLE.row(row_key)
+        row.set_cell(COLUMN_FAMILY_ID, COL_NAME1, CELL_VAL1)
+        rows.append(row)
+    Config.TABLE.mutate_rows(rows)
+
+    # [START bigtable_add_row_range_with_prefix]
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.row_set import RowSet
+
+    client = Client(admin=True)
+    instance = client.instance(INSTANCE_ID)
+    table = instance.table(TABLE_ID)
+
+    row_set = RowSet()
+    row_set.add_row_range_with_prefix("row")
+    # [END bigtable_add_row_range_with_prefix]
+
+    read_rows = table.read_rows(row_set=row_set)
+    expected_row_keys = [
+        b"row_key_1",
+        b"row_key_2",
+        b"row_key_3",
+    ]
+    found_row_keys = [row.row_key for row in read_rows]
+    assert found_row_keys == expected_row_keys
     table.truncate(timeout=200)
 
 
