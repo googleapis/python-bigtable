@@ -9,5 +9,56 @@
   "repo": "googleapis/python-bigtable",
   "distribution_name": "google-cloud-bigtable",
   "api_id": "bigtable.googleapis.com",
-  "requires_billing": true
+  "requires_billing": true,
+  "client_library": true,
+  "samples": [
+            {"name": "Beam",
+            "description": "This sample demonstrates writing data to Bigtable with Beam.",
+            "file": "hello_world_write.py"},
+            
+            {"name": "Hello World in Cloud Bigtable",
+            "description": "Demonstrates how to connect to Cloud Bigtable and run some basic operations. More information available at: https://cloud.google.com/bigtable/docs/samples-python-hello",
+            "file": "main.py",
+            "runnable": true,
+            "custom_content": "`usage: main.py [-h] [--table TABLE] project_id instance_id`"},
+            
+            {"name": "Hello World using HappyBase",
+            "description": "This sample demonstrates using the Google Cloud Client Library HappyBase package, an implementation of the HappyBase API to connect to and interact with Cloud Bigtable. More information available at: https://cloud.google.com/bigtable/docs/samples-python-hello-happybase",
+            "file": "main.py",
+            "runnable": true,
+            "custom_content": "`usage: main.py [-h] [--table TABLE] project_id instance_id`"},
+            
+            {"name": "cbt Command Demonstration",
+            "description": "This page explains how to use the cbt command to connect to a Cloud Bigtable instance, perform basic administrative tasks, and read and write data in a table. More information about this quickstart is available at https://cloud.google.com/bigtable/docs/quickstart-cbt",
+            "file": "instanceadmin.py",
+            "runnable": true,
+            "custom_content" : "`usage: instanceadmin.py [-h] [run] [dev-instance] [del-instance] [add-cluster] [del-cluster] project_id instance_id cluster_id`"},
+            
+            {"name": "Metric Scaler",
+            "description": "This sample demonstrates how to use Stackdriver Monitoring to scale Cloud Bigtable based on CPU usage.",
+            "file": "metricscaler.py",
+            "runnable": true,
+            "custom_content": "`usage: metricscaler.py [-h] [--high_cpu_threshold HIGH_CPU_THRESHOLD] [--low_cpu_threshold LOW_CPU_THRESHOLD] [--short_sleep SHORT_SLEEP] [--long_sleep LONG_SLEEP] bigtable_instance bigtable_cluster`"},
+            
+            {"name": "Quickstart",
+            "description": "Demonstrates of Cloud Bigtable. This sample creates a Bigtable client, connects to an instance and then to a table, then closes the connection.",
+            "file": "main.py",
+            "runnable": true,
+            "custom_content": "`usage: main.py [-h] [--table TABLE] project_id instance_id`"},
+            
+            {"name": "Quickstart using HappyBase",
+            "description": "Demonstrates of Cloud Bigtable using HappyBase. This sample creates a Bigtable client, connects to an instance and then to a table, then closes the connection.",
+            "file": "main.py",
+            "runnable": true,
+            "custom_content": "`usage: main.py [-h] [--table TABLE] project_id instance_id`"},
+            
+            {"name": "Snippets",
+            "description": "This folder contains snippets for Python Cloud Bigtable."},
+            
+            {"name": "Table Admin",
+            "description": "Demonstrates how to connect to Cloud Bigtable and run some basic operations.",
+            "file": "tableadmin.py",
+            "runnable": true,
+            "custom_content": "`usage: tableadmin.py [-h] [run] [delete] [--table TABLE] project_id instance_id`"}
+  ]
 }
