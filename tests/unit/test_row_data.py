@@ -16,13 +16,9 @@
 import unittest
 import mock
 
-from google.api_core.exceptions import DeadlineExceeded
 from ._testing import _make_credentials
-from google.cloud.bigtable.row_set import RowRange
-from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
 
 from tests.unit.test_base_row_data import (
-    MultiCallableStub,
     ChannelStub,
     TestPartialRowsDataConstants,
     _Client,
@@ -34,8 +30,6 @@ from tests.unit.test_base_row_data import (
     _generate_cell_chunks,
     _parse_readrows_acceptance_tests,
     _ReadRowsResponseCellChunkPB,
-    _make_cell,
-    _ReadRowsRequestPB,
     _read_rows_retry_exception,
 )
 
