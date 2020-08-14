@@ -235,7 +235,7 @@ class TestBaseClient(unittest.TestCase, TestClientConstants):
         from google.api_core.client_options import ClientOptions
 
         credentials = _make_credentials()
-        client_options = ClientOptions("endpoint")
+        client_options = ClientOptions(api_endpoint="endpoint")
         client = self._make_one(
             project=self.PROJECT, credentials=credentials, client_options=client_options
         )
