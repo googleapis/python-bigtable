@@ -171,7 +171,9 @@ class BaseClient(ClientWithProject):
         self._admin_client_options = admin_client_options
         self._channel = channel
         self.SCOPE = self._get_scopes()
-        super(BaseClient, self).__init__(project=project, credentials=credentials)
+        super(BaseClient, self).__init__(
+            project=project, credentials=credentials, client_options=client_options,
+        )
 
     def _get_scopes(self):
         """Get the scopes corresponding to admin / read-only state.

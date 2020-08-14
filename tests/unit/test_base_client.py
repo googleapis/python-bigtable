@@ -232,8 +232,10 @@ class TestBaseClient(unittest.TestCase, TestClientConstants):
         self.assertIs(client._table_data_client, table_data_client)
 
     def test_table_data_client_not_initialized_w_client_options(self):
+        from google.api_core.client_options import ClientOptions
+
         credentials = _make_credentials()
-        client_options = mock.Mock()
+        client_options = ClientOptions("endpoint")
         client = self._make_one(
             project=self.PROJECT, credentials=credentials, client_options=client_options
         )
