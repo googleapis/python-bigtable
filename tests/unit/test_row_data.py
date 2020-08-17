@@ -392,7 +392,9 @@ class TestPartialRowsData(unittest.TestCase):
         request = object()
         retry = DEFAULT_RETRY_READ_ROWS
         partial_rows_data = self._make_one(client._data_stub.ReadRows, request, retry)
-        # self.assertEqual(partial_rows_data.response_iterator.timeout, 60.0)
+        partial_rows_data.read_method.assert_called_once_with(
+            request, timeout=DEFAULT_RETRY_READ_ROWS.deadline + 1
+        )
         self.assertIs(partial_rows_data.request, request)
         self.assertEqual(partial_rows_data.rows, {})
         self.assertEqual(partial_rows_data.retry, retry)
