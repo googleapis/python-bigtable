@@ -17,6 +17,7 @@
 import synthtool as s
 from synthtool import gcp
 from synthtool.languages import python
+from synthtool.log import logger
 
 gapic = gcp.GAPICBazel()
 common = gcp.CommonTemplates()
@@ -91,7 +92,9 @@ s.move(templated_files, excludes=['noxfile.py'])
 # Samples templates
 # ----------------------------------------------------------------------------
 
-sample_files = common.py_samples(unit_cov_level=97, cov_level=99, samples=True)
-s.move(sample_files, excludes=['noxfile.py'])
+sample_files = common.py_samples(samples=True)
+for path in sample_files:
+    s.move(path, excludes=['noxfile.py'])
+
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)

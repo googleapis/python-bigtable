@@ -4,6 +4,14 @@
 ## Python Samples for Cloud Bigtable
 
 This directory contains samples for Cloud Bigtable, which may be used as a refererence for how to use Cloud Bigtable. 
+Samples, quickstarts, and other documentation are available at <a href="https://cloud.google.com/bigtable">cloud.google.com</a>.
+
+
+### Beam
+
+This sample demonstrates writing data to Bigtable with Beam.
+
+
 
 ## Additional Information
 
