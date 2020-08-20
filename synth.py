@@ -17,7 +17,6 @@
 import synthtool as s
 from synthtool import gcp
 from synthtool.languages import python
-from synthtool.log import logger
 
 gapic = gcp.GAPICBazel()
 common = gcp.CommonTemplates()
