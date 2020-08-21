@@ -3,50 +3,8 @@
     {
       "git": {
         "name": ".",
-        "remote": "https://github.com/googleapis/python-bigtable.git",
-        "sha": "7befdd396d1ef3d76d125785180f4295ba9e0247"
-      }
-    },
-    {
-      "git": {
-        "name": "googleapis",
-        "remote": "https://github.com/googleapis/googleapis.git",
-        "sha": "b882b8e6bfcd708042ff00f7adc67ce750817dd0",
-        "internalRef": "318028816"
-      }
-    },
-    {
-      "git": {
-        "name": "synthtool",
-        "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "303271797a360f8a439203413f13a160f2f5b3b4"
-      }
-    },
-    {
-      "git": {
-        "name": "synthtool",
-        "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "303271797a360f8a439203413f13a160f2f5b3b4"
-      }
-    }
-  ],
-  "destinations": [
-    {
-      "client": {
-        "source": "googleapis",
-        "apiName": "bigtable",
-        "apiVersion": "v2",
-        "language": "python",
-        "generator": "bazel"
-      }
-    },
-    {
-      "client": {
-        "source": "googleapis",
-        "apiName": "bigtable_admin",
-        "apiVersion": "v2",
-        "language": "python",
-        "generator": "bazel"
+        "remote": "git@github.com:runargs/python-bigtable.git",
+        "sha": "be25e1601e7d8967141a24581be6d119e7236cb4"
       }
     }
   ]
