@@ -174,7 +174,9 @@ class Client(ClientWithProject):
         self._admin_client_options = admin_client_options
         self._channel = channel
         self.SCOPE = self._get_scopes()
-        super(Client, self).__init__(project=project, credentials=credentials)
+        super(Client, self).__init__(
+            project=project, credentials=credentials, client_options=client_options,
+        )
 
     def _get_scopes(self):
         """Get the scopes corresponding to admin / read-only state.
@@ -206,6 +208,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_project_path]
             :end-before: [END bigtable_project_path]
+            :dedent: 4
 
         The project name is of the form
 
@@ -225,6 +228,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_table_data_client]
             :end-before: [END bigtable_table_data_client]
+            :dedent: 4
 
         :rtype: :class:`.bigtable_v2.BigtableClient`
         :returns: A BigtableClient object.
@@ -245,6 +249,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_table_admin_client]
             :end-before: [END bigtable_table_admin_client]
+            :dedent: 4
 
         :rtype: :class:`.bigtable_admin_pb2.BigtableTableAdmin`
         :returns: A BigtableTableAdmin instance.
@@ -271,6 +276,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_instance_admin_client]
             :end-before: [END bigtable_instance_admin_client]
+            :dedent: 4
 
         :rtype: :class:`.bigtable_admin_pb2.BigtableInstanceAdmin`
         :returns: A BigtableInstanceAdmin instance.
@@ -296,6 +302,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_create_prod_instance]
             :end-before: [END bigtable_create_prod_instance]
+            :dedent: 4
 
         :type instance_id: str
         :param instance_id: The ID of the instance.
@@ -345,6 +352,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_list_instances]
             :end-before: [END bigtable_list_instances]
+            :dedent: 4
 
         :rtype: tuple
         :returns:
@@ -365,6 +373,7 @@ class Client(ClientWithProject):
         .. literalinclude:: snippets.py
             :start-after: [START bigtable_list_clusters_in_project]
             :end-before: [END bigtable_list_clusters_in_project]
+            :dedent: 4
 
         :rtype: tuple
         :returns:
