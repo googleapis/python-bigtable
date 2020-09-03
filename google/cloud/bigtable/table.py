@@ -17,8 +17,11 @@
 from grpc import StatusCode
 
 from google.api_core import timeout
-from google.api_core.exceptions import RetryError
+from google.api_core.exceptions import Aborted
+from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import RetryError
+from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.api_core.gapic_v1.method import wrap_method
@@ -1078,9 +1081,15 @@ class _RetryableMutateRowsWorker(object):
                 client_info=data_client._client_info,
             )
 
-        responses = data_client._inner_api_calls["mutate_rows"](
-            mutate_rows_request, retry=None
-        )
+        try:
+            responses = data_client._inner_api_calls["mutate_rows"](
+                mutate_rows_request, retry=None
+            )
+        except (ServiceUnavailable, DeadlineExceeded, Aborted):
+            # If an exception, considered retryable by `RETRY_CODES`, is
+            # returned from the initial call, consider
+            # it to be retryable. Wrap as a Bigtable Retryable Error.
+            raise _BigtableRetryableError
 
         num_responses = 0
         num_retryable_responses = 0
