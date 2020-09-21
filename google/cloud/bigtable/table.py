@@ -14,8 +14,6 @@
 
 """User-friendly container for Google Cloud Bigtable Table."""
 
-from grpc import StatusCode
-
 from google.api_core import timeout
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
@@ -989,14 +987,11 @@ class _RetryableMutateRowsWorker(object):
     are retryable, any subsequent call on this callable will be a no-op.
     """
 
-    # pylint: disable=unsubscriptable-object
     RETRY_CODES = (
-        StatusCode.DEADLINE_EXCEEDED.value[0],
-        StatusCode.ABORTED.value[0],
-        StatusCode.UNAVAILABLE.value[0],
+        Aborted.grpc_status_code.value[0],
+        DeadlineExceeded.grpc_status_code.value[0],
+        ServiceUnavailable.grpc_status_code.value[0],
     )
-
-    # pylint: enable=unsubscriptable-object
 
     def __init__(self, client, table_name, rows, app_profile_id=None, timeout=None):
         self.client = client
