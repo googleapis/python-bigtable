@@ -35,7 +35,7 @@ import pytest
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
 from google.api_core.exceptions import TooManyRequests
-from google.api_core.exceptions import SystemUnavailable
+from google.api_core.exceptions import ServiceUnavailable
 from test_utils.system import unique_resource_id
 from test_utils.retry import RetryErrors
 
