@@ -359,8 +359,9 @@ class TestDirectRow(unittest.TestCase):
         row.commit()
         self.assertEqual(table.mutated_rows, [row])
 
-    @mock.patch("google.cloud.bigtable.table.Table.mutate_rows")
-    def test_commit_with_exception(self, mock_mutate_rows):
+    def test_commit_with_exception(self):
+        from google.rpc import status_pb2
+
         project_id = "project-id"
         row_key = b"row_key"
         table_name = "projects/more-stuff"
@@ -377,9 +378,9 @@ class TestDirectRow(unittest.TestCase):
 
         # Perform the method and check the result.
         row.set_cell(column_family_id, column, value)
-        from google.rpc import status_pb2
         result = row.commit()
-        self.assertIsInstance(result, status_pb2.Status)
+        expected = status_pb2.Status(code=0)
+        self.assertEqual(result, expected)
 
 
 class TestConditionalRow(unittest.TestCase):
@@ -854,6 +855,7 @@ class _Table(object):
         self.mutated_rows = []
 
     def mutate_rows(self, rows):
-        self.mutated_rows.extend(rows)
         from google.rpc import status_pb2
-        return [status_pb2.Status()]
+
+        self.mutated_rows.extend(rows)
+        return [status_pb2.Status(code=0)]
