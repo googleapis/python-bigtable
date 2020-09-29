@@ -29,11 +29,6 @@ branchProtectionRules:
   # List of required status check contexts that must pass for commits to be accepted to matching branches.
   requiredStatusCheckContexts:
     - 'Kokoro'
-    - 'Kokoro docs-presubmit'
-    - 'Samples - Lint'
-    - 'Samples - Python 3.6'
-    - 'Samples - Python 3.7'
-    - 'Samples - Python 3.8'
     - 'cla/google'
 # List of explicit permissions to add (additive only)
 permissionRules:
