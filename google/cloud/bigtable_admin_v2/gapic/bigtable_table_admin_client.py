@@ -54,14 +54,9 @@ from google.protobuf import empty_pb2
 from google.protobuf import field_mask_pb2
 
 
-import pkg_resources
-
-try:
-    _GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution(
-        "google-cloud-bigtable"
-    ).version
-except pkg_resources.DistributionNotFound:
-    _GAPIC_LIBRARY_VERSION = None
+_GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution(
+    "google-cloud-bigtable",
+).version
 
 
 class BigtableTableAdminClient(object):
