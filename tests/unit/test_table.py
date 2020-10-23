@@ -646,7 +646,7 @@ class TestTable(unittest.TestCase):
             self._read_row_helper(chunks, None)
 
     def _mutate_rows_helper(
-        self, mutation_timeout=None, app_profile_id=None, retry=None
+        self, mutation_timeout=None, app_profile_id=None, retry=None, timeout=None
     ):
         from google.rpc.status_pb2 import Status
         from google.cloud.bigtable.table import DEFAULT_RETRY
@@ -661,15 +661,15 @@ class TestTable(unittest.TestCase):
         )
         instance = client.instance(instance_id=self.INSTANCE_ID)
         client._table_admin_client = table_api
-        kwargs = {}
+        ctor_kwargs = {}
 
         if mutation_timeout is not None:
-            kwargs["mutation_timeout"] = mutation_timeout
+            ctor_kwargs["mutation_timeout"] = mutation_timeout
 
         if app_profile_id is not None:
-            kwargs["app_profile_id"] = app_profile_id
+            ctor_kwargs["app_profile_id"] = app_profile_id
 
-        table = self._make_one(self.TABLE_ID, instance, **kwargs)
+        table = self._make_one(self.TABLE_ID, instance, **ctor_kwargs)
 
         rows = [mock.MagicMock(), mock.MagicMock()]
         response = [Status(code=0), Status(code=1)]
@@ -679,11 +679,18 @@ class TestTable(unittest.TestCase):
             new=mock.MagicMock(return_value=instance_mock),
         )
 
+        call_kwargs = {}
+
+        if retry is not None:
+            call_kwargs["retry"] = retry
+
+        if timeout is not None:
+            expected_timeout = call_kwargs["timeout"] = timeout
+        else:
+            expected_timeout = mutation_timeout
+
         with klass_mock:
-            if retry is not None:
-                statuses = table.mutate_rows(rows, retry=retry)
-            else:
-                statuses = table.mutate_rows(rows)
+            statuses = table.mutate_rows(rows, **call_kwargs)
 
         result = [status.code for status in statuses]
         expected_result = [0, 1]
@@ -694,7 +701,7 @@ class TestTable(unittest.TestCase):
             self.TABLE_NAME,
             rows,
             app_profile_id=app_profile_id,
-            timeout=mutation_timeout,
+            timeout=expected_timeout,
         )
 
         if retry is not None:
@@ -716,6 +723,15 @@ class TestTable(unittest.TestCase):
     def test_mutate_rows_w_retry(self):
         retry = mock.Mock()
         self._mutate_rows_helper(retry=retry)
+
+    def test_mutate_rows_w_timeout_arg(self):
+        timeout = 123
+        self._mutate_rows_helper(timeout=timeout)
+
+    def test_mutate_rows_w_mutation_timeout_and_timeout_arg(self):
+        mutation_timeout = 123
+        timeout = 456
+        self._mutate_rows_helper(mutation_timeout=mutation_timeout, timeout=timeout)
 
     def test_read_rows(self):
         from google.cloud._testing import _Monkey

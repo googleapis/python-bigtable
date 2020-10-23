@@ -20,6 +20,7 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
 from google.api_core.exceptions import RetryError
 from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes
@@ -624,7 +625,7 @@ class Table(object):
         )
         return self.read_rows(**kwargs)
 
-    def mutate_rows(self, rows, retry=DEFAULT_RETRY):
+    def mutate_rows(self, rows, retry=DEFAULT_RETRY, timeout=DEFAULT):
         """Mutates multiple rows in bulk.
 
         For example:
@@ -655,17 +656,23 @@ class Table(object):
             the :meth:`~google.api_core.retry.Retry.with_delay` method or the
             :meth:`~google.api_core.retry.Retry.with_deadline` method.
 
+        :type timeout: float
+        :param timeout: number of seconds bounding retries for the call
+
         :rtype: list
         :returns: A list of response statuses (`google.rpc.status_pb2.Status`)
                   corresponding to success or failure of each row mutation
                   sent. These will be in the same order as the `rows`.
         """
+        if timeout is DEFAULT:
+            timeout = self.mutation_timeout
+
         retryable_mutate_rows = _RetryableMutateRowsWorker(
             self._instance._client,
             self.name,
             rows,
             app_profile_id=self._app_profile_id,
-            timeout=self.mutation_timeout,
+            timeout=timeout,
         )
         return retryable_mutate_rows(retry=retry)
 
