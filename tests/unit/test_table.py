@@ -642,8 +642,9 @@ class TestTable(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._read_row_helper(chunks, None)
 
-    def test_mutate_rows(self):
+    def _mutate_rows_helper(self, mutation_timeout=None, app_profile_id=None, retry=None):
         from google.rpc.status_pb2 import Status
+        from google.cloud.bigtable.table import DEFAULT_RETRY
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
         table_api = mock.create_autospec(
@@ -655,20 +656,61 @@ class TestTable(unittest.TestCase):
         )
         instance = client.instance(instance_id=self.INSTANCE_ID)
         client._table_admin_client = table_api
-        table = self._make_one(self.TABLE_ID, instance)
+        kwargs = {}
 
+        if mutation_timeout is not None:
+            kwargs["mutation_timeout"] = mutation_timeout
+
+        if app_profile_id is not None:
+            kwargs["app_profile_id"] = app_profile_id
+
+        table = self._make_one(self.TABLE_ID, instance, **kwargs)
+
+        rows = [mock.MagicMock(), mock.MagicMock()]
         response = [Status(code=0), Status(code=1)]
-
-        mock_worker = mock.Mock(return_value=response)
-        with mock.patch(
+        instance_mock = mock.Mock(return_value=response)
+        klass_mock = mock.patch(
             "google.cloud.bigtable.table._RetryableMutateRowsWorker",
-            new=mock.MagicMock(return_value=mock_worker),
-        ):
-            statuses = table.mutate_rows([mock.MagicMock(), mock.MagicMock()])
+            new=mock.MagicMock(return_value=instance_mock),
+        )
+
+        with klass_mock:
+            if retry is not None:
+                statuses = table.mutate_rows(rows, retry=retry)
+            else:
+                statuses = table.mutate_rows(rows)
+
         result = [status.code for status in statuses]
         expected_result = [0, 1]
-
         self.assertEqual(result, expected_result)
+
+        klass_mock.new.assert_called_once_with(
+            client,
+            self.TABLE_NAME,
+            rows,
+            app_profile_id=app_profile_id,
+            timeout=mutation_timeout,
+        )
+
+        if retry is not None:
+            instance_mock.assert_called_once_with(retry=retry)
+        else:
+            instance_mock.assert_called_once_with(retry=DEFAULT_RETRY)
+
+    def test_mutate_rows_w_default_mutation_timeout_app_profile_id(self):
+        self._mutate_rows_helper()
+
+    def test_mutate_rows_w_mutation_timeout(self):
+        mutation_timeout = 123
+        self._mutate_rows_helper(mutation_timeout=mutation_timeout)
+
+    def test_mutate_rows_w_app_profile_id(self):
+        app_profile_id = 'profile-123'
+        self._mutate_rows_helper(app_profile_id=app_profile_id)
+
+    def test_mutate_rows_w_retry(self):
+        retry = mock.Mock()
+        self._mutate_rows_helper(retry=retry)
 
     def test_read_rows(self):
         from google.cloud._testing import _Monkey
