@@ -162,27 +162,49 @@ class TestTable(unittest.TestCase):
     def _make_client(self, *args, **kwargs):
         return self._get_target_client_class()(*args, **kwargs)
 
-    def test_constructor_w_admin(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project=self.PROJECT_ID, credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-        self.assertEqual(table.table_id, self.TABLE_ID)
-        self.assertIs(table._instance._client, client)
-        self.assertEqual(table.name, self.TABLE_NAME)
+    def test_constructor_defaults(self):
+        instance = mock.Mock(spec=[])
 
-    def test_constructor_wo_admin(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project=self.PROJECT_ID, credentials=credentials, admin=False
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
         table = self._make_one(self.TABLE_ID, instance)
+
         self.assertEqual(table.table_id, self.TABLE_ID)
-        self.assertIs(table._instance._client, client)
-        self.assertEqual(table.name, self.TABLE_NAME)
+        self.assertIs(table._instance, instance)
+        self.assertIsNone(table.mutation_timeout)
+        self.assertIsNone(table._app_profile_id)
+
+    def test_constructor_explicit(self):
+        instance = mock.Mock(spec=[])
+        mutation_timeout = 123
+        app_profile_id = 'profile-123'
+
+        table = self._make_one(
+            self.TABLE_ID,
+            instance,
+            mutation_timeout=mutation_timeout,
+            app_profile_id=app_profile_id,
+        )
+
+        self.assertEqual(table.table_id, self.TABLE_ID)
+        self.assertIs(table._instance, instance)
+        self.assertEqual(table.mutation_timeout, mutation_timeout)
+        self.assertEqual(table._app_profile_id, app_profile_id)
+
+    def test_name(self):
+        table_data_client = mock.Mock(spec=["table_path"])
+        client = mock.Mock(
+            project=self.PROJECT_ID,
+            table_data_client=table_data_client,
+            spec=["project", "table_data_client"]
+        )
+        instance = mock.Mock(
+            _client=client,
+            instance_id=self.INSTANCE_ID,
+            spec=["_client", "instance_id"],
+        )
+
+        table = self._make_one(self.TABLE_ID, instance)
+
+        self.assertEqual(table.name, table_data_client.table_path.return_value)
 
     def _row_methods_helper(self):
         client = self._make_client(
