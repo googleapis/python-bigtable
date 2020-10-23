@@ -20,14 +20,14 @@ from ._testing import _make_credentials
 from google.api_core.exceptions import DeadlineExceeded
 
 
-class Test___mutate_rows_request(unittest.TestCase):
+class Test__compile_mutation_entries(unittest.TestCase):
     def _call_fut(self, table_name, rows):
-        from google.cloud.bigtable.table import _mutate_rows_request
+        from google.cloud.bigtable.table import _compile_mutation_entries
 
-        return _mutate_rows_request(table_name, rows)
+        return _compile_mutation_entries(table_name, rows)
 
     @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
-    def test__mutate_rows_too_many_mutations(self):
+    def test_w_too_many_mutations(self):
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import TooManyMutationsError
 
@@ -41,13 +41,15 @@ class Test___mutate_rows_request(unittest.TestCase):
         rows[0].set_cell("cf1", b"c1", 2)
         rows[1].set_cell("cf1", b"c1", 3)
         rows[1].set_cell("cf1", b"c1", 4)
+
         with self.assertRaises(TooManyMutationsError):
             self._call_fut("table", rows)
 
-    def test__mutate_rows_request(self):
+    def test_normal(self):
         from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable_v2.proto import bigtable_pb2
 
-        table = mock.Mock(name="table", spec=["name"])
+        table = mock.Mock(spec=["name"])
         table.name = "table"
         rows = [
             DirectRow(row_key=b"row_key", table=table),
@@ -55,25 +57,26 @@ class Test___mutate_rows_request(unittest.TestCase):
         ]
         rows[0].set_cell("cf1", b"c1", b"1")
         rows[1].set_cell("cf1", b"c1", b"2")
+
         result = self._call_fut("table", rows)
 
-        expected_result = _mutate_rows_request_pb(table_name="table")
-        entry1 = expected_result.entries.add()
-        entry1.row_key = b"row_key"
-        mutations1 = entry1.mutations.add()
-        mutations1.set_cell.family_name = "cf1"
-        mutations1.set_cell.column_qualifier = b"c1"
-        mutations1.set_cell.timestamp_micros = -1
-        mutations1.set_cell.value = b"1"
-        entry2 = expected_result.entries.add()
-        entry2.row_key = b"row_key_2"
-        mutations2 = entry2.mutations.add()
-        mutations2.set_cell.family_name = "cf1"
-        mutations2.set_cell.column_qualifier = b"c1"
-        mutations2.set_cell.timestamp_micros = -1
-        mutations2.set_cell.value = b"2"
+        Entry = bigtable_pb2.MutateRowsRequest.Entry
 
-        self.assertEqual(result, expected_result)
+        entry_1 = Entry(row_key=b"row_key")
+        mutations_1 = entry_1.mutations.add()
+        mutations_1.set_cell.family_name = "cf1"
+        mutations_1.set_cell.column_qualifier = b"c1"
+        mutations_1.set_cell.timestamp_micros = -1
+        mutations_1.set_cell.value = b"1"
+
+        entry_2 = Entry(row_key=b"row_key_2")
+        mutations_2 = entry_2.mutations.add()
+        mutations_2.set_cell.family_name = "cf1"
+        mutations_2.set_cell.column_qualifier = b"c1"
+        mutations_2.set_cell.timestamp_micros = -1
+        mutations_2.set_cell.value = b"2"
+
+        self.assertEqual(result, [entry_1, entry_2])
 
 
 class Test__check_row_table_name(unittest.TestCase):
@@ -175,7 +178,7 @@ class TestTable(unittest.TestCase):
     def test_constructor_explicit(self):
         instance = mock.Mock(spec=[])
         mutation_timeout = 123
-        app_profile_id = 'profile-123'
+        app_profile_id = "profile-123"
 
         table = self._make_one(
             self.TABLE_ID,
@@ -194,7 +197,7 @@ class TestTable(unittest.TestCase):
         client = mock.Mock(
             project=self.PROJECT_ID,
             table_data_client=table_data_client,
-            spec=["project", "table_data_client"]
+            spec=["project", "table_data_client"],
         )
         instance = mock.Mock(
             _client=client,
@@ -642,7 +645,9 @@ class TestTable(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._read_row_helper(chunks, None)
 
-    def _mutate_rows_helper(self, mutation_timeout=None, app_profile_id=None, retry=None):
+    def _mutate_rows_helper(
+        self, mutation_timeout=None, app_profile_id=None, retry=None
+    ):
         from google.rpc.status_pb2 import Status
         from google.cloud.bigtable.table import DEFAULT_RETRY
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
@@ -705,7 +710,7 @@ class TestTable(unittest.TestCase):
         self._mutate_rows_helper(mutation_timeout=mutation_timeout)
 
     def test_mutate_rows_w_app_profile_id(self):
-        app_profile_id = 'profile-123'
+        app_profile_id = "profile-123"
         self._mutate_rows_helper(app_profile_id=app_profile_id)
 
     def test_mutate_rows_w_retry(self):
@@ -1488,21 +1493,18 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3 = DirectRow(row_key=b"row_key_3", table=table)
         row_3.set_cell("cf", b"col", b"value3")
 
-        response = self._make_responses(
-            [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        )
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
 
-        with mock.patch("google.cloud.bigtable.table.wrap_method") as patched:
-            patched.return_value = mock.Mock(return_value=[response])
+        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
+        response = self._make_responses(response_codes)
+        data_api.mutate_rows = mock.MagicMock(return_value=[response])
 
-            worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
-            statuses = worker(retry=None)
+        statuses = worker(retry=None)
 
         result = [status.code for status in statuses]
-        expected_result = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
+        self.assertEqual(result, response_codes)
 
-        client._table_data_client._inner_api_calls["mutate_rows"].assert_called_once()
-        self.assertEqual(result, expected_result)
+        data_api.mutate_rows.assert_called_once()
 
     def test_callable_retry(self):
         from google.cloud.bigtable.row import DirectRow
