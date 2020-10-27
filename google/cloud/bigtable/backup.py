@@ -313,7 +313,7 @@ class Backup(object):
         )
 
         api = self._instance._client.table_admin_client
-        return api.create_backup(self.parent, self.backup_id, backup)
+        return api.create_backup(request = {'parent': self.parent, 'backup_id': self.backup_id, 'backup': backup})
 
     def get(self):
         """Retrieves metadata of a pending or completed Backup.
@@ -329,7 +329,7 @@ class Backup(object):
         """
         api = self._instance._client.table_admin_client
         try:
-            return api.get_backup(self.name)
+            return api.get_backup(request = {'name': self.name})
         except NotFound:
             return None
 
@@ -363,12 +363,12 @@ class Backup(object):
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api = self._instance._client.table_admin_client
-        api.update_backup(backup_update, update_mask)
+        api.update_backup(request = {'backup': backup_update, 'update_mask': update_mask})
         self._expire_time = new_expire_time
 
     def delete(self):
         """Delete this Backup."""
-        self._instance._client.table_admin_client.delete_backup(self.name)
+        self._instance._client.table_admin_client.delete_backup(request = {'name': self.name})
 
     def restore(self, table_id):
         """Creates a new Table by restoring from this Backup. The new Table
@@ -391,4 +391,4 @@ class Backup(object):
         :raises: ValueError: If the parameters are invalid.
         """
         api = self._instance._client.table_admin_client
-        return api.restore_table(self._instance.name, table_id, self.name)
+        return api.restore_table(request = {'parent': self._instance.name, 'table_id': table_id, 'backup': self.name})

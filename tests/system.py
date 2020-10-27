@@ -101,7 +101,7 @@ retry_429 = RetryErrors(TooManyRequests, max_tries=9)
 
 def setUpModule():
     from google.cloud.exceptions import GrpcRendezvous
-    from google.cloud.bigtable.enums import Instance
+    from google.cloud.bigtable import Instance
 
     # See: https://github.com/googleapis/google-cloud-python/issues/5928
     interfaces = table_admin_config.config["interfaces"]
@@ -477,7 +477,7 @@ class TestInstanceAdminAPI(unittest.TestCase):
         operation.result(timeout=10)
 
     def test_update_type(self):
-        from google.cloud.bigtable.enums import Instance
+        from google.cloud.bigtable import Instance
 
         _DEVELOPMENT = Instance.Type.DEVELOPMENT
         _PRODUCTION = Instance.Type.PRODUCTION
@@ -530,8 +530,8 @@ class TestInstanceAdminAPI(unittest.TestCase):
         operation.result(timeout=20)
 
     def test_create_cluster(self):
-        from google.cloud.bigtable.enums import StorageType
-        from google.cloud.bigtable.enums import Cluster
+        from google.cloud.bigtable import StorageType
+        from google.cloud.bigtable import Cluster
 
         ALT_CLUSTER_ID = INSTANCE_ID + "-c2"
         ALT_LOCATION_ID = "us-central1-f"

@@ -363,7 +363,7 @@ class Client(ClientWithProject):
             'failed_locations' is a list of locations which could not
             be resolved.
         """
-        resp = self.instance_admin_client.list_instances(self.project_path)
+        resp = self.instance_admin_client.list_instances(request = {'parent': self.project_path})
         instances = [Instance.from_pb(instance, self) for instance in resp.instances]
         return instances, resp.failed_locations
 
@@ -385,8 +385,7 @@ class Client(ClientWithProject):
             locations which could not be resolved.
         """
         resp = self.instance_admin_client.list_clusters(
-            self.instance_admin_client.instance_path(self.project, "-")
-        )
+            request = {'parent': self.instance_admin_client.instance_path(self.project, "-")})
         clusters = []
         instances = {}
         for cluster in resp.clusters:

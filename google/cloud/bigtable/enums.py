@@ -13,8 +13,6 @@
 # limitations under the License.
 """Wrappers for gapic enum types."""
 
-from google.cloud.bigtable_admin_v2 import enums
-
 
 class StorageType(object):
     """

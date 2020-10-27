@@ -44,6 +44,7 @@ library = gapic.py_library(
 
 s.move(library / "google/cloud/bigtable_admin_v2")
 s.move(library / "tests")
+s.move(library / "scripts")
 
 s.replace(
     [
@@ -84,8 +85,11 @@ s.replace(
 # ----------------------------------------------------------------------------
 # Add templated files
 # ----------------------------------------------------------------------------
-templated_files = common.py_library(unit_cov_level=97, cov_level=99, samples=True)
-s.move(templated_files, excludes=['noxfile.py'])
+templated_files = common.py_library(
+    samples=False,  # set to True only if there are samples
+    microgenerator=True,
+)
+s.move(templated_files, excludes=[".coveragerc"])
 
 # ----------------------------------------------------------------------------
 # Samples templates
@@ -96,4 +100,4 @@ for path in sample_files:
     s.move(path, excludes=['noxfile.py'])
 
 
-s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+#s.shell.run(["nox", "-s", "blacken"], hide_output=False)

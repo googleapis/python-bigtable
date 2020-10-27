@@ -29,9 +29,11 @@ version = "1.5.1"
 # 'Development Status :: 5 - Production/Stable'
 release_status = 'Development Status :: 5 - Production/Stable'
 dependencies = [
-    "google-api-core[grpc] >= 1.14.0, < 2.0.0dev",
+    "google-api-core[grpc] >= 1.22.2, < 2.0.0dev",
     "google-cloud-core >= 1.4.1, < 2.0dev",
     "grpc-google-iam-v1 >= 0.12.3, < 0.13dev",
+    "proto-plus >= 1.4.0",
+    "libcst >= 0.2.5",
 ]
 extras = {
 }
@@ -48,7 +50,7 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 # Only include packages under the 'google' namespace. Do not include tests,
 # benchmarks, etc.
 packages = [
-    package for package in setuptools.find_packages()
+    package for package in setuptools.PEP420PackageFinder.find()
     if package.startswith('google')]
 
 # Determine which namespaces are needed.
@@ -71,10 +73,6 @@ setuptools.setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Operating System :: OS Independent',
@@ -85,7 +83,7 @@ setuptools.setup(
     namespace_packages=namespaces,
     install_requires=dependencies,
     extras_require=extras,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+    python_requires='>=3.6',
     include_package_data=True,
     zip_safe=False,
 )
