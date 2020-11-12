@@ -69,6 +69,23 @@ except pkg_resources.DistributionNotFound:  # pragma: NO COVER
 """
 )
 
+s.replace(
+    "google/cloud/bigtable_v2/gapic/bigtable_client.py",
+    """\
+_GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution\(
+    'google-cloud-bigtable',
+\).version
+""",
+    """\
+try:
+    _GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution(
+        "google-cloud-bigtable"
+    ).version
+except pkg_resources.DistributionNotFound:  # pragma: NO COVER
+    _GAPIC_LIBRARY_VERSION = None
+"""
+)
+
 # ----------------------------------------------------------------------------
 # Add templated files
 # ----------------------------------------------------------------------------
