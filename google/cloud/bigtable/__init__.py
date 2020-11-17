@@ -19,7 +19,7 @@ import pkg_resources
 
 try:
     __version__ = pkg_resources.get_distribution("google-cloud-bigtable").version
-except pkg_resources.DistributionNotFound:
+except pkg_resources.DistributionNotFound:  # pragma: NO COVER
     __version__ = None
 
 
