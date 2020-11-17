@@ -449,8 +449,8 @@ class TestPartialRowsData(unittest.TestCase):
         client._data_stub = mock.MagicMock()
         client._data_stub.ReadRows.side_effect = [iterator]
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
-        self.assertEqual(yrd.state, yrd.NEW_ROW)
+        instance = self._make_one(client._data_stub.ReadRows, request)
+        self.assertEqual(instance.state, instance.NEW_ROW)
 
     def test_state_new_row_w_row(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
@@ -476,16 +476,18 @@ class TestPartialRowsData(unittest.TestCase):
         client._table_data_client = data_api
         request = object()
 
-        yrd = self._make_one(client._table_data_client.transport.read_rows, request)
-        self.assertEqual(yrd.retry._deadline, 60.0)
+        instance = self._make_one(
+            client._table_data_client.transport.read_rows, request
+        )
+        self.assertEqual(instance.retry._deadline, 60.0)
 
-        yrd._response_iterator = iterator
-        rows = [row for row in yrd]
+        instance._response_iterator = iterator
+        rows = [row for row in instance]
 
         result = rows[0]
         self.assertEqual(result.row_key, self.ROW_KEY)
-        self.assertEqual(yrd._counter, 1)
-        self.assertEqual(yrd.state, yrd.NEW_ROW)
+        self.assertEqual(instance._counter, 1)
+        self.assertEqual(instance.state, instance.NEW_ROW)
 
     def test_multiple_chunks(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
@@ -517,14 +519,16 @@ class TestPartialRowsData(unittest.TestCase):
         client._table_data_client = data_api
         request = object()
 
-        yrd = self._make_one(client._table_data_client.transport.read_rows, request)
+        instance = self._make_one(
+            client._table_data_client.transport.read_rows, request
+        )
 
-        yrd._response_iterator = iterator
-        rows = [row for row in yrd]
+        instance._response_iterator = iterator
+        rows = [row for row in instance]
         result = rows[0]
         self.assertEqual(result.row_key, self.ROW_KEY)
-        self.assertEqual(yrd._counter, 1)
-        self.assertEqual(yrd.state, yrd.NEW_ROW)
+        self.assertEqual(instance._counter, 1)
+        self.assertEqual(instance.state, instance.NEW_ROW)
 
     def test_cancel(self):
         client = _Client()
@@ -544,9 +548,9 @@ class TestPartialRowsData(unittest.TestCase):
         client = _Client()
         client._data_stub = mock.MagicMock()
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(client._data_stub.ReadRows, request)
         cell = _PartialCellData()
-        yrd._copy_from_previous(cell)
+        instance._copy_from_previous(cell)
         self.assertEqual(cell.row_key, b"")
         self.assertEqual(cell.family_name, u"")
         self.assertIsNone(cell.qualifier)
@@ -562,7 +566,7 @@ class TestPartialRowsData(unittest.TestCase):
         client = _Client()
         client._data_stub = mock.MagicMock()
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(client._data_stub.ReadRows, request)
         cell = _PartialCellData(
             row_key=ROW_KEY,
             family_name=FAMILY_NAME,
@@ -570,8 +574,8 @@ class TestPartialRowsData(unittest.TestCase):
             timestamp_micros=TIMESTAMP_MICROS,
             labels=LABELS,
         )
-        yrd._previous_cell = _PartialCellData()
-        yrd._copy_from_previous(cell)
+        instance._previous_cell = _PartialCellData()
+        instance._copy_from_previous(cell)
         self.assertEqual(cell.row_key, ROW_KEY)
         self.assertEqual(cell.family_name, FAMILY_NAME)
         self.assertEqual(cell.qualifier, QUALIFIER)
@@ -587,8 +591,8 @@ class TestPartialRowsData(unittest.TestCase):
         client = _Client()
         client._data_stub = mock.MagicMock()
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
-        yrd._previous_cell = _PartialCellData(
+        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance._previous_cell = _PartialCellData(
             row_key=ROW_KEY,
             family_name=FAMILY_NAME,
             qualifier=QUALIFIER,
@@ -596,7 +600,7 @@ class TestPartialRowsData(unittest.TestCase):
             labels=LABELS,
         )
         cell = _PartialCellData()
-        yrd._copy_from_previous(cell)
+        instance._copy_from_previous(cell)
         self.assertEqual(cell.row_key, ROW_KEY)
         self.assertEqual(cell.family_name, FAMILY_NAME)
         self.assertEqual(cell.qualifier, QUALIFIER)
@@ -610,10 +614,10 @@ class TestPartialRowsData(unittest.TestCase):
         client._data_stub = mock.MagicMock()
         client._data_stub.ReadRows.side_effect = [iterator]
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
-        yrd.last_scanned_row_key = "1.BEFORE"
-        self._consume_all(yrd)
-        self.assertEqual(yrd.last_scanned_row_key, "2.AFTER")
+        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance.last_scanned_row_key = "1.BEFORE"
+        self._consume_all(instance)
+        self.assertEqual(instance.last_scanned_row_key, "2.AFTER")
 
     def test_invalid_empty_chunk(self):
         from google.cloud.bigtable.row_data import InvalidChunk
@@ -625,16 +629,16 @@ class TestPartialRowsData(unittest.TestCase):
         client._data_stub = mock.MagicMock()
         client._data_stub.ReadRows.side_effect = [iterator]
         request = object()
-        yrd = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(client._data_stub.ReadRows, request)
         with self.assertRaises(InvalidChunk):
-            self._consume_all(yrd)
+            self._consume_all(instance)
 
     def test_state_cell_in_progress(self):
         LABELS = ["L1", "L2"]
 
         request = object()
         read_rows = mock.MagicMock()
-        yrd = self._make_one(read_rows, request)
+        instance = self._make_one(read_rows, request)
 
         chunk = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
@@ -644,19 +648,22 @@ class TestPartialRowsData(unittest.TestCase):
             value=self.VALUE,
             labels=LABELS,
         )
-        yrd._update_cell(chunk)
+        instance._update_cell(chunk)
 
         more_cell_data = _ReadRowsResponseCellChunkPB(value=self.VALUE)
-        yrd._update_cell(more_cell_data)
+        instance._update_cell(more_cell_data)
 
-        self.assertEqual(yrd._cell.row_key, self.ROW_KEY)
-        self.assertEqual(yrd._cell.family_name, self.FAMILY_NAME)
-        self.assertEqual(yrd._cell.qualifier, self.QUALIFIER)
-        self.assertEqual(yrd._cell.timestamp_micros, self.TIMESTAMP_MICROS)
-        self.assertEqual(yrd._cell.labels, LABELS)
-        self.assertEqual(yrd._cell.value, self.VALUE + self.VALUE)
+        self.assertEqual(instance._cell.row_key, self.ROW_KEY)
+        self.assertEqual(instance._cell.family_name, self.FAMILY_NAME)
+        self.assertEqual(instance._cell.qualifier, self.QUALIFIER)
+        self.assertEqual(instance._cell.timestamp_micros, self.TIMESTAMP_MICROS)
+        self.assertEqual(instance._cell.labels, LABELS)
+        self.assertEqual(instance._cell.value, self.VALUE + self.VALUE)
 
-    def test_yield_rows_data(self):
+    def _consume_all(self, instance):
+        return [row.row_key for row in instance]
+
+    def test___iter__(self):
         client = _Client()
 
         chunk = _ReadRowsResponseCellChunkPB(
@@ -676,13 +683,49 @@ class TestPartialRowsData(unittest.TestCase):
 
         request = object()
 
-        yrd = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(client._data_stub.ReadRows, request)
 
-        result = self._consume_all(yrd)[0]
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
-        self.assertEqual(result, self.ROW_KEY)
+    def test___iter___w_cancellation(self):
+        client = _Client()
 
-    def test_yield_retry_rows_data(self):
+        chunk1 = _ReadRowsResponseCellChunkPB(
+            row_key=self.ROW_KEY,
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunk2 = _ReadRowsResponseCellChunkPB(
+            row_key=b"other-row",
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS + 100,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunks = [chunk1, chunk2]
+
+        response = _ReadRowsResponseV2(chunks)
+        iterator = _MockCancellableIterator(response)
+        client._data_stub = mock.MagicMock()
+        client._data_stub.ReadRows.side_effect = [iterator]
+
+        request = object()
+
+        instance = self._make_one(client._data_stub.ReadRows, request)
+
+        result = []
+
+        for row in instance:
+            result.append(row.row_key)
+            instance.cancel()
+
+        self.assertEqual(result, [self.ROW_KEY])
+
+    def test___iter___w_retry(self):
         from google.api_core import retry
 
         client = _Client()
@@ -707,14 +750,9 @@ class TestPartialRowsData(unittest.TestCase):
 
         request = object()
 
-        yrd = self._make_one(client._data_stub.ReadRows, request, retry_read_rows)
+        instance = self._make_one(client._data_stub.ReadRows, request, retry_read_rows)
 
-        result = self._consume_all(yrd)[0]
-
-        self.assertEqual(result, self.ROW_KEY)
-
-    def _consume_all(self, yrd):
-        return [row.row_key for row in yrd]
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
 
 class Test_ReadRowsRequestManager(unittest.TestCase):
