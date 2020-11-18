@@ -179,6 +179,7 @@ class AppProfile(object):
 
     def _update_from_pb(self, app_profile_pb):
         """Refresh self from the server-provided protobuf.
+
         Helper for :meth:`from_pb` and :meth:`reload`.
         """
         self.routing_policy_type = None
@@ -201,6 +202,7 @@ class AppProfile(object):
 
     def _to_pb(self):
         """Create an AppProfile proto buff message for API calls
+
         :rtype: :class:`.instance_pb2.AppProfile`
         :returns: The converted current object.
 

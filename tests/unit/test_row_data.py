@@ -17,36 +17,8 @@ import unittest
 import mock
 
 from google.api_core.exceptions import DeadlineExceeded
-from ._testing import _make_credentials
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
-
-
-class MultiCallableStub(object):
-    """Stub for the grpc.UnaryUnaryMultiCallable interface."""
-
-    def __init__(self, method, channel_stub):
-        self.method = method
-        self.channel_stub = channel_stub
-
-    def __call__(self, request, timeout=None, metadata=None, credentials=None):
-        self.channel_stub.requests.append((self.method, request))
-
-        return self.channel_stub.responses.pop()
-
-
-class ChannelStub(object):
-    """Stub for the grpc.Channel interface."""
-
-    def __init__(self, responses=[]):
-        self.responses = responses
-        self.requests = []
-
-    def unary_unary(self, method, request_serializer=None, response_deserializer=None):
-        return MultiCallableStub(method, self)
-
-    def unary_stream(self, method, request_serializer=None, response_deserializer=None):
-        return MultiCallableStub(method, self)
 
 
 class TestCell(unittest.TestCase):
@@ -364,97 +336,78 @@ class TestPartialRowsData(unittest.TestCase):
 
         return PartialRowsData
 
-    @staticmethod
-    def _get_target_client_class():
-        from google.cloud.bigtable.client import Client
-
-        return Client
-
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
     def test_constructor(self):
         from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        partial_rows_data = self._make_one(client._data_stub.ReadRows, request)
-        self.assertIs(partial_rows_data.request, request)
-        self.assertEqual(partial_rows_data.rows, {})
-        self.assertEqual(partial_rows_data.retry, DEFAULT_RETRY_READ_ROWS)
+
+        instance = self._make_one(read_method, request)
+
+        self.assertIs(instance.read_method, read_method)
+        self.assertIs(instance.request, request)
+        self.assertEqual(instance.rows, {})
+        self.assertIs(instance.retry, DEFAULT_RETRY_READ_ROWS)
+        self.assertEqual(instance.response_iterator, read_method.return_value)
+        self.assertEqual(instance.state, instance.NEW_ROW)
+
+        read_method.assert_called_once_with(
+            request,
+            timeout=DEFAULT_RETRY_READ_ROWS._deadline + 1,
+        )
 
     def test_constructor_with_retry(self):
         from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        retry = DEFAULT_RETRY_READ_ROWS
-        partial_rows_data = self._make_one(client._data_stub.ReadRows, request, retry)
-        partial_rows_data.read_method.assert_called_once_with(
-            request, timeout=DEFAULT_RETRY_READ_ROWS.deadline + 1
-        )
-        self.assertIs(partial_rows_data.request, request)
-        self.assertEqual(partial_rows_data.rows, {})
-        self.assertEqual(partial_rows_data.retry, retry)
+        deadline = 123
+        retry = DEFAULT_RETRY_READ_ROWS.with_deadline(123)
+
+        instance = self._make_one(read_method, request, retry)
+
+        self.assertIs(instance.read_method, read_method)
+        self.assertIs(instance.request, request)
+        self.assertEqual(instance.rows, {})
+        self.assertIs(instance.retry, retry)
+        self.assertEqual(instance.response_iterator, read_method.return_value)
+        self.assertEqual(instance.state, instance.NEW_ROW)
+
+        read_method.assert_called_once_with(request, timeout=deadline + 1)
 
     def test___eq__(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        partial_rows_data1 = self._make_one(client._data_stub.ReadRows, request)
-        partial_rows_data2 = self._make_one(client._data_stub.ReadRows, request)
+        partial_rows_data1 = self._make_one(read_method, request)
+        partial_rows_data2 = self._make_one(read_method, request)
         self.assertEqual(partial_rows_data1.rows, partial_rows_data2.rows)
 
     def test___eq__type_differ(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        partial_rows_data1 = self._make_one(client._data_stub.ReadRows, request)
+        partial_rows_data1 = self._make_one(read_method, request)
         partial_rows_data2 = object()
         self.assertNotEqual(partial_rows_data1, partial_rows_data2)
 
     def test___ne__same_value(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        partial_rows_data1 = self._make_one(client._data_stub.ReadRows, request)
-        partial_rows_data2 = self._make_one(client._data_stub.ReadRows, request)
+        partial_rows_data1 = self._make_one(read_method, request)
+        partial_rows_data2 = self._make_one(read_method, request)
         comparison_val = partial_rows_data1 != partial_rows_data2
         self.assertTrue(comparison_val)
 
     def test___ne__(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        read_method = mock.Mock()
         request = object()
-        partial_rows_data1 = self._make_one(client._data_stub.ReadRows, request)
-        partial_rows_data2 = self._make_one(client._data_stub.ReadRows, request)
+        partial_rows_data1 = self._make_one(read_method, request)
+        partial_rows_data2 = self._make_one(read_method, request)
         self.assertNotEqual(partial_rows_data1, partial_rows_data2)
 
-    def test_rows_getter(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
-        request = object()
-        partial_rows_data = self._make_one(client._data_stub.ReadRows, request)
-        partial_rows_data.rows = value = object()
-        self.assertIs(partial_rows_data.rows, value)
-
-    def _make_client(self, *args, **kwargs):
-        return self._get_target_client_class()(*args, **kwargs)
-
-    def test_state_start(self):
-        client = _Client()
-        iterator = _MockCancellableIterator()
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
-        request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
-        self.assertEqual(instance.state, instance.NEW_ROW)
-
-    def test_state_new_row_w_row(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-
+    def test___iter___new_row_w_row(self):
         chunk = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
             family_name=self.FAMILY_NAME,
@@ -466,32 +419,22 @@ class TestPartialRowsData(unittest.TestCase):
         chunks = [chunk]
 
         response = _ReadRowsResponseV2(chunks)
-        iterator = _MockCancellableIterator(response)
-        channel = ChannelStub(responses=[iterator])
-        data_api = bigtable_client.BigtableClient(channel=channel)
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
+        responses = [response]
+        iterator = iter(responses)
+
+        read_method = mock.Mock(return_value=iterator)
         request = object()
+        instance = self._make_one(read_method, request)
 
-        instance = self._make_one(
-            client._table_data_client.transport.read_rows, request
-        )
-        self.assertEqual(instance.retry._deadline, 60.0)
-
-        instance._response_iterator = iterator
         rows = [row for row in instance]
 
+        self.assertEqual(len(rows), 1)
         result = rows[0]
         self.assertEqual(result.row_key, self.ROW_KEY)
         self.assertEqual(instance._counter, 1)
         self.assertEqual(instance.state, instance.NEW_ROW)
 
-    def test_multiple_chunks(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-
+    def test___iter___w_multiple_chunks(self):
         chunk1 = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
             family_name=self.FAMILY_NAME,
@@ -509,48 +452,44 @@ class TestPartialRowsData(unittest.TestCase):
         chunks = [chunk1, chunk2]
 
         response = _ReadRowsResponseV2(chunks)
-        iterator = _MockCancellableIterator(response)
-        channel = ChannelStub(responses=[iterator])
-        data_api = bigtable_client.BigtableClient(channel=channel)
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
+        responses = [response]
+        iterator = iter(responses)
+
+        read_method = mock.Mock(return_value=iterator)
         request = object()
+        instance = self._make_one(read_method, request)
 
-        instance = self._make_one(
-            client._table_data_client.transport.read_rows, request
-        )
-
-        instance._response_iterator = iterator
         rows = [row for row in instance]
+
+        self.assertEqual(len(rows), 1)
         result = rows[0]
         self.assertEqual(result.row_key, self.ROW_KEY)
         self.assertEqual(instance._counter, 1)
         self.assertEqual(instance.state, instance.NEW_ROW)
 
     def test_cancel(self):
-        client = _Client()
-        response_iterator = _MockCancellableIterator()
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [response_iterator]
+        iterator = _MockCancellableIterator()
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        yield_rows_data = self._make_one(client._data_stub.ReadRows, request)
-        self.assertEqual(response_iterator.cancel_calls, 0)
-        yield_rows_data.cancel()
-        self.assertEqual(response_iterator.cancel_calls, 1)
-        self.assertEqual(list(yield_rows_data), [])
+        instance = self._make_one(read_method, request)
+        self.assertEqual(iterator.cancel_calls, 0)
+
+        instance.cancel()
+
+        self.assertEqual(iterator.cancel_calls, 1)
+        self.assertEqual(list(instance), [])
 
     # 'consume_next' tested via 'TestPartialRowsData_JSON_acceptance_tests'
 
     def test__copy_from_previous_unset(self):
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        iterator = iter([])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
         cell = _PartialCellData()
+
         instance._copy_from_previous(cell)
+
         self.assertEqual(cell.row_key, b"")
         self.assertEqual(cell.family_name, u"")
         self.assertIsNone(cell.qualifier)
@@ -563,10 +502,10 @@ class TestPartialRowsData(unittest.TestCase):
         QUALIFIER = b"C"
         TIMESTAMP_MICROS = 100
         LABELS = ["L1", "L2"]
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        iterator = iter([])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
         cell = _PartialCellData(
             row_key=ROW_KEY,
             family_name=FAMILY_NAME,
@@ -575,7 +514,9 @@ class TestPartialRowsData(unittest.TestCase):
             labels=LABELS,
         )
         instance._previous_cell = _PartialCellData()
+
         instance._copy_from_previous(cell)
+
         self.assertEqual(cell.row_key, ROW_KEY)
         self.assertEqual(cell.family_name, FAMILY_NAME)
         self.assertEqual(cell.qualifier, QUALIFIER)
@@ -588,10 +529,10 @@ class TestPartialRowsData(unittest.TestCase):
         QUALIFIER = b"C"
         TIMESTAMP_MICROS = 100
         LABELS = ["L1", "L2"]
-        client = _Client()
-        client._data_stub = mock.MagicMock()
+        iterator = iter([])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
         instance._previous_cell = _PartialCellData(
             row_key=ROW_KEY,
             family_name=FAMILY_NAME,
@@ -600,7 +541,9 @@ class TestPartialRowsData(unittest.TestCase):
             labels=LABELS,
         )
         cell = _PartialCellData()
+
         instance._copy_from_previous(cell)
+
         self.assertEqual(cell.row_key, ROW_KEY)
         self.assertEqual(cell.family_name, FAMILY_NAME)
         self.assertEqual(cell.qualifier, QUALIFIER)
@@ -608,28 +551,27 @@ class TestPartialRowsData(unittest.TestCase):
         self.assertEqual(cell.labels, [])
 
     def test_valid_last_scanned_row_key_on_start(self):
-        client = _Client()
         response = _ReadRowsResponseV2(chunks=(), last_scanned_row_key="2.AFTER")
-        iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
+        iterator = iter([response])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
         instance.last_scanned_row_key = "1.BEFORE"
+
         self._consume_all(instance)
+
         self.assertEqual(instance.last_scanned_row_key, "2.AFTER")
 
     def test_invalid_empty_chunk(self):
         from google.cloud.bigtable.row_data import InvalidChunk
 
-        client = _Client()
         chunks = _generate_cell_chunks([""])
         response = _ReadRowsResponseV2(chunks)
-        iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
+        iterator = iter([response])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
+
         with self.assertRaises(InvalidChunk):
             self._consume_all(instance)
 
@@ -664,8 +606,6 @@ class TestPartialRowsData(unittest.TestCase):
         return [row.row_key for row in instance]
 
     def test___iter__(self):
-        client = _Client()
-
         chunk = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
             family_name=self.FAMILY_NAME,
@@ -677,19 +617,15 @@ class TestPartialRowsData(unittest.TestCase):
         chunks = [chunk]
 
         response = _ReadRowsResponseV2(chunks)
-        iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
-
+        iterator = iter([response])
+        read_method = mock.Mock(return_value=iterator)
         request = object()
 
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
 
         self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
     def test___iter___w_cancellation(self):
-        client = _Client()
-
         chunk1 = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
             family_name=self.FAMILY_NAME,
@@ -710,12 +646,10 @@ class TestPartialRowsData(unittest.TestCase):
 
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
-
+        read_method = mock.Mock(return_value=iterator)
         request = object()
 
-        instance = self._make_one(client._data_stub.ReadRows, request)
+        instance = self._make_one(read_method, request)
 
         result = []
 
@@ -728,8 +662,6 @@ class TestPartialRowsData(unittest.TestCase):
     def test___iter___w_retry(self):
         from google.api_core import retry
 
-        client = _Client()
-
         retry_read_rows = retry.Retry(predicate=_read_rows_retry_exception)
 
         chunk = _ReadRowsResponseCellChunkPB(
@@ -741,16 +673,15 @@ class TestPartialRowsData(unittest.TestCase):
             commit_row=True,
         )
         chunks = [chunk]
-
         response = _ReadRowsResponseV2(chunks)
-        failure_iterator = _MockFailureIterator_1()
-        iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [failure_iterator, iterator]
 
+        failed_iterator = _MockFailureIterator_1()
+        iterator = _MockCancellableIterator(response)
+
+        read_method = mock.Mock(side_effect=[failed_iterator, iterator])
         request = object()
 
-        instance = self._make_one(client._data_stub.ReadRows, request, retry_read_rows)
+        instance = self._make_one(read_method, request, retry_read_rows)
 
         self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
@@ -1023,16 +954,16 @@ class TestPartialRowsData_JSON_acceptance_tests(unittest.TestCase):
     def _fail_during_consume(self, testcase_name):
         from google.cloud.bigtable.row_data import InvalidChunk
 
-        client = _Client()
         chunks, results = self._load_json_test(testcase_name)
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        prd = self._make_one(client._data_stub.ReadRows, request)
+        prd = self._make_one(read_method, request)
+
         with self.assertRaises(InvalidChunk):
             prd.consume_all()
+
         expected_result = self._sort_flattend_cells(
             [result for result in results if not result["error"]]
         )
@@ -1084,14 +1015,12 @@ class TestPartialRowsData_JSON_acceptance_tests(unittest.TestCase):
         return sorted(flattened, key=key_func)
 
     def _incomplete_final_row(self, testcase_name):
-        client = _Client()
         chunks, results = self._load_json_test(testcase_name)
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        prd = self._make_one(client._data_stub.ReadRows, request)
+        prd = self._make_one(read_method, request)
         with self.assertRaises(ValueError):
             prd.consume_all()
         self.assertEqual(prd.state, prd.ROW_IN_PROGRESS)
@@ -1112,14 +1041,12 @@ class TestPartialRowsData_JSON_acceptance_tests(unittest.TestCase):
     _marker = object()
 
     def _match_results(self, testcase_name, expected_result=_marker):
-        client = _Client()
         chunks, results = self._load_json_test(testcase_name)
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        client._data_stub = mock.MagicMock()
-        client._data_stub.ReadRows.side_effect = [iterator]
+        read_method = mock.Mock(return_value=iterator)
         request = object()
-        prd = self._make_one(client._data_stub.ReadRows, request)
+        prd = self._make_one(read_method, request)
         prd.consume_all()
         flattened = self._sort_flattend_cells(_flatten_cells(prd))
         if expected_result is self._marker:

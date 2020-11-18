@@ -147,6 +147,19 @@ class Cluster(object):
         self.default_storage_type = cluster_pb.default_storage_type
         self._state = cluster_pb.state
 
+    def _to_pb(self):
+        """ Create cluster proto buff message for API calls """
+        client = self._instance._client
+        location = client.instance_admin_client.location_path(
+            client.project, self.location_id
+        )
+        cluster_pb = instance_pb2.Cluster(
+            location=location,
+            serve_nodes=self.serve_nodes,
+            default_storage_type=self.default_storage_type,
+        )
+        return cluster_pb
+
     @property
     def name(self):
         """Cluster name used in requests.
@@ -334,16 +347,3 @@ class Cluster(object):
         """
         client = self._instance._client
         client.instance_admin_client.delete_cluster(self.name)
-
-    def _to_pb(self):
-        """ Create cluster proto buff message for API calls """
-        client = self._instance._client
-        location = client.instance_admin_client.location_path(
-            client.project, self.location_id
-        )
-        cluster_pb = instance_pb2.Cluster(
-            location=location,
-            serve_nodes=self.serve_nodes,
-            default_storage_type=self.default_storage_type,
-        )
-        return cluster_pb
