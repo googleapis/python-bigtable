@@ -219,35 +219,65 @@ class TestTable(unittest.TestCase):
         return table, row_key
 
     def test_row_factory_direct(self):
+        import warnings
         from google.cloud.bigtable.row import DirectRow
 
         table, row_key = self._row_methods_helper()
-        row = table.row(row_key)
+
+        with warnings.catch_warnings(record=True) as warned:
+            row = table.row(row_key)
 
         self.assertIsInstance(row, DirectRow)
         self.assertEqual(row._row_key, row_key)
         self.assertEqual(row._table, table)
 
+        self.assertEqual(len(warned), 1)
+        self.assertIs(warned[0].category, DeprecationWarning)
+
     def test_row_factory_conditional(self):
+        import warnings
         from google.cloud.bigtable.row import ConditionalRow
 
         table, row_key = self._row_methods_helper()
         filter_ = object()
-        row = table.row(row_key, filter_=filter_)
+
+        with warnings.catch_warnings(record=True) as warned:
+            row = table.row(row_key, filter_=filter_)
 
         self.assertIsInstance(row, ConditionalRow)
         self.assertEqual(row._row_key, row_key)
         self.assertEqual(row._table, table)
 
+        self.assertEqual(len(warned), 1)
+        self.assertIs(warned[0].category, DeprecationWarning)
+
     def test_row_factory_append(self):
+        import warnings
         from google.cloud.bigtable.row import AppendRow
 
         table, row_key = self._row_methods_helper()
-        row = table.row(row_key, append=True)
+
+        with warnings.catch_warnings(record=True) as warned:
+            row = table.row(row_key, append=True)
 
         self.assertIsInstance(row, AppendRow)
         self.assertEqual(row._row_key, row_key)
         self.assertEqual(row._table, table)
+
+        self.assertEqual(len(warned), 1)
+        self.assertIs(warned[0].category, DeprecationWarning)
+
+    def test_row_factory_failure(self):
+        import warnings
+
+        table, row_key = self._row_methods_helper()
+
+        with warnings.catch_warnings(record=True) as warned:
+            with self.assertRaises(ValueError):
+                table.row(row_key, filter_=object(), append=True)
+
+        self.assertEqual(len(warned), 1)
+        self.assertIs(warned[0].category, DeprecationWarning)
 
     def test_direct_row(self):
         from google.cloud.bigtable.row import DirectRow
@@ -279,11 +309,6 @@ class TestTable(unittest.TestCase):
         self.assertIsInstance(row, AppendRow)
         self.assertEqual(row._row_key, row_key)
         self.assertEqual(row._table, table)
-
-    def test_row_factory_failure(self):
-        table, row_key = self._row_methods_helper()
-        with self.assertRaises(ValueError):
-            table.row(row_key, filter_=object(), append=True)
 
     def test___eq__(self):
         credentials = _make_credentials()
@@ -1200,8 +1225,8 @@ class TestTable(unittest.TestCase):
 
         iam_policy = Policy(etag=etag, version=version)
         iam_policy[BIGTABLE_ADMIN_ROLE] = [
-            Policy.user("user1@test.com"),
-            Policy.service_account("service_acc1@test.com"),
+            "user:user1@test.com",
+            "serviceAccount:service_acc1@test.com",
         ]
 
         result = table.set_iam_policy(iam_policy)

@@ -703,8 +703,8 @@ class TestInstance(unittest.TestCase):
         # Perform the method and check the result.
         iam_policy = Policy(etag=etag, version=version)
         iam_policy[BIGTABLE_ADMIN_ROLE] = [
-            Policy.user("user1@test.com"),
-            Policy.service_account("service_acc1@test.com"),
+            "user:user1@test.com",
+            "serviceAccount:service_acc1@test.com",
         ]
 
         result = instance.set_iam_policy(iam_policy)

@@ -14,6 +14,8 @@
 
 """User-friendly container for Google Cloud Bigtable Table."""
 
+import warnings
+
 from google.api_core import timeout
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
@@ -24,6 +26,7 @@ from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes
+
 from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
@@ -47,7 +50,6 @@ from google.cloud.bigtable_admin_v2.proto import (
     bigtable_table_admin_pb2 as table_admin_messages_v2_pb2,
 )
 
-import warnings
 
 # Maximum number of mutations in bulk (MutateRowsRequest message):
 # (https://cloud.google.com/bigtable/docs/reference/data/rpc/
@@ -272,7 +274,7 @@ class Table(object):
             "This method will be deprecated in future versions. Please "
             "use Table.append_row(), Table.conditional_row() "
             "and Table.direct_row() methods instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
