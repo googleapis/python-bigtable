@@ -1599,7 +1599,7 @@ class BigtableInstanceAdminClient(object):
     def delete_app_profile(
         self,
         name,
-        ignore_warnings=None,
+        ignore_warnings,
         retry=google.api_core.gapic_v1.method.DEFAULT,
         timeout=google.api_core.gapic_v1.method.DEFAULT,
         metadata=None,
@@ -1614,13 +1614,16 @@ class BigtableInstanceAdminClient(object):
             >>>
             >>> name = client.app_profile_path('[PROJECT]', '[INSTANCE]', '[APP_PROFILE]')
             >>>
-            >>> client.delete_app_profile(name)
+            >>> # TODO: Initialize `ignore_warnings`:
+            >>> ignore_warnings = False
+            >>>
+            >>> client.delete_app_profile(name, ignore_warnings)
 
         Args:
             name (str): Required. The unique name of the app profile to be deleted. Values
                 are of the form
                 ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
-            ignore_warnings (bool): If true, ignore safety checks when deleting the app profile.
+            ignore_warnings (bool): Required. If true, ignore safety checks when deleting the app profile.
             retry (Optional[google.api_core.retry.Retry]):  A retry object used
                 to retry requests. If ``None`` is specified, requests will
                 be retried using a default configuration.

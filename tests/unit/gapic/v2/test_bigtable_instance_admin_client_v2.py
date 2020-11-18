@@ -774,12 +774,13 @@ class TestBigtableInstanceAdminClient(object):
 
         # Setup Request
         name = client.app_profile_path("[PROJECT]", "[INSTANCE]", "[APP_PROFILE]")
+        ignore_warnings = True
 
-        client.delete_app_profile(name)
+        client.delete_app_profile(name, ignore_warnings)
 
         assert len(channel.requests) == 1
         expected_request = bigtable_instance_admin_pb2.DeleteAppProfileRequest(
-            name=name
+            name=name, ignore_warnings=ignore_warnings
         )
         actual_request = channel.requests[0][1]
         assert expected_request == actual_request
@@ -794,9 +795,10 @@ class TestBigtableInstanceAdminClient(object):
 
         # Setup request
         name = client.app_profile_path("[PROJECT]", "[INSTANCE]", "[APP_PROFILE]")
+        ignore_warnings = True
 
         with pytest.raises(CustomException):
-            client.delete_app_profile(name)
+            client.delete_app_profile(name, ignore_warnings)
 
     def test_get_iam_policy(self):
         # Setup Expected Response
