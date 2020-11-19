@@ -30,8 +30,10 @@ from google.cloud._helpers import _to_bytes
 from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
+from google.cloud.bigtable.batcher import FLUSH_COUNT
+from google.cloud.bigtable.batcher import MAX_ROW_BYTES
 from google.cloud.bigtable.batcher import MutationsBatcher
-from google.cloud.bigtable.batcher import FLUSH_COUNT, MAX_ROW_BYTES
+from google.cloud.bigtable import enums
 from google.cloud.bigtable.policy import Policy
 from google.cloud.bigtable.row import AppendRow
 from google.cloud.bigtable.row import ConditionalRow
@@ -40,15 +42,12 @@ from google.cloud.bigtable.row_data import PartialRowsData
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
-from google.cloud.bigtable import enums
-from google.cloud.bigtable_v2.proto import bigtable_pb2 as data_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.gapic.bigtable_table_admin_client import (
-    BigtableTableAdminClient,
+from google.cloud.bigtable_v2.proto import bigtable_pb2
+from google.cloud.bigtable_admin_v2.gapic import (
+    bigtable_table_admin_client as admin_client,
 )
-from google.cloud.bigtable_admin_v2.proto import table_pb2 as admin_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.proto import (
-    bigtable_table_admin_pb2 as table_admin_messages_v2_pb2,
-)
+from google.cloud.bigtable_admin_v2.proto import table_pb2
+from google.cloud.bigtable_admin_v2.proto import bigtable_table_admin_pb2
 
 
 # Maximum number of mutations in bulk (MutateRowsRequest message):
@@ -385,9 +384,9 @@ class Table(object):
             id: ColumnFamily(id, self, rule).to_pb()
             for (id, rule) in column_families.items()
         }
-        table = admin_messages_v2_pb2.Table(column_families=families)
+        table = table_pb2.Table(column_families=families)
 
-        split = table_admin_messages_v2_pb2.CreateTableRequest.Split
+        split = bigtable_table_admin_pb2.CreateTableRequest.Split
         splits = [split(key=_to_bytes(key)) for key in initial_split_keys]
 
         table_client.create_table(
@@ -921,7 +920,7 @@ class Table(object):
         if filter_:
             backups_filter = "({}) AND ({})".format(backups_filter, filter_)
 
-        parent = BigtableTableAdminClient.cluster_path(
+        parent = admin_client.BigtableTableAdminClient.cluster_path(
             project=self._instance._client.project,
             instance=self._instance.instance_id,
             cluster=cluster_id,
@@ -978,7 +977,7 @@ class Table(object):
         """
         api = self._instance._client.table_admin_client
         if not backup_name:
-            backup_name = BigtableTableAdminClient.backup_path(
+            backup_name = admin_client.BigtableTableAdminClient.backup_path(
                 project=self._instance._client.project,
                 instance=self._instance.instance_id,
                 cluster=cluster_id,
@@ -1233,7 +1232,7 @@ def _create_row_request(
     :param row_set: (Optional) The row set containing multiple row keys and
                     row_ranges.
 
-    :rtype: :class:`data_messages_v2_pb2.ReadRowsRequest`
+    :rtype: :class:`bigtable_pb2.ReadRowsRequest`
     :returns: The ``ReadRowsRequest`` protobuf corresponding to the inputs.
     :raises: :class:`ValueError <exceptions.ValueError>` if both
              ``row_set`` and one of ``start_key`` or ``end_key`` are set
@@ -1249,7 +1248,7 @@ def _create_row_request(
     if app_profile_id is not None:
         request_kwargs["app_profile_id"] = app_profile_id
 
-    message = data_messages_v2_pb2.ReadRowsRequest(**request_kwargs)
+    message = bigtable_pb2.ReadRowsRequest(**request_kwargs)
 
     if start_key is not None or end_key is not None:
         row_set = RowSet()
@@ -1270,7 +1269,7 @@ def _compile_mutation_entries(table_name, rows):
     :type rows: list
     :param rows: List or other iterable of :class:`.DirectRow` instances.
 
-    :rtype: List[:class:`data_messages_v2_pb2.MutateRowsRequest.Entry`]
+    :rtype: List[:class:`bigtable_pb2.MutateRowsRequest.Entry`]
     :returns: entries corresponding to the inputs.
     :raises: :exc:`~.table.TooManyMutationsError` if the number of mutations is
              greater than the max ({})
@@ -1279,7 +1278,7 @@ def _compile_mutation_entries(table_name, rows):
     )
     entries = []
     mutations_count = 0
-    entry_klass = data_messages_v2_pb2.MutateRowsRequest.Entry
+    entry_klass = bigtable_pb2.MutateRowsRequest.Entry
 
     for row in rows:
         _check_row_table_name(table_name, row)
