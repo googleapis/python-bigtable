@@ -359,6 +359,179 @@ class Table(object):
         table_client = self._instance._client.table_admin_client
         table_client.delete_table(name=self.name)
 
+    def backup(self, backup_id, cluster_id=None, expire_time=None):
+        """Factory to create a Backup linked to this Table.
+
+        :type backup_id: str
+        :param backup_id: The ID of the Backup to be created.
+
+        :type cluster_id: str
+        :param cluster_id: (Optional) The ID of the Cluster. Required for
+                           calling 'delete', 'exists' etc. methods.
+
+        :type expire_time: :class:`datetime.datetime`
+        :param expire_time: (Optional) The expiration time of this new Backup.
+            Required, if the `create` method needs to be called.
+        """
+        return Backup(
+            backup_id,
+            self._instance,
+            cluster_id=cluster_id,
+            table_id=self.table_id,
+            expire_time=expire_time,
+        )
+
+    def list_backups(self, cluster_id=None, filter_=None, order_by=None, page_size=0):
+        """List Backups for this Table.
+
+        :type cluster_id: str
+        :param cluster_id: (Optional) Specifies a single cluster to list
+                           Backups from. If none is specified, the returned list
+                           contains all the Backups in this Instance.
+
+        :type filter_: str
+        :param filter_: (Optional) A filter expression that filters backups
+                        listed in the response. The expression must specify
+                        the field name, a comparison operator, and the value
+                        that you want to use for filtering. The value must be
+                        a string, a number, or a boolean. The comparison
+                        operator must be <, >, <=, >=, !=, =, or :. Colon ':'
+                        represents a HAS operator which is roughly synonymous
+                        with equality. Filter rules are case insensitive.
+
+                        The fields eligible for filtering are:
+
+                -  ``name``
+                -  ``source_table``
+                -  ``state``
+                -  ``start_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``end_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``expire_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
+                -  ``size_bytes``
+
+                        To filter on multiple expressions, provide each
+                        separate expression within parentheses. By default,
+                        each expression is an AND expression. However, you can
+                        include AND, OR, and NOT expressions explicitly.
+
+                        Some examples of using filters are:
+
+                -  ``name:"exact"`` --> The Backup name is the string "exact".
+                -  ``name:howl`` --> The Backup name contains the string "howl"
+                -  ``source_table:prod`` --> The source table's name contains
+                        the string "prod".
+                -  ``state:CREATING`` --> The Backup is pending creation.
+                -  ``state:READY`` --> The Backup is created and ready for use.
+                -  ``(name:howl) AND (start_time < \"2020-05-28T14:50:00Z\")``
+                        --> The Backup name contains the string "howl" and
+                        the Backup start time is before 2020-05-28T14:50:00Z.
+                -  ``size_bytes > 10000000000`` --> The Backup size is greater
+                        than 10GB
+
+        :type order_by: str
+        :param order_by: (Optional) An expression for specifying the sort order
+                         of the results of the request. The string value should
+                         specify one or more fields in ``Backup``. The full
+                         syntax is described at https://aip.dev/132#ordering.
+
+                         Fields supported are: \\* name \\* source_table \\*
+                         expire_time \\* start_time \\* end_time \\*
+                         size_bytes \\* state
+
+                         For example, "start_time". The default sorting order
+                         is ascending. To specify descending order for the
+                         field, a suffix " desc" should be appended to the
+                         field name. For example, "start_time desc". Redundant
+                         space characters in the syntax are insigificant. If
+                         order_by is empty, results will be sorted by
+                         ``start_time`` in descending order starting from
+                         the most recently created backup.
+
+        :type page_size: int
+        :param page_size: (Optional) The maximum number of resources contained
+                          in the underlying API response. If page streaming is
+                          performed per-resource, this parameter does not
+                          affect the return value. If page streaming is
+                          performed per-page, this determines the maximum
+                          number of resources in a page.
+
+        :rtype: :class:`~google.api_core.page_iterator.Iterator`
+        :returns: Iterator of :class:`~google.cloud.bigtable.backup.Backup`
+                  resources within the current Instance.
+        :raises: :class:`ValueError <exceptions.ValueError>` if one of the
+                 returned Backups' name is not of the expected format.
+        """
+        cluster_id = cluster_id or "-"
+
+        backups_filter = "source_table:{}".format(self.name)
+        if filter_:
+            backups_filter = "({}) AND ({})".format(backups_filter, filter_)
+
+        parent = admin_client.BigtableTableAdminClient.cluster_path(
+            project=self._instance._client.project,
+            instance=self._instance.instance_id,
+            cluster=cluster_id,
+        )
+        client = self._instance._client.table_admin_client
+        backup_list_pb = client.list_backups(
+            parent=parent,
+            filter_=backups_filter,
+            order_by=order_by,
+            page_size=page_size,
+        )
+
+        result = []
+        for backup_pb in backup_list_pb:
+            result.append(Backup.from_pb(backup_pb, self._instance))
+
+        return result
+
+    def restore(self, new_table_id, cluster_id=None, backup_id=None, backup_name=None):
+        """Creates a new Table by restoring from the Backup specified by either
+        `backup_id` or `backup_name`. The returned ``long-running operation``
+        can be used to track the progress of the operation and to cancel it.
+        The ``response`` type is ``Table``, if successful.
+
+        :type new_table_id: str
+        :param new_table_id: The ID of the Table to create and restore to.
+                         This Table must not already exist.
+
+        :type cluster_id: str
+        :param cluster_id: The ID of the Cluster containing the Backup.
+                           This parameter gets overriden by `backup_name`, if
+                           the latter is provided.
+
+        :type backup_id: str
+        :param backup_id: The ID of the Backup to restore the Table from.
+                          This parameter gets overriden by `backup_name`, if
+                          the latter is provided.
+
+        :type backup_name: str
+        :param backup_name: (Optional) The full name of the Backup to restore
+                            from. If specified, it overrides the `cluster_id`
+                            and `backup_id` parameters even of such specified.
+
+        :return: An instance of
+             :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
+
+        :raises: google.api_core.exceptions.AlreadyExists: If the table
+                 already exists.
+        :raises: google.api_core.exceptions.GoogleAPICallError: If the request
+                 failed for any reason.
+        :raises: google.api_core.exceptions.RetryError: If the request failed
+                 due to a retryable error and retry attempts failed.
+        :raises: ValueError: If the parameters are invalid.
+        """
+        api = self._instance._client.table_admin_client
+        if not backup_name:
+            backup_name = admin_client.BigtableTableAdminClient.backup_path(
+                project=self._instance._client.project,
+                instance=self._instance.instance_id,
+                cluster=cluster_id,
+                backup=backup_id,
+            )
+        return api.restore_table(self._instance.name, new_table_id, backup_name)
+
     def get_iam_policy(self):
         """Gets the IAM access control policy for this table.
 
@@ -375,6 +548,125 @@ class Table(object):
         table_client = self._instance._client.table_admin_client
         resp = table_client.get_iam_policy(resource=self.name)
         return Policy.from_pb(resp)
+
+    def truncate(self, timeout=None):
+        """Truncate the table
+
+        For example:
+
+        .. literalinclude:: snippets_table.py
+            :start-after: [START bigtable_truncate_table]
+            :end-before: [END bigtable_truncate_table]
+            :dedent: 4
+
+        :type timeout: float
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+                        for the request to complete.
+
+        :raise: google.api_core.exceptions.GoogleAPICallError: If the
+                request failed for any reason.
+                google.api_core.exceptions.RetryError: If the request failed
+                due to a retryable error and retry attempts failed.
+                ValueError: If the parameters are invalid.
+        """
+        client = self._instance._client
+        table_admin_client = client.table_admin_client
+        if timeout:
+            table_admin_client.drop_row_range(
+                self.name, delete_all_data_from_table=True, timeout=timeout
+            )
+        else:
+            table_admin_client.drop_row_range(
+                self.name, delete_all_data_from_table=True
+            )
+
+    def drop_by_prefix(self, row_key_prefix, timeout=None):
+        """
+
+        For example:
+
+        .. literalinclude:: snippets_table.py
+            :start-after: [START bigtable_drop_by_prefix]
+            :end-before: [END bigtable_drop_by_prefix]
+            :dedent: 4
+
+        :type row_key_prefix: bytes
+        :param row_key_prefix: Delete all rows that start with this row key
+                            prefix. Prefix cannot be zero length.
+
+        :type timeout: float
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+                        for the request to complete.
+
+        :raise: google.api_core.exceptions.GoogleAPICallError: If the
+                request failed for any reason.
+                google.api_core.exceptions.RetryError: If the request failed
+                due to a retryable error and retry attempts failed.
+                ValueError: If the parameters are invalid.
+        """
+        client = self._instance._client
+        table_admin_client = client.table_admin_client
+        if timeout:
+            table_admin_client.drop_row_range(
+                self.name, row_key_prefix=_to_bytes(row_key_prefix), timeout=timeout
+            )
+        else:
+            table_admin_client.drop_row_range(
+                self.name, row_key_prefix=_to_bytes(row_key_prefix)
+            )
+
+    def list_column_families(self):
+        """List the column families owned by this table.
+
+        For example:
+
+        .. literalinclude:: snippets_table.py
+            :start-after: [START bigtable_list_column_families]
+            :end-before: [END bigtable_list_column_families]
+            :dedent: 4
+
+        :rtype: dict
+        :returns: Dictionary of column families attached to this table. Keys
+                  are strings (column family names) and values are
+                  :class:`.ColumnFamily` instances.
+        :raises: :class:`ValueError <exceptions.ValueError>` if the column
+                 family name from the response does not agree with the computed
+                 name from the column family ID.
+        """
+        table_client = self._instance._client.table_admin_client
+        table_pb = table_client.get_table(self.name)
+
+        result = {}
+        for column_family_id, value_pb in table_pb.column_families.items():
+            gc_rule = _gc_rule_from_pb(value_pb.gc_rule)
+            column_family = self.column_family(column_family_id, gc_rule=gc_rule)
+            result[column_family_id] = column_family
+        return result
+
+    def get_cluster_states(self):
+        """List the cluster states owned by this table.
+
+        For example:
+
+        .. literalinclude:: snippets_table.py
+            :start-after: [START bigtable_get_cluster_states]
+            :end-before: [END bigtable_get_cluster_states]
+            :dedent: 4
+
+        :rtype: dict
+        :returns: Dictionary of cluster states for this table.
+                  Keys are cluster ids and values are
+                  :class: 'ClusterState' instances.
+        """
+
+        REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
+        table_client = self._instance._client.table_admin_client
+        table_pb = table_client.get_table(self.name, view=REPLICATION_VIEW)
+
+        return {
+            cluster_id: ClusterState(value_pb.replication_state)
+            for cluster_id, value_pb in table_pb.cluster_states.items()
+        }
 
     def set_iam_policy(self, policy):
         """Sets the IAM access control policy for this table. Replaces any
@@ -429,59 +721,6 @@ class Table(object):
             resource=self.name, permissions=permissions
         )
         return list(resp.permissions)
-
-    def list_column_families(self):
-        """List the column families owned by this table.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_list_column_families]
-            :end-before: [END bigtable_list_column_families]
-            :dedent: 4
-
-        :rtype: dict
-        :returns: Dictionary of column families attached to this table. Keys
-                  are strings (column family names) and values are
-                  :class:`.ColumnFamily` instances.
-        :raises: :class:`ValueError <exceptions.ValueError>` if the column
-                 family name from the response does not agree with the computed
-                 name from the column family ID.
-        """
-        table_client = self._instance._client.table_admin_client
-        table_pb = table_client.get_table(self.name)
-
-        result = {}
-        for column_family_id, value_pb in table_pb.column_families.items():
-            gc_rule = _gc_rule_from_pb(value_pb.gc_rule)
-            column_family = self.column_family(column_family_id, gc_rule=gc_rule)
-            result[column_family_id] = column_family
-        return result
-
-    def get_cluster_states(self):
-        """List the cluster states owned by this table.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_get_cluster_states]
-            :end-before: [END bigtable_get_cluster_states]
-            :dedent: 4
-
-        :rtype: dict
-        :returns: Dictionary of cluster states for this table.
-                  Keys are cluster ids and values are
-                  :class: 'ClusterState' instances.
-        """
-
-        REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
-        table_client = self._instance._client.table_admin_client
-        table_pb = table_client.get_table(self.name, view=REPLICATION_VIEW)
-
-        return {
-            cluster_id: ClusterState(value_pb.replication_state)
-            for cluster_id, value_pb in table_pb.cluster_states.items()
-        }
 
     def read_row(self, row_key, filter_=None):
         """Read a single row from this table.
@@ -723,72 +962,6 @@ class Table(object):
 
         return response_iterator
 
-    def truncate(self, timeout=None):
-        """Truncate the table
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_truncate_table]
-            :end-before: [END bigtable_truncate_table]
-            :dedent: 4
-
-        :type timeout: float
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-                        for the request to complete.
-
-        :raise: google.api_core.exceptions.GoogleAPICallError: If the
-                request failed for any reason.
-                google.api_core.exceptions.RetryError: If the request failed
-                due to a retryable error and retry attempts failed.
-                ValueError: If the parameters are invalid.
-        """
-        client = self._instance._client
-        table_admin_client = client.table_admin_client
-        if timeout:
-            table_admin_client.drop_row_range(
-                self.name, delete_all_data_from_table=True, timeout=timeout
-            )
-        else:
-            table_admin_client.drop_row_range(
-                self.name, delete_all_data_from_table=True
-            )
-
-    def drop_by_prefix(self, row_key_prefix, timeout=None):
-        """
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_drop_by_prefix]
-            :end-before: [END bigtable_drop_by_prefix]
-            :dedent: 4
-
-        :type row_key_prefix: bytes
-        :param row_key_prefix: Delete all rows that start with this row key
-                            prefix. Prefix cannot be zero length.
-
-        :type timeout: float
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-                        for the request to complete.
-
-        :raise: google.api_core.exceptions.GoogleAPICallError: If the
-                request failed for any reason.
-                google.api_core.exceptions.RetryError: If the request failed
-                due to a retryable error and retry attempts failed.
-                ValueError: If the parameters are invalid.
-        """
-        client = self._instance._client
-        table_admin_client = client.table_admin_client
-        if timeout:
-            table_admin_client.drop_row_range(
-                self.name, row_key_prefix=_to_bytes(row_key_prefix), timeout=timeout
-            )
-        else:
-            table_admin_client.drop_row_range(
-                self.name, row_key_prefix=_to_bytes(row_key_prefix)
-            )
-
     def mutations_batcher(self, flush_count=FLUSH_COUNT, max_row_bytes=MAX_ROW_BYTES):
         """Factory to create a mutation batcher associated with this instance.
 
@@ -812,179 +985,6 @@ class Table(object):
                 Default is MAX_ROW_BYTES (5 MB).
         """
         return MutationsBatcher(self, flush_count, max_row_bytes)
-
-    def backup(self, backup_id, cluster_id=None, expire_time=None):
-        """Factory to create a Backup linked to this Table.
-
-        :type backup_id: str
-        :param backup_id: The ID of the Backup to be created.
-
-        :type cluster_id: str
-        :param cluster_id: (Optional) The ID of the Cluster. Required for
-                           calling 'delete', 'exists' etc. methods.
-
-        :type expire_time: :class:`datetime.datetime`
-        :param expire_time: (Optional) The expiration time of this new Backup.
-            Required, if the `create` method needs to be called.
-        """
-        return Backup(
-            backup_id,
-            self._instance,
-            cluster_id=cluster_id,
-            table_id=self.table_id,
-            expire_time=expire_time,
-        )
-
-    def list_backups(self, cluster_id=None, filter_=None, order_by=None, page_size=0):
-        """List Backups for this Table.
-
-        :type cluster_id: str
-        :param cluster_id: (Optional) Specifies a single cluster to list
-                           Backups from. If none is specified, the returned list
-                           contains all the Backups in this Instance.
-
-        :type filter_: str
-        :param filter_: (Optional) A filter expression that filters backups
-                        listed in the response. The expression must specify
-                        the field name, a comparison operator, and the value
-                        that you want to use for filtering. The value must be
-                        a string, a number, or a boolean. The comparison
-                        operator must be <, >, <=, >=, !=, =, or :. Colon ':'
-                        represents a HAS operator which is roughly synonymous
-                        with equality. Filter rules are case insensitive.
-
-                        The fields eligible for filtering are:
-
-                -  ``name``
-                -  ``source_table``
-                -  ``state``
-                -  ``start_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
-                -  ``end_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
-                -  ``expire_time`` (values of the format YYYY-MM-DDTHH:MM:SSZ)
-                -  ``size_bytes``
-
-                        To filter on multiple expressions, provide each
-                        separate expression within parentheses. By default,
-                        each expression is an AND expression. However, you can
-                        include AND, OR, and NOT expressions explicitly.
-
-                        Some examples of using filters are:
-
-                -  ``name:"exact"`` --> The Backup name is the string "exact".
-                -  ``name:howl`` --> The Backup name contains the string "howl"
-                -  ``source_table:prod`` --> The source table's name contains
-                        the string "prod".
-                -  ``state:CREATING`` --> The Backup is pending creation.
-                -  ``state:READY`` --> The Backup is created and ready for use.
-                -  ``(name:howl) AND (start_time < \"2020-05-28T14:50:00Z\")``
-                        --> The Backup name contains the string "howl" and
-                        the Backup start time is before 2020-05-28T14:50:00Z.
-                -  ``size_bytes > 10000000000`` --> The Backup size is greater
-                        than 10GB
-
-        :type order_by: str
-        :param order_by: (Optional) An expression for specifying the sort order
-                         of the results of the request. The string value should
-                         specify one or more fields in ``Backup``. The full
-                         syntax is described at https://aip.dev/132#ordering.
-
-                         Fields supported are: \\* name \\* source_table \\*
-                         expire_time \\* start_time \\* end_time \\*
-                         size_bytes \\* state
-
-                         For example, "start_time". The default sorting order
-                         is ascending. To specify descending order for the
-                         field, a suffix " desc" should be appended to the
-                         field name. For example, "start_time desc". Redundant
-                         space characters in the syntax are insigificant. If
-                         order_by is empty, results will be sorted by
-                         ``start_time`` in descending order starting from
-                         the most recently created backup.
-
-        :type page_size: int
-        :param page_size: (Optional) The maximum number of resources contained
-                          in the underlying API response. If page streaming is
-                          performed per-resource, this parameter does not
-                          affect the return value. If page streaming is
-                          performed per-page, this determines the maximum
-                          number of resources in a page.
-
-        :rtype: :class:`~google.api_core.page_iterator.Iterator`
-        :returns: Iterator of :class:`~google.cloud.bigtable.backup.Backup`
-                  resources within the current Instance.
-        :raises: :class:`ValueError <exceptions.ValueError>` if one of the
-                 returned Backups' name is not of the expected format.
-        """
-        cluster_id = cluster_id or "-"
-
-        backups_filter = "source_table:{}".format(self.name)
-        if filter_:
-            backups_filter = "({}) AND ({})".format(backups_filter, filter_)
-
-        parent = admin_client.BigtableTableAdminClient.cluster_path(
-            project=self._instance._client.project,
-            instance=self._instance.instance_id,
-            cluster=cluster_id,
-        )
-        client = self._instance._client.table_admin_client
-        backup_list_pb = client.list_backups(
-            parent=parent,
-            filter_=backups_filter,
-            order_by=order_by,
-            page_size=page_size,
-        )
-
-        result = []
-        for backup_pb in backup_list_pb:
-            result.append(Backup.from_pb(backup_pb, self._instance))
-
-        return result
-
-    def restore(self, new_table_id, cluster_id=None, backup_id=None, backup_name=None):
-        """Creates a new Table by restoring from the Backup specified by either
-        `backup_id` or `backup_name`. The returned ``long-running operation``
-        can be used to track the progress of the operation and to cancel it.
-        The ``response`` type is ``Table``, if successful.
-
-        :type new_table_id: str
-        :param new_table_id: The ID of the Table to create and restore to.
-                         This Table must not already exist.
-
-        :type cluster_id: str
-        :param cluster_id: The ID of the Cluster containing the Backup.
-                           This parameter gets overriden by `backup_name`, if
-                           the latter is provided.
-
-        :type backup_id: str
-        :param backup_id: The ID of the Backup to restore the Table from.
-                          This parameter gets overriden by `backup_name`, if
-                          the latter is provided.
-
-        :type backup_name: str
-        :param backup_name: (Optional) The full name of the Backup to restore
-                            from. If specified, it overrides the `cluster_id`
-                            and `backup_id` parameters even of such specified.
-
-        :return: An instance of
-             :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
-
-        :raises: google.api_core.exceptions.AlreadyExists: If the table
-                 already exists.
-        :raises: google.api_core.exceptions.GoogleAPICallError: If the request
-                 failed for any reason.
-        :raises: google.api_core.exceptions.RetryError: If the request failed
-                 due to a retryable error and retry attempts failed.
-        :raises: ValueError: If the parameters are invalid.
-        """
-        api = self._instance._client.table_admin_client
-        if not backup_name:
-            backup_name = admin_client.BigtableTableAdminClient.backup_path(
-                project=self._instance._client.project,
-                instance=self._instance.instance_id,
-                cluster=cluster_id,
-                backup=backup_id,
-            )
-        return api.restore_table(self._instance.name, new_table_id, backup_name)
 
 
 class _RetryableMutateRowsWorker(object):
