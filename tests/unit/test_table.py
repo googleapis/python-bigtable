@@ -139,6 +139,38 @@ class TestTable(unittest.TestCase):
 
         self.assertEqual(table.name, table_data_client.table_path.return_value)
 
+    def _column_family_helper(self):
+        client = self._make_client(
+            project="project-id", credentials=_make_credentials(), admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table = self._make_one(self.TABLE_ID, instance)
+        column_family_id = "column_family"
+        return table, column_family_id
+
+    def test_column_family_default(self):
+        from google.cloud.bigtable.column_family import ColumnFamily
+
+        table, column_family_id = self._column_family_helper()
+        column_family = table.column_family(column_family_id)
+
+        self.assertIsInstance(column_family, ColumnFamily)
+        self.assertEqual(column_family.column_family_id, column_family_id)
+        self.assertIs(column_family._table, table)
+        self.assertIsNone(column_family.gc_rule)
+
+    def test_column_family_explicit(self):
+        from google.cloud.bigtable.column_family import ColumnFamily
+
+        table, column_family_id = self._column_family_helper()
+        gc_rule = mock.Mock(spec=[])
+        column_family = table.column_family(column_family_id, gc_rule=gc_rule)
+
+        self.assertIsInstance(column_family, ColumnFamily)
+        self.assertEqual(column_family.column_family_id, column_family_id)
+        self.assertIs(column_family._table, table)
+        self.assertIs(column_family.gc_rule, gc_rule)
+
     def _row_methods_helper(self):
         client = self._make_client(
             project="project-id", credentials=_make_credentials(), admin=True
