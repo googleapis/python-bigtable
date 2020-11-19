@@ -341,9 +341,10 @@ class Table(object):
         table_client = self._instance._client.table_admin_client
         try:
             table_client.get_table(name=self.name, view=VIEW_NAME_ONLY)
-            return True
         except NotFound:
             return False
+        else:
+            return True
 
     def delete(self):
         """Delete this table.

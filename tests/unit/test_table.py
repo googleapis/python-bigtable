@@ -272,26 +272,30 @@ class TestTable(unittest.TestCase):
         self.assertEqual(row._row_key, row_key)
         self.assertIs(row._table, table)
 
-    def _create_test_helper(self, split_keys=[], column_families={}):
+    def _mock_admin_client(self):
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.cloud.bigtable_admin_v2.proto import table_pb2
-        from google.cloud.bigtable_admin_v2.proto import (
-            bigtable_table_admin_pb2 as table_admin_messages_v2_pb2,
-        )
-        from google.cloud.bigtable.column_family import ColumnFamily
+        from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable.instance import Instance
 
-        table_api = mock.create_autospec(
+        admin_client = mock.create_autospec(
             bigtable_table_admin_client.BigtableTableAdminClient
         )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
+        client = mock.create_autospec(Client, table_admin_client=admin_client)
+        client.project = self.PROJECT_ID
+        instance = mock.create_autospec(Instance, _client=client)
+        instance.instance_id = self.INSTANCE_ID
+        instance.name = self.INSTANCE_NAME
 
-        # Patch API calls
-        client._table_admin_client = table_api
+        return admin_client, client, instance
+
+    def _create_test_helper(self, split_keys=[], column_families={}):
+        from google.cloud.bigtable_admin_v2.proto import table_pb2
+        from google.cloud.bigtable_admin_v2.proto import bigtable_table_admin_pb2
+        from google.cloud.bigtable.column_family import ColumnFamily
+
+        admin_client, client, instance = self._mock_admin_client()
+
+        table = self._make_one(self.TABLE_ID, instance)
 
         # Perform the method and check the result.
         table.create(column_families=column_families, initial_split_keys=split_keys)
@@ -301,10 +305,10 @@ class TestTable(unittest.TestCase):
             for (id, rule) in column_families.items()
         }
 
-        split = table_admin_messages_v2_pb2.CreateTableRequest.Split
+        split = bigtable_table_admin_pb2.CreateTableRequest.Split
         splits = [split(key=split_key) for split_key in split_keys]
 
-        table_api.create_table.assert_called_once_with(
+        admin_client.create_table.assert_called_once_with(
             parent=self.INSTANCE_NAME,
             table=table_pb2.Table(column_families=families),
             table_id=self.TABLE_ID,
@@ -323,231 +327,168 @@ class TestTable(unittest.TestCase):
     def test_create_with_split_keys(self):
         self._create_test_helper(split_keys=[b"split1", b"split2", b"split3"])
 
-    def test_exists(self):
-        from google.cloud.bigtable_admin_v2.proto import table_pb2 as table_data_v2_pb2
-        from google.cloud.bigtable_admin_v2.proto import (
-            bigtable_table_admin_pb2 as table_messages_v1_pb2,
-        )
-        from google.cloud.bigtable_admin_v2.gapic import (
-            bigtable_instance_admin_client,
-            bigtable_table_admin_client,
-        )
-        from google.api_core.exceptions import NotFound
-        from google.api_core.exceptions import BadRequest
+    def test_exists_hit(self):
+        from google.cloud.bigtable.table import VIEW_NAME_ONLY
 
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        instance_api = bigtable_instance_admin_client.BigtableInstanceAdminClient(
-            mock.Mock()
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        # Create response_pb
-        response_pb = table_messages_v1_pb2.ListTablesResponse(
-            tables=[table_data_v2_pb2.Table(name=self.TABLE_NAME)]
-        )
-
-        # Patch API calls
-        client._table_admin_client = table_api
-        client._instance_admin_client = instance_api
-        bigtable_table_stub = client._table_admin_client.transport
-        bigtable_table_stub.get_table.side_effect = [
-            response_pb,
-            NotFound("testing"),
-            BadRequest("testing"),
-        ]
-
-        # Perform the method and check the result.
-        table1 = instance.table(self.TABLE_ID)
-        table2 = instance.table("table-id2")
-
-        result = table1.exists()
-        self.assertEqual(True, result)
-
-        result = table2.exists()
-        self.assertEqual(False, result)
-
-        with self.assertRaises(BadRequest):
-            table2.exists()
-
-    def test_delete(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        admin_client, client, instance = self._mock_admin_client()
+        admin_client.get_table.return_value = mock.Mock(spec=[])
         table = self._make_one(self.TABLE_ID, instance)
 
-        # Patch API calls
-        client._table_admin_client = table_api
+        self.assertTrue(table.exists())
 
-        # Create expected_result.
-        expected_result = None  # delete() has no return value.
+        admin_client.get_table.assert_called_once_with(table.name, VIEW_NAME_ONLY)
 
-        # Perform the method and check the result.
-        result = table.delete()
-        self.assertEqual(result, expected_result)
+    def test_exists_miss(self):
+        from google.api_core.exceptions import NotFound
+        from google.cloud.bigtable.table import VIEW_NAME_ONLY
+
+        admin_client, client, instance = self._mock_admin_client()
+        admin_client.get_table.side_effect = [NotFound("testing")]
+        table = self._make_one(self.TABLE_ID, instance)
+
+        self.assertFalse(table.exists())
+
+        admin_client.get_table.assert_called_once_with(table.name, VIEW_NAME_ONLY)
+
+    def test_exists_bad_request(self):
+        from google.api_core.exceptions import BadRequest
+        from google.cloud.bigtable.table import VIEW_NAME_ONLY
+
+        admin_client, client, instance = self._mock_admin_client()
+        admin_client.get_table.side_effect = [BadRequest("testing")]
+        table = self._make_one(self.TABLE_ID, instance)
+
+        with self.assertRaises(BadRequest):
+            table.exists()
+
+        admin_client.get_table.assert_called_once_with(table.name, VIEW_NAME_ONLY)
+
+    def test_delete_hit(self):
+        admin_client, client, instance = self._mock_admin_client()
+        table = self._make_one(self.TABLE_ID, instance)
+
+        self.assertIsNone(table.delete())
+
+        admin_client.delete_table.assert_called_once_with(table.name)
+
+    def test_delete_miss(self):
+        from google.api_core.exceptions import NotFound
+
+        admin_client, client, instance = self._mock_admin_client()
+        table = self._make_one(self.TABLE_ID, instance)
+        admin_client.delete_table.side_effect = [NotFound("testing")]
+
+        with self.assertRaises(NotFound):
+            table.delete()
+
+        admin_client.delete_table.assert_called_once_with(table.name)
 
     def test_get_iam_policy(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.iam.v1 import policy_pb2
         from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+        from google.cloud.bigtable.policy import Policy
 
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
 
         version = 1
         etag = b"etag_v1"
         members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
         bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": members}]
-        iam_policy = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        client._table_admin_client = table_api
-        table_api.get_iam_policy.return_value = iam_policy
+        policy = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
+        admin_client.get_iam_policy.return_value = policy
 
         result = table.get_iam_policy()
 
-        table_api.get_iam_policy.assert_called_once_with(resource=table.name)
+        self.assertIsInstance(result, Policy)
         self.assertEqual(result.version, version)
         self.assertEqual(result.etag, etag)
+
         admins = result.bigtable_admins
         self.assertEqual(len(admins), len(members))
+
         for found, expected in zip(sorted(admins), sorted(members)):
             self.assertEqual(found, expected)
 
+        admin_client.get_iam_policy.assert_called_once_with(resource=table.name)
+
     def test_set_iam_policy(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.iam.v1 import policy_pb2
         from google.cloud.bigtable.policy import Policy
         from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
 
         version = 1
         etag = b"etag_v1"
         members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
         bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": sorted(members)}]
-        iam_policy_pb = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
+        policy_pb = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
 
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        client._table_admin_client = table_api
-        table_api.set_iam_policy.return_value = iam_policy_pb
+        admin_client.set_iam_policy.return_value = policy_pb
 
-        iam_policy = Policy(etag=etag, version=version)
-        iam_policy[BIGTABLE_ADMIN_ROLE] = [
+        policy = Policy(etag=etag, version=version)
+        policy[BIGTABLE_ADMIN_ROLE] = [
             "user:user1@test.com",
             "serviceAccount:service_acc1@test.com",
         ]
 
-        result = table.set_iam_policy(iam_policy)
+        result = table.set_iam_policy(policy)
 
-        table_api.set_iam_policy.assert_called_once_with(
-            resource=table.name, policy=iam_policy_pb
-        )
+        self.assertIsInstance(result, Policy)
         self.assertEqual(result.version, version)
         self.assertEqual(result.etag, etag)
+
         admins = result.bigtable_admins
         self.assertEqual(len(admins), len(members))
+
         for found, expected in zip(sorted(admins), sorted(members)):
             self.assertEqual(found, expected)
 
+        admin_client.set_iam_policy.assert_called_once_with(
+            resource=table.name, policy=policy_pb
+        )
+
     def test_test_iam_permissions(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.iam.v1 import iam_policy_pb2
 
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
 
         permissions = ["bigtable.tables.mutateRows", "bigtable.tables.readRows"]
 
         response = iam_policy_pb2.TestIamPermissionsResponse(permissions=permissions)
 
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        table_api.test_iam_permissions.return_value = response
-        client._table_admin_client = table_api
+        admin_client.test_iam_permissions.return_value = response
 
         result = table.test_iam_permissions(permissions)
 
         self.assertEqual(result, permissions)
-        table_api.test_iam_permissions.assert_called_once_with(
+        admin_client.test_iam_permissions.assert_called_once_with(
             resource=table.name, permissions=permissions
         )
 
-    def _list_column_families_helper(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        # Create response_pb
-        COLUMN_FAMILY_ID = "foo"
-        column_family = _ColumnFamilyPB()
-        response_pb = _TablePB(column_families={COLUMN_FAMILY_ID: column_family})
-
-        # Patch the stub used by the API method.
-        client._table_admin_client = table_api
-        bigtable_table_stub = client._table_admin_client.transport
-        bigtable_table_stub.get_table.side_effect = [response_pb]
-
-        # Create expected_result.
-        expected_result = {COLUMN_FAMILY_ID: table.column_family(COLUMN_FAMILY_ID)}
-
-        # Perform the method and check the result.
-        result = table.list_column_families()
-        self.assertEqual(result, expected_result)
-
     def test_list_column_families(self):
-        self._list_column_families_helper()
+        admin_client, client, instance = self._mock_admin_client()
+        table = self._make_one(self.TABLE_ID, instance)
+        cf_id = "foo"
+        column_family = _ColumnFamilyPB()
+        response_pb = _TablePB(column_families={cf_id: column_family})
+        admin_client.get_table.side_effect = [response_pb]
+        expected_result = {cf_id: table.column_family(cf_id)}
+
+        self.assertEqual(table.list_column_families(), expected_result)
+
+        admin_client.get_table.assert_called_once_with(table.name)
 
     def test_get_cluster_states(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.cloud.bigtable.enums import Table as enum_table
         from google.cloud.bigtable.table import ClusterState
 
         INITIALIZING = enum_table.ReplicationState.INITIALIZING
         PLANNED_MAINTENANCE = enum_table.ReplicationState.PLANNED_MAINTENANCE
         READY = enum_table.ReplicationState.READY
-
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
         response_pb = _TablePB(
             cluster_states={
                 "cluster-id1": _ClusterStatePB(INITIALIZING),
@@ -555,22 +496,21 @@ class TestTable(unittest.TestCase):
                 "cluster-id3": _ClusterStatePB(READY),
             }
         )
+        admin_client, client, instance = self._mock_admin_client()
+        admin_client.get_table.side_effect = [response_pb]
+        table = self._make_one(self.TABLE_ID, instance)
 
-        # Patch the stub used by the API method.
-        client._table_admin_client = table_api
-        bigtable_table_stub = client._table_admin_client.transport
-        bigtable_table_stub.get_table.side_effect = [response_pb]
-
-        # build expected result
         expected_result = {
             u"cluster-id1": ClusterState(INITIALIZING),
             u"cluster-id2": ClusterState(PLANNED_MAINTENANCE),
             u"cluster-id3": ClusterState(READY),
         }
 
-        # Perform the method and check the result.
-        result = table.get_cluster_states()
-        self.assertEqual(result, expected_result)
+        self.assertEqual(table.get_cluster_states(), expected_result)
+
+        admin_client.get_table.assert_called_once_with(
+            table.name, view=enum_table.View.REPLICATION_VIEW,
+        )
 
     def _read_row_helper(self, chunks, expected_result, app_profile_id=None):
 
