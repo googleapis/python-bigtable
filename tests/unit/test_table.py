@@ -86,6 +86,42 @@ class TestTable(unittest.TestCase):
         self.assertEqual(table.mutation_timeout, mutation_timeout)
         self.assertEqual(table._app_profile_id, app_profile_id)
 
+    def test___eq__(self):
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table1 = self._make_one(self.TABLE_ID, instance)
+        table2 = self._make_one(self.TABLE_ID, instance)
+        self.assertEqual(table1, table2)
+
+    def test___eq__type_differ(self):
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table1 = self._make_one(self.TABLE_ID, instance)
+        table2 = object()
+        self.assertNotEqual(table1, table2)
+
+    def test___ne__same_value(self):
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table1 = self._make_one(self.TABLE_ID, instance)
+        table2 = self._make_one(self.TABLE_ID, instance)
+        comparison_val = table1 != table2
+        self.assertFalse(comparison_val)
+
+    def test___ne__(self):
+        table1 = self._make_one("table_id1", None)
+        table2 = self._make_one("table_id2", None)
+        self.assertNotEqual(table1, table2)
+
     def test_name(self):
         table_data_client = mock.Mock(spec=["table_path"])
         client = mock.Mock(
@@ -123,7 +159,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, DirectRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
+        self.assertIs(row._table, table)
 
         self.assertEqual(len(warned), 1)
         self.assertIs(warned[0].category, DeprecationWarning)
@@ -140,7 +176,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, ConditionalRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
+        self.assertIs(row._table, table)
 
         self.assertEqual(len(warned), 1)
         self.assertIs(warned[0].category, DeprecationWarning)
@@ -156,7 +192,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, AppendRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
+        self.assertIs(row._table, table)
 
         self.assertEqual(len(warned), 1)
         self.assertIs(warned[0].category, DeprecationWarning)
@@ -181,7 +217,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, DirectRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
+        self.assertIs(row._table, table)
 
     def test_conditional_row(self):
         from google.cloud.bigtable.row import ConditionalRow
@@ -192,7 +228,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, ConditionalRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
+        self.assertIs(row._table, table)
 
     def test_append_row(self):
         from google.cloud.bigtable.row import AppendRow
@@ -202,43 +238,7 @@ class TestTable(unittest.TestCase):
 
         self.assertIsInstance(row, AppendRow)
         self.assertEqual(row._row_key, row_key)
-        self.assertEqual(row._table, table)
-
-    def test___eq__(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table1 = self._make_one(self.TABLE_ID, instance)
-        table2 = self._make_one(self.TABLE_ID, instance)
-        self.assertEqual(table1, table2)
-
-    def test___eq__type_differ(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table1 = self._make_one(self.TABLE_ID, instance)
-        table2 = object()
-        self.assertNotEqual(table1, table2)
-
-    def test___ne__same_value(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table1 = self._make_one(self.TABLE_ID, instance)
-        table2 = self._make_one(self.TABLE_ID, instance)
-        comparison_val = table1 != table2
-        self.assertFalse(comparison_val)
-
-    def test___ne__(self):
-        table1 = self._make_one("table_id1", None)
-        table2 = self._make_one("table_id2", None)
-        self.assertNotEqual(table1, table2)
+        self.assertIs(row._table, table)
 
     def _create_test_helper(self, split_keys=[], column_families={}):
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
@@ -362,6 +362,111 @@ class TestTable(unittest.TestCase):
         # Perform the method and check the result.
         result = table.delete()
         self.assertEqual(result, expected_result)
+
+    def test_get_iam_policy(self):
+        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+        from google.iam.v1 import policy_pb2
+        from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table = self._make_one(self.TABLE_ID, instance)
+
+        version = 1
+        etag = b"etag_v1"
+        members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
+        bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": members}]
+        iam_policy = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
+
+        table_api = mock.create_autospec(
+            bigtable_table_admin_client.BigtableTableAdminClient
+        )
+        client._table_admin_client = table_api
+        table_api.get_iam_policy.return_value = iam_policy
+
+        result = table.get_iam_policy()
+
+        table_api.get_iam_policy.assert_called_once_with(resource=table.name)
+        self.assertEqual(result.version, version)
+        self.assertEqual(result.etag, etag)
+        admins = result.bigtable_admins
+        self.assertEqual(len(admins), len(members))
+        for found, expected in zip(sorted(admins), sorted(members)):
+            self.assertEqual(found, expected)
+
+    def test_set_iam_policy(self):
+        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+        from google.iam.v1 import policy_pb2
+        from google.cloud.bigtable.policy import Policy
+        from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table = self._make_one(self.TABLE_ID, instance)
+
+        version = 1
+        etag = b"etag_v1"
+        members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
+        bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": sorted(members)}]
+        iam_policy_pb = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
+
+        table_api = mock.create_autospec(
+            bigtable_table_admin_client.BigtableTableAdminClient
+        )
+        client._table_admin_client = table_api
+        table_api.set_iam_policy.return_value = iam_policy_pb
+
+        iam_policy = Policy(etag=etag, version=version)
+        iam_policy[BIGTABLE_ADMIN_ROLE] = [
+            "user:user1@test.com",
+            "serviceAccount:service_acc1@test.com",
+        ]
+
+        result = table.set_iam_policy(iam_policy)
+
+        table_api.set_iam_policy.assert_called_once_with(
+            resource=table.name, policy=iam_policy_pb
+        )
+        self.assertEqual(result.version, version)
+        self.assertEqual(result.etag, etag)
+        admins = result.bigtable_admins
+        self.assertEqual(len(admins), len(members))
+        for found, expected in zip(sorted(admins), sorted(members)):
+            self.assertEqual(found, expected)
+
+    def test_test_iam_permissions(self):
+        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+        from google.iam.v1 import iam_policy_pb2
+
+        credentials = _make_credentials()
+        client = self._make_client(
+            project="project-id", credentials=credentials, admin=True
+        )
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table = self._make_one(self.TABLE_ID, instance)
+
+        permissions = ["bigtable.tables.mutateRows", "bigtable.tables.readRows"]
+
+        response = iam_policy_pb2.TestIamPermissionsResponse(permissions=permissions)
+
+        table_api = mock.create_autospec(
+            bigtable_table_admin_client.BigtableTableAdminClient
+        )
+        table_api.test_iam_permissions.return_value = response
+        client._table_admin_client = table_api
+
+        result = table.test_iam_permissions(permissions)
+
+        self.assertEqual(result, permissions)
+        table_api.test_iam_permissions.assert_called_once_with(
+            resource=table.name, permissions=permissions
+        )
 
     def _list_column_families_helper(self):
         from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
@@ -1057,111 +1162,6 @@ class TestTable(unittest.TestCase):
         self.assertEqual(mutation_batcher.table.table_id, self.TABLE_ID)
         self.assertEqual(mutation_batcher.flush_count, flush_count)
         self.assertEqual(mutation_batcher.max_row_bytes, max_row_bytes)
-
-    def test_get_iam_policy(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.iam.v1 import policy_pb2
-        from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
-
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        version = 1
-        etag = b"etag_v1"
-        members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
-        bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": members}]
-        iam_policy = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        client._table_admin_client = table_api
-        table_api.get_iam_policy.return_value = iam_policy
-
-        result = table.get_iam_policy()
-
-        table_api.get_iam_policy.assert_called_once_with(resource=table.name)
-        self.assertEqual(result.version, version)
-        self.assertEqual(result.etag, etag)
-        admins = result.bigtable_admins
-        self.assertEqual(len(admins), len(members))
-        for found, expected in zip(sorted(admins), sorted(members)):
-            self.assertEqual(found, expected)
-
-    def test_set_iam_policy(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.iam.v1 import policy_pb2
-        from google.cloud.bigtable.policy import Policy
-        from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
-
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        version = 1
-        etag = b"etag_v1"
-        members = ["serviceAccount:service_acc1@test.com", "user:user1@test.com"]
-        bindings = [{"role": BIGTABLE_ADMIN_ROLE, "members": sorted(members)}]
-        iam_policy_pb = policy_pb2.Policy(version=version, etag=etag, bindings=bindings)
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        client._table_admin_client = table_api
-        table_api.set_iam_policy.return_value = iam_policy_pb
-
-        iam_policy = Policy(etag=etag, version=version)
-        iam_policy[BIGTABLE_ADMIN_ROLE] = [
-            "user:user1@test.com",
-            "serviceAccount:service_acc1@test.com",
-        ]
-
-        result = table.set_iam_policy(iam_policy)
-
-        table_api.set_iam_policy.assert_called_once_with(
-            resource=table.name, policy=iam_policy_pb
-        )
-        self.assertEqual(result.version, version)
-        self.assertEqual(result.etag, etag)
-        admins = result.bigtable_admins
-        self.assertEqual(len(admins), len(members))
-        for found, expected in zip(sorted(admins), sorted(members)):
-            self.assertEqual(found, expected)
-
-    def test_test_iam_permissions(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.iam.v1 import iam_policy_pb2
-
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        permissions = ["bigtable.tables.mutateRows", "bigtable.tables.readRows"]
-
-        response = iam_policy_pb2.TestIamPermissionsResponse(permissions=permissions)
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        table_api.test_iam_permissions.return_value = response
-        client._table_admin_client = table_api
-
-        result = table.test_iam_permissions(permissions)
-
-        self.assertEqual(result, permissions)
-        table_api.test_iam_permissions.assert_called_once_with(
-            resource=table.name, permissions=permissions
-        )
 
     def test_backup_factory_defaults(self):
         from google.cloud.bigtable.backup import Backup
