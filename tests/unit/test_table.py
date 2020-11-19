@@ -20,112 +20,6 @@ from ._testing import _make_credentials
 from google.api_core.exceptions import DeadlineExceeded
 
 
-class Test__compile_mutation_entries(unittest.TestCase):
-    def _call_fut(self, table_name, rows):
-        from google.cloud.bigtable.table import _compile_mutation_entries
-
-        return _compile_mutation_entries(table_name, rows)
-
-    @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
-    def test_w_too_many_mutations(self):
-        from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable.table import TooManyMutationsError
-
-        table = mock.Mock(name="table", spec=["name"])
-        table.name = "table"
-        rows = [
-            DirectRow(row_key=b"row_key", table=table),
-            DirectRow(row_key=b"row_key_2", table=table),
-        ]
-        rows[0].set_cell("cf1", b"c1", 1)
-        rows[0].set_cell("cf1", b"c1", 2)
-        rows[1].set_cell("cf1", b"c1", 3)
-        rows[1].set_cell("cf1", b"c1", 4)
-
-        with self.assertRaises(TooManyMutationsError):
-            self._call_fut("table", rows)
-
-    def test_normal(self):
-        from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_v2.proto import bigtable_pb2
-
-        table = mock.Mock(spec=["name"])
-        table.name = "table"
-        rows = [
-            DirectRow(row_key=b"row_key", table=table),
-            DirectRow(row_key=b"row_key_2"),
-        ]
-        rows[0].set_cell("cf1", b"c1", b"1")
-        rows[1].set_cell("cf1", b"c1", b"2")
-
-        result = self._call_fut("table", rows)
-
-        Entry = bigtable_pb2.MutateRowsRequest.Entry
-
-        entry_1 = Entry(row_key=b"row_key")
-        mutations_1 = entry_1.mutations.add()
-        mutations_1.set_cell.family_name = "cf1"
-        mutations_1.set_cell.column_qualifier = b"c1"
-        mutations_1.set_cell.timestamp_micros = -1
-        mutations_1.set_cell.value = b"1"
-
-        entry_2 = Entry(row_key=b"row_key_2")
-        mutations_2 = entry_2.mutations.add()
-        mutations_2.set_cell.family_name = "cf1"
-        mutations_2.set_cell.column_qualifier = b"c1"
-        mutations_2.set_cell.timestamp_micros = -1
-        mutations_2.set_cell.value = b"2"
-
-        self.assertEqual(result, [entry_1, entry_2])
-
-
-class Test__check_row_table_name(unittest.TestCase):
-    def _call_fut(self, table_name, row):
-        from google.cloud.bigtable.table import _check_row_table_name
-
-        return _check_row_table_name(table_name, row)
-
-    def test_wrong_table_name(self):
-        from google.cloud.bigtable.table import TableMismatchError
-        from google.cloud.bigtable.row import DirectRow
-
-        table = mock.Mock(name="table", spec=["name"])
-        table.name = "table"
-        row = DirectRow(row_key=b"row_key", table=table)
-        with self.assertRaises(TableMismatchError):
-            self._call_fut("other_table", row)
-
-    def test_right_table_name(self):
-        from google.cloud.bigtable.row import DirectRow
-
-        table = mock.Mock(name="table", spec=["name"])
-        table.name = "table"
-        row = DirectRow(row_key=b"row_key", table=table)
-        result = self._call_fut("table", row)
-        self.assertFalse(result)
-
-
-class Test__check_row_type(unittest.TestCase):
-    def _call_fut(self, row):
-        from google.cloud.bigtable.table import _check_row_type
-
-        return _check_row_type(row)
-
-    def test_test_wrong_row_type(self):
-        from google.cloud.bigtable.row import ConditionalRow
-
-        row = ConditionalRow(row_key=b"row_key", table="table", filter_=None)
-        with self.assertRaises(TypeError):
-            self._call_fut(row)
-
-    def test_right_row_type(self):
-        from google.cloud.bigtable.row import DirectRow
-
-        row = DirectRow(row_key=b"row_key", table="table")
-        result = self._call_fut(row)
-        self.assertFalse(result)
-
-
 class TestTable(unittest.TestCase):
 
     PROJECT_ID = "project-id"
@@ -2026,12 +1920,6 @@ class Test__create_row_request(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
 
-def _ReadRowsRequestPB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import bigtable_pb2 as messages_v2_pb2
-
-    return messages_v2_pb2.ReadRowsRequest(*args, **kw)
-
-
 class Test_ClusterState(unittest.TestCase):
     def test___eq__(self):
         from google.cloud.bigtable.enums import Table as enum_table
@@ -2116,6 +2004,118 @@ class Test_ClusterState(unittest.TestCase):
             ClusterState(UNPLANNED_MAINTENANCE).replication_state, UNPLANNED_MAINTENANCE
         )
         self.assertEqual(ClusterState(READY).replication_state, READY)
+
+
+class Test__compile_mutation_entries(unittest.TestCase):
+    def _call_fut(self, table_name, rows):
+        from google.cloud.bigtable.table import _compile_mutation_entries
+
+        return _compile_mutation_entries(table_name, rows)
+
+    @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
+    def test_w_too_many_mutations(self):
+        from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable.table import TooManyMutationsError
+
+        table = mock.Mock(name="table", spec=["name"])
+        table.name = "table"
+        rows = [
+            DirectRow(row_key=b"row_key", table=table),
+            DirectRow(row_key=b"row_key_2", table=table),
+        ]
+        rows[0].set_cell("cf1", b"c1", 1)
+        rows[0].set_cell("cf1", b"c1", 2)
+        rows[1].set_cell("cf1", b"c1", 3)
+        rows[1].set_cell("cf1", b"c1", 4)
+
+        with self.assertRaises(TooManyMutationsError):
+            self._call_fut("table", rows)
+
+    def test_normal(self):
+        from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable_v2.proto import bigtable_pb2
+
+        table = mock.Mock(spec=["name"])
+        table.name = "table"
+        rows = [
+            DirectRow(row_key=b"row_key", table=table),
+            DirectRow(row_key=b"row_key_2"),
+        ]
+        rows[0].set_cell("cf1", b"c1", b"1")
+        rows[1].set_cell("cf1", b"c1", b"2")
+
+        result = self._call_fut("table", rows)
+
+        Entry = bigtable_pb2.MutateRowsRequest.Entry
+
+        entry_1 = Entry(row_key=b"row_key")
+        mutations_1 = entry_1.mutations.add()
+        mutations_1.set_cell.family_name = "cf1"
+        mutations_1.set_cell.column_qualifier = b"c1"
+        mutations_1.set_cell.timestamp_micros = -1
+        mutations_1.set_cell.value = b"1"
+
+        entry_2 = Entry(row_key=b"row_key_2")
+        mutations_2 = entry_2.mutations.add()
+        mutations_2.set_cell.family_name = "cf1"
+        mutations_2.set_cell.column_qualifier = b"c1"
+        mutations_2.set_cell.timestamp_micros = -1
+        mutations_2.set_cell.value = b"2"
+
+        self.assertEqual(result, [entry_1, entry_2])
+
+
+class Test__check_row_table_name(unittest.TestCase):
+    def _call_fut(self, table_name, row):
+        from google.cloud.bigtable.table import _check_row_table_name
+
+        return _check_row_table_name(table_name, row)
+
+    def test_wrong_table_name(self):
+        from google.cloud.bigtable.table import TableMismatchError
+        from google.cloud.bigtable.row import DirectRow
+
+        table = mock.Mock(name="table", spec=["name"])
+        table.name = "table"
+        row = DirectRow(row_key=b"row_key", table=table)
+        with self.assertRaises(TableMismatchError):
+            self._call_fut("other_table", row)
+
+    def test_right_table_name(self):
+        from google.cloud.bigtable.row import DirectRow
+
+        table = mock.Mock(name="table", spec=["name"])
+        table.name = "table"
+        row = DirectRow(row_key=b"row_key", table=table)
+        result = self._call_fut("table", row)
+        self.assertFalse(result)
+
+
+class Test__check_row_type(unittest.TestCase):
+    def _call_fut(self, row):
+        from google.cloud.bigtable.table import _check_row_type
+
+        return _check_row_type(row)
+
+    def test_test_wrong_row_type(self):
+        from google.cloud.bigtable.row import ConditionalRow
+
+        row = ConditionalRow(row_key=b"row_key", table="table", filter_=None)
+        with self.assertRaises(TypeError):
+            self._call_fut(row)
+
+    def test_right_row_type(self):
+        from google.cloud.bigtable.row import DirectRow
+
+        row = DirectRow(row_key=b"row_key", table="table")
+        result = self._call_fut(row)
+        self.assertFalse(result)
+
+
+def _ReadRowsRequestPB(*args, **kw):
+    from google.cloud.bigtable_v2.proto import bigtable_pb2 as messages_v2_pb2
+
+    return messages_v2_pb2.ReadRowsRequest(*args, **kw)
 
 
 def _ReadRowsResponseCellChunkPB(*args, **kw):
