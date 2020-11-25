@@ -378,6 +378,29 @@ class TestPartialRowsData(unittest.TestCase):
 
         read_method.assert_called_once_with(request, timeout=deadline + 1)
 
+    def _consume_all(self, instance):
+        return [row.row_key for row in instance]
+
+    def test___iter__(self):
+        chunk = _ReadRowsResponseCellChunkPB(
+            row_key=self.ROW_KEY,
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunks = [chunk]
+
+        response = _ReadRowsResponseV2(chunks)
+        iterator = iter([response])
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+
+        instance = self._make_one(read_method, request)
+
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
+
     def test___iter___new_row_w_row(self):
         chunk = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
@@ -397,11 +420,8 @@ class TestPartialRowsData(unittest.TestCase):
         request = object()
         instance = self._make_one(read_method, request)
 
-        rows = [row for row in instance]
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
-        self.assertEqual(len(rows), 1)
-        result = rows[0]
-        self.assertEqual(result.row_key, self.ROW_KEY)
         self.assertEqual(instance._counter, 1)
         self.assertEqual(instance.state, instance.NEW_ROW)
 
@@ -430,13 +450,70 @@ class TestPartialRowsData(unittest.TestCase):
         request = object()
         instance = self._make_one(read_method, request)
 
-        rows = [row for row in instance]
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
-        self.assertEqual(len(rows), 1)
-        result = rows[0]
-        self.assertEqual(result.row_key, self.ROW_KEY)
         self.assertEqual(instance._counter, 1)
         self.assertEqual(instance.state, instance.NEW_ROW)
+
+    def test___iter___w_cancellation(self):
+        chunk1 = _ReadRowsResponseCellChunkPB(
+            row_key=self.ROW_KEY,
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunk2 = _ReadRowsResponseCellChunkPB(
+            row_key=b"other-row",
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS + 100,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunks = [chunk1, chunk2]
+
+        response = _ReadRowsResponseV2(chunks)
+        iterator = _MockCancellableIterator(response)
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+
+        instance = self._make_one(read_method, request)
+
+        result = []
+
+        for row in instance:
+            result.append(row.row_key)
+            instance.cancel()
+
+        self.assertEqual(result, [self.ROW_KEY])
+
+    def test___iter___w_retry(self):
+        from google.api_core import retry
+
+        retry_read_rows = retry.Retry(predicate=_read_rows_retry_exception)
+
+        chunk = _ReadRowsResponseCellChunkPB(
+            row_key=self.ROW_KEY,
+            family_name=self.FAMILY_NAME,
+            qualifier=self.QUALIFIER,
+            timestamp_micros=self.TIMESTAMP_MICROS,
+            value=self.VALUE,
+            commit_row=True,
+        )
+        chunks = [chunk]
+        response = _ReadRowsResponseV2(chunks)
+
+        failed_iterator = _MockFailureIterator_1()
+        iterator = _MockCancellableIterator(response)
+
+        read_method = mock.Mock(side_effect=[failed_iterator, iterator])
+        request = object()
+
+        instance = self._make_one(read_method, request, retry_read_rows)
+
+        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
     def test_cancel(self):
         iterator = _MockCancellableIterator()
@@ -572,89 +649,6 @@ class TestPartialRowsData(unittest.TestCase):
         self.assertEqual(instance._cell.timestamp_micros, self.TIMESTAMP_MICROS)
         self.assertEqual(instance._cell.labels, LABELS)
         self.assertEqual(instance._cell.value, self.VALUE + self.VALUE)
-
-    def _consume_all(self, instance):
-        return [row.row_key for row in instance]
-
-    def test___iter__(self):
-        chunk = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunks = [chunk]
-
-        response = _ReadRowsResponseV2(chunks)
-        iterator = iter([response])
-        read_method = mock.Mock(return_value=iterator)
-        request = object()
-
-        instance = self._make_one(read_method, request)
-
-        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
-
-    def test___iter___w_cancellation(self):
-        chunk1 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunk2 = _ReadRowsResponseCellChunkPB(
-            row_key=b"other-row",
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS + 100,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunks = [chunk1, chunk2]
-
-        response = _ReadRowsResponseV2(chunks)
-        iterator = _MockCancellableIterator(response)
-        read_method = mock.Mock(return_value=iterator)
-        request = object()
-
-        instance = self._make_one(read_method, request)
-
-        result = []
-
-        for row in instance:
-            result.append(row.row_key)
-            instance.cancel()
-
-        self.assertEqual(result, [self.ROW_KEY])
-
-    def test___iter___w_retry(self):
-        from google.api_core import retry
-
-        retry_read_rows = retry.Retry(predicate=_read_rows_retry_exception)
-
-        chunk = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunks = [chunk]
-        response = _ReadRowsResponseV2(chunks)
-
-        failed_iterator = _MockFailureIterator_1()
-        iterator = _MockCancellableIterator(response)
-
-        read_method = mock.Mock(side_effect=[failed_iterator, iterator])
-        request = object()
-
-        instance = self._make_one(read_method, request, retry_read_rows)
-
-        self.assertEqual(self._consume_all(instance), [self.ROW_KEY])
 
 
 class Test_ReadRowsRequestManager(unittest.TestCase):

@@ -419,6 +419,34 @@ class PartialRowsData(object):
         # Flag to stop iteration, for any reason not related to self.retry()
         self._cancelled = False
 
+    def __iter__(self):
+        """Consume the ``ReadRowsResponse`` s from the stream.
+        Read the rows and yield each to the reader
+
+        Parse the response and its chunks into a new/existing row in
+        :attr:`_rows`. Rows are returned in order by row key.
+        """
+        while not self._cancelled:
+            try:
+                response = self._read_next_response()
+            except StopIteration:
+                if self.state != self.NEW_ROW:
+                    raise ValueError("The row remains partial / is not committed.")
+                break
+
+            for chunk in response.chunks:
+                if self._cancelled:
+                    break
+                self._process_chunk(chunk)
+                if chunk.commit_row:
+                    self.last_scanned_row_key = self._previous_row.row_key
+                    self._counter += 1
+                    yield self._previous_row
+
+            resp_last_key = response.last_scanned_row_key
+            if resp_last_key and resp_last_key > self.last_scanned_row_key:
+                self.last_scanned_row_key = resp_last_key
+
     @property
     def state(self):
         """State machine state.
@@ -472,34 +500,6 @@ class PartialRowsData(object):
     def _read_next_response(self):
         """Helper for :meth:`__iter__`."""
         return self.retry(self._read_next, on_error=self._on_error)()
-
-    def __iter__(self):
-        """Consume the ``ReadRowsResponse`` s from the stream.
-        Read the rows and yield each to the reader
-
-        Parse the response and its chunks into a new/existing row in
-        :attr:`_rows`. Rows are returned in order by row key.
-        """
-        while not self._cancelled:
-            try:
-                response = self._read_next_response()
-            except StopIteration:
-                if self.state != self.NEW_ROW:
-                    raise ValueError("The row remains partial / is not committed.")
-                break
-
-            for chunk in response.chunks:
-                if self._cancelled:
-                    break
-                self._process_chunk(chunk)
-                if chunk.commit_row:
-                    self.last_scanned_row_key = self._previous_row.row_key
-                    self._counter += 1
-                    yield self._previous_row
-
-            resp_last_key = response.last_scanned_row_key
-            if resp_last_key and resp_last_key > self.last_scanned_row_key:
-                self.last_scanned_row_key = resp_last_key
 
     def _process_chunk(self, chunk):
         if chunk.reset_row:
