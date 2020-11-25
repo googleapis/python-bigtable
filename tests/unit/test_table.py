@@ -676,7 +676,8 @@ class TestTable(unittest.TestCase):
         self.assertEqual(table.get_cluster_states(), expected_result)
 
         admin_client.get_table.assert_called_once_with(
-            table.name, view=enum_table.View.REPLICATION_VIEW,
+            table.name,
+            view=enum_table.View.REPLICATION_VIEW,
         )
 
     def test_get_iam_policy(self):
@@ -765,134 +766,56 @@ class TestTable(unittest.TestCase):
             resource=table.name, permissions=permissions
         )
 
-    def _read_row_helper(self, chunks, expected_result, app_profile_id=None):
-
-        from google.cloud._testing import _Monkey
-        from google.cloud.bigtable import table as MUT
-        from google.cloud.bigtable.row_set import RowSet
+    def _mock_data_client(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+        from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable.instance import Instance
+
+        data_client = mock.create_autospec(bigtable_client.BigtableClient)
+        client = mock.create_autospec(Client, table_data_client=data_client)
+        client.project = self.PROJECT_ID
+        instance = mock.create_autospec(Instance, _client=client)
+        instance.instance_id = self.INSTANCE_ID
+        instance.name = self.INSTANCE_NAME
+
+        return data_client, client, instance
+
+    def _read_row_helper(self, responses, expected_result):
+
+        from google.cloud.bigtable.row_set import RowSet
         from google.cloud.bigtable.row_filters import RowSampleFilter
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance, app_profile_id=app_profile_id)
+        _, _, instance = self._mock_data_client()
+        table = self._make_one(self.TABLE_ID, instance)
 
-        # Create request_pb
-        request_pb = object()  # Returned by our mock.
-        mock_created = []
-
-        def mock_create_row_request(table_name, **kwargs):
-            mock_created.append((table_name, kwargs))
-            return request_pb
-
-        # Create response_iterator
-        if chunks is None:
-            response_iterator = iter(())  # no responses at all
-        else:
-            response_pb = _ReadRowsResponsePB(chunks=chunks)
-            response_iterator = iter([response_pb])
-
-        # Patch the stub used by the API method.
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        client._table_data_client.transport.read_rows = mock.Mock(
-            side_effect=[response_iterator]
-        )
-
-        # Perform the method and check the result.
+        table.read_rows = mock.Mock(return_value=iter(responses))
         filter_obj = RowSampleFilter(0.33)
-        result = None
-        with _Monkey(MUT, _create_row_request=mock_create_row_request):
-            result = table.read_row(self.ROW_KEY, filter_=filter_obj)
+
+        result = table.read_row(self.ROW_KEY, filter_=filter_obj)
+
+        self.assertEqual(result, expected_result)
+
         row_set = RowSet()
         row_set.add_row_key(self.ROW_KEY)
-        expected_request = [
-            (
-                table.name,
-                {
-                    "end_inclusive": False,
-                    "row_set": row_set,
-                    "app_profile_id": app_profile_id,
-                    "end_key": None,
-                    "limit": None,
-                    "start_key": None,
-                    "filter_": filter_obj,
-                },
-            )
-        ]
-        self.assertEqual(result, expected_result)
-        self.assertEqual(mock_created, expected_request)
 
-    def test_read_row_miss_no__responses(self):
-        self._read_row_helper(None, None)
+        table.read_rows.assert_called_once_with(filter_=filter_obj, row_set=row_set)
 
-    def test_read_row_miss_no_chunks_in_response(self):
-        chunks = []
-        self._read_row_helper(chunks, None)
+    def test_read_row_w_no_responses(self):
+        self._read_row_helper([], None)
 
-    def test_read_row_complete(self):
-        from google.cloud.bigtable.row_data import Cell
+    def test_read_row_w_response(self):
         from google.cloud.bigtable.row_data import PartialRowData
 
-        app_profile_id = "app-profile-id"
-        chunk = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunks = [chunk]
-        expected_result = PartialRowData(row_key=self.ROW_KEY)
-        family = expected_result._cells.setdefault(self.FAMILY_NAME, {})
-        column = family.setdefault(self.QUALIFIER, [])
-        column.append(Cell.from_pb(chunk))
-        self._read_row_helper(chunks, expected_result, app_profile_id)
+        row_data = PartialRowData(row_key=self.ROW_KEY)
+        self._read_row_helper([row_data], row_data)
 
-    def test_read_row_more_than_one_row_returned(self):
-        app_profile_id = "app-profile-id"
-        chunk_1 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-        chunk_2 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_2,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
+    def test_read_row_w_too_many_responses(self):
+        from google.cloud.bigtable.row_data import PartialRowData
 
-        chunks = [chunk_1, chunk_2]
+        row_data_1 = PartialRowData(row_key=self.ROW_KEY)
+        row_data_2 = PartialRowData(row_key=b"other-row-key")
         with self.assertRaises(ValueError):
-            self._read_row_helper(chunks, None, app_profile_id)
-
-    def test_read_row_still_partial(self):
-        chunk = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-        )
-        # No "commit row".
-        chunks = [chunk]
-        with self.assertRaises(ValueError):
-            self._read_row_helper(chunks, None)
+            self._read_row_helper([row_data_1, row_data_2], object())
 
     def test_read_rows(self):
         from google.cloud._testing import _Monkey
