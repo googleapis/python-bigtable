@@ -527,7 +527,7 @@ class TestPartialRowsData(unittest.TestCase):
         self.assertEqual(iterator.cancel_calls, 1)
         self.assertEqual(list(instance), [])
 
-    # 'consume_next' tested via 'TestPartialRowsData_JSON_acceptance_tests'
+    # 'consume_all' tested via 'TestPartialRowsData_JSON_acceptance_tests'
 
     def test__copy_from_previous_unset(self):
         iterator = iter([])

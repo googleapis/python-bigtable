@@ -580,7 +580,6 @@ class PartialRowsData(object):
         _raise_if(chunk.commit_row)
 
     def _save_current_cell(self):
-        """Helper for :meth:`consume_next`."""
         row, cell = self._row, self._cell
         family = row._cells.setdefault(cell.family_name, {})
         qualified = family.setdefault(cell.qualifier, [])
@@ -589,7 +588,6 @@ class PartialRowsData(object):
         self._cell, self._previous_cell = None, cell
 
     def _copy_from_previous(self, cell):
-        """Helper for :meth:`consume_next`."""
         previous = self._previous_cell
         if previous is not None:
             if not cell.row_key:
