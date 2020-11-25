@@ -1076,41 +1076,39 @@ class TestTable(unittest.TestCase):
         timeout = 456
         self._mutate_rows_helper(mutation_timeout=mutation_timeout, timeout=timeout)
 
-    def test_sample_row_keys(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+    def _sample_row_keys_helper(self, app_profile_id=None):
+        data_client, client, instance = self._mock_data_client()
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
+        if app_profile_id is None:
+            table = self._make_one(self.TABLE_ID, instance)
+        else:
+            table = self._make_one(
+                self.TABLE_ID,
+                instance,
+                app_profile_id=app_profile_id,
+            )
 
-        # Create response_iterator
-        response_iterator = object()  # Just passed to a mock.
-
-        # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["sample_row_keys"] = mock.Mock(
-            side_effect=[[response_iterator]]
-        )
-
-        # Create expected_result.
-        expected_result = response_iterator
-
-        # Perform the method and check the result.
         result = table.sample_row_keys()
-        self.assertEqual(result[0], expected_result)
+
+        self.assertEqual(result, data_client.sample_row_keys.return_value)
+
+        data_client.sample_row_keys.assert_called_once_with(
+            table.name,
+            app_profile_id=app_profile_id,
+        )
+
+    def test_sample_row_keys_wo_app_profile_id(self):
+        self._sample_row_keys_helper()
+
+    def test_sample_row_keys_w_app_profile_id(self):
+        app_profile_id = "app-profile-123"
+        self._sample_row_keys_helper(app_profile_id=app_profile_id)
 
     def test_mutations_batcher_factory(self):
         flush_count = 100
         max_row_bytes = 1000
         table = self._make_one(self.TABLE_ID, None)
+
         mutation_batcher = table.mutations_batcher(
             flush_count=flush_count, max_row_bytes=max_row_bytes
         )
