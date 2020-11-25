@@ -923,142 +923,78 @@ class TestTable(unittest.TestCase):
             retry=retry,
         )
 
-    def test_yield_retry_rows(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+    def _yield_rows_helper(
+        self,
+        start_key=None,
+        end_key=None,
+        limit=None,
+        filter_=None,
+        end_inclusive=None,
+        row_set=None,
+        retry=None,
+    ):
         import warnings
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        data_client, _, instance = self._mock_data_client()
         table = self._make_one(self.TABLE_ID, instance)
+        table.read_rows = mock.MagicMock()
 
-        # Create response_iterator
-        chunk_1 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_1,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
+        kwargs = {}
 
-        chunk_2 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_2,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
+        if start_key is not None:
+            kwargs["start_key"] = start_key
 
-        response_1 = _ReadRowsResponseV2([chunk_1])
-        response_2 = _ReadRowsResponseV2([chunk_2])
-        response_failure_iterator_1 = _MockFailureIterator_1()
-        response_failure_iterator_2 = _MockFailureIterator_2([response_1])
-        response_iterator = _MockReadRowsIterator(response_2)
+        if end_key is not None:
+            kwargs["end_key"] = end_key
 
-        # Patch the stub used by the API method.
-        client._table_data_client.transport.read_rows = mock.Mock(
-            side_effect=[
-                response_failure_iterator_1,
-                response_failure_iterator_2,
-                response_iterator,
-            ]
-        )
+        if limit is not None:
+            kwargs["limit"] = limit
 
-        rows = []
+        if filter_ is not None:
+            kwargs["filter_"] = filter_
+
+        if end_inclusive is not None:
+            kwargs["end_inclusive"] = end_inclusive
+
+        if row_set is not None:
+            kwargs["row_set"] = row_set
+
+        if retry is not None:
+            kwargs["retry"] = retry
+
         with warnings.catch_warnings(record=True) as warned:
-            for row in table.yield_rows(
-                start_key=self.ROW_KEY_1, end_key=self.ROW_KEY_2
-            ):
-                rows.append(row)
+            iterable = table.yield_rows(**kwargs)
+
+        self.assertIs(iterable, table.read_rows.return_value)
+
+        table.read_rows.assert_called_once_with(**kwargs)
 
         self.assertEqual(len(warned), 1)
         self.assertIs(warned[0].category, DeprecationWarning)
 
-        result = rows[1]
-        self.assertEqual(result.row_key, self.ROW_KEY_2)
+    def test_yield_rows_defaults(self):
+        self._yield_rows_helper()
 
-    def test_yield_rows_with_row_set(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.cloud.bigtable.row_set import RowSet
-        from google.cloud.bigtable.row_set import RowRange
-        import warnings
+    def test_yield_rows_explicit(self):
+        from google.api_core.retry import Retry
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
+        start_key = b"start-key"
+        end_key = b"end-key"
+        filter_ = mock.Mock(spec=[])
+        limit = 22
+        end_inclusive = True
+        row_set = mock.Mock(spec=[])
+        retry = Retry()
+
+        self._yield_rows_helper(
+            start_key=start_key,
+            end_key=end_key,
+            limit=limit,
+            filter_=filter_,
+            end_inclusive=end_inclusive,
+            row_set=row_set,
+            retry=retry,
         )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        # Create response_iterator
-        chunk_1 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_1,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-
-        chunk_2 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_2,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-
-        chunk_3 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_3,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
-        )
-
-        response_1 = _ReadRowsResponseV2([chunk_1])
-        response_2 = _ReadRowsResponseV2([chunk_2])
-        response_3 = _ReadRowsResponseV2([chunk_3])
-        response_iterator = _MockReadRowsIterator(response_1, response_2, response_3)
-
-        # Patch the stub used by the API method.
-        client._table_data_client.transport.read_rows = mock.Mock(
-            side_effect=[response_iterator]
-        )
-
-        rows = []
-        row_set = RowSet()
-        row_set.add_row_range(
-            RowRange(start_key=self.ROW_KEY_1, end_key=self.ROW_KEY_2)
-        )
-        row_set.add_row_key(self.ROW_KEY_3)
-
-        with warnings.catch_warnings(record=True) as warned:
-            for row in table.yield_rows(row_set=row_set):
-                rows.append(row)
-
-        self.assertEqual(len(warned), 1)
-        self.assertIs(warned[0].category, DeprecationWarning)
-
-        self.assertEqual(rows[0].row_key, self.ROW_KEY_1)
-        self.assertEqual(rows[1].row_key, self.ROW_KEY_2)
-        self.assertEqual(rows[2].row_key, self.ROW_KEY_3)
 
     def _mutate_rows_helper(
         self, mutation_timeout=None, app_profile_id=None, retry=None, timeout=None
