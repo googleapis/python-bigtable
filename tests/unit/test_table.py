@@ -1141,24 +1141,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
     def _make_worker(self, *args, **kwargs):
         return self._get_target_class_for_worker()(*args, **kwargs)
 
-    @staticmethod
-    def _get_target_class_for_table():
-        from google.cloud.bigtable.table import Table
-
-        return Table
-
-    def _make_table(self, *args, **kwargs):
-        return self._get_target_class_for_table()(*args, **kwargs)
-
-    @staticmethod
-    def _get_target_client_class():
-        from google.cloud.bigtable.client import Client
-
-        return Client
-
-    def _make_client(self, *args, **kwargs):
-        return self._get_target_client_class()(*args, **kwargs)
-
     def _mock_table(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
         from google.cloud.bigtable.client import Client
@@ -1959,55 +1941,6 @@ def _ReadRowsRequestPB(*args, **kw):
     from google.cloud.bigtable_v2.proto import bigtable_pb2 as messages_v2_pb2
 
     return messages_v2_pb2.ReadRowsRequest(*args, **kw)
-
-
-def _ReadRowsResponseCellChunkPB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import bigtable_pb2 as messages_v2_pb2
-
-    family_name = kw.pop("family_name")
-    qualifier = kw.pop("qualifier")
-    message = messages_v2_pb2.ReadRowsResponse.CellChunk(*args, **kw)
-    message.family_name.value = family_name
-    message.qualifier.value = qualifier
-    return message
-
-
-class _MockReadRowsIterator(object):
-    def __init__(self, *values):
-        self.iter_values = iter(values)
-
-    def next(self):
-        return next(self.iter_values)
-
-    __next__ = next
-
-
-class _MockFailureIterator_1(object):
-    def next(self):
-        raise DeadlineExceeded("Failed to read from server")
-
-    __next__ = next
-
-
-class _MockFailureIterator_2(object):
-    def __init__(self, *values):
-        self.iter_values = values[0]
-        self.calls = 0
-
-    def next(self):
-        self.calls += 1
-        if self.calls == 1:
-            return self.iter_values[0]
-        else:
-            raise DeadlineExceeded("Failed to read from server")
-
-    __next__ = next
-
-
-class _ReadRowsResponseV2(object):
-    def __init__(self, chunks, last_scanned_row_key=""):
-        self.chunks = chunks
-        self.last_scanned_row_key = last_scanned_row_key
 
 
 def _TablePB(*args, **kw):
