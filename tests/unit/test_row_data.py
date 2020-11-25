@@ -378,35 +378,6 @@ class TestPartialRowsData(unittest.TestCase):
 
         read_method.assert_called_once_with(request, timeout=deadline + 1)
 
-    def test___eq__(self):
-        read_method = mock.Mock()
-        request = object()
-        partial_rows_data1 = self._make_one(read_method, request)
-        partial_rows_data2 = self._make_one(read_method, request)
-        self.assertEqual(partial_rows_data1.rows, partial_rows_data2.rows)
-
-    def test___eq__type_differ(self):
-        read_method = mock.Mock()
-        request = object()
-        partial_rows_data1 = self._make_one(read_method, request)
-        partial_rows_data2 = object()
-        self.assertNotEqual(partial_rows_data1, partial_rows_data2)
-
-    def test___ne__same_value(self):
-        read_method = mock.Mock()
-        request = object()
-        partial_rows_data1 = self._make_one(read_method, request)
-        partial_rows_data2 = self._make_one(read_method, request)
-        comparison_val = partial_rows_data1 != partial_rows_data2
-        self.assertTrue(comparison_val)
-
-    def test___ne__(self):
-        read_method = mock.Mock()
-        request = object()
-        partial_rows_data1 = self._make_one(read_method, request)
-        partial_rows_data2 = self._make_one(read_method, request)
-        self.assertNotEqual(partial_rows_data1, partial_rows_data2)
-
     def test___iter___new_row_w_row(self):
         chunk = _ReadRowsResponseCellChunkPB(
             row_key=self.ROW_KEY,
