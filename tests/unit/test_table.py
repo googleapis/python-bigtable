@@ -1001,17 +1001,9 @@ class TestTable(unittest.TestCase):
     ):
         from google.rpc.status_pb2 import Status
         from google.cloud.bigtable.table import DEFAULT_RETRY
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        client._table_admin_client = table_api
+        _, client, instance = self._mock_data_client()
+
         ctor_kwargs = {}
 
         if mutation_timeout is not None:
@@ -1049,7 +1041,7 @@ class TestTable(unittest.TestCase):
 
         klass_mock.new.assert_called_once_with(
             client,
-            self.TABLE_NAME,
+            table.name,
             rows,
             app_profile_id=app_profile_id,
             timeout=expected_timeout,
