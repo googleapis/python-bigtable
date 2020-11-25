@@ -1159,6 +1159,28 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
     def _make_client(self, *args, **kwargs):
         return self._get_target_client_class()(*args, **kwargs)
 
+    def _mock_table(self):
+        from google.cloud.bigtable_v2.gapic import bigtable_client
+        from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable.instance import Instance
+        from google.cloud.bigtable.table import Table
+
+        transport = mock.Mock(spec=["read_rows"])
+        data_client = mock.create_autospec(
+            bigtable_client.BigtableClient,
+            transport=transport,
+            spec_set=False,
+        )
+        client = mock.create_autospec(Client, table_data_client=data_client)
+        client.project = self.PROJECT_ID
+        instance = mock.create_autospec(Instance, _client=client)
+        instance.instance_id = self.INSTANCE_ID
+        instance.name = self.INSTANCE_NAME
+        table = mock.create_autospec(Table)
+        table.table_id = self.TABLE_ID
+
+        return data_client, client, instance, table
+
     def _make_responses_statuses(self, codes):
         from google.rpc.status_pb2 import Status
 
@@ -1176,53 +1198,21 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         ]
         return MutateRowsResponse(entries=entries)
 
-    def test_callable_empty_rows(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        data_api = mock.create_autospec(bigtable_client.BigtableClient)
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
-
+    def test___call___w_empty_rows(self):
+        _, client, _, table = self._mock_table()
         worker = self._make_worker(client, table.name, [])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock()
+
         statuses = worker()
 
         self.assertEqual(len(statuses), 0)
 
-    def test_callable_no_retry_strategy(self):
+        mocked.assert_called_once_with()
+
+    def test___call___w_retry_None(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
-        # Setup:
-        #   - Mutate 3 rows.
-        # Action:
-        #   - Attempt to mutate the rows w/o any retry strategy.
-        # Expectation:
-        #   - Since no retry, should return statuses as they come back.
-        #   - Even if there are retryable errors, no retry attempt is made.
-        #   - State of responses_statuses should be
-        #       [success, retryable, non-retryable]
-
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        _, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
@@ -1232,23 +1222,77 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3.set_cell("cf", b"col", b"value3")
 
         worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock()
 
         response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
         response = self._make_responses(response_codes)
-        data_api.mutate_rows = mock.MagicMock(return_value=[response])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock()
 
         statuses = worker(retry=None)
 
-        result = [status.code for status in statuses]
-        self.assertEqual(result, response_codes)
+        self.assertEqual(statuses, [None, None, None])
 
-        data_api.mutate_rows.assert_called_once()
+        mocked.assert_called_once_with()
 
-    def test_callable_retry(self):
+    def test___call___w__bigtable_retry_error(self):
+        from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable.table import _BigtableRetryableError
+
+        _, client, _, table = self._mock_table()
+
+        row_1 = DirectRow(row_key=b"row_key", table=table)
+        row_1.set_cell("cf", b"col", b"value1")
+        row_2 = DirectRow(row_key=b"row_key_2", table=table)
+        row_2.set_cell("cf", b"col", b"value2")
+        row_3 = DirectRow(row_key=b"row_key_3", table=table)
+        row_3.set_cell("cf", b"col", b"value3")
+
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock(
+            side_effect=[_BigtableRetryableError("testing")]
+        )
+
+        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
+        response = self._make_responses(response_codes)
+
+        statuses = worker(retry=None)
+
+        self.assertEqual(statuses, [None, None, None])
+
+        mocked.assert_called_once_with()
+
+    def test___call___w__retry_error(self):
+        from google.cloud.bigtable.row import DirectRow
+        from google.api_core.exceptions import RetryError
+
+        _, client, _, table = self._mock_table()
+
+        row_1 = DirectRow(row_key=b"row_key", table=table)
+        row_1.set_cell("cf", b"col", b"value1")
+        row_2 = DirectRow(row_key=b"row_key_2", table=table)
+        row_2.set_cell("cf", b"col", b"value2")
+        row_3 = DirectRow(row_key=b"row_key_3", table=table)
+        row_3.set_cell("cf", b"col", b"value3")
+
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock(
+            side_effect=[RetryError("testing", "cause")]
+        )
+
+        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
+        response = self._make_responses(response_codes)
+
+        statuses = worker(retry=None)
+
+        self.assertEqual(statuses, [None, None, None])
+
+        mocked.assert_called_once_with()
+
+    def test___call___w_retry(self):
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import DEFAULT_RETRY
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+
+        _, client, _, table = self._mock_table()
 
         # Setup:
         #   - Mutate 3 rows.
@@ -1261,69 +1305,41 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         #   - State of responses_statuses should be
         #       [success, success, non-retryable]
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
-
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
         row_2 = DirectRow(row_key=b"row_key_2", table=table)
         row_2.set_cell("cf", b"col", b"value2")
         row_3 = DirectRow(row_key=b"row_key_3", table=table)
         row_3.set_cell("cf", b"col", b"value3")
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+        mocked = worker._do_mutate_retryable_rows = mock.Mock()
 
         response_1 = self._make_responses(
             [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
         )
         response_2 = self._make_responses([self.SUCCESS])
 
-        # Patch the stub used by the API method.
-        client._table_data_client._inner_api_calls["mutate_rows"] = mock.Mock(
-            side_effect=[[response_1], [response_2]]
-        )
-
         retry = DEFAULT_RETRY.with_delay(initial=0.1)
-        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+
         statuses = worker(retry=retry)
 
-        result = [status.code for status in statuses]
-        expected_result = [self.SUCCESS, self.SUCCESS, self.NON_RETRYABLE]
+        self.assertEqual(statuses, [None, None, None])
 
-        self.assertEqual(
-            client._table_data_client._inner_api_calls["mutate_rows"].call_count, 2
-        )
-        self.assertEqual(result, expected_result)
+        mocked.assert_called_once_with()
 
-    def test_do_mutate_retryable_rows_empty_rows(self):
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
-
+    def test__do_mutate_retryable_rows_empty_rows(self):
+        data_client, client, _, table = self._mock_table()
         worker = self._make_worker(client, table.name, [])
+
         statuses = worker._do_mutate_retryable_rows()
 
         self.assertEqual(len(statuses), 0)
 
-    def test_do_mutate_retryable_rows(self):
+        data_client.mutate_rows.assert_not_called()
+
+    def test__do_mutate_retryable_rows_wo_retry_w_timeout(self):
+        from google.api_core.timeout import ExponentialTimeout
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
         # Setup:
         #   - Mutate 2 rows.
@@ -1332,41 +1348,97 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         # Expectation:
         #   - Expect [success, non-retryable]
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
         row_2 = DirectRow(row_key=b"row_key_2", table=table)
         row_2.set_cell("cf", b"col", b"value2")
+        timeout = 123
+        worker = self._make_worker(
+            client,
+            table.name,
+            [row_1, row_2],
+            timeout=timeout,
+        )
 
         response = self._make_responses([self.SUCCESS, self.NON_RETRYABLE])
 
         # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["mutate_rows"] = mock.Mock(side_effect=[[response]])
+        data_client.mutate_rows = mock.Mock(side_effect=[[response]])
 
-        worker = self._make_worker(client, table.name, [row_1, row_2])
-        statuses = worker._do_mutate_retryable_rows()
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            statuses = worker._do_mutate_retryable_rows()
 
         result = [status.code for status in statuses]
         expected_result = [self.SUCCESS, self.NON_RETRYABLE]
 
         self.assertEqual(result, expected_result)
 
-    def test_do_mutate_retryable_rows_retry(self):
+        data_client.mutate_rows.assert_called_once_with(
+            table.name,
+            _compile_mutation_entries.return_value,
+            app_profile_id=None,
+            retry=None,
+            timeout=mock.ANY,
+        )
+        self.assertEqual(
+            data_client.mutate_rows.mock_calls[0].kwargs["timeout"]._deadline,
+            timeout,
+        )
+
+    def test__do_mutate_retryable_rows_w_retryable_error(self):
+        from google.api_core.exceptions import ServiceUnavailable
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import _BigtableRetryableError
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+
+        # Setup:
+        #   - Mutate 2 rows.
+        # Action:
+        #   - Initial attempt will mutate all 2 rows.
+        # Expectation:
+        #   - Expect [success, non-retryable]
+
+        data_client, client, _, table = self._mock_table()
+
+        row_1 = DirectRow(row_key=b"row_key", table=table)
+        row_1.set_cell("cf", b"col", b"value1")
+        row_2 = DirectRow(row_key=b"row_key_2", table=table)
+        row_2.set_cell("cf", b"col", b"value2")
+        timeout = 123
+        worker = self._make_worker(
+            client,
+            table.name,
+            [row_1, row_2],
+            timeout=timeout,
+        )
+
+        # Patch the stub used by the API method.
+        data_client.mutate_rows = mock.Mock(
+            side_effect=[ServiceUnavailable("testing")],
+        )
+
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            with self.assertRaises(_BigtableRetryableError):
+                worker._do_mutate_retryable_rows()
+
+        data_client.mutate_rows.assert_called_once_with(
+            table.name,
+            _compile_mutation_entries.return_value,
+            app_profile_id=None,
+            retry=None,
+            timeout=mock.ANY,
+        )
+        self.assertEqual(
+            data_client.mutate_rows.mock_calls[0].kwargs["timeout"]._deadline,
+            timeout,
+        )
+
+    def test__do_mutate_retryable_rows_w_retry(self):
+        from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable.table import _BigtableRetryableError
 
         # Setup:
         #   - Mutate 3 rows.
@@ -1377,16 +1449,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         #   - State of responses_statuses should be
         #       [success, retryable, non-retryable]
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
@@ -1394,19 +1457,17 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_2.set_cell("cf", b"col", b"value2")
         row_3 = DirectRow(row_key=b"row_key_3", table=table)
         row_3.set_cell("cf", b"col", b"value3")
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
 
         response = self._make_responses(
             [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
         )
+        data_client.mutate_rows = mock.Mock(side_effect=[[response]])
 
-        # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["mutate_rows"] = mock.Mock(side_effect=[[response]])
-
-        worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
-
-        with self.assertRaises(_BigtableRetryableError):
-            worker._do_mutate_retryable_rows()
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            with self.assertRaises(_BigtableRetryableError):
+                worker._do_mutate_retryable_rows()
 
         statuses = worker.responses_statuses
         result = [status.code for status in statuses]
@@ -1414,11 +1475,16 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
 
-    def test_do_mutate_retryable_rows_second_retry(self):
+        data_client.mutate_rows.assert_called_once_with(
+            table.name,
+            _compile_mutation_entries.return_value,
+            app_profile_id=None,
+            retry=None,
+        )
+
+    def test__do_mutate_retryable_rows_second_retry(self):
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import _BigtableRetryableError
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
         # Setup:
         #   - Mutate 4 rows.
@@ -1434,16 +1500,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         #   - Exception contains response whose index should be '3' even though
         #     only two rows were retried.
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
@@ -1453,20 +1510,21 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3.set_cell("cf", b"col", b"value3")
         row_4 = DirectRow(row_key=b"row_key_4", table=table)
         row_4.set_cell("cf", b"col", b"value4")
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3, row_4])
 
         response = self._make_responses([self.SUCCESS, self.RETRYABLE_1])
 
         # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["mutate_rows"] = mock.Mock(side_effect=[[response]])
+        data_client.mutate_rows = mock.Mock(side_effect=[[response]])
 
-        worker = self._make_worker(client, table.name, [row_1, row_2, row_3, row_4])
         worker.responses_statuses = self._make_responses_statuses(
             [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE, self.RETRYABLE_2]
         )
 
-        with self.assertRaises(_BigtableRetryableError):
-            worker._do_mutate_retryable_rows()
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            with self.assertRaises(_BigtableRetryableError):
+                worker._do_mutate_retryable_rows()
 
         statuses = worker.responses_statuses
         result = [status.code for status in statuses]
@@ -1479,10 +1537,15 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
 
-    def test_do_mutate_retryable_rows_second_try(self):
+        data_client.mutate_rows.assert_called_once_with(
+            table.name,
+            _compile_mutation_entries.return_value,
+            app_profile_id=None,
+            retry=None,
+        )
+
+    def test__do_mutate_retryable_rows_second_try(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
         # Setup:
         #   - Mutate 4 rows.
@@ -1493,17 +1556,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         # Expectation:
         #   - After second try:
         #       [success, non-retryable, non-retryable, success]
-
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
@@ -1513,19 +1566,20 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3.set_cell("cf", b"col", b"value3")
         row_4 = DirectRow(row_key=b"row_key_4", table=table)
         row_4.set_cell("cf", b"col", b"value4")
+        worker = self._make_worker(client, table.name, [row_1, row_2, row_3, row_4])
 
         response = self._make_responses([self.NON_RETRYABLE, self.SUCCESS])
 
         # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["mutate_rows"] = mock.Mock(side_effect=[[response]])
+        data_client.mutate_rows = mock.Mock(side_effect=[[response]])
 
-        worker = self._make_worker(client, table.name, [row_1, row_2, row_3, row_4])
         worker.responses_statuses = self._make_responses_statuses(
             [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE, self.RETRYABLE_2]
         )
 
-        statuses = worker._do_mutate_retryable_rows()
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            statuses = worker._do_mutate_retryable_rows()
 
         result = [status.code for status in statuses]
         expected_result = [
@@ -1537,9 +1591,15 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
 
-    def test_do_mutate_retryable_rows_second_try_no_retryable(self):
+        data_client.mutate_rows.assert_called_once_with(
+            table.name,
+            _compile_mutation_entries.return_value,
+            app_profile_id=None,
+            retry=None,
+        )
+
+    def test__do_mutate_retryable_rows_second_try_no_retryable(self):
         from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
 
         # Setup:
         #   - Mutate 2 rows.
@@ -1548,50 +1608,32 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         #   - Second try has no row to retry.
         # Expectation:
         #   - After second try: [success, non-retryable]
-
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
         row_2 = DirectRow(row_key=b"row_key_2", table=table)
         row_2.set_cell("cf", b"col", b"value2")
-
         worker = self._make_worker(client, table.name, [row_1, row_2])
         worker.responses_statuses = self._make_responses_statuses(
             [self.SUCCESS, self.NON_RETRYABLE]
         )
 
-        statuses = worker._do_mutate_retryable_rows()
+        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
+        with patch as _compile_mutation_entries:
+            statuses = worker._do_mutate_retryable_rows()
 
         result = [status.code for status in statuses]
         expected_result = [self.SUCCESS, self.NON_RETRYABLE]
 
         self.assertEqual(result, expected_result)
 
-    def test_do_mutate_retryable_rows_mismatch_num_responses(self):
-        from google.cloud.bigtable.row import DirectRow
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
+        data_client.mutate_rows.assert_not_called()
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_table(self.TABLE_ID, instance)
+    def test__do_mutate_retryable_rows_mismatch_num_responses(self):
+        from google.cloud.bigtable.row import DirectRow
+
+        data_client, client, _, table = self._mock_table()
 
         row_1 = DirectRow(row_key=b"row_key", table=table)
         row_1.set_cell("cf", b"col", b"value1")
@@ -1600,9 +1642,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         response = self._make_responses([self.SUCCESS])
 
-        # Patch the stub used by the API method.
-        inner_api_calls = client._table_data_client._inner_api_calls
-        inner_api_calls["mutate_rows"] = mock.Mock(side_effect=[[response]])
+        data_client.mutate_rows = mock.Mock(side_effect=[[response]])
 
         worker = self._make_worker(client, table.name, [row_1, row_2])
         with self.assertRaises(RuntimeError):
