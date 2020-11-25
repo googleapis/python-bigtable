@@ -529,6 +529,85 @@ class TestPartialRowsData(unittest.TestCase):
 
     # 'consume_all' tested via 'TestPartialRowsData_JSON_acceptance_tests'
 
+    def test__create_retry_request(self):
+        last_scanned_row_key = "row-key"
+        counter = 123
+        iterator = _MockCancellableIterator()
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+        instance = self._make_one(read_method, request)
+        instance.last_scanned_row_key = last_scanned_row_key
+        instance._counter = counter
+
+        patch = mock.patch("google.cloud.bigtable.row_data._ReadRowsRequestManager")
+
+        with patch as manager_klass:
+            result = instance._create_retry_request()
+
+        manager = manager_klass.return_value
+        self.assertIs(result, manager.build_updated_request.return_value)
+
+        manager_klass.assert_called_once_with(request, last_scanned_row_key, counter)
+
+    def test__on_error_wo_last_scanned_row_key(self):
+        iterator = _MockCancellableIterator()
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+        instance = self._make_one(read_method, request)
+        read_method.reset_mock()
+
+        instance._on_error(Exception("testing"))
+
+        self.assertIs(instance.response_iterator, read_method.return_value)
+        read_method.assert_called_once_with(request)
+
+    def test__on_error_w_last_scanned_row_key(self):
+        last_scanned_row_key = "row-key"
+        counter = 123
+        iterator = _MockCancellableIterator()
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+        instance = self._make_one(read_method, request)
+        instance.last_scanned_row_key = last_scanned_row_key
+        instance._counter = counter
+        create_retry_request = instance._create_retry_request = mock.Mock()
+        read_method.reset_mock()
+
+        instance._on_error(Exception("testing"))
+
+        self.assertIs(instance.response_iterator, read_method.return_value)
+        read_method.assert_called_once_with(create_retry_request.return_value)
+
+    def test__read_next(self):
+        response = _ReadRowsResponseV2([])
+        responses = [response]
+        iterator = iter(responses)
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+        instance = self._make_one(read_method, request)
+
+        result = instance._read_next()
+
+        self.assertIs(result, response)
+
+    def test__read_next_response(self):
+        iterator = _MockCancellableIterator()
+        read_method = mock.Mock(return_value=iterator)
+        request = object()
+        retry = mock.Mock(_deadline=123)
+        instance = self._make_one(read_method, request, retry=retry)
+
+        result = instance._read_next_response()
+
+        retried = retry.return_value
+        self.assertIs(result, retried.return_value)
+
+        retry.assert_called_once_with(
+            instance._read_next,
+            on_error=instance._on_error,
+        )
+        retried.assert_called_once_with()
+
     def test__copy_from_previous_unset(self):
         iterator = iter([])
         read_method = mock.Mock(return_value=iterator)
