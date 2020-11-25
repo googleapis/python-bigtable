@@ -771,7 +771,12 @@ class TestTable(unittest.TestCase):
         from google.cloud.bigtable.client import Client
         from google.cloud.bigtable.instance import Instance
 
-        data_client = mock.create_autospec(bigtable_client.BigtableClient)
+        transport = mock.Mock(spec=["read_rows"])
+        data_client = mock.create_autospec(
+            bigtable_client.BigtableClient,
+            transport=transport,
+            spec_set=False,
+        )
         client = mock.create_autospec(Client, table_data_client=data_client)
         client.project = self.PROJECT_ID
         instance = mock.create_autospec(Instance, _client=client)
@@ -817,129 +822,106 @@ class TestTable(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._read_row_helper([row_data_1, row_data_2], object())
 
-    def test_read_rows(self):
-        from google.cloud._testing import _Monkey
+    def _read_rows_helper(
+        self,
+        app_profile_id=None,
+        start_key=None,
+        end_key=None,
+        limit=None,
+        filter_=None,
+        end_inclusive=None,
+        row_set=None,
+        retry=None,
+    ):
         from google.cloud.bigtable.row_data import PartialRowsData
-        from google.cloud.bigtable import table as MUT
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        app_profile_id = "app-profile-id"
-        table = self._make_one(self.TABLE_ID, instance, app_profile_id=app_profile_id)
-
-        # Create request_pb
-        request = object()  # Returned by our mock.
-        retry = DEFAULT_RETRY_READ_ROWS
-        mock_created = []
-
-        def mock_create_row_request(table_name, **kwargs):
-            mock_created.append((table_name, kwargs))
-            return request
-
-        # Create expected_result.
-        expected_result = PartialRowsData(
-            client._table_data_client.transport.read_rows, request, retry
-        )
-
-        # Perform the method and check the result.
-        start_key = b"start-key"
-        end_key = b"end-key"
-        filter_obj = object()
-        limit = 22
-        with _Monkey(MUT, _create_row_request=mock_create_row_request):
-            result = table.read_rows(
-                start_key=start_key,
-                end_key=end_key,
-                filter_=filter_obj,
-                limit=limit,
-                retry=retry,
+        data_client, _, instance = self._mock_data_client()
+        if app_profile_id is None:
+            table = self._make_one(self.TABLE_ID, instance)
+        else:
+            table = self._make_one(
+                self.TABLE_ID, instance, app_profile_id=app_profile_id
             )
 
-        self.assertEqual(result.rows, expected_result.rows)
+        kwargs = {}
+
+        if start_key is not None:
+            kwargs["start_key"] = start_key
+
+        if end_key is not None:
+            kwargs["end_key"] = end_key
+
+        if limit is not None:
+            kwargs["limit"] = limit
+
+        if filter_ is not None:
+            kwargs["filter_"] = filter_
+
+        if end_inclusive is not None:
+            kwargs["end_inclusive"] = end_inclusive
+            expected_end_inclusive = end_inclusive
+        else:
+            expected_end_inclusive = False
+
+        if row_set is not None:
+            kwargs["row_set"] = row_set
+
+        if retry is not None:
+            kwargs["retry"] = retry
+            expected_retry = retry
+        else:
+            expected_retry = DEFAULT_RETRY_READ_ROWS
+
+        patch = mock.patch("google.cloud.bigtable.table._create_row_request")
+        with patch as create_row_request:
+            result = table.read_rows(**kwargs)
+
+        expected_result = PartialRowsData(
+            read_method=data_client.transport.read_rows,
+            request=create_row_request.return_value,
+            retry=expected_retry,
+        )
+        self.assertEqual(result.read_method, expected_result.read_method)
+        self.assertEqual(result.request, expected_result.request)
         self.assertEqual(result.retry, expected_result.retry)
-        created_kwargs = {
-            "start_key": start_key,
-            "end_key": end_key,
-            "filter_": filter_obj,
-            "limit": limit,
-            "end_inclusive": False,
-            "app_profile_id": app_profile_id,
-            "row_set": None,
-        }
-        self.assertEqual(mock_created, [(table.name, created_kwargs)])
 
-    def test_read_retry_rows(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-        from google.api_core import retry
-
-        data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        retry_read_rows = retry.Retry(predicate=_read_rows_retry_exception)
-
-        # Create response_iterator
-        chunk_1 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_1,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
+        create_row_request.assert_called_once_with(
+            table.name,
+            start_key=start_key,
+            end_key=end_key,
+            limit=limit,
+            filter_=filter_,
+            end_inclusive=expected_end_inclusive,
+            app_profile_id=app_profile_id,
+            row_set=row_set,
         )
 
-        chunk_2 = _ReadRowsResponseCellChunkPB(
-            row_key=self.ROW_KEY_2,
-            family_name=self.FAMILY_NAME,
-            qualifier=self.QUALIFIER,
-            timestamp_micros=self.TIMESTAMP_MICROS,
-            value=self.VALUE,
-            commit_row=True,
+    def test_read_rows_defaults(self):
+        self._read_rows_helper()
+
+    def test_read_rows_explicit(self):
+        from google.api_core.retry import Retry
+
+        app_profile_id = "app-profile-id"
+        start_key = b"start-key"
+        end_key = b"end-key"
+        filter_ = mock.Mock(spec=[])
+        limit = 22
+        end_inclusive = True
+        row_set = mock.Mock(spec=[])
+        retry = Retry()
+
+        self._read_rows_helper(
+            app_profile_id=app_profile_id,
+            start_key=start_key,
+            end_key=end_key,
+            limit=limit,
+            filter_=filter_,
+            end_inclusive=end_inclusive,
+            row_set=row_set,
+            retry=retry,
         )
-
-        response_1 = _ReadRowsResponseV2([chunk_1])
-        response_2 = _ReadRowsResponseV2([chunk_2])
-        response_failure_iterator_1 = _MockFailureIterator_1()
-        response_failure_iterator_2 = _MockFailureIterator_2([response_1])
-        response_iterator = _MockReadRowsIterator(response_2)
-
-        # Patch the stub used by the API method.
-        client._table_data_client.transport.read_rows = mock.Mock(
-            side_effect=[
-                response_failure_iterator_1,
-                response_failure_iterator_2,
-                response_iterator,
-            ]
-        )
-
-        rows = []
-        for row in table.read_rows(
-            start_key=self.ROW_KEY_1, end_key=self.ROW_KEY_2, retry=retry_read_rows
-        ):
-            rows.append(row)
-
-        result = rows[1]
-        self.assertEqual(result.row_key, self.ROW_KEY_2)
 
     def test_yield_retry_rows(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
@@ -2024,12 +2006,6 @@ def _ReadRowsResponseCellChunkPB(*args, **kw):
     return message
 
 
-def _ReadRowsResponsePB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import bigtable_pb2 as messages_v2_pb2
-
-    return messages_v2_pb2.ReadRowsResponse(*args, **kw)
-
-
 class _MockReadRowsIterator(object):
     def __init__(self, *values):
         self.iter_values = iter(values)
@@ -2084,7 +2060,3 @@ def _ClusterStatePB(replication_state):
     from google.cloud.bigtable_admin_v2.proto import table_pb2 as table_v2_pb2
 
     return table_v2_pb2.Table.ClusterState(replication_state=replication_state)
-
-
-def _read_rows_retry_exception(exc):
-    return isinstance(exc, DeadlineExceeded)
