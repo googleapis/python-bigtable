@@ -16,8 +16,6 @@
 import unittest
 
 import mock
-from ._testing import _make_credentials
-from google.api_core.exceptions import DeadlineExceeded
 
 
 class TestTable(unittest.TestCase):
@@ -50,17 +48,19 @@ class TestTable(unittest.TestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    @staticmethod
-    def _get_target_client_class():
+    def _mock_instance(self):
         from google.cloud.bigtable.client import Client
+        from google.cloud.bigtable.instance import Instance
 
-        return Client
-
-    def _make_client(self, *args, **kwargs):
-        return self._get_target_client_class()(*args, **kwargs)
+        client = mock.create_autospec(Client, instance=True, project=self.PROJECT_ID)
+        instance = mock.create_autospec(
+            Instance, instance=True, instance_id=self.INSTANCE_NAME
+        )
+        instance._client = client
+        return client, instance
 
     def test_constructor_defaults(self):
-        instance = mock.Mock(spec=[])
+        _, instance = self._mock_instance()
 
         table = self._make_one(self.TABLE_ID, instance)
 
@@ -70,7 +70,7 @@ class TestTable(unittest.TestCase):
         self.assertIsNone(table._app_profile_id)
 
     def test_constructor_explicit(self):
-        instance = mock.Mock(spec=[])
+        _, instance = self._mock_instance()
         mutation_timeout = 123
         app_profile_id = "profile-123"
 
@@ -87,65 +87,43 @@ class TestTable(unittest.TestCase):
         self.assertEqual(table._app_profile_id, app_profile_id)
 
     def test___eq__(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        _, instance = self._mock_instance()
         table1 = self._make_one(self.TABLE_ID, instance)
         table2 = self._make_one(self.TABLE_ID, instance)
         self.assertEqual(table1, table2)
 
     def test___eq__type_differ(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        _, instance = self._mock_instance()
         table1 = self._make_one(self.TABLE_ID, instance)
         table2 = object()
         self.assertNotEqual(table1, table2)
 
     def test___ne__same_value(self):
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        _, instance = self._mock_instance()
         table1 = self._make_one(self.TABLE_ID, instance)
         table2 = self._make_one(self.TABLE_ID, instance)
         comparison_val = table1 != table2
         self.assertFalse(comparison_val)
 
     def test___ne__(self):
-        table1 = self._make_one("table_id1", None)
-        table2 = self._make_one("table_id2", None)
+        _, instance = self._mock_instance()
+        table1 = self._make_one("table_id1", instance)
+        table2 = self._make_one("table_id2", instance)
         self.assertNotEqual(table1, table2)
 
     def test_name(self):
         table_data_client = mock.Mock(spec=["table_path"])
-        client = mock.Mock(
-            project=self.PROJECT_ID,
-            table_data_client=table_data_client,
-            spec=["project", "table_data_client"],
-        )
-        instance = mock.Mock(
-            _client=client,
-            instance_id=self.INSTANCE_ID,
-            spec=["_client", "instance_id"],
-        )
-
+        client, instance = self._mock_instance()
+        client.table_data_client = table_data_client
         table = self._make_one(self.TABLE_ID, instance)
 
         self.assertEqual(table.name, table_data_client.table_path.return_value)
 
     def _column_family_helper(self):
-        client = self._make_client(
-            project="project-id", credentials=_make_credentials(), admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        client, instance = self._mock_instance()
         table = self._make_one(self.TABLE_ID, instance)
         column_family_id = "column_family"
+
         return table, column_family_id
 
     def test_column_family_default(self):
@@ -172,12 +150,10 @@ class TestTable(unittest.TestCase):
         self.assertIs(column_family.gc_rule, gc_rule)
 
     def _row_methods_helper(self):
-        client = self._make_client(
-            project="project-id", credentials=_make_credentials(), admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        client, instance = self._mock_instance()
         table = self._make_one(self.TABLE_ID, instance)
         row_key = b"row_key"
+
         return table, row_key
 
     def test_row_factory_direct(self):
@@ -432,41 +408,23 @@ class TestTable(unittest.TestCase):
         self.assertIsNone(backup._state)
 
     def _list_backups_helper(self, cluster_id=None, filter_=None, **kwargs):
-        from google.cloud.bigtable_admin_v2.gapic import (
-            bigtable_instance_admin_client,
-            bigtable_table_admin_client,
-        )
-        from google.cloud.bigtable_admin_v2.proto import (
-            bigtable_table_admin_pb2,
-            table_pb2,
-        )
+        from google.cloud.bigtable_admin_v2.proto import table_pb2
         from google.cloud.bigtable.backup import Backup
 
-        instance_api = bigtable_instance_admin_client.BigtableInstanceAdminClient
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
-        client = self._make_client(
-            project=self.PROJECT_ID, credentials=_make_credentials(), admin=True
-        )
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+        admin_client, client, instance = self._mock_admin_client()
+        client.table_data_client.table_path.return_value = self.TABLE_NAME
         table = self._make_one(self.TABLE_ID, instance)
 
-        client._instance_admin_client = instance_api
-        client._table_admin_client = table_api
-
         parent = self.INSTANCE_NAME + "/clusters/cluster"
-        backups_pb = bigtable_table_admin_pb2.ListBackupsResponse(
-            backups=[
-                table_pb2.Backup(name=parent + "/backups/op1"),
-                table_pb2.Backup(name=parent + "/backups/op2"),
-                table_pb2.Backup(name=parent + "/backups/op3"),
-            ]
-        )
-
-        api = table_api._inner_api_calls["list_backups"] = mock.Mock(
-            return_value=backups_pb
-        )
+        backups = [
+            table_pb2.Backup(name=parent + "/backups/op1"),
+            table_pb2.Backup(name=parent + "/backups/op2"),
+            table_pb2.Backup(name=parent + "/backups/op3"),
+        ]
+        admin_client.list_backups.return_value = iter(backups)
 
         backups_filter = "source_table:{}".format(self.TABLE_NAME)
+
         if filter_:
             backups_filter = "({}) AND ({})".format(backups_filter, filter_)
 
@@ -479,16 +437,11 @@ class TestTable(unittest.TestCase):
             cluster_id = "-"
         parent = "{}/clusters/{}".format(self.INSTANCE_NAME, cluster_id)
 
-        expected_metadata = [
-            ("x-goog-request-params", "parent={}".format(parent)),
-        ]
-        api.assert_called_once_with(
-            bigtable_table_admin_pb2.ListBackupsRequest(
-                parent=parent, filter=backups_filter, **kwargs
-            ),
-            retry=mock.ANY,
-            timeout=mock.ANY,
-            metadata=expected_metadata,
+        admin_client.list_backups.assert_called_once_with(
+            parent=parent,
+            filter_=backups_filter,
+            order_by=kwargs.get("order_by", None),
+            page_size=kwargs.get("page_size", 0),
         )
 
     def test_list_backups_defaults(self):
@@ -500,29 +453,16 @@ class TestTable(unittest.TestCase):
         )
 
     def _restore_helper(self, backup_name=None):
-        from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_instance_admin_client
-        from google.cloud.bigtable.instance import Instance
-
-        op_future = object()
-        instance_api = bigtable_instance_admin_client.BigtableInstanceAdminClient
-
-        client = mock.Mock(project=self.PROJECT_ID, instance_admin_client=instance_api)
-        instance = Instance(self.INSTANCE_ID, client=client)
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
-
-        api = client.table_admin_client = mock.create_autospec(
-            BigtableTableAdminClient, instance=True
-        )
-        api.restore_table.return_value = op_future
 
         if backup_name:
             future = table.restore(self.TABLE_ID, backup_name=self.BACKUP_NAME)
         else:
             future = table.restore(self.TABLE_ID, self.CLUSTER_ID, self.BACKUP_ID)
-        self.assertIs(future, op_future)
+        self.assertIs(future, admin_client.restore_table.return_value)
 
-        api.restore_table.assert_called_once_with(
+        admin_client.restore_table.assert_called_once_with(
             parent=self.INSTANCE_NAME,
             table_id=self.TABLE_ID,
             backup=self.BACKUP_NAME,
@@ -534,107 +474,54 @@ class TestTable(unittest.TestCase):
     def test_restore_table_w_backup_name(self):
         self._restore_helper(backup_name=self.BACKUP_NAME)
 
-    def test_truncate(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        data_api = mock.create_autospec(bigtable_client.BigtableClient)
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+    def _truncate_helper(self, timeout=None):
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
 
-        expected_result = None  # truncate() has no return value.
-        with mock.patch("google.cloud.bigtable.table.Table.name", new=self.TABLE_NAME):
-            result = table.truncate()
+        kwargs = {}
 
-        table_api.drop_row_range.assert_called_once_with(
-            name=self.TABLE_NAME, delete_all_data_from_table=True
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+
+        result = table.truncate(**kwargs)
+
+        self.assertIsNone(result)
+
+        admin_client.drop_row_range.assert_called_once_with(
+            name=table.name, delete_all_data_from_table=True, **kwargs
         )
 
-        self.assertEqual(result, expected_result)
+    def test_truncate_defaults(self):
+        self._truncate_helper()
 
     def test_truncate_w_timeout(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        data_api = mock.create_autospec(bigtable_client.BigtableClient)
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        expected_result = None  # truncate() has no return value.
-
         timeout = 120
-        result = table.truncate(timeout=timeout)
+        self._truncate_helper(timeout=timeout)
 
-        self.assertEqual(result, expected_result)
-
-    def test_drop_by_prefix(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        data_api = mock.create_autospec(bigtable_client.BigtableClient)
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
+    def _drop_by_prefix_helper(self, timeout=None):
+        admin_client, client, instance = self._mock_admin_client()
         table = self._make_one(self.TABLE_ID, instance)
-
-        expected_result = None  # drop_by_prefix() has no return value.
 
         row_key_prefix = "row-key-prefix"
+        kwargs = {}
 
-        result = table.drop_by_prefix(row_key_prefix=row_key_prefix)
+        if timeout is not None:
+            kwargs["timeout"] = timeout
 
-        self.assertEqual(result, expected_result)
+        result = table.drop_by_prefix(row_key_prefix=row_key_prefix, **kwargs)
+
+        self.assertIsNone(result)
+
+        admin_client.drop_row_range.assert_called_once_with(
+            name=table.name, row_key_prefix=row_key_prefix.encode("utf-8"), **kwargs
+        )
+
+    def test_drop_by_prefix_defaults(self):
+        self._drop_by_prefix_helper()
 
     def test_drop_by_prefix_w_timeout(self):
-        from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
-
-        data_api = mock.create_autospec(bigtable_client.BigtableClient)
-        table_api = mock.create_autospec(
-            bigtable_table_admin_client.BigtableTableAdminClient
-        )
-        credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
-        client._table_data_client = data_api
-        client._table_admin_client = table_api
-        instance = client.instance(instance_id=self.INSTANCE_ID)
-        table = self._make_one(self.TABLE_ID, instance)
-
-        expected_result = None  # drop_by_prefix() has no return value.
-
-        row_key_prefix = "row-key-prefix"
-
         timeout = 120
-        result = table.drop_by_prefix(row_key_prefix=row_key_prefix, timeout=timeout)
-
-        self.assertEqual(result, expected_result)
+        self._drop_by_prefix_helper(timeout=timeout)
 
     def test_list_column_families(self):
         admin_client, client, instance = self._mock_admin_client()
@@ -1206,10 +1093,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
         mocked = worker._do_mutate_retryable_rows = mock.Mock()
 
-        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        response = self._make_responses(response_codes)
-        mocked = worker._do_mutate_retryable_rows = mock.Mock()
-
         statuses = worker(retry=None)
 
         self.assertEqual(statuses, [None, None, None])
@@ -1234,9 +1117,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
             side_effect=[_BigtableRetryableError("testing")]
         )
 
-        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        response = self._make_responses(response_codes)
-
         statuses = worker(retry=None)
 
         self.assertEqual(statuses, [None, None, None])
@@ -1260,9 +1140,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         mocked = worker._do_mutate_retryable_rows = mock.Mock(
             side_effect=[RetryError("testing", "cause")]
         )
-
-        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        response = self._make_responses(response_codes)
 
         statuses = worker(retry=None)
 
@@ -1294,13 +1171,8 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3 = DirectRow(row_key=b"row_key_3", table=table)
         row_3.set_cell("cf", b"col", b"value3")
         worker = self._make_worker(client, table.name, [row_1, row_2, row_3])
+
         mocked = worker._do_mutate_retryable_rows = mock.Mock()
-
-        response_1 = self._make_responses(
-            [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        )
-        response_2 = self._make_responses([self.SUCCESS])
-
         retry = DEFAULT_RETRY.with_delay(initial=0.1)
 
         statuses = worker(retry=retry)
@@ -1320,7 +1192,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         data_client.mutate_rows.assert_not_called()
 
     def test__do_mutate_retryable_rows_wo_retry_w_timeout(self):
-        from google.api_core.timeout import ExponentialTimeout
         from google.cloud.bigtable.row import DirectRow
 
         # Setup:
@@ -1601,9 +1472,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
             [self.SUCCESS, self.NON_RETRYABLE]
         )
 
-        patch = mock.patch("google.cloud.bigtable.table._compile_mutation_entries")
-        with patch as _compile_mutation_entries:
-            statuses = worker._do_mutate_retryable_rows()
+        statuses = worker._do_mutate_retryable_rows()
 
         result = [status.code for status in statuses]
         expected_result = [self.SUCCESS, self.NON_RETRYABLE]
