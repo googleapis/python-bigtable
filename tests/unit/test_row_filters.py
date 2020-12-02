@@ -562,6 +562,7 @@ class TestValueRangeFilter(unittest.TestCase):
 
     def test_constructor_defaults(self):
         row_filter = self._make_one()
+
         self.assertIsNone(row_filter.start_value)
         self.assertIsNone(row_filter.end_value)
         self.assertTrue(row_filter.inclusive_start)
@@ -572,22 +573,42 @@ class TestValueRangeFilter(unittest.TestCase):
         end_value = object()
         inclusive_start = object()
         inclusive_end = object()
+
         row_filter = self._make_one(
             start_value=start_value,
             end_value=end_value,
             inclusive_start=inclusive_start,
             inclusive_end=inclusive_end,
         )
+
         self.assertIs(row_filter.start_value, start_value)
         self.assertIs(row_filter.end_value, end_value)
         self.assertIs(row_filter.inclusive_start, inclusive_start)
         self.assertIs(row_filter.inclusive_end, inclusive_end)
 
+    def test_constructor_w_int_values(self):
+        import struct
+
+        start_value = 1
+        end_value = 10
+
+        row_filter = self._make_one(start_value=start_value, end_value=end_value)
+
+        expected_start_value = struct.Struct(">q").pack(start_value)
+        expected_end_value = struct.Struct(">q").pack(end_value)
+
+        self.assertEqual(row_filter.start_value, expected_start_value)
+        self.assertEqual(row_filter.end_value, expected_end_value)
+        self.assertTrue(row_filter.inclusive_start)
+        self.assertTrue(row_filter.inclusive_end)
+
     def test_constructor_bad_start(self):
-        self.assertRaises(ValueError, self._make_one, inclusive_start=True)
+        with self.assertRaises(ValueError):
+            self._make_one(inclusive_start=True)
 
     def test_constructor_bad_end(self):
-        self.assertRaises(ValueError, self._make_one, inclusive_end=True)
+        with self.assertRaises(ValueError):
+            self._make_one(inclusive_end=True)
 
     def test___eq__(self):
         start_value = object()

@@ -518,6 +518,8 @@ class ValueRangeFilter(RowFilter):
             raise ValueError(
                 "Inclusive start was specified but no " "start value was given."
             )
+        if isinstance(start_value, int):
+            start_value = _PACK_I64(start_value)
         self.start_value = start_value
         self.inclusive_start = inclusive_start
 
@@ -527,6 +529,8 @@ class ValueRangeFilter(RowFilter):
             raise ValueError(
                 "Inclusive end was specified but no " "end value was given."
             )
+        if isinstance(end_value, int):
+            end_value = _PACK_I64(end_value)
         self.end_value = end_value
         self.inclusive_end = inclusive_end
 
