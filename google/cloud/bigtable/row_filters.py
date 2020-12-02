@@ -14,10 +14,14 @@
 
 """Filters for Google Cloud Bigtable Row classes."""
 
+import struct
+
 
 from google.cloud._helpers import _microseconds_from_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+
+_PACK_I64 = struct.Struct(">q").pack
 
 
 class RowFilter(object):
@@ -453,6 +457,22 @@ class ValueRegexFilter(_RegexFilter):
         :returns: The converted current object.
         """
         return data_v2_pb2.RowFilter(value_regex_filter=self.regex)
+
+
+class ExactValueFilter(ValueRegexFilter):
+    """Row filter for an exact value.
+
+
+    :type value: bytes or str or int
+    :param value:
+        a literal string encodable as ASCII, or the
+        equivalent bytes, or an integer (which will be packed into 8-bytes).
+    """
+
+    def __init__(self, value):
+        if isinstance(value, int):
+            value = _PACK_I64(value)
+        super(ExactValueFilter, self).__init__(value)
 
 
 class ValueRangeFilter(RowFilter):
