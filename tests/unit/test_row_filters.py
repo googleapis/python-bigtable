@@ -498,9 +498,17 @@ class TestValueRegexFilter(unittest.TestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_to_pb(self):
-        regex = b"value-regex"
-        row_filter = self._make_one(regex)
+    def test_to_pb_w_bytes(self):
+        value = regex = b"value-regex"
+        row_filter = self._make_one(value)
+        pb_val = row_filter.to_pb()
+        expected_pb = _RowFilterPB(value_regex_filter=regex)
+        self.assertEqual(pb_val, expected_pb)
+
+    def test_to_pb_w_str(self):
+        value = u"value-regex"
+        regex = value.encode("ascii")
+        row_filter = self._make_one(value)
         pb_val = row_filter.to_pb()
         expected_pb = _RowFilterPB(value_regex_filter=regex)
         self.assertEqual(pb_val, expected_pb)

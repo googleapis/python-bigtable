@@ -115,7 +115,9 @@ class _RegexFilter(RowFilter):
     .. _RE2 reference: https://github.com/google/re2/wiki/Syntax
 
     :type regex: bytes or str
-    :param regex: A regular expression (RE2) for some row filter.
+    :param regex:
+        A regular expression (RE2) for some row filter.  String values
+        will be encoded as ASCII.
     """
 
     def __init__(self, regex):
@@ -439,9 +441,9 @@ class ValueRegexFilter(_RegexFilter):
         character will not match the new line character ``\\n``, which may be
         present in a binary value.
 
-    :type regex: bytes
+    :type regex: bytes or str
     :param regex: A regular expression (RE2) to match cells with values that
-                  match this regex.
+                  match this regex.  String values will be encoded as ASCII.
     """
 
     def to_pb(self):
