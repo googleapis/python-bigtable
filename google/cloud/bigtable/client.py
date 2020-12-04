@@ -161,7 +161,13 @@ class Client(ClientWithProject):
         self._emulator_channel = None
 
         if self._emulator_host is not None:
-            self._emulator_channel = grpc.insecure_channel(self._emulator_host)
+            self._emulator_channel = grpc.insecure_channel(
+                target=self._emulator_host,
+                options={
+                    "grpc.keepalive_time_ms": 30000,
+                    "grpc.keepalive_timeout_ms": 10000,
+                }.items(),
+            )
 
         if channel is not None:
             warnings.warn(

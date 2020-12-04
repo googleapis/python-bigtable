@@ -170,7 +170,13 @@ class TestClient(unittest.TestCase):
 
         self.assertEqual(client._emulator_host, emulator_host)
         self.assertIs(client._emulator_channel, factory.return_value)
-        factory.assert_called_once_with(emulator_host)
+        factory.assert_called_once_with(
+            target=emulator_host,
+            options={
+                "grpc.keepalive_time_ms": 30000,
+                "grpc.keepalive_timeout_ms": 10000,
+            }.items(),
+        )
         getenv.assert_called_once_with(BIGTABLE_EMULATOR)
 
     def test__get_scopes_default(self):
