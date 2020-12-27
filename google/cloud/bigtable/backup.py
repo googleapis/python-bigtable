@@ -371,17 +371,25 @@ class Backup(object):
         """Delete this Backup."""
         self._instance._client.table_admin_client.delete_backup(self.name)
 
-    def restore(self, table_id):
+    def restore(self, table_id, instance_id=None):
         """Creates a new Table by restoring from this Backup. The new Table
-        must be in the same Instance as the Instance containing the Backup.
+        can be created in the same Instance as the Instance containing the
+        Backup, or another Instance whose ID can be specified in the arguments.
         The returned Table ``long-running operation`` can be used to track the
         progress of the operation and to cancel it. The ``response`` type is
         ``Table``, if successful.
 
+        :type table_id: str
         :param table_id: The ID of the Table to create and restore to.
                          This Table must not already exist.
-        :returns: An instance of
-             :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`.
+
+        :type instance_id: str
+        :param instance_id: (Optional) The ID of the Instance to restore the
+                            backup into, if different from the current one.
+
+        :rtype: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
+        :returns: A future to be used to poll the status of the 'restore'
+                  request.
 
         :raises: google.api_core.exceptions.AlreadyExists: If the table
                  already exists.
@@ -392,7 +400,15 @@ class Backup(object):
         :raises: ValueError: If the parameters are invalid.
         """
         api = self._instance._client.table_admin_client
-        return api.restore_table(self._instance.name, table_id, self.name)
+        if instance_id:
+            parent = BigtableTableAdminClient.instance_path(
+                project=self._instance._client.project,
+                instance=instance_id,
+            )
+            return api.restore_table(parent, table_id, self.name)
+        else:
+            parent = self._instance.name
+            return api.restore_table(parent, table_id, self.name)
 
     def get_iam_policy(self):
         """Gets the IAM access control policy for this backup.
