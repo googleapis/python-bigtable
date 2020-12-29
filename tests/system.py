@@ -909,7 +909,7 @@ class TestTableAdminAPI(unittest.TestCase):
         if not Config.IN_EMULATOR:
             alt_instance.create(clusters=[alt_cluster]).result(timeout=10)
 
-        # Testing `reastore()`...
+        # Testing `restore()`...
         temp_backup.restore(restored_table_id, alt_instance_id).result()
         restored_table = alt_instance.table(restored_table_id)
         self.assertIn(restored_table, alt_instance.list_tables())
