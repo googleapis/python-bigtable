@@ -26,6 +26,7 @@ SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
 UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
 LOCAL_DEPS = ()
 
+
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
     """Run linters.
@@ -188,6 +189,7 @@ def docs(session):
         os.path.join("docs", ""),
         os.path.join("docs", "_build", "html", ""),
     )
+
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def docfx(session):
