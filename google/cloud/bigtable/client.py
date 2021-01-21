@@ -42,14 +42,14 @@ from google.cloud.bigtable.cluster import Cluster
 
 from google.cloud.client import ClientWithProject
 
-from google.cloud.bigtable_admin_v2 import enums
+from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 
-INSTANCE_TYPE_PRODUCTION = enums.Instance.Type.PRODUCTION
-INSTANCE_TYPE_DEVELOPMENT = enums.Instance.Type.DEVELOPMENT
-INSTANCE_TYPE_UNSPECIFIED = enums.Instance.Type.TYPE_UNSPECIFIED
+INSTANCE_TYPE_PRODUCTION = instance.Instance.Type.PRODUCTION
+INSTANCE_TYPE_DEVELOPMENT = instance.Instance.Type.DEVELOPMENT
+INSTANCE_TYPE_UNSPECIFIED = instance.Instance.Type.TYPE_UNSPECIFIED
 _CLIENT_INFO = client_info.ClientInfo(client_library_version=__version__)
 SPANNER_ADMIN_SCOPE = "https://www.googleapis.com/auth/spanner.admin"
 ADMIN_SCOPE = "https://www.googleapis.com/auth/bigtable.admin"
@@ -219,7 +219,7 @@ class Client(ClientWithProject):
         :rtype: str
         :returns: Return a fully-qualified project string.
         """
-        return self.instance_admin_client.project_path(self.project)
+        return "projects/{project}".format(project=self.project)
 
     @property
     def table_data_client(self):
@@ -319,10 +319,10 @@ class Client(ClientWithProject):
         :param instance_type: (Optional) The type of the instance.
                                Possible values are represented
                                by the following constants:
-                               :data:`google.cloud.bigtable.enums.InstanceType.PRODUCTION`.
-                               :data:`google.cloud.bigtable.enums.InstanceType.DEVELOPMENT`,
+                               :data:`google.cloud.bigtable.instance.InstanceType.PRODUCTION`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.DEVELOPMENT`,
                                Defaults to
-                               :data:`google.cloud.bigtable.enums.InstanceType.UNSPECIFIED`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.UNSPECIFIED`.
 
         :type labels: dict
         :param labels: (Optional) Labels are a flexible and lightweight

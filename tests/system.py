@@ -41,9 +41,9 @@ from google.cloud.bigtable.row_data import Cell
 from google.cloud.bigtable.row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
-from google.cloud.bigtable_admin_v2.gapic import (
-    bigtable_table_admin_client_config as table_admin_config,
-)
+# from google.cloud.bigtable_admin_v2.gapic import (
+#     bigtable_table_admin_client_config as table_admin_config,
+# )
 
 UNIQUE_SUFFIX = unique_resource_id("-")
 LOCATION_ID = "us-central1-c"
@@ -104,11 +104,11 @@ def setUpModule():
     from google.cloud.bigtable import Instance
 
     # See: https://github.com/googleapis/google-cloud-python/issues/5928
-    interfaces = table_admin_config.config["interfaces"]
-    iface_config = interfaces["google.bigtable.admin.v2.BigtableTableAdmin"]
-    methods = iface_config["methods"]
-    create_table = methods["CreateTable"]
-    create_table["timeout_millis"] = 90000
+    # interfaces = table_admin_config.config["interfaces"]
+    # iface_config = interfaces["google.bigtable.admin.v2.BigtableTableAdmin"]
+    # methods = iface_config["methods"]
+    # create_table = methods["CreateTable"]
+    # create_table["timeout_millis"] = 90000
 
     Config.IN_EMULATOR = os.getenv(BIGTABLE_EMULATOR) is not None
 

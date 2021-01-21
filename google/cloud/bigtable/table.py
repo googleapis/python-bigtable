@@ -38,13 +38,13 @@ from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable import enums
-from google.cloud.bigtable_v2.proto import bigtable_pb2 as data_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.gapic.bigtable_table_admin_client import (
+from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
+from google.cloud.bigtable_admin_v2 import (
     BigtableTableAdminClient,
 )
-from google.cloud.bigtable_admin_v2.proto import table_pb2 as admin_messages_v2_pb2
-from google.cloud.bigtable_admin_v2.proto import (
-    bigtable_table_admin_pb2 as table_admin_messages_v2_pb2,
+from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
+from google.cloud.bigtable_admin_v2.types import (
+    bigtable_table_admin as table_admin_messages_v2_pb2,
 )
 
 import warnings
@@ -156,7 +156,7 @@ class Table(object):
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this table.
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         resp = table_client.get_iam_policy(request = {'resource': self.name})
         return Policy.from_pb(resp)
 
@@ -181,7 +181,7 @@ class Table(object):
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this table.
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         resp = table_client.set_iam_policy(request = {'resource': self.name, 'policy': policy.to_pb()})
         return Policy.from_pb(resp)
 
@@ -208,7 +208,7 @@ class Table(object):
         :rtype: list
         :returns: A List(string) of permissions allowed on the table.
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         resp = table_client.test_iam_permissions(
             request = {'resource': self.name, 'permissions': permissions})
         return list(resp.permissions)
@@ -362,7 +362,7 @@ class Table(object):
         .. note::
 
             A create request returns a
-            :class:`._generated.table_pb2.Table` but we don't use
+            :class:`._generated.table.Table` but we don't use
             this response.
 
         :type initial_split_keys: list
@@ -375,7 +375,7 @@ class Table(object):
                                the column_id str and the value is a
                                :class:`GarbageCollectionRule`
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         instance_name = self._instance.name
 
         families = {
@@ -403,7 +403,7 @@ class Table(object):
         :rtype: bool
         :returns: True if the table exists, else False.
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         try:
             table_client.get_table(request = {'name': self.name, 'view': VIEW_NAME_ONLY})
             return True
@@ -420,7 +420,7 @@ class Table(object):
             :end-before: [END bigtable_delete_table]
             :dedent: 4
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         table_client.delete_table(request = {'name': self.name})
 
     def list_column_families(self):
@@ -441,7 +441,7 @@ class Table(object):
                  family name from the response does not agree with the computed
                  name from the column family ID.
         """
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         table_pb = table_client.get_table(request = {'name': self.name})
 
         result = {}
@@ -468,7 +468,7 @@ class Table(object):
         """
 
         REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
-        table_client = self._instance._client.table_admin_client
+        table_client = self._instance._client._table_admin_client
         table_pb = table_client.get_table(request = {'name': self.name, 'view': REPLICATION_VIEW})
 
         return {
@@ -577,7 +577,7 @@ class Table(object):
             row_set=row_set,
         )
         data_client = self._instance._client.table_data_client
-        return PartialRowsData(data_client.transport.read_rows, request_pb, retry)
+        return PartialRowsData(data_client.read_rows, request_pb, retry)
 
     def yield_rows(self, **kwargs):
         """Read rows from this table.
@@ -734,11 +734,11 @@ class Table(object):
         table_admin_client = client.table_admin_client
         if timeout:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'row_key_prefix': True}, timeout=timeout
+                request = {'name': self.name, 'delete_all_data_from_table': True}, timeout=timeout
             )
         else:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'row_key_prefix': True})
+                request = {'name': self.name, 'delete_all_data_from_table': True})
 
     def drop_by_prefix(self, row_key_prefix, timeout=None):
         """
@@ -916,7 +916,7 @@ class Table(object):
             request = {'parent': parent, 'filter': backups_filter, 'order_by': order_by, 'page_size': page_size})
 
         result = []
-        for backup_pb in backup_list_pb:
+        for backup_pb in backup_list_pb.backups:
             result.append(Backup.from_pb(backup_pb, self._instance))
 
         return result
@@ -957,7 +957,7 @@ class Table(object):
                  due to a retryable error and retry attempts failed.
         :raises: ValueError: If the parameters are invalid.
         """
-        api = self._instance._client.table_admin_client
+        api = self._instance._client._table_admin_client
         if not backup_name:
             backup_name = BigtableTableAdminClient.backup_path(
                 project=self._instance._client.project,
@@ -1051,22 +1051,22 @@ class _RetryableMutateRowsWorker(object):
             self.table_name, retryable_rows, app_profile_id=self.app_profile_id
         )
         data_client = self.client.table_data_client
-        inner_api_calls = data_client._inner_api_calls
-        if "mutate_rows" not in inner_api_calls:
-            default_retry = (data_client._method_configs["MutateRows"].retry,)
-            if self.timeout is None:
-                default_timeout = data_client._method_configs["MutateRows"].timeout
-            else:
-                default_timeout = timeout.ExponentialTimeout(deadline=self.timeout)
-            data_client._inner_api_calls["mutate_rows"] = wrap_method(
-                data_client.transport.mutate_rows,
-                default_retry=default_retry,
-                default_timeout=default_timeout,
-                client_info=data_client._client_info,
-            )
+        # inner_api_calls = data_client.mutate_rows
+        # if "mutate_rows" not in inner_api_calls:
+        #     default_retry = (data_client._method_configs["MutateRows"].retry,)
+        #     if self.timeout is None:
+        #         default_timeout = data_client._method_configs["MutateRows"].timeout
+        #     else:
+        #         default_timeout = timeout.ExponentialTimeout(deadline=self.timeout)
+        #     data_client._inner_api_calls["mutate_rows"] = wrap_method(
+        #         data_client.transport.mutate_rows,
+        #         default_retry=default_retry,
+        #         default_timeout=default_timeout,
+        #         client_info=data_client._client_info,
+        #     )
 
         try:
-            responses = data_client._inner_api_calls["mutate_rows"](
+            responses = data_client.mutate_rows(
                 mutate_rows_request, retry=None
             )
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
@@ -1274,7 +1274,10 @@ def _mutate_rows_request(table_name, rows, app_profile_id=None):
         _check_row_table_name(table_name, row)
         _check_row_type(row)
         mutations = row._get_mutations()
-        request_pb.entries.add(row_key=row.row_key, mutations=mutations)
+        entry = request_pb.Entry()
+        entry.row_key = row.row_key
+        entry.mutations = mutations
+        request_pb.entries.append(entry)
         mutations_count += len(mutations)
     if mutations_count > _MAX_BULK_MUTATIONS:
         raise TooManyMutationsError(

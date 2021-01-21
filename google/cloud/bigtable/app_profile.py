@@ -18,7 +18,7 @@
 import re
 
 from google.cloud.bigtable.enums import RoutingPolicyType
-from google.cloud.bigtable_admin_v2.types import instance_pb2
+from google.cloud.bigtable_admin_v2.types import instance
 from google.protobuf import field_mask_pb2
 from google.api_core.exceptions import NotFound
 
@@ -138,7 +138,7 @@ class AppProfile(object):
     def from_pb(cls, app_profile_pb, instance):
         """Creates an instance app_profile from a protobuf.
 
-        :type app_profile_pb: :class:`instance_pb2.app_profile_pb`
+        :type app_profile_pb: :class:`instance.app_profile_pb`
         :param app_profile_pb: An instance protobuf object.
 
         :type instance: :class:`google.cloud.bigtable.instance.Instance`
@@ -188,7 +188,7 @@ class AppProfile(object):
         self.description = app_profile_pb.description
 
         routing_policy_type = None
-        if app_profile_pb.HasField("multi_cluster_routing_use_any"):
+        if app_profile_pb._pb.HasField("multi_cluster_routing_use_any"):
             routing_policy_type = RoutingPolicyType.ANY
             self.allow_transactional_writes = False
         else:
@@ -201,7 +201,7 @@ class AppProfile(object):
 
     def _to_pb(self):
         """Create an AppProfile proto buff message for API calls
-        :rtype: :class:`.instance_pb2.AppProfile`
+        :rtype: :class:`.instance.AppProfile`
         :returns: The converted current object.
 
         :raises: :class:`ValueError <exceptions.ValueError>` if the AppProfile
@@ -215,15 +215,15 @@ class AppProfile(object):
 
         if self.routing_policy_type == RoutingPolicyType.ANY:
             multi_cluster_routing_use_any = (
-                instance_pb2.AppProfile.MultiClusterRoutingUseAny()
+                instance.AppProfile.MultiClusterRoutingUseAny()
             )
         else:
-            single_cluster_routing = instance_pb2.AppProfile.SingleClusterRouting(
+            single_cluster_routing = instance.AppProfile.SingleClusterRouting(
                 cluster_id=self.cluster_id,
                 allow_transactional_writes=self.allow_transactional_writes,
             )
 
-        app_profile_pb = instance_pb2.AppProfile(
+        app_profile_pb = instance.AppProfile(
             name=self.name,
             description=self.description,
             multi_cluster_routing_use_any=multi_cluster_routing_use_any,

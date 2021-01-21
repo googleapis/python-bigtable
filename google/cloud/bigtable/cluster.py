@@ -16,7 +16,7 @@
 
 
 import re
-from google.cloud.bigtable_admin_v2.types import instance_pb2
+from google.cloud.bigtable_admin_v2.types import instance
 from google.api_core.exceptions import NotFound
 
 
@@ -101,7 +101,7 @@ class Cluster(object):
             :end-before: [END bigtable_cluster_from_pb]
             :dedent: 4
 
-        :type cluster_pb: :class:`instance_pb2.Cluster`
+        :type cluster_pb: :class:`instance.Cluster`
         :param cluster_pb: An instance protobuf object.
 
         :type instance: :class:`google.cloud.bigtable.instance.Instance`
@@ -301,7 +301,7 @@ class Cluster(object):
         # Location is set only at the time of creation of a cluster
         # and can not be changed after cluster has been created.
         return client.instance_admin_client.update_cluster(
-            request = {'serve_nodes': self.name, 'name': self.serve_nodes, 'location': None})
+            request = {'serve_nodes': self.serve_nodes, 'name': self.name, 'location': None})
 
     def delete(self):
         """Delete this cluster.
@@ -336,10 +336,10 @@ class Cluster(object):
     def _to_pb(self):
         """ Create cluster proto buff message for API calls """
         client = self._instance._client
-        location = client.instance_admin_client.location_path(
+        location = client.instance_admin_client.common_location_path(
             client.project, self.location_id
         )
-        cluster_pb = instance_pb2.Cluster(
+        cluster_pb = instance.Cluster(
             location=location,
             serve_nodes=self.serve_nodes,
             default_storage_type=self.default_storage_type,

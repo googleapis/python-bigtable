@@ -13,6 +13,9 @@
 # limitations under the License.
 """Wrappers for gapic enum types."""
 
+from google.cloud.bigtable_admin_v2.types import common
+from google.cloud.bigtable_admin_v2.types import instance
+from google.cloud.bigtable_admin_v2.types import table
 
 class StorageType(object):
     """
@@ -24,9 +27,9 @@ class StorageType(object):
       HDD (int): Magnetic drive (HDD) storage should be used.
     """
 
-    UNSPECIFIED = enums.StorageType.STORAGE_TYPE_UNSPECIFIED
-    SSD = enums.StorageType.SSD
-    HDD = enums.StorageType.HDD
+    UNSPECIFIED = common.StorageType.STORAGE_TYPE_UNSPECIFIED
+    SSD = common.StorageType.SSD
+    HDD = common.StorageType.HDD
 
 
 class Instance(object):
@@ -43,9 +46,9 @@ class Instance(object):
           destroyed if the creation process encounters an error.
         """
 
-        NOT_KNOWN = enums.Instance.State.STATE_NOT_KNOWN
-        READY = enums.Instance.State.READY
-        CREATING = enums.Instance.State.CREATING
+        NOT_KNOWN = instance.Instance.State.STATE_NOT_KNOWN
+        READY = instance.Instance.State.READY
+        CREATING = instance.Instance.State.CREATING
 
     class Type(object):
         """
@@ -68,9 +71,9 @@ class Instance(object):
           must not be set.
         """
 
-        UNSPECIFIED = enums.Instance.Type.TYPE_UNSPECIFIED
-        PRODUCTION = enums.Instance.Type.PRODUCTION
-        DEVELOPMENT = enums.Instance.Type.DEVELOPMENT
+        UNSPECIFIED = instance.Instance.Type.TYPE_UNSPECIFIED
+        PRODUCTION = instance.Instance.Type.PRODUCTION
+        DEVELOPMENT = instance.Instance.Type.DEVELOPMENT
 
 
 class Cluster(object):
@@ -94,11 +97,11 @@ class Cluster(object):
           still exist, but no operations can be performed on the cluster.
         """
 
-        NOT_KNOWN = enums.Cluster.State.STATE_NOT_KNOWN
-        READY = enums.Cluster.State.READY
-        CREATING = enums.Cluster.State.CREATING
-        RESIZING = enums.Cluster.State.RESIZING
-        DISABLED = enums.Cluster.State.DISABLED
+        NOT_KNOWN = instance.Cluster.State.STATE_NOT_KNOWN
+        READY = instance.Cluster.State.READY
+        CREATING = instance.Cluster.State.CREATING
+        RESIZING = instance.Cluster.State.RESIZING
+        DISABLED = instance.Cluster.State.DISABLED
 
 
 class RoutingPolicyType(object):
@@ -148,11 +151,11 @@ class Table(object):
           FULL (int): Populates all fields.
         """
 
-        VIEW_UNSPECIFIED = enums.Table.View.VIEW_UNSPECIFIED
-        NAME_ONLY = enums.Table.View.NAME_ONLY
-        SCHEMA_VIEW = enums.Table.View.SCHEMA_VIEW
-        REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
-        FULL = enums.Table.View.FULL
+        VIEW_UNSPECIFIED = table.Table.View.VIEW_UNSPECIFIED
+        NAME_ONLY = table.Table.View.NAME_ONLY
+        SCHEMA_VIEW = table.Table.View.SCHEMA_VIEW
+        REPLICATION_VIEW = table.Table.View.REPLICATION_VIEW
+        FULL = table.Table.View.FULL
 
     class ReplicationState(object):
         """
@@ -178,12 +181,12 @@ class Table(object):
           reflect the state of the table in other clusters.
         """
 
-        STATE_NOT_KNOWN = enums.Table.ClusterState.ReplicationState.STATE_NOT_KNOWN
-        INITIALIZING = enums.Table.ClusterState.ReplicationState.INITIALIZING
+        STATE_NOT_KNOWN = table.Table.ClusterState.ReplicationState.STATE_NOT_KNOWN
+        INITIALIZING = table.Table.ClusterState.ReplicationState.INITIALIZING
         PLANNED_MAINTENANCE = (
-            enums.Table.ClusterState.ReplicationState.PLANNED_MAINTENANCE
+            table.Table.ClusterState.ReplicationState.PLANNED_MAINTENANCE
         )
         UNPLANNED_MAINTENANCE = (
-            enums.Table.ClusterState.ReplicationState.UNPLANNED_MAINTENANCE
+            table.Table.ClusterState.ReplicationState.UNPLANNED_MAINTENANCE
         )
-        READY = enums.Table.ClusterState.ReplicationState.READY
+        READY = table.Table.ClusterState.ReplicationState.READY

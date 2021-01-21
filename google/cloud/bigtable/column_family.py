@@ -16,9 +16,9 @@
 
 
 from google.cloud import _helpers
-from google.cloud.bigtable_admin_v2.proto import table_pb2 as table_v2_pb2
-from google.cloud.bigtable_admin_v2.proto import (
-    bigtable_table_admin_pb2 as table_admin_v2_pb2,
+from google.cloud.bigtable_admin_v2.types import table as table_v2_pb2
+from google.cloud.bigtable_admin_v2.types import (
+    bigtable_table_admin as table_admin_v2_pb2,
 )
 
 
@@ -338,15 +338,16 @@ def _gc_rule_from_pb(gc_rule_pb):
     :raises: :class:`ValueError <exceptions.ValueError>` if the rule name
              is unexpected.
     """
-    rule_name = gc_rule_pb.WhichOneof("rule")
+    rule_name = gc_rule_pb._pb.WhichOneof("rule")
     if rule_name is None:
         return None
 
     if rule_name == "max_num_versions":
         return MaxVersionsGCRule(gc_rule_pb.max_num_versions)
     elif rule_name == "max_age":
-        max_age = _helpers._duration_pb_to_timedelta(gc_rule_pb.max_age)
-        return MaxAgeGCRule(max_age)
+        # todo check this is right
+        # max_age = _helpers._duration_pb_to_timedelta(gc_rule_pb.max_age)
+        return MaxAgeGCRule(gc_rule_pb.max_age)
     elif rule_name == "union":
         return GCRuleUnion([_gc_rule_from_pb(rule) for rule in gc_rule_pb.union.rules])
     elif rule_name == "intersection":
