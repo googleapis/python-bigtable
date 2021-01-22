@@ -156,7 +156,7 @@ class Table(object):
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this table.
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         resp = table_client.get_iam_policy(request = {'resource': self.name})
         return Policy.from_pb(resp)
 
@@ -181,7 +181,7 @@ class Table(object):
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this table.
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         resp = table_client.set_iam_policy(request = {'resource': self.name, 'policy': policy.to_pb()})
         return Policy.from_pb(resp)
 
@@ -208,7 +208,7 @@ class Table(object):
         :rtype: list
         :returns: A List(string) of permissions allowed on the table.
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         resp = table_client.test_iam_permissions(
             request = {'resource': self.name, 'permissions': permissions})
         return list(resp.permissions)
@@ -375,7 +375,7 @@ class Table(object):
                                the column_id str and the value is a
                                :class:`GarbageCollectionRule`
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         instance_name = self._instance.name
 
         families = {
@@ -403,7 +403,7 @@ class Table(object):
         :rtype: bool
         :returns: True if the table exists, else False.
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         try:
             table_client.get_table(request = {'name': self.name, 'view': VIEW_NAME_ONLY})
             return True
@@ -420,7 +420,7 @@ class Table(object):
             :end-before: [END bigtable_delete_table]
             :dedent: 4
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         table_client.delete_table(request = {'name': self.name})
 
     def list_column_families(self):
@@ -441,7 +441,7 @@ class Table(object):
                  family name from the response does not agree with the computed
                  name from the column family ID.
         """
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         table_pb = table_client.get_table(request = {'name': self.name})
 
         result = {}
@@ -468,7 +468,7 @@ class Table(object):
         """
 
         REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
-        table_client = self._instance._client._table_admin_client
+        table_client = self._instance._client.table_admin_client
         table_pb = table_client.get_table(request = {'name': self.name, 'view': REPLICATION_VIEW})
 
         return {
@@ -705,7 +705,10 @@ class Table(object):
         """
         data_client = self._instance._client.table_data_client
         response_iterator = data_client.sample_row_keys(
-            self.name, app_profile_id=self._app_profile_id
+            request={
+                'table_name': self.name,
+                'app_profile_id': self._app_profile_id
+            }
         )
 
         return response_iterator
@@ -957,7 +960,7 @@ class Table(object):
                  due to a retryable error and retry attempts failed.
         :raises: ValueError: If the parameters are invalid.
         """
-        api = self._instance._client._table_admin_client
+        api = self._instance._client.table_admin_client
         if not backup_name:
             backup_name = BigtableTableAdminClient.backup_path(
                 project=self._instance._client.project,

@@ -18,6 +18,7 @@ import os
 import time
 import unittest
 
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import TooManyRequests
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
@@ -101,7 +102,7 @@ retry_429 = RetryErrors(TooManyRequests, max_tries=9)
 
 def setUpModule():
     from google.cloud.exceptions import GrpcRendezvous
-    from google.cloud.bigtable import Instance
+    from google.cloud.bigtable.enums import Instance
 
     # See: https://github.com/googleapis/google-cloud-python/issues/5928
     # interfaces = table_admin_config.config["interfaces"]
@@ -477,7 +478,7 @@ class TestInstanceAdminAPI(unittest.TestCase):
         operation.result(timeout=10)
 
     def test_update_type(self):
-        from google.cloud.bigtable import Instance
+        from google.cloud.bigtable.enums import Instance
 
         _DEVELOPMENT = Instance.Type.DEVELOPMENT
         _PRODUCTION = Instance.Type.PRODUCTION
@@ -530,8 +531,8 @@ class TestInstanceAdminAPI(unittest.TestCase):
         operation.result(timeout=20)
 
     def test_create_cluster(self):
-        from google.cloud.bigtable import StorageType
-        from google.cloud.bigtable import Cluster
+        from google.cloud.bigtable.enums import StorageType
+        from google.cloud.bigtable.enums import Cluster
 
         ALT_CLUSTER_ID = INSTANCE_ID + "-c2"
         ALT_LOCATION_ID = "us-central1-f"
@@ -838,6 +839,7 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(temp_table.list_column_families(), {})
 
     def test_backup(self):
+        from google.cloud._helpers import _datetime_to_pb_timestamp
         temp_table_id = "test-backup-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
@@ -876,11 +878,13 @@ class TestTableAdminAPI(unittest.TestCase):
 
         # Testing `Backup.update_expire_time()` method
         expire += 3600  # A one-hour change in the `expire_time` parameter
-        temp_backup.update_expire_time(datetime.datetime.utcfromtimestamp(expire))
+        updated_time = datetime.datetime.utcfromtimestamp(expire)
+        temp_backup.update_expire_time(updated_time)
+        test = _datetime_to_pb_timestamp(updated_time)
 
         # Testing `Backup.get()` method
         temp_table_backup = temp_backup.get()
-        self.assertEqual(expire, temp_table_backup.expire_time.seconds)
+        self.assertEqual(test.seconds, DatetimeWithNanoseconds.timestamp(temp_table_backup.expire_time))
 
         # Testing `Table.restore()` and `Backup.retore()` methods
         restored_table_id = "test-backup-table-restored"
