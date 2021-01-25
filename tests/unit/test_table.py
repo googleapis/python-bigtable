@@ -22,9 +22,9 @@ from google.api_core.exceptions import DeadlineExceeded
 
 class Test__compile_mutation_entries(unittest.TestCase):
     def _call_fut(self, table_name, rows):
-        from google.cloud.bigtable.table import _compile_mutation_entries
+        from google.cloud.bigtable.table import _mutate_rows_request
 
-        return _compile_mutation_entries(table_name, rows)
+        return _mutate_rows_request(table_name, rows)
 
     @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
     def test_w_too_many_mutations(self):
@@ -47,6 +47,7 @@ class Test__compile_mutation_entries(unittest.TestCase):
 
     def test_normal(self):
         from google.cloud.bigtable.row import DirectRow
+        from google.cloud.bigtable_v2.types import MutateRowsRequest
         from google.cloud.bigtable_v2.types import data
 
         table = mock.Mock(spec=["name"])
@@ -61,36 +62,26 @@ class Test__compile_mutation_entries(unittest.TestCase):
         result = self._call_fut("table", rows)
 
         expected_result = _mutate_rows_request_pb(table_name="table")
-        entry1 = expected_result.Entry()
-        entry1.row_key = b"row_key"
+        entry_1 = MutateRowsRequest.Entry(row_key=b"row_key")
+        mutations_1 = data.Mutation()
+        mutations_1.set_cell.family_name = "cf1"
+        mutations_1.set_cell.column_qualifier = b"c1"
+        mutations_1.set_cell.timestamp_micros = -1
+        mutations_1.set_cell.value = b"1"
+        entry_1.mutations.append(mutations_1)
+        expected_result.entries.append(entry_1)
 
-        mutations1 = data.Mutation()
-        mutations1.set_cell.family_name = "cf1"
-        mutations1.set_cell.column_qualifier = b"c1"
-        mutations1.set_cell.timestamp_micros = -1
-        mutations1.set_cell.value = b"1"
-        entry1.mutations.append(mutations1)
-        expected_result.entries.append(entry1)
-
-        entry2 = expected_result.Entry()
-        entry2.row_key = b"row_key_2"
-
-        mutations2 = data.Mutation()
-        mutations2.set_cell.family_name = "cf1"
-        mutations2.set_cell.column_qualifier = b"c1"
-        mutations2.set_cell.timestamp_micros = -1
-        mutations2.set_cell.value = b"2"
-        entry2.mutations.append(mutations2)
-        expected_result.entries.append(entry2)
-
-        entry_2 = Entry(row_key=b"row_key_2")
-        mutations_2 = entry_2.mutations.add()
+        entry_2 = MutateRowsRequest.Entry(row_key=b"row_key_2")
+        mutations_2 = data.Mutation()
         mutations_2.set_cell.family_name = "cf1"
         mutations_2.set_cell.column_qualifier = b"c1"
         mutations_2.set_cell.timestamp_micros = -1
         mutations_2.set_cell.value = b"2"
+        entry_2.mutations.append(mutations_2)
+        expected_result.entries.append(entry_2)
 
-        self.assertEqual(result, [entry_1, entry_2])
+        # self.assertEqual(result, [entry_1, entry_2])
+        self.assertEqual(result, expected_result)
 
 
 class Test__check_row_table_name(unittest.TestCase):
@@ -677,6 +668,7 @@ class TestTable(unittest.TestCase):
         self, mutation_timeout=None, app_profile_id=None, retry=None, timeout=None
     ):
         from google.rpc.status_pb2 import Status
+        from google.cloud.bigtable.table import DEFAULT_RETRY
         from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
             client as bigtable_table_admin,
         )
@@ -1617,9 +1609,9 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         row_3 = DirectRow(row_key=b"row_key_3", table=table)
         row_3.set_cell("cf", b"col", b"value3")
 
-        response = self._make_responses(
-            [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
-        )
+        response_codes = [self.SUCCESS, self.RETRYABLE_1, self.NON_RETRYABLE]
+        response = self._make_responses(response_codes)
+        data_api.mutate_rows = mock.MagicMock(return_value=[response])
 
         data_api.table_path.return_value = (
             "projects/"
@@ -1649,7 +1641,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         self.assertEqual(result, response_codes)
 
         data_api.mutate_rows.assert_called_once()
-        self.assertEqual(result, expected_result)
 
     def test_callable_retry(self):
         from google.cloud.bigtable.row import DirectRow

@@ -548,7 +548,8 @@ class TestAppProfile(unittest.TestCase):
 
         instance_api.update_app_profile.return_value = response_pb
         app_profile._instance._client._instance_admin_client = instance_api
-        # result = app_profile.update(ignore_warnings=ignore_warnings)
+        #todo result = ...
+        app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs
@@ -613,7 +614,8 @@ class TestAppProfile(unittest.TestCase):
             }
         }
 
-        # result = app_profile.update(ignore_warnings=ignore_warnings)
+        #todo result = ...
+        app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs

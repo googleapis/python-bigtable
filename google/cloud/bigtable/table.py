@@ -1080,7 +1080,9 @@ class _RetryableMutateRowsWorker(object):
             # All mutations are either successful or non-retryable now.
             return self.responses_statuses
 
-        entries = _compile_mutation_entries(self.table_name, retryable_rows)
+        mutate_rows_request = _mutate_rows_request(
+            self.table_name, retryable_rows, app_profile_id=self.app_profile_id
+        )
         data_client = self.client.table_data_client
         # inner_api_calls = data_client.mutate_rows
         # if "mutate_rows" not in inner_api_calls:
@@ -1278,8 +1280,8 @@ def _create_row_request(
     return message
 
 
-def _compile_mutation_entries(table_name, rows):
-    """Create list of mutation entries
+def _mutate_rows_request(table_name, rows, app_profile_id=None):
+    """Creates a request to mutate rows in a table.
 
     :type table_name: str
     :param table_name: The name of the table to write to.
@@ -1287,17 +1289,18 @@ def _compile_mutation_entries(table_name, rows):
     :type rows: list
     :param rows: List or other iterable of :class:`.DirectRow` instances.
 
-    :rtype: List[:class:`data_messages_v2_pb2.MutateRowsRequest.Entry`]
-    :returns: entries corresponding to the inputs.
-    :raises: :exc:`~.table.TooManyMutationsError` if the number of mutations is
-             greater than the max ({})
-    """.format(
-        _MAX_BULK_MUTATIONS
-    )
-    entries = []
-    mutations_count = 0
-    entry_klass = data_messages_v2_pb2.MutateRowsRequest.Entry
+    :type: app_profile_id: str
+    :param app_profile_id: (Optional) The unique name of the AppProfile.
 
+    :rtype: :class:`data_messages_v2_pb2.MutateRowsRequest`
+    :returns: The ``MutateRowsRequest`` protobuf corresponding to the inputs.
+    :raises: :exc:`~.table.TooManyMutationsError` if the number of mutations is
+             greater than 100,000
+    """
+    request_pb = data_messages_v2_pb2.MutateRowsRequest(
+        table_name=table_name, app_profile_id=app_profile_id
+    )
+    mutations_count = 0
     for row in rows:
         _check_row_table_name(table_name, row)
         _check_row_type(row)
@@ -1307,12 +1310,11 @@ def _compile_mutation_entries(table_name, rows):
         entry.mutations = mutations
         request_pb.entries.append(entry)
         mutations_count += len(mutations)
-
     if mutations_count > _MAX_BULK_MUTATIONS:
         raise TooManyMutationsError(
             "Maximum number of mutations is %s" % (_MAX_BULK_MUTATIONS,)
         )
-    return entries
+    return request_pb
 
 
 def _check_row_table_name(table_name, row):

@@ -431,7 +431,11 @@ class Backup(object):
         :returns: The current IAM policy of this backup.
         """
         table_api = self._instance._client.table_admin_client
-        response = table_api.set_iam_policy(resource=self.name, policy=policy.to_pb())
+        response = table_api.set_iam_policy(
+            request={
+                "resource": self.name,
+                "policy": policy.to_pb()
+            })
         return Policy.from_pb(response)
 
     def test_iam_permissions(self, permissions):
@@ -452,6 +456,9 @@ class Backup(object):
         """
         table_api = self._instance._client.table_admin_client
         response = table_api.test_iam_permissions(
-            resource=self.name, permissions=permissions
+            request={
+                "resource": self.name,
+                "permissions": permissions
+            }
         )
         return list(response.permissions)
