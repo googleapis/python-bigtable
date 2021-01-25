@@ -134,8 +134,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_from_pb]
-            :end-before: [END bigtable_instance_from_pb]
+            :start-after: [START bigtable_api_instance_from_pb]
+            :end-before: [END bigtable_api_instance_from_pb]
             :dedent: 4
 
         :type instance_pb: :class:`instance.Instance`
@@ -179,8 +179,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_name]
-            :end-before: [END bigtable_instance_name]
+            :start-after: [START bigtable_api_instance_name]
+            :end-before: [END bigtable_api_instance_name]
             :dedent: 4
 
         The instance name is of the form
@@ -201,8 +201,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_state]
-            :end-before: [END bigtable_instance_state]
+            :start-after: [START bigtable_api_instance_state]
+            :end-before: [END bigtable_api_instance_state]
             :dedent: 4
 
         """
@@ -234,8 +234,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_prod_instance]
-            :end-before: [END bigtable_create_prod_instance]
+            :start-after: [START bigtable_api_create_prod_instance]
+            :end-before: [END bigtable_api_create_prod_instance]
             :dedent: 4
 
         .. note::
@@ -337,8 +337,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_check_instance_exists]
-            :end-before: [END bigtable_check_instance_exists]
+            :start-after: [START bigtable_api_check_instance_exists]
+            :end-before: [END bigtable_api_check_instance_exists]
             :dedent: 4
 
         :rtype: bool
@@ -357,8 +357,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_reload_instance]
-            :end-before: [END bigtable_reload_instance]
+            :start-after: [START bigtable_api_reload_instance]
+            :end-before: [END bigtable_api_reload_instance]
             :dedent: 4
         """
         instance_pb = self._client.instance_admin_client.get_instance(
@@ -375,8 +375,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_update_instance]
-            :end-before: [END bigtable_update_instance]
+            :start-after: [START bigtable_api_update_instance]
+            :end-before: [END bigtable_api_update_instance]
             :dedent: 4
 
         .. note::
@@ -422,8 +422,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_delete_instance]
-            :end-before: [END bigtable_delete_instance]
+            :start-after: [START bigtable_api_delete_instance]
+            :end-before: [END bigtable_api_delete_instance]
             :dedent: 4
 
         Marks an instance and all of its tables for permanent deletion
@@ -453,8 +453,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_get_iam_policy]
-            :end-before: [END bigtable_get_iam_policy]
+            :start-after: [START bigtable_api_get_iam_policy]
+            :end-before: [END bigtable_api_get_iam_policy]
             :dedent: 4
 
         :type requested_policy_version: int or ``NoneType``
@@ -493,8 +493,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_set_iam_policy]
-            :end-before: [END bigtable_set_iam_policy]
+            :start-after: [START bigtable_api_set_iam_policy]
+            :end-before: [END bigtable_api_set_iam_policy]
             :dedent: 4
 
         :type policy: :class:`google.cloud.bigtable.policy.Policy`
@@ -517,8 +517,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_test_iam_permissions]
-            :end-before: [END bigtable_test_iam_permissions]
+            :start-after: [START bigtable_api_test_iam_permissions]
+            :end-before: [END bigtable_api_test_iam_permissions]
             :dedent: 4
 
         :type permissions: list
@@ -547,8 +547,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_cluster]
-            :end-before: [END bigtable_create_cluster]
+            :start-after: [START bigtable_api_create_cluster]
+            :end-before: [END bigtable_api_create_cluster]
             :dedent: 4
 
         :type cluster_id: str
@@ -591,8 +591,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_clusters_on_instance]
-            :end-before: [END bigtable_list_clusters_on_instance]
+            :start-after: [START bigtable_api_list_clusters_on_instance]
+            :end-before: [END bigtable_api_list_clusters_on_instance]
             :dedent: 4
 
         :rtype: tuple
@@ -614,8 +614,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_table]
-            :end-before: [END bigtable_create_table]
+            :start-after: [START bigtable_api_create_table]
+            :end-before: [END bigtable_api_create_table]
             :dedent: 4
 
         :type table_id: str
@@ -640,8 +640,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_tables]
-            :end-before: [END bigtable_list_tables]
+            :start-after: [START bigtable_api_list_tables]
+            :end-before: [END bigtable_api_list_tables]
             :dedent: 4
 
         :rtype: list of :class:`Table <google.cloud.bigtable.table.Table>`
@@ -678,8 +678,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_app_profile]
-            :end-before: [END bigtable_create_app_profile]
+            :start-after: [START bigtable_api_create_app_profile]
+            :end-before: [END bigtable_api_create_app_profile]
             :dedent: 4
 
         :type app_profile_id: str
@@ -725,8 +725,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_app_profiles]
-            :end-before: [END bigtable_list_app_profiles]
+            :start-after: [START bigtable_api_list_app_profiles]
+            :end-before: [END bigtable_api_list_app_profiles]
             :dedent: 4
 
         :rtype: :list:[`~google.cloud.bigtable.app_profile.AppProfile`]

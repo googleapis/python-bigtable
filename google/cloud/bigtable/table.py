@@ -19,6 +19,7 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
 from google.api_core.exceptions import RetryError
 from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes
@@ -116,8 +117,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_name]
-            :end-before: [END bigtable_table_name]
+            :start-after: [START bigtable_api_table_name]
+            :end-before: [END bigtable_api_table_name]
             :dedent: 4
 
         .. note::
@@ -145,8 +146,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_get_iam_policy]
-            :end-before: [END bigtable_table_get_iam_policy]
+            :start-after: [START bigtable_api_table_get_iam_policy]
+            :end-before: [END bigtable_api_table_get_iam_policy]
             :dedent: 4
 
         :rtype: :class:`google.cloud.bigtable.policy.Policy`
@@ -166,8 +167,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_set_iam_policy]
-            :end-before: [END bigtable_table_set_iam_policy]
+            :start-after: [START bigtable_api_table_set_iam_policy]
+            :end-before: [END bigtable_api_table_set_iam_policy]
             :dedent: 4
 
         :type policy: :class:`google.cloud.bigtable.policy.Policy`
@@ -190,8 +191,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_test_iam_permissions]
-            :end-before: [END bigtable_table_test_iam_permissions]
+            :start-after: [START bigtable_api_table_test_iam_permissions]
+            :end-before: [END bigtable_api_table_test_iam_permissions]
             :dedent: 4
 
         :type permissions: list
@@ -218,8 +219,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_column_family]
-            :end-before: [END bigtable_table_column_family]
+            :start-after: [START bigtable_api_table_column_family]
+            :end-before: [END bigtable_api_table_column_family]
             :dedent: 4
 
         :type column_family_id: str
@@ -241,8 +242,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_row]
-            :end-before: [END bigtable_table_row]
+            :start-after: [START bigtable_api_table_row]
+            :end-before: [END bigtable_api_table_row]
             :dedent: 4
 
         .. warning::
@@ -289,8 +290,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_append_row]
-            :end-before: [END bigtable_table_append_row]
+            :start-after: [START bigtable_api_table_append_row]
+            :end-before: [END bigtable_api_table_append_row]
             :dedent: 4
 
         Args:
@@ -307,8 +308,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_direct_row]
-            :end-before: [END bigtable_table_direct_row]
+            :start-after: [START bigtable_api_table_direct_row]
+            :end-before: [END bigtable_api_table_direct_row]
             :dedent: 4
 
         Args:
@@ -325,8 +326,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_table_conditional_row]
-            :end-before: [END bigtable_table_conditional_row]
+            :start-after: [START bigtable_api_table_conditional_row]
+            :end-before: [END bigtable_api_table_conditional_row]
             :dedent: 4
 
         Args:
@@ -354,8 +355,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_create_table]
-            :end-before: [END bigtable_create_table]
+            :start-after: [START bigtable_api_create_table]
+            :end-before: [END bigtable_api_create_table]
             :dedent: 4
 
         .. note::
@@ -401,8 +402,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_check_table_exists]
-            :end-before: [END bigtable_check_table_exists]
+            :start-after: [START bigtable_api_check_table_exists]
+            :end-before: [END bigtable_api_check_table_exists]
             :dedent: 4
 
         :rtype: bool
@@ -421,8 +422,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_delete_table]
-            :end-before: [END bigtable_delete_table]
+            :start-after: [START bigtable_api_delete_table]
+            :end-before: [END bigtable_api_delete_table]
             :dedent: 4
         """
         table_client = self._instance._client.table_admin_client
@@ -434,8 +435,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_list_column_families]
-            :end-before: [END bigtable_list_column_families]
+            :start-after: [START bigtable_api_list_column_families]
+            :end-before: [END bigtable_api_list_column_families]
             :dedent: 4
 
         :rtype: dict
@@ -462,8 +463,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_get_cluster_states]
-            :end-before: [END bigtable_get_cluster_states]
+            :start-after: [START bigtable_api_get_cluster_states]
+            :end-before: [END bigtable_api_get_cluster_states]
             :dedent: 4
 
         :rtype: dict
@@ -489,8 +490,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_read_row]
-            :end-before: [END bigtable_read_row]
+            :start-after: [START bigtable_api_read_row]
+            :end-before: [END bigtable_api_read_row]
             :dedent: 4
 
         :type row_key: bytes
@@ -529,8 +530,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_read_rows]
-            :end-before: [END bigtable_read_rows]
+            :start-after: [START bigtable_api_read_rows]
+            :end-before: [END bigtable_api_read_rows]
             :dedent: 4
 
         :type start_key: bytes
@@ -627,14 +628,14 @@ class Table(object):
         )
         return self.read_rows(**kwargs)
 
-    def mutate_rows(self, rows, retry=DEFAULT_RETRY):
+    def mutate_rows(self, rows, retry=DEFAULT_RETRY, timeout=DEFAULT):
         """Mutates multiple rows in bulk.
 
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_mutate_rows]
-            :end-before: [END bigtable_mutate_rows]
+            :start-after: [START bigtable_api_mutate_rows]
+            :end-before: [END bigtable_api_mutate_rows]
             :dedent: 4
 
         The method tries to update all specified rows.
@@ -658,17 +659,23 @@ class Table(object):
             the :meth:`~google.api_core.retry.Retry.with_delay` method or the
             :meth:`~google.api_core.retry.Retry.with_deadline` method.
 
+        :type timeout: float
+        :param timeout: number of seconds bounding retries for the call
+
         :rtype: list
         :returns: A list of response statuses (`google.rpc.status_pb2.Status`)
                   corresponding to success or failure of each row mutation
                   sent. These will be in the same order as the `rows`.
         """
+        if timeout is DEFAULT:
+            timeout = self.mutation_timeout
+
         retryable_mutate_rows = _RetryableMutateRowsWorker(
             self._instance._client,
             self.name,
             rows,
             app_profile_id=self._app_profile_id,
-            timeout=self.mutation_timeout,
+            timeout=timeout,
         )
         return retryable_mutate_rows(retry=retry)
 
@@ -678,8 +685,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_sample_row_keys]
-            :end-before: [END bigtable_sample_row_keys]
+            :start-after: [START bigtable_api_sample_row_keys]
+            :end-before: [END bigtable_api_sample_row_keys]
             :dedent: 4
 
         The returned row keys will delimit contiguous sections of the table of
@@ -723,8 +730,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_truncate_table]
-            :end-before: [END bigtable_truncate_table]
+            :start-after: [START bigtable_api_truncate_table]
+            :end-before: [END bigtable_api_truncate_table]
             :dedent: 4
 
         :type timeout: float
@@ -755,8 +762,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_drop_by_prefix]
-            :end-before: [END bigtable_drop_by_prefix]
+            :start-after: [START bigtable_api_drop_by_prefix]
+            :end-before: [END bigtable_api_drop_by_prefix]
             :dedent: 4
 
         :type row_key_prefix: bytes
@@ -794,8 +801,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_mutations_batcher]
-            :end-before: [END bigtable_mutations_batcher]
+            :start-after: [START bigtable_api_mutations_batcher]
+            :end-before: [END bigtable_api_mutations_batcher]
             :dedent: 4
 
         :type flush_count: int
@@ -1073,9 +1080,7 @@ class _RetryableMutateRowsWorker(object):
             # All mutations are either successful or non-retryable now.
             return self.responses_statuses
 
-        mutate_rows_request = _mutate_rows_request(
-            self.table_name, retryable_rows, app_profile_id=self.app_profile_id
-        )
+        entries = _compile_mutation_entries(self.table_name, retryable_rows)
         data_client = self.client.table_data_client
         # inner_api_calls = data_client.mutate_rows
         # if "mutate_rows" not in inner_api_calls:
@@ -1273,8 +1278,8 @@ def _create_row_request(
     return message
 
 
-def _mutate_rows_request(table_name, rows, app_profile_id=None):
-    """Creates a request to mutate rows in a table.
+def _compile_mutation_entries(table_name, rows):
+    """Create list of mutation entries
 
     :type table_name: str
     :param table_name: The name of the table to write to.
@@ -1282,18 +1287,17 @@ def _mutate_rows_request(table_name, rows, app_profile_id=None):
     :type rows: list
     :param rows: List or other iterable of :class:`.DirectRow` instances.
 
-    :type: app_profile_id: str
-    :param app_profile_id: (Optional) The unique name of the AppProfile.
-
-    :rtype: :class:`data_messages_v2_pb2.MutateRowsRequest`
-    :returns: The ``MutateRowsRequest`` protobuf corresponding to the inputs.
+    :rtype: List[:class:`data_messages_v2_pb2.MutateRowsRequest.Entry`]
+    :returns: entries corresponding to the inputs.
     :raises: :exc:`~.table.TooManyMutationsError` if the number of mutations is
-             greater than 100,000
-    """
-    request_pb = data_messages_v2_pb2.MutateRowsRequest(
-        table_name=table_name, app_profile_id=app_profile_id
+             greater than the max ({})
+    """.format(
+        _MAX_BULK_MUTATIONS
     )
+    entries = []
     mutations_count = 0
+    entry_klass = data_messages_v2_pb2.MutateRowsRequest.Entry
+
     for row in rows:
         _check_row_table_name(table_name, row)
         _check_row_type(row)
@@ -1303,11 +1307,12 @@ def _mutate_rows_request(table_name, rows, app_profile_id=None):
         entry.mutations = mutations
         request_pb.entries.append(entry)
         mutations_count += len(mutations)
+
     if mutations_count > _MAX_BULK_MUTATIONS:
         raise TooManyMutationsError(
             "Maximum number of mutations is %s" % (_MAX_BULK_MUTATIONS,)
         )
-    return request_pb
+    return entries
 
 
 def _check_row_table_name(table_name, row):
