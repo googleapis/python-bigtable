@@ -20,14 +20,14 @@ import setuptools
 
 # Package metadata.
 
-name = 'google-cloud-bigtable'
-description = 'Google Cloud Bigtable API client library'
+name = "google-cloud-bigtable"
+description = "Google Cloud Bigtable API client library"
 version = "1.5.1"
 # Should be one of:
 # 'Development Status :: 3 - Alpha'
 # 'Development Status :: 4 - Beta'
 # 'Development Status :: 5 - Production/Stable'
-release_status = 'Development Status :: 5 - Production/Stable'
+release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
     "google-api-core[grpc] >= 1.22.2, < 2.0.0dev",
     "google-cloud-core >= 1.4.1, < 2.0dev",
@@ -35,28 +35,29 @@ dependencies = [
     "proto-plus >= 1.13.0",
     "libcst >= 0.2.5",
 ]
-extras = {
-}
+extras = {}
 
 
 # Setup boilerplate below this line.
 
 package_root = os.path.abspath(os.path.dirname(__file__))
 
-readme_filename = os.path.join(package_root, 'README.rst')
-with io.open(readme_filename, encoding='utf-8') as readme_file:
+readme_filename = os.path.join(package_root, "README.rst")
+with io.open(readme_filename, encoding="utf-8") as readme_file:
     readme = readme_file.read()
 
 # Only include packages under the 'google' namespace. Do not include tests,
 # benchmarks, etc.
 packages = [
-    package for package in setuptools.PEP420PackageFinder.find()
-    if package.startswith('google')]
+    package
+    for package in setuptools.PEP420PackageFinder.find()
+    if package.startswith("google")
+]
 
 # Determine which namespaces are needed.
-namespaces = ['google']
-if 'google.cloud' in packages:
-    namespaces.append('google.cloud')
+namespaces = ["google"]
+if "google.cloud" in packages:
+    namespaces.append("google.cloud")
 
 
 setuptools.setup(
@@ -64,26 +65,26 @@ setuptools.setup(
     version=version,
     description=description,
     long_description=readme,
-    author='Google LLC',
-    author_email='googleapis-packages@google.com',
-    license='Apache 2.0',
-    url='https://github.com/googleapis/python-bigtable',
+    author="Google LLC",
+    author_email="googleapis-packages@google.com",
+    license="Apache 2.0",
+    url="https://github.com/googleapis/python-bigtable",
     classifiers=[
         release_status,
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Operating System :: OS Independent',
-        'Topic :: Internet',
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Operating System :: OS Independent",
+        "Topic :: Internet",
     ],
-    platforms='Posix; MacOS X; Windows',
+    platforms="Posix; MacOS X; Windows",
     packages=packages,
     namespace_packages=namespaces,
     install_requires=dependencies,
     extras_require=extras,
-    python_requires='>=3.6',
+    python_requires=">=3.6",
     include_package_data=True,
     zip_safe=False,
 )

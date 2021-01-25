@@ -24,30 +24,30 @@ from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
+    package="google.bigtable.admin.v2",
     manifest={
-        'CreateInstanceRequest',
-        'GetInstanceRequest',
-        'ListInstancesRequest',
-        'ListInstancesResponse',
-        'PartialUpdateInstanceRequest',
-        'DeleteInstanceRequest',
-        'CreateClusterRequest',
-        'GetClusterRequest',
-        'ListClustersRequest',
-        'ListClustersResponse',
-        'DeleteClusterRequest',
-        'CreateInstanceMetadata',
-        'UpdateInstanceMetadata',
-        'CreateClusterMetadata',
-        'UpdateClusterMetadata',
-        'CreateAppProfileRequest',
-        'GetAppProfileRequest',
-        'ListAppProfilesRequest',
-        'ListAppProfilesResponse',
-        'UpdateAppProfileRequest',
-        'DeleteAppProfileRequest',
-        'UpdateAppProfileMetadata',
+        "CreateInstanceRequest",
+        "GetInstanceRequest",
+        "ListInstancesRequest",
+        "ListInstancesResponse",
+        "PartialUpdateInstanceRequest",
+        "DeleteInstanceRequest",
+        "CreateClusterRequest",
+        "GetClusterRequest",
+        "ListClustersRequest",
+        "ListClustersResponse",
+        "DeleteClusterRequest",
+        "CreateInstanceMetadata",
+        "UpdateInstanceMetadata",
+        "CreateClusterMetadata",
+        "UpdateClusterMetadata",
+        "CreateAppProfileRequest",
+        "GetAppProfileRequest",
+        "ListAppProfilesRequest",
+        "ListAppProfilesResponse",
+        "UpdateAppProfileRequest",
+        "DeleteAppProfileRequest",
+        "UpdateAppProfileMetadata",
     },
 )
 
@@ -80,12 +80,10 @@ class CreateInstanceRequest(proto.Message):
 
     instance_id = proto.Field(proto.STRING, number=2)
 
-    instance = proto.Field(proto.MESSAGE, number=3,
-        message=gba_instance.Instance,
-    )
+    instance = proto.Field(proto.MESSAGE, number=3, message=gba_instance.Instance,)
 
-    clusters = proto.MapField(proto.STRING, proto.MESSAGE, number=4,
-        message=gba_instance.Cluster,
+    clusters = proto.MapField(
+        proto.STRING, proto.MESSAGE, number=4, message=gba_instance.Cluster,
     )
 
 
@@ -140,8 +138,8 @@ class ListInstancesResponse(proto.Message):
     def raw_page(self):
         return self
 
-    instances = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_instance.Instance,
+    instances = proto.RepeatedField(
+        proto.MESSAGE, number=1, message=gba_instance.Instance,
     )
 
     failed_locations = proto.RepeatedField(proto.STRING, number=2)
@@ -162,13 +160,9 @@ class PartialUpdateInstanceRequest(proto.Message):
             should be replaced. Must be explicitly set.
     """
 
-    instance = proto.Field(proto.MESSAGE, number=1,
-        message=gba_instance.Instance,
-    )
+    instance = proto.Field(proto.MESSAGE, number=1, message=gba_instance.Instance,)
 
-    update_mask = proto.Field(proto.MESSAGE, number=2,
-        message=field_mask.FieldMask,
-    )
+    update_mask = proto.Field(proto.MESSAGE, number=2, message=field_mask.FieldMask,)
 
 
 class DeleteInstanceRequest(proto.Message):
@@ -206,9 +200,7 @@ class CreateClusterRequest(proto.Message):
 
     cluster_id = proto.Field(proto.STRING, number=2)
 
-    cluster = proto.Field(proto.MESSAGE, number=3,
-        message=gba_instance.Cluster,
-    )
+    cluster = proto.Field(proto.MESSAGE, number=3, message=gba_instance.Cluster,)
 
 
 class GetClusterRequest(proto.Message):
@@ -264,8 +256,8 @@ class ListClustersResponse(proto.Message):
     def raw_page(self):
         return self
 
-    clusters = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_instance.Cluster,
+    clusters = proto.RepeatedField(
+        proto.MESSAGE, number=1, message=gba_instance.Cluster,
     )
 
     failed_locations = proto.RepeatedField(proto.STRING, number=2)
@@ -301,17 +293,13 @@ class CreateInstanceMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message='CreateInstanceRequest',
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message="CreateInstanceRequest",
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class UpdateInstanceMetadata(proto.Message):
@@ -329,17 +317,13 @@ class UpdateInstanceMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message='PartialUpdateInstanceRequest',
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message="PartialUpdateInstanceRequest",
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class CreateClusterMetadata(proto.Message):
@@ -357,17 +341,13 @@ class CreateClusterMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message='CreateClusterRequest',
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message="CreateClusterRequest",
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class UpdateClusterMetadata(proto.Message):
@@ -385,17 +365,13 @@ class UpdateClusterMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message=gba_instance.Cluster,
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message=gba_instance.Cluster,
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class CreateAppProfileRequest(proto.Message):
@@ -423,9 +399,7 @@ class CreateAppProfileRequest(proto.Message):
 
     app_profile_id = proto.Field(proto.STRING, number=2)
 
-    app_profile = proto.Field(proto.MESSAGE, number=3,
-        message=gba_instance.AppProfile,
-    )
+    app_profile = proto.Field(proto.MESSAGE, number=3, message=gba_instance.AppProfile,)
 
     ignore_warnings = proto.Field(proto.BOOL, number=4)
 
@@ -499,8 +473,8 @@ class ListAppProfilesResponse(proto.Message):
     def raw_page(self):
         return self
 
-    app_profiles = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_instance.AppProfile,
+    app_profiles = proto.RepeatedField(
+        proto.MESSAGE, number=1, message=gba_instance.AppProfile,
     )
 
     next_page_token = proto.Field(proto.STRING, number=2)
@@ -524,13 +498,9 @@ class UpdateAppProfileRequest(proto.Message):
             the app profile.
     """
 
-    app_profile = proto.Field(proto.MESSAGE, number=1,
-        message=gba_instance.AppProfile,
-    )
+    app_profile = proto.Field(proto.MESSAGE, number=1, message=gba_instance.AppProfile,)
 
-    update_mask = proto.Field(proto.MESSAGE, number=2,
-        message=field_mask.FieldMask,
-    )
+    update_mask = proto.Field(proto.MESSAGE, number=2, message=field_mask.FieldMask,)
 
     ignore_warnings = proto.Field(proto.BOOL, number=3)
 

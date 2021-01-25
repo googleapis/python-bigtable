@@ -19,6 +19,6 @@ from .client import BigtableClient
 from .async_client import BigtableAsyncClient
 
 __all__ = (
-    'BigtableClient',
-    'BigtableAsyncClient',
+    "BigtableClient",
+    "BigtableAsyncClient",
 )

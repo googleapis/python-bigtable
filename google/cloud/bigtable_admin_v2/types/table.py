@@ -23,16 +23,16 @@ from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
+    package="google.bigtable.admin.v2",
     manifest={
-        'RestoreSourceType',
-        'RestoreInfo',
-        'Table',
-        'ColumnFamily',
-        'GcRule',
-        'Snapshot',
-        'Backup',
-        'BackupInfo',
+        "RestoreSourceType",
+        "RestoreInfo",
+        "Table",
+        "ColumnFamily",
+        "GcRule",
+        "Snapshot",
+        "Backup",
+        "BackupInfo",
     },
 )
 
@@ -54,12 +54,10 @@ class RestoreInfo(proto.Message):
             the table. The backup may no longer exist.
     """
 
-    source_type = proto.Field(proto.ENUM, number=1,
-        enum='RestoreSourceType',
-    )
+    source_type = proto.Field(proto.ENUM, number=1, enum="RestoreSourceType",)
 
-    backup_info = proto.Field(proto.MESSAGE, number=2, oneof='source_info',
-        message='BackupInfo',
+    backup_info = proto.Field(
+        proto.MESSAGE, number=2, oneof="source_info", message="BackupInfo",
     )
 
 
@@ -98,6 +96,7 @@ class Table(proto.Message):
             will be populated with information about the
             restore.
     """
+
     class TimestampGranularity(proto.Enum):
         r"""Possible timestamp granularities to use when keeping multiple
         versions of data in a table.
@@ -121,6 +120,7 @@ class Table(proto.Message):
                 Output only. The state of replication for the
                 table in this cluster.
         """
+
         class ReplicationState(proto.Enum):
             r"""Table replication states."""
             STATE_NOT_KNOWN = 0
@@ -130,27 +130,23 @@ class Table(proto.Message):
             READY = 4
             READY_OPTIMIZING = 5
 
-        replication_state = proto.Field(proto.ENUM, number=1,
-            enum='Table.ClusterState.ReplicationState',
+        replication_state = proto.Field(
+            proto.ENUM, number=1, enum="Table.ClusterState.ReplicationState",
         )
 
     name = proto.Field(proto.STRING, number=1)
 
-    cluster_states = proto.MapField(proto.STRING, proto.MESSAGE, number=2,
-        message=ClusterState,
+    cluster_states = proto.MapField(
+        proto.STRING, proto.MESSAGE, number=2, message=ClusterState,
     )
 
-    column_families = proto.MapField(proto.STRING, proto.MESSAGE, number=3,
-        message='ColumnFamily',
+    column_families = proto.MapField(
+        proto.STRING, proto.MESSAGE, number=3, message="ColumnFamily",
     )
 
-    granularity = proto.Field(proto.ENUM, number=4,
-        enum=TimestampGranularity,
-    )
+    granularity = proto.Field(proto.ENUM, number=4, enum=TimestampGranularity,)
 
-    restore_info = proto.Field(proto.MESSAGE, number=6,
-        message='RestoreInfo',
-    )
+    restore_info = proto.Field(proto.MESSAGE, number=6, message="RestoreInfo",)
 
 
 class ColumnFamily(proto.Message):
@@ -167,9 +163,7 @@ class ColumnFamily(proto.Message):
             matches the active GC expression for its family.
     """
 
-    gc_rule = proto.Field(proto.MESSAGE, number=1,
-        message='GcRule',
-    )
+    gc_rule = proto.Field(proto.MESSAGE, number=1, message="GcRule",)
 
 
 class GcRule(proto.Message):
@@ -192,6 +186,7 @@ class GcRule(proto.Message):
             Delete cells that would be deleted by any
             nested rule.
     """
+
     class Intersection(proto.Message):
         r"""A GcRule which deletes cells matching all of the given rules.
 
@@ -201,9 +196,7 @@ class GcRule(proto.Message):
                 ``rules``.
         """
 
-        rules = proto.RepeatedField(proto.MESSAGE, number=1,
-            message='GcRule',
-        )
+        rules = proto.RepeatedField(proto.MESSAGE, number=1, message="GcRule",)
 
     class Union(proto.Message):
         r"""A GcRule which deletes cells matching any of the given rules.
@@ -214,23 +207,19 @@ class GcRule(proto.Message):
                 ``rules``.
         """
 
-        rules = proto.RepeatedField(proto.MESSAGE, number=1,
-            message='GcRule',
-        )
+        rules = proto.RepeatedField(proto.MESSAGE, number=1, message="GcRule",)
 
-    max_num_versions = proto.Field(proto.INT32, number=1, oneof='rule')
+    max_num_versions = proto.Field(proto.INT32, number=1, oneof="rule")
 
-    max_age = proto.Field(proto.MESSAGE, number=2, oneof='rule',
-        message=duration.Duration,
+    max_age = proto.Field(
+        proto.MESSAGE, number=2, oneof="rule", message=duration.Duration,
     )
 
-    intersection = proto.Field(proto.MESSAGE, number=3, oneof='rule',
-        message=Intersection,
+    intersection = proto.Field(
+        proto.MESSAGE, number=3, oneof="rule", message=Intersection,
     )
 
-    union = proto.Field(proto.MESSAGE, number=4, oneof='rule',
-        message=Union,
-    )
+    union = proto.Field(proto.MESSAGE, number=4, oneof="rule", message=Union,)
 
 
 class Snapshot(proto.Message):
@@ -272,6 +261,7 @@ class Snapshot(proto.Message):
         description (str):
             Output only. Description of the snapshot.
     """
+
     class State(proto.Enum):
         r"""Possible states of a snapshot."""
         STATE_NOT_KNOWN = 0
@@ -280,23 +270,15 @@ class Snapshot(proto.Message):
 
     name = proto.Field(proto.STRING, number=1)
 
-    source_table = proto.Field(proto.MESSAGE, number=2,
-        message='Table',
-    )
+    source_table = proto.Field(proto.MESSAGE, number=2, message="Table",)
 
     data_size_bytes = proto.Field(proto.INT64, number=3)
 
-    create_time = proto.Field(proto.MESSAGE, number=4,
-        message=timestamp.Timestamp,
-    )
+    create_time = proto.Field(proto.MESSAGE, number=4, message=timestamp.Timestamp,)
 
-    delete_time = proto.Field(proto.MESSAGE, number=5,
-        message=timestamp.Timestamp,
-    )
+    delete_time = proto.Field(proto.MESSAGE, number=5, message=timestamp.Timestamp,)
 
-    state = proto.Field(proto.ENUM, number=6,
-        enum=State,
-    )
+    state = proto.Field(proto.ENUM, number=6, enum=State,)
 
     description = proto.Field(proto.STRING, number=7)
 
@@ -341,6 +323,7 @@ class Backup(proto.Message):
         state (~.table.Backup.State):
             Output only. The current state of the backup.
     """
+
     class State(proto.Enum):
         r"""Indicates the current state of the backup."""
         STATE_UNSPECIFIED = 0
@@ -351,23 +334,15 @@ class Backup(proto.Message):
 
     source_table = proto.Field(proto.STRING, number=2)
 
-    expire_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    expire_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
-    start_time = proto.Field(proto.MESSAGE, number=4,
-        message=timestamp.Timestamp,
-    )
+    start_time = proto.Field(proto.MESSAGE, number=4, message=timestamp.Timestamp,)
 
-    end_time = proto.Field(proto.MESSAGE, number=5,
-        message=timestamp.Timestamp,
-    )
+    end_time = proto.Field(proto.MESSAGE, number=5, message=timestamp.Timestamp,)
 
     size_bytes = proto.Field(proto.INT64, number=6)
 
-    state = proto.Field(proto.ENUM, number=7,
-        enum=State,
-    )
+    state = proto.Field(proto.ENUM, number=7, enum=State,)
 
 
 class BackupInfo(proto.Message):
@@ -391,13 +366,9 @@ class BackupInfo(proto.Message):
 
     backup = proto.Field(proto.STRING, number=1)
 
-    start_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    start_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    end_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    end_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
     source_table = proto.Field(proto.STRING, number=4)
 

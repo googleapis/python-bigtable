@@ -14,7 +14,6 @@
 
 """User-friendly container for Google Cloud Bigtable Table."""
 
-from google.api_core import timeout
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
@@ -22,7 +21,6 @@ from google.api_core.exceptions import RetryError
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
-from google.api_core.gapic_v1.method import wrap_method
 from google.cloud._helpers import _to_bytes
 from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
@@ -39,9 +37,7 @@ from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
 from google.cloud.bigtable import enums
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
-from google.cloud.bigtable_admin_v2 import (
-    BigtableTableAdminClient,
-)
+from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
 from google.cloud.bigtable_admin_v2.types import (
     bigtable_table_admin as table_admin_messages_v2_pb2,
@@ -157,7 +153,7 @@ class Table(object):
         :returns: The current IAM policy of this table.
         """
         table_client = self._instance._client.table_admin_client
-        resp = table_client.get_iam_policy(request = {'resource': self.name})
+        resp = table_client.get_iam_policy(request={"resource": self.name})
         return Policy.from_pb(resp)
 
     def set_iam_policy(self, policy):
@@ -182,7 +178,9 @@ class Table(object):
         :returns: The current IAM policy of this table.
         """
         table_client = self._instance._client.table_admin_client
-        resp = table_client.set_iam_policy(request = {'resource': self.name, 'policy': policy.to_pb()})
+        resp = table_client.set_iam_policy(
+            request={"resource": self.name, "policy": policy.to_pb()}
+        )
         return Policy.from_pb(resp)
 
     def test_iam_permissions(self, permissions):
@@ -210,7 +208,8 @@ class Table(object):
         """
         table_client = self._instance._client.table_admin_client
         resp = table_client.test_iam_permissions(
-            request = {'resource': self.name, 'permissions': permissions})
+            request={"resource": self.name, "permissions": permissions}
+        )
         return list(resp.permissions)
 
     def column_family(self, column_family_id, gc_rule=None):
@@ -388,7 +387,13 @@ class Table(object):
         splits = [split(key=_to_bytes(key)) for key in initial_split_keys]
 
         table_client.create_table(
-            request = {'parent': instance_name, 'table_id': self.table_id, 'table': table, 'initial_splits': splits})
+            request={
+                "parent": instance_name,
+                "table_id": self.table_id,
+                "table": table,
+                "initial_splits": splits,
+            }
+        )
 
     def exists(self):
         """Check whether the table exists.
@@ -405,7 +410,7 @@ class Table(object):
         """
         table_client = self._instance._client.table_admin_client
         try:
-            table_client.get_table(request = {'name': self.name, 'view': VIEW_NAME_ONLY})
+            table_client.get_table(request={"name": self.name, "view": VIEW_NAME_ONLY})
             return True
         except NotFound:
             return False
@@ -421,7 +426,7 @@ class Table(object):
             :dedent: 4
         """
         table_client = self._instance._client.table_admin_client
-        table_client.delete_table(request = {'name': self.name})
+        table_client.delete_table(request={"name": self.name})
 
     def list_column_families(self):
         """List the column families owned by this table.
@@ -442,7 +447,7 @@ class Table(object):
                  name from the column family ID.
         """
         table_client = self._instance._client.table_admin_client
-        table_pb = table_client.get_table(request = {'name': self.name})
+        table_pb = table_client.get_table(request={"name": self.name})
 
         result = {}
         for column_family_id, value_pb in table_pb.column_families.items():
@@ -469,7 +474,9 @@ class Table(object):
 
         REPLICATION_VIEW = enums.Table.View.REPLICATION_VIEW
         table_client = self._instance._client.table_admin_client
-        table_pb = table_client.get_table(request = {'name': self.name, 'view': REPLICATION_VIEW})
+        table_pb = table_client.get_table(
+            request={"name": self.name, "view": REPLICATION_VIEW}
+        )
 
         return {
             cluster_id: ClusterState(value_pb.replication_state)
@@ -705,10 +712,7 @@ class Table(object):
         """
         data_client = self._instance._client.table_data_client
         response_iterator = data_client.sample_row_keys(
-            request={
-                'table_name': self.name,
-                'app_profile_id': self._app_profile_id
-            }
+            request={"table_name": self.name, "app_profile_id": self._app_profile_id}
         )
 
         return response_iterator
@@ -737,11 +741,13 @@ class Table(object):
         table_admin_client = client.table_admin_client
         if timeout:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'delete_all_data_from_table': True}, timeout=timeout
+                request={"name": self.name, "delete_all_data_from_table": True},
+                timeout=timeout,
             )
         else:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'delete_all_data_from_table': True})
+                request={"name": self.name, "delete_all_data_from_table": True}
+            )
 
     def drop_by_prefix(self, row_key_prefix, timeout=None):
         """
@@ -771,11 +777,16 @@ class Table(object):
         table_admin_client = client.table_admin_client
         if timeout:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'row_key_prefix': _to_bytes(row_key_prefix)}, timeout=timeout
+                request={
+                    "name": self.name,
+                    "row_key_prefix": _to_bytes(row_key_prefix),
+                },
+                timeout=timeout,
             )
         else:
             table_admin_client.drop_row_range(
-                request = {'name': self.name, 'row_key_prefix': _to_bytes(row_key_prefix)})
+                request={"name": self.name, "row_key_prefix": _to_bytes(row_key_prefix)}
+            )
 
     def mutations_batcher(self, flush_count=FLUSH_COUNT, max_row_bytes=MAX_ROW_BYTES):
         """Factory to create a mutation batcher associated with this instance.
@@ -916,7 +927,13 @@ class Table(object):
         )
         client = self._instance._client.table_admin_client
         backup_list_pb = client.list_backups(
-            request = {'parent': parent, 'filter': backups_filter, 'order_by': order_by, 'page_size': page_size})
+            request={
+                "parent": parent,
+                "filter": backups_filter,
+                "order_by": order_by,
+                "page_size": page_size,
+            }
+        )
 
         result = []
         for backup_pb in backup_list_pb.backups:
@@ -968,7 +985,13 @@ class Table(object):
                 cluster=cluster_id,
                 backup=backup_id,
             )
-        return api.restore_table(request = {'parent': self._instance.name, 'table_id': new_table_id, 'backup': backup_name})
+        return api.restore_table(
+            request={
+                "parent": self._instance.name,
+                "table_id": new_table_id,
+                "backup": backup_name,
+            }
+        )
 
 
 class _RetryableMutateRowsWorker(object):
@@ -1069,9 +1092,7 @@ class _RetryableMutateRowsWorker(object):
         #     )
 
         try:
-            responses = data_client.mutate_rows(
-                mutate_rows_request, retry=None
-            )
+            responses = data_client.mutate_rows(mutate_rows_request, retry=None)
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
             # If an exception, considered retryable by `RETRY_CODES`, is
             # returned from the initial call, consider

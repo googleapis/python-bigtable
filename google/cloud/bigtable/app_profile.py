@@ -242,7 +242,9 @@ class AppProfile(object):
             :dedent: 4
         """
 
-        app_profile_pb = self.instance_admin_client.get_app_profile(request = {'name': self.name})
+        app_profile_pb = self.instance_admin_client.get_app_profile(
+            request={"name": self.name}
+        )
 
         # NOTE: _update_from_pb does not check that the project and
         #       app_profile ID on the response match the request.
@@ -262,7 +264,7 @@ class AppProfile(object):
         :returns: True if the AppProfile exists, else False.
         """
         try:
-            self.instance_admin_client.get_app_profile(request = {'name': self.name})
+            self.instance_admin_client.get_app_profile(request={"name": self.name})
             return True
         # NOTE: There could be other exceptions that are returned to the user.
         except NotFound:
@@ -291,7 +293,13 @@ class AppProfile(object):
         """
         return self.from_pb(
             self.instance_admin_client.create_app_profile(
-                request = {'parent': self._instance.name, 'app_profile_id': self.app_profile_id, 'app_profile': self._to_pb(), 'ignore_warnings': ignore_warnings}),
+                request={
+                    "parent": self._instance.name,
+                    "app_profile_id": self.app_profile_id,
+                    "app_profile": self._to_pb(),
+                    "ignore_warnings": ignore_warnings,
+                }
+            ),
             self._instance,
         )
 
@@ -324,7 +332,12 @@ class AppProfile(object):
             update_mask_pb.paths.append("single_cluster_routing")
 
         return self.instance_admin_client.update_app_profile(
-            request = {'app_profile': self._to_pb(), 'update_mask': update_mask_pb, 'ignore_warnings': ignore_warnings})
+            request={
+                "app_profile": self._to_pb(),
+                "update_mask": update_mask_pb,
+                "ignore_warnings": ignore_warnings,
+            }
+        )
 
     def delete(self, ignore_warnings=None):
         """Delete this AppProfile.
@@ -345,4 +358,6 @@ class AppProfile(object):
                  If the request failed due to a retryable error and retry
                  attempts failed. ValueError: If the parameters are invalid.
         """
-        self.instance_admin_client.delete_app_profile(request = {'name': self.name, 'ignore_warnings': ignore_warnings})
+        self.instance_admin_client.delete_app_profile(
+            request={"name": self.name, "ignore_warnings": ignore_warnings}
+        )

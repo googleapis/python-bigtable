@@ -21,12 +21,12 @@ import re
 from typing import Dict, AsyncIterable, Awaitable, Sequence, Tuple, Type, Union
 import pkg_resources
 
-import google.api_core.client_options as ClientOptions # type: ignore
-from google.api_core import exceptions                 # type: ignore
-from google.api_core import gapic_v1                   # type: ignore
-from google.api_core import retry as retries           # type: ignore
-from google.auth import credentials                    # type: ignore
-from google.oauth2 import service_account              # type: ignore
+import google.api_core.client_options as ClientOptions  # type: ignore
+from google.api_core import exceptions  # type: ignore
+from google.api_core import gapic_v1  # type: ignore
+from google.api_core import retry as retries  # type: ignore
+from google.auth import credentials  # type: ignore
+from google.oauth2 import service_account  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
@@ -49,14 +49,20 @@ class BigtableAsyncClient:
     table_path = staticmethod(BigtableClient.table_path)
     parse_table_path = staticmethod(BigtableClient.parse_table_path)
 
-    common_billing_account_path = staticmethod(BigtableClient.common_billing_account_path)
-    parse_common_billing_account_path = staticmethod(BigtableClient.parse_common_billing_account_path)
+    common_billing_account_path = staticmethod(
+        BigtableClient.common_billing_account_path
+    )
+    parse_common_billing_account_path = staticmethod(
+        BigtableClient.parse_common_billing_account_path
+    )
 
     common_folder_path = staticmethod(BigtableClient.common_folder_path)
     parse_common_folder_path = staticmethod(BigtableClient.parse_common_folder_path)
 
     common_organization_path = staticmethod(BigtableClient.common_organization_path)
-    parse_common_organization_path = staticmethod(BigtableClient.parse_common_organization_path)
+    parse_common_organization_path = staticmethod(
+        BigtableClient.parse_common_organization_path
+    )
 
     common_project_path = staticmethod(BigtableClient.common_project_path)
     parse_common_project_path = staticmethod(BigtableClient.parse_common_project_path)
@@ -76,14 +82,18 @@ class BigtableAsyncClient:
         """
         return self._client.transport
 
-    get_transport_class = functools.partial(type(BigtableClient).get_transport_class, type(BigtableClient))
+    get_transport_class = functools.partial(
+        type(BigtableClient).get_transport_class, type(BigtableClient)
+    )
 
-    def __init__(self, *,
-            credentials: credentials.Credentials = None,
-            transport: Union[str, BigtableTransport] = 'grpc_asyncio',
-            client_options: ClientOptions = None,
-            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-            ) -> None:
+    def __init__(
+        self,
+        *,
+        credentials: credentials.Credentials = None,
+        transport: Union[str, BigtableTransport] = "grpc_asyncio",
+        client_options: ClientOptions = None,
+        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+    ) -> None:
         """Instantiate the bigtable client.
 
         Args:
@@ -122,18 +132,18 @@ class BigtableAsyncClient:
             transport=transport,
             client_options=client_options,
             client_info=client_info,
-
         )
 
-    def read_rows(self,
-            request: bigtable.ReadRowsRequest = None,
-            *,
-            table_name: str = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> Awaitable[AsyncIterable[bigtable.ReadRowsResponse]]:
+    def read_rows(
+        self,
+        request: bigtable.ReadRowsRequest = None,
+        *,
+        table_name: str = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> Awaitable[AsyncIterable[bigtable.ReadRowsResponse]]:
         r"""Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
         each. Depending on their size, rows and cells may be
@@ -178,8 +188,10 @@ class BigtableAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.ReadRowsRequest(request)
 
@@ -202,31 +214,27 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    def sample_row_keys(self,
-            request: bigtable.SampleRowKeysRequest = None,
-            *,
-            table_name: str = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> Awaitable[AsyncIterable[bigtable.SampleRowKeysResponse]]:
+    def sample_row_keys(
+        self,
+        request: bigtable.SampleRowKeysRequest = None,
+        *,
+        table_name: str = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> Awaitable[AsyncIterable[bigtable.SampleRowKeysResponse]]:
         r"""Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
@@ -270,8 +278,10 @@ class BigtableAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.SampleRowKeysRequest(request)
 
@@ -294,33 +304,29 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def mutate_row(self,
-            request: bigtable.MutateRowRequest = None,
-            *,
-            table_name: str = None,
-            row_key: bytes = None,
-            mutations: Sequence[data.Mutation] = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> bigtable.MutateRowResponse:
+    async def mutate_row(
+        self,
+        request: bigtable.MutateRowRequest = None,
+        *,
+        table_name: str = None,
+        row_key: bytes = None,
+        mutations: Sequence[data.Mutation] = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> bigtable.MutateRowResponse:
         r"""Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
 
@@ -377,8 +383,10 @@ class BigtableAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, mutations, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.MutateRowRequest(request)
 
@@ -404,8 +412,7 @@ class BigtableAsyncClient:
                 maximum=60.0,
                 multiplier=2,
                 predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
             ),
             default_timeout=60.0,
@@ -415,32 +422,28 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    def mutate_rows(self,
-            request: bigtable.MutateRowsRequest = None,
-            *,
-            table_name: str = None,
-            entries: Sequence[bigtable.MutateRowsRequest.Entry] = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> Awaitable[AsyncIterable[bigtable.MutateRowsResponse]]:
+    def mutate_rows(
+        self,
+        request: bigtable.MutateRowsRequest = None,
+        *,
+        table_name: str = None,
+        entries: Sequence[bigtable.MutateRowsRequest.Entry] = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> Awaitable[AsyncIterable[bigtable.MutateRowsResponse]]:
         r"""Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
@@ -495,8 +498,10 @@ class BigtableAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, entries, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.MutateRowsRequest(request)
 
@@ -522,35 +527,31 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def check_and_mutate_row(self,
-            request: bigtable.CheckAndMutateRowRequest = None,
-            *,
-            table_name: str = None,
-            row_key: bytes = None,
-            predicate_filter: data.RowFilter = None,
-            true_mutations: Sequence[data.Mutation] = None,
-            false_mutations: Sequence[data.Mutation] = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> bigtable.CheckAndMutateRowResponse:
+    async def check_and_mutate_row(
+        self,
+        request: bigtable.CheckAndMutateRowRequest = None,
+        *,
+        table_name: str = None,
+        row_key: bytes = None,
+        predicate_filter: data.RowFilter = None,
+        true_mutations: Sequence[data.Mutation] = None,
+        false_mutations: Sequence[data.Mutation] = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> bigtable.CheckAndMutateRowResponse:
         r"""Mutates a row atomically based on the output of a
         predicate Reader filter.
 
@@ -626,10 +627,21 @@ class BigtableAsyncClient:
         # Create or coerce a protobuf request object.
         # Sanity check: If we got a request object, we should *not* have
         # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([table_name, row_key, predicate_filter, true_mutations, false_mutations, app_profile_id])
+        has_flattened_params = any(
+            [
+                table_name,
+                row_key,
+                predicate_filter,
+                true_mutations,
+                false_mutations,
+                app_profile_id,
+            ]
+        )
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.CheckAndMutateRowRequest(request)
 
@@ -661,33 +673,29 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def read_modify_write_row(self,
-            request: bigtable.ReadModifyWriteRowRequest = None,
-            *,
-            table_name: str = None,
-            row_key: bytes = None,
-            rules: Sequence[data.ReadModifyWriteRule] = None,
-            app_profile_id: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> bigtable.ReadModifyWriteRowResponse:
+    async def read_modify_write_row(
+        self,
+        request: bigtable.ReadModifyWriteRowRequest = None,
+        *,
+        table_name: str = None,
+        row_key: bytes = None,
+        rules: Sequence[data.ReadModifyWriteRule] = None,
+        app_profile_id: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> bigtable.ReadModifyWriteRowResponse:
         r"""Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the
         specified columns and writes a new entry based on pre-
@@ -751,8 +759,10 @@ class BigtableAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, rules, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable.ReadModifyWriteRowRequest(request)
 
@@ -780,38 +790,24 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('table_name', request.table_name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
 
-
-
-
-
-
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
-        gapic_version=pkg_resources.get_distribution(
-            'google-cloud-bigtable',
-        ).version,
+        gapic_version=pkg_resources.get_distribution("google-cloud-bigtable",).version,
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
 
 
-__all__ = (
-    'BigtableAsyncClient',
-)
+__all__ = ("BigtableAsyncClient",)

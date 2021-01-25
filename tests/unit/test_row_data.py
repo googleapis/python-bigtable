@@ -467,7 +467,6 @@ class TestPartialRowsData(unittest.TestCase):
 
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        channel = ChannelStub(responses=[iterator])
 
         data_api = mock.create_autospec(BigtableClient)
 
@@ -510,7 +509,6 @@ class TestPartialRowsData(unittest.TestCase):
 
         response = _ReadRowsResponseV2(chunks)
         iterator = _MockCancellableIterator(response)
-        channel = ChannelStub(responses=[iterator])
         data_api = mock.create_autospec(BigtableClient)
         credentials = _make_credentials()
         client = self._make_client(
@@ -623,7 +621,7 @@ class TestPartialRowsData(unittest.TestCase):
     def test_invalid_empty_chunk(self):
         from google.cloud.bigtable.row_data import InvalidChunk
         from google.cloud.bigtable_v2.services.bigtable import BigtableClient
-        
+
         client = _Client()
         chunks = _generate_cell_chunks([""])
         response = _ReadRowsResponseV2(chunks)
@@ -667,6 +665,7 @@ class TestPartialRowsData(unittest.TestCase):
 
     def test_yield_rows_data(self):
         from google.cloud.bigtable_v2.services.bigtable import BigtableClient
+
         client = _Client()
 
         chunk = _ReadRowsResponseCellChunkPB(
@@ -855,7 +854,9 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
             table_name=self.table_name, filter=row_filter.to_pb(), rows_limit=6
         )
 
-        row_range1 = RowRange(start_key_open=last_scanned_key, end_key_open=self.row_range1.end_key)
+        row_range1 = RowRange(
+            start_key_open=last_scanned_key, end_key_open=self.row_range1.end_key
+        )
         expected_result.rows.row_ranges.append(row_range1)
 
         self.assertEqual(expected_result, result)
@@ -877,7 +878,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
     def test_build_updated_request_no_start_key(self):
         from google.cloud.bigtable.row_filters import RowSampleFilter
         from google.cloud.bigtable_v2.types import RowRange
-        
+
         row_filter = RowSampleFilter(0.33)
         last_scanned_key = b"row_key25"
         request = _ReadRowsRequestPB(
@@ -894,7 +895,9 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
             table_name=self.table_name, filter=row_filter.to_pb(), rows_limit=6
         )
 
-        row_range2 = RowRange(start_key_open=last_scanned_key, end_key_open=b"row_key29")
+        row_range2 = RowRange(
+            start_key_open=last_scanned_key, end_key_open=b"row_key29"
+        )
         expected_result.rows.row_ranges.append(row_range2)
 
         self.assertEqual(expected_result, result)
@@ -902,7 +905,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
     def test_build_updated_request_no_end_key(self):
         from google.cloud.bigtable.row_filters import RowSampleFilter
         from google.cloud.bigtable_v2.types import RowRange
-        
+
         row_filter = RowSampleFilter(0.33)
         last_scanned_key = b"row_key25"
         request = _ReadRowsRequestPB(
@@ -926,7 +929,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
 
     def test_build_updated_request_rows(self):
         from google.cloud.bigtable.row_filters import RowSampleFilter
-        
+
         row_filter = RowSampleFilter(0.33)
         last_scanned_key = b"row_key4"
         request = _ReadRowsRequestPB(
@@ -1315,6 +1318,7 @@ def _parse_readrows_acceptance_tests(filename):
 
 def _ReadRowsResponseCellChunkPB(*args, **kw):
     from google.cloud.bigtable_v2.types import bigtable as messages_v2_pb2
+
     family_name = kw.pop("family_name", None)
     qualifier = kw.pop("qualifier", None)
     message = messages_v2_pb2.ReadRowsResponse.CellChunk(*args, **kw)

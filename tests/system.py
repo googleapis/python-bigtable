@@ -42,6 +42,7 @@ from google.cloud.bigtable.row_data import Cell
 from google.cloud.bigtable.row_data import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
+
 # from google.cloud.bigtable_admin_v2.gapic import (
 #     bigtable_table_admin_client_config as table_admin_config,
 # )
@@ -840,6 +841,7 @@ class TestTableAdminAPI(unittest.TestCase):
 
     def test_backup(self):
         from google.cloud._helpers import _datetime_to_pb_timestamp
+
         temp_table_id = "test-backup-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
         temp_table.create()
@@ -884,7 +886,10 @@ class TestTableAdminAPI(unittest.TestCase):
 
         # Testing `Backup.get()` method
         temp_table_backup = temp_backup.get()
-        self.assertEqual(test.seconds, DatetimeWithNanoseconds.timestamp(temp_table_backup.expire_time))
+        self.assertEqual(
+            test.seconds,
+            DatetimeWithNanoseconds.timestamp(temp_table_backup.expire_time),
+        )
 
         # Testing `Table.restore()` and `Backup.retore()` methods
         restored_table_id = "test-backup-table-restored"

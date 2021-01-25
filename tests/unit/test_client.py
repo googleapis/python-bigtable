@@ -447,7 +447,9 @@ class TestClient(unittest.TestCase):
         from google.cloud.bigtable_admin_v2.types import (
             bigtable_instance_admin as messages_v2_pb2,
         )
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.cloud.bigtable.instance import Instance
 
         FAILED_LOCATION = "FAILED"
@@ -455,10 +457,8 @@ class TestClient(unittest.TestCase):
         INSTANCE_ID2 = "instance-id2"
         INSTANCE_NAME1 = "projects/" + self.PROJECT + "/instances/" + INSTANCE_ID1
         INSTANCE_NAME2 = "projects/" + self.PROJECT + "/instances/" + INSTANCE_ID2
-        
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
+
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
 
         client = self._make_one(
@@ -477,7 +477,7 @@ class TestClient(unittest.TestCase):
         # Patch the stub used by the API method.
         client._instance_admin_client = api
         instance_stub = client._instance_admin_client
-       
+
         instance_stub.list_instances.side_effect = [response_pb]
 
         # Perform the method and check the result.
@@ -496,17 +496,17 @@ class TestClient(unittest.TestCase):
         self.assertEqual(failed_locations, [FAILED_LOCATION])
 
     def test_list_clusters(self):
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.cloud.bigtable_admin_v2.types import (
             bigtable_instance_admin as messages_v2_pb2,
         )
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
         from google.cloud.bigtable.instance import Cluster
 
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
-       
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
+
         credentials = _make_credentials()
         client = self._make_one(
             project=self.PROJECT, credentials=credentials, admin=True
@@ -542,7 +542,7 @@ class TestClient(unittest.TestCase):
         # Patch the stub used by the API method.
         client._instance_admin_client = instance_api
         instance_stub = client._instance_admin_client
-       
+
         instance_stub.list_clusters.side_effect = [response_pb]
 
         # Perform the method and check the result.

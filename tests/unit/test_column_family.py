@@ -348,7 +348,9 @@ class TestColumnFamily(unittest.TestCase):
             bigtable_table_admin as table_admin_v2_pb2,
         )
         from tests.unit._testing import _FakeStub
-        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import BigtableTableAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
+            BigtableTableAdminClient,
+        )
 
         project_id = "project-id"
         zone = "zone"
@@ -366,10 +368,8 @@ class TestColumnFamily(unittest.TestCase):
             + table_id
         )
 
-        api = mock.create_autospec(
-            BigtableTableAdminClient
-        )
-    
+        api = mock.create_autospec(BigtableTableAdminClient)
+
         credentials = _make_credentials()
         client = self._make_client(
             project=project_id, credentials=credentials, admin=True
@@ -418,7 +418,9 @@ class TestColumnFamily(unittest.TestCase):
         from google.cloud.bigtable_admin_v2.types import (
             bigtable_table_admin as table_admin_v2_pb2,
         )
-        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import BigtableTableAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
+            BigtableTableAdminClient,
+        )
 
         project_id = "project-id"
         zone = "zone"
@@ -436,9 +438,7 @@ class TestColumnFamily(unittest.TestCase):
             + table_id
         )
 
-        api = mock.create_autospec(
-            BigtableTableAdminClient
-        )
+        api = mock.create_autospec(BigtableTableAdminClient)
         credentials = _make_credentials()
         client = self._make_client(
             project=project_id, credentials=credentials, admin=True
@@ -488,7 +488,9 @@ class TestColumnFamily(unittest.TestCase):
             bigtable_table_admin as table_admin_v2_pb2,
         )
         from tests.unit._testing import _FakeStub
-        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import BigtableTableAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
+            BigtableTableAdminClient,
+        )
 
         project_id = "project-id"
         zone = "zone"
@@ -506,9 +508,7 @@ class TestColumnFamily(unittest.TestCase):
             + table_id
         )
 
-        api = mock.create_autospec(
-            BigtableTableAdminClient
-        )
+        api = mock.create_autospec(BigtableTableAdminClient)
         credentials = _make_credentials()
         client = self._make_client(
             project=project_id, credentials=credentials, admin=True
@@ -518,7 +518,9 @@ class TestColumnFamily(unittest.TestCase):
 
         # Create request_pb
         request_pb = table_admin_v2_pb2.ModifyColumnFamiliesRequest(name=table_name)
-        modification = table_admin_v2_pb2.ModifyColumnFamiliesRequest.Modification(id=column_family_id, drop=True)
+        modification = table_admin_v2_pb2.ModifyColumnFamiliesRequest.Modification(
+            id=column_family_id, drop=True
+        )
         request_pb.modifications.append(modification)
 
         # Create response_pb

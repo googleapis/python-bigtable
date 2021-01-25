@@ -211,7 +211,9 @@ class Cluster(object):
             :end-before: [END bigtable_reload_cluster]
             :dedent: 4
         """
-        cluster_pb = self._instance._client.instance_admin_client.get_cluster(request = {'name': self.name})
+        cluster_pb = self._instance._client.instance_admin_client.get_cluster(
+            request={"name": self.name}
+        )
 
         # NOTE: _update_from_pb does not check that the project and
         #       cluster ID on the response match the request.
@@ -232,7 +234,7 @@ class Cluster(object):
         """
         client = self._instance._client
         try:
-            client.instance_admin_client.get_cluster(request = {'name': self.name})
+            client.instance_admin_client.get_cluster(request={"name": self.name})
             return True
         # NOTE: There could be other exceptions that are returned to the user.
         except NotFound:
@@ -269,7 +271,12 @@ class Cluster(object):
         cluster_pb = self._to_pb()
 
         return client.instance_admin_client.create_cluster(
-            request = {'parent': self._instance.name, 'cluster_id': self.cluster_id, 'cluster': cluster_pb})
+            request={
+                "parent": self._instance.name,
+                "cluster_id": self.cluster_id,
+                "cluster": cluster_pb,
+            }
+        )
 
     def update(self):
         """Update this cluster.
@@ -301,7 +308,12 @@ class Cluster(object):
         # Location is set only at the time of creation of a cluster
         # and can not be changed after cluster has been created.
         return client.instance_admin_client.update_cluster(
-            request = {'serve_nodes': self.serve_nodes, 'name': self.name, 'location': None})
+            request={
+                "serve_nodes": self.serve_nodes,
+                "name": self.name,
+                "location": None,
+            }
+        )
 
     def delete(self):
         """Delete this cluster.
@@ -331,7 +343,7 @@ class Cluster(object):
           permanently deleted.
         """
         client = self._instance._client
-        client.instance_admin_client.delete_cluster(request = {'name': self.name})
+        client.instance_admin_client.delete_cluster(request={"name": self.name})
 
     def _to_pb(self):
         """ Create cluster proto buff message for API calls """

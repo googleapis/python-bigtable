@@ -163,11 +163,11 @@ class TestBackup(unittest.TestCase):
 
     def test_property_name(self):
         from google.cloud.bigtable.client import Client
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
-
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
         )
+
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
@@ -188,19 +188,16 @@ class TestBackup(unittest.TestCase):
         self.assertEqual(backup.cluster, self.CLUSTER_ID)
 
     def test_property_parent_none(self):
-        backup = self._make_one(
-            self.BACKUP_ID,
-            _Instance(self.INSTANCE_NAME),
-        )
+        backup = self._make_one(self.BACKUP_ID, _Instance(self.INSTANCE_NAME),)
         self.assertIsNone(backup.parent)
 
     def test_property_parent_w_cluster(self):
         from google.cloud.bigtable.client import Client
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
-
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
         )
+
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
@@ -212,11 +209,11 @@ class TestBackup(unittest.TestCase):
 
     def test_property_source_table_none(self):
         from google.cloud.bigtable.client import Client
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
-
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
         )
+
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
@@ -227,11 +224,11 @@ class TestBackup(unittest.TestCase):
 
     def test_property_source_table_valid(self):
         from google.cloud.bigtable.client import Client
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
-
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
         )
+
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = Client(project=self.PROJECT_ID, credentials=credentials, admin=True)
         client._table_admin_client = api
@@ -330,9 +327,9 @@ class TestBackup(unittest.TestCase):
 
         api.create_backup.assert_called_once_with(
             request={
-                "parent" : self.CLUSTER_NAME,
-                "backup_id" : self.BACKUP_ID,
-                "backup" : backup_pb,
+                "parent": self.CLUSTER_NAME,
+                "backup_id": self.BACKUP_ID,
+                "backup": backup_pb,
             }
         )
 
@@ -363,9 +360,9 @@ class TestBackup(unittest.TestCase):
 
         api.create_backup.assert_called_once_with(
             request={
-                "parent" : self.CLUSTER_NAME,
-                "backup_id" : self.BACKUP_ID,
-                "backup" : backup_pb,
+                "parent": self.CLUSTER_NAME,
+                "backup_id": self.BACKUP_ID,
+                "backup": backup_pb,
             }
         )
 
@@ -396,9 +393,9 @@ class TestBackup(unittest.TestCase):
 
         api.create_backup.assert_called_once_with(
             request={
-                "parent" : self.CLUSTER_NAME,
-                "backup_id" : self.BACKUP_ID,
-                "backup" : backup_pb,
+                "parent": self.CLUSTER_NAME,
+                "backup_id": self.BACKUP_ID,
+                "backup": backup_pb,
             }
         )
 
@@ -425,9 +422,7 @@ class TestBackup(unittest.TestCase):
 
     def test_create_expire_time_not_set(self):
         backup = self._make_one(
-            self.BACKUP_ID,
-            _Instance(self.INSTANCE_NAME),
-            table_id=self.TABLE_ID,
+            self.BACKUP_ID, _Instance(self.INSTANCE_NAME), table_id=self.TABLE_ID,
         )
 
         with self.assertRaises(ValueError):
@@ -463,9 +458,9 @@ class TestBackup(unittest.TestCase):
 
         api.create_backup.assert_called_once_with(
             request={
-                "parent" : self.CLUSTER_NAME,
-                "backup_id" : self.BACKUP_ID,
-                "backup" : backup_pb,
+                "parent": self.CLUSTER_NAME,
+                "backup_id": self.BACKUP_ID,
+                "backup": backup_pb,
             }
         )
 
@@ -495,7 +490,7 @@ class TestBackup(unittest.TestCase):
 
         self.assertFalse(backup.exists())
 
-        api.get_backup.assert_called_once_with(request={'name' : self.BACKUP_NAME})
+        api.get_backup.assert_called_once_with(request={"name": self.BACKUP_NAME})
 
     def test_get(self):
         from google.cloud.bigtable_admin_v2.gapic import enums
@@ -568,7 +563,7 @@ class TestBackup(unittest.TestCase):
 
         self.assertTrue(backup.exists())
 
-        api.get_backup.assert_called_once_with(request={'name' : self.BACKUP_NAME})
+        api.get_backup.assert_called_once_with(request={"name": self.BACKUP_NAME})
 
     def test_delete_grpc_error(self):
         from google.api_core.exceptions import Unknown
@@ -582,7 +577,7 @@ class TestBackup(unittest.TestCase):
         with self.assertRaises(Unknown):
             backup.delete()
 
-        api.delete_backup.assert_called_once_with(request={'name' : self.BACKUP_NAME})
+        api.delete_backup.assert_called_once_with(request={"name": self.BACKUP_NAME})
 
     def test_delete_not_found(self):
         from google.api_core.exceptions import NotFound
@@ -596,7 +591,7 @@ class TestBackup(unittest.TestCase):
         with self.assertRaises(NotFound):
             backup.delete()
 
-        api.delete_backup.assert_called_once_with(request={'name' : self.BACKUP_NAME})
+        api.delete_backup.assert_called_once_with(request={"name": self.BACKUP_NAME})
 
     def test_delete_success(self):
         from google.protobuf.empty_pb2 import Empty
@@ -609,7 +604,7 @@ class TestBackup(unittest.TestCase):
 
         backup.delete()
 
-        api.delete_backup.assert_called_once_with(request={'name' : self.BACKUP_NAME})
+        api.delete_backup.assert_called_once_with(request={"name": self.BACKUP_NAME})
 
     def test_update_expire_time_grpc_error(self):
         from google.api_core.exceptions import Unknown
@@ -628,15 +623,11 @@ class TestBackup(unittest.TestCase):
             backup.update_expire_time(expire_time)
 
         backup_update = table.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
-            request={
-                'backup': backup_update,
-                'update_mask' : update_mask,
-            }
+            request={"backup": backup_update, "update_mask": update_mask}
         )
 
     def test_update_expire_time_not_found(self):
@@ -656,15 +647,11 @@ class TestBackup(unittest.TestCase):
             backup.update_expire_time(expire_time)
 
         backup_update = table.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
-            request={
-            'backup': backup_update,
-            'update_mask' : update_mask,
-            }
+            request={"backup": backup_update, "update_mask": update_mask}
         )
 
     def test_update_expire_time_success(self):
@@ -682,15 +669,11 @@ class TestBackup(unittest.TestCase):
         backup.update_expire_time(expire_time)
 
         backup_update = table.Backup(
-            name=self.BACKUP_NAME,
-            expire_time=_datetime_to_pb_timestamp(expire_time),
+            name=self.BACKUP_NAME, expire_time=_datetime_to_pb_timestamp(expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api.update_backup.assert_called_once_with(
-            request={
-                'backup': backup_update,
-                'update_mask' : update_mask,
-            }
+            request={"backup": backup_update, "update_mask": update_mask}
         )
 
     def test_restore_grpc_error(self):
@@ -715,9 +698,9 @@ class TestBackup(unittest.TestCase):
 
         api.restore_table.assert_called_once_with(
             request={
-                "parent" : self.INSTANCE_NAME,
-                "table_id" : self.TABLE_ID,
-                "backup" : self.BACKUP_NAME,
+                "parent": self.INSTANCE_NAME,
+                "table_id": self.TABLE_ID,
+                "backup": self.BACKUP_NAME,
             }
         )
 
@@ -755,9 +738,9 @@ class TestBackup(unittest.TestCase):
 
         api.restore_table.assert_called_once_with(
             request={
-                "parent" : self.INSTANCE_NAME,
-                "table_id" : self.TABLE_ID,
-                "backup" : self.BACKUP_NAME,
+                "parent": self.INSTANCE_NAME,
+                "table_id": self.TABLE_ID,
+                "backup": self.BACKUP_NAME,
             }
         )
 

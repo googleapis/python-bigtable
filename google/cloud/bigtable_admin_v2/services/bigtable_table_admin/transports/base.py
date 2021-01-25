@@ -21,7 +21,7 @@ import pkg_resources
 
 from google import auth  # type: ignore
 from google.api_core import exceptions  # type: ignore
-from google.api_core import gapic_v1    # type: ignore
+from google.api_core import gapic_v1  # type: ignore
 from google.api_core import retry as retries  # type: ignore
 from google.api_core import operations_v1  # type: ignore
 from google.auth import credentials  # type: ignore
@@ -38,34 +38,36 @@ from google.protobuf import empty_pb2 as empty  # type: ignore
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
         gapic_version=pkg_resources.get_distribution(
-            'google-cloud-bigtable-admin',
+            "google-cloud-bigtable-admin",
         ).version,
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
 
+
 class BigtableTableAdminTransport(abc.ABC):
     """Abstract transport class for BigtableTableAdmin."""
 
     AUTH_SCOPES = (
-        'https://www.googleapis.com/auth/bigtable.admin',
-        'https://www.googleapis.com/auth/bigtable.admin.table',
-        'https://www.googleapis.com/auth/cloud-bigtable.admin',
-        'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
-        'https://www.googleapis.com/auth/cloud-platform',
-        'https://www.googleapis.com/auth/cloud-platform.read-only',
+        "https://www.googleapis.com/auth/bigtable.admin",
+        "https://www.googleapis.com/auth/bigtable.admin.table",
+        "https://www.googleapis.com/auth/cloud-bigtable.admin",
+        "https://www.googleapis.com/auth/cloud-bigtable.admin.table",
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/cloud-platform.read-only",
     )
 
     def __init__(
-            self, *,
-            host: str = 'bigtableadmin.googleapis.com',
-            credentials: credentials.Credentials = None,
-            credentials_file: typing.Optional[str] = None,
-            scopes: typing.Optional[typing.Sequence[str]] = AUTH_SCOPES,
-            quota_project_id: typing.Optional[str] = None,
-            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-            **kwargs,
-            ) -> None:
+        self,
+        *,
+        host: str = "bigtableadmin.googleapis.com",
+        credentials: credentials.Credentials = None,
+        credentials_file: typing.Optional[str] = None,
+        scopes: typing.Optional[typing.Sequence[str]] = AUTH_SCOPES,
+        quota_project_id: typing.Optional[str] = None,
+        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+        **kwargs,
+    ) -> None:
         """Instantiate the transport.
 
         Args:
@@ -88,24 +90,26 @@ class BigtableTableAdminTransport(abc.ABC):
                 your own client library.
         """
         # Save the hostname. Default to port 443 (HTTPS) if none is specified.
-        if ':' not in host:
-            host += ':443'
+        if ":" not in host:
+            host += ":443"
         self._host = host
 
         # If no credentials are provided, then determine the appropriate
         # defaults.
         if credentials and credentials_file:
-            raise exceptions.DuplicateCredentialArgs("'credentials_file' and 'credentials' are mutually exclusive")
+            raise exceptions.DuplicateCredentialArgs(
+                "'credentials_file' and 'credentials' are mutually exclusive"
+            )
 
         if credentials_file is not None:
             credentials, _ = auth.load_credentials_from_file(
-                                credentials_file,
-                                scopes=scopes,
-                                quota_project_id=quota_project_id
-                            )
+                credentials_file, scopes=scopes, quota_project_id=quota_project_id
+            )
 
         elif credentials is None:
-            credentials, _ = auth.default(scopes=scopes, quota_project_id=quota_project_id)
+            credentials, _ = auth.default(
+                scopes=scopes, quota_project_id=quota_project_id
+            )
 
         # Save the credentials.
         self._credentials = credentials
@@ -117,9 +121,7 @@ class BigtableTableAdminTransport(abc.ABC):
         # Precompute the wrapped methods.
         self._wrapped_methods = {
             self.create_table: gapic_v1.method.wrap_method(
-                self.create_table,
-                default_timeout=300.0,
-                client_info=client_info,
+                self.create_table, default_timeout=300.0, client_info=client_info,
             ),
             self.create_table_from_snapshot: gapic_v1.method.wrap_method(
                 self.create_table_from_snapshot,
@@ -133,8 +135,7 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
@@ -147,17 +148,14 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
                 client_info=client_info,
             ),
             self.delete_table: gapic_v1.method.wrap_method(
-                self.delete_table,
-                default_timeout=60.0,
-                client_info=client_info,
+                self.delete_table, default_timeout=60.0, client_info=client_info,
             ),
             self.modify_column_families: gapic_v1.method.wrap_method(
                 self.modify_column_families,
@@ -165,9 +163,7 @@ class BigtableTableAdminTransport(abc.ABC):
                 client_info=client_info,
             ),
             self.drop_row_range: gapic_v1.method.wrap_method(
-                self.drop_row_range,
-                default_timeout=3600.0,
-                client_info=client_info,
+                self.drop_row_range, default_timeout=3600.0, client_info=client_info,
             ),
             self.generate_consistency_token: gapic_v1.method.wrap_method(
                 self.generate_consistency_token,
@@ -176,8 +172,7 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
@@ -190,17 +185,14 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
                 client_info=client_info,
             ),
             self.snapshot_table: gapic_v1.method.wrap_method(
-                self.snapshot_table,
-                default_timeout=60.0,
-                client_info=client_info,
+                self.snapshot_table, default_timeout=60.0, client_info=client_info,
             ),
             self.get_snapshot: gapic_v1.method.wrap_method(
                 self.get_snapshot,
@@ -209,8 +201,7 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
@@ -223,47 +214,32 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
                 client_info=client_info,
             ),
             self.delete_snapshot: gapic_v1.method.wrap_method(
-                self.delete_snapshot,
-                default_timeout=60.0,
-                client_info=client_info,
+                self.delete_snapshot, default_timeout=60.0, client_info=client_info,
             ),
             self.create_backup: gapic_v1.method.wrap_method(
-                self.create_backup,
-                default_timeout=None,
-                client_info=client_info,
+                self.create_backup, default_timeout=None, client_info=client_info,
             ),
             self.get_backup: gapic_v1.method.wrap_method(
-                self.get_backup,
-                default_timeout=None,
-                client_info=client_info,
+                self.get_backup, default_timeout=None, client_info=client_info,
             ),
             self.update_backup: gapic_v1.method.wrap_method(
-                self.update_backup,
-                default_timeout=None,
-                client_info=client_info,
+                self.update_backup, default_timeout=None, client_info=client_info,
             ),
             self.delete_backup: gapic_v1.method.wrap_method(
-                self.delete_backup,
-                default_timeout=None,
-                client_info=client_info,
+                self.delete_backup, default_timeout=None, client_info=client_info,
             ),
             self.list_backups: gapic_v1.method.wrap_method(
-                self.list_backups,
-                default_timeout=None,
-                client_info=client_info,
+                self.list_backups, default_timeout=None, client_info=client_info,
             ),
             self.restore_table: gapic_v1.method.wrap_method(
-                self.restore_table,
-                default_timeout=None,
-                client_info=client_info,
+                self.restore_table, default_timeout=None, client_info=client_info,
             ),
             self.get_iam_policy: gapic_v1.method.wrap_method(
                 self.get_iam_policy,
@@ -272,17 +248,14 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
                 client_info=client_info,
             ),
             self.set_iam_policy: gapic_v1.method.wrap_method(
-                self.set_iam_policy,
-                default_timeout=60.0,
-                client_info=client_info,
+                self.set_iam_policy, default_timeout=60.0, client_info=client_info,
             ),
             self.test_iam_permissions: gapic_v1.method.wrap_method(
                 self.test_iam_permissions,
@@ -291,14 +264,12 @@ class BigtableTableAdminTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded,
-                        exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                     ),
                 ),
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-
         }
 
     @property
@@ -307,204 +278,220 @@ class BigtableTableAdminTransport(abc.ABC):
         raise NotImplementedError()
 
     @property
-    def create_table(self) -> typing.Callable[
-            [bigtable_table_admin.CreateTableRequest],
-            typing.Union[
-                gba_table.Table,
-                typing.Awaitable[gba_table.Table]
-            ]]:
+    def create_table(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.CreateTableRequest],
+        typing.Union[gba_table.Table, typing.Awaitable[gba_table.Table]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def create_table_from_snapshot(self) -> typing.Callable[
-            [bigtable_table_admin.CreateTableFromSnapshotRequest],
-            typing.Union[
-                operations.Operation,
-                typing.Awaitable[operations.Operation]
-            ]]:
+    def create_table_from_snapshot(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.CreateTableFromSnapshotRequest],
+        typing.Union[operations.Operation, typing.Awaitable[operations.Operation]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def list_tables(self) -> typing.Callable[
-            [bigtable_table_admin.ListTablesRequest],
-            typing.Union[
-                bigtable_table_admin.ListTablesResponse,
-                typing.Awaitable[bigtable_table_admin.ListTablesResponse]
-            ]]:
+    def list_tables(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.ListTablesRequest],
+        typing.Union[
+            bigtable_table_admin.ListTablesResponse,
+            typing.Awaitable[bigtable_table_admin.ListTablesResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
     @property
-    def get_table(self) -> typing.Callable[
-            [bigtable_table_admin.GetTableRequest],
-            typing.Union[
-                table.Table,
-                typing.Awaitable[table.Table]
-            ]]:
+    def get_table(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.GetTableRequest],
+        typing.Union[table.Table, typing.Awaitable[table.Table]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def delete_table(self) -> typing.Callable[
-            [bigtable_table_admin.DeleteTableRequest],
-            typing.Union[
-                empty.Empty,
-                typing.Awaitable[empty.Empty]
-            ]]:
+    def delete_table(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.DeleteTableRequest],
+        typing.Union[empty.Empty, typing.Awaitable[empty.Empty]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def modify_column_families(self) -> typing.Callable[
-            [bigtable_table_admin.ModifyColumnFamiliesRequest],
-            typing.Union[
-                table.Table,
-                typing.Awaitable[table.Table]
-            ]]:
+    def modify_column_families(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.ModifyColumnFamiliesRequest],
+        typing.Union[table.Table, typing.Awaitable[table.Table]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def drop_row_range(self) -> typing.Callable[
-            [bigtable_table_admin.DropRowRangeRequest],
-            typing.Union[
-                empty.Empty,
-                typing.Awaitable[empty.Empty]
-            ]]:
+    def drop_row_range(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.DropRowRangeRequest],
+        typing.Union[empty.Empty, typing.Awaitable[empty.Empty]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def generate_consistency_token(self) -> typing.Callable[
-            [bigtable_table_admin.GenerateConsistencyTokenRequest],
-            typing.Union[
-                bigtable_table_admin.GenerateConsistencyTokenResponse,
-                typing.Awaitable[bigtable_table_admin.GenerateConsistencyTokenResponse]
-            ]]:
+    def generate_consistency_token(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.GenerateConsistencyTokenRequest],
+        typing.Union[
+            bigtable_table_admin.GenerateConsistencyTokenResponse,
+            typing.Awaitable[bigtable_table_admin.GenerateConsistencyTokenResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
     @property
-    def check_consistency(self) -> typing.Callable[
-            [bigtable_table_admin.CheckConsistencyRequest],
-            typing.Union[
-                bigtable_table_admin.CheckConsistencyResponse,
-                typing.Awaitable[bigtable_table_admin.CheckConsistencyResponse]
-            ]]:
+    def check_consistency(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.CheckConsistencyRequest],
+        typing.Union[
+            bigtable_table_admin.CheckConsistencyResponse,
+            typing.Awaitable[bigtable_table_admin.CheckConsistencyResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
     @property
-    def snapshot_table(self) -> typing.Callable[
-            [bigtable_table_admin.SnapshotTableRequest],
-            typing.Union[
-                operations.Operation,
-                typing.Awaitable[operations.Operation]
-            ]]:
+    def snapshot_table(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.SnapshotTableRequest],
+        typing.Union[operations.Operation, typing.Awaitable[operations.Operation]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def get_snapshot(self) -> typing.Callable[
-            [bigtable_table_admin.GetSnapshotRequest],
-            typing.Union[
-                table.Snapshot,
-                typing.Awaitable[table.Snapshot]
-            ]]:
+    def get_snapshot(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.GetSnapshotRequest],
+        typing.Union[table.Snapshot, typing.Awaitable[table.Snapshot]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def list_snapshots(self) -> typing.Callable[
-            [bigtable_table_admin.ListSnapshotsRequest],
-            typing.Union[
-                bigtable_table_admin.ListSnapshotsResponse,
-                typing.Awaitable[bigtable_table_admin.ListSnapshotsResponse]
-            ]]:
+    def list_snapshots(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.ListSnapshotsRequest],
+        typing.Union[
+            bigtable_table_admin.ListSnapshotsResponse,
+            typing.Awaitable[bigtable_table_admin.ListSnapshotsResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
     @property
-    def delete_snapshot(self) -> typing.Callable[
-            [bigtable_table_admin.DeleteSnapshotRequest],
-            typing.Union[
-                empty.Empty,
-                typing.Awaitable[empty.Empty]
-            ]]:
+    def delete_snapshot(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.DeleteSnapshotRequest],
+        typing.Union[empty.Empty, typing.Awaitable[empty.Empty]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def create_backup(self) -> typing.Callable[
-            [bigtable_table_admin.CreateBackupRequest],
-            typing.Union[
-                operations.Operation,
-                typing.Awaitable[operations.Operation]
-            ]]:
+    def create_backup(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.CreateBackupRequest],
+        typing.Union[operations.Operation, typing.Awaitable[operations.Operation]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def get_backup(self) -> typing.Callable[
-            [bigtable_table_admin.GetBackupRequest],
-            typing.Union[
-                table.Backup,
-                typing.Awaitable[table.Backup]
-            ]]:
+    def get_backup(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.GetBackupRequest],
+        typing.Union[table.Backup, typing.Awaitable[table.Backup]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def update_backup(self) -> typing.Callable[
-            [bigtable_table_admin.UpdateBackupRequest],
-            typing.Union[
-                table.Backup,
-                typing.Awaitable[table.Backup]
-            ]]:
+    def update_backup(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.UpdateBackupRequest],
+        typing.Union[table.Backup, typing.Awaitable[table.Backup]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def delete_backup(self) -> typing.Callable[
-            [bigtable_table_admin.DeleteBackupRequest],
-            typing.Union[
-                empty.Empty,
-                typing.Awaitable[empty.Empty]
-            ]]:
+    def delete_backup(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.DeleteBackupRequest],
+        typing.Union[empty.Empty, typing.Awaitable[empty.Empty]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def list_backups(self) -> typing.Callable[
-            [bigtable_table_admin.ListBackupsRequest],
-            typing.Union[
-                bigtable_table_admin.ListBackupsResponse,
-                typing.Awaitable[bigtable_table_admin.ListBackupsResponse]
-            ]]:
+    def list_backups(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.ListBackupsRequest],
+        typing.Union[
+            bigtable_table_admin.ListBackupsResponse,
+            typing.Awaitable[bigtable_table_admin.ListBackupsResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
     @property
-    def restore_table(self) -> typing.Callable[
-            [bigtable_table_admin.RestoreTableRequest],
-            typing.Union[
-                operations.Operation,
-                typing.Awaitable[operations.Operation]
-            ]]:
+    def restore_table(
+        self,
+    ) -> typing.Callable[
+        [bigtable_table_admin.RestoreTableRequest],
+        typing.Union[operations.Operation, typing.Awaitable[operations.Operation]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def get_iam_policy(self) -> typing.Callable[
-            [iam_policy.GetIamPolicyRequest],
-            typing.Union[
-                policy.Policy,
-                typing.Awaitable[policy.Policy]
-            ]]:
+    def get_iam_policy(
+        self,
+    ) -> typing.Callable[
+        [iam_policy.GetIamPolicyRequest],
+        typing.Union[policy.Policy, typing.Awaitable[policy.Policy]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def set_iam_policy(self) -> typing.Callable[
-            [iam_policy.SetIamPolicyRequest],
-            typing.Union[
-                policy.Policy,
-                typing.Awaitable[policy.Policy]
-            ]]:
+    def set_iam_policy(
+        self,
+    ) -> typing.Callable[
+        [iam_policy.SetIamPolicyRequest],
+        typing.Union[policy.Policy, typing.Awaitable[policy.Policy]],
+    ]:
         raise NotImplementedError()
 
     @property
-    def test_iam_permissions(self) -> typing.Callable[
-            [iam_policy.TestIamPermissionsRequest],
-            typing.Union[
-                iam_policy.TestIamPermissionsResponse,
-                typing.Awaitable[iam_policy.TestIamPermissionsResponse]
-            ]]:
+    def test_iam_permissions(
+        self,
+    ) -> typing.Callable[
+        [iam_policy.TestIamPermissionsRequest],
+        typing.Union[
+            iam_policy.TestIamPermissionsResponse,
+            typing.Awaitable[iam_policy.TestIamPermissionsResponse],
+        ],
+    ]:
         raise NotImplementedError()
 
 
-__all__ = (
-    'BigtableTableAdminTransport',
-)
+__all__ = ("BigtableTableAdminTransport",)

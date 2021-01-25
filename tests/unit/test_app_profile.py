@@ -267,13 +267,13 @@ class TestAppProfile(unittest.TestCase):
             klass.from_pb(app_profile_pb, instance)
 
     def test_reload_routing_any(self):
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
         from google.cloud.bigtable.enums import RoutingPolicyType
 
-        api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
+        api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = self._make_client(
             project=self.PROJECT, credentials=credentials, admin=True
@@ -330,13 +330,13 @@ class TestAppProfile(unittest.TestCase):
         )
 
     def test_exists(self):
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
         from google.api_core import exceptions
 
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
         credentials = _make_credentials()
         client = self._make_client(
             project=self.PROJECT, credentials=credentials, admin=True
@@ -366,11 +366,10 @@ class TestAppProfile(unittest.TestCase):
             alt_app_profile.exists()
 
     def test_create_routing_any(self):
-        from google.cloud.bigtable_admin_v2.types import (
-            bigtable_instance_admin as messages_v2_pb2,
-        )
         from google.cloud.bigtable.enums import RoutingPolicyType
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
 
         credentials = _make_credentials()
         client = self._make_client(
@@ -386,31 +385,29 @@ class TestAppProfile(unittest.TestCase):
             self.APP_PROFILE_ID,
             instance,
             routing_policy_type=routing,
-            description=description
+            description=description,
         )
 
         expected_request_app_profile = app_profile._to_pb()
-        expected_request = messages_v2_pb2.CreateAppProfileRequest(
-            parent=instance.name,
-            app_profile_id=self.APP_PROFILE_ID,
-            app_profile=expected_request_app_profile,
-            ignore_warnings=ignore_warnings,
-        )
+        # expected_request = messages_v2_pb2.CreateAppProfileRequest(
+        #     parent=instance.name,
+        #     app_profile_id=self.APP_PROFILE_ID,
+        #     app_profile=expected_request_app_profile,
+        #     ignore_warnings=ignore_warnings,
+        # )
 
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
+        instance_api.app_profile_path.return_value = (
+            "projects/project/instances/instance-id/appProfiles/app-profile-id"
         )
-        instance_api.app_profile_path.return_value = "projects/project/instances/instance-id/appProfiles/app-profile-id"
         instance_api.create_app_profile.return_value = expected_request_app_profile
 
         # Patch the stub used by the API method.
-        channel = ChannelStub(responses=[expected_request_app_profile])
-
         client._instance_admin_client = instance_api
         app_profile._instance._client._instance_admin_client = instance_api
         # Perform the method and check the result.
         result = app_profile.create(ignore_warnings)
-        actual_request = app_profile.instance_admin_client.method_calls[2]
+        # actual_request = app_profile.instance_admin_client.method_calls[2]
 
         # todo request/channel
         # self.assertEqual(actual_request, expected_request)
@@ -423,11 +420,10 @@ class TestAppProfile(unittest.TestCase):
         self.assertIsNone(result.cluster_id)
 
     def test_create_routing_single(self):
-        from google.cloud.bigtable_admin_v2.types import (
-            bigtable_instance_admin as messages_v2_pb2,
-        )
         from google.cloud.bigtable.enums import RoutingPolicyType
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
 
         credentials = _make_credentials()
         client = self._make_client(
@@ -449,19 +445,18 @@ class TestAppProfile(unittest.TestCase):
             allow_transactional_writes=allow_writes,
         )
         expected_request_app_profile = app_profile._to_pb()
-        expected_request = messages_v2_pb2.CreateAppProfileRequest(
-            parent=instance.name,
-            app_profile_id=self.APP_PROFILE_ID,
-            app_profile=expected_request_app_profile,
-            ignore_warnings=ignore_warnings,
-        )
+        # expected_request = messages_v2_pb2.CreateAppProfileRequest(
+        #     parent=instance.name,
+        #     app_profile_id=self.APP_PROFILE_ID,
+        #     app_profile=expected_request_app_profile,
+        #     ignore_warnings=ignore_warnings,
+        # )
 
         # Patch the stub used by the API method.
-        channel = ChannelStub(responses=[expected_request_app_profile])
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
+        instance_api.app_profile_path.return_value = (
+            "projects/project/instances/instance-id/appProfiles/app-profile-id"
         )
-        instance_api.app_profile_path.return_value = "projects/project/instances/instance-id/appProfiles/app-profile-id"
         instance_api.create_app_profile.return_value = expected_request_app_profile
         client._instance_admin_client = instance_api
         # Perform the method and check the result.
@@ -489,14 +484,15 @@ class TestAppProfile(unittest.TestCase):
             app_profile.create()
 
     def test_update_app_profile_routing_any(self):
-        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
             bigtable_instance_admin as messages_v2_pb2,
         )
         from google.cloud.bigtable.enums import RoutingPolicyType
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.protobuf import field_mask_pb2
 
         credentials = _make_credentials()
@@ -528,13 +524,12 @@ class TestAppProfile(unittest.TestCase):
         )
 
         # Patch the stub used by the API method.
-        channel = ChannelStub(responses=[response_pb])
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
         # Mock api calls
-        instance_api.app_profile_path.return_value = "projects/project/instances/instance-id/appProfiles/app-profile-id"
-        
+        instance_api.app_profile_path.return_value = (
+            "projects/project/instances/instance-id/appProfiles/app-profile-id"
+        )
+
         client._instance_admin_client = instance_api
 
         # Perform the method and check the result.
@@ -544,34 +539,36 @@ class TestAppProfile(unittest.TestCase):
         )
 
         expected_request = {
-            "request" : {
-                "app_profile" : app_profile._to_pb(),
-                "update_mask" : expected_request_update_mask,
-                "ignore_warnings" : ignore_warnings,
+            "request": {
+                "app_profile": app_profile._to_pb(),
+                "update_mask": expected_request_update_mask,
+                "ignore_warnings": ignore_warnings,
             }
         }
- 
+
         instance_api.update_app_profile.return_value = response_pb
         app_profile._instance._client._instance_admin_client = instance_api
-        result = app_profile.update(ignore_warnings=ignore_warnings)
-        actual_request = client._instance_admin_client.update_app_profile.call_args_list[0].kwargs
-
+        # result = app_profile.update(ignore_warnings=ignore_warnings)
+        actual_request = client._instance_admin_client.update_app_profile.call_args_list[
+            0
+        ].kwargs
 
         self.assertEqual(actual_request, expected_request)
-        #todo - pb2 operation
+        # todo - pb2 operation
         # self.assertIsInstance(result, operation.Operation)
         # self.assertEqual(result.operation.name, self.OP_NAME)
         # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateAppProfileMetadata)
 
     def test_update_app_profile_routing_single(self):
-        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
             bigtable_instance_admin as messages_v2_pb2,
         )
         from google.cloud.bigtable.enums import RoutingPolicyType
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
+        )
         from google.protobuf import field_mask_pb2
 
         credentials = _make_credentials()
@@ -596,12 +593,11 @@ class TestAppProfile(unittest.TestCase):
         )
 
         # Patch the stub used by the API method.
-        channel = ChannelStub(responses=[response_pb])
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
-        )
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
         # Mock api calls
-        instance_api.app_profile_path.return_value = "projects/project/instances/instance-id/appProfiles/app-profile-id"
+        instance_api.app_profile_path.return_value = (
+            "projects/project/instances/instance-id/appProfiles/app-profile-id"
+        )
         client._instance_admin_client = instance_api
         client._instance_admin_client.update_app_profile.return_value = response_pb
         # Perform the method and check the result.
@@ -610,15 +606,17 @@ class TestAppProfile(unittest.TestCase):
             paths=["multi_cluster_routing_use_any"]
         )
         expected_request = {
-            "request" : {
-                "app_profile" : app_profile._to_pb(),
-                "update_mask" : expected_request_update_mask,
-                "ignore_warnings" : ignore_warnings,
+            "request": {
+                "app_profile": app_profile._to_pb(),
+                "update_mask": expected_request_update_mask,
+                "ignore_warnings": ignore_warnings,
             }
         }
 
-        result = app_profile.update(ignore_warnings=ignore_warnings)
-        actual_request = client._instance_admin_client.update_app_profile.call_args_list[0].kwargs
+        # result = app_profile.update(ignore_warnings=ignore_warnings)
+        actual_request = client._instance_admin_client.update_app_profile.call_args_list[
+            0
+        ].kwargs
         self.assertEqual(actual_request, expected_request)
         # self.assertIsInstance(result, operation.Operation)
         # self.assertEqual(result.operation.name, self.OP_NAME)
@@ -638,11 +636,11 @@ class TestAppProfile(unittest.TestCase):
 
     def test_delete(self):
         from google.protobuf import empty_pb2
-        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import BigtableInstanceAdminClient
-
-        instance_api = mock.create_autospec(
-            BigtableInstanceAdminClient
+        from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
+            BigtableInstanceAdminClient,
         )
+
+        instance_api = mock.create_autospec(BigtableInstanceAdminClient)
 
         credentials = _make_credentials()
         client = self._make_client(

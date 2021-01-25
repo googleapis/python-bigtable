@@ -282,7 +282,9 @@ class TestDirectRow(unittest.TestCase):
             )
         )
         if time_range is not None:
-            expected_pb.delete_from_column.time_range._pb.CopyFrom(time_range.to_pb()._pb)
+            expected_pb.delete_from_column.time_range._pb.CopyFrom(
+                time_range.to_pb()._pb
+            )
         self.assertEqual(row._pb_mutations, [expected_pb])
 
     def test_delete_cells_no_time_range(self):
@@ -595,7 +597,7 @@ class TestAppendRow(unittest.TestCase):
     #     column = b"column"
 
     #     api = mock.create_autospec(BigtableClient)
-   
+
     #     credentials = _make_credentials()
     #     client = self._make_client(
     #         project=project_id, credentials=credentials, admin=True

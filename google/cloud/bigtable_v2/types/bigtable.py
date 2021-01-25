@@ -24,20 +24,20 @@ from google.rpc import status_pb2 as gr_status  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.v2',
+    package="google.bigtable.v2",
     manifest={
-        'ReadRowsRequest',
-        'ReadRowsResponse',
-        'SampleRowKeysRequest',
-        'SampleRowKeysResponse',
-        'MutateRowRequest',
-        'MutateRowResponse',
-        'MutateRowsRequest',
-        'MutateRowsResponse',
-        'CheckAndMutateRowRequest',
-        'CheckAndMutateRowResponse',
-        'ReadModifyWriteRowRequest',
-        'ReadModifyWriteRowResponse',
+        "ReadRowsRequest",
+        "ReadRowsResponse",
+        "SampleRowKeysRequest",
+        "SampleRowKeysResponse",
+        "MutateRowRequest",
+        "MutateRowResponse",
+        "MutateRowsRequest",
+        "MutateRowsResponse",
+        "CheckAndMutateRowRequest",
+        "CheckAndMutateRowResponse",
+        "ReadModifyWriteRowRequest",
+        "ReadModifyWriteRowResponse",
     },
 )
 
@@ -71,13 +71,9 @@ class ReadRowsRequest(proto.Message):
 
     app_profile_id = proto.Field(proto.STRING, number=5)
 
-    rows = proto.Field(proto.MESSAGE, number=2,
-        message=data.RowSet,
-    )
+    rows = proto.Field(proto.MESSAGE, number=2, message=data.RowSet,)
 
-    filter = proto.Field(proto.MESSAGE, number=3,
-        message=data.RowFilter,
-    )
+    filter = proto.Field(proto.MESSAGE, number=3, message=data.RowFilter,)
 
     rows_limit = proto.Field(proto.INT64, number=4)
 
@@ -101,6 +97,7 @@ class ReadRowsResponse(proto.Message):
             row key, allowing the client to skip that work
             on a retry.
     """
+
     class CellChunk(proto.Message):
         r"""Specifies a piece of a row's contents returned as part of the
         read response stream.
@@ -163,13 +160,11 @@ class ReadRowsResponse(proto.Message):
 
         row_key = proto.Field(proto.BYTES, number=1)
 
-        family_name = proto.Field(proto.MESSAGE, number=2,
-            message=wrappers.StringValue,
+        family_name = proto.Field(
+            proto.MESSAGE, number=2, message=wrappers.StringValue,
         )
 
-        qualifier = proto.Field(proto.MESSAGE, number=3,
-            message=wrappers.BytesValue,
-        )
+        qualifier = proto.Field(proto.MESSAGE, number=3, message=wrappers.BytesValue,)
 
         timestamp_micros = proto.Field(proto.INT64, number=4)
 
@@ -179,13 +174,11 @@ class ReadRowsResponse(proto.Message):
 
         value_size = proto.Field(proto.INT32, number=7)
 
-        reset_row = proto.Field(proto.BOOL, number=8, oneof='row_status')
+        reset_row = proto.Field(proto.BOOL, number=8, oneof="row_status")
 
-        commit_row = proto.Field(proto.BOOL, number=9, oneof='row_status')
+        commit_row = proto.Field(proto.BOOL, number=9, oneof="row_status")
 
-    chunks = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=CellChunk,
-    )
+    chunks = proto.RepeatedField(proto.MESSAGE, number=1, message=CellChunk,)
 
     last_scanned_row_key = proto.Field(proto.BYTES, number=2)
 
@@ -267,9 +260,7 @@ class MutateRowRequest(proto.Message):
 
     row_key = proto.Field(proto.BYTES, number=2)
 
-    mutations = proto.RepeatedField(proto.MESSAGE, number=3,
-        message=data.Mutation,
-    )
+    mutations = proto.RepeatedField(proto.MESSAGE, number=3, message=data.Mutation,)
 
 
 class MutateRowResponse(proto.Message):
@@ -296,6 +287,7 @@ class MutateRowsRequest(proto.Message):
             must be specified, and in total the entries can
             contain at most 100000 mutations.
     """
+
     class Entry(proto.Message):
         r"""A mutation for a given row.
 
@@ -313,17 +305,13 @@ class MutateRowsRequest(proto.Message):
 
         row_key = proto.Field(proto.BYTES, number=1)
 
-        mutations = proto.RepeatedField(proto.MESSAGE, number=2,
-            message=data.Mutation,
-        )
+        mutations = proto.RepeatedField(proto.MESSAGE, number=2, message=data.Mutation,)
 
     table_name = proto.Field(proto.STRING, number=1)
 
     app_profile_id = proto.Field(proto.STRING, number=3)
 
-    entries = proto.RepeatedField(proto.MESSAGE, number=2,
-        message=Entry,
-    )
+    entries = proto.RepeatedField(proto.MESSAGE, number=2, message=Entry,)
 
 
 class MutateRowsResponse(proto.Message):
@@ -334,6 +322,7 @@ class MutateRowsResponse(proto.Message):
             One or more results for Entries from the
             batch request.
     """
+
     class Entry(proto.Message):
         r"""The result of applying a passed mutation in the original
         request.
@@ -352,13 +341,9 @@ class MutateRowsResponse(proto.Message):
 
         index = proto.Field(proto.INT64, number=1)
 
-        status = proto.Field(proto.MESSAGE, number=2,
-            message=gr_status.Status,
-        )
+        status = proto.Field(proto.MESSAGE, number=2, message=gr_status.Status,)
 
-    entries = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=Entry,
-    )
+    entries = proto.RepeatedField(proto.MESSAGE, number=1, message=Entry,)
 
 
 class CheckAndMutateRowRequest(proto.Message):
@@ -405,16 +390,14 @@ class CheckAndMutateRowRequest(proto.Message):
 
     row_key = proto.Field(proto.BYTES, number=2)
 
-    predicate_filter = proto.Field(proto.MESSAGE, number=6,
-        message=data.RowFilter,
+    predicate_filter = proto.Field(proto.MESSAGE, number=6, message=data.RowFilter,)
+
+    true_mutations = proto.RepeatedField(
+        proto.MESSAGE, number=4, message=data.Mutation,
     )
 
-    true_mutations = proto.RepeatedField(proto.MESSAGE, number=4,
-        message=data.Mutation,
-    )
-
-    false_mutations = proto.RepeatedField(proto.MESSAGE, number=5,
-        message=data.Mutation,
+    false_mutations = proto.RepeatedField(
+        proto.MESSAGE, number=5, message=data.Mutation,
     )
 
 
@@ -460,8 +443,8 @@ class ReadModifyWriteRowRequest(proto.Message):
 
     row_key = proto.Field(proto.BYTES, number=2)
 
-    rules = proto.RepeatedField(proto.MESSAGE, number=3,
-        message=data.ReadModifyWriteRule,
+    rules = proto.RepeatedField(
+        proto.MESSAGE, number=3, message=data.ReadModifyWriteRule,
     )
 
 
@@ -474,9 +457,7 @@ class ReadModifyWriteRowResponse(proto.Message):
             cells modified by the request.
     """
 
-    row = proto.Field(proto.MESSAGE, number=1,
-        message=data.Row,
-    )
+    row = proto.Field(proto.MESSAGE, number=1, message=data.Row,)
 
 
 __all__ = tuple(sorted(__protobuf__.manifest))

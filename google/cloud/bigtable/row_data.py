@@ -638,7 +638,7 @@ class _ReadRowsRequestManager(object):
         # if neither RowSet.row_keys nor RowSet.row_ranges currently exist,
         # add row_range that starts with last_scanned_key as start_key_open
         # to request only rows that have not been returned yet
-        if not "rows" in self.message:
+        if "rows" not in self.message:
             row_range = data_v2_pb2.RowRange(start_key_open=self.last_scanned_key)
             r_kwargs["rows"] = data_v2_pb2.RowSet(row_ranges=[row_range])
         else:

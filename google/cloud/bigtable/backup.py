@@ -17,9 +17,7 @@
 import re
 
 from google.cloud._helpers import _datetime_to_pb_timestamp
-from google.cloud.bigtable_admin_v2 import (
-    BigtableTableAdminClient,
-)
+from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.types import table
 from google.cloud.exceptions import NotFound
 from google.protobuf import field_mask_pb2
@@ -313,7 +311,13 @@ class Backup(object):
         )
 
         api = self._instance._client._table_admin_client
-        return api.create_backup(request = {'parent': self.parent, 'backup_id': self.backup_id, 'backup': backup})
+        return api.create_backup(
+            request={
+                "parent": self.parent,
+                "backup_id": self.backup_id,
+                "backup": backup,
+            }
+        )
 
     def get(self):
         """Retrieves metadata of a pending or completed Backup.
@@ -329,7 +333,7 @@ class Backup(object):
         """
         api = self._instance._client._table_admin_client
         try:
-            return api.get_backup(request = {'name': self.name})
+            return api.get_backup(request={"name": self.name})
         except NotFound:
             return None
 
@@ -358,17 +362,18 @@ class Backup(object):
         :param new_expire_time: the new expiration time timestamp
         """
         backup_update = table.Backup(
-            name=self.name,
-            expire_time=_datetime_to_pb_timestamp(new_expire_time),
+            name=self.name, expire_time=_datetime_to_pb_timestamp(new_expire_time),
         )
         update_mask = field_mask_pb2.FieldMask(paths=["expire_time"])
         api = self._instance._client._table_admin_client
-        api.update_backup(request = {'backup': backup_update, 'update_mask': update_mask})
+        api.update_backup(request={"backup": backup_update, "update_mask": update_mask})
         self._expire_time = new_expire_time
 
     def delete(self):
         """Delete this Backup."""
-        self._instance._client._table_admin_client.delete_backup(request = {'name': self.name})
+        self._instance._client._table_admin_client.delete_backup(
+            request={"name": self.name}
+        )
 
     def restore(self, table_id):
         """Creates a new Table by restoring from this Backup. The new Table
@@ -391,4 +396,10 @@ class Backup(object):
         :raises: ValueError: If the parameters are invalid.
         """
         api = self._instance._client._table_admin_client
-        return api.restore_table(request = {'parent': self._instance.name, 'table_id': table_id, 'backup': self.name})
+        return api.restore_table(
+            request={
+                "parent": self._instance.name,
+                "table_id": table_id,
+                "backup": self.name,
+            }
+        )

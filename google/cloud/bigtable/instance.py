@@ -323,7 +323,13 @@ class Instance(object):
         parent = self._client.project_path
 
         return self._client.instance_admin_client.create_instance(
-            request = {'parent': parent, 'instance_id': self.instance_id, 'instance': instance_pb, 'clusters': {c.cluster_id: c._to_pb() for c in clusters}})
+            request={
+                "parent": parent,
+                "instance_id": self.instance_id,
+                "instance": instance_pb,
+                "clusters": {c.cluster_id: c._to_pb() for c in clusters},
+            }
+        )
 
     def exists(self):
         """Check whether the instance already exists.
@@ -339,7 +345,7 @@ class Instance(object):
         :returns: True if the table exists, else False.
         """
         try:
-            self._client.instance_admin_client.get_instance(request = {'name': self.name})
+            self._client.instance_admin_client.get_instance(request={"name": self.name})
             return True
         # NOTE: There could be other exceptions that are returned to the user.
         except NotFound:
@@ -355,7 +361,9 @@ class Instance(object):
             :end-before: [END bigtable_reload_instance]
             :dedent: 4
         """
-        instance_pb = self._client.instance_admin_client.get_instance(request = {'name': self.name})
+        instance_pb = self._client.instance_admin_client.get_instance(
+            request={"name": self.name}
+        )
 
         # NOTE: _update_from_pb does not check that the project and
         #       instance ID on the response match the request.
@@ -405,7 +413,8 @@ class Instance(object):
         )
 
         return self._client.instance_admin_client.partial_update_instance(
-            request = {'instance': instance_pb, 'update_mask': update_mask_pb})
+            request={"instance": instance_pb, "update_mask": update_mask_pb}
+        )
 
     def delete(self):
         """Delete this instance.
@@ -436,7 +445,7 @@ class Instance(object):
           irrevocably disappear from the API, and their data will be
           permanently deleted.
         """
-        self._client.instance_admin_client.delete_instance(request = {'name': self.name})
+        self._client.instance_admin_client.delete_instance(request={"name": self.name})
 
     def get_iam_policy(self, requested_policy_version=None):
         """Gets the access control policy for an instance resource.
@@ -471,7 +480,7 @@ class Instance(object):
 
         instance_admin_client = self._client.instance_admin_client
 
-        resp = instance_admin_client.get_iam_policy(request = args)
+        resp = instance_admin_client.get_iam_policy(request=args)
         return Policy.from_pb(resp)
 
     def set_iam_policy(self, policy):
@@ -497,7 +506,8 @@ class Instance(object):
         """
         instance_admin_client = self._client.instance_admin_client
         resp = instance_admin_client.set_iam_policy(
-            request = {'resource': self.name, 'policy': policy.to_pb()})
+            request={"resource": self.name, "policy": policy.to_pb()}
+        )
         return Policy.from_pb(resp)
 
     def test_iam_permissions(self, permissions):
@@ -525,7 +535,8 @@ class Instance(object):
         """
         instance_admin_client = self._client.instance_admin_client
         resp = instance_admin_client.test_iam_permissions(
-            request = {'resource': self.name, 'permissions': permissions})
+            request={"resource": self.name, "permissions": permissions}
+        )
         return list(resp.permissions)
 
     def cluster(
@@ -591,7 +602,9 @@ class Instance(object):
             'failed_locations' is a list of locations which could not
             be resolved.
         """
-        resp = self._client.instance_admin_client.list_clusters(request = {'parent': self.name})
+        resp = self._client.instance_admin_client.list_clusters(
+            request={"parent": self.name}
+        )
         clusters = [Cluster.from_pb(cluster, self) for cluster in resp.clusters]
         return clusters, resp.failed_locations
 
@@ -636,7 +649,9 @@ class Instance(object):
         :raises: :class:`ValueError <exceptions.ValueError>` if one of the
                  returned tables has a name that is not of the expected format.
         """
-        table_list_pb = self._client.table_admin_client.list_tables(request = {'parent': self.name})
+        table_list_pb = self._client.table_admin_client.list_tables(
+            request={"parent": self.name}
+        )
 
         result = []
         for table_pb in table_list_pb.tables:
@@ -720,5 +735,7 @@ class Instance(object):
                   :class:`~google.cloud.bigtable.app_profile.AppProfile`
                   instances.
         """
-        resp = self._client.instance_admin_client.list_app_profiles(request = {'parent': self.name})
+        resp = self._client.instance_admin_client.list_app_profiles(
+            request={"parent": self.name}
+        )
         return [AppProfile.from_pb(app_profile, self) for app_profile in resp]

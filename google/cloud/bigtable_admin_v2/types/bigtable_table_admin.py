@@ -26,37 +26,37 @@ from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
+    package="google.bigtable.admin.v2",
     manifest={
-        'CreateTableRequest',
-        'CreateTableFromSnapshotRequest',
-        'DropRowRangeRequest',
-        'ListTablesRequest',
-        'ListTablesResponse',
-        'GetTableRequest',
-        'DeleteTableRequest',
-        'ModifyColumnFamiliesRequest',
-        'GenerateConsistencyTokenRequest',
-        'GenerateConsistencyTokenResponse',
-        'CheckConsistencyRequest',
-        'CheckConsistencyResponse',
-        'SnapshotTableRequest',
-        'GetSnapshotRequest',
-        'ListSnapshotsRequest',
-        'ListSnapshotsResponse',
-        'DeleteSnapshotRequest',
-        'SnapshotTableMetadata',
-        'CreateTableFromSnapshotMetadata',
-        'CreateBackupRequest',
-        'CreateBackupMetadata',
-        'GetBackupRequest',
-        'UpdateBackupRequest',
-        'DeleteBackupRequest',
-        'ListBackupsRequest',
-        'ListBackupsResponse',
-        'RestoreTableRequest',
-        'RestoreTableMetadata',
-        'OptimizeRestoredTableMetadata',
+        "CreateTableRequest",
+        "CreateTableFromSnapshotRequest",
+        "DropRowRangeRequest",
+        "ListTablesRequest",
+        "ListTablesResponse",
+        "GetTableRequest",
+        "DeleteTableRequest",
+        "ModifyColumnFamiliesRequest",
+        "GenerateConsistencyTokenRequest",
+        "GenerateConsistencyTokenResponse",
+        "CheckConsistencyRequest",
+        "CheckConsistencyResponse",
+        "SnapshotTableRequest",
+        "GetSnapshotRequest",
+        "ListSnapshotsRequest",
+        "ListSnapshotsResponse",
+        "DeleteSnapshotRequest",
+        "SnapshotTableMetadata",
+        "CreateTableFromSnapshotMetadata",
+        "CreateBackupRequest",
+        "CreateBackupMetadata",
+        "GetBackupRequest",
+        "UpdateBackupRequest",
+        "DeleteBackupRequest",
+        "ListBackupsRequest",
+        "ListBackupsResponse",
+        "RestoreTableRequest",
+        "RestoreTableMetadata",
+        "OptimizeRestoredTableMetadata",
     },
 )
 
@@ -100,6 +100,7 @@ class CreateTableRequest(proto.Message):
                -  Tablet 4 ``[customer_2, other) => {"customer_2"}.``
                -  Tablet 5 ``[other, ) => {"other", "zz"}.``
     """
+
     class Split(proto.Message):
         r"""An initial split point for a newly created table.
 
@@ -114,13 +115,9 @@ class CreateTableRequest(proto.Message):
 
     table_id = proto.Field(proto.STRING, number=2)
 
-    table = proto.Field(proto.MESSAGE, number=3,
-        message=gba_table.Table,
-    )
+    table = proto.Field(proto.MESSAGE, number=3, message=gba_table.Table,)
 
-    initial_splits = proto.RepeatedField(proto.MESSAGE, number=4,
-        message=Split,
-    )
+    initial_splits = proto.RepeatedField(proto.MESSAGE, number=4, message=Split,)
 
 
 class CreateTableFromSnapshotRequest(proto.Message):
@@ -175,9 +172,9 @@ class DropRowRangeRequest(proto.Message):
 
     name = proto.Field(proto.STRING, number=1)
 
-    row_key_prefix = proto.Field(proto.BYTES, number=2, oneof='target')
+    row_key_prefix = proto.Field(proto.BYTES, number=2, oneof="target")
 
-    delete_all_data_from_table = proto.Field(proto.BOOL, number=3, oneof='target')
+    delete_all_data_from_table = proto.Field(proto.BOOL, number=3, oneof="target")
 
 
 class ListTablesRequest(proto.Message):
@@ -211,9 +208,7 @@ class ListTablesRequest(proto.Message):
 
     parent = proto.Field(proto.STRING, number=1)
 
-    view = proto.Field(proto.ENUM, number=2,
-        enum=gba_table.Table.View,
-    )
+    view = proto.Field(proto.ENUM, number=2, enum=gba_table.Table.View,)
 
     page_size = proto.Field(proto.INT32, number=4)
 
@@ -237,9 +232,7 @@ class ListTablesResponse(proto.Message):
     def raw_page(self):
         return self
 
-    tables = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_table.Table,
-    )
+    tables = proto.RepeatedField(proto.MESSAGE, number=1, message=gba_table.Table,)
 
     next_page_token = proto.Field(proto.STRING, number=2)
 
@@ -260,9 +253,7 @@ class GetTableRequest(proto.Message):
 
     name = proto.Field(proto.STRING, number=1)
 
-    view = proto.Field(proto.ENUM, number=2,
-        enum=gba_table.Table.View,
-    )
+    view = proto.Field(proto.ENUM, number=2, enum=gba_table.Table.View,)
 
 
 class DeleteTableRequest(proto.Message):
@@ -296,6 +287,7 @@ class ModifyColumnFamiliesRequest(proto.Message):
             ones (in the case of repeated updates to the
             same family, for example).
     """
+
     class Modification(proto.Message):
         r"""A create, update, or delete of a particular column family.
 
@@ -317,21 +309,19 @@ class ModifyColumnFamiliesRequest(proto.Message):
 
         id = proto.Field(proto.STRING, number=1)
 
-        create = proto.Field(proto.MESSAGE, number=2, oneof='mod',
-            message=gba_table.ColumnFamily,
+        create = proto.Field(
+            proto.MESSAGE, number=2, oneof="mod", message=gba_table.ColumnFamily,
         )
 
-        update = proto.Field(proto.MESSAGE, number=3, oneof='mod',
-            message=gba_table.ColumnFamily,
+        update = proto.Field(
+            proto.MESSAGE, number=3, oneof="mod", message=gba_table.ColumnFamily,
         )
 
-        drop = proto.Field(proto.BOOL, number=4, oneof='mod')
+        drop = proto.Field(proto.BOOL, number=4, oneof="mod")
 
     name = proto.Field(proto.STRING, number=1)
 
-    modifications = proto.RepeatedField(proto.MESSAGE, number=2,
-        message=Modification,
-    )
+    modifications = proto.RepeatedField(proto.MESSAGE, number=2, message=Modification,)
 
 
 class GenerateConsistencyTokenRequest(proto.Message):
@@ -434,9 +424,7 @@ class SnapshotTableRequest(proto.Message):
 
     snapshot_id = proto.Field(proto.STRING, number=3)
 
-    ttl = proto.Field(proto.MESSAGE, number=4,
-        message=duration.Duration,
-    )
+    ttl = proto.Field(proto.MESSAGE, number=4, message=duration.Duration,)
 
     description = proto.Field(proto.STRING, number=5)
 
@@ -518,8 +506,8 @@ class ListSnapshotsResponse(proto.Message):
     def raw_page(self):
         return self
 
-    snapshots = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_table.Snapshot,
+    snapshots = proto.RepeatedField(
+        proto.MESSAGE, number=1, message=gba_table.Snapshot,
     )
 
     next_page_token = proto.Field(proto.STRING, number=2)
@@ -565,17 +553,13 @@ class SnapshotTableMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message='SnapshotTableRequest',
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message="SnapshotTableRequest",
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class CreateTableFromSnapshotMetadata(proto.Message):
@@ -599,17 +583,13 @@ class CreateTableFromSnapshotMetadata(proto.Message):
             completed successfully.
     """
 
-    original_request = proto.Field(proto.MESSAGE, number=1,
-        message='CreateTableFromSnapshotRequest',
+    original_request = proto.Field(
+        proto.MESSAGE, number=1, message="CreateTableFromSnapshotRequest",
     )
 
-    request_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
-    )
+    request_time = proto.Field(proto.MESSAGE, number=2, message=timestamp.Timestamp,)
 
-    finish_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
 
 class CreateBackupRequest(proto.Message):
@@ -638,9 +618,7 @@ class CreateBackupRequest(proto.Message):
 
     backup_id = proto.Field(proto.STRING, number=2)
 
-    backup = proto.Field(proto.MESSAGE, number=3,
-        message=gba_table.Backup,
-    )
+    backup = proto.Field(proto.MESSAGE, number=3, message=gba_table.Backup,)
 
 
 class CreateBackupMetadata(proto.Message):
@@ -664,13 +642,9 @@ class CreateBackupMetadata(proto.Message):
 
     source_table = proto.Field(proto.STRING, number=2)
 
-    start_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
-    )
+    start_time = proto.Field(proto.MESSAGE, number=3, message=timestamp.Timestamp,)
 
-    end_time = proto.Field(proto.MESSAGE, number=4,
-        message=timestamp.Timestamp,
-    )
+    end_time = proto.Field(proto.MESSAGE, number=4, message=timestamp.Timestamp,)
 
 
 class GetBackupRequest(proto.Message):
@@ -707,13 +681,9 @@ class UpdateBackupRequest(proto.Message):
             accidentally by clients that do not know about them.
     """
 
-    backup = proto.Field(proto.MESSAGE, number=1,
-        message=gba_table.Backup,
-    )
+    backup = proto.Field(proto.MESSAGE, number=1, message=gba_table.Backup,)
 
-    update_mask = proto.Field(proto.MESSAGE, number=2,
-        message=field_mask.FieldMask,
-    )
+    update_mask = proto.Field(proto.MESSAGE, number=2, message=field_mask.FieldMask,)
 
 
 class DeleteBackupRequest(proto.Message):
@@ -844,9 +814,7 @@ class ListBackupsResponse(proto.Message):
     def raw_page(self):
         return self
 
-    backups = proto.RepeatedField(proto.MESSAGE, number=1,
-        message=gba_table.Backup,
-    )
+    backups = proto.RepeatedField(proto.MESSAGE, number=1, message=gba_table.Backup,)
 
     next_page_token = proto.Field(proto.STRING, number=2)
 
@@ -876,7 +844,7 @@ class RestoreTableRequest(proto.Message):
 
     table_id = proto.Field(proto.STRING, number=2)
 
-    backup = proto.Field(proto.STRING, number=3, oneof='source')
+    backup = proto.Field(proto.STRING, number=3, oneof="source")
 
 
 class RestoreTableMetadata(proto.Message):
@@ -910,19 +878,15 @@ class RestoreTableMetadata(proto.Message):
 
     name = proto.Field(proto.STRING, number=1)
 
-    source_type = proto.Field(proto.ENUM, number=2,
-        enum=gba_table.RestoreSourceType,
-    )
+    source_type = proto.Field(proto.ENUM, number=2, enum=gba_table.RestoreSourceType,)
 
-    backup_info = proto.Field(proto.MESSAGE, number=3, oneof='source_info',
-        message=gba_table.BackupInfo,
+    backup_info = proto.Field(
+        proto.MESSAGE, number=3, oneof="source_info", message=gba_table.BackupInfo,
     )
 
     optimize_table_operation_name = proto.Field(proto.STRING, number=4)
 
-    progress = proto.Field(proto.MESSAGE, number=5,
-        message=common.OperationProgress,
-    )
+    progress = proto.Field(proto.MESSAGE, number=5, message=common.OperationProgress,)
 
 
 class OptimizeRestoredTableMetadata(proto.Message):
@@ -942,9 +906,7 @@ class OptimizeRestoredTableMetadata(proto.Message):
 
     name = proto.Field(proto.STRING, number=1)
 
-    progress = proto.Field(proto.MESSAGE, number=2,
-        message=common.OperationProgress,
-    )
+    progress = proto.Field(proto.MESSAGE, number=2, message=common.OperationProgress,)
 
 
 __all__ = tuple(sorted(__protobuf__.manifest))

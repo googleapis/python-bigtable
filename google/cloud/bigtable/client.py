@@ -175,9 +175,7 @@ class Client(ClientWithProject):
         self._channel = channel
         self.SCOPE = self._get_scopes()
         super(Client, self).__init__(
-            project=project,
-            credentials=credentials,
-            client_options=client_options,
+            project=project, credentials=credentials, client_options=client_options,
         )
 
     def _get_scopes(self):
@@ -363,7 +361,9 @@ class Client(ClientWithProject):
             'failed_locations' is a list of locations which could not
             be resolved.
         """
-        resp = self.instance_admin_client.list_instances(request = {'parent': self.project_path})
+        resp = self.instance_admin_client.list_instances(
+            request={"parent": self.project_path}
+        )
         instances = [Instance.from_pb(instance, self) for instance in resp.instances]
         return instances, resp.failed_locations
 
@@ -385,7 +385,10 @@ class Client(ClientWithProject):
             locations which could not be resolved.
         """
         resp = self.instance_admin_client.list_clusters(
-            request = {'parent': self.instance_admin_client.instance_path(self.project, "-")})
+            request={
+                "parent": self.instance_admin_client.instance_path(self.project, "-")
+            }
+        )
         clusters = []
         instances = {}
         for cluster in resp.clusters:

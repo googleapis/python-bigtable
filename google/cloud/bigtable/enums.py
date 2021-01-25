@@ -17,6 +17,7 @@ from google.cloud.bigtable_admin_v2.types import common
 from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable_admin_v2.types import table
 
+
 class StorageType(object):
     """
     Storage media types for persisting Bigtable data.
