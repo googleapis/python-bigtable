@@ -584,49 +584,50 @@ class TestAppendRow(unittest.TestCase):
         )
         self.assertEqual(row._rule_pb_list, [expected_pb])
 
-    # def test_commit(self):
-    #     from google.cloud._testing import _Monkey
-    #     from google.cloud.bigtable import row as MUT
-    #     from google.cloud.bigtable_v2.services.bigtable import BigtableClient
+    def test_commit(self):
+        from google.cloud._testing import _Monkey
+        from google.cloud.bigtable import row as MUT
+        from google.cloud.bigtable_v2.services.bigtable import BigtableClient
 
-    #     project_id = "project-id"
-    #     row_key = b"row_key"
-    #     table_name = "projects/more-stuff"
-    #     app_profile_id = "app_profile_id"
-    #     column_family_id = u"column_family_id"
-    #     column = b"column"
+        project_id = "project-id"
+        row_key = b"row_key"
+        table_name = "projects/more-stuff"
+        app_profile_id = "app_profile_id"
+        column_family_id = u"column_family_id"
+        column = b"column"
 
-    #     api = mock.create_autospec(BigtableClient)
+        api = mock.create_autospec(BigtableClient)
 
-    #     credentials = _make_credentials()
-    #     client = self._make_client(
-    #         project=project_id, credentials=credentials, admin=True
-    #     )
-    #     table = _Table(table_name, client=client, app_profile_id=app_profile_id)
-    #     row = self._make_one(row_key, table)
+        credentials = _make_credentials()
+        client = self._make_client(
+            project=project_id, credentials=credentials, admin=True
+        )
+        table = _Table(table_name, client=client, app_profile_id=app_profile_id)
+        row = self._make_one(row_key, table)
 
-    #     # Create request_pb
-    #     value = b"bytes-value"
+        # Create request_pb
+        value = b"bytes-value"
 
-    #     # Create expected_result.
-    #     row_responses = []
-    #     expected_result = object()
+        # Create expected_result.
+        row_responses = []
+        expected_result = object()
 
-    #     # Patch API calls
-    #     client._table_data_client = api
+        # Patch API calls
+        client._table_data_client = api
 
-    #     def mock_parse_rmw_row_response(row_response):
-    #         row_responses.append(row_response)
-    #         return expected_result
+        def mock_parse_rmw_row_response(row_response):
+            row_responses.append(row_response)
+            return expected_result
 
-    #     # Perform the method and check the result.
-    #     with _Monkey(MUT, _parse_rmw_row_response=mock_parse_rmw_row_response):
-    #         row.append_cell_value(column_family_id, column, value)
-    #         result = row.commit()
-    #     call_args = api.transport.read_modify_write_row.call_args.args[0]
-    #     self.assertEqual(app_profile_id, call_args.app_profile_id)
-    #     self.assertEqual(result, expected_result)
-    #     self.assertEqual(row._rule_pb_list, [])
+        # Perform the method and check the result.
+        with _Monkey(MUT, _parse_rmw_row_response=mock_parse_rmw_row_response):
+            row._table._instance._client._table_data_client = api
+            row.append_cell_value(column_family_id, column, value)
+            result = row.commit()
+        call_args = api.read_modify_write_row.call_args_list[0]
+        self.assertEqual(app_profile_id, call_args.app_profile_id[0])
+        self.assertEqual(result, expected_result)
+        self.assertEqual(row._rule_pb_list, [])
 
     def test_commit_no_rules(self):
         from tests.unit._testing import _FakeStub
