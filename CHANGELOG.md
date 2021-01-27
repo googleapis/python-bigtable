@@ -4,6 +4,18 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [1.7.0](https://www.github.com/googleapis/python-bigtable/compare/v1.6.1...v1.7.0) (2021-01-27)
+
+
+### Features
+
+* support filtering on incrementable values ([#178](https://www.github.com/googleapis/python-bigtable/issues/178)) ([e221352](https://www.github.com/googleapis/python-bigtable/commit/e2213520951d3da97019a1d784e5bf31d94e3353))
+
+
+### Bug Fixes
+
+* Renaming region tags to not conflict with documentation snippets ([#190](https://www.github.com/googleapis/python-bigtable/issues/190)) ([dd0cdc5](https://www.github.com/googleapis/python-bigtable/commit/dd0cdc5bcfd92e18ab9a7255684a9f5b21198867))
+
 ### [1.6.1](https://www.github.com/googleapis/python-bigtable/compare/v1.6.0...v1.6.1) (2020-12-01)
 
 
