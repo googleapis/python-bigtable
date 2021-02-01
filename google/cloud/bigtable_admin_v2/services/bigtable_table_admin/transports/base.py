@@ -125,7 +125,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.create_table_from_snapshot: gapic_v1.method.wrap_method(
                 self.create_table_from_snapshot,
-                default_timeout=60.0,
+                default_timeout=None,
                 client_info=client_info,
             ),
             self.list_tables: gapic_v1.method.wrap_method(
@@ -192,7 +192,7 @@ class BigtableTableAdminTransport(abc.ABC):
                 client_info=client_info,
             ),
             self.snapshot_table: gapic_v1.method.wrap_method(
-                self.snapshot_table, default_timeout=60.0, client_info=client_info,
+                self.snapshot_table, default_timeout=None, client_info=client_info,
             ),
             self.get_snapshot: gapic_v1.method.wrap_method(
                 self.get_snapshot,
@@ -227,16 +227,36 @@ class BigtableTableAdminTransport(abc.ABC):
                 self.create_backup, default_timeout=None, client_info=client_info,
             ),
             self.get_backup: gapic_v1.method.wrap_method(
-                self.get_backup, default_timeout=None, client_info=client_info,
+                self.get_backup,
+                default_retry=retries.Retry(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
+                    ),
+                ),
+                default_timeout=60.0,
+                client_info=client_info,
             ),
             self.update_backup: gapic_v1.method.wrap_method(
-                self.update_backup, default_timeout=None, client_info=client_info,
+                self.update_backup, default_timeout=60.0, client_info=client_info,
             ),
             self.delete_backup: gapic_v1.method.wrap_method(
-                self.delete_backup, default_timeout=None, client_info=client_info,
+                self.delete_backup, default_timeout=60.0, client_info=client_info,
             ),
             self.list_backups: gapic_v1.method.wrap_method(
-                self.list_backups, default_timeout=None, client_info=client_info,
+                self.list_backups,
+                default_retry=retries.Retry(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
+                    ),
+                ),
+                default_timeout=60.0,
+                client_info=client_info,
             ),
             self.restore_table: gapic_v1.method.wrap_method(
                 self.restore_table, default_timeout=None, client_info=client_info,

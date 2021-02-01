@@ -110,4 +110,4 @@ for path in sample_files:
     s.move(path, excludes=['noxfile.py'])
 
 
-#s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+s.shell.run(["nox", "-s", "blacken"], hide_output=False)

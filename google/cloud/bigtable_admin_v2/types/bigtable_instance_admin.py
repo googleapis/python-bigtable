@@ -64,10 +64,10 @@ class CreateInstanceRequest(proto.Message):
             Required. The ID to be used when referring to the new
             instance within its project, e.g., just ``myinstance``
             rather than ``projects/myproject/instances/myinstance``.
-        instance (~.gba_instance.Instance):
+        instance (google.cloud.bigtable_admin_v2.types.Instance):
             Required. The instance to create. Fields marked
             ``OutputOnly`` must be left blank.
-        clusters (Sequence[~.bigtable_instance_admin.CreateInstanceRequest.ClustersEntry]):
+        clusters (Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]):
             Required. The clusters to be created within the instance,
             mapped by desired cluster ID, e.g., just ``mycluster``
             rather than
@@ -120,7 +120,7 @@ class ListInstancesResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListInstances.
 
     Attributes:
-        instances (Sequence[~.gba_instance.Instance]):
+        instances (Sequence[google.cloud.bigtable_admin_v2.types.Instance]):
             The list of requested instances.
         failed_locations (Sequence[str]):
             Locations from which Instance information could not be
@@ -152,10 +152,10 @@ class PartialUpdateInstanceRequest(proto.Message):
     BigtableInstanceAdmin.PartialUpdateInstance.
 
     Attributes:
-        instance (~.gba_instance.Instance):
+        instance (google.cloud.bigtable_admin_v2.types.Instance):
             Required. The Instance which will (partially)
             replace the current value.
-        update_mask (~.field_mask.FieldMask):
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
             Required. The subset of Instance fields which
             should be replaced. Must be explicitly set.
     """
@@ -191,7 +191,7 @@ class CreateClusterRequest(proto.Message):
             cluster within its instance, e.g., just ``mycluster`` rather
             than
             ``projects/myproject/instances/myinstance/clusters/mycluster``.
-        cluster (~.gba_instance.Cluster):
+        cluster (google.cloud.bigtable_admin_v2.types.Cluster):
             Required. The cluster to be created. Fields marked
             ``OutputOnly`` must be left blank.
     """
@@ -239,7 +239,7 @@ class ListClustersResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListClusters.
 
     Attributes:
-        clusters (Sequence[~.gba_instance.Cluster]):
+        clusters (Sequence[google.cloud.bigtable_admin_v2.types.Cluster]):
             The list of requested clusters.
         failed_locations (Sequence[str]):
             Locations from which Cluster information could not be
@@ -282,13 +282,13 @@ class CreateInstanceMetadata(proto.Message):
     r"""The metadata for the Operation returned by CreateInstance.
 
     Attributes:
-        original_request (~.bigtable_instance_admin.CreateInstanceRequest):
+        original_request (google.cloud.bigtable_admin_v2.types.CreateInstanceRequest):
             The request that prompted the initiation of
             this CreateInstance operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -306,13 +306,13 @@ class UpdateInstanceMetadata(proto.Message):
     r"""The metadata for the Operation returned by UpdateInstance.
 
     Attributes:
-        original_request (~.bigtable_instance_admin.PartialUpdateInstanceRequest):
+        original_request (google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest):
             The request that prompted the initiation of
             this UpdateInstance operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -330,13 +330,13 @@ class CreateClusterMetadata(proto.Message):
     r"""The metadata for the Operation returned by CreateCluster.
 
     Attributes:
-        original_request (~.bigtable_instance_admin.CreateClusterRequest):
+        original_request (google.cloud.bigtable_admin_v2.types.CreateClusterRequest):
             The request that prompted the initiation of
             this CreateCluster operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -354,13 +354,13 @@ class UpdateClusterMetadata(proto.Message):
     r"""The metadata for the Operation returned by UpdateCluster.
 
     Attributes:
-        original_request (~.gba_instance.Cluster):
+        original_request (google.cloud.bigtable_admin_v2.types.Cluster):
             The request that prompted the initiation of
             this UpdateCluster operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -387,7 +387,7 @@ class CreateAppProfileRequest(proto.Message):
             profile within its instance, e.g., just ``myprofile`` rather
             than
             ``projects/myproject/instances/myinstance/appProfiles/myprofile``.
-        app_profile (~.gba_instance.AppProfile):
+        app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
             Required. The app profile to be created. Fields marked
             ``OutputOnly`` will be ignored.
         ignore_warnings (bool):
@@ -455,7 +455,7 @@ class ListAppProfilesResponse(proto.Message):
     r"""Response message for BigtableInstanceAdmin.ListAppProfiles.
 
     Attributes:
-        app_profiles (Sequence[~.gba_instance.AppProfile]):
+        app_profiles (Sequence[google.cloud.bigtable_admin_v2.types.AppProfile]):
             The list of requested app profiles.
         next_page_token (str):
             Set if not all app profiles could be returned in a single
@@ -486,10 +486,10 @@ class UpdateAppProfileRequest(proto.Message):
     r"""Request message for BigtableInstanceAdmin.UpdateAppProfile.
 
     Attributes:
-        app_profile (~.gba_instance.AppProfile):
+        app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
             Required. The app profile which will
             (partially) replace the current value.
-        update_mask (~.field_mask.FieldMask):
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
             Required. The subset of app profile fields
             which should be replaced. If unset, all fields
             will be replaced.
@@ -514,8 +514,8 @@ class DeleteAppProfileRequest(proto.Message):
             Values are of the form
             ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
         ignore_warnings (bool):
-            If true, ignore safety checks when deleting
-            the app profile.
+            Required. If true, ignore safety checks when
+            deleting the app profile.
     """
 
     name = proto.Field(proto.STRING, number=1)

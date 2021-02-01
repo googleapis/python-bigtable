@@ -41,11 +41,11 @@ class Instance(proto.Message):
             instance as it appears in UIs. Can be changed at
             any time, but should be kept globally unique to
             avoid confusion.
-        state (~.instance.Instance.State):
+        state (google.cloud.bigtable_admin_v2.types.Instance.State):
             (``OutputOnly``) The current state of the instance.
-        type_ (~.instance.Instance.Type):
+        type_ (google.cloud.bigtable_admin_v2.types.Instance.Type):
             The type of the instance. Defaults to ``PRODUCTION``.
-        labels (Sequence[~.instance.Instance.LabelsEntry]):
+        labels (Sequence[google.cloud.bigtable_admin_v2.types.Instance.LabelsEntry]):
             Labels are a flexible and lightweight mechanism for
             organizing cloud resources into groups that reflect a
             customer's organizational needs and deployment strategies.
@@ -100,13 +100,13 @@ class Cluster(proto.Message):
             located as close as possible to this cluster. Currently only
             zones are supported, so values should be of the form
             ``projects/{project}/locations/{zone}``.
-        state (~.instance.Cluster.State):
+        state (google.cloud.bigtable_admin_v2.types.Cluster.State):
             The current state of the cluster.
         serve_nodes (int):
             Required. The number of nodes allocated to
             this cluster. More nodes enable higher
             throughput and more consistent performance.
-        default_storage_type (~.common.StorageType):
+        default_storage_type (google.cloud.bigtable_admin_v2.types.StorageType):
             (``CreationOnly``) The type of storage used by this cluster
             to serve its parent instance's tables, unless explicitly
             overridden.
@@ -154,9 +154,9 @@ class AppProfile(proto.Message):
         description (str):
             Optional long form description of the use
             case for this AppProfile.
-        multi_cluster_routing_use_any (~.instance.AppProfile.MultiClusterRoutingUseAny):
+        multi_cluster_routing_use_any (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny):
             Use a multi-cluster routing policy.
-        single_cluster_routing (~.instance.AppProfile.SingleClusterRouting):
+        single_cluster_routing (google.cloud.bigtable_admin_v2.types.AppProfile.SingleClusterRouting):
             Use a single-cluster routing policy.
     """
 

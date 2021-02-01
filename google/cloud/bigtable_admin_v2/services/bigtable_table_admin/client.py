@@ -126,6 +126,22 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     )
 
     @classmethod
+    def from_service_account_info(cls, info: dict, *args, **kwargs):
+        """Creates an instance of this client using the provided credentials info.
+
+        Args:
+            info (dict): The service account private key info.
+            args: Additional arguments to pass to the constructor.
+            kwargs: Additional arguments to pass to the constructor.
+
+        Returns:
+            BigtableTableAdminClient: The constructed client.
+        """
+        credentials = service_account.Credentials.from_service_account_info(info)
+        kwargs["credentials"] = credentials
+        return cls(*args, **kwargs)
+
+    @classmethod
     def from_service_account_file(cls, filename: str, *args, **kwargs):
         """Creates an instance of this client using the provided credentials
         file.
@@ -137,7 +153,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            {@api.name}: The constructed client.
+            BigtableTableAdminClient: The constructed client.
         """
         credentials = service_account.Credentials.from_service_account_file(filename)
         kwargs["credentials"] = credentials
@@ -306,10 +322,10 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, ~.BigtableTableAdminTransport]): The
+            transport (Union[str, BigtableTableAdminTransport]): The
                 transport to use. If set to None, a transport is chosen
                 automatically.
-            client_options (client_options_lib.ClientOptions): Custom options for the
+            client_options (google.api_core.client_options.ClientOptions): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
                 default endpoint provided by the client. GOOGLE_API_USE_MTLS_ENDPOINT
@@ -345,21 +361,17 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             util.strtobool(os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"))
         )
 
-        ssl_credentials = None
+        client_cert_source_func = None
         is_mtls = False
         if use_client_cert:
             if client_options.client_cert_source:
-                import grpc  # type: ignore
-
-                cert, key = client_options.client_cert_source()
-                ssl_credentials = grpc.ssl_channel_credentials(
-                    certificate_chain=cert, private_key=key
-                )
                 is_mtls = True
+                client_cert_source_func = client_options.client_cert_source
             else:
-                creds = SslCredentials()
-                is_mtls = creds.is_mtls
-                ssl_credentials = creds.ssl_credentials if is_mtls else None
+                is_mtls = mtls.has_default_client_cert_source()
+                client_cert_source_func = (
+                    mtls.default_client_cert_source() if is_mtls else None
+                )
 
         # Figure out which api endpoint to use.
         if client_options.api_endpoint is not None:
@@ -402,7 +414,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 credentials_file=client_options.credentials_file,
                 host=api_endpoint,
                 scopes=client_options.scopes,
-                ssl_channel_credentials=ssl_credentials,
+                client_cert_source_for_mtls=client_cert_source_func,
                 quota_project_id=client_options.quota_project_id,
                 client_info=client_info,
             )
@@ -423,25 +435,27 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         column families, specified in the request.
 
         Args:
-            request (:class:`~.bigtable_table_admin.CreateTableRequest`):
+            request (google.cloud.bigtable_admin_v2.types.CreateTableRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance in which to
                 create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table_id (:class:`str`):
+            table_id (str):
                 Required. The name by which the new table should be
                 referred to within the parent instance, e.g., ``foobar``
                 rather than ``{parent}/tables/foobar``. Maximum 50
                 characters.
+
                 This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table (:class:`~.gba_table.Table`):
+            table (google.cloud.bigtable_admin_v2.types.Table):
                 Required. The Table to create.
                 This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -454,7 +468,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.gba_table.Table:
+            google.cloud.bigtable_admin_v2.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -526,7 +540,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         SLA or deprecation policy.
 
         Args:
-            request (:class:`~.bigtable_table_admin.CreateTableFromSnapshotRequest`):
+            request (google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
@@ -535,25 +549,28 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance in which to
                 create the table. Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            table_id (:class:`str`):
+            table_id (str):
                 Required. The name by which the new table should be
                 referred to within the parent instance, e.g., ``foobar``
                 rather than ``{parent}/tables/foobar``.
+
                 This corresponds to the ``table_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            source_snapshot (:class:`str`):
+            source_snapshot (str):
                 Required. The unique name of the snapshot from which to
                 restore the table. The snapshot and the table must be in
                 the same instance. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
+
                 This corresponds to the ``source_snapshot`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -565,13 +582,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation.Operation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.table.Table``: A collection of user data
-                indexed by row, column, and timestamp. Each table is
-                served using the resources of its parent cluster.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
 
         """
         # Create or coerce a protobuf request object.
@@ -639,13 +655,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Lists all tables served from a specified instance.
 
         Args:
-            request (:class:`~.bigtable_table_admin.ListTablesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListTablesRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the instance for which
                 tables should be listed. Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -657,9 +674,9 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.pagers.ListTablesPager:
+            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListTablesPager:
                 Response message for
-                [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+                   [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
 
                 Iterating over this object will yield results and
                 resolve additional pages automatically.
@@ -722,13 +739,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Gets metadata information about the specified table.
 
         Args:
-            request (:class:`~.bigtable_table_admin.GetTableRequest`):
+            request (google.cloud.bigtable_admin_v2.types.GetTableRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the requested table. Values
                 are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -740,7 +758,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.table.Table:
+            google.cloud.bigtable_admin_v2.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -799,13 +817,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         data.
 
         Args:
-            request (:class:`~.bigtable_table_admin.DeleteTableRequest`):
+            request (google.cloud.bigtable_admin_v2.types.DeleteTableRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -873,17 +892,18 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         table where only some modifications have taken effect.
 
         Args:
-            request (:class:`~.bigtable_table_admin.ModifyColumnFamiliesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table whose families
                 should be modified. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            modifications (:class:`Sequence[~.bigtable_table_admin.ModifyColumnFamiliesRequest.Modification]`):
+            modifications (Sequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]):
                 Required. Modifications to be
                 atomically applied to the specified
                 table's families. Entries are applied in
@@ -891,6 +911,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 modifications can be masked by later
                 ones (in the case of repeated updates to
                 the same family, for example).
+
                 This corresponds to the ``modifications`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -902,7 +923,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.table.Table:
+            google.cloud.bigtable_admin_v2.types.Table:
                 A collection of user data indexed by
                 row, column, and timestamp. Each table
                 is served using the resources of its
@@ -965,7 +986,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         prefix.
 
         Args:
-            request (:class:`~.bigtable_table_admin.DropRowRangeRequest`):
+            request (google.cloud.bigtable_admin_v2.types.DropRowRangeRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
 
@@ -1015,13 +1036,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         days.
 
         Args:
-            request (:class:`~.bigtable_table_admin.GenerateConsistencyTokenRequest`):
+            request (google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the Table for which to
                 create a consistency token. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1033,9 +1055,9 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable_table_admin.GenerateConsistencyTokenResponse:
+            google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenResponse:
                 Response message for
-                [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
+                   [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
 
         """
         # Create or coerce a protobuf request object.
@@ -1097,19 +1119,21 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         request.
 
         Args:
-            request (:class:`~.bigtable_table_admin.CheckConsistencyRequest`):
+            request (google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the Table for which to
                 check replication consistency. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            consistency_token (:class:`str`):
+            consistency_token (str):
                 Required. The token created using
                 GenerateConsistencyToken for the Table.
+
                 This corresponds to the ``consistency_token`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1121,9 +1145,9 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable_table_admin.CheckConsistencyResponse:
+            google.cloud.bigtable_admin_v2.types.CheckConsistencyResponse:
                 Response message for
-                [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+                   [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
 
         """
         # Create or coerce a protobuf request object.
@@ -1190,7 +1214,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         SLA or deprecation policy.
 
         Args:
-            request (:class:`~.bigtable_table_admin.SnapshotTableRequest`):
+            request (google.cloud.bigtable_admin_v2.types.SnapshotTableRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
                 Note: This is a private alpha release of Cloud Bigtable
@@ -1199,30 +1223,33 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the table to have the
                 snapshot taken. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            cluster (:class:`str`):
+            cluster (str):
                 Required. The name of the cluster where the snapshot
                 will be created in. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
                 This corresponds to the ``cluster`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            snapshot_id (:class:`str`):
+            snapshot_id (str):
                 Required. The ID by which the new snapshot should be
                 referred to within the parent cluster, e.g.,
                 ``mysnapshot`` of the form:
                 ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*`` rather than
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/mysnapshot``.
+
                 This corresponds to the ``snapshot_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            description (:class:`str`):
+            description (str):
                 Description of the snapshot.
                 This corresponds to the ``description`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1235,20 +1262,19 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation.Operation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.table.Snapshot``: A snapshot of a table at a
-                particular time. A snapshot can be used as a checkpoint
-                for data restoration or a data source for a new table.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Snapshot` A snapshot of a table at a particular time. A snapshot can be used as a
+                   checkpoint for data restoration or a data source for
+                   a new table.
 
-                Note: This is a private alpha release of Cloud Bigtable
-                snapshots. This feature is not currently available to
-                most Cloud Bigtable customers. This feature might be
-                changed in backward-incompatible ways and is not
-                recommended for production use. It is not subject to any
-                SLA or deprecation policy.
+                   Note: This is a private alpha release of Cloud
+                   Bigtable snapshots. This feature is not currently
+                   available to most Cloud Bigtable customers. This
+                   feature might be changed in backward-incompatible
+                   ways and is not recommended for production use. It is
+                   not subject to any SLA or deprecation policy.
 
         """
         # Create or coerce a protobuf request object.
@@ -1323,7 +1349,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         SLA or deprecation policy.
 
         Args:
-            request (:class:`~.bigtable_table_admin.GetSnapshotRequest`):
+            request (google.cloud.bigtable_admin_v2.types.GetSnapshotRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
@@ -1332,10 +1358,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the requested snapshot.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1347,7 +1374,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.table.Snapshot:
+            google.cloud.bigtable_admin_v2.types.Snapshot:
                 A snapshot of a table at a particular
                 time. A snapshot can be used as a
                 checkpoint for data restoration or a
@@ -1420,7 +1447,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         SLA or deprecation policy.
 
         Args:
-            request (:class:`~.bigtable_table_admin.ListSnapshotsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
                 Note: This is a private alpha release of Cloud Bigtable
@@ -1429,13 +1456,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            parent (:class:`str`):
+            parent (str):
                 Required. The unique name of the cluster for which
                 snapshots should be listed. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
                 Use ``{cluster} = '-'`` to list snapshots for all
                 clusters in an instance, e.g.,
                 ``projects/{project}/instances/{instance}/clusters/-``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1447,16 +1475,16 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.pagers.ListSnapshotsPager:
+            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListSnapshotsPager:
                 Response message for
-                [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+                   [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
 
-                Note: This is a private alpha release of Cloud Bigtable
-                snapshots. This feature is not currently available to
-                most Cloud Bigtable customers. This feature might be
-                changed in backward-incompatible ways and is not
-                recommended for production use. It is not subject to any
-                SLA or deprecation policy.
+                   Note: This is a private alpha release of Cloud
+                   Bigtable snapshots. This feature is not currently
+                   available to most Cloud Bigtable customers. This
+                   feature might be changed in backward-incompatible
+                   ways and is not recommended for production use. It is
+                   not subject to any SLA or deprecation policy.
 
                 Iterating over this object will yield results and
                 resolve additional pages automatically.
@@ -1525,7 +1553,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         SLA or deprecation policy.
 
         Args:
-            request (:class:`~.bigtable_table_admin.DeleteSnapshotRequest`):
+            request (google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
@@ -1534,10 +1562,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 changed in backward-incompatible ways and is not
                 recommended for production use. It is not subject to any
                 SLA or deprecation policy.
-            name (:class:`str`):
+            name (str):
                 Required. The unique name of the snapshot to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1608,18 +1637,19 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         delete the backup.
 
         Args:
-            request (:class:`~.bigtable_table_admin.CreateBackupRequest`):
+            request (google.cloud.bigtable_admin_v2.types.CreateBackupRequest):
                 The request object. The request for
                 [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
-            parent (:class:`str`):
+            parent (str):
                 Required. This must be one of the clusters in the
                 instance in which this table is located. The backup will
                 be stored in this cluster. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            backup_id (:class:`str`):
+            backup_id (str):
                 Required. The id of the backup to be created. The
                 ``backup_id`` along with the parent ``parent`` are
                 combined as {parent}/backups/{backup_id} to create the
@@ -1627,10 +1657,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
                 This string must be between 1 and 50 characters in
                 length and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
+
                 This corresponds to the ``backup_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            backup (:class:`~.table.Backup`):
+            backup (google.cloud.bigtable_admin_v2.types.Backup):
                 Required. The backup to create.
                 This corresponds to the ``backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1643,12 +1674,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation.Operation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
                 The result type for the operation will be
-                :class:``~.table.Backup``: A backup of a Cloud Bigtable
-                table.
+                :class:`google.cloud.bigtable_admin_v2.types.Backup` A
+                backup of a Cloud Bigtable table.
 
         """
         # Create or coerce a protobuf request object.
@@ -1715,12 +1746,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         Bigtable Backup.
 
         Args:
-            request (:class:`~.bigtable_table_admin.GetBackupRequest`):
+            request (google.cloud.bigtable_admin_v2.types.GetBackupRequest):
                 The request object. The request for
                 [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
-            name (:class:`str`):
+            name (str):
                 Required. Name of the backup. Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1732,7 +1764,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.table.Backup:
+            google.cloud.bigtable_admin_v2.types.Backup:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
@@ -1787,20 +1819,21 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Updates a pending or completed Cloud Bigtable Backup.
 
         Args:
-            request (:class:`~.bigtable_table_admin.UpdateBackupRequest`):
+            request (google.cloud.bigtable_admin_v2.types.UpdateBackupRequest):
                 The request object. The request for
                 [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
-            backup (:class:`~.table.Backup`):
+            backup (google.cloud.bigtable_admin_v2.types.Backup):
                 Required. The backup to update. ``backup.name``, and the
                 fields to be updated as specified by ``update_mask`` are
                 required. Other fields are ignored. Update is only
                 supported for the following fields:
 
                 -  ``backup.expire_time``.
+
                 This corresponds to the ``backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`~.field_mask.FieldMask`):
+            update_mask (google.protobuf.field_mask_pb2.FieldMask):
                 Required. A mask specifying which fields (e.g.
                 ``expire_time``) in the Backup resource should be
                 updated. This mask is relative to the Backup resource,
@@ -1808,6 +1841,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 be specified; this prevents any future fields from being
                 erased accidentally by clients that do not know about
                 them.
+
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1819,7 +1853,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.table.Backup:
+            google.cloud.bigtable_admin_v2.types.Backup:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
@@ -1877,13 +1911,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Deletes a pending or completed Cloud Bigtable backup.
 
         Args:
-            request (:class:`~.bigtable_table_admin.DeleteBackupRequest`):
+            request (google.cloud.bigtable_admin_v2.types.DeleteBackupRequest):
                 The request object. The request for
                 [DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup].
-            name (:class:`str`):
+            name (str):
                 Required. Name of the backup to delete. Values are of
                 the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1945,16 +1980,17 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         and pending backups.
 
         Args:
-            request (:class:`~.bigtable_table_admin.ListBackupsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListBackupsRequest):
                 The request object. The request for
                 [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
-            parent (:class:`str`):
+            parent (str):
                 Required. The cluster to list backups from. Values are
                 of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
                 Use ``{cluster} = '-'`` to list backups for all clusters
                 in an instance, e.g.,
                 ``projects/{project}/instances/{instance}/clusters/-``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1966,7 +2002,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.pagers.ListBackupsPager:
+            google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListBackupsPager:
                 The response for
                 [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
 
@@ -2038,7 +2074,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         [Table][google.bigtable.admin.v2.Table], if successful.
 
         Args:
-            request (:class:`~.bigtable_table_admin.RestoreTableRequest`):
+            request (google.cloud.bigtable_admin_v2.types.RestoreTableRequest):
                 The request object. The request for
                 [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
 
@@ -2049,13 +2085,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation.Operation:
+            google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.table.Table``: A collection of user data
-                indexed by row, column, and timestamp. Each table is
-                served using the resources of its parent cluster.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Table` A collection of user data indexed by row, column, and timestamp.
+                   Each table is served using the resources of its
+                   parent cluster.
 
         """
         # Create or coerce a protobuf request object.
@@ -2100,19 +2135,20 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> policy.Policy:
-        r"""Gets the access control policy for a resource.
-        Returns an empty policy if the resource exists but does
-        not have a policy set.
+        r"""Gets the access control policy for a Table or Backup
+        resource. Returns an empty policy if the resource exists
+        but does not have a policy set.
 
         Args:
-            request (:class:`~.iam_policy.GetIamPolicyRequest`):
+            request (google.iam.v1.iam_policy_pb2.GetIamPolicyRequest):
                 The request object. Request message for `GetIamPolicy`
                 method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy is being requested. See the
                 operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -2124,72 +2160,62 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.policy.Policy:
-                Defines an Identity and Access Management (IAM) policy.
-                It is used to specify access control policies for Cloud
-                Platform resources.
+            google.iam.v1.policy_pb2.Policy:
+                Defines an Identity and Access Management (IAM) policy. It is used to
+                   specify access control policies for Cloud Platform
+                   resources.
 
-                A ``Policy`` is a collection of ``bindings``. A
-                ``binding`` binds one or more ``members`` to a single
-                ``role``. Members can be user accounts, service
-                accounts, Google groups, and domains (such as G Suite).
-                A ``role`` is a named list of permissions (defined by
-                IAM or configured by users). A ``binding`` can
-                optionally specify a ``condition``, which is a logic
-                expression that further constrains the role binding
-                based on attributes about the request and/or target
-                resource.
+                   A Policy is a collection of bindings. A binding binds
+                   one or more members to a single role. Members can be
+                   user accounts, service accounts, Google groups, and
+                   domains (such as G Suite). A role is a named list of
+                   permissions (defined by IAM or configured by users).
+                   A binding can optionally specify a condition, which
+                   is a logic expression that further constrains the
+                   role binding based on attributes about the request
+                   and/or target resource.
 
-                **JSON Example**
+                   **JSON Example**
 
-                ::
+                      {
+                         "bindings": [
+                            {
+                               "role":
+                               "roles/resourcemanager.organizationAdmin",
+                               "members": [ "user:mike@example.com",
+                               "group:admins@example.com",
+                               "domain:google.com",
+                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
+                               ]
 
-                    {
-                      "bindings": [
-                        {
-                          "role": "roles/resourcemanager.organizationAdmin",
-                          "members": [
-                            "user:mike@example.com",
-                            "group:admins@example.com",
-                            "domain:google.com",
-                            "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                          ]
-                        },
-                        {
-                          "role": "roles/resourcemanager.organizationViewer",
-                          "members": ["user:eve@example.com"],
-                          "condition": {
-                            "title": "expirable access",
-                            "description": "Does not grant access after Sep 2020",
-                            "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')",
-                          }
-                        }
-                      ]
-                    }
+                            }, { "role":
+                            "roles/resourcemanager.organizationViewer",
+                            "members": ["user:eve@example.com"],
+                            "condition": { "title": "expirable access",
+                            "description": "Does not grant access after
+                            Sep 2020", "expression": "request.time <
+                            timestamp('2020-10-01T00:00:00.000Z')", } }
 
-                **YAML Example**
+                         ]
 
-                ::
+                      }
 
-                    bindings:
-                    - members:
-                      - user:mike@example.com
-                      - group:admins@example.com
-                      - domain:google.com
-                      - serviceAccount:my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin
-                    - members:
-                      - user:eve@example.com
-                      role: roles/resourcemanager.organizationViewer
-                      condition:
-                        title: expirable access
-                        description: Does not grant access after Sep 2020
-                        expression: request.time < timestamp('2020-10-01T00:00:00.000Z')
+                   **YAML Example**
 
-                For a description of IAM and its features, see the `IAM
-                developer's
-                guide <https://cloud.google.com/iam/docs>`__.
+                      bindings: - members: - user:\ mike@example.com -
+                      group:\ admins@example.com - domain:google.com -
+                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
+                      role: roles/resourcemanager.organizationAdmin -
+                      members: - user:\ eve@example.com role:
+                      roles/resourcemanager.organizationViewer
+                      condition: title: expirable access description:
+                      Does not grant access after Sep 2020 expression:
+                      request.time <
+                      timestamp('2020-10-01T00:00:00.000Z')
+
+                   For a description of IAM and its features, see the
+                   [IAM developer's
+                   guide](\ https://cloud.google.com/iam/docs).
 
         """
         # Create or coerce a protobuf request object.
@@ -2239,14 +2265,15 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         resource. Replaces any existing policy.
 
         Args:
-            request (:class:`~.iam_policy.SetIamPolicyRequest`):
+            request (google.iam.v1.iam_policy_pb2.SetIamPolicyRequest):
                 The request object. Request message for `SetIamPolicy`
                 method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy is being specified. See the
                 operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -2258,72 +2285,62 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.policy.Policy:
-                Defines an Identity and Access Management (IAM) policy.
-                It is used to specify access control policies for Cloud
-                Platform resources.
+            google.iam.v1.policy_pb2.Policy:
+                Defines an Identity and Access Management (IAM) policy. It is used to
+                   specify access control policies for Cloud Platform
+                   resources.
 
-                A ``Policy`` is a collection of ``bindings``. A
-                ``binding`` binds one or more ``members`` to a single
-                ``role``. Members can be user accounts, service
-                accounts, Google groups, and domains (such as G Suite).
-                A ``role`` is a named list of permissions (defined by
-                IAM or configured by users). A ``binding`` can
-                optionally specify a ``condition``, which is a logic
-                expression that further constrains the role binding
-                based on attributes about the request and/or target
-                resource.
+                   A Policy is a collection of bindings. A binding binds
+                   one or more members to a single role. Members can be
+                   user accounts, service accounts, Google groups, and
+                   domains (such as G Suite). A role is a named list of
+                   permissions (defined by IAM or configured by users).
+                   A binding can optionally specify a condition, which
+                   is a logic expression that further constrains the
+                   role binding based on attributes about the request
+                   and/or target resource.
 
-                **JSON Example**
+                   **JSON Example**
 
-                ::
+                      {
+                         "bindings": [
+                            {
+                               "role":
+                               "roles/resourcemanager.organizationAdmin",
+                               "members": [ "user:mike@example.com",
+                               "group:admins@example.com",
+                               "domain:google.com",
+                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
+                               ]
 
-                    {
-                      "bindings": [
-                        {
-                          "role": "roles/resourcemanager.organizationAdmin",
-                          "members": [
-                            "user:mike@example.com",
-                            "group:admins@example.com",
-                            "domain:google.com",
-                            "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                          ]
-                        },
-                        {
-                          "role": "roles/resourcemanager.organizationViewer",
-                          "members": ["user:eve@example.com"],
-                          "condition": {
-                            "title": "expirable access",
-                            "description": "Does not grant access after Sep 2020",
-                            "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')",
-                          }
-                        }
-                      ]
-                    }
+                            }, { "role":
+                            "roles/resourcemanager.organizationViewer",
+                            "members": ["user:eve@example.com"],
+                            "condition": { "title": "expirable access",
+                            "description": "Does not grant access after
+                            Sep 2020", "expression": "request.time <
+                            timestamp('2020-10-01T00:00:00.000Z')", } }
 
-                **YAML Example**
+                         ]
 
-                ::
+                      }
 
-                    bindings:
-                    - members:
-                      - user:mike@example.com
-                      - group:admins@example.com
-                      - domain:google.com
-                      - serviceAccount:my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin
-                    - members:
-                      - user:eve@example.com
-                      role: roles/resourcemanager.organizationViewer
-                      condition:
-                        title: expirable access
-                        description: Does not grant access after Sep 2020
-                        expression: request.time < timestamp('2020-10-01T00:00:00.000Z')
+                   **YAML Example**
 
-                For a description of IAM and its features, see the `IAM
-                developer's
-                guide <https://cloud.google.com/iam/docs>`__.
+                      bindings: - members: - user:\ mike@example.com -
+                      group:\ admins@example.com - domain:google.com -
+                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
+                      role: roles/resourcemanager.organizationAdmin -
+                      members: - user:\ eve@example.com role:
+                      roles/resourcemanager.organizationViewer
+                      condition: title: expirable access description:
+                      Does not grant access after Sep 2020 expression:
+                      request.time <
+                      timestamp('2020-10-01T00:00:00.000Z')
+
+                   For a description of IAM and its features, see the
+                   [IAM developer's
+                   guide](\ https://cloud.google.com/iam/docs).
 
         """
         # Create or coerce a protobuf request object.
@@ -2371,25 +2388,27 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> iam_policy.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
-        specified table resource.
+        specified Table or Backup resource.
 
         Args:
-            request (:class:`~.iam_policy.TestIamPermissionsRequest`):
+            request (google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest):
                 The request object. Request message for
                 `TestIamPermissions` method.
-            resource (:class:`str`):
+            resource (str):
                 REQUIRED: The resource for which the
                 policy detail is being requested. See
                 the operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            permissions (:class:`Sequence[str]`):
+            permissions (Sequence[str]):
                 The set of permissions to check for the ``resource``.
                 Permissions with wildcards (such as '*' or 'storage.*')
                 are not allowed. For more information see `IAM
                 Overview <https://cloud.google.com/iam/docs/overview#permissions>`__.
+
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -2401,8 +2420,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.iam_policy.TestIamPermissionsResponse:
-                Response message for ``TestIamPermissions`` method.
+            google.iam.v1.iam_policy_pb2.TestIamPermissionsResponse:
+                Response message for TestIamPermissions method.
         """
         # Create or coerce a protobuf request object.
         # Sanity check: If we got a request object, we should *not* have

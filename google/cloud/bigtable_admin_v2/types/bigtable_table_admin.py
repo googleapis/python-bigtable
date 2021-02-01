@@ -28,6 +28,9 @@ from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
 __protobuf__ = proto.module(
     package="google.bigtable.admin.v2",
     manifest={
+        "RestoreTableRequest",
+        "RestoreTableMetadata",
+        "OptimizeRestoredTableMetadata",
         "CreateTableRequest",
         "CreateTableFromSnapshotRequest",
         "DropRowRangeRequest",
@@ -49,16 +52,103 @@ __protobuf__ = proto.module(
         "CreateTableFromSnapshotMetadata",
         "CreateBackupRequest",
         "CreateBackupMetadata",
-        "GetBackupRequest",
         "UpdateBackupRequest",
+        "GetBackupRequest",
         "DeleteBackupRequest",
         "ListBackupsRequest",
         "ListBackupsResponse",
-        "RestoreTableRequest",
-        "RestoreTableMetadata",
-        "OptimizeRestoredTableMetadata",
     },
 )
+
+
+class RestoreTableRequest(proto.Message):
+    r"""The request for
+    [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+
+    Attributes:
+        parent (str):
+            Required. The name of the instance in which to create the
+            restored table. This instance must be the parent of the
+            source backup. Values are of the form
+            ``projects/<project>/instances/<instance>``.
+        table_id (str):
+            Required. The id of the table to create and restore to. This
+            table must not already exist. The ``table_id`` appended to
+            ``parent`` forms the full table name of the form
+            ``projects/<project>/instances/<instance>/tables/<table_id>``.
+        backup (str):
+            Name of the backup from which to restore. Values are of the
+            form
+            ``projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>``.
+    """
+
+    parent = proto.Field(proto.STRING, number=1)
+
+    table_id = proto.Field(proto.STRING, number=2)
+
+    backup = proto.Field(proto.STRING, number=3, oneof="source")
+
+
+class RestoreTableMetadata(proto.Message):
+    r"""Metadata type for the long-running operation returned by
+    [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+
+    Attributes:
+        name (str):
+            Name of the table being created and restored
+            to.
+        source_type (google.cloud.bigtable_admin_v2.types.RestoreSourceType):
+            The type of the restore source.
+        backup_info (google.cloud.bigtable_admin_v2.types.BackupInfo):
+
+        optimize_table_operation_name (str):
+            If exists, the name of the long-running operation that will
+            be used to track the post-restore optimization process to
+            optimize the performance of the restored table. The metadata
+            type of the long-running operation is
+            [OptimizeRestoreTableMetadata][]. The response type is
+            [Empty][google.protobuf.Empty]. This long-running operation
+            may be automatically created by the system if applicable
+            after the RestoreTable long-running operation completes
+            successfully. This operation may not be created if the table
+            is already optimized or the restore was not successful.
+        progress (google.cloud.bigtable_admin_v2.types.OperationProgress):
+            The progress of the
+            [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable]
+            operation.
+    """
+
+    name = proto.Field(proto.STRING, number=1)
+
+    source_type = proto.Field(proto.ENUM, number=2, enum=gba_table.RestoreSourceType,)
+
+    backup_info = proto.Field(
+        proto.MESSAGE, number=3, oneof="source_info", message=gba_table.BackupInfo,
+    )
+
+    optimize_table_operation_name = proto.Field(proto.STRING, number=4)
+
+    progress = proto.Field(proto.MESSAGE, number=5, message=common.OperationProgress,)
+
+
+class OptimizeRestoredTableMetadata(proto.Message):
+    r"""Metadata type for the long-running operation used to track
+    the progress of optimizations performed on a newly restored
+    table. This long-running operation is automatically created by
+    the system after the successful completion of a table restore,
+    and cannot be cancelled.
+
+    Attributes:
+        name (str):
+            Name of the restored table being optimized.
+        progress (google.cloud.bigtable_admin_v2.types.OperationProgress):
+            The progress of the post-restore
+            optimizations.
+    """
+
+    name = proto.Field(proto.STRING, number=1)
+
+    progress = proto.Field(proto.MESSAGE, number=2, message=common.OperationProgress,)
 
 
 class CreateTableRequest(proto.Message):
@@ -74,9 +164,9 @@ class CreateTableRequest(proto.Message):
             Required. The name by which the new table should be referred
             to within the parent instance, e.g., ``foobar`` rather than
             ``{parent}/tables/foobar``. Maximum 50 characters.
-        table (~.gba_table.Table):
+        table (google.cloud.bigtable_admin_v2.types.Table):
             Required. The Table to create.
-        initial_splits (Sequence[~.bigtable_table_admin.CreateTableRequest.Split]):
+        initial_splits (Sequence[google.cloud.bigtable_admin_v2.types.CreateTableRequest.Split]):
             The optional list of row keys that will be used to initially
             split the table into several tablets (tablets are similar to
             HBase regions). Given two split keys, ``s1`` and ``s2``,
@@ -186,7 +276,7 @@ class ListTablesRequest(proto.Message):
             Required. The unique name of the instance for which tables
             should be listed. Values are of the form
             ``projects/{project}/instances/{instance}``.
-        view (~.gba_table.Table.View):
+        view (google.cloud.bigtable_admin_v2.types.Table.View):
             The view to be applied to the returned tables' fields. Only
             NAME_ONLY view (default) and REPLICATION_VIEW are supported.
         page_size (int):
@@ -220,7 +310,7 @@ class ListTablesResponse(proto.Message):
     [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
 
     Attributes:
-        tables (Sequence[~.gba_table.Table]):
+        tables (Sequence[google.cloud.bigtable_admin_v2.types.Table]):
             The tables present in the requested instance.
         next_page_token (str):
             Set if not all tables could be returned in a single
@@ -246,7 +336,7 @@ class GetTableRequest(proto.Message):
             Required. The unique name of the requested table. Values are
             of the form
             ``projects/{project}/instances/{instance}/tables/{table}``.
-        view (~.gba_table.Table.View):
+        view (google.cloud.bigtable_admin_v2.types.Table.View):
             The view to be applied to the returned table's fields.
             Defaults to ``SCHEMA_VIEW`` if unspecified.
     """
@@ -279,7 +369,7 @@ class ModifyColumnFamiliesRequest(proto.Message):
             Required. The unique name of the table whose families should
             be modified. Values are of the form
             ``projects/{project}/instances/{instance}/tables/{table}``.
-        modifications (Sequence[~.bigtable_table_admin.ModifyColumnFamiliesRequest.Modification]):
+        modifications (Sequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]):
             Required. Modifications to be atomically
             applied to the specified table's families.
             Entries are applied in order, meaning that
@@ -294,11 +384,11 @@ class ModifyColumnFamiliesRequest(proto.Message):
         Attributes:
             id (str):
                 The ID of the column family to be modified.
-            create (~.gba_table.ColumnFamily):
+            create (google.cloud.bigtable_admin_v2.types.ColumnFamily):
                 Create a new column family with the specified
                 schema, or fail if one already exists with the
                 given ID.
-            update (~.gba_table.ColumnFamily):
+            update (google.cloud.bigtable_admin_v2.types.ColumnFamily):
                 Update an existing column family to the
                 specified schema, or fail if no column family
                 exists with the given ID.
@@ -407,7 +497,7 @@ class SnapshotTableRequest(proto.Message):
             referred to within the parent cluster, e.g., ``mysnapshot``
             of the form: ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*`` rather than
             ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/mysnapshot``.
-        ttl (~.duration.Duration):
+        ttl (google.protobuf.duration_pb2.Duration):
             The amount of time that the new snapshot can
             stay active after it is created. Once 'ttl'
             expires, the snapshot will get deleted. The
@@ -493,7 +583,7 @@ class ListSnapshotsResponse(proto.Message):
     any SLA or deprecation policy.
 
     Attributes:
-        snapshots (Sequence[~.gba_table.Snapshot]):
+        snapshots (Sequence[google.cloud.bigtable_admin_v2.types.Snapshot]):
             The snapshots present in the requested
             cluster.
         next_page_token (str):
@@ -542,13 +632,13 @@ class SnapshotTableMetadata(proto.Message):
     is not subject to any SLA or deprecation policy.
 
     Attributes:
-        original_request (~.bigtable_table_admin.SnapshotTableRequest):
+        original_request (google.cloud.bigtable_admin_v2.types.SnapshotTableRequest):
             The request that prompted the initiation of
             this SnapshotTable operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -572,13 +662,13 @@ class CreateTableFromSnapshotMetadata(proto.Message):
     is not subject to any SLA or deprecation policy.
 
     Attributes:
-        original_request (~.bigtable_table_admin.CreateTableFromSnapshotRequest):
+        original_request (google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest):
             The request that prompted the initiation of
             this CreateTableFromSnapshot operation.
-        request_time (~.timestamp.Timestamp):
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the original request was
             received.
-        finish_time (~.timestamp.Timestamp):
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which the operation failed or was
             completed successfully.
     """
@@ -610,7 +700,7 @@ class CreateBackupRequest(proto.Message):
             ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
             This string must be between 1 and 50 characters in length
             and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
-        backup (~.gba_table.Backup):
+        backup (google.cloud.bigtable_admin_v2.types.Backup):
             Required. The backup to create.
     """
 
@@ -631,9 +721,9 @@ class CreateBackupMetadata(proto.Message):
         source_table (str):
             The name of the table the backup is created
             from.
-        start_time (~.timestamp.Timestamp):
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
             The time at which this operation started.
-        end_time (~.timestamp.Timestamp):
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
             If set, the time at which this operation
             finished or was cancelled.
     """
@@ -647,32 +737,19 @@ class CreateBackupMetadata(proto.Message):
     end_time = proto.Field(proto.MESSAGE, number=4, message=timestamp.Timestamp,)
 
 
-class GetBackupRequest(proto.Message):
-    r"""The request for
-    [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
-
-    Attributes:
-        name (str):
-            Required. Name of the backup. Values are of the form
-            ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
-    """
-
-    name = proto.Field(proto.STRING, number=1)
-
-
 class UpdateBackupRequest(proto.Message):
     r"""The request for
     [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
 
     Attributes:
-        backup (~.gba_table.Backup):
+        backup (google.cloud.bigtable_admin_v2.types.Backup):
             Required. The backup to update. ``backup.name``, and the
             fields to be updated as specified by ``update_mask`` are
             required. Other fields are ignored. Update is only supported
             for the following fields:
 
             -  ``backup.expire_time``.
-        update_mask (~.field_mask.FieldMask):
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
             Required. A mask specifying which fields (e.g.
             ``expire_time``) in the Backup resource should be updated.
             This mask is relative to the Backup resource, not to the
@@ -684,6 +761,19 @@ class UpdateBackupRequest(proto.Message):
     backup = proto.Field(proto.MESSAGE, number=1, message=gba_table.Backup,)
 
     update_mask = proto.Field(proto.MESSAGE, number=2, message=field_mask.FieldMask,)
+
+
+class GetBackupRequest(proto.Message):
+    r"""The request for
+    [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
+
+    Attributes:
+        name (str):
+            Required. Name of the backup. Values are of the form
+            ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}``.
+    """
+
+    name = proto.Field(proto.STRING, number=1)
 
 
 class DeleteBackupRequest(proto.Message):
@@ -718,7 +808,7 @@ class ListBackupsRequest(proto.Message):
             comparison operator, and the value that you want to use for
             filtering. The value must be a string, a number, or a
             boolean. The comparison operator must be <, >, <=, >=, !=,
-            =, or :. Colon ‘:’ represents a HAS operator which is
+            =, or :. Colon ':' represents a HAS operator which is
             roughly synonymous with equality. Filter rules are case
             insensitive.
 
@@ -802,7 +892,7 @@ class ListBackupsResponse(proto.Message):
     [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
 
     Attributes:
-        backups (Sequence[~.gba_table.Backup]):
+        backups (Sequence[google.cloud.bigtable_admin_v2.types.Backup]):
             The list of matching backups.
         next_page_token (str):
             ``next_page_token`` can be sent in a subsequent
@@ -817,96 +907,6 @@ class ListBackupsResponse(proto.Message):
     backups = proto.RepeatedField(proto.MESSAGE, number=1, message=gba_table.Backup,)
 
     next_page_token = proto.Field(proto.STRING, number=2)
-
-
-class RestoreTableRequest(proto.Message):
-    r"""The request for
-    [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
-
-    Attributes:
-        parent (str):
-            Required. The name of the instance in which to create the
-            restored table. This instance must be the parent of the
-            source backup. Values are of the form
-            ``projects/<project>/instances/<instance>``.
-        table_id (str):
-            Required. The id of the table to create and restore to. This
-            table must not already exist. The ``table_id`` appended to
-            ``parent`` forms the full table name of the form
-            ``projects/<project>/instances/<instance>/tables/<table_id>``.
-        backup (str):
-            Name of the backup from which to restore. Values are of the
-            form
-            ``projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>``.
-    """
-
-    parent = proto.Field(proto.STRING, number=1)
-
-    table_id = proto.Field(proto.STRING, number=2)
-
-    backup = proto.Field(proto.STRING, number=3, oneof="source")
-
-
-class RestoreTableMetadata(proto.Message):
-    r"""Metadata type for the long-running operation returned by
-    [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
-
-    Attributes:
-        name (str):
-            Name of the table being created and restored
-            to.
-        source_type (~.gba_table.RestoreSourceType):
-            The type of the restore source.
-        backup_info (~.gba_table.BackupInfo):
-
-        optimize_table_operation_name (str):
-            If exists, the name of the long-running operation that will
-            be used to track the post-restore optimization process to
-            optimize the performance of the restored table. The metadata
-            type of the long-running operation is
-            [OptimizeRestoreTableMetadata][]. The response type is
-            [Empty][google.protobuf.Empty]. This long-running operation
-            may be automatically created by the system if applicable
-            after the RestoreTable long-running operation completes
-            successfully. This operation may not be created if the table
-            is already optimized or the restore was not successful.
-        progress (~.common.OperationProgress):
-            The progress of the
-            [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable]
-            operation.
-    """
-
-    name = proto.Field(proto.STRING, number=1)
-
-    source_type = proto.Field(proto.ENUM, number=2, enum=gba_table.RestoreSourceType,)
-
-    backup_info = proto.Field(
-        proto.MESSAGE, number=3, oneof="source_info", message=gba_table.BackupInfo,
-    )
-
-    optimize_table_operation_name = proto.Field(proto.STRING, number=4)
-
-    progress = proto.Field(proto.MESSAGE, number=5, message=common.OperationProgress,)
-
-
-class OptimizeRestoredTableMetadata(proto.Message):
-    r"""Metadata type for the long-running operation used to track
-    the progress of optimizations performed on a newly restored
-    table. This long-running operation is automatically created by
-    the system after the successful completion of a table restore,
-    and cannot be cancelled.
-
-    Attributes:
-        name (str):
-            Name of the restored table being optimized.
-        progress (~.common.OperationProgress):
-            The progress of the post-restore
-            optimizations.
-    """
-
-    name = proto.Field(proto.STRING, number=1)
-
-    progress = proto.Field(proto.MESSAGE, number=2, message=common.OperationProgress,)
 
 
 __all__ = tuple(sorted(__protobuf__.manifest))

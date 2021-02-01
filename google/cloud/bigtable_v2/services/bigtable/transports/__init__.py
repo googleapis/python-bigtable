@@ -28,7 +28,6 @@ _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
 _transport_registry["grpc"] = BigtableGrpcTransport
 _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
 
-
 __all__ = (
     "BigtableTransport",
     "BigtableGrpcTransport",

@@ -15,7 +15,10 @@
 # limitations under the License.
 #
 
-from .common import OperationProgress
+from .common import (
+    OperationProgress,
+    StorageType,
+)
 from .instance import (
     Instance,
     Cluster,
@@ -53,8 +56,12 @@ from .table import (
     Snapshot,
     Backup,
     BackupInfo,
+    RestoreSourceType,
 )
 from .bigtable_table_admin import (
+    RestoreTableRequest,
+    RestoreTableMetadata,
+    OptimizeRestoredTableMetadata,
     CreateTableRequest,
     CreateTableFromSnapshotRequest,
     DropRowRangeRequest,
@@ -76,19 +83,16 @@ from .bigtable_table_admin import (
     CreateTableFromSnapshotMetadata,
     CreateBackupRequest,
     CreateBackupMetadata,
-    GetBackupRequest,
     UpdateBackupRequest,
+    GetBackupRequest,
     DeleteBackupRequest,
     ListBackupsRequest,
     ListBackupsResponse,
-    RestoreTableRequest,
-    RestoreTableMetadata,
-    OptimizeRestoredTableMetadata,
 )
-
 
 __all__ = (
     "OperationProgress",
+    "StorageType",
     "Instance",
     "Cluster",
     "AppProfile",
@@ -121,6 +125,10 @@ __all__ = (
     "Snapshot",
     "Backup",
     "BackupInfo",
+    "RestoreSourceType",
+    "RestoreTableRequest",
+    "RestoreTableMetadata",
+    "OptimizeRestoredTableMetadata",
     "CreateTableRequest",
     "CreateTableFromSnapshotRequest",
     "DropRowRangeRequest",
@@ -142,12 +150,9 @@ __all__ = (
     "CreateTableFromSnapshotMetadata",
     "CreateBackupRequest",
     "CreateBackupMetadata",
-    "GetBackupRequest",
     "UpdateBackupRequest",
+    "GetBackupRequest",
     "DeleteBackupRequest",
     "ListBackupsRequest",
     "ListBackupsResponse",
-    "RestoreTableRequest",
-    "RestoreTableMetadata",
-    "OptimizeRestoredTableMetadata",
 )

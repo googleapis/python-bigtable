@@ -44,7 +44,6 @@ from .bigtable import (
     ReadModifyWriteRowResponse,
 )
 
-
 __all__ = (
     "Row",
     "Family",

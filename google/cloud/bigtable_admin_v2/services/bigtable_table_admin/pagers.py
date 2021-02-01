@@ -25,7 +25,7 @@ class ListTablesPager:
     """A pager for iterating through ``list_tables`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListTablesResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``tables`` field.
 
@@ -34,7 +34,7 @@ class ListTablesPager:
     through the ``tables`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListTablesResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -52,9 +52,9 @@ class ListTablesPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListTablesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListTablesRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListTablesResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListTablesResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -87,7 +87,7 @@ class ListTablesAsyncPager:
     """A pager for iterating through ``list_tables`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListTablesResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``tables`` field.
 
@@ -96,7 +96,7 @@ class ListTablesAsyncPager:
     through the ``tables`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListTablesResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListTablesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -114,9 +114,9 @@ class ListTablesAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListTablesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListTablesRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListTablesResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListTablesResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -153,7 +153,7 @@ class ListSnapshotsPager:
     """A pager for iterating through ``list_snapshots`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListSnapshotsResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``snapshots`` field.
 
@@ -162,7 +162,7 @@ class ListSnapshotsPager:
     through the ``snapshots`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListSnapshotsResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -180,9 +180,9 @@ class ListSnapshotsPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListSnapshotsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListSnapshotsResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -215,7 +215,7 @@ class ListSnapshotsAsyncPager:
     """A pager for iterating through ``list_snapshots`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListSnapshotsResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``snapshots`` field.
 
@@ -224,7 +224,7 @@ class ListSnapshotsAsyncPager:
     through the ``snapshots`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListSnapshotsResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -242,9 +242,9 @@ class ListSnapshotsAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListSnapshotsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListSnapshotsResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListSnapshotsResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -281,7 +281,7 @@ class ListBackupsPager:
     """A pager for iterating through ``list_backups`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListBackupsResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``backups`` field.
 
@@ -290,7 +290,7 @@ class ListBackupsPager:
     through the ``backups`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListBackupsResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -308,9 +308,9 @@ class ListBackupsPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListBackupsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListBackupsRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListBackupsResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListBackupsResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -343,7 +343,7 @@ class ListBackupsAsyncPager:
     """A pager for iterating through ``list_backups`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_table_admin.ListBackupsResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``backups`` field.
 
@@ -352,7 +352,7 @@ class ListBackupsAsyncPager:
     through the ``backups`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_table_admin.ListBackupsResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListBackupsResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -370,9 +370,9 @@ class ListBackupsAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_table_admin.ListBackupsRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListBackupsRequest):
                 The initial request object.
-            response (:class:`~.bigtable_table_admin.ListBackupsResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListBackupsResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.

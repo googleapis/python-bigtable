@@ -111,6 +111,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
     )
 
     @classmethod
+    def from_service_account_info(cls, info: dict, *args, **kwargs):
+        """Creates an instance of this client using the provided credentials info.
+
+        Args:
+            info (dict): The service account private key info.
+            args: Additional arguments to pass to the constructor.
+            kwargs: Additional arguments to pass to the constructor.
+
+        Returns:
+            BigtableClient: The constructed client.
+        """
+        credentials = service_account.Credentials.from_service_account_info(info)
+        kwargs["credentials"] = credentials
+        return cls(*args, **kwargs)
+
+    @classmethod
     def from_service_account_file(cls, filename: str, *args, **kwargs):
         """Creates an instance of this client using the provided credentials
         file.
@@ -122,7 +138,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
             kwargs: Additional arguments to pass to the constructor.
 
         Returns:
-            {@api.name}: The constructed client.
+            BigtableClient: The constructed client.
         """
         credentials = service_account.Credentials.from_service_account_file(filename)
         kwargs["credentials"] = credentials
@@ -230,10 +246,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, ~.BigtableTransport]): The
+            transport (Union[str, BigtableTransport]): The
                 transport to use. If set to None, a transport is chosen
                 automatically.
-            client_options (client_options_lib.ClientOptions): Custom options for the
+            client_options (google.api_core.client_options.ClientOptions): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
                 default endpoint provided by the client. GOOGLE_API_USE_MTLS_ENDPOINT
@@ -269,21 +285,17 @@ class BigtableClient(metaclass=BigtableClientMeta):
             util.strtobool(os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"))
         )
 
-        ssl_credentials = None
+        client_cert_source_func = None
         is_mtls = False
         if use_client_cert:
             if client_options.client_cert_source:
-                import grpc  # type: ignore
-
-                cert, key = client_options.client_cert_source()
-                ssl_credentials = grpc.ssl_channel_credentials(
-                    certificate_chain=cert, private_key=key
-                )
                 is_mtls = True
+                client_cert_source_func = client_options.client_cert_source
             else:
-                creds = SslCredentials()
-                is_mtls = creds.is_mtls
-                ssl_credentials = creds.ssl_credentials if is_mtls else None
+                is_mtls = mtls.has_default_client_cert_source()
+                client_cert_source_func = (
+                    mtls.default_client_cert_source() if is_mtls else None
+                )
 
         # Figure out which api endpoint to use.
         if client_options.api_endpoint is not None:
@@ -326,7 +338,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials_file=client_options.credentials_file,
                 host=api_endpoint,
                 scopes=client_options.scopes,
-                ssl_channel_credentials=ssl_credentials,
+                client_cert_source_for_mtls=client_cert_source_func,
                 quota_project_id=client_options.quota_project_id,
                 client_info=client_info,
             )
@@ -349,21 +361,23 @@ class BigtableClient(metaclass=BigtableClientMeta):
         ReadRowsResponse documentation for details.
 
         Args:
-            request (:class:`~.bigtable.ReadRowsRequest`):
+            request (google.cloud.bigtable_v2.types.ReadRowsRequest):
                 The request object. Request message for
                 Bigtable.ReadRows.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the table from which to
                 read. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -375,7 +389,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            Iterable[~.bigtable.ReadRowsResponse]:
+            Iterable[google.cloud.bigtable_v2.types.ReadRowsResponse]:
                 Response message for
                 Bigtable.ReadRows.
 
@@ -440,21 +454,23 @@ class BigtableClient(metaclass=BigtableClientMeta):
         mapreduces.
 
         Args:
-            request (:class:`~.bigtable.SampleRowKeysRequest`):
+            request (google.cloud.bigtable_v2.types.SampleRowKeysRequest):
                 The request object. Request message for
                 Bigtable.SampleRowKeys.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the table from which to
                 sample row keys. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -466,7 +482,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            Iterable[~.bigtable.SampleRowKeysResponse]:
+            Iterable[google.cloud.bigtable_v2.types.SampleRowKeysResponse]:
                 Response message for
                 Bigtable.SampleRowKeys.
 
@@ -530,37 +546,41 @@ class BigtableClient(metaclass=BigtableClientMeta):
         left unchanged unless explicitly changed by ``mutation``.
 
         Args:
-            request (:class:`~.bigtable.MutateRowRequest`):
+            request (google.cloud.bigtable_v2.types.MutateRowRequest):
                 The request object. Request message for
                 Bigtable.MutateRow.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the table to which the
                 mutation should be applied. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            row_key (:class:`bytes`):
+            row_key (bytes):
                 Required. The key of the row to which
                 the mutation should be applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            mutations (:class:`Sequence[~.data.Mutation]`):
+            mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
                 Required. Changes to be atomically
                 applied to the specified row. Entries
                 are applied in order, meaning that
                 earlier mutations can be masked by later
                 ones. Must contain at least one entry
                 and at most 100000.
+
                 This corresponds to the ``mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -572,7 +592,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.MutateRowResponse:
+            google.cloud.bigtable_v2.types.MutateRowResponse:
                 Response message for
                 Bigtable.MutateRow.
 
@@ -641,17 +661,18 @@ class BigtableClient(metaclass=BigtableClientMeta):
         batch is not executed atomically.
 
         Args:
-            request (:class:`~.bigtable.MutateRowsRequest`):
+            request (google.cloud.bigtable_v2.types.MutateRowsRequest):
                 The request object. Request message for
                 BigtableService.MutateRows.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the
                 table to which the mutations should be
                 applied.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            entries (:class:`Sequence[~.bigtable.MutateRowsRequest.Entry]`):
+            entries (Sequence[google.cloud.bigtable_v2.types.MutateRowsRequest.Entry]):
                 Required. The row keys and
                 corresponding mutations to be applied in
                 bulk. Each entry is applied as an atomic
@@ -661,14 +682,16 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 must be specified, and in total the
                 entries can contain at most 100000
                 mutations.
+
                 This corresponds to the ``entries`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -680,7 +703,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            Iterable[~.bigtable.MutateRowsResponse]:
+            Iterable[google.cloud.bigtable_v2.types.MutateRowsResponse]:
                 Response message for
                 BigtableService.MutateRows.
 
@@ -749,58 +772,64 @@ class BigtableClient(metaclass=BigtableClientMeta):
         predicate Reader filter.
 
         Args:
-            request (:class:`~.bigtable.CheckAndMutateRowRequest`):
+            request (google.cloud.bigtable_v2.types.CheckAndMutateRowRequest):
                 The request object. Request message for
                 Bigtable.CheckAndMutateRow.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the table to which the
                 conditional mutation should be applied. Values are of
                 the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            row_key (:class:`bytes`):
+            row_key (bytes):
                 Required. The key of the row to which
                 the conditional mutation should be
                 applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            predicate_filter (:class:`~.data.RowFilter`):
+            predicate_filter (google.cloud.bigtable_v2.types.RowFilter):
                 The filter to be applied to the contents of the
                 specified row. Depending on whether or not any results
                 are yielded, either ``true_mutations`` or
                 ``false_mutations`` will be executed. If unset, checks
                 that the row contains any values at all.
+
                 This corresponds to the ``predicate_filter`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            true_mutations (:class:`Sequence[~.data.Mutation]`):
+            true_mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
                 Changes to be atomically applied to the specified row if
                 ``predicate_filter`` yields at least one cell when
                 applied to ``row_key``. Entries are applied in order,
                 meaning that earlier mutations can be masked by later
                 ones. Must contain at least one entry if
                 ``false_mutations`` is empty, and at most 100000.
+
                 This corresponds to the ``true_mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            false_mutations (:class:`Sequence[~.data.Mutation]`):
+            false_mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
                 Changes to be atomically applied to the specified row if
                 ``predicate_filter`` does not yield any cells when
                 applied to ``row_key``. Entries are applied in order,
                 meaning that earlier mutations can be masked by later
                 ones. Must contain at least one entry if
                 ``true_mutations`` is empty, and at most 100000.
+
                 This corresponds to the ``false_mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -812,7 +841,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.CheckAndMutateRowResponse:
+            google.cloud.bigtable_v2.types.CheckAndMutateRowResponse:
                 Response message for
                 Bigtable.CheckAndMutateRow.
 
@@ -899,39 +928,43 @@ class BigtableClient(metaclass=BigtableClientMeta):
         contents of all modified cells.
 
         Args:
-            request (:class:`~.bigtable.ReadModifyWriteRowRequest`):
+            request (google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest):
                 The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
-            table_name (:class:`str`):
+            table_name (str):
                 Required. The unique name of the table to which the
                 read/modify/write rules should be applied. Values are of
                 the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            row_key (:class:`bytes`):
+            row_key (bytes):
                 Required. The key of the row to which
                 the read/modify/write rules should be
                 applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            rules (:class:`Sequence[~.data.ReadModifyWriteRule]`):
+            rules (Sequence[google.cloud.bigtable_v2.types.ReadModifyWriteRule]):
                 Required. Rules specifying how the
                 specified row's contents are to be
                 transformed into writes. Entries are
                 applied in order, meaning that earlier
                 rules will affect the results of later
                 ones.
+
                 This corresponds to the ``rules`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile_id (:class:`str`):
+            app_profile_id (str):
                 This value specifies routing for
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -943,7 +976,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.ReadModifyWriteRowResponse:
+            google.cloud.bigtable_v2.types.ReadModifyWriteRowResponse:
                 Response message for
                 Bigtable.ReadModifyWriteRow.
 

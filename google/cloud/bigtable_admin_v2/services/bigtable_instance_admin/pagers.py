@@ -25,7 +25,7 @@ class ListAppProfilesPager:
     """A pager for iterating through ``list_app_profiles`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_instance_admin.ListAppProfilesResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse` object, and
     provides an ``__iter__`` method to iterate through its
     ``app_profiles`` field.
 
@@ -34,7 +34,7 @@ class ListAppProfilesPager:
     through the ``app_profiles`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_instance_admin.ListAppProfilesResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -52,9 +52,9 @@ class ListAppProfilesPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_instance_admin.ListAppProfilesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest):
                 The initial request object.
-            response (:class:`~.bigtable_instance_admin.ListAppProfilesResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.
@@ -87,7 +87,7 @@ class ListAppProfilesAsyncPager:
     """A pager for iterating through ``list_app_profiles`` requests.
 
     This class thinly wraps an initial
-    :class:`~.bigtable_instance_admin.ListAppProfilesResponse` object, and
+    :class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse` object, and
     provides an ``__aiter__`` method to iterate through its
     ``app_profiles`` field.
 
@@ -96,7 +96,7 @@ class ListAppProfilesAsyncPager:
     through the ``app_profiles`` field on the
     corresponding responses.
 
-    All the usual :class:`~.bigtable_instance_admin.ListAppProfilesResponse`
+    All the usual :class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse`
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
@@ -116,9 +116,9 @@ class ListAppProfilesAsyncPager:
         Args:
             method (Callable): The method that was originally called, and
                 which instantiated this pager.
-            request (:class:`~.bigtable_instance_admin.ListAppProfilesRequest`):
+            request (google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest):
                 The initial request object.
-            response (:class:`~.bigtable_instance_admin.ListAppProfilesResponse`):
+            response (google.cloud.bigtable_admin_v2.types.ListAppProfilesResponse):
                 The initial response object.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
                 sent along with the request as metadata.

@@ -47,9 +47,9 @@ class RestoreInfo(proto.Message):
     r"""Information about a table restore.
 
     Attributes:
-        source_type (~.table.RestoreSourceType):
+        source_type (google.cloud.bigtable_admin_v2.types.RestoreSourceType):
             The type of the restore source.
-        backup_info (~.table.BackupInfo):
+        backup_info (google.cloud.bigtable_admin_v2.types.BackupInfo):
             Information about the backup used to restore
             the table. The backup may no longer exist.
     """
@@ -73,24 +73,24 @@ class Table(proto.Message):
             ``projects/<project>/instances/<instance>/tables/[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
             Views: ``NAME_ONLY``, ``SCHEMA_VIEW``, ``REPLICATION_VIEW``,
             ``FULL``
-        cluster_states (Sequence[~.table.Table.ClusterStatesEntry]):
+        cluster_states (Sequence[google.cloud.bigtable_admin_v2.types.Table.ClusterStatesEntry]):
             Output only. Map from cluster ID to per-cluster table state.
             If it could not be determined whether or not the table has
             data in a particular cluster (for example, if its zone is
             unavailable), then there will be an entry for the cluster
             with UNKNOWN ``replication_status``. Views:
             ``REPLICATION_VIEW``, ``FULL``
-        column_families (Sequence[~.table.Table.ColumnFamiliesEntry]):
+        column_families (Sequence[google.cloud.bigtable_admin_v2.types.Table.ColumnFamiliesEntry]):
             (``CreationOnly``) The column families configured for this
             table, mapped by column family ID. Views: ``SCHEMA_VIEW``,
             ``FULL``
-        granularity (~.table.Table.TimestampGranularity):
+        granularity (google.cloud.bigtable_admin_v2.types.Table.TimestampGranularity):
             (``CreationOnly``) The granularity (i.e. ``MILLIS``) at
             which timestamps are stored in this table. Timestamps not
             matching the granularity will be rejected. If unspecified at
             creation time, the value will be set to ``MILLIS``. Views:
             ``SCHEMA_VIEW``, ``FULL``.
-        restore_info (~.table.RestoreInfo):
+        restore_info (google.cloud.bigtable_admin_v2.types.RestoreInfo):
             Output only. If this table was restored from
             another data source (e.g. a backup), this field
             will be populated with information about the
@@ -116,7 +116,7 @@ class Table(proto.Message):
         r"""The state of a table's data in a particular cluster.
 
         Attributes:
-            replication_state (~.table.Table.ClusterState.ReplicationState):
+            replication_state (google.cloud.bigtable_admin_v2.types.Table.ClusterState.ReplicationState):
                 Output only. The state of replication for the
                 table in this cluster.
         """
@@ -154,7 +154,7 @@ class ColumnFamily(proto.Message):
     configuration.
 
     Attributes:
-        gc_rule (~.table.GcRule):
+        gc_rule (google.cloud.bigtable_admin_v2.types.GcRule):
             Garbage collection rule specified as a
             protobuf. Must serialize to at most 500 bytes.
             NOTE: Garbage collection executes
@@ -174,15 +174,15 @@ class GcRule(proto.Message):
         max_num_versions (int):
             Delete all cells in a column except the most
             recent N.
-        max_age (~.duration.Duration):
+        max_age (google.protobuf.duration_pb2.Duration):
             Delete cells in a column older than the given
             age. Values must be at least one millisecond,
             and will be truncated to microsecond
             granularity.
-        intersection (~.table.GcRule.Intersection):
+        intersection (google.cloud.bigtable_admin_v2.types.GcRule.Intersection):
             Delete cells that would be deleted by every
             nested rule.
-        union (~.table.GcRule.Union):
+        union (google.cloud.bigtable_admin_v2.types.GcRule.Union):
             Delete cells that would be deleted by any
             nested rule.
     """
@@ -191,7 +191,7 @@ class GcRule(proto.Message):
         r"""A GcRule which deletes cells matching all of the given rules.
 
         Attributes:
-            rules (Sequence[~.table.GcRule]):
+            rules (Sequence[google.cloud.bigtable_admin_v2.types.GcRule]):
                 Only delete cells which would be deleted by every element of
                 ``rules``.
         """
@@ -202,7 +202,7 @@ class GcRule(proto.Message):
         r"""A GcRule which deletes cells matching any of the given rules.
 
         Attributes:
-            rules (Sequence[~.table.GcRule]):
+            rules (Sequence[google.cloud.bigtable_admin_v2.types.GcRule]):
                 Delete cells which would be deleted by any element of
                 ``rules``.
         """
@@ -237,7 +237,7 @@ class Snapshot(proto.Message):
             Output only. The unique name of the snapshot. Values are of
             the form
             ``projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/<snapshot>``.
-        source_table (~.table.Table):
+        source_table (google.cloud.bigtable_admin_v2.types.Table):
             Output only. The source table at the time the
             snapshot was taken.
         data_size_bytes (int):
@@ -246,16 +246,16 @@ class Snapshot(proto.Message):
             In some cases, this value may be computed
             asynchronously via a background process and a
             placeholder of 0 will be used in the meantime.
-        create_time (~.timestamp.Timestamp):
+        create_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. The time when the snapshot is
             created.
-        delete_time (~.timestamp.Timestamp):
+        delete_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. The time when the snapshot will
             be deleted. The maximum amount of time a
             snapshot can stay active is 365 days. If 'ttl'
             is not specified, the default maximum of 365
             days will be used.
-        state (~.table.Snapshot.State):
+        state (google.cloud.bigtable_admin_v2.types.Snapshot.State):
             Output only. The current state of the
             snapshot.
         description (str):
@@ -302,25 +302,25 @@ class Backup(proto.Message):
             backup was created. This needs to be in the same instance as
             the backup. Values are of the form
             ``projects/{project}/instances/{instance}/tables/{source_table}``.
-        expire_time (~.timestamp.Timestamp):
+        expire_time (google.protobuf.timestamp_pb2.Timestamp):
             Required. The expiration time of the backup, with
             microseconds granularity that must be at least 6 hours and
             at most 30 days from the time the request is received. Once
             the ``expire_time`` has passed, Cloud Bigtable will delete
             the backup and free the resources used by the backup.
-        start_time (~.timestamp.Timestamp):
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. ``start_time`` is the time that the backup was
             started (i.e. approximately the time the
             [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup]
             request is received). The row data in this backup will be no
             older than this timestamp.
-        end_time (~.timestamp.Timestamp):
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. ``end_time`` is the time that the backup was
             finished. The row data in the backup will be no newer than
             this timestamp.
         size_bytes (int):
             Output only. Size of the backup in bytes.
-        state (~.table.Backup.State):
+        state (google.cloud.bigtable_admin_v2.types.Backup.State):
             Output only. The current state of the backup.
     """
 
@@ -351,11 +351,11 @@ class BackupInfo(proto.Message):
     Attributes:
         backup (str):
             Output only. Name of the backup.
-        start_time (~.timestamp.Timestamp):
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. The time that the backup was
             started. Row data in the backup will be no older
             than this timestamp.
-        end_time (~.timestamp.Timestamp):
+        end_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. This time that the backup was
             finished. Row data in the backup will be no
             newer than this timestamp.

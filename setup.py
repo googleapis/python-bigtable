@@ -20,8 +20,8 @@ import setuptools
 
 # Package metadata.
 
-name = 'google-cloud-bigtable'
-description = 'Google Cloud Bigtable API client library'
+name = "google-cloud-bigtable"
+description = "Google Cloud Bigtable API client library"
 version = "1.6.1"
 # Should be one of:
 # 'Development Status :: 3 - Alpha'

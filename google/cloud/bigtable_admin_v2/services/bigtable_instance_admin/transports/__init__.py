@@ -30,7 +30,6 @@ _transport_registry = (
 _transport_registry["grpc"] = BigtableInstanceAdminGrpcTransport
 _transport_registry["grpc_asyncio"] = BigtableInstanceAdminGrpcAsyncIOTransport
 
-
 __all__ = (
     "BigtableInstanceAdminTransport",
     "BigtableInstanceAdminGrpcTransport",

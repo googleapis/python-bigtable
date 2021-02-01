@@ -96,6 +96,7 @@ class BigtableInstanceAdminAsyncClient:
         BigtableInstanceAdminClient.parse_common_location_path
     )
 
+    from_service_account_info = BigtableInstanceAdminClient.from_service_account_info
     from_service_account_file = BigtableInstanceAdminClient.from_service_account_file
     from_service_account_json = from_service_account_file
 
@@ -178,13 +179,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Create an instance within a project.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.CreateInstanceRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.CreateInstanceRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.CreateInstance.
             parent (:class:`str`):
                 Required. The unique name of the project in which to
                 create the new instance. Values are of the form
                 ``projects/{project}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -192,22 +194,25 @@ class BigtableInstanceAdminAsyncClient:
                 Required. The ID to be used when referring to the new
                 instance within its project, e.g., just ``myinstance``
                 rather than ``projects/myproject/instances/myinstance``.
+
                 This corresponds to the ``instance_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            instance (:class:`~.gba_instance.Instance`):
+            instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
                 Required. The instance to create. Fields marked
                 ``OutputOnly`` must be left blank.
+
                 This corresponds to the ``instance`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            clusters (:class:`Sequence[~.bigtable_instance_admin.CreateInstanceRequest.ClustersEntry]`):
+            clusters (:class:`Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]`):
                 Required. The clusters to be created within the
                 instance, mapped by desired cluster ID, e.g., just
                 ``mycluster`` rather than
                 ``projects/myproject/instances/myinstance/clusters/mycluster``.
                 Fields marked ``OutputOnly`` must be left blank.
                 Currently, at most four clusters can be specified.
+
                 This corresponds to the ``clusters`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -219,16 +224,14 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation_async.AsyncOperation:
+            google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.gba_instance.Instance``: A collection of
-                Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                the resources that serve them. All tables in an instance
-                are served from all
-                [Clusters][google.bigtable.admin.v2.Cluster] in the
-                instance.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Instance` A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
+                   the resources that serve them. All tables in an
+                   instance are served from all
+                   [Clusters][google.bigtable.admin.v2.Cluster] in the
+                   instance.
 
         """
         # Create or coerce a protobuf request object.
@@ -296,13 +299,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Gets information about an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.GetInstanceRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.GetInstanceRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.GetInstance.
             name (:class:`str`):
                 Required. The unique name of the requested instance.
                 Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -314,13 +318,12 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.instance.Instance:
-                A collection of Bigtable
-                [Tables][google.bigtable.admin.v2.Table] and the
-                resources that serve them. All tables in an instance are
-                served from all
-                [Clusters][google.bigtable.admin.v2.Cluster] in the
-                instance.
+            google.cloud.bigtable_admin_v2.types.Instance:
+                A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
+                   the resources that serve them. All tables in an
+                   instance are served from all
+                   [Clusters][google.bigtable.admin.v2.Cluster] in the
+                   instance.
 
         """
         # Create or coerce a protobuf request object.
@@ -381,13 +384,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Lists information about instances in a project.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.ListInstancesRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.ListInstancesRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.ListInstances.
             parent (:class:`str`):
                 Required. The unique name of the project for which a
                 list of instances is requested. Values are of the form
                 ``projects/{project}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -399,7 +403,7 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable_instance_admin.ListInstancesResponse:
+            google.cloud.bigtable_admin_v2.types.ListInstancesResponse:
                 Response message for
                 BigtableInstanceAdmin.ListInstances.
 
@@ -464,7 +468,7 @@ class BigtableInstanceAdminAsyncClient:
         PartialUpdateInstance.
 
         Args:
-            request (:class:`~.instance.Instance`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
                 The request object. A collection of Bigtable
                 [Tables][google.bigtable.admin.v2.Table] and the
                 resources that serve them. All tables in an instance are
@@ -479,13 +483,12 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.instance.Instance:
-                A collection of Bigtable
-                [Tables][google.bigtable.admin.v2.Table] and the
-                resources that serve them. All tables in an instance are
-                served from all
-                [Clusters][google.bigtable.admin.v2.Cluster] in the
-                instance.
+            google.cloud.bigtable_admin_v2.types.Instance:
+                A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
+                   the resources that serve them. All tables in an
+                   instance are served from all
+                   [Clusters][google.bigtable.admin.v2.Cluster] in the
+                   instance.
 
         """
         # Create or coerce a protobuf request object.
@@ -535,19 +538,21 @@ class BigtableInstanceAdminAsyncClient:
         preferred way to update an Instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.PartialUpdateInstanceRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.PartialUpdateInstance.
-            instance (:class:`~.gba_instance.Instance`):
+            instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
                 Required. The Instance which will
                 (partially) replace the current value.
+
                 This corresponds to the ``instance`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`~.field_mask.FieldMask`):
+            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
                 Required. The subset of Instance
                 fields which should be replaced. Must be
                 explicitly set.
+
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -559,16 +564,14 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation_async.AsyncOperation:
+            google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.gba_instance.Instance``: A collection of
-                Bigtable [Tables][google.bigtable.admin.v2.Table] and
-                the resources that serve them. All tables in an instance
-                are served from all
-                [Clusters][google.bigtable.admin.v2.Cluster] in the
-                instance.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Instance` A collection of Bigtable [Tables][google.bigtable.admin.v2.Table] and
+                   the resources that serve them. All tables in an
+                   instance are served from all
+                   [Clusters][google.bigtable.admin.v2.Cluster] in the
+                   instance.
 
         """
         # Create or coerce a protobuf request object.
@@ -641,13 +644,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Delete an instance from a project.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.DeleteInstanceRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.DeleteInstance.
             name (:class:`str`):
                 Required. The unique name of the instance to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -709,13 +713,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Creates a cluster within an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.CreateClusterRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.CreateClusterRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.CreateCluster.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
                 create the new cluster. Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -724,12 +729,14 @@ class BigtableInstanceAdminAsyncClient:
                 cluster within its instance, e.g., just ``mycluster``
                 rather than
                 ``projects/myproject/instances/myinstance/clusters/mycluster``.
+
                 This corresponds to the ``cluster_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            cluster (:class:`~.instance.Cluster`):
+            cluster (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
                 Required. The cluster to be created. Fields marked
                 ``OutputOnly`` must be left blank.
+
                 This corresponds to the ``cluster`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -741,14 +748,13 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation_async.AsyncOperation:
+            google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.instance.Cluster``: A resizable group of
-                nodes in a particular cloud location, capable of serving
-                all [Tables][google.bigtable.admin.v2.Table] in the
-                parent [Instance][google.bigtable.admin.v2.Instance].
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Cluster` A resizable group of nodes in a particular cloud location, capable
+                   of serving all
+                   [Tables][google.bigtable.admin.v2.Table] in the
+                   parent [Instance][google.bigtable.admin.v2.Instance].
 
         """
         # Create or coerce a protobuf request object.
@@ -813,13 +819,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Gets information about a cluster.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.GetClusterRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.GetClusterRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.GetCluster.
             name (:class:`str`):
                 Required. The unique name of the requested cluster.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -831,11 +838,11 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.instance.Cluster:
-                A resizable group of nodes in a particular cloud
-                location, capable of serving all
-                [Tables][google.bigtable.admin.v2.Table] in the parent
-                [Instance][google.bigtable.admin.v2.Instance].
+            google.cloud.bigtable_admin_v2.types.Cluster:
+                A resizable group of nodes in a particular cloud location, capable
+                   of serving all
+                   [Tables][google.bigtable.admin.v2.Table] in the
+                   parent [Instance][google.bigtable.admin.v2.Instance].
 
         """
         # Create or coerce a protobuf request object.
@@ -896,7 +903,7 @@ class BigtableInstanceAdminAsyncClient:
         r"""Lists information about clusters in an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.ListClustersRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.ListClustersRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.ListClusters.
             parent (:class:`str`):
@@ -905,6 +912,7 @@ class BigtableInstanceAdminAsyncClient:
                 ``projects/{project}/instances/{instance}``. Use
                 ``{instance} = '-'`` to list Clusters for all Instances
                 in a project, e.g., ``projects/myproject/instances/-``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -916,7 +924,7 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable_instance_admin.ListClustersResponse:
+            google.cloud.bigtable_admin_v2.types.ListClustersResponse:
                 Response message for
                 BigtableInstanceAdmin.ListClusters.
 
@@ -978,7 +986,7 @@ class BigtableInstanceAdminAsyncClient:
         r"""Updates a cluster within an instance.
 
         Args:
-            request (:class:`~.instance.Cluster`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
                 The request object. A resizable group of nodes in a
                 particular cloud location, capable of serving all
                 [Tables][google.bigtable.admin.v2.Table] in the parent
@@ -991,14 +999,13 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation_async.AsyncOperation:
+            google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.instance.Cluster``: A resizable group of
-                nodes in a particular cloud location, capable of serving
-                all [Tables][google.bigtable.admin.v2.Table] in the
-                parent [Instance][google.bigtable.admin.v2.Instance].
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.Cluster` A resizable group of nodes in a particular cloud location, capable
+                   of serving all
+                   [Tables][google.bigtable.admin.v2.Table] in the
+                   parent [Instance][google.bigtable.admin.v2.Instance].
 
         """
         # Create or coerce a protobuf request object.
@@ -1053,13 +1060,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Deletes a cluster from an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.DeleteClusterRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.DeleteClusterRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.DeleteCluster.
             name (:class:`str`):
                 Required. The unique name of the cluster to be deleted.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1121,13 +1129,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Creates an app profile within an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.CreateAppProfileRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.CreateAppProfile.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
                 create the new app profile. Values are of the form
                 ``projects/{project}/instances/{instance}``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1136,12 +1145,14 @@ class BigtableInstanceAdminAsyncClient:
                 app profile within its instance, e.g., just
                 ``myprofile`` rather than
                 ``projects/myproject/instances/myinstance/appProfiles/myprofile``.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            app_profile (:class:`~.instance.AppProfile`):
+            app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
                 Required. The app profile to be created. Fields marked
                 ``OutputOnly`` will be ignored.
+
                 This corresponds to the ``app_profile`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1153,7 +1164,7 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.instance.AppProfile:
+            google.cloud.bigtable_admin_v2.types.AppProfile:
                 A configuration object describing how
                 Cloud Bigtable should treat traffic from
                 a particular end user application.
@@ -1213,13 +1224,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Gets information about an app profile.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.GetAppProfileRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.GetAppProfileRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.GetAppProfile.
             name (:class:`str`):
                 Required. The unique name of the requested app profile.
                 Values are of the form
                 ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1231,7 +1243,7 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.instance.AppProfile:
+            google.cloud.bigtable_admin_v2.types.AppProfile:
                 A configuration object describing how
                 Cloud Bigtable should treat traffic from
                 a particular end user application.
@@ -1295,7 +1307,7 @@ class BigtableInstanceAdminAsyncClient:
         r"""Lists information about app profiles in an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.ListAppProfilesRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.ListAppProfiles.
             parent (:class:`str`):
@@ -1305,6 +1317,7 @@ class BigtableInstanceAdminAsyncClient:
                 ``{instance} = '-'`` to list AppProfiles for all
                 Instances in a project, e.g.,
                 ``projects/myproject/instances/-``.
+
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1316,7 +1329,7 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.pagers.ListAppProfilesAsyncPager:
+            google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.pagers.ListAppProfilesAsyncPager:
                 Response message for
                 BigtableInstanceAdmin.ListAppProfiles.
                 Iterating over this object will yield
@@ -1389,19 +1402,21 @@ class BigtableInstanceAdminAsyncClient:
         r"""Updates an app profile within an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.UpdateAppProfileRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.UpdateAppProfile.
-            app_profile (:class:`~.instance.AppProfile`):
+            app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
                 Required. The app profile which will
                 (partially) replace the current value.
+
                 This corresponds to the ``app_profile`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            update_mask (:class:`~.field_mask.FieldMask`):
+            update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
                 Required. The subset of app profile
                 fields which should be replaced. If
                 unset, all fields will be replaced.
+
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1413,13 +1428,11 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.operation_async.AsyncOperation:
+            google.api_core.operation_async.AsyncOperation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be
-                :class:``~.instance.AppProfile``: A configuration object
-                describing how Cloud Bigtable should treat traffic from
-                a particular end user application.
+                The result type for the operation will be :class:`google.cloud.bigtable_admin_v2.types.AppProfile` A configuration object describing how Cloud Bigtable should treat traffic
+                   from a particular end user application.
 
         """
         # Create or coerce a protobuf request object.
@@ -1492,13 +1505,14 @@ class BigtableInstanceAdminAsyncClient:
         r"""Deletes an app profile from an instance.
 
         Args:
-            request (:class:`~.bigtable_instance_admin.DeleteAppProfileRequest`):
+            request (:class:`google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest`):
                 The request object. Request message for
                 BigtableInstanceAdmin.DeleteAppProfile.
             name (:class:`str`):
                 Required. The unique name of the app profile to be
                 deleted. Values are of the form
                 ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
+
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1560,7 +1574,7 @@ class BigtableInstanceAdminAsyncClient:
         but does not have a policy set.
 
         Args:
-            request (:class:`~.iam_policy.GetIamPolicyRequest`):
+            request (:class:`google.iam.v1.iam_policy_pb2.GetIamPolicyRequest`):
                 The request object. Request message for `GetIamPolicy`
                 method.
             resource (:class:`str`):
@@ -1568,6 +1582,7 @@ class BigtableInstanceAdminAsyncClient:
                 policy is being requested. See the
                 operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1579,72 +1594,62 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.policy.Policy:
-                Defines an Identity and Access Management (IAM) policy.
-                It is used to specify access control policies for Cloud
-                Platform resources.
+            google.iam.v1.policy_pb2.Policy:
+                Defines an Identity and Access Management (IAM) policy. It is used to
+                   specify access control policies for Cloud Platform
+                   resources.
 
-                A ``Policy`` is a collection of ``bindings``. A
-                ``binding`` binds one or more ``members`` to a single
-                ``role``. Members can be user accounts, service
-                accounts, Google groups, and domains (such as G Suite).
-                A ``role`` is a named list of permissions (defined by
-                IAM or configured by users). A ``binding`` can
-                optionally specify a ``condition``, which is a logic
-                expression that further constrains the role binding
-                based on attributes about the request and/or target
-                resource.
+                   A Policy is a collection of bindings. A binding binds
+                   one or more members to a single role. Members can be
+                   user accounts, service accounts, Google groups, and
+                   domains (such as G Suite). A role is a named list of
+                   permissions (defined by IAM or configured by users).
+                   A binding can optionally specify a condition, which
+                   is a logic expression that further constrains the
+                   role binding based on attributes about the request
+                   and/or target resource.
 
-                **JSON Example**
+                   **JSON Example**
 
-                ::
+                      {
+                         "bindings": [
+                            {
+                               "role":
+                               "roles/resourcemanager.organizationAdmin",
+                               "members": [ "user:mike@example.com",
+                               "group:admins@example.com",
+                               "domain:google.com",
+                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
+                               ]
 
-                    {
-                      "bindings": [
-                        {
-                          "role": "roles/resourcemanager.organizationAdmin",
-                          "members": [
-                            "user:mike@example.com",
-                            "group:admins@example.com",
-                            "domain:google.com",
-                            "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                          ]
-                        },
-                        {
-                          "role": "roles/resourcemanager.organizationViewer",
-                          "members": ["user:eve@example.com"],
-                          "condition": {
-                            "title": "expirable access",
-                            "description": "Does not grant access after Sep 2020",
-                            "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')",
-                          }
-                        }
-                      ]
-                    }
+                            }, { "role":
+                            "roles/resourcemanager.organizationViewer",
+                            "members": ["user:eve@example.com"],
+                            "condition": { "title": "expirable access",
+                            "description": "Does not grant access after
+                            Sep 2020", "expression": "request.time <
+                            timestamp('2020-10-01T00:00:00.000Z')", } }
 
-                **YAML Example**
+                         ]
 
-                ::
+                      }
 
-                    bindings:
-                    - members:
-                      - user:mike@example.com
-                      - group:admins@example.com
-                      - domain:google.com
-                      - serviceAccount:my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin
-                    - members:
-                      - user:eve@example.com
-                      role: roles/resourcemanager.organizationViewer
-                      condition:
-                        title: expirable access
-                        description: Does not grant access after Sep 2020
-                        expression: request.time < timestamp('2020-10-01T00:00:00.000Z')
+                   **YAML Example**
 
-                For a description of IAM and its features, see the `IAM
-                developer's
-                guide <https://cloud.google.com/iam/docs>`__.
+                      bindings: - members: - user:\ mike@example.com -
+                      group:\ admins@example.com - domain:google.com -
+                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
+                      role: roles/resourcemanager.organizationAdmin -
+                      members: - user:\ eve@example.com role:
+                      roles/resourcemanager.organizationViewer
+                      condition: title: expirable access description:
+                      Does not grant access after Sep 2020 expression:
+                      request.time <
+                      timestamp('2020-10-01T00:00:00.000Z')
+
+                   For a description of IAM and its features, see the
+                   [IAM developer's
+                   guide](\ https://cloud.google.com/iam/docs).
 
         """
         # Create or coerce a protobuf request object.
@@ -1706,7 +1711,7 @@ class BigtableInstanceAdminAsyncClient:
         resource. Replaces any existing policy.
 
         Args:
-            request (:class:`~.iam_policy.SetIamPolicyRequest`):
+            request (:class:`google.iam.v1.iam_policy_pb2.SetIamPolicyRequest`):
                 The request object. Request message for `SetIamPolicy`
                 method.
             resource (:class:`str`):
@@ -1714,6 +1719,7 @@ class BigtableInstanceAdminAsyncClient:
                 policy is being specified. See the
                 operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1725,72 +1731,62 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.policy.Policy:
-                Defines an Identity and Access Management (IAM) policy.
-                It is used to specify access control policies for Cloud
-                Platform resources.
+            google.iam.v1.policy_pb2.Policy:
+                Defines an Identity and Access Management (IAM) policy. It is used to
+                   specify access control policies for Cloud Platform
+                   resources.
 
-                A ``Policy`` is a collection of ``bindings``. A
-                ``binding`` binds one or more ``members`` to a single
-                ``role``. Members can be user accounts, service
-                accounts, Google groups, and domains (such as G Suite).
-                A ``role`` is a named list of permissions (defined by
-                IAM or configured by users). A ``binding`` can
-                optionally specify a ``condition``, which is a logic
-                expression that further constrains the role binding
-                based on attributes about the request and/or target
-                resource.
+                   A Policy is a collection of bindings. A binding binds
+                   one or more members to a single role. Members can be
+                   user accounts, service accounts, Google groups, and
+                   domains (such as G Suite). A role is a named list of
+                   permissions (defined by IAM or configured by users).
+                   A binding can optionally specify a condition, which
+                   is a logic expression that further constrains the
+                   role binding based on attributes about the request
+                   and/or target resource.
 
-                **JSON Example**
+                   **JSON Example**
 
-                ::
+                      {
+                         "bindings": [
+                            {
+                               "role":
+                               "roles/resourcemanager.organizationAdmin",
+                               "members": [ "user:mike@example.com",
+                               "group:admins@example.com",
+                               "domain:google.com",
+                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
+                               ]
 
-                    {
-                      "bindings": [
-                        {
-                          "role": "roles/resourcemanager.organizationAdmin",
-                          "members": [
-                            "user:mike@example.com",
-                            "group:admins@example.com",
-                            "domain:google.com",
-                            "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                          ]
-                        },
-                        {
-                          "role": "roles/resourcemanager.organizationViewer",
-                          "members": ["user:eve@example.com"],
-                          "condition": {
-                            "title": "expirable access",
-                            "description": "Does not grant access after Sep 2020",
-                            "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')",
-                          }
-                        }
-                      ]
-                    }
+                            }, { "role":
+                            "roles/resourcemanager.organizationViewer",
+                            "members": ["user:eve@example.com"],
+                            "condition": { "title": "expirable access",
+                            "description": "Does not grant access after
+                            Sep 2020", "expression": "request.time <
+                            timestamp('2020-10-01T00:00:00.000Z')", } }
 
-                **YAML Example**
+                         ]
 
-                ::
+                      }
 
-                    bindings:
-                    - members:
-                      - user:mike@example.com
-                      - group:admins@example.com
-                      - domain:google.com
-                      - serviceAccount:my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin
-                    - members:
-                      - user:eve@example.com
-                      role: roles/resourcemanager.organizationViewer
-                      condition:
-                        title: expirable access
-                        description: Does not grant access after Sep 2020
-                        expression: request.time < timestamp('2020-10-01T00:00:00.000Z')
+                   **YAML Example**
 
-                For a description of IAM and its features, see the `IAM
-                developer's
-                guide <https://cloud.google.com/iam/docs>`__.
+                      bindings: - members: - user:\ mike@example.com -
+                      group:\ admins@example.com - domain:google.com -
+                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
+                      role: roles/resourcemanager.organizationAdmin -
+                      members: - user:\ eve@example.com role:
+                      roles/resourcemanager.organizationViewer
+                      condition: title: expirable access description:
+                      Does not grant access after Sep 2020 expression:
+                      request.time <
+                      timestamp('2020-10-01T00:00:00.000Z')
+
+                   For a description of IAM and its features, see the
+                   [IAM developer's
+                   guide](\ https://cloud.google.com/iam/docs).
 
         """
         # Create or coerce a protobuf request object.
@@ -1845,7 +1841,7 @@ class BigtableInstanceAdminAsyncClient:
         specified instance resource.
 
         Args:
-            request (:class:`~.iam_policy.TestIamPermissionsRequest`):
+            request (:class:`google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest`):
                 The request object. Request message for
                 `TestIamPermissions` method.
             resource (:class:`str`):
@@ -1853,6 +1849,7 @@ class BigtableInstanceAdminAsyncClient:
                 policy detail is being requested. See
                 the operation documentation for the
                 appropriate value for this field.
+
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1861,6 +1858,7 @@ class BigtableInstanceAdminAsyncClient:
                 Permissions with wildcards (such as '*' or 'storage.*')
                 are not allowed. For more information see `IAM
                 Overview <https://cloud.google.com/iam/docs/overview#permissions>`__.
+
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -1872,8 +1870,8 @@ class BigtableInstanceAdminAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.iam_policy.TestIamPermissionsResponse:
-                Response message for ``TestIamPermissions`` method.
+            google.iam.v1.iam_policy_pb2.TestIamPermissionsResponse:
+                Response message for TestIamPermissions method.
         """
         # Create or coerce a protobuf request object.
         # Sanity check: If we got a request object, we should *not* have

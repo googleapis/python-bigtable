@@ -70,6 +70,7 @@ class BigtableAsyncClient:
     common_location_path = staticmethod(BigtableClient.common_location_path)
     parse_common_location_path = staticmethod(BigtableClient.parse_common_location_path)
 
+    from_service_account_info = BigtableClient.from_service_account_info
     from_service_account_file = BigtableClient.from_service_account_file
     from_service_account_json = from_service_account_file
 
@@ -152,13 +153,14 @@ class BigtableAsyncClient:
         ReadRowsResponse documentation for details.
 
         Args:
-            request (:class:`~.bigtable.ReadRowsRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.ReadRowsRequest`):
                 The request object. Request message for
                 Bigtable.ReadRows.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
                 read. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -167,6 +169,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -178,7 +181,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            AsyncIterable[~.bigtable.ReadRowsResponse]:
+            AsyncIterable[google.cloud.bigtable_v2.types.ReadRowsResponse]:
                 Response message for
                 Bigtable.ReadRows.
 
@@ -207,6 +210,12 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_rows,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(),
+            ),
             default_timeout=43200.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
@@ -242,13 +251,14 @@ class BigtableAsyncClient:
         mapreduces.
 
         Args:
-            request (:class:`~.bigtable.SampleRowKeysRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.SampleRowKeysRequest`):
                 The request object. Request message for
                 Bigtable.SampleRowKeys.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
                 sample row keys. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -257,6 +267,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -268,7 +279,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            AsyncIterable[~.bigtable.SampleRowKeysResponse]:
+            AsyncIterable[google.cloud.bigtable_v2.types.SampleRowKeysResponse]:
                 Response message for
                 Bigtable.SampleRowKeys.
 
@@ -297,6 +308,12 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.sample_row_keys,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(),
+            ),
             default_timeout=60.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
@@ -331,29 +348,32 @@ class BigtableAsyncClient:
         left unchanged unless explicitly changed by ``mutation``.
 
         Args:
-            request (:class:`~.bigtable.MutateRowRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.MutateRowRequest`):
                 The request object. Request message for
                 Bigtable.MutateRow.
             table_name (:class:`str`):
                 Required. The unique name of the table to which the
                 mutation should be applied. Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             row_key (:class:`bytes`):
                 Required. The key of the row to which
                 the mutation should be applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            mutations (:class:`Sequence[~.data.Mutation]`):
+            mutations (:class:`Sequence[google.cloud.bigtable_v2.types.Mutation]`):
                 Required. Changes to be atomically
                 applied to the specified row. Entries
                 are applied in order, meaning that
                 earlier mutations can be masked by later
                 ones. Must contain at least one entry
                 and at most 100000.
+
                 This corresponds to the ``mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -362,6 +382,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -373,7 +394,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.MutateRowResponse:
+            google.cloud.bigtable_v2.types.MutateRowResponse:
                 Response message for
                 Bigtable.MutateRow.
 
@@ -449,17 +470,18 @@ class BigtableAsyncClient:
         batch is not executed atomically.
 
         Args:
-            request (:class:`~.bigtable.MutateRowsRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.MutateRowsRequest`):
                 The request object. Request message for
                 BigtableService.MutateRows.
             table_name (:class:`str`):
                 Required. The unique name of the
                 table to which the mutations should be
                 applied.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            entries (:class:`Sequence[~.bigtable.MutateRowsRequest.Entry]`):
+            entries (:class:`Sequence[google.cloud.bigtable_v2.types.MutateRowsRequest.Entry]`):
                 Required. The row keys and
                 corresponding mutations to be applied in
                 bulk. Each entry is applied as an atomic
@@ -469,6 +491,7 @@ class BigtableAsyncClient:
                 must be specified, and in total the
                 entries can contain at most 100000
                 mutations.
+
                 This corresponds to the ``entries`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -477,6 +500,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -488,7 +512,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            AsyncIterable[~.bigtable.MutateRowsResponse]:
+            AsyncIterable[google.cloud.bigtable_v2.types.MutateRowsResponse]:
                 Response message for
                 BigtableService.MutateRows.
 
@@ -520,6 +544,12 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.mutate_rows,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(),
+            ),
             default_timeout=600.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
@@ -556,7 +586,7 @@ class BigtableAsyncClient:
         predicate Reader filter.
 
         Args:
-            request (:class:`~.bigtable.CheckAndMutateRowRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.CheckAndMutateRowRequest`):
                 The request object. Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (:class:`str`):
@@ -564,6 +594,7 @@ class BigtableAsyncClient:
                 conditional mutation should be applied. Values are of
                 the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -571,35 +602,39 @@ class BigtableAsyncClient:
                 Required. The key of the row to which
                 the conditional mutation should be
                 applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            predicate_filter (:class:`~.data.RowFilter`):
+            predicate_filter (:class:`google.cloud.bigtable_v2.types.RowFilter`):
                 The filter to be applied to the contents of the
                 specified row. Depending on whether or not any results
                 are yielded, either ``true_mutations`` or
                 ``false_mutations`` will be executed. If unset, checks
                 that the row contains any values at all.
+
                 This corresponds to the ``predicate_filter`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            true_mutations (:class:`Sequence[~.data.Mutation]`):
+            true_mutations (:class:`Sequence[google.cloud.bigtable_v2.types.Mutation]`):
                 Changes to be atomically applied to the specified row if
                 ``predicate_filter`` yields at least one cell when
                 applied to ``row_key``. Entries are applied in order,
                 meaning that earlier mutations can be masked by later
                 ones. Must contain at least one entry if
                 ``false_mutations`` is empty, and at most 100000.
+
                 This corresponds to the ``true_mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            false_mutations (:class:`Sequence[~.data.Mutation]`):
+            false_mutations (:class:`Sequence[google.cloud.bigtable_v2.types.Mutation]`):
                 Changes to be atomically applied to the specified row if
                 ``predicate_filter`` does not yield any cells when
                 applied to ``row_key``. Entries are applied in order,
                 meaning that earlier mutations can be masked by later
                 ones. Must contain at least one entry if
                 ``true_mutations`` is empty, and at most 100000.
+
                 This corresponds to the ``false_mutations`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -608,6 +643,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -619,7 +655,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.CheckAndMutateRowResponse:
+            google.cloud.bigtable_v2.types.CheckAndMutateRowResponse:
                 Response message for
                 Bigtable.CheckAndMutateRow.
 
@@ -666,6 +702,12 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.check_and_mutate_row,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(),
+            ),
             default_timeout=20.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
@@ -705,7 +747,7 @@ class BigtableAsyncClient:
         contents of all modified cells.
 
         Args:
-            request (:class:`~.bigtable.ReadModifyWriteRowRequest`):
+            request (:class:`google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest`):
                 The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (:class:`str`):
@@ -713,6 +755,7 @@ class BigtableAsyncClient:
                 read/modify/write rules should be applied. Values are of
                 the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
+
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -720,16 +763,18 @@ class BigtableAsyncClient:
                 Required. The key of the row to which
                 the read/modify/write rules should be
                 applied.
+
                 This corresponds to the ``row_key`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            rules (:class:`Sequence[~.data.ReadModifyWriteRule]`):
+            rules (:class:`Sequence[google.cloud.bigtable_v2.types.ReadModifyWriteRule]`):
                 Required. Rules specifying how the
                 specified row's contents are to be
                 transformed into writes. Entries are
                 applied in order, meaning that earlier
                 rules will affect the results of later
                 ones.
+
                 This corresponds to the ``rules`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -738,6 +783,7 @@ class BigtableAsyncClient:
                 replication. If not specified, the
                 "default" application profile will be
                 used.
+
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
@@ -749,7 +795,7 @@ class BigtableAsyncClient:
                 sent along with the request as metadata.
 
         Returns:
-            ~.bigtable.ReadModifyWriteRowResponse:
+            google.cloud.bigtable_v2.types.ReadModifyWriteRowResponse:
                 Response message for
                 Bigtable.ReadModifyWriteRow.
 
@@ -783,6 +829,12 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_modify_write_row,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(),
+            ),
             default_timeout=20.0,
             client_info=DEFAULT_CLIENT_INFO,
         )

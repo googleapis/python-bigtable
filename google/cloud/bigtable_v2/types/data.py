@@ -49,7 +49,7 @@ class Row(proto.Message):
             used to identify the row in, for example, a
             MutateRowRequest. May contain any non-empty byte
             string up to 4KiB in length.
-        families (Sequence[~.data.Family]):
+        families (Sequence[google.cloud.bigtable_v2.types.Family]):
             May be empty, but only if the entire row is
             empty. The mutual ordering of column families is
             not specified.
@@ -73,7 +73,7 @@ class Family(proto.Message):
             ``[-_.a-zA-Z0-9]+``, except that AggregatingRowProcessors
             may produce cells in a sentinel family with an empty name.
             Must be no greater than 64 characters in length.
-        columns (Sequence[~.data.Column]):
+        columns (Sequence[google.cloud.bigtable_v2.types.Column]):
             Must not be empty. Sorted in order of
             increasing "qualifier".
     """
@@ -95,7 +95,7 @@ class Column(proto.Message):
             ``column_qualifier_regex_filter`` field. May contain any
             byte string, including the empty string, up to 16kiB in
             length.
-        cells (Sequence[~.data.Cell]):
+        cells (Sequence[google.cloud.bigtable_v2.types.Cell]):
             Must not be empty. Sorted in order of decreasing
             "timestamp_micros".
     """
@@ -167,7 +167,7 @@ class RowSet(proto.Message):
     Attributes:
         row_keys (Sequence[bytes]):
             Single rows included in the set.
-        row_ranges (Sequence[~.data.RowRange]):
+        row_ranges (Sequence[google.cloud.bigtable_v2.types.RowRange]):
             Contiguous row ranges included in the set.
     """
 
@@ -295,13 +295,13 @@ class RowFilter(proto.Message):
     Chains or Interleaves) to a depth of more than 20.
 
     Attributes:
-        chain (~.data.RowFilter.Chain):
+        chain (google.cloud.bigtable_v2.types.RowFilter.Chain):
             Applies several RowFilters to the data in
             sequence, progressively narrowing the results.
-        interleave (~.data.RowFilter.Interleave):
+        interleave (google.cloud.bigtable_v2.types.RowFilter.Interleave):
             Applies several RowFilters to the data in
             parallel and combines the results.
-        condition (~.data.RowFilter.Condition):
+        condition (google.cloud.bigtable_v2.types.RowFilter.Condition):
             Applies one of two possible RowFilters to the
             data based on the output of a predicate
             RowFilter.
@@ -405,10 +405,10 @@ class RowFilter(proto.Message):
             used if a true wildcard is desired. The ``.`` character will
             not match the new line character ``\n``, which may be
             present in a binary qualifier.
-        column_range_filter (~.data.ColumnRange):
+        column_range_filter (google.cloud.bigtable_v2.types.ColumnRange):
             Matches only cells from columns within the
             given range.
-        timestamp_range_filter (~.data.TimestampRange):
+        timestamp_range_filter (google.cloud.bigtable_v2.types.TimestampRange):
             Matches only cells with timestamps within the
             given range.
         value_regex_filter (bytes):
@@ -418,7 +418,7 @@ class RowFilter(proto.Message):
             a true wildcard is desired. The ``.`` character will not
             match the new line character ``\n``, which may be present in
             a binary value.
-        value_range_filter (~.data.ValueRange):
+        value_range_filter (google.cloud.bigtable_v2.types.ValueRange):
             Matches only cells with values that fall
             within the given range.
         cells_per_row_offset_filter (int):
@@ -465,7 +465,7 @@ class RowFilter(proto.Message):
         sequence.
 
         Attributes:
-            filters (Sequence[~.data.RowFilter]):
+            filters (Sequence[google.cloud.bigtable_v2.types.RowFilter]):
                 The elements of "filters" are chained
                 together to process the input row: in row ->
                 f(0) -> intermediate row -> f(1) -> ... -> f(N)
@@ -480,7 +480,7 @@ class RowFilter(proto.Message):
         RowFilters and interleaves the results.
 
         Attributes:
-            filters (Sequence[~.data.RowFilter]):
+            filters (Sequence[google.cloud.bigtable_v2.types.RowFilter]):
                 The elements of "filters" all process a copy of the input
                 row, and the results are pooled, sorted, and combined into a
                 single output row. If multiple cells are produced with the
@@ -524,15 +524,15 @@ class RowFilter(proto.Message):
         condition.
 
         Attributes:
-            predicate_filter (~.data.RowFilter):
+            predicate_filter (google.cloud.bigtable_v2.types.RowFilter):
                 If ``predicate_filter`` outputs any cells, then
                 ``true_filter`` will be evaluated on the input row.
                 Otherwise, ``false_filter`` will be evaluated.
-            true_filter (~.data.RowFilter):
+            true_filter (google.cloud.bigtable_v2.types.RowFilter):
                 The filter to apply to the input row if ``predicate_filter``
                 returns any results. If not provided, no results will be
                 returned in the true case.
-            false_filter (~.data.RowFilter):
+            false_filter (google.cloud.bigtable_v2.types.RowFilter):
                 The filter to apply to the input row if ``predicate_filter``
                 does not return any results. If not provided, no results
                 will be returned in the false case.
@@ -596,13 +596,13 @@ class Mutation(proto.Message):
     row.
 
     Attributes:
-        set_cell (~.data.Mutation.SetCell):
+        set_cell (google.cloud.bigtable_v2.types.Mutation.SetCell):
             Set a cell's value.
-        delete_from_column (~.data.Mutation.DeleteFromColumn):
+        delete_from_column (google.cloud.bigtable_v2.types.Mutation.DeleteFromColumn):
             Deletes cells from a column.
-        delete_from_family (~.data.Mutation.DeleteFromFamily):
+        delete_from_family (google.cloud.bigtable_v2.types.Mutation.DeleteFromFamily):
             Deletes cells from a column family.
-        delete_from_row (~.data.Mutation.DeleteFromRow):
+        delete_from_row (google.cloud.bigtable_v2.types.Mutation.DeleteFromRow):
             Deletes cells from the entire row.
     """
 
@@ -650,7 +650,7 @@ class Mutation(proto.Message):
                 The qualifier of the column from which cells
                 should be deleted. Can be any byte string,
                 including the empty string.
-            time_range (~.data.TimestampRange):
+            time_range (google.cloud.bigtable_v2.types.TimestampRange):
                 The range of timestamps within which cells
                 should be deleted.
         """

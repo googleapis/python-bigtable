@@ -26,9 +26,20 @@ import nox
 BLACK_VERSION = "black==19.10b0"
 BLACK_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
-DEFAULT_PYTHON_VERSION = "3.7"
-SYSTEM_TEST_PYTHON_VERSIONS = ["3.7"]
-UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8"]
+DEFAULT_PYTHON_VERSION = "3.8"
+SYSTEM_TEST_PYTHON_VERSIONS = ["3.8"]
+UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
+
+# 'docfx' is excluded since it only needs to run in 'docs-presubmit'
+nox.options.sessions = [
+    "unit",
+    "system",
+    "cover",
+    "lint",
+    "lint_setup_py",
+    "blacken",
+    "docs",
+]
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
@@ -72,16 +83,18 @@ def default(session):
     # Install all test dependencies, then install this package in-place.
     session.install("asyncmock", "pytest-asyncio")
 
-    session.install("mock", "pytest", "pytest-cov", "grpcio >= 1.0.2")
+    session.install(
+        "mock", "pytest", "pytest-cov",
+    )
+
     session.install("-e", ".")
 
     # Run py.test against the unit tests.
     session.run(
         "py.test",
         "--quiet",
-        "--cov=google.cloud.bigtable",
-        "--cov=google.cloud",
-        "--cov=tests.unit",
+        "--cov=google/cloud",
+        "--cov=tests/unit",
         "--cov-append",
         "--cov-config=.coveragerc",
         "--cov-report=",

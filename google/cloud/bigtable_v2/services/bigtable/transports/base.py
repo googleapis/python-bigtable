@@ -112,10 +112,26 @@ class BigtableTransport(abc.ABC):
         # Precompute the wrapped methods.
         self._wrapped_methods = {
             self.read_rows: gapic_v1.method.wrap_method(
-                self.read_rows, default_timeout=43200.0, client_info=client_info,
+                self.read_rows,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(),
+                ),
+                default_timeout=43200.0,
+                client_info=client_info,
             ),
             self.sample_row_keys: gapic_v1.method.wrap_method(
-                self.sample_row_keys, default_timeout=60.0, client_info=client_info,
+                self.sample_row_keys,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(),
+                ),
+                default_timeout=60.0,
+                client_info=client_info,
             ),
             self.mutate_row: gapic_v1.method.wrap_method(
                 self.mutate_row,
@@ -131,15 +147,35 @@ class BigtableTransport(abc.ABC):
                 client_info=client_info,
             ),
             self.mutate_rows: gapic_v1.method.wrap_method(
-                self.mutate_rows, default_timeout=600.0, client_info=client_info,
+                self.mutate_rows,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(),
+                ),
+                default_timeout=600.0,
+                client_info=client_info,
             ),
             self.check_and_mutate_row: gapic_v1.method.wrap_method(
                 self.check_and_mutate_row,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(),
+                ),
                 default_timeout=20.0,
                 client_info=client_info,
             ),
             self.read_modify_write_row: gapic_v1.method.wrap_method(
                 self.read_modify_write_row,
+                default_retry=retries.Retry(
+                    initial=0.01,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(),
+                ),
                 default_timeout=20.0,
                 client_info=client_info,
             ),

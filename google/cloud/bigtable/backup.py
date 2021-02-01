@@ -432,10 +432,8 @@ class Backup(object):
         """
         table_api = self._instance._client.table_admin_client
         response = table_api.set_iam_policy(
-            request={
-                "resource": self.name,
-                "policy": policy.to_pb()
-            })
+            request={"resource": self.name, "policy": policy.to_pb()}
+        )
         return Policy.from_pb(response)
 
     def test_iam_permissions(self, permissions):
@@ -456,9 +454,6 @@ class Backup(object):
         """
         table_api = self._instance._client.table_admin_client
         response = table_api.test_iam_permissions(
-            request={
-                "resource": self.name,
-                "permissions": permissions
-            }
+            request={"resource": self.name, "permissions": permissions}
         )
         return list(response.permissions)

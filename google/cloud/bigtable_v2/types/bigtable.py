@@ -54,10 +54,10 @@ class ReadRowsRequest(proto.Message):
             This value specifies routing for replication.
             If not specified, the "default" application
             profile will be used.
-        rows (~.data.RowSet):
+        rows (google.cloud.bigtable_v2.types.RowSet):
             The row keys and/or ranges to read. If not
             specified, reads from all rows.
-        filter (~.data.RowFilter):
+        filter (google.cloud.bigtable_v2.types.RowFilter):
             The filter to apply to the contents of the
             specified row(s). If unset, reads the entirety
             of each row.
@@ -82,7 +82,7 @@ class ReadRowsResponse(proto.Message):
     r"""Response message for Bigtable.ReadRows.
 
     Attributes:
-        chunks (Sequence[~.bigtable.ReadRowsResponse.CellChunk]):
+        chunks (Sequence[google.cloud.bigtable_v2.types.ReadRowsResponse.CellChunk]):
             A collection of a row's contents as part of
             the read request.
         last_scanned_row_key (bytes):
@@ -110,14 +110,14 @@ class ReadRowsResponse(proto.Message):
                 CellChunk in the response stream, even if that
                 CellChunk was in a previous ReadRowsResponse
                 message.
-            family_name (~.wrappers.StringValue):
+            family_name (google.protobuf.wrappers_pb2.StringValue):
                 The column family name for this chunk of data. If this
                 message is not present this CellChunk is a continuation of
                 the same column family as the previous CellChunk. The empty
                 string can occur as a column family name in a response so
                 clients must check explicitly for the presence of this
                 message, not just for ``family_name.value`` being non-empty.
-            qualifier (~.wrappers.BytesValue):
+            qualifier (google.protobuf.wrappers_pb2.BytesValue):
                 The column qualifier for this chunk of data. If this message
                 is not present, this CellChunk is a continuation of the same
                 column as the previous CellChunk. Column qualifiers may be
@@ -246,7 +246,7 @@ class MutateRowRequest(proto.Message):
         row_key (bytes):
             Required. The key of the row to which the
             mutation should be applied.
-        mutations (Sequence[~.data.Mutation]):
+        mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
             Required. Changes to be atomically applied to
             the specified row. Entries are applied in order,
             meaning that earlier mutations can be masked by
@@ -278,7 +278,7 @@ class MutateRowsRequest(proto.Message):
             This value specifies routing for replication.
             If not specified, the "default" application
             profile will be used.
-        entries (Sequence[~.bigtable.MutateRowsRequest.Entry]):
+        entries (Sequence[google.cloud.bigtable_v2.types.MutateRowsRequest.Entry]):
             Required. The row keys and corresponding
             mutations to be applied in bulk. Each entry is
             applied as an atomic mutation, but the entries
@@ -295,7 +295,7 @@ class MutateRowsRequest(proto.Message):
             row_key (bytes):
                 The key of the row to which the ``mutations`` should be
                 applied.
-            mutations (Sequence[~.data.Mutation]):
+            mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
                 Required. Changes to be atomically applied to
                 the specified row. Mutations are applied in
                 order, meaning that earlier mutations can be
@@ -318,7 +318,7 @@ class MutateRowsResponse(proto.Message):
     r"""Response message for BigtableService.MutateRows.
 
     Attributes:
-        entries (Sequence[~.bigtable.MutateRowsResponse.Entry]):
+        entries (Sequence[google.cloud.bigtable_v2.types.MutateRowsResponse.Entry]):
             One or more results for Entries from the
             batch request.
     """
@@ -331,7 +331,7 @@ class MutateRowsResponse(proto.Message):
             index (int):
                 The index into the original request's ``entries`` list of
                 the Entry for which a result is being reported.
-            status (~.gr_status.Status):
+            status (google.rpc.status_pb2.Status):
                 The result of the request Entry identified by ``index``.
                 Depending on how requests are batched during execution, it
                 is possible for one Entry to fail due to an error with
@@ -362,20 +362,20 @@ class CheckAndMutateRowRequest(proto.Message):
         row_key (bytes):
             Required. The key of the row to which the
             conditional mutation should be applied.
-        predicate_filter (~.data.RowFilter):
+        predicate_filter (google.cloud.bigtable_v2.types.RowFilter):
             The filter to be applied to the contents of the specified
             row. Depending on whether or not any results are yielded,
             either ``true_mutations`` or ``false_mutations`` will be
             executed. If unset, checks that the row contains any values
             at all.
-        true_mutations (Sequence[~.data.Mutation]):
+        true_mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
             Changes to be atomically applied to the specified row if
             ``predicate_filter`` yields at least one cell when applied
             to ``row_key``. Entries are applied in order, meaning that
             earlier mutations can be masked by later ones. Must contain
             at least one entry if ``false_mutations`` is empty, and at
             most 100000.
-        false_mutations (Sequence[~.data.Mutation]):
+        false_mutations (Sequence[google.cloud.bigtable_v2.types.Mutation]):
             Changes to be atomically applied to the specified row if
             ``predicate_filter`` does not yield any cells when applied
             to ``row_key``. Entries are applied in order, meaning that
@@ -429,7 +429,7 @@ class ReadModifyWriteRowRequest(proto.Message):
         row_key (bytes):
             Required. The key of the row to which the
             read/modify/write rules should be applied.
-        rules (Sequence[~.data.ReadModifyWriteRule]):
+        rules (Sequence[google.cloud.bigtable_v2.types.ReadModifyWriteRule]):
             Required. Rules specifying how the specified
             row's contents are to be transformed into
             writes. Entries are applied in order, meaning
@@ -452,7 +452,7 @@ class ReadModifyWriteRowResponse(proto.Message):
     r"""Response message for Bigtable.ReadModifyWriteRow.
 
     Attributes:
-        row (~.data.Row):
+        row (google.cloud.bigtable_v2.types.Row):
             A Row containing the new contents of all
             cells modified by the request.
     """
