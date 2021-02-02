@@ -463,7 +463,7 @@ class DirectRow(_SetDeleteRow):
         :raises: :exc:`~.table.TooManyMutationsError` if the number of
                  mutations is greater than 100,000.
         """
-        response = self._table.mutate_rows(request={"table_name": [self]})
+        response = self._table.mutate_rows([self])
 
         self.clear()
 
@@ -592,14 +592,12 @@ class ConditionalRow(_SetDeleteRow):
 
         data_client = self._table._instance._client.table_data_client
         resp = data_client.check_and_mutate_row(
-            request={
-                "table_name": self._table.name,
-                "row_key": self._row_key,
-                "app_profile_id": self._filter.to_pb(),
-                "predicate_filter": self._table._app_profile_id,
-                "true_mutations": true_mutations,
-                "false_mutations": false_mutations,
-            }
+            table_name=self._table.name,
+            row_key=self._row_key,
+            predicate_filter=self._filter.to_pb(),
+            app_profile_id=self._table._app_profile_id,
+            true_mutations=true_mutations,
+            false_mutations=false_mutations,
         )
         self.clear()
         return resp.predicate_matched
@@ -931,12 +929,10 @@ class AppendRow(Row):
 
         data_client = self._table._instance._client.table_data_client
         row_response = data_client.read_modify_write_row(
-            request={
-                "table_name": self._table.name,
-                "row_key": self._row_key,
-                "rules": self._rule_pb_list,
-                "app_profile_id": self._table._app_profile_id,
-            }
+            table_name=self._table.name,
+            row_key=self._row_key,
+            rules=self._rule_pb_list,
+            app_profile_id=self._table._app_profile_id,
         )
 
         # Reset modifications after commit-ing request.

@@ -412,8 +412,7 @@ class Backup(object):
         :returns: The current IAM policy of this backup.
         """
         table_api = self._instance._client.table_admin_client
-        args = {"resource": self.name}
-        response = table_api.get_iam_policy(request={"resource": args})
+        response = table_api.get_iam_policy(request={"resource": self.name})
         return Policy.from_pb(response)
 
     def set_iam_policy(self, policy):
