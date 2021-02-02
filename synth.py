@@ -33,6 +33,7 @@ library = gapic.py_library(
 
 s.move(library / "google/cloud/bigtable_v2")
 s.move(library / "tests")
+s.move(library / "scripts")
 
 # Generate admin client
 library = gapic.py_library(
@@ -96,7 +97,7 @@ except pkg_resources.DistributionNotFound:  # pragma: NO COVER
 # Add templated files
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
-    samples=False,  # set to True only if there are samples
+    samples=True,  # set to True only if there are samples
     microgenerator=True,
 )
 s.move(templated_files, excludes=[".coveragerc"])

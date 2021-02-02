@@ -140,7 +140,7 @@ class MutationsBatcher(object):
 
         """
         if len(self.rows) != 0:
-            self.table.mutate_rows(self.rows)
+            self.table.mutate_rows(request={"table_name": self.rows})
             self.total_mutation_count = 0
             self.total_size = 0
             self.rows = []

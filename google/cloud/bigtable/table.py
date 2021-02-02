@@ -509,7 +509,9 @@ class Table(object):
         """
         row_set = RowSet()
         row_set.add_row_key(row_key)
-        result_iter = iter(self.read_rows(filter_=filter_, row_set=row_set))
+        result_iter = iter(
+            self.read_rows(request={"table_name": filter_, "app_profile_id": row_set})
+        )
         row = next(result_iter, None)
         if next(result_iter, None) is not None:
             raise ValueError("More than one row was returned.")
@@ -626,7 +628,7 @@ class Table(object):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.read_rows(**kwargs)
+        return self.read_rows(request={"table_name": kwargs})
 
     def mutate_rows(self, rows, retry=DEFAULT_RETRY, timeout=DEFAULT):
         """Mutates multiple rows in bulk.
@@ -1099,7 +1101,9 @@ class _RetryableMutateRowsWorker(object):
         #     )
 
         try:
-            responses = data_client.mutate_rows(mutate_rows_request, retry=None)
+            responses = data_client.mutate_rows(
+                request={"table_name": mutate_rows_request}, retry=None
+            )
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
             # If an exception, considered retryable by `RETRY_CODES`, is
             # returned from the initial call, consider
