@@ -413,7 +413,7 @@ class Backup(object):
         """
         table_api = self._instance._client.table_admin_client
         args = {"resource": self.name}
-        response = table_api.get_iam_policy(**args)
+        response = table_api.get_iam_policy(request={"resource": args})
         return Policy.from_pb(response)
 
     def set_iam_policy(self, policy):
