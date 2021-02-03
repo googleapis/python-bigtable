@@ -389,17 +389,21 @@ class TestAppProfile(unittest.TestCase):
         )
 
         expected_request_app_profile = app_profile._to_pb()
-        # expected_request = messages_v2_pb2.CreateAppProfileRequest(
-        #     parent=instance.name,
-        #     app_profile_id=self.APP_PROFILE_ID,
-        #     app_profile=expected_request_app_profile,
-        #     ignore_warnings=ignore_warnings,
-        # )
+        name = instance.name
+        expected_request = {
+            "request": {
+                "parent": name,
+                "app_profile_id": self.APP_PROFILE_ID,
+                "app_profile": expected_request_app_profile,
+                "ignore_warnings": ignore_warnings,
+            }
+        }
 
         instance_api = mock.create_autospec(BigtableInstanceAdminClient)
         instance_api.app_profile_path.return_value = (
             "projects/project/instances/instance-id/appProfiles/app-profile-id"
         )
+        instance_api.instance_path.return_value = name
         instance_api.create_app_profile.return_value = expected_request_app_profile
 
         # Patch the stub used by the API method.
@@ -407,10 +411,12 @@ class TestAppProfile(unittest.TestCase):
         app_profile._instance._client._instance_admin_client = instance_api
         # Perform the method and check the result.
         result = app_profile.create(ignore_warnings)
-        # actual_request = app_profile.instance_admin_client.method_calls[2]
 
-        # todo request/channel
-        # self.assertEqual(actual_request, expected_request)
+        actual_request = client._instance_admin_client.create_app_profile.call_args_list[
+            0
+        ].kwargs
+
+        self.assertEqual(actual_request, expected_request)
         self.assertIsInstance(result, self._get_target_class())
         self.assertEqual(result.app_profile_id, self.APP_PROFILE_ID)
         self.assertIs(result._instance, instance)
@@ -445,24 +451,32 @@ class TestAppProfile(unittest.TestCase):
             allow_transactional_writes=allow_writes,
         )
         expected_request_app_profile = app_profile._to_pb()
-        # expected_request = messages_v2_pb2.CreateAppProfileRequest(
-        #     parent=instance.name,
-        #     app_profile_id=self.APP_PROFILE_ID,
-        #     app_profile=expected_request_app_profile,
-        #     ignore_warnings=ignore_warnings,
-        # )
+        instance_name = instance.name
+        expected_request = {
+            "request": {
+                "parent": instance_name,
+                "app_profile_id": self.APP_PROFILE_ID,
+                "app_profile": expected_request_app_profile,
+                "ignore_warnings": ignore_warnings,
+            }
+        }
 
         # Patch the stub used by the API method.
         instance_api = mock.create_autospec(BigtableInstanceAdminClient)
         instance_api.app_profile_path.return_value = (
             "projects/project/instances/instance-id/appProfiles/app-profile-id"
         )
+        instance_api.instance_path.return_value = instance_name
         instance_api.create_app_profile.return_value = expected_request_app_profile
         client._instance_admin_client = instance_api
         # Perform the method and check the result.
         result = app_profile.create(ignore_warnings)
 
-        # self.assertEqual(actual_request, expected_request)
+        actual_request = client._instance_admin_client.create_app_profile.call_args_list[
+            0
+        ].kwargs
+
+        self.assertEqual(actual_request, expected_request)
         self.assertIsInstance(result, self._get_target_class())
         self.assertEqual(result.app_profile_id, self.APP_PROFILE_ID)
         self.assertIs(result._instance, instance)
@@ -484,6 +498,7 @@ class TestAppProfile(unittest.TestCase):
             app_profile.create()
 
     def test_update_app_profile_routing_any(self):
+        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
@@ -548,19 +563,18 @@ class TestAppProfile(unittest.TestCase):
 
         instance_api.update_app_profile.return_value = response_pb
         app_profile._instance._client._instance_admin_client = instance_api
-        # todo result = ...
-        app_profile.update(ignore_warnings=ignore_warnings)
+        result = app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs
 
         self.assertEqual(actual_request, expected_request)
-        # todo - pb2 operation
         # self.assertIsInstance(result, operation.Operation)
         # self.assertEqual(result.operation.name, self.OP_NAME)
         # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateAppProfileMetadata)
 
     def test_update_app_profile_routing_single(self):
+        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
@@ -614,8 +628,7 @@ class TestAppProfile(unittest.TestCase):
             }
         }
 
-        # todo result = ...
-        app_profile.update(ignore_warnings=ignore_warnings)
+        result = app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs

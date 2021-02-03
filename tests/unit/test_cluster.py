@@ -390,7 +390,7 @@ class TestCluster(unittest.TestCase):
         actual_request = client._instance_admin_client.create_cluster.call_args_list[
             0
         ].kwargs
-        self.assertEqual(actual_request["request"], expected_request["request"])
+        self.assertEqual(actual_request, expected_request)
         # self.assertIsInstance(result, operation.Operation)
         # self.assertEqual(result.operation.name, self.OP_NAME)
         # self.assertIsInstance(result.metadata, messages_v2_pb2.CreateClusterMetadata)
@@ -455,7 +455,7 @@ class TestCluster(unittest.TestCase):
             0
         ].kwargs
 
-        self.assertEqual(actual_request["request"], expected_request["request"])
+        self.assertEqual(actual_request, expected_request)
         # self.assertIsInstance(result, operation.Operation)
         # self.assertEqual(result.operation.name, self.OP_NAME)
         # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateClusterMetadata)

@@ -770,7 +770,9 @@ class TestBackup(unittest.TestCase):
 
         result = backup.get_iam_policy()
 
-        table_api.get_iam_policy.assert_called_once_with(request={"resource": backup.name})
+        table_api.get_iam_policy.assert_called_once_with(
+            request={"resource": backup.name}
+        )
         self.assertEqual(result.version, version)
         self.assertEqual(result.etag, etag)
 
