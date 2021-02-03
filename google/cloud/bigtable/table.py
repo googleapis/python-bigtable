@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """User-friendly container for Google Cloud Bigtable Table."""
-
+from google.api_core import timeout
 from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
@@ -634,8 +634,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_api_mutate_rows]
-            :end-before: [END bigtable_api_mutate_rows]
+            :start-after: [START bigtable_mutate_rows]
+            :end-before: [END bigtable_mutate_rows]
             :dedent: 4
 
         The method tries to update all specified rows.
@@ -1080,26 +1080,24 @@ class _RetryableMutateRowsWorker(object):
             # All mutations are either successful or non-retryable now.
             return self.responses_statuses
 
-        mutate_rows_request = _mutate_rows_request(
-            self.table_name, retryable_rows, app_profile_id=self.app_profile_id
-        )
+        entries = _compile_mutation_entries(self.table_name, retryable_rows)
         data_client = self.client.table_data_client
-        # inner_api_calls = data_client.mutate_rows
-        # if "mutate_rows" not in inner_api_calls:
-        #     default_retry = (data_client._method_configs["MutateRows"].retry,)
-        #     if self.timeout is None:
-        #         default_timeout = data_client._method_configs["MutateRows"].timeout
-        #     else:
-        #         default_timeout = timeout.ExponentialTimeout(deadline=self.timeout)
-        #     data_client._inner_api_calls["mutate_rows"] = wrap_method(
-        #         data_client.transport.mutate_rows,
-        #         default_retry=default_retry,
-        #         default_timeout=default_timeout,
-        #         client_info=data_client._client_info,
-        #     )
 
+        kwargs = {}
+        if self.timeout is not None:
+            kwargs["timeout"] = timeout.ExponentialTimeout(deadline=self.timeout)
+
+        # todo confirm this change
         try:
-            responses = data_client.mutate_rows(mutate_rows_request, retry=None)
+            responses = data_client.mutate_rows(
+                request={
+                    "table_name": self.table_name,
+                    "entries": entries,
+                    "app_profile_id": self.app_profile_id,
+                    "retry": None,
+                    **kwargs,
+                }
+            )
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
             # If an exception, considered retryable by `RETRY_CODES`, is
             # returned from the initial call, consider
@@ -1280,8 +1278,8 @@ def _create_row_request(
     return message
 
 
-def _mutate_rows_request(table_name, rows, app_profile_id=None):
-    """Creates a request to mutate rows in a table.
+def _compile_mutation_entries(table_name, rows):
+    """Create list of mutation entries
 
     :type table_name: str
     :param table_name: The name of the table to write to.
@@ -1289,32 +1287,29 @@ def _mutate_rows_request(table_name, rows, app_profile_id=None):
     :type rows: list
     :param rows: List or other iterable of :class:`.DirectRow` instances.
 
-    :type: app_profile_id: str
-    :param app_profile_id: (Optional) The unique name of the AppProfile.
-
-    :rtype: :class:`data_messages_v2_pb2.MutateRowsRequest`
-    :returns: The ``MutateRowsRequest`` protobuf corresponding to the inputs.
+    :rtype: List[:class:`data_messages_v2_pb2.MutateRowsRequest.Entry`]
+    :returns: entries corresponding to the inputs.
     :raises: :exc:`~.table.TooManyMutationsError` if the number of mutations is
-             greater than 100,000
-    """
-    request_pb = data_messages_v2_pb2.MutateRowsRequest(
-        table_name=table_name, app_profile_id=app_profile_id
+             greater than the max ({})
+    """.format(
+        _MAX_BULK_MUTATIONS
     )
+    entries = []
     mutations_count = 0
+    entry_klass = data_messages_v2_pb2.MutateRowsRequest.Entry
+
     for row in rows:
         _check_row_table_name(table_name, row)
         _check_row_type(row)
         mutations = row._get_mutations()
-        entry = request_pb.Entry()
-        entry.row_key = row.row_key
-        entry.mutations = mutations
-        request_pb.entries.append(entry)
+        entries.append(entry_klass(row_key=row.row_key, mutations=mutations))
         mutations_count += len(mutations)
+
     if mutations_count > _MAX_BULK_MUTATIONS:
         raise TooManyMutationsError(
             "Maximum number of mutations is %s" % (_MAX_BULK_MUTATIONS,)
         )
-    return request_pb
+    return entries
 
 
 def _check_row_table_name(table_name, row):

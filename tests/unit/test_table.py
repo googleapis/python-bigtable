@@ -22,9 +22,9 @@ from google.api_core.exceptions import DeadlineExceeded
 
 class Test__compile_mutation_entries(unittest.TestCase):
     def _call_fut(self, table_name, rows):
-        from google.cloud.bigtable.table import _mutate_rows_request
+        from google.cloud.bigtable.table import _compile_mutation_entries
 
-        return _mutate_rows_request(table_name, rows)
+        return _compile_mutation_entries(table_name, rows)
 
     @mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
     def test_w_too_many_mutations(self):
@@ -61,27 +61,24 @@ class Test__compile_mutation_entries(unittest.TestCase):
 
         result = self._call_fut("table", rows)
 
-        expected_result = _mutate_rows_request_pb(table_name="table")
-        entry_1 = MutateRowsRequest.Entry(row_key=b"row_key")
+        entry_1 = MutateRowsRequest.Entry()
+        entry_1.row_key = b"row_key"
         mutations_1 = data.Mutation()
         mutations_1.set_cell.family_name = "cf1"
         mutations_1.set_cell.column_qualifier = b"c1"
         mutations_1.set_cell.timestamp_micros = -1
         mutations_1.set_cell.value = b"1"
         entry_1.mutations.append(mutations_1)
-        expected_result.entries.append(entry_1)
 
-        entry_2 = MutateRowsRequest.Entry(row_key=b"row_key_2")
+        entry_2 = MutateRowsRequest.Entry()
+        entry_2.row_key = b"row_key_2"
         mutations_2 = data.Mutation()
         mutations_2.set_cell.family_name = "cf1"
         mutations_2.set_cell.column_qualifier = b"c1"
         mutations_2.set_cell.timestamp_micros = -1
         mutations_2.set_cell.value = b"2"
         entry_2.mutations.append(mutations_2)
-        expected_result.entries.append(entry_2)
-
-        # self.assertEqual(result, [entry_1, entry_2])
-        self.assertEqual(result, expected_result)
+        self.assertEqual(result, [entry_1, entry_2])
 
 
 class Test__check_row_table_name(unittest.TestCase):
