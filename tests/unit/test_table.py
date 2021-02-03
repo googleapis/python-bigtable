@@ -1400,7 +1400,7 @@ class TestTable(unittest.TestCase):
         )
 
         table_api.list_backups.return_value = backups_pb
-        api = table_api.list_backups
+        api = table._instance._client._table_admin_client.list_backups
 
         backups_filter = "source_table:{}".format(self.TABLE_NAME)
         if filter_:
@@ -1415,9 +1415,6 @@ class TestTable(unittest.TestCase):
             cluster_id = "-"
         parent = "{}/clusters/{}".format(self.INSTANCE_NAME, cluster_id)
 
-        # expected_metadata = [
-        #     ("x-goog-request-params", "parent={}".format(parent)),
-        # ]
         order_by = None
         page_size = 0
         if "order_by" in kwargs:
@@ -1433,9 +1430,6 @@ class TestTable(unittest.TestCase):
                 "order_by": order_by,
                 "page_size": page_size,
             }
-            # retry=mock.ANY,
-            # timeout=mock.ANY,
-            # metadata=expected_metadata,
         )
 
     def test_list_backups_defaults(self):
