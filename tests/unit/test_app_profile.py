@@ -498,7 +498,6 @@ class TestAppProfile(unittest.TestCase):
             app_profile.create()
 
     def test_update_app_profile_routing_any(self):
-        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
@@ -563,7 +562,7 @@ class TestAppProfile(unittest.TestCase):
 
         instance_api.update_app_profile.return_value = response_pb
         app_profile._instance._client._instance_admin_client = instance_api
-        result = app_profile.update(ignore_warnings=ignore_warnings)
+        app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs
@@ -574,7 +573,6 @@ class TestAppProfile(unittest.TestCase):
         # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateAppProfileMetadata)
 
     def test_update_app_profile_routing_single(self):
-        from google.api_core import operation
         from google.longrunning import operations_pb2
         from google.protobuf.any_pb2 import Any
         from google.cloud.bigtable_admin_v2.types import (
@@ -628,7 +626,7 @@ class TestAppProfile(unittest.TestCase):
             }
         }
 
-        result = app_profile.update(ignore_warnings=ignore_warnings)
+        app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs

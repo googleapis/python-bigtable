@@ -634,8 +634,8 @@ class Table(object):
         For example:
 
         .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_mutate_rows]
-            :end-before: [END bigtable_mutate_rows]
+            :start-after: [START bigtable_api_mutate_rows]
+            :end-before: [END bigtable_api_mutate_rows]
             :dedent: 4
 
         The method tries to update all specified rows.
