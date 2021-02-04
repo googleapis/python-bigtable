@@ -391,9 +391,6 @@ class TestCluster(unittest.TestCase):
             0
         ].kwargs
         self.assertEqual(actual_request, expected_request)
-        # self.assertIsInstance(result, operation.Operation)
-        # self.assertEqual(result.operation.name, self.OP_NAME)
-        # self.assertIsInstance(result.metadata, messages_v2_pb2.CreateClusterMetadata)
 
     def test_update(self):
         import datetime
@@ -456,9 +453,6 @@ class TestCluster(unittest.TestCase):
         ].kwargs
 
         self.assertEqual(actual_request, expected_request)
-        # self.assertIsInstance(result, operation.Operation)
-        # self.assertEqual(result.operation.name, self.OP_NAME)
-        # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateClusterMetadata)
 
     def test_delete(self):
         from google.protobuf import empty_pb2

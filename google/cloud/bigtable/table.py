@@ -1094,7 +1094,7 @@ class _RetryableMutateRowsWorker(object):
                 entries=entries,
                 app_profile_id=self.app_profile_id,
                 retry=None,
-                # **kwargs
+                **kwargs
             )
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
             # If an exception, considered retryable by `RETRY_CODES`, is

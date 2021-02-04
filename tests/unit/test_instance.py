@@ -316,6 +316,7 @@ class TestInstance(unittest.TestCase):
             self.LABELS,
         )
         instance_api, response = self._instance_api_response_for_create()
+        instance_api.common_project_path.return_value = "projects/project"
         client._instance_admin_client = instance_api
         serve_nodes = 3
 
@@ -367,6 +368,7 @@ class TestInstance(unittest.TestCase):
             self.LABELS,
         )
         instance_api, response = self._instance_api_response_for_create()
+        instance_api.common_project_path.return_value = "projects/project"
         client._instance_admin_client = instance_api
 
         # Perform the method and check the result.

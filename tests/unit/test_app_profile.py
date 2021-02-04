@@ -562,15 +562,16 @@ class TestAppProfile(unittest.TestCase):
 
         instance_api.update_app_profile.return_value = response_pb
         app_profile._instance._client._instance_admin_client = instance_api
-        app_profile.update(ignore_warnings=ignore_warnings)
+        result = app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs
 
         self.assertEqual(actual_request, expected_request)
-        # self.assertIsInstance(result, operation.Operation)
-        # self.assertEqual(result.operation.name, self.OP_NAME)
-        # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateAppProfileMetadata)
+        self.assertEqual(
+            result.metadata.type_url,
+            "type.googleapis.com/google.bigtable.admin.v2.UpdateAppProfileMetadata",
+        )
 
     def test_update_app_profile_routing_single(self):
         from google.longrunning import operations_pb2
@@ -626,14 +627,15 @@ class TestAppProfile(unittest.TestCase):
             }
         }
 
-        app_profile.update(ignore_warnings=ignore_warnings)
+        result = app_profile.update(ignore_warnings=ignore_warnings)
         actual_request = client._instance_admin_client.update_app_profile.call_args_list[
             0
         ].kwargs
         self.assertEqual(actual_request, expected_request)
-        # self.assertIsInstance(result, operation.Operation)
-        # self.assertEqual(result.operation.name, self.OP_NAME)
-        # self.assertIsInstance(result.metadata, messages_v2_pb2.UpdateAppProfileMetadata)
+        self.assertEqual(
+            result.metadata.type_url,
+            "type.googleapis.com/google.bigtable.admin.v2.UpdateAppProfileMetadata",
+        )
 
     def test_update_app_profile_with_wrong_routing_policy(self):
         credentials = _make_credentials()

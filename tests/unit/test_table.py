@@ -143,7 +143,7 @@ class TestTable(unittest.TestCase):
     ROW_KEY_1 = b"row-key-1"
     ROW_KEY_2 = b"row-key-2"
     ROW_KEY_3 = b"row-key-3"
-    FAMILY_NAME = u"family"
+    FAMILY_NAME = "family"
     QUALIFIER = b"qualifier"
     TIMESTAMP_MICROS = 100
     VALUE = b"value"
@@ -525,9 +525,9 @@ class TestTable(unittest.TestCase):
 
         # build expected result
         expected_result = {
-            u"cluster-id1": ClusterState(INITIALIZING),
-            u"cluster-id2": ClusterState(PLANNED_MAINTENANCE),
-            u"cluster-id3": ClusterState(READY),
+            "cluster-id1": ClusterState(INITIALIZING),
+            "cluster-id2": ClusterState(PLANNED_MAINTENANCE),
+            "cluster-id3": ClusterState(READY),
         }
 
         # Perform the method and check the result.
@@ -858,22 +858,7 @@ class TestTable(unittest.TestCase):
         response_iterator = _MockReadRowsIterator(response_2)
 
         # Patch the stub used by the API method.
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+        data_api.table_path.return_value = f"projects/{self.PROJECT_ID}/instances/{self.INSTANCE_ID}/tables/{self.TABLE_ID}"
 
         client._table_data_client.read_rows = mock.Mock(
             side_effect=[
@@ -1547,9 +1532,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         data_api = mock.create_autospec(BigtableClient)
         table_api = mock.create_autospec(bigtable_table_admin.BigtableTableAdminClient)
-        table_api.table_path.return_value = (
-            "projects/self.PROJECT_ID/instances/self.INSTANCE_ID/tables/self.TABLE_ID"
-        )
         credentials = _make_credentials()
         client = self._make_client(
             project="project-id", credentials=credentials, admin=True
@@ -1604,22 +1586,6 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         response = self._make_responses(response_codes)
         data_api.mutate_rows = mock.MagicMock(return_value=[response])
 
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
 
@@ -1654,22 +1620,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         data_api = mock.create_autospec(BigtableClient)
         table_api = mock.create_autospec(bigtable_table_admin.BigtableTableAdminClient)
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         credentials = _make_credentials()
         client = self._make_client(
             project="project-id", credentials=credentials, admin=True
@@ -1740,22 +1691,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         data_api = mock.create_autospec(BigtableClient)
         table_api = mock.create_autospec(bigtable_table_admin.BigtableTableAdminClient)
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         credentials = _make_credentials()
         client = self._make_client(
             project="project-id", credentials=credentials, admin=True
@@ -1826,22 +1762,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         # Patch the stub used by the API method.
         client._table_data_client.mutate_rows.side_effect = [[response]]
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
 
@@ -1902,22 +1823,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         # Patch the stub used by the API method.
         client._table_data_client.mutate_rows.side_effect = [[response]]
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
 
@@ -1981,22 +1887,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         # Patch the stub used by the API method.
         client._table_data_client.mutate_rows.side_effect = [[response]]
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
 
@@ -2049,14 +1940,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         worker.responses_statuses = self._make_responses_statuses(
             [self.SUCCESS, self.NON_RETRYABLE]
         )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         table._instance._client._table_admin_client = table_api
 
         statuses = worker._do_mutate_retryable_rows()
@@ -2093,22 +1977,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         # Patch the stub used by the API method.
         client._table_data_client.mutate_rows.side_effect = [[response]]
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
 

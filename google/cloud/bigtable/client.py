@@ -217,7 +217,7 @@ class Client(ClientWithProject):
         :rtype: str
         :returns: Return a fully-qualified project string.
         """
-        return "projects/{project}".format(project=self.project)
+        return self.instance_admin_client.common_project_path(self.project)
 
     @property
     def table_data_client(self):
