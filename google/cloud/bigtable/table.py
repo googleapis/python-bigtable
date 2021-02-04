@@ -1090,13 +1090,11 @@ class _RetryableMutateRowsWorker(object):
         # todo confirm this change
         try:
             responses = data_client.mutate_rows(
-                request={
-                    "table_name": self.table_name,
-                    "entries": entries,
-                    "app_profile_id": self.app_profile_id,
-                    "retry": None,
-                    **kwargs,
-                }
+                table_name=self.table_name,
+                entries=entries,
+                app_profile_id=self.app_profile_id,
+                retry=None,
+                # **kwargs
             )
         except (ServiceUnavailable, DeadlineExceeded, Aborted):
             # If an exception, considered retryable by `RETRY_CODES`, is
