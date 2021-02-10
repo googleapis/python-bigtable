@@ -35,11 +35,9 @@ from google.api_core.gapic_v1 import client_info
 
 from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
-from google.cloud.bigtable_v2.gapic.transports import bigtable_grpc_transport
-from google.cloud.bigtable_admin_v2.gapic.transports import (
-    bigtable_table_admin_grpc_transport,
-    bigtable_instance_admin_grpc_transport,
-)
+from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
+from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import BigtableInstanceAdminGrpcTransport
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports import BigtableTableAdminGrpcTransport
 
 from google.cloud.bigtable import __version__
 from google.cloud.bigtable.instance import Instance
@@ -269,7 +267,7 @@ class Client(ClientWithProject):
         if self._table_data_client is None:
             transport = self._create_gapic_client_channel(
                 bigtable_v2.BigtableClient,
-                bigtable_grpc_transport.BigtableGrpcTransport,
+                BigtableGrpcTransport,
             )
             klass = _create_gapic_client(
                 bigtable_v2.BigtableClient,
@@ -302,7 +300,7 @@ class Client(ClientWithProject):
 
             transport = self._create_gapic_client_channel(
                 bigtable_admin_v2.BigtableTableAdminClient,
-                bigtable_table_admin_grpc_transport.BigtableTableAdminGrpcTransport,
+                BigtableTableAdminGrpcTransport,
             )
             klass = _create_gapic_client(
                 bigtable_admin_v2.BigtableTableAdminClient,
@@ -335,7 +333,7 @@ class Client(ClientWithProject):
 
             transport = self._create_gapic_client_channel(
                 bigtable_admin_v2.BigtableInstanceAdminClient,
-                bigtable_instance_admin_grpc_transport.BigtableInstanceAdminGrpcTransport,
+                BigtableInstanceAdminGrpcTransport,
             )
             klass = _create_gapic_client(
                 bigtable_admin_v2.BigtableInstanceAdminClient,
