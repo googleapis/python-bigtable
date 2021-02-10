@@ -208,11 +208,11 @@ class Client(ClientWithProject):
         if self._client_options and self._client_options.api_endpoint:
             api_endpoint = self._client_options.api_endpoint
         else:
-            api_endpoint = client_class.SERVICE_ADDRESS
+            api_endpoint = client_class.DEFAULT_ENDPOINT
 
         channel = grpc_transport.create_channel(
-            api_endpoint,
-            self._credentials,
+            host=api_endpoint,
+            credentials=self._credentials,
             options={
                 "grpc.max_send_message_length": -1,
                 "grpc.max_receive_message_length": -1,
@@ -221,7 +221,7 @@ class Client(ClientWithProject):
             }.items(),
         )
         transport = grpc_transport(
-            address=api_endpoint, channel=channel, credentials=None,
+            channel=channel, host=api_endpoint
         )
         return transport
 
