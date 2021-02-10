@@ -223,7 +223,6 @@ class TestClient(unittest.TestCase):
 
         table_data_client = client.table_data_client
         self.assertIsInstance(table_data_client, BigtableClient)
-        # todo is this expected?
         self.assertIs(client._client_info, _CLIENT_INFO)
         self.assertIs(client._table_data_client, table_data_client)
 

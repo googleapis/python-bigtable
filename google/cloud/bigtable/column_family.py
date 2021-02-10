@@ -348,8 +348,6 @@ def _gc_rule_from_pb(gc_rule_pb):
     if rule_name == "max_num_versions":
         return MaxVersionsGCRule(gc_rule_pb.max_num_versions)
     elif rule_name == "max_age":
-        # todo check this is right
-        # max_age = _helpers._duration_pb_to_timedelta(gc_rule_pb.max_age)
         return MaxAgeGCRule(gc_rule_pb.max_age)
     elif rule_name == "union":
         return GCRuleUnion([_gc_rule_from_pb(rule) for rule in gc_rule_pb.union.rules])

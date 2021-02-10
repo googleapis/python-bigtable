@@ -923,22 +923,9 @@ class TestTable(unittest.TestCase):
         response_iterator = _MockReadRowsIterator(response_2)
 
         # Patch the stub used by the API method.
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+        data_api.table_path.return_value = f"projects/{self.PROJECT_ID}/instances/{self.INSTANCE_ID}/tables/{self.TABLE_ID}"
+        table_api.table_path.return_value = f"projects/{self.PROJECT_ID}/instances/{self.INSTANCE_ID}/tables/{self.TABLE_ID}"
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
         client._table_data_client.read_rows.side_effect = [
@@ -1014,22 +1001,9 @@ class TestTable(unittest.TestCase):
         response_iterator = _MockReadRowsIterator(response_1, response_2, response_3)
 
         # Patch the stub used by the API method.
-        data_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
-        table_api.table_path.return_value = (
-            "projects/"
-            + self.PROJECT_ID
-            + "/instances/"
-            + self.INSTANCE_ID
-            + "/tables/"
-            + self.TABLE_ID
-        )
+        data_api.table_path.return_value = f"projects/{self.PROJECT_ID}/instances/{self.INSTANCE_ID}/tables/{self.TABLE_ID}"
+        table_api.table_path.return_value = f"projects/{self.PROJECT_ID}/instances/{self.INSTANCE_ID}/tables/{self.TABLE_ID}"
+
         table._instance._client._table_data_client = data_api
         table._instance._client._table_admin_client = table_api
         client._table_data_client.read_rows.side_effect = [response_iterator]
