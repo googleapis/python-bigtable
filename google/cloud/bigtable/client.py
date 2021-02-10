@@ -36,8 +36,12 @@ from google.api_core.gapic_v1 import client_info
 from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
 from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
-from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import BigtableInstanceAdminGrpcTransport
-from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports import BigtableTableAdminGrpcTransport
+from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import (
+    BigtableInstanceAdminGrpcTransport,
+)
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports import (
+    BigtableTableAdminGrpcTransport,
+)
 
 from google.cloud.bigtable import __version__
 from google.cloud.bigtable.instance import Instance
@@ -220,9 +224,7 @@ class Client(ClientWithProject):
                 "grpc.keepalive_timeout_ms": 10000,
             }.items(),
         )
-        transport = grpc_transport(
-            channel=channel, host=api_endpoint
-        )
+        transport = grpc_transport(channel=channel, host=api_endpoint)
         return transport
 
     @property
@@ -266,8 +268,7 @@ class Client(ClientWithProject):
         """
         if self._table_data_client is None:
             transport = self._create_gapic_client_channel(
-                bigtable_v2.BigtableClient,
-                BigtableGrpcTransport,
+                bigtable_v2.BigtableClient, BigtableGrpcTransport,
             )
             klass = _create_gapic_client(
                 bigtable_v2.BigtableClient,
