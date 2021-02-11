@@ -1087,7 +1087,6 @@ class _RetryableMutateRowsWorker(object):
         if self.timeout is not None:
             kwargs["timeout"] = timeout.ExponentialTimeout(deadline=self.timeout)
 
-        # todo confirm this change
         try:
             responses = data_client.mutate_rows(
                 table_name=self.table_name,
