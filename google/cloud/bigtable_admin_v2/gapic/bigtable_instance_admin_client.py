@@ -364,6 +364,418 @@ class BigtableInstanceAdminClient(object):
             metadata_type=bigtable_instance_admin_pb2.CreateInstanceMetadata,
         )
 
+    def partial_update_instance(
+        self,
+        instance,
+        update_mask,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
+        """
+        Partially updates an instance within a project. This method can modify all
+        fields of an Instance and is the preferred way to update an Instance.
+
+        Example:
+            >>> from google.cloud import bigtable_admin_v2
+            >>>
+            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
+            >>>
+            >>> # TODO: Initialize `instance`:
+            >>> instance = {}
+            >>>
+            >>> # TODO: Initialize `update_mask`:
+            >>> update_mask = {}
+            >>>
+            >>> response = client.partial_update_instance(instance, update_mask)
+            >>>
+            >>> def callback(operation_future):
+            ...     # Handle result.
+            ...     result = operation_future.result()
+            >>>
+            >>> response.add_done_callback(callback)
+            >>>
+            >>> # Handle metadata.
+            >>> metadata = response.metadata()
+
+        Args:
+            instance (Union[dict, ~google.cloud.bigtable_admin_v2.types.Instance]): Required. The Instance which will (partially) replace the current value.
+
+                If a dict is provided, it must be of the same form as the protobuf
+                message :class:`~google.cloud.bigtable_admin_v2.types.Instance`
+            update_mask (Union[dict, ~google.cloud.bigtable_admin_v2.types.FieldMask]): Required. The subset of Instance fields which should be replaced.
+                Must be explicitly set.
+
+                If a dict is provided, it must be of the same form as the protobuf
+                message :class:`~google.cloud.bigtable_admin_v2.types.FieldMask`
+            retry (Optional[google.api_core.retry.Retry]):  A retry object used
+                to retry requests. If ``None`` is specified, requests will
+                be retried using a default configuration.
+            timeout (Optional[float]): The amount of time, in seconds, to wait
+                for the request to complete. Note that if ``retry`` is
+                specified, the timeout applies to each individual attempt.
+            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
+                that is provided to the method.
+
+        Returns:
+            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
+
+        Raises:
+            google.api_core.exceptions.GoogleAPICallError: If the request
+                    failed for any reason.
+            google.api_core.exceptions.RetryError: If the request failed due
+                    to a retryable error and retry attempts failed.
+            ValueError: If the parameters are invalid.
+        """
+        # Wrap the transport method to add retry and timeout logic.
+        if "partial_update_instance" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "partial_update_instance"
+            ] = google.api_core.gapic_v1.method.wrap_method(
+                self.transport.partial_update_instance,
+                default_retry=self._method_configs["PartialUpdateInstance"].retry,
+                default_timeout=self._method_configs["PartialUpdateInstance"].timeout,
+                client_info=self._client_info,
+            )
+
+        request = bigtable_instance_admin_pb2.PartialUpdateInstanceRequest(
+            instance=instance, update_mask=update_mask,
+        )
+        if metadata is None:
+            metadata = []
+        metadata = list(metadata)
+        try:
+            routing_header = [("instance.name", instance.name)]
+        except AttributeError:
+            pass
+        else:
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
+            metadata.append(routing_metadata)
+
+        operation = self._inner_api_calls["partial_update_instance"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
+        return google.api_core.operation.from_gapic(
+            operation,
+            self.transport._operations_client,
+            instance_pb2.Instance,
+            metadata_type=bigtable_instance_admin_pb2.UpdateInstanceMetadata,
+        )
+
+    def create_cluster(
+        self,
+        parent,
+        cluster_id,
+        cluster,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
+        """
+        Creates a cluster within an instance.
+
+        Example:
+            >>> from google.cloud import bigtable_admin_v2
+            >>>
+            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
+            >>>
+            >>> parent = client.instance_path('[PROJECT]', '[INSTANCE]')
+            >>>
+            >>> # TODO: Initialize `cluster_id`:
+            >>> cluster_id = ''
+            >>>
+            >>> # TODO: Initialize `cluster`:
+            >>> cluster = {}
+            >>>
+            >>> response = client.create_cluster(parent, cluster_id, cluster)
+            >>>
+            >>> def callback(operation_future):
+            ...     # Handle result.
+            ...     result = operation_future.result()
+            >>>
+            >>> response.add_done_callback(callback)
+            >>>
+            >>> # Handle metadata.
+            >>> metadata = response.metadata()
+
+        Args:
+            parent (str): Required. The unique name of the instance in which to create the new
+                cluster. Values are of the form
+                ``projects/{project}/instances/{instance}``.
+            cluster_id (str): Required. The ID to be used when referring to the new cluster within
+                its instance, e.g., just ``mycluster`` rather than
+                ``projects/myproject/instances/myinstance/clusters/mycluster``.
+            cluster (Union[dict, ~google.cloud.bigtable_admin_v2.types.Cluster]): Required. The cluster to be created. Fields marked ``OutputOnly``
+                must be left blank.
+
+                If a dict is provided, it must be of the same form as the protobuf
+                message :class:`~google.cloud.bigtable_admin_v2.types.Cluster`
+            retry (Optional[google.api_core.retry.Retry]):  A retry object used
+                to retry requests. If ``None`` is specified, requests will
+                be retried using a default configuration.
+            timeout (Optional[float]): The amount of time, in seconds, to wait
+                for the request to complete. Note that if ``retry`` is
+                specified, the timeout applies to each individual attempt.
+            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
+                that is provided to the method.
+
+        Returns:
+            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
+
+        Raises:
+            google.api_core.exceptions.GoogleAPICallError: If the request
+                    failed for any reason.
+            google.api_core.exceptions.RetryError: If the request failed due
+                    to a retryable error and retry attempts failed.
+            ValueError: If the parameters are invalid.
+        """
+        # Wrap the transport method to add retry and timeout logic.
+        if "create_cluster" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "create_cluster"
+            ] = google.api_core.gapic_v1.method.wrap_method(
+                self.transport.create_cluster,
+                default_retry=self._method_configs["CreateCluster"].retry,
+                default_timeout=self._method_configs["CreateCluster"].timeout,
+                client_info=self._client_info,
+            )
+
+        request = bigtable_instance_admin_pb2.CreateClusterRequest(
+            parent=parent, cluster_id=cluster_id, cluster=cluster,
+        )
+        if metadata is None:
+            metadata = []
+        metadata = list(metadata)
+        try:
+            routing_header = [("parent", parent)]
+        except AttributeError:
+            pass
+        else:
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
+            metadata.append(routing_metadata)
+
+        operation = self._inner_api_calls["create_cluster"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
+        return google.api_core.operation.from_gapic(
+            operation,
+            self.transport._operations_client,
+            instance_pb2.Cluster,
+            metadata_type=bigtable_instance_admin_pb2.CreateClusterMetadata,
+        )
+
+    def update_cluster(
+        self,
+        serve_nodes,
+        name=None,
+        location=None,
+        state=None,
+        default_storage_type=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
+        """
+        Updates a cluster within an instance.
+
+        Example:
+            >>> from google.cloud import bigtable_admin_v2
+            >>>
+            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
+            >>>
+            >>> # TODO: Initialize `serve_nodes`:
+            >>> serve_nodes = 0
+            >>>
+            >>> response = client.update_cluster(serve_nodes)
+            >>>
+            >>> def callback(operation_future):
+            ...     # Handle result.
+            ...     result = operation_future.result()
+            >>>
+            >>> response.add_done_callback(callback)
+            >>>
+            >>> # Handle metadata.
+            >>> metadata = response.metadata()
+
+        Args:
+            serve_nodes (int): Required. The number of nodes allocated to this cluster. More nodes enable
+                higher throughput and more consistent performance.
+            name (str): The unique name of the cluster. Values are of the form
+                ``projects/{project}/instances/{instance}/clusters/[a-z][-a-z0-9]*``.
+            location (str): (``CreationOnly``) The location where this cluster's nodes and
+                storage reside. For best performance, clients should be located as close
+                as possible to this cluster. Currently only zones are supported, so
+                values should be of the form ``projects/{project}/locations/{zone}``.
+            state (~google.cloud.bigtable_admin_v2.types.State): The current state of the cluster.
+            default_storage_type (~google.cloud.bigtable_admin_v2.types.StorageType): (``CreationOnly``) The type of storage used by this cluster to serve
+                its parent instance's tables, unless explicitly overridden.
+            retry (Optional[google.api_core.retry.Retry]):  A retry object used
+                to retry requests. If ``None`` is specified, requests will
+                be retried using a default configuration.
+            timeout (Optional[float]): The amount of time, in seconds, to wait
+                for the request to complete. Note that if ``retry`` is
+                specified, the timeout applies to each individual attempt.
+            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
+                that is provided to the method.
+
+        Returns:
+            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
+
+        Raises:
+            google.api_core.exceptions.GoogleAPICallError: If the request
+                    failed for any reason.
+            google.api_core.exceptions.RetryError: If the request failed due
+                    to a retryable error and retry attempts failed.
+            ValueError: If the parameters are invalid.
+        """
+        # Wrap the transport method to add retry and timeout logic.
+        if "update_cluster" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "update_cluster"
+            ] = google.api_core.gapic_v1.method.wrap_method(
+                self.transport.update_cluster,
+                default_retry=self._method_configs["UpdateCluster"].retry,
+                default_timeout=self._method_configs["UpdateCluster"].timeout,
+                client_info=self._client_info,
+            )
+
+        request = instance_pb2.Cluster(
+            serve_nodes=serve_nodes,
+            name=name,
+            location=location,
+            state=state,
+            default_storage_type=default_storage_type,
+        )
+        if metadata is None:
+            metadata = []
+        metadata = list(metadata)
+        try:
+            routing_header = [("name", name)]
+        except AttributeError:
+            pass
+        else:
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
+            metadata.append(routing_metadata)
+
+        operation = self._inner_api_calls["update_cluster"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
+        return google.api_core.operation.from_gapic(
+            operation,
+            self.transport._operations_client,
+            instance_pb2.Cluster,
+            metadata_type=bigtable_instance_admin_pb2.UpdateClusterMetadata,
+        )
+
+    def update_app_profile(
+        self,
+        app_profile,
+        update_mask,
+        ignore_warnings=None,
+        retry=google.api_core.gapic_v1.method.DEFAULT,
+        timeout=google.api_core.gapic_v1.method.DEFAULT,
+        metadata=None,
+    ):
+        """
+        Updates an app profile within an instance.
+
+        Example:
+            >>> from google.cloud import bigtable_admin_v2
+            >>>
+            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
+            >>>
+            >>> # TODO: Initialize `app_profile`:
+            >>> app_profile = {}
+            >>>
+            >>> # TODO: Initialize `update_mask`:
+            >>> update_mask = {}
+            >>>
+            >>> response = client.update_app_profile(app_profile, update_mask)
+            >>>
+            >>> def callback(operation_future):
+            ...     # Handle result.
+            ...     result = operation_future.result()
+            >>>
+            >>> response.add_done_callback(callback)
+            >>>
+            >>> # Handle metadata.
+            >>> metadata = response.metadata()
+
+        Args:
+            app_profile (Union[dict, ~google.cloud.bigtable_admin_v2.types.AppProfile]): Required. The app profile which will (partially) replace the current value.
+
+                If a dict is provided, it must be of the same form as the protobuf
+                message :class:`~google.cloud.bigtable_admin_v2.types.AppProfile`
+            update_mask (Union[dict, ~google.cloud.bigtable_admin_v2.types.FieldMask]): Required. The subset of app profile fields which should be replaced.
+                If unset, all fields will be replaced.
+
+                If a dict is provided, it must be of the same form as the protobuf
+                message :class:`~google.cloud.bigtable_admin_v2.types.FieldMask`
+            ignore_warnings (bool): If true, ignore safety checks when updating the app profile.
+            retry (Optional[google.api_core.retry.Retry]):  A retry object used
+                to retry requests. If ``None`` is specified, requests will
+                be retried using a default configuration.
+            timeout (Optional[float]): The amount of time, in seconds, to wait
+                for the request to complete. Note that if ``retry`` is
+                specified, the timeout applies to each individual attempt.
+            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
+                that is provided to the method.
+
+        Returns:
+            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
+
+        Raises:
+            google.api_core.exceptions.GoogleAPICallError: If the request
+                    failed for any reason.
+            google.api_core.exceptions.RetryError: If the request failed due
+                    to a retryable error and retry attempts failed.
+            ValueError: If the parameters are invalid.
+        """
+        # Wrap the transport method to add retry and timeout logic.
+        if "update_app_profile" not in self._inner_api_calls:
+            self._inner_api_calls[
+                "update_app_profile"
+            ] = google.api_core.gapic_v1.method.wrap_method(
+                self.transport.update_app_profile,
+                default_retry=self._method_configs["UpdateAppProfile"].retry,
+                default_timeout=self._method_configs["UpdateAppProfile"].timeout,
+                client_info=self._client_info,
+            )
+
+        request = bigtable_instance_admin_pb2.UpdateAppProfileRequest(
+            app_profile=app_profile,
+            update_mask=update_mask,
+            ignore_warnings=ignore_warnings,
+        )
+        if metadata is None:
+            metadata = []
+        metadata = list(metadata)
+        try:
+            routing_header = [("app_profile.name", app_profile.name)]
+        except AttributeError:
+            pass
+        else:
+            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
+                routing_header
+            )
+            metadata.append(routing_metadata)
+
+        operation = self._inner_api_calls["update_app_profile"](
+            request, retry=retry, timeout=timeout, metadata=metadata
+        )
+        return google.api_core.operation.from_gapic(
+            operation,
+            self.transport._operations_client,
+            instance_pb2.AppProfile,
+            metadata_type=bigtable_instance_admin_pb2.UpdateAppProfileMetadata,
+        )
+
     def get_instance(
         self,
         name,
@@ -608,106 +1020,6 @@ class BigtableInstanceAdminClient(object):
             request, retry=retry, timeout=timeout, metadata=metadata
         )
 
-    def partial_update_instance(
-        self,
-        instance,
-        update_mask,
-        retry=google.api_core.gapic_v1.method.DEFAULT,
-        timeout=google.api_core.gapic_v1.method.DEFAULT,
-        metadata=None,
-    ):
-        """
-        Partially updates an instance within a project. This method can modify all
-        fields of an Instance and is the preferred way to update an Instance.
-
-        Example:
-            >>> from google.cloud import bigtable_admin_v2
-            >>>
-            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
-            >>>
-            >>> # TODO: Initialize `instance`:
-            >>> instance = {}
-            >>>
-            >>> # TODO: Initialize `update_mask`:
-            >>> update_mask = {}
-            >>>
-            >>> response = client.partial_update_instance(instance, update_mask)
-            >>>
-            >>> def callback(operation_future):
-            ...     # Handle result.
-            ...     result = operation_future.result()
-            >>>
-            >>> response.add_done_callback(callback)
-            >>>
-            >>> # Handle metadata.
-            >>> metadata = response.metadata()
-
-        Args:
-            instance (Union[dict, ~google.cloud.bigtable_admin_v2.types.Instance]): Required. The Instance which will (partially) replace the current value.
-
-                If a dict is provided, it must be of the same form as the protobuf
-                message :class:`~google.cloud.bigtable_admin_v2.types.Instance`
-            update_mask (Union[dict, ~google.cloud.bigtable_admin_v2.types.FieldMask]): Required. The subset of Instance fields which should be replaced.
-                Must be explicitly set.
-
-                If a dict is provided, it must be of the same form as the protobuf
-                message :class:`~google.cloud.bigtable_admin_v2.types.FieldMask`
-            retry (Optional[google.api_core.retry.Retry]):  A retry object used
-                to retry requests. If ``None`` is specified, requests will
-                be retried using a default configuration.
-            timeout (Optional[float]): The amount of time, in seconds, to wait
-                for the request to complete. Note that if ``retry`` is
-                specified, the timeout applies to each individual attempt.
-            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
-                that is provided to the method.
-
-        Returns:
-            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
-
-        Raises:
-            google.api_core.exceptions.GoogleAPICallError: If the request
-                    failed for any reason.
-            google.api_core.exceptions.RetryError: If the request failed due
-                    to a retryable error and retry attempts failed.
-            ValueError: If the parameters are invalid.
-        """
-        # Wrap the transport method to add retry and timeout logic.
-        if "partial_update_instance" not in self._inner_api_calls:
-            self._inner_api_calls[
-                "partial_update_instance"
-            ] = google.api_core.gapic_v1.method.wrap_method(
-                self.transport.partial_update_instance,
-                default_retry=self._method_configs["PartialUpdateInstance"].retry,
-                default_timeout=self._method_configs["PartialUpdateInstance"].timeout,
-                client_info=self._client_info,
-            )
-
-        request = bigtable_instance_admin_pb2.PartialUpdateInstanceRequest(
-            instance=instance, update_mask=update_mask,
-        )
-        if metadata is None:
-            metadata = []
-        metadata = list(metadata)
-        try:
-            routing_header = [("instance.name", instance.name)]
-        except AttributeError:
-            pass
-        else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
-                routing_header
-            )
-            metadata.append(routing_metadata)
-
-        operation = self._inner_api_calls["partial_update_instance"](
-            request, retry=retry, timeout=timeout, metadata=metadata
-        )
-        return google.api_core.operation.from_gapic(
-            operation,
-            self.transport._operations_client,
-            instance_pb2.Instance,
-            metadata_type=bigtable_instance_admin_pb2.UpdateInstanceMetadata,
-        )
-
     def delete_instance(
         self,
         name,
@@ -773,110 +1085,6 @@ class BigtableInstanceAdminClient(object):
 
         self._inner_api_calls["delete_instance"](
             request, retry=retry, timeout=timeout, metadata=metadata
-        )
-
-    def create_cluster(
-        self,
-        parent,
-        cluster_id,
-        cluster,
-        retry=google.api_core.gapic_v1.method.DEFAULT,
-        timeout=google.api_core.gapic_v1.method.DEFAULT,
-        metadata=None,
-    ):
-        """
-        Creates a cluster within an instance.
-
-        Example:
-            >>> from google.cloud import bigtable_admin_v2
-            >>>
-            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
-            >>>
-            >>> parent = client.instance_path('[PROJECT]', '[INSTANCE]')
-            >>>
-            >>> # TODO: Initialize `cluster_id`:
-            >>> cluster_id = ''
-            >>>
-            >>> # TODO: Initialize `cluster`:
-            >>> cluster = {}
-            >>>
-            >>> response = client.create_cluster(parent, cluster_id, cluster)
-            >>>
-            >>> def callback(operation_future):
-            ...     # Handle result.
-            ...     result = operation_future.result()
-            >>>
-            >>> response.add_done_callback(callback)
-            >>>
-            >>> # Handle metadata.
-            >>> metadata = response.metadata()
-
-        Args:
-            parent (str): Required. The unique name of the instance in which to create the new
-                cluster. Values are of the form
-                ``projects/{project}/instances/{instance}``.
-            cluster_id (str): Required. The ID to be used when referring to the new cluster within
-                its instance, e.g., just ``mycluster`` rather than
-                ``projects/myproject/instances/myinstance/clusters/mycluster``.
-            cluster (Union[dict, ~google.cloud.bigtable_admin_v2.types.Cluster]): Required. The cluster to be created. Fields marked ``OutputOnly``
-                must be left blank.
-
-                If a dict is provided, it must be of the same form as the protobuf
-                message :class:`~google.cloud.bigtable_admin_v2.types.Cluster`
-            retry (Optional[google.api_core.retry.Retry]):  A retry object used
-                to retry requests. If ``None`` is specified, requests will
-                be retried using a default configuration.
-            timeout (Optional[float]): The amount of time, in seconds, to wait
-                for the request to complete. Note that if ``retry`` is
-                specified, the timeout applies to each individual attempt.
-            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
-                that is provided to the method.
-
-        Returns:
-            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
-
-        Raises:
-            google.api_core.exceptions.GoogleAPICallError: If the request
-                    failed for any reason.
-            google.api_core.exceptions.RetryError: If the request failed due
-                    to a retryable error and retry attempts failed.
-            ValueError: If the parameters are invalid.
-        """
-        # Wrap the transport method to add retry and timeout logic.
-        if "create_cluster" not in self._inner_api_calls:
-            self._inner_api_calls[
-                "create_cluster"
-            ] = google.api_core.gapic_v1.method.wrap_method(
-                self.transport.create_cluster,
-                default_retry=self._method_configs["CreateCluster"].retry,
-                default_timeout=self._method_configs["CreateCluster"].timeout,
-                client_info=self._client_info,
-            )
-
-        request = bigtable_instance_admin_pb2.CreateClusterRequest(
-            parent=parent, cluster_id=cluster_id, cluster=cluster,
-        )
-        if metadata is None:
-            metadata = []
-        metadata = list(metadata)
-        try:
-            routing_header = [("parent", parent)]
-        except AttributeError:
-            pass
-        else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
-                routing_header
-            )
-            metadata.append(routing_metadata)
-
-        operation = self._inner_api_calls["create_cluster"](
-            request, retry=retry, timeout=timeout, metadata=metadata
-        )
-        return google.api_core.operation.from_gapic(
-            operation,
-            self.transport._operations_client,
-            instance_pb2.Cluster,
-            metadata_type=bigtable_instance_admin_pb2.CreateClusterMetadata,
         )
 
     def get_cluster(
@@ -1024,111 +1232,6 @@ class BigtableInstanceAdminClient(object):
 
         return self._inner_api_calls["list_clusters"](
             request, retry=retry, timeout=timeout, metadata=metadata
-        )
-
-    def update_cluster(
-        self,
-        serve_nodes,
-        name=None,
-        location=None,
-        state=None,
-        default_storage_type=None,
-        retry=google.api_core.gapic_v1.method.DEFAULT,
-        timeout=google.api_core.gapic_v1.method.DEFAULT,
-        metadata=None,
-    ):
-        """
-        Updates a cluster within an instance.
-
-        Example:
-            >>> from google.cloud import bigtable_admin_v2
-            >>>
-            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
-            >>>
-            >>> # TODO: Initialize `serve_nodes`:
-            >>> serve_nodes = 0
-            >>>
-            >>> response = client.update_cluster(serve_nodes)
-            >>>
-            >>> def callback(operation_future):
-            ...     # Handle result.
-            ...     result = operation_future.result()
-            >>>
-            >>> response.add_done_callback(callback)
-            >>>
-            >>> # Handle metadata.
-            >>> metadata = response.metadata()
-
-        Args:
-            serve_nodes (int): Required. The number of nodes allocated to this cluster. More nodes enable
-                higher throughput and more consistent performance.
-            name (str): The unique name of the cluster. Values are of the form
-                ``projects/{project}/instances/{instance}/clusters/[a-z][-a-z0-9]*``.
-            location (str): (``CreationOnly``) The location where this cluster's nodes and
-                storage reside. For best performance, clients should be located as close
-                as possible to this cluster. Currently only zones are supported, so
-                values should be of the form ``projects/{project}/locations/{zone}``.
-            state (~google.cloud.bigtable_admin_v2.types.State): The current state of the cluster.
-            default_storage_type (~google.cloud.bigtable_admin_v2.types.StorageType): (``CreationOnly``) The type of storage used by this cluster to serve
-                its parent instance's tables, unless explicitly overridden.
-            retry (Optional[google.api_core.retry.Retry]):  A retry object used
-                to retry requests. If ``None`` is specified, requests will
-                be retried using a default configuration.
-            timeout (Optional[float]): The amount of time, in seconds, to wait
-                for the request to complete. Note that if ``retry`` is
-                specified, the timeout applies to each individual attempt.
-            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
-                that is provided to the method.
-
-        Returns:
-            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
-
-        Raises:
-            google.api_core.exceptions.GoogleAPICallError: If the request
-                    failed for any reason.
-            google.api_core.exceptions.RetryError: If the request failed due
-                    to a retryable error and retry attempts failed.
-            ValueError: If the parameters are invalid.
-        """
-        # Wrap the transport method to add retry and timeout logic.
-        if "update_cluster" not in self._inner_api_calls:
-            self._inner_api_calls[
-                "update_cluster"
-            ] = google.api_core.gapic_v1.method.wrap_method(
-                self.transport.update_cluster,
-                default_retry=self._method_configs["UpdateCluster"].retry,
-                default_timeout=self._method_configs["UpdateCluster"].timeout,
-                client_info=self._client_info,
-            )
-
-        request = instance_pb2.Cluster(
-            serve_nodes=serve_nodes,
-            name=name,
-            location=location,
-            state=state,
-            default_storage_type=default_storage_type,
-        )
-        if metadata is None:
-            metadata = []
-        metadata = list(metadata)
-        try:
-            routing_header = [("name", name)]
-        except AttributeError:
-            pass
-        else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
-                routing_header
-            )
-            metadata.append(routing_metadata)
-
-        operation = self._inner_api_calls["update_cluster"](
-            request, retry=retry, timeout=timeout, metadata=metadata
-        )
-        return google.api_core.operation.from_gapic(
-            operation,
-            self.transport._operations_client,
-            instance_pb2.Cluster,
-            metadata_type=bigtable_instance_admin_pb2.UpdateClusterMetadata,
         )
 
     def delete_cluster(
@@ -1470,109 +1573,6 @@ class BigtableInstanceAdminClient(object):
             response_token_field="next_page_token",
         )
         return iterator
-
-    def update_app_profile(
-        self,
-        app_profile,
-        update_mask,
-        ignore_warnings=None,
-        retry=google.api_core.gapic_v1.method.DEFAULT,
-        timeout=google.api_core.gapic_v1.method.DEFAULT,
-        metadata=None,
-    ):
-        """
-        Updates an app profile within an instance.
-
-        Example:
-            >>> from google.cloud import bigtable_admin_v2
-            >>>
-            >>> client = bigtable_admin_v2.BigtableInstanceAdminClient()
-            >>>
-            >>> # TODO: Initialize `app_profile`:
-            >>> app_profile = {}
-            >>>
-            >>> # TODO: Initialize `update_mask`:
-            >>> update_mask = {}
-            >>>
-            >>> response = client.update_app_profile(app_profile, update_mask)
-            >>>
-            >>> def callback(operation_future):
-            ...     # Handle result.
-            ...     result = operation_future.result()
-            >>>
-            >>> response.add_done_callback(callback)
-            >>>
-            >>> # Handle metadata.
-            >>> metadata = response.metadata()
-
-        Args:
-            app_profile (Union[dict, ~google.cloud.bigtable_admin_v2.types.AppProfile]): Required. The app profile which will (partially) replace the current value.
-
-                If a dict is provided, it must be of the same form as the protobuf
-                message :class:`~google.cloud.bigtable_admin_v2.types.AppProfile`
-            update_mask (Union[dict, ~google.cloud.bigtable_admin_v2.types.FieldMask]): Required. The subset of app profile fields which should be replaced.
-                If unset, all fields will be replaced.
-
-                If a dict is provided, it must be of the same form as the protobuf
-                message :class:`~google.cloud.bigtable_admin_v2.types.FieldMask`
-            ignore_warnings (bool): If true, ignore safety checks when updating the app profile.
-            retry (Optional[google.api_core.retry.Retry]):  A retry object used
-                to retry requests. If ``None`` is specified, requests will
-                be retried using a default configuration.
-            timeout (Optional[float]): The amount of time, in seconds, to wait
-                for the request to complete. Note that if ``retry`` is
-                specified, the timeout applies to each individual attempt.
-            metadata (Optional[Sequence[Tuple[str, str]]]): Additional metadata
-                that is provided to the method.
-
-        Returns:
-            A :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture` instance.
-
-        Raises:
-            google.api_core.exceptions.GoogleAPICallError: If the request
-                    failed for any reason.
-            google.api_core.exceptions.RetryError: If the request failed due
-                    to a retryable error and retry attempts failed.
-            ValueError: If the parameters are invalid.
-        """
-        # Wrap the transport method to add retry and timeout logic.
-        if "update_app_profile" not in self._inner_api_calls:
-            self._inner_api_calls[
-                "update_app_profile"
-            ] = google.api_core.gapic_v1.method.wrap_method(
-                self.transport.update_app_profile,
-                default_retry=self._method_configs["UpdateAppProfile"].retry,
-                default_timeout=self._method_configs["UpdateAppProfile"].timeout,
-                client_info=self._client_info,
-            )
-
-        request = bigtable_instance_admin_pb2.UpdateAppProfileRequest(
-            app_profile=app_profile,
-            update_mask=update_mask,
-            ignore_warnings=ignore_warnings,
-        )
-        if metadata is None:
-            metadata = []
-        metadata = list(metadata)
-        try:
-            routing_header = [("app_profile.name", app_profile.name)]
-        except AttributeError:
-            pass
-        else:
-            routing_metadata = google.api_core.gapic_v1.routing_header.to_grpc_metadata(
-                routing_header
-            )
-            metadata.append(routing_metadata)
-
-        operation = self._inner_api_calls["update_app_profile"](
-            request, retry=retry, timeout=timeout, metadata=metadata
-        )
-        return google.api_core.operation.from_gapic(
-            operation,
-            self.transport._operations_client,
-            instance_pb2.AppProfile,
-            metadata_type=bigtable_instance_admin_pb2.UpdateAppProfileMetadata,
-        )
 
     def delete_app_profile(
         self,
