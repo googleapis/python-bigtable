@@ -11,8 +11,7 @@
       "git": {
         "name": "googleapis",
         "remote": "https://github.com/googleapis/googleapis.git",
-        "sha": "215c12ade72d9d9616457d9b8b2f8a37f38e79f3",
-        "internalRef": "337113354"
+        "sha": "121ec62ffda4a20e726631be34d76ad35373ca15"
       }
     },
     {
@@ -167,6 +166,9 @@
     "scripts/readme-gen/templates/install_deps.tmpl.rst",
     "scripts/readme-gen/templates/install_portaudio.tmpl.rst",
     "setup.cfg",
-    "testing/.gitignore"
+    "testing/.gitignore",
+    "tests/unit/gapic/v2/test_bigtable_client_v2.py",
+    "tests/unit/gapic/v2/test_bigtable_instance_admin_client_v2.py",
+    "tests/unit/gapic/v2/test_bigtable_table_admin_client_v2.py"
   ]
 }
