@@ -1010,12 +1010,18 @@ class TestBigtableTableAdminClient(object):
             create_channel.return_value = channel
             client = bigtable_admin_v2.BigtableTableAdminClient()
 
-        response = client.restore_table()
+        # Setup Request
+        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
+        table_id = "tableId-895419604"
+
+        response = client.restore_table(parent, table_id)
         result = response.result()
         assert expected_response == result
 
         assert len(channel.requests) == 1
-        expected_request = bigtable_table_admin_pb2.RestoreTableRequest()
+        expected_request = bigtable_table_admin_pb2.RestoreTableRequest(
+            parent=parent, table_id=table_id
+        )
         actual_request = channel.requests[0][1]
         assert expected_request == actual_request
 
@@ -1034,6 +1040,10 @@ class TestBigtableTableAdminClient(object):
             create_channel.return_value = channel
             client = bigtable_admin_v2.BigtableTableAdminClient()
 
-        response = client.restore_table()
+        # Setup Request
+        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
+        table_id = "tableId-895419604"
+
+        response = client.restore_table(parent, table_id)
         exception = response.exception()
         assert exception.errors[0] == error
