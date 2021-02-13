@@ -128,21 +128,6 @@ class BigtableTableAdminGrpcTransport(object):
         return self._channel
 
     @property
-    def create_table(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.create_table`.
-
-        Creates a new table in the specified instance.
-        The table can be created with a full set of initial column families,
-        specified in the request.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].CreateTable
-
-    @property
     def create_table_from_snapshot(self):
         """Return the gRPC stub for :meth:`BigtableTableAdminClient.create_table_from_snapshot`.
 
@@ -161,6 +146,76 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized response object.
         """
         return self._stubs["bigtable_table_admin_stub"].CreateTableFromSnapshot
+
+    @property
+    def snapshot_table(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.snapshot_table`.
+
+        Creates a new snapshot in the specified cluster from the specified
+        source table. The cluster and the table must be in the same instance.
+
+        Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        feature is not currently available to most Cloud Bigtable customers. This
+        feature might be changed in backward-incompatible ways and is not
+        recommended for production use. It is not subject to any SLA or deprecation
+        policy.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].SnapshotTable
+
+    @property
+    def create_backup(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.create_backup`.
+
+        Starts creating a new Cloud Bigtable Backup. The returned backup
+        ``long-running operation`` can be used to track creation of the backup.
+        The ``metadata`` field type is ``CreateBackupMetadata``. The
+        ``response`` field type is ``Backup``, if successful. Cancelling the
+        returned operation will stop the creation and delete the backup.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].CreateBackup
+
+    @property
+    def restore_table(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.restore_table`.
+
+        Create a new table by restoring from a completed backup. The new
+        table must be in the same instance as the instance containing the
+        backup. The returned table ``long-running operation`` can be used to
+        track the progress of the operation, and to cancel it. The ``metadata``
+        field type is ``RestoreTableMetadata``. The ``response`` type is
+        ``Table``, if successful.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].RestoreTable
+
+    @property
+    def create_table(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.create_table`.
+
+        Creates a new table in the specified instance.
+        The table can be created with a full set of initial column families,
+        specified in the request.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].CreateTable
 
     @property
     def list_tables(self):
@@ -264,68 +319,6 @@ class BigtableTableAdminGrpcTransport(object):
         return self._stubs["bigtable_table_admin_stub"].CheckConsistency
 
     @property
-    def get_iam_policy(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.get_iam_policy`.
-
-        Gets the access control policy for a Table or Backup resource.
-        Returns an empty policy if the resource exists but does not have a policy
-        set.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].GetIamPolicy
-
-    @property
-    def set_iam_policy(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.set_iam_policy`.
-
-        Sets the access control policy on a Table or Backup resource.
-        Replaces any existing policy.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].SetIamPolicy
-
-    @property
-    def test_iam_permissions(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.test_iam_permissions`.
-
-        Returns permissions that the caller has on the specified Table or Backup resource.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].TestIamPermissions
-
-    @property
-    def snapshot_table(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.snapshot_table`.
-
-        Creates a new snapshot in the specified cluster from the specified
-        source table. The cluster and the table must be in the same instance.
-
-        Note: This is a private alpha release of Cloud Bigtable snapshots. This
-        feature is not currently available to most Cloud Bigtable customers. This
-        feature might be changed in backward-incompatible ways and is not
-        recommended for production use. It is not subject to any SLA or deprecation
-        policy.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].SnapshotTable
-
-    @property
     def get_snapshot(self):
         """Return the gRPC stub for :meth:`BigtableTableAdminClient.get_snapshot`.
 
@@ -383,23 +376,6 @@ class BigtableTableAdminGrpcTransport(object):
         return self._stubs["bigtable_table_admin_stub"].DeleteSnapshot
 
     @property
-    def create_backup(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.create_backup`.
-
-        Starts creating a new Cloud Bigtable Backup. The returned backup
-        ``long-running operation`` can be used to track creation of the backup.
-        The ``metadata`` field type is ``CreateBackupMetadata``. The
-        ``response`` field type is ``Backup``, if successful. Cancelling the
-        returned operation will stop the creation and delete the backup.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].CreateBackup
-
-    @property
     def get_backup(self):
         """Return the gRPC stub for :meth:`BigtableTableAdminClient.get_backup`.
 
@@ -411,20 +387,6 @@ class BigtableTableAdminGrpcTransport(object):
                 deserialized response object.
         """
         return self._stubs["bigtable_table_admin_stub"].GetBackup
-
-    @property
-    def list_backups(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.list_backups`.
-
-        Lists Cloud Bigtable backups. Returns both completed and pending
-        backups.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_table_admin_stub"].ListBackups
 
     @property
     def update_backup(self):
@@ -453,19 +415,57 @@ class BigtableTableAdminGrpcTransport(object):
         return self._stubs["bigtable_table_admin_stub"].DeleteBackup
 
     @property
-    def restore_table(self):
-        """Return the gRPC stub for :meth:`BigtableTableAdminClient.restore_table`.
+    def list_backups(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.list_backups`.
 
-        Create a new table by restoring from a completed backup. The new
-        table must be in the same instance as the instance containing the
-        backup. The returned table ``long-running operation`` can be used to
-        track the progress of the operation, and to cancel it. The ``metadata``
-        field type is ``RestoreTableMetadata``. The ``response`` type is
-        ``Table``, if successful.
+        Lists Cloud Bigtable backups. Returns both completed and pending
+        backups.
 
         Returns:
             Callable: A callable which accepts the appropriate
                 deserialized request object and returns a
                 deserialized response object.
         """
-        return self._stubs["bigtable_table_admin_stub"].RestoreTable
+        return self._stubs["bigtable_table_admin_stub"].ListBackups
+
+    @property
+    def get_iam_policy(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.get_iam_policy`.
+
+        Gets the access control policy for a Table or Backup resource.
+        Returns an empty policy if the resource exists but does not have a policy
+        set.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].GetIamPolicy
+
+    @property
+    def set_iam_policy(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.set_iam_policy`.
+
+        Sets the access control policy on a Table or Backup resource.
+        Replaces any existing policy.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].SetIamPolicy
+
+    @property
+    def test_iam_permissions(self):
+        """Return the gRPC stub for :meth:`BigtableTableAdminClient.test_iam_permissions`.
+
+        Returns permissions that the caller has on the specified Table or Backup resource.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_table_admin_stub"].TestIamPermissions

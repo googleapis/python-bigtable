@@ -141,6 +141,59 @@ class BigtableInstanceAdminGrpcTransport(object):
         return self._stubs["bigtable_instance_admin_stub"].CreateInstance
 
     @property
+    def partial_update_instance(self):
+        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.partial_update_instance`.
+
+        Partially updates an instance within a project. This method can modify all
+        fields of an Instance and is the preferred way to update an Instance.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_instance_admin_stub"].PartialUpdateInstance
+
+    @property
+    def create_cluster(self):
+        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.create_cluster`.
+
+        Creates a cluster within an instance.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_instance_admin_stub"].CreateCluster
+
+    @property
+    def update_cluster(self):
+        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.update_cluster`.
+
+        Updates a cluster within an instance.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_instance_admin_stub"].UpdateCluster
+
+    @property
+    def update_app_profile(self):
+        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.update_app_profile`.
+
+        Updates an app profile within an instance.
+
+        Returns:
+            Callable: A callable which accepts the appropriate
+                deserialized request object and returns a
+                deserialized response object.
+        """
+        return self._stubs["bigtable_instance_admin_stub"].UpdateAppProfile
+
+    @property
     def get_instance(self):
         """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.get_instance`.
 
@@ -182,20 +235,6 @@ class BigtableInstanceAdminGrpcTransport(object):
         return self._stubs["bigtable_instance_admin_stub"].UpdateInstance
 
     @property
-    def partial_update_instance(self):
-        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.partial_update_instance`.
-
-        Partially updates an instance within a project. This method can modify all
-        fields of an Instance and is the preferred way to update an Instance.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_instance_admin_stub"].PartialUpdateInstance
-
-    @property
     def delete_instance(self):
         """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.delete_instance`.
 
@@ -207,19 +246,6 @@ class BigtableInstanceAdminGrpcTransport(object):
                 deserialized response object.
         """
         return self._stubs["bigtable_instance_admin_stub"].DeleteInstance
-
-    @property
-    def create_cluster(self):
-        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.create_cluster`.
-
-        Creates a cluster within an instance.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_instance_admin_stub"].CreateCluster
 
     @property
     def get_cluster(self):
@@ -246,19 +272,6 @@ class BigtableInstanceAdminGrpcTransport(object):
                 deserialized response object.
         """
         return self._stubs["bigtable_instance_admin_stub"].ListClusters
-
-    @property
-    def update_cluster(self):
-        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.update_cluster`.
-
-        Updates a cluster within an instance.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_instance_admin_stub"].UpdateCluster
 
     @property
     def delete_cluster(self):
@@ -311,19 +324,6 @@ class BigtableInstanceAdminGrpcTransport(object):
                 deserialized response object.
         """
         return self._stubs["bigtable_instance_admin_stub"].ListAppProfiles
-
-    @property
-    def update_app_profile(self):
-        """Return the gRPC stub for :meth:`BigtableInstanceAdminClient.update_app_profile`.
-
-        Updates an app profile within an instance.
-
-        Returns:
-            Callable: A callable which accepts the appropriate
-                deserialized request object and returns a
-                deserialized response object.
-        """
-        return self._stubs["bigtable_instance_admin_stub"].UpdateAppProfile
 
     @property
     def delete_app_profile(self):
