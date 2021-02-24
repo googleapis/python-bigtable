@@ -43,9 +43,18 @@ library = gapic.py_library(
     include_protos=True,
 )
 
+
+
 s.move(library / "google/cloud/bigtable_admin_v2")
 s.move(library / "tests")
 s.move(library / "scripts")
+
+s.replace(
+    "google/cloud/**/client.py",
+    """\s+if permissions:
+\s+request\.permissions\.extend\(permissions\)""",
+    "",
+)
 
 # ----------------------------------------------------------------------------
 # Add templated files
