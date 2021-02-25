@@ -4,7 +4,7 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-bigtable.git",
-        "sha": "6fe87016a159bbdc6bf29856b1cf6e633e16216a"
+        "sha": "b7489b65319eabd1dbe01d5d01b24500d013b53f"
       }
     },
     {
@@ -51,7 +51,6 @@
     }
   ],
   "generatedFiles": [
-    ".coveragerc",
     ".flake8",
     ".github/CONTRIBUTING.md",
     ".github/ISSUE_TEMPLATE/bug_report.md",
@@ -147,6 +146,7 @@
     "google/cloud/bigtable_v2/proto/data_pb2.py",
     "google/cloud/bigtable_v2/proto/data_pb2_grpc.py",
     "google/cloud/bigtable_v2/types.py",
+    "noxfile.py",
     "renovate.json",
     "samples/AUTHORING_GUIDE.md",
     "samples/CONTRIBUTING.md",
