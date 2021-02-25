@@ -801,7 +801,7 @@ class TestBigtableInstanceAdminClient(object):
     def test_get_iam_policy(self):
         # Setup Expected Response
         version = 351608024
-        etag = b"etag3123477"
+        etag = b"21"
         expected_response = {"version": version, "etag": etag}
         expected_response = policy_pb2.Policy(**expected_response)
 
@@ -840,7 +840,7 @@ class TestBigtableInstanceAdminClient(object):
     def test_set_iam_policy(self):
         # Setup Expected Response
         version = 351608024
-        etag = b"etag3123477"
+        etag = b"21"
         expected_response = {"version": version, "etag": etag}
         expected_response = policy_pb2.Policy(**expected_response)
 
