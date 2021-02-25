@@ -128,6 +128,239 @@ class TestBigtableInstanceAdminClient(object):
         exception = response.exception()
         assert exception.errors[0] == error
 
+    def test_partial_update_instance(self):
+        # Setup Expected Response
+        name = "name3373707"
+        display_name = "displayName1615086568"
+        expected_response = {"name": name, "display_name": display_name}
+        expected_response = instance_pb2.Instance(**expected_response)
+        operation = operations_pb2.Operation(
+            name="operations/test_partial_update_instance", done=True
+        )
+        operation.response.Pack(expected_response)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        instance = {}
+        update_mask = {}
+
+        response = client.partial_update_instance(instance, update_mask)
+        result = response.result()
+        assert expected_response == result
+
+        assert len(channel.requests) == 1
+        expected_request = bigtable_instance_admin_pb2.PartialUpdateInstanceRequest(
+            instance=instance, update_mask=update_mask
+        )
+        actual_request = channel.requests[0][1]
+        assert expected_request == actual_request
+
+    def test_partial_update_instance_exception(self):
+        # Setup Response
+        error = status_pb2.Status()
+        operation = operations_pb2.Operation(
+            name="operations/test_partial_update_instance_exception", done=True
+        )
+        operation.error.CopyFrom(error)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        instance = {}
+        update_mask = {}
+
+        response = client.partial_update_instance(instance, update_mask)
+        exception = response.exception()
+        assert exception.errors[0] == error
+
+    def test_create_cluster(self):
+        # Setup Expected Response
+        name = "name3373707"
+        location = "location1901043637"
+        serve_nodes = 1288838783
+        expected_response = {
+            "name": name,
+            "location": location,
+            "serve_nodes": serve_nodes,
+        }
+        expected_response = instance_pb2.Cluster(**expected_response)
+        operation = operations_pb2.Operation(
+            name="operations/test_create_cluster", done=True
+        )
+        operation.response.Pack(expected_response)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
+        cluster_id = "clusterId240280960"
+        cluster = {}
+
+        response = client.create_cluster(parent, cluster_id, cluster)
+        result = response.result()
+        assert expected_response == result
+
+        assert len(channel.requests) == 1
+        expected_request = bigtable_instance_admin_pb2.CreateClusterRequest(
+            parent=parent, cluster_id=cluster_id, cluster=cluster
+        )
+        actual_request = channel.requests[0][1]
+        assert expected_request == actual_request
+
+    def test_create_cluster_exception(self):
+        # Setup Response
+        error = status_pb2.Status()
+        operation = operations_pb2.Operation(
+            name="operations/test_create_cluster_exception", done=True
+        )
+        operation.error.CopyFrom(error)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
+        cluster_id = "clusterId240280960"
+        cluster = {}
+
+        response = client.create_cluster(parent, cluster_id, cluster)
+        exception = response.exception()
+        assert exception.errors[0] == error
+
+    def test_update_cluster(self):
+        # Setup Expected Response
+        name = "name3373707"
+        location = "location1901043637"
+        serve_nodes_2 = 1623486220
+        expected_response = {
+            "name": name,
+            "location": location,
+            "serve_nodes": serve_nodes_2,
+        }
+        expected_response = instance_pb2.Cluster(**expected_response)
+        operation = operations_pb2.Operation(
+            name="operations/test_update_cluster", done=True
+        )
+        operation.response.Pack(expected_response)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        serve_nodes = 1288838783
+
+        response = client.update_cluster(serve_nodes)
+        result = response.result()
+        assert expected_response == result
+
+        assert len(channel.requests) == 1
+        expected_request = instance_pb2.Cluster(serve_nodes=serve_nodes)
+        actual_request = channel.requests[0][1]
+        assert expected_request == actual_request
+
+    def test_update_cluster_exception(self):
+        # Setup Response
+        error = status_pb2.Status()
+        operation = operations_pb2.Operation(
+            name="operations/test_update_cluster_exception", done=True
+        )
+        operation.error.CopyFrom(error)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        serve_nodes = 1288838783
+
+        response = client.update_cluster(serve_nodes)
+        exception = response.exception()
+        assert exception.errors[0] == error
+
+    def test_update_app_profile(self):
+        # Setup Expected Response
+        name = "name3373707"
+        etag = "etag3123477"
+        description = "description-1724546052"
+        expected_response = {"name": name, "etag": etag, "description": description}
+        expected_response = instance_pb2.AppProfile(**expected_response)
+        operation = operations_pb2.Operation(
+            name="operations/test_update_app_profile", done=True
+        )
+        operation.response.Pack(expected_response)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        app_profile = {}
+        update_mask = {}
+
+        response = client.update_app_profile(app_profile, update_mask)
+        result = response.result()
+        assert expected_response == result
+
+        assert len(channel.requests) == 1
+        expected_request = bigtable_instance_admin_pb2.UpdateAppProfileRequest(
+            app_profile=app_profile, update_mask=update_mask
+        )
+        actual_request = channel.requests[0][1]
+        assert expected_request == actual_request
+
+    def test_update_app_profile_exception(self):
+        # Setup Response
+        error = status_pb2.Status()
+        operation = operations_pb2.Operation(
+            name="operations/test_update_app_profile_exception", done=True
+        )
+        operation.error.CopyFrom(error)
+
+        # Mock the API response
+        channel = ChannelStub(responses=[operation])
+        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
+        with patch as create_channel:
+            create_channel.return_value = channel
+            client = bigtable_admin_v2.BigtableInstanceAdminClient()
+
+        # Setup Request
+        app_profile = {}
+        update_mask = {}
+
+        response = client.update_app_profile(app_profile, update_mask)
+        exception = response.exception()
+        assert exception.errors[0] == error
+
     def test_get_instance(self):
         # Setup Expected Response
         name_2 = "name2-1052831874"
@@ -248,62 +481,6 @@ class TestBigtableInstanceAdminClient(object):
         with pytest.raises(CustomException):
             client.update_instance(display_name)
 
-    def test_partial_update_instance(self):
-        # Setup Expected Response
-        name = "name3373707"
-        display_name = "displayName1615086568"
-        expected_response = {"name": name, "display_name": display_name}
-        expected_response = instance_pb2.Instance(**expected_response)
-        operation = operations_pb2.Operation(
-            name="operations/test_partial_update_instance", done=True
-        )
-        operation.response.Pack(expected_response)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        instance = {}
-        update_mask = {}
-
-        response = client.partial_update_instance(instance, update_mask)
-        result = response.result()
-        assert expected_response == result
-
-        assert len(channel.requests) == 1
-        expected_request = bigtable_instance_admin_pb2.PartialUpdateInstanceRequest(
-            instance=instance, update_mask=update_mask
-        )
-        actual_request = channel.requests[0][1]
-        assert expected_request == actual_request
-
-    def test_partial_update_instance_exception(self):
-        # Setup Response
-        error = status_pb2.Status()
-        operation = operations_pb2.Operation(
-            name="operations/test_partial_update_instance_exception", done=True
-        )
-        operation.error.CopyFrom(error)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        instance = {}
-        update_mask = {}
-
-        response = client.partial_update_instance(instance, update_mask)
-        exception = response.exception()
-        assert exception.errors[0] == error
-
     def test_delete_instance(self):
         channel = ChannelStub()
         patch = mock.patch("google.api_core.grpc_helpers.create_channel")
@@ -334,69 +511,6 @@ class TestBigtableInstanceAdminClient(object):
 
         with pytest.raises(CustomException):
             client.delete_instance(name)
-
-    def test_create_cluster(self):
-        # Setup Expected Response
-        name = "name3373707"
-        location = "location1901043637"
-        serve_nodes = 1288838783
-        expected_response = {
-            "name": name,
-            "location": location,
-            "serve_nodes": serve_nodes,
-        }
-        expected_response = instance_pb2.Cluster(**expected_response)
-        operation = operations_pb2.Operation(
-            name="operations/test_create_cluster", done=True
-        )
-        operation.response.Pack(expected_response)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
-        cluster_id = "clusterId240280960"
-        cluster = {}
-
-        response = client.create_cluster(parent, cluster_id, cluster)
-        result = response.result()
-        assert expected_response == result
-
-        assert len(channel.requests) == 1
-        expected_request = bigtable_instance_admin_pb2.CreateClusterRequest(
-            parent=parent, cluster_id=cluster_id, cluster=cluster
-        )
-        actual_request = channel.requests[0][1]
-        assert expected_request == actual_request
-
-    def test_create_cluster_exception(self):
-        # Setup Response
-        error = status_pb2.Status()
-        operation = operations_pb2.Operation(
-            name="operations/test_create_cluster_exception", done=True
-        )
-        operation.error.CopyFrom(error)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        parent = client.instance_path("[PROJECT]", "[INSTANCE]")
-        cluster_id = "clusterId240280960"
-        cluster = {}
-
-        response = client.create_cluster(parent, cluster_id, cluster)
-        exception = response.exception()
-        assert exception.errors[0] == error
 
     def test_get_cluster(self):
         # Setup Expected Response
@@ -483,63 +597,6 @@ class TestBigtableInstanceAdminClient(object):
 
         with pytest.raises(CustomException):
             client.list_clusters(parent)
-
-    def test_update_cluster(self):
-        # Setup Expected Response
-        name = "name3373707"
-        location = "location1901043637"
-        serve_nodes_2 = 1623486220
-        expected_response = {
-            "name": name,
-            "location": location,
-            "serve_nodes": serve_nodes_2,
-        }
-        expected_response = instance_pb2.Cluster(**expected_response)
-        operation = operations_pb2.Operation(
-            name="operations/test_update_cluster", done=True
-        )
-        operation.response.Pack(expected_response)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        serve_nodes = 1288838783
-
-        response = client.update_cluster(serve_nodes)
-        result = response.result()
-        assert expected_response == result
-
-        assert len(channel.requests) == 1
-        expected_request = instance_pb2.Cluster(serve_nodes=serve_nodes)
-        actual_request = channel.requests[0][1]
-        assert expected_request == actual_request
-
-    def test_update_cluster_exception(self):
-        # Setup Response
-        error = status_pb2.Status()
-        operation = operations_pb2.Operation(
-            name="operations/test_update_cluster_exception", done=True
-        )
-        operation.error.CopyFrom(error)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        serve_nodes = 1288838783
-
-        response = client.update_cluster(serve_nodes)
-        exception = response.exception()
-        assert exception.errors[0] == error
 
     def test_delete_cluster(self):
         channel = ChannelStub()
@@ -707,63 +764,6 @@ class TestBigtableInstanceAdminClient(object):
         paged_list_response = client.list_app_profiles(parent)
         with pytest.raises(CustomException):
             list(paged_list_response)
-
-    def test_update_app_profile(self):
-        # Setup Expected Response
-        name = "name3373707"
-        etag = "etag3123477"
-        description = "description-1724546052"
-        expected_response = {"name": name, "etag": etag, "description": description}
-        expected_response = instance_pb2.AppProfile(**expected_response)
-        operation = operations_pb2.Operation(
-            name="operations/test_update_app_profile", done=True
-        )
-        operation.response.Pack(expected_response)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        app_profile = {}
-        update_mask = {}
-
-        response = client.update_app_profile(app_profile, update_mask)
-        result = response.result()
-        assert expected_response == result
-
-        assert len(channel.requests) == 1
-        expected_request = bigtable_instance_admin_pb2.UpdateAppProfileRequest(
-            app_profile=app_profile, update_mask=update_mask
-        )
-        actual_request = channel.requests[0][1]
-        assert expected_request == actual_request
-
-    def test_update_app_profile_exception(self):
-        # Setup Response
-        error = status_pb2.Status()
-        operation = operations_pb2.Operation(
-            name="operations/test_update_app_profile_exception", done=True
-        )
-        operation.error.CopyFrom(error)
-
-        # Mock the API response
-        channel = ChannelStub(responses=[operation])
-        patch = mock.patch("google.api_core.grpc_helpers.create_channel")
-        with patch as create_channel:
-            create_channel.return_value = channel
-            client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-        # Setup Request
-        app_profile = {}
-        update_mask = {}
-
-        response = client.update_app_profile(app_profile, update_mask)
-        exception = response.exception()
-        assert exception.errors[0] == error
 
     def test_delete_app_profile(self):
         channel = ChannelStub()
