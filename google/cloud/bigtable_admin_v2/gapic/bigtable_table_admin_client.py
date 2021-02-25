@@ -760,10 +760,10 @@ class BigtableTableAdminClient(object):
             name (str): Required. The unique name of the table whose families should be
                 modified. Values are of the form
                 ``projects/{project}/instances/{instance}/tables/{table}``.
-            modifications (list[Union[dict, ~google.cloud.bigtable_admin_v2.types.Modification]]): Required. Modifications to be atomically applied to the specified table's
-                families. Entries are applied in order, meaning that earlier modifications
-                can be masked by later ones (in the case of repeated updates to the same
-                family, for example).
+            modifications (list[Union[dict, ~google.cloud.bigtable_admin_v2.types.Modification]]): Required. Modifications to be atomically applied to the specified table's families.
+                Entries are applied in order, meaning that earlier modifications can be
+                masked by later ones (in the case of repeated updates to the same family,
+                for example).
 
                 If a dict is provided, it must be of the same form as the protobuf
                 message :class:`~google.cloud.bigtable_admin_v2.types.Modification`
@@ -1068,7 +1068,7 @@ class BigtableTableAdminClient(object):
         metadata=None,
     ):
         """
-        Gets the access control policy for a resource.
+        Gets the access control policy for a Table or Backup resource.
         Returns an empty policy if the resource exists but does not have a policy
         set.
 
@@ -1232,7 +1232,7 @@ class BigtableTableAdminClient(object):
         metadata=None,
     ):
         """
-        Returns permissions that the caller has on the specified table resource.
+        Returns permissions that the caller has on the specified Table or Backup resource.
 
         Example:
             >>> from google.cloud import bigtable_admin_v2
@@ -1916,7 +1916,7 @@ class BigtableTableAdminClient(object):
                 expression must specify the field name, a comparison operator, and the
                 value that you want to use for filtering. The value must be a string, a
                 number, or a boolean. The comparison operator must be <, >, <=, >=, !=,
-                =, or :. Colon ‘:’ represents a HAS operator which is roughly synonymous
+                =, or :. Colon ':' represents a HAS operator which is roughly synonymous
                 with equality. Filter rules are case insensitive.
 
                 The fields eligible for filtering are:
@@ -2190,8 +2190,8 @@ class BigtableTableAdminClient(object):
 
     def restore_table(
         self,
-        parent=None,
-        table_id=None,
+        parent,
+        table_id,
         backup=None,
         retry=google.api_core.gapic_v1.method.DEFAULT,
         timeout=google.api_core.gapic_v1.method.DEFAULT,
@@ -2210,7 +2210,12 @@ class BigtableTableAdminClient(object):
             >>>
             >>> client = bigtable_admin_v2.BigtableTableAdminClient()
             >>>
-            >>> response = client.restore_table()
+            >>> parent = client.instance_path('[PROJECT]', '[INSTANCE]')
+            >>>
+            >>> # TODO: Initialize `table_id`:
+            >>> table_id = ''
+            >>>
+            >>> response = client.restore_table(parent, table_id)
             >>>
             >>> def callback(operation_future):
             ...     # Handle result.
