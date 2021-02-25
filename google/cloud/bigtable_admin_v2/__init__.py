@@ -87,7 +87,7 @@ __all__ = (
     "AppProfile",
     "Backup",
     "BackupInfo",
-    "BigtableInstanceAdminClient",
+    "BigtableTableAdminClient",
     "CheckConsistencyRequest",
     "CheckConsistencyResponse",
     "Cluster",
@@ -149,5 +149,5 @@ __all__ = (
     "UpdateBackupRequest",
     "UpdateClusterMetadata",
     "UpdateInstanceMetadata",
-    "BigtableTableAdminClient",
+    "BigtableInstanceAdminClient",
 )
