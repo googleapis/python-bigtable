@@ -2068,6 +2068,9 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             if resource is not None:
                 request.resource = resource
 
+            if permissions:
+                request.permissions.extend(permissions)
+
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.test_iam_permissions]
