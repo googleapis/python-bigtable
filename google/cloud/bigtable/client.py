@@ -209,14 +209,15 @@ class Client(ClientWithProject):
         return scopes
 
     def _create_gapic_client_channel(self, client_class, grpc_transport):
-        if self._client_options and self._client_options.api_endpoint:
-            api_endpoint = self._client_options.api_endpoint
-        else:
-            api_endpoint = client_class.DEFAULT_ENDPOINT
+        # Use the GAPIC client code to determine the api_endpoint and ssl_credentials
+        # for mTLS.
+        client = client_class(credentials=self._credentials, client_options=self._client_options)
+        api_endpoint = client._transport._host
 
         channel = grpc_transport.create_channel(
             host=api_endpoint,
             credentials=self._credentials,
+            ssl_credentials=client._transport._ssl_channel_credentials,
             options={
                 "grpc.max_send_message_length": -1,
                 "grpc.max_receive_message_length": -1,

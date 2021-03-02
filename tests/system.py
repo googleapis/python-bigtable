@@ -89,6 +89,7 @@ class Config(object):
     CLUSTER = None
     CLUSTER_DATA = None
     IN_EMULATOR = False
+    IS_MTLS_TESTING = (os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false") == "true")
 
 
 def _retry_on_unavailable(exc):
@@ -729,6 +730,8 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(policy["version"], 0)
 
     def test_set_iam_policy(self):
+        if Config.IS_MTLS_TESTING:
+            self.skipTest("Skip mTLS testing because it requires user credentials")
         self._skip_if_emulated("Method not implemented in bigtable emulator")
         temp_table_id = "test-set-iam-policy-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
