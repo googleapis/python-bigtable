@@ -35,6 +35,13 @@ from google.api_core.gapic_v1 import client_info
 
 from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
+from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
+from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import (
+    BigtableInstanceAdminGrpcTransport,
+)
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports import (
+    BigtableTableAdminGrpcTransport,
+)
 
 from google.cloud.bigtable import __version__
 from google.cloud.bigtable.instance import Instance
@@ -42,14 +49,14 @@ from google.cloud.bigtable.cluster import Cluster
 
 from google.cloud.client import ClientWithProject
 
-from google.cloud.bigtable_admin_v2 import enums
+from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 
-INSTANCE_TYPE_PRODUCTION = enums.Instance.Type.PRODUCTION
-INSTANCE_TYPE_DEVELOPMENT = enums.Instance.Type.DEVELOPMENT
-INSTANCE_TYPE_UNSPECIFIED = enums.Instance.Type.TYPE_UNSPECIFIED
+INSTANCE_TYPE_PRODUCTION = instance.Instance.Type.PRODUCTION
+INSTANCE_TYPE_DEVELOPMENT = instance.Instance.Type.DEVELOPMENT
+INSTANCE_TYPE_UNSPECIFIED = instance.Instance.Type.TYPE_UNSPECIFIED
 _CLIENT_INFO = client_info.ClientInfo(client_library_version=__version__)
 SPANNER_ADMIN_SCOPE = "https://www.googleapis.com/auth/spanner.admin"
 ADMIN_SCOPE = "https://www.googleapis.com/auth/bigtable.admin"
@@ -60,13 +67,14 @@ READ_ONLY_SCOPE = "https://www.googleapis.com/auth/bigtable.data.readonly"
 """Scope for reading table data."""
 
 
-def _create_gapic_client(client_class, client_options=None):
+def _create_gapic_client(client_class, client_options=None, transport=None):
     def inner(self):
         if self._emulator_host is None:
             return client_class(
-                credentials=self._credentials,
+                credentials=None,
                 client_info=self._client_info,
                 client_options=client_options,
+                transport=transport,
             )
         else:
             return client_class(
@@ -161,7 +169,13 @@ class Client(ClientWithProject):
         self._emulator_channel = None
 
         if self._emulator_host is not None:
-            self._emulator_channel = grpc.insecure_channel(self._emulator_host)
+            self._emulator_channel = grpc.insecure_channel(
+                target=self._emulator_host,
+                options={
+                    "grpc.keepalive_time_ms": 30000,
+                    "grpc.keepalive_timeout_ms": 10000,
+                }.items(),
+            )
 
         if channel is not None:
             warnings.warn(
@@ -175,9 +189,7 @@ class Client(ClientWithProject):
         self._channel = channel
         self.SCOPE = self._get_scopes()
         super(Client, self).__init__(
-            project=project,
-            credentials=credentials,
-            client_options=client_options,
+            project=project, credentials=credentials, client_options=client_options,
         )
 
     def _get_scopes(self):
@@ -196,6 +208,25 @@ class Client(ClientWithProject):
 
         return scopes
 
+    def _create_gapic_client_channel(self, client_class, grpc_transport):
+        if self._client_options and self._client_options.api_endpoint:
+            api_endpoint = self._client_options.api_endpoint
+        else:
+            api_endpoint = client_class.DEFAULT_ENDPOINT
+
+        channel = grpc_transport.create_channel(
+            host=api_endpoint,
+            credentials=self._credentials,
+            options={
+                "grpc.max_send_message_length": -1,
+                "grpc.max_receive_message_length": -1,
+                "grpc.keepalive_time_ms": 30000,
+                "grpc.keepalive_timeout_ms": 10000,
+            }.items(),
+        )
+        transport = grpc_transport(channel=channel, host=api_endpoint)
+        return transport
+
     @property
     def project_path(self):
         """Project name to be used with Instance Admin API.
@@ -208,8 +239,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_project_path]
-            :end-before: [END bigtable_project_path]
+            :start-after: [START bigtable_api_project_path]
+            :end-before: [END bigtable_api_project_path]
             :dedent: 4
 
         The project name is of the form
@@ -219,7 +250,7 @@ class Client(ClientWithProject):
         :rtype: str
         :returns: Return a fully-qualified project string.
         """
-        return self.instance_admin_client.project_path(self.project)
+        return self.instance_admin_client.common_project_path(self.project)
 
     @property
     def table_data_client(self):
@@ -228,16 +259,21 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_table_data_client]
-            :end-before: [END bigtable_table_data_client]
+            :start-after: [START bigtable_api_table_data_client]
+            :end-before: [END bigtable_api_table_data_client]
             :dedent: 4
 
         :rtype: :class:`.bigtable_v2.BigtableClient`
         :returns: A BigtableClient object.
         """
         if self._table_data_client is None:
+            transport = self._create_gapic_client_channel(
+                bigtable_v2.BigtableClient, BigtableGrpcTransport,
+            )
             klass = _create_gapic_client(
-                bigtable_v2.BigtableClient, client_options=self._client_options
+                bigtable_v2.BigtableClient,
+                client_options=self._client_options,
+                transport=transport,
             )
             self._table_data_client = klass(self)
         return self._table_data_client
@@ -249,8 +285,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_table_admin_client]
-            :end-before: [END bigtable_table_admin_client]
+            :start-after: [START bigtable_api_table_admin_client]
+            :end-before: [END bigtable_api_table_admin_client]
             :dedent: 4
 
         :rtype: :class:`.bigtable_admin_pb2.BigtableTableAdmin`
@@ -262,9 +298,15 @@ class Client(ClientWithProject):
         if self._table_admin_client is None:
             if not self._admin:
                 raise ValueError("Client is not an admin client.")
+
+            transport = self._create_gapic_client_channel(
+                bigtable_admin_v2.BigtableTableAdminClient,
+                BigtableTableAdminGrpcTransport,
+            )
             klass = _create_gapic_client(
                 bigtable_admin_v2.BigtableTableAdminClient,
                 client_options=self._admin_client_options,
+                transport=transport,
             )
             self._table_admin_client = klass(self)
         return self._table_admin_client
@@ -276,8 +318,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_admin_client]
-            :end-before: [END bigtable_instance_admin_client]
+            :start-after: [START bigtable_api_instance_admin_client]
+            :end-before: [END bigtable_api_instance_admin_client]
             :dedent: 4
 
         :rtype: :class:`.bigtable_admin_pb2.BigtableInstanceAdmin`
@@ -289,9 +331,15 @@ class Client(ClientWithProject):
         if self._instance_admin_client is None:
             if not self._admin:
                 raise ValueError("Client is not an admin client.")
+
+            transport = self._create_gapic_client_channel(
+                bigtable_admin_v2.BigtableInstanceAdminClient,
+                BigtableInstanceAdminGrpcTransport,
+            )
             klass = _create_gapic_client(
                 bigtable_admin_v2.BigtableInstanceAdminClient,
                 client_options=self._admin_client_options,
+                transport=transport,
             )
             self._instance_admin_client = klass(self)
         return self._instance_admin_client
@@ -302,8 +350,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_prod_instance]
-            :end-before: [END bigtable_create_prod_instance]
+            :start-after: [START bigtable_api_create_prod_instance]
+            :end-before: [END bigtable_api_create_prod_instance]
             :dedent: 4
 
         :type instance_id: str
@@ -319,10 +367,10 @@ class Client(ClientWithProject):
         :param instance_type: (Optional) The type of the instance.
                                Possible values are represented
                                by the following constants:
-                               :data:`google.cloud.bigtable.enums.InstanceType.PRODUCTION`.
-                               :data:`google.cloud.bigtable.enums.InstanceType.DEVELOPMENT`,
+                               :data:`google.cloud.bigtable.instance.InstanceType.PRODUCTION`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.DEVELOPMENT`,
                                Defaults to
-                               :data:`google.cloud.bigtable.enums.InstanceType.UNSPECIFIED`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.UNSPECIFIED`.
 
         :type labels: dict
         :param labels: (Optional) Labels are a flexible and lightweight
@@ -352,8 +400,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_instances]
-            :end-before: [END bigtable_list_instances]
+            :start-after: [START bigtable_api_list_instances]
+            :end-before: [END bigtable_api_list_instances]
             :dedent: 4
 
         :rtype: tuple
@@ -363,7 +411,9 @@ class Client(ClientWithProject):
             'failed_locations' is a list of locations which could not
             be resolved.
         """
-        resp = self.instance_admin_client.list_instances(self.project_path)
+        resp = self.instance_admin_client.list_instances(
+            request={"parent": self.project_path}
+        )
         instances = [Instance.from_pb(instance, self) for instance in resp.instances]
         return instances, resp.failed_locations
 
@@ -373,8 +423,8 @@ class Client(ClientWithProject):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_clusters_in_project]
-            :end-before: [END bigtable_list_clusters_in_project]
+            :start-after: [START bigtable_api_list_clusters_in_project]
+            :end-before: [END bigtable_api_list_clusters_in_project]
             :dedent: 4
 
         :rtype: tuple
@@ -385,7 +435,9 @@ class Client(ClientWithProject):
             locations which could not be resolved.
         """
         resp = self.instance_admin_client.list_clusters(
-            self.instance_admin_client.instance_path(self.project, "-")
+            request={
+                "parent": self.instance_admin_client.instance_path(self.project, "-")
+            }
         )
         clusters = []
         instances = {}

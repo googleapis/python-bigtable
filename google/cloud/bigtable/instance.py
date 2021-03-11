@@ -22,7 +22,9 @@ from google.cloud.bigtable.table import Table
 
 from google.protobuf import field_mask_pb2
 
-from google.cloud.bigtable_admin_v2.types import instance_pb2, options_pb2
+from google.cloud.bigtable_admin_v2.types import instance
+
+from google.iam.v1 import options_pb2
 
 from google.api_core.exceptions import NotFound
 
@@ -121,7 +123,7 @@ class Instance(object):
         if not instance_pb.display_name:  # Simple field (string)
             raise ValueError("Instance protobuf does not contain display_name")
         self.display_name = instance_pb.display_name
-        self.type_ = instance_pb.type
+        self.type_ = instance_pb.type_
         self.labels = dict(instance_pb.labels)
         self._state = instance_pb.state
 
@@ -132,11 +134,11 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_from_pb]
-            :end-before: [END bigtable_instance_from_pb]
+            :start-after: [START bigtable_api_instance_from_pb]
+            :end-before: [END bigtable_api_instance_from_pb]
             :dedent: 4
 
-        :type instance_pb: :class:`instance_pb2.Instance`
+        :type instance_pb: :class:`instance.Instance`
         :param instance_pb: An instance protobuf object.
 
         :type client: :class:`Client <google.cloud.bigtable.client.Client>`
@@ -177,8 +179,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_name]
-            :end-before: [END bigtable_instance_name]
+            :start-after: [START bigtable_api_instance_name]
+            :end-before: [END bigtable_api_instance_name]
             :dedent: 4
 
         The instance name is of the form
@@ -199,8 +201,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_instance_state]
-            :end-before: [END bigtable_instance_state]
+            :start-after: [START bigtable_api_instance_state]
+            :end-before: [END bigtable_api_instance_state]
             :dedent: 4
 
         """
@@ -232,8 +234,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_prod_instance]
-            :end-before: [END bigtable_create_prod_instance]
+            :start-after: [START bigtable_api_create_prod_instance]
+            :end-before: [END bigtable_api_create_prod_instance]
             :dedent: 4
 
         .. note::
@@ -314,17 +316,19 @@ class Instance(object):
                              simultaneously."
             )
 
-        instance_pb = instance_pb2.Instance(
-            display_name=self.display_name, type=self.type_, labels=self.labels
+        instance_pb = instance.Instance(
+            display_name=self.display_name, type_=self.type_, labels=self.labels
         )
 
         parent = self._client.project_path
 
         return self._client.instance_admin_client.create_instance(
-            parent=parent,
-            instance_id=self.instance_id,
-            instance=instance_pb,
-            clusters={c.cluster_id: c._to_pb() for c in clusters},
+            request={
+                "parent": parent,
+                "instance_id": self.instance_id,
+                "instance": instance_pb,
+                "clusters": {c.cluster_id: c._to_pb() for c in clusters},
+            }
         )
 
     def exists(self):
@@ -333,15 +337,15 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_check_instance_exists]
-            :end-before: [END bigtable_check_instance_exists]
+            :start-after: [START bigtable_api_check_instance_exists]
+            :end-before: [END bigtable_api_check_instance_exists]
             :dedent: 4
 
         :rtype: bool
         :returns: True if the table exists, else False.
         """
         try:
-            self._client.instance_admin_client.get_instance(name=self.name)
+            self._client.instance_admin_client.get_instance(request={"name": self.name})
             return True
         # NOTE: There could be other exceptions that are returned to the user.
         except NotFound:
@@ -353,11 +357,13 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_reload_instance]
-            :end-before: [END bigtable_reload_instance]
+            :start-after: [START bigtable_api_reload_instance]
+            :end-before: [END bigtable_api_reload_instance]
             :dedent: 4
         """
-        instance_pb = self._client.instance_admin_client.get_instance(self.name)
+        instance_pb = self._client.instance_admin_client.get_instance(
+            request={"name": self.name}
+        )
 
         # NOTE: _update_from_pb does not check that the project and
         #       instance ID on the response match the request.
@@ -369,8 +375,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_update_instance]
-            :end-before: [END bigtable_update_instance]
+            :start-after: [START bigtable_api_update_instance]
+            :end-before: [END bigtable_api_update_instance]
             :dedent: 4
 
         .. note::
@@ -399,15 +405,15 @@ class Instance(object):
             update_mask_pb.paths.append("type")
         if self.labels is not None:
             update_mask_pb.paths.append("labels")
-        instance_pb = instance_pb2.Instance(
+        instance_pb = instance.Instance(
             name=self.name,
             display_name=self.display_name,
-            type=self.type_,
+            type_=self.type_,
             labels=self.labels,
         )
 
         return self._client.instance_admin_client.partial_update_instance(
-            instance=instance_pb, update_mask=update_mask_pb
+            request={"instance": instance_pb, "update_mask": update_mask_pb}
         )
 
     def delete(self):
@@ -416,8 +422,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_delete_instance]
-            :end-before: [END bigtable_delete_instance]
+            :start-after: [START bigtable_api_delete_instance]
+            :end-before: [END bigtable_api_delete_instance]
             :dedent: 4
 
         Marks an instance and all of its tables for permanent deletion
@@ -439,7 +445,7 @@ class Instance(object):
           irrevocably disappear from the API, and their data will be
           permanently deleted.
         """
-        self._client.instance_admin_client.delete_instance(name=self.name)
+        self._client.instance_admin_client.delete_instance(request={"name": self.name})
 
     def get_iam_policy(self, requested_policy_version=None):
         """Gets the access control policy for an instance resource.
@@ -447,8 +453,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_get_iam_policy]
-            :end-before: [END bigtable_get_iam_policy]
+            :start-after: [START bigtable_api_get_iam_policy]
+            :end-before: [END bigtable_api_get_iam_policy]
             :dedent: 4
 
         :type requested_policy_version: int or ``NoneType``
@@ -474,7 +480,7 @@ class Instance(object):
 
         instance_admin_client = self._client.instance_admin_client
 
-        resp = instance_admin_client.get_iam_policy(**args)
+        resp = instance_admin_client.get_iam_policy(request=args)
         return Policy.from_pb(resp)
 
     def set_iam_policy(self, policy):
@@ -487,8 +493,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_set_iam_policy]
-            :end-before: [END bigtable_set_iam_policy]
+            :start-after: [START bigtable_api_set_iam_policy]
+            :end-before: [END bigtable_api_set_iam_policy]
             :dedent: 4
 
         :type policy: :class:`google.cloud.bigtable.policy.Policy`
@@ -500,7 +506,7 @@ class Instance(object):
         """
         instance_admin_client = self._client.instance_admin_client
         resp = instance_admin_client.set_iam_policy(
-            resource=self.name, policy=policy.to_pb()
+            request={"resource": self.name, "policy": policy.to_pb()}
         )
         return Policy.from_pb(resp)
 
@@ -511,8 +517,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_test_iam_permissions]
-            :end-before: [END bigtable_test_iam_permissions]
+            :start-after: [START bigtable_api_test_iam_permissions]
+            :end-before: [END bigtable_api_test_iam_permissions]
             :dedent: 4
 
         :type permissions: list
@@ -529,7 +535,7 @@ class Instance(object):
         """
         instance_admin_client = self._client.instance_admin_client
         resp = instance_admin_client.test_iam_permissions(
-            resource=self.name, permissions=permissions
+            request={"resource": self.name, "permissions": permissions}
         )
         return list(resp.permissions)
 
@@ -541,8 +547,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_cluster]
-            :end-before: [END bigtable_create_cluster]
+            :start-after: [START bigtable_api_create_cluster]
+            :end-before: [END bigtable_api_create_cluster]
             :dedent: 4
 
         :type cluster_id: str
@@ -585,8 +591,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_clusters_on_instance]
-            :end-before: [END bigtable_list_clusters_on_instance]
+            :start-after: [START bigtable_api_list_clusters_on_instance]
+            :end-before: [END bigtable_api_list_clusters_on_instance]
             :dedent: 4
 
         :rtype: tuple
@@ -596,7 +602,9 @@ class Instance(object):
             'failed_locations' is a list of locations which could not
             be resolved.
         """
-        resp = self._client.instance_admin_client.list_clusters(self.name)
+        resp = self._client.instance_admin_client.list_clusters(
+            request={"parent": self.name}
+        )
         clusters = [Cluster.from_pb(cluster, self) for cluster in resp.clusters]
         return clusters, resp.failed_locations
 
@@ -606,8 +614,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_table]
-            :end-before: [END bigtable_create_table]
+            :start-after: [START bigtable_api_create_table]
+            :end-before: [END bigtable_api_create_table]
             :dedent: 4
 
         :type table_id: str
@@ -632,8 +640,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_tables]
-            :end-before: [END bigtable_list_tables]
+            :start-after: [START bigtable_api_list_tables]
+            :end-before: [END bigtable_api_list_tables]
             :dedent: 4
 
         :rtype: list of :class:`Table <google.cloud.bigtable.table.Table>`
@@ -641,10 +649,12 @@ class Instance(object):
         :raises: :class:`ValueError <exceptions.ValueError>` if one of the
                  returned tables has a name that is not of the expected format.
         """
-        table_list_pb = self._client.table_admin_client.list_tables(self.name)
+        table_list_pb = self._client.table_admin_client.list_tables(
+            request={"parent": self.name}
+        )
 
         result = []
-        for table_pb in table_list_pb:
+        for table_pb in table_list_pb.tables:
             table_prefix = self.name + "/tables/"
             if not table_pb.name.startswith(table_prefix):
                 raise ValueError(
@@ -668,8 +678,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_create_app_profile]
-            :end-before: [END bigtable_create_app_profile]
+            :start-after: [START bigtable_api_create_app_profile]
+            :end-before: [END bigtable_api_create_app_profile]
             :dedent: 4
 
         :type app_profile_id: str
@@ -715,8 +725,8 @@ class Instance(object):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START bigtable_list_app_profiles]
-            :end-before: [END bigtable_list_app_profiles]
+            :start-after: [START bigtable_api_list_app_profiles]
+            :end-before: [END bigtable_api_list_app_profiles]
             :dedent: 4
 
         :rtype: :list:[`~google.cloud.bigtable.app_profile.AppProfile`]
@@ -725,5 +735,7 @@ class Instance(object):
                   :class:`~google.cloud.bigtable.app_profile.AppProfile`
                   instances.
         """
-        resp = self._client.instance_admin_client.list_app_profiles(self.name)
+        resp = self._client.instance_admin_client.list_app_profiles(
+            request={"parent": self.name}
+        )
         return [AppProfile.from_pb(app_profile, self) for app_profile in resp]

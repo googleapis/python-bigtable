@@ -498,9 +498,53 @@ class TestValueRegexFilter(unittest.TestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_to_pb(self):
-        regex = b"value-regex"
-        row_filter = self._make_one(regex)
+    def test_to_pb_w_bytes(self):
+        value = regex = b"value-regex"
+        row_filter = self._make_one(value)
+        pb_val = row_filter.to_pb()
+        expected_pb = _RowFilterPB(value_regex_filter=regex)
+        self.assertEqual(pb_val, expected_pb)
+
+    def test_to_pb_w_str(self):
+        value = u"value-regex"
+        regex = value.encode("ascii")
+        row_filter = self._make_one(value)
+        pb_val = row_filter.to_pb()
+        expected_pb = _RowFilterPB(value_regex_filter=regex)
+        self.assertEqual(pb_val, expected_pb)
+
+
+class TestExactValueFilter(unittest.TestCase):
+    @staticmethod
+    def _get_target_class():
+        from google.cloud.bigtable.row_filters import ExactValueFilter
+
+        return ExactValueFilter
+
+    def _make_one(self, *args, **kwargs):
+        return self._get_target_class()(*args, **kwargs)
+
+    def test_to_pb_w_bytes(self):
+        value = regex = b"value-regex"
+        row_filter = self._make_one(value)
+        pb_val = row_filter.to_pb()
+        expected_pb = _RowFilterPB(value_regex_filter=regex)
+        self.assertEqual(pb_val, expected_pb)
+
+    def test_to_pb_w_str(self):
+        value = u"value-regex"
+        regex = value.encode("ascii")
+        row_filter = self._make_one(value)
+        pb_val = row_filter.to_pb()
+        expected_pb = _RowFilterPB(value_regex_filter=regex)
+        self.assertEqual(pb_val, expected_pb)
+
+    def test_to_pb_w_int(self):
+        import struct
+
+        value = 1
+        regex = struct.Struct(">q").pack(value)
+        row_filter = self._make_one(value)
         pb_val = row_filter.to_pb()
         expected_pb = _RowFilterPB(value_regex_filter=regex)
         self.assertEqual(pb_val, expected_pb)
@@ -518,6 +562,7 @@ class TestValueRangeFilter(unittest.TestCase):
 
     def test_constructor_defaults(self):
         row_filter = self._make_one()
+
         self.assertIsNone(row_filter.start_value)
         self.assertIsNone(row_filter.end_value)
         self.assertTrue(row_filter.inclusive_start)
@@ -528,22 +573,42 @@ class TestValueRangeFilter(unittest.TestCase):
         end_value = object()
         inclusive_start = object()
         inclusive_end = object()
+
         row_filter = self._make_one(
             start_value=start_value,
             end_value=end_value,
             inclusive_start=inclusive_start,
             inclusive_end=inclusive_end,
         )
+
         self.assertIs(row_filter.start_value, start_value)
         self.assertIs(row_filter.end_value, end_value)
         self.assertIs(row_filter.inclusive_start, inclusive_start)
         self.assertIs(row_filter.inclusive_end, inclusive_end)
 
+    def test_constructor_w_int_values(self):
+        import struct
+
+        start_value = 1
+        end_value = 10
+
+        row_filter = self._make_one(start_value=start_value, end_value=end_value)
+
+        expected_start_value = struct.Struct(">q").pack(start_value)
+        expected_end_value = struct.Struct(">q").pack(end_value)
+
+        self.assertEqual(row_filter.start_value, expected_start_value)
+        self.assertEqual(row_filter.end_value, expected_end_value)
+        self.assertTrue(row_filter.inclusive_start)
+        self.assertTrue(row_filter.inclusive_end)
+
     def test_constructor_bad_start(self):
-        self.assertRaises(ValueError, self._make_one, inclusive_start=True)
+        with self.assertRaises(ValueError):
+            self._make_one(inclusive_start=True)
 
     def test_constructor_bad_end(self):
-        self.assertRaises(ValueError, self._make_one, inclusive_end=True)
+        with self.assertRaises(ValueError):
+            self._make_one(inclusive_end=True)
 
     def test___eq__(self):
         start_value = object()
@@ -992,42 +1057,42 @@ class TestConditionalRowFilter(unittest.TestCase):
 
 
 def _ColumnRangePB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.ColumnRange(*args, **kw)
 
 
 def _RowFilterPB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.RowFilter(*args, **kw)
 
 
 def _RowFilterChainPB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.RowFilter.Chain(*args, **kw)
 
 
 def _RowFilterConditionPB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.RowFilter.Condition(*args, **kw)
 
 
 def _RowFilterInterleavePB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.RowFilter.Interleave(*args, **kw)
 
 
 def _TimestampRangePB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.TimestampRange(*args, **kw)
 
 
 def _ValueRangePB(*args, **kw):
-    from google.cloud.bigtable_v2.proto import data_pb2 as data_v2_pb2
+    from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.ValueRange(*args, **kw)
