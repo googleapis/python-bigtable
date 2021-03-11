@@ -738,17 +738,12 @@ class TestBackup(unittest.TestCase):
         self.assertEqual(backup._cluster, self.CLUSTER_ID)
         self.assertIs(future, op_future)
 
-        # api.restore_table.assert_called_once_with(
-        #     request={
-        #         "parent": self.INSTANCE_NAME,
-        #         "table_id": self.TABLE_ID,
-        #         "backup": self.BACKUP_NAME,
-        #     }
-        # )
         api.restore_table.assert_called_once_with(
-            parent=instance_name or self.INSTANCE_NAME,
-            table_id=self.TABLE_ID,
-            backup=self.BACKUP_NAME,
+            request={
+                "parent": instance_name or self.INSTANCE_NAME,
+                "table_id": self.TABLE_ID,
+                "backup": self.BACKUP_NAME,
+            }
         )
         api.restore_table.reset_mock()
 

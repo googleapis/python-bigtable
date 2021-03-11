@@ -404,24 +404,24 @@ class Backup(object):
                  due to a retryable error and retry attempts failed.
         :raises: ValueError: If the parameters are invalid.
         """
-        # api = self._instance._client._table_admin_client
-        # return api.restore_table(
-        #     request={
-        #         "parent": self._instance.name,
-        #         "table_id": table_id,
-        #         "backup": self.name,
-        #     }
-        # )
-        api = self._instance._client.table_admin_client
+        api = self._instance._client._table_admin_client
         if instance_id:
             parent = BigtableTableAdminClient.instance_path(
                 project=self._instance._client.project,
                 instance=instance_id,
             )
-            return api.restore_table(parent, table_id, self.name)
+            return api.restore_table(request={
+                "parent": parent,
+                "table_id": table_id,
+                "backup": self.name,
+            })
         else:
             parent = self._instance.name
-            return api.restore_table(parent, table_id, self.name)
+            return api.restore_table(request={
+                "parent": parent,
+                "table_id": table_id,
+                "backup": self.name,
+            })
 
     def get_iam_policy(self):
         """Gets the IAM access control policy for this backup.
