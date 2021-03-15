@@ -254,9 +254,6 @@ class Client(ClientWithProject):
         channel = None
         if self._emulator_host is not None:
             api_endpoint = self._emulator_host
-            # channel = self._emulator_channel(transport)
-            # channel = self._emulator_channel(transport)
-            # transport = transport(host=self._target, channel=channel)
             channel = self._emulator_channel(grpc_transport, options)
         else:
             channel = grpc_transport.create_channel(
