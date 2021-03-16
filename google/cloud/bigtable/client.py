@@ -67,14 +67,15 @@ DATA_SCOPE = "https://www.googleapis.com/auth/bigtable.data"
 READ_ONLY_SCOPE = "https://www.googleapis.com/auth/bigtable.data.readonly"
 """Scope for reading table data."""
 
+
 def _create_gapic_client(client_class, client_options=None, transport=None):
     def inner(self):
         return client_class(
-                credentials=None,
-                client_info=self._client_info,
-                client_options=client_options,
-                transport=transport,
-            )
+            credentials=None,
+            client_info=self._client_info,
+            client_options=client_options,
+            transport=transport,
+        )
 
     return inner
 
@@ -206,11 +207,15 @@ class Client(ClientWithProject):
         # Note: this code also exists in the firestore client.
         if "GrpcAsyncIOTransport" in str(transport.__name__):
             return grpc.aio.secure_channel(
-                self._emulator_host, self._local_composite_credentials(), options=options
+                self._emulator_host,
+                self._local_composite_credentials(),
+                options=options,
             )
         else:
             return grpc.secure_channel(
-                self._emulator_host, self._local_composite_credentials(), options=options
+                self._emulator_host,
+                self._local_composite_credentials(),
+                options=options,
             )
 
     def _local_composite_credentials(self):
@@ -241,11 +246,11 @@ class Client(ClientWithProject):
 
     def _create_gapic_client_channel(self, client_class, grpc_transport):
         options = {
-                    "grpc.max_send_message_length": -1,
-                    "grpc.max_receive_message_length": -1,
-                    "grpc.keepalive_time_ms": 30000,
-                    "grpc.keepalive_timeout_ms": 10000,
-                }.items()
+            "grpc.max_send_message_length": -1,
+            "grpc.max_receive_message_length": -1,
+            "grpc.keepalive_time_ms": 30000,
+            "grpc.keepalive_timeout_ms": 10000,
+        }.items()
         if self._client_options and self._client_options.api_endpoint:
             api_endpoint = self._client_options.api_endpoint
         else:
@@ -257,9 +262,7 @@ class Client(ClientWithProject):
             channel = self._emulator_channel(grpc_transport, options)
         else:
             channel = grpc_transport.create_channel(
-                host=api_endpoint,
-                credentials=self._credentials,
-                options=options,
+                host=api_endpoint, credentials=self._credentials, options=options,
             )
         transport = grpc_transport(channel=channel, host=api_endpoint)
         return transport
