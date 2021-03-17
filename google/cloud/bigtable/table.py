@@ -484,6 +484,33 @@ class Table(object):
             for cluster_id, value_pb in table_pb.cluster_states.items()
         }
 
+    def get_encryption_info(self):
+        """List the encryption info for each cluster owned by this table.
+
+        Gets the current encryption info for the table across all of the clusters.  The
+        returned dict will be keyed by cluster id and contain a status for all of the
+        keys in use.
+
+        :rtype: dict
+        :returns: Dictionary of encryption info for this table. Keys are cluster ids and
+                  values are tuples of :class:`EncryptionInfo` instances.
+        """
+        ENCRYPTION_VIEW = enums.Table.View.ENCRYPTION_VIEW
+        table_client = self._instance._client.table_admin_client
+        table_pb = table_client.get_table(
+            request={"name": self.name, "view": ENCRYPTION_VIEW}
+        )
+
+        return {
+            cluster_id: tuple(
+                (
+                    EncryptionInfo._from_pb(info_pb)
+                    for info_pb in value_pb.encryption_info
+                )
+            )
+            for cluster_id, value_pb in table_pb.cluster_states.items()
+        }
+
     def read_row(self, row_key, filter_=None):
         """Read a single row from this table.
 
@@ -1199,6 +1226,47 @@ class ClusterState(object):
         :rtype: Boolean value.
         :returns: True if  two cluster state instances are not equal.
         """
+        return not self == other
+
+
+class EncryptionInfo:
+    """Representation of Encryption Info
+
+    :type encryption_type: int
+    :param encryption_type: See :class:`enums.EncryptionInfo.EncryptionType`
+
+    :type encryption_status: google.rpc.status_pb2.Status
+    :param encryption_status: The encryption status.
+
+    :type kms_key_version: str
+    :param kms_key_version: The key version used for encryption.
+    """
+
+    @classmethod
+    def _from_pb(cls, info_pb):
+        return cls(
+            info_pb.encryption_type, info_pb.encryption_status, info_pb.kms_key_version
+        )
+
+    def __init__(self, encryption_type, encryption_status, kms_key_version):
+        self.encryption_type = encryption_type
+        self.encryption_status = encryption_status
+        self.kms_key_version = kms_key_version
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        return (
+            self.encryption_type == other.encryption_type
+            and self.encryption_status == other.encryption_status
+            and self.kms_key_version == other.kms_key_version
+        )
+
+    def __ne__(self, other):
         return not self == other
 
 

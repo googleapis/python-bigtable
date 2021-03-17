@@ -332,6 +332,17 @@ class TestInstanceAdminAPI(unittest.TestCase):
         temp_table_id = "test-get-cluster-states"
         temp_table = instance.table(temp_table_id)
         temp_table.create()
+
+        encryption_info = temp_table.get_encryption_info()
+        self.assertEqual(
+            encryption_info[ALT_CLUSTER_ID_1][0].encryption_type,
+            enums.EncryptionInfo.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION,
+        )
+        self.assertEqual(
+            encryption_info[ALT_CLUSTER_ID_2][0].encryption_type,
+            enums.EncryptionInfo.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION,
+        )
+
         result = temp_table.get_cluster_states()
         ReplicationState = enums.Table.ReplicationState
         expected_results = [
