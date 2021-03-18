@@ -33,6 +33,7 @@ UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
 # 'docfx' is excluded since it only needs to run in 'docs-presubmit'
 nox.options.sessions = [
     "unit",
+    "system_emulated",
     "system",
     "cover",
     "lint",
@@ -110,12 +111,37 @@ def unit(session):
     """Run the unit test suite."""
     default(session)
 
+@nox.session(python="3.8")
+def system_emulated(session):
+    import subprocess
+    
+    try:
+        subprocess.call(["gcloud", '--version'])
+    except OSError:
+        session.skip("gcloud not found but required for emulator support")
+
+    hostport = "localhost:8789"
+    p = subprocess.Popen([
+        "gcloud", "beta", "emulators", "bigtable", "start",
+        "--host-port", hostport
+    ])
+
+    system(session, emulator=hostport)
+
+    # Stop Emulator
+    p.send_signal(1)
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def system(session):
+def system(session, emulator=False):
     """Run the system test suite."""
     system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
+
+    if emulator:
+        os.environ["BIGTABLE_EMULATOR_HOST"] = emulator
+    elif os.environ.get("BIGTABLE_EMULATOR_HOST"):
+        del os.environ["BIGTABLE_EMULATOR_HOST"]
+
 
     # Check the value of `RUN_SYSTEM_TESTS` env var. It defaults to true.
     if os.environ.get("RUN_SYSTEM_TESTS", "true") == "false":
