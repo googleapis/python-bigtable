@@ -844,7 +844,9 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(temp_table.list_column_families(), {})
 
     def test_backup(self):
-        self._maybe_emulator_skip("backups are not supported in the emulator")
+        if Config.IN_EMULATOR:
+            self.skipTest("backups are not supported in the emulator")
+
         from google.cloud._helpers import _datetime_to_pb_timestamp
 
         temp_table_id = "test-backup-table"
