@@ -121,6 +121,9 @@ def system_emulated(session):
     except OSError:
         session.skip("gcloud not found but required for emulator support")
 
+    # Currently, CI/CD doesn't have beta component of gcloud.
+    subprocess.call(["gcloud", "components", "install", "beta"])
+
     hostport = "localhost:8789"
     p = subprocess.Popen([
         "gcloud", "beta", "emulators", "bigtable", "start",
