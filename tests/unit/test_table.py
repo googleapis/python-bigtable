@@ -540,7 +540,7 @@ class TestTable(unittest.TestCase):
             client as bigtable_table_admin,
         )
         from google.cloud.bigtable.enums import EncryptionInfo as enum_crypto
-        from google.cloud.bigtable.table import EncryptionInfo
+        from google.cloud.bigtable.table import EncryptionInfo, Status
 
         ENCRYPTION_TYPE_UNSPECIFIED = (
             enum_crypto.EncryptionType.ENCRYPTION_TYPE_UNSPECIFIED
@@ -562,9 +562,7 @@ class TestTable(unittest.TestCase):
             cluster_states={
                 "cluster-id1": _ClusterStateEncryptionInfoPB(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
-                    encryption_status=_StatusPB(
-                        Code.OK, "beats me"
-                    ),  # , "I", "dunno"),
+                    encryption_status=_StatusPB(Code.OK, "beats me"),
                 ),
                 "cluster-id2": _ClusterStateEncryptionInfoPB(
                     encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
@@ -590,22 +588,24 @@ class TestTable(unittest.TestCase):
             "cluster-id1": (
                 EncryptionInfo(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
-                    encryption_status=_StatusPB(Code.OK, "beats me", "I", "dunno"),
+                    encryption_status=Status(
+                        _StatusPB(Code.OK, "beats me", "I", "dunno")
+                    ),
                     kms_key_version="",
                 ),
             ),
             "cluster-id2": (
                 EncryptionInfo(
                     encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
-                    encryption_status=_StatusPB(0, ""),
+                    encryption_status=Status(_StatusPB(0, "")),
                     kms_key_version="",
                 ),
             ),
             "cluster-id3": (
                 EncryptionInfo(
                     encryption_type=CUSTOMER_MANAGED_ENCRYPTION,
-                    encryption_status=_StatusPB(
-                        Code.UNKNOWN, "Key version is not yet known."
+                    encryption_status=Status(
+                        _StatusPB(Code.UNKNOWN, "Key version is not yet known.")
                     ),
                     kms_key_version="shrug",
                 ),

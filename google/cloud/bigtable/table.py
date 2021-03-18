@@ -1230,12 +1230,16 @@ class ClusterState(object):
 
 
 class EncryptionInfo:
-    """Representation of Encryption Info
+    """Encryption information for a given resource.
+
+    If this resource is protected with customer managed encryption, the in-use Google
+    Cloud Key Management Service (KMS) key versions will be specified along with their
+    status.
 
     :type encryption_type: int
     :param encryption_type: See :class:`enums.EncryptionInfo.EncryptionType`
 
-    :type encryption_status: google.rpc.status_pb2.Status
+    :type encryption_status: google.cloud.bigtable.table.Status
     :param encryption_status: The encryption status.
 
     :type kms_key_version: str
@@ -1245,7 +1249,9 @@ class EncryptionInfo:
     @classmethod
     def _from_pb(cls, info_pb):
         return cls(
-            info_pb.encryption_type, info_pb.encryption_status, info_pb.kms_key_version
+            info_pb.encryption_type,
+            Status(info_pb.encryption_status),
+            info_pb.kms_key_version,
         )
 
     def __init__(self, encryption_type, encryption_status, kms_key_version):
@@ -1265,6 +1271,55 @@ class EncryptionInfo:
             and self.encryption_status == other.encryption_status
             and self.kms_key_version == other.kms_key_version
         )
+
+    def __ne__(self, other):
+        return not self == other
+
+
+class Status:
+    """A status, comprising a code and a message.
+
+    See: `Cloud APIs Errors <https://cloud.google.com/apis/design/errors>`_
+
+    This is a thin wrapper for ``google.rpc.status_pb2.Status``.
+
+    :type status_pb: google.rpc.status_pb2.Status
+    :param status_pb: The status protocol buffer.
+    """
+
+    def __init__(self, status_pb):
+        self.status_pb = status_pb
+
+    @property
+    def code(self):
+        """The status code.
+
+        Values are defined in ``google.rpc.code_pb2.Code``.
+
+        See: `googe.rpc.Code
+        <https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto>`_
+
+        :rtype: int
+        :returns: The status code.
+        """
+        return self.status_pb.code
+
+    @property
+    def message(self):
+        """A human readable status message.
+
+        :rypte: str
+        :returns: The status message.
+        """
+        return self.status_pb.message
+
+    def __repr__(self):
+        return repr(self.status_pb)
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.status_pb == other.status_pb
+        return NotImplemented
 
     def __ne__(self, other):
         return not self == other
