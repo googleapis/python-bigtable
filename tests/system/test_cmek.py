@@ -138,7 +138,7 @@ def setUpModule():
         INSTANCE_ID_DATA, instance_type=Instance.Type.DEVELOPMENT, labels=LABELS
     )
     Config.CLUSTER_DATA = Config.INSTANCE_DATA.cluster(
-        CLUSTER_ID_DATA, location_id=LOCATION_ID
+        CLUSTER_ID_DATA, location_id=LOCATION_ID, kms_key_name=Config.KMS_KEY_NAME()
     )
 
     if not Config.IN_EMULATOR:
@@ -865,6 +865,7 @@ class TestTableAdminAPI(unittest.TestCase):
 
     def test_backup(self):
         from google.cloud._helpers import _datetime_to_pb_timestamp
+        from google.cloud.bigtable import enums
 
         temp_table_id = "test-backup-table"
         temp_table = Config.INSTANCE_DATA.table(temp_table_id)
@@ -901,6 +902,10 @@ class TestTableAdminAPI(unittest.TestCase):
         self.assertEqual(temp_backup_id, temp_table_backup.backup_id)
         self.assertEqual(CLUSTER_ID_DATA, temp_table_backup.cluster)
         self.assertEqual(expire, temp_table_backup.expire_time.seconds)
+        self.assertEqual(
+            temp_table_backup.encryption_info.encryption_type,
+            enums.EncryptionInfo.EncryptionType.CUSTOMER_MANAGED_ENCRYPTION,
+        )
 
         # Testing `Backup.update_expire_time()` method
         expire += 3600  # A one-hour change in the `expire_time` parameter

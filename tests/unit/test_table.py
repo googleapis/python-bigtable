@@ -539,8 +539,9 @@ class TestTable(unittest.TestCase):
         from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
             client as bigtable_table_admin,
         )
+        from google.cloud.bigtable.encryption import EncryptionInfo
         from google.cloud.bigtable.enums import EncryptionInfo as enum_crypto
-        from google.cloud.bigtable.table import EncryptionInfo, Status
+        from google.cloud.bigtable.error import Status
 
         ENCRYPTION_TYPE_UNSPECIFIED = (
             enum_crypto.EncryptionType.ENCRYPTION_TYPE_UNSPECIFIED
@@ -2355,13 +2356,12 @@ def _ClusterStateEncryptionInfoPB(
     )
 
 
-def _StatusPB(code, message, *details):
+def _StatusPB(code, message):
     from google.rpc import status_pb2
 
     status_pb = status_pb2.Status()
     status_pb.code = code
     status_pb.message = message
-    # status_pb.details = details  ???
 
     return status_pb
 
