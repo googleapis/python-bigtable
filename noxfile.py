@@ -114,6 +114,7 @@ def unit(session):
 @nox.session(python="3.8")
 def system_emulated(session):
     import subprocess
+    import signal
     
     try:
         subprocess.call(["gcloud", '--version'])
@@ -126,22 +127,17 @@ def system_emulated(session):
         "--host-port", hostport
     ])
 
-    system(session, emulator=hostport)
+    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
+    system(session)
 
     # Stop Emulator
-    p.send_signal(1)
+    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def system(session, emulator=False):
+def system(session):
     """Run the system test suite."""
     system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
-
-    if emulator:
-        os.environ["BIGTABLE_EMULATOR_HOST"] = emulator
-    elif os.environ.get("BIGTABLE_EMULATOR_HOST"):
-        del os.environ["BIGTABLE_EMULATOR_HOST"]
-
 
     # Check the value of `RUN_SYSTEM_TESTS` env var. It defaults to true.
     if os.environ.get("RUN_SYSTEM_TESTS", "true") == "false":
