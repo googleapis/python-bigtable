@@ -24,7 +24,8 @@ from google.api_core.exceptions import TooManyRequests
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryResult
-from test_utils.system import EmulatorCreds
+
+# from test_utils.system import EmulatorCreds
 from test_utils.system import unique_resource_id
 
 from google.cloud._helpers import _datetime_from_microseconds
