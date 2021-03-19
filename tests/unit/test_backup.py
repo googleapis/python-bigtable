@@ -173,11 +173,14 @@ class TestBackup(unittest.TestCase):
         self.assertEqual(backup.end_time, timestamp)
         self.assertEqual(backup._size_bytes, size_bytes)
         self.assertEqual(backup._state, state)
-        self.assertEqual(backup.encryption_info, EncryptionInfo(
-            encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
-            encryption_status=Status(_StatusPB(Code.OK, "Looks good over here.")),
-            kms_key_version="I dunno, like, 2?",
-        ))
+        self.assertEqual(
+            backup.encryption_info,
+            EncryptionInfo(
+                encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
+                encryption_status=Status(_StatusPB(Code.OK, "Looks good over here.")),
+                kms_key_version="I dunno, like, 2?",
+            ),
+        )
 
     def test_property_name(self):
         from google.cloud.bigtable.client import Client
