@@ -48,7 +48,10 @@ from google.cloud.bigtable.row_set import RowRange
 # )
 
 UNIQUE_SUFFIX = unique_resource_id("-")
-LOCATION_ID = "us-central1-c"
+KMS_LOCATION_ID = "us-central1"
+KMS_KEY_ID = "bigtable-system-tests-key"
+KMS_KEY_RING_ID = f"{KMS_KEY_ID}-ring"
+LOCATION_ID = f"{KMS_LOCATION_ID}-c"
 INSTANCE_ID = "g-c-p" + UNIQUE_SUFFIX
 INSTANCE_ID_DATA = "g-c-p-d" + UNIQUE_SUFFIX
 TABLE_ID = "google-cloud-python-test-table"
@@ -88,14 +91,10 @@ class Config(object):
     INSTANCE_DATA = None
     CLUSTER = None
     CLUSTER_DATA = None
+    KMS_CLIENT = None
+    KMS_KEY_RING = None
+    KMS_KEY = None
     IN_EMULATOR = False
-
-    @classmethod
-    def KMS_KEY_NAME(cls):
-        return (
-            f"projects/{cls.CLIENT.project}/locations/us-central1/"  # {LOCATION_ID}/"
-            "keyRings/test-key-ring/cryptoKeys/test-key"
-        )
 
 
 def _retry_on_unavailable(exc):
@@ -109,6 +108,7 @@ retry_429 = RetryErrors(TooManyRequests, max_tries=9)
 
 
 def setUpModule():
+    from google.cloud import kms
     from google.cloud.exceptions import GrpcRendezvous
     from google.cloud.bigtable.enums import Instance
 
@@ -127,18 +127,61 @@ def setUpModule():
     else:
         Config.CLIENT = Client(admin=True)
 
+    Config.KMS_CLIENT = kms.KeyManagementServiceClient()
+    Config.KMS_LOCATION_NAME = (
+        f"projects/{Config.CLIENT.project}/locations/{KMS_LOCATION_ID}"
+    )
+
+    # There doesn't seem to be a way in the KMS API to destroy key rings or keys (only
+    # key versions), so since we can't really clean up after ourselves, we'll try to
+    # just create one key and reuse it for future test runs.
+    key_ring_name = f"{Config.KMS_LOCATION_NAME}/keyRings/{KMS_KEY_RING_ID}"
+    key_rings = Config.KMS_CLIENT.list_key_rings(parent=Config.KMS_LOCATION_NAME)
+    for key_ring in key_rings:
+        if key_ring.name == key_ring_name:
+            Config.KMS_KEY_RING = key_ring
+            break
+    else:
+        Config.KMS_KEY_RING = Config.KMS_CLIENT.create_key_ring(
+            request={
+                "parent": Config.KMS_LOCATION_NAME,
+                "key_ring_id": KMS_KEY_RING_ID,
+                "key_ring": {},
+            }
+        )
+
+    key_name = f"{key_ring_name}/cryptoKeys/{KMS_KEY_ID}"
+    keys = Config.KMS_CLIENT.list_crypto_keys(parent=Config.KMS_KEY_RING.name)
+    for key in keys:
+        if key.name == key_name:
+            Config.KMS_KEY = key
+            break
+    else:
+        Config.KMS_KEY = Config.KMS_CLIENT.create_crypto_key(
+            request={
+                "parent": Config.KMS_KEY_RING.name,
+                "crypto_key_id": KMS_KEY_ID,
+                "crypto_key": {
+                    "purpose": kms.CryptoKey.CryptoKeyPurpose.ENCRYPT_DECRYPT,
+                    "version_template": {
+                        "algorithm": kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.GOOGLE_SYMMETRIC_ENCRYPTION,
+                    },
+                },
+            }
+        )
+
     Config.INSTANCE = Config.CLIENT.instance(INSTANCE_ID, labels=LABELS)
     Config.CLUSTER = Config.INSTANCE.cluster(
         CLUSTER_ID,
         location_id=LOCATION_ID,
         serve_nodes=SERVE_NODES,
-        kms_key_name=Config.KMS_KEY_NAME(),
+        kms_key_name=Config.KMS_KEY.name,
     )
     Config.INSTANCE_DATA = Config.CLIENT.instance(
         INSTANCE_ID_DATA, instance_type=Instance.Type.DEVELOPMENT, labels=LABELS
     )
     Config.CLUSTER_DATA = Config.INSTANCE_DATA.cluster(
-        CLUSTER_ID_DATA, location_id=LOCATION_ID, kms_key_name=Config.KMS_KEY_NAME()
+        CLUSTER_ID_DATA, location_id=LOCATION_ID, kms_key_name=Config.KMS_KEY.name
     )
 
     if not Config.IN_EMULATOR:
@@ -287,14 +330,14 @@ class TestInstanceAdminAPI(unittest.TestCase):
             location_id=LOCATION_ID,
             serve_nodes=serve_nodes,
             default_storage_type=STORAGE_TYPE,
-            kms_key_name=Config.KMS_KEY_NAME(),
+            kms_key_name=Config.KMS_KEY.name,
         )
         cluster_2 = instance.cluster(
             ALT_CLUSTER_ID_2,
             location_id=LOCATION_ID_2,
             serve_nodes=serve_nodes,
             default_storage_type=STORAGE_TYPE,
-            kms_key_name=Config.KMS_KEY_NAME(),
+            kms_key_name=Config.KMS_KEY.name,
         )
         operation = instance.create(clusters=[cluster_1, cluster_2])
 
@@ -567,7 +610,7 @@ class TestInstanceAdminAPI(unittest.TestCase):
             location_id=ALT_LOCATION_ID,
             serve_nodes=ALT_SERVE_NODES,
             default_storage_type=(StorageType.SSD),
-            kms_key_name=Config.KMS_KEY_NAME(),
+            kms_key_name=Config.KMS_KEY.name,
         )
         operation = cluster_2.create()
 
