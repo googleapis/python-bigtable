@@ -67,7 +67,6 @@ class Test__create_gapic_client(unittest.TestCase):
         client_class = mock.Mock()
         emulator_host = emulator_channel = object()
         credentials = _make_credentials()
-
         client_options = mock.Mock()
         transport = mock.Mock()
 

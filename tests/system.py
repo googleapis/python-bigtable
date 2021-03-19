@@ -115,15 +115,9 @@ def setUpModule():
 
     Config.IN_EMULATOR = os.getenv(BIGTABLE_EMULATOR) is not None
 
-    if Config.IN_EMULATOR:
-        # I expect users won't always pass creds, just use the usual cred flow
-        # on creation.
-        # credentials = EmulatorCreds()
-        # Config.CLIENT = Client(admin=True, credentials=credentials)
-        Config.CLIENT = Client(admin=True)
-
-    else:
-        Config.CLIENT = Client(admin=True)
+    # Previously we created clients using a mock EmulatorCreds when targeting
+    # an emulator.
+    Config.CLIENT = Client(admin=True)
 
     Config.INSTANCE = Config.CLIENT.instance(INSTANCE_ID, labels=LABELS)
     Config.CLUSTER = Config.INSTANCE.cluster(
