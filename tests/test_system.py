@@ -18,6 +18,8 @@ import os
 import time
 import unittest
 
+import pytest
+
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import TooManyRequests
@@ -48,10 +50,7 @@ from google.cloud.bigtable.row_set import RowRange
 # )
 
 UNIQUE_SUFFIX = unique_resource_id("-")
-KMS_LOCATION_ID = "us-central1"
-KMS_KEY_ID = "bigtable-system-tests-key"
-KMS_KEY_RING_ID = f"{KMS_KEY_ID}-ring"
-LOCATION_ID = f"{KMS_LOCATION_ID}-c"
+LOCATION_ID = f"us-central1-c"
 INSTANCE_ID = "g-c-p" + UNIQUE_SUFFIX
 INSTANCE_ID_DATA = "g-c-p-d" + UNIQUE_SUFFIX
 TABLE_ID = "google-cloud-python-test-table"
@@ -77,6 +76,7 @@ label_stamp = (
     .strftime("%Y-%m-%dt%H-%M-%S")
 )
 LABELS = {LABEL_KEY: str(label_stamp)}
+KMS_KEY_NAME = os.environ.get("KMS_KEY_NAME", None)
 
 
 class Config(object):
@@ -91,9 +91,6 @@ class Config(object):
     INSTANCE_DATA = None
     CLUSTER = None
     CLUSTER_DATA = None
-    KMS_CLIENT = None
-    KMS_KEY_RING = None
-    KMS_KEY = None
     IN_EMULATOR = False
 
 
@@ -127,61 +124,15 @@ def setUpModule():
     else:
         Config.CLIENT = Client(admin=True)
 
-    Config.KMS_CLIENT = kms.KeyManagementServiceClient()
-    Config.KMS_LOCATION_NAME = (
-        f"projects/{Config.CLIENT.project}/locations/{KMS_LOCATION_ID}"
-    )
-
-    # There doesn't seem to be a way in the KMS API to destroy key rings or keys (only
-    # key versions), so since we can't really clean up after ourselves, we'll try to
-    # just create one key and reuse it for future test runs.
-    key_ring_name = f"{Config.KMS_LOCATION_NAME}/keyRings/{KMS_KEY_RING_ID}"
-    key_rings = Config.KMS_CLIENT.list_key_rings(parent=Config.KMS_LOCATION_NAME)
-    for key_ring in key_rings:
-        if key_ring.name == key_ring_name:
-            Config.KMS_KEY_RING = key_ring
-            break
-    else:
-        Config.KMS_KEY_RING = Config.KMS_CLIENT.create_key_ring(
-            request={
-                "parent": Config.KMS_LOCATION_NAME,
-                "key_ring_id": KMS_KEY_RING_ID,
-                "key_ring": {},
-            }
-        )
-
-    key_name = f"{key_ring_name}/cryptoKeys/{KMS_KEY_ID}"
-    keys = Config.KMS_CLIENT.list_crypto_keys(parent=Config.KMS_KEY_RING.name)
-    for key in keys:
-        if key.name == key_name:
-            Config.KMS_KEY = key
-            break
-    else:
-        Config.KMS_KEY = Config.KMS_CLIENT.create_crypto_key(
-            request={
-                "parent": Config.KMS_KEY_RING.name,
-                "crypto_key_id": KMS_KEY_ID,
-                "crypto_key": {
-                    "purpose": kms.CryptoKey.CryptoKeyPurpose.ENCRYPT_DECRYPT,
-                    "version_template": {
-                        "algorithm": kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.GOOGLE_SYMMETRIC_ENCRYPTION,
-                    },
-                },
-            }
-        )
-
     Config.INSTANCE = Config.CLIENT.instance(INSTANCE_ID, labels=LABELS)
     Config.CLUSTER = Config.INSTANCE.cluster(
-        CLUSTER_ID,
-        location_id=LOCATION_ID,
-        serve_nodes=SERVE_NODES,
-        kms_key_name=Config.KMS_KEY.name,
+        CLUSTER_ID, location_id=LOCATION_ID, serve_nodes=SERVE_NODES,
     )
     Config.INSTANCE_DATA = Config.CLIENT.instance(
         INSTANCE_ID_DATA, instance_type=Instance.Type.DEVELOPMENT, labels=LABELS
     )
     Config.CLUSTER_DATA = Config.INSTANCE_DATA.cluster(
-        CLUSTER_ID_DATA, location_id=LOCATION_ID, kms_key_name=Config.KMS_KEY.name
+        CLUSTER_ID_DATA, location_id=LOCATION_ID,
     )
 
     if not Config.IN_EMULATOR:
@@ -330,14 +281,215 @@ class TestInstanceAdminAPI(unittest.TestCase):
             location_id=LOCATION_ID,
             serve_nodes=serve_nodes,
             default_storage_type=STORAGE_TYPE,
-            kms_key_name=Config.KMS_KEY.name,
         )
         cluster_2 = instance.cluster(
             ALT_CLUSTER_ID_2,
             location_id=LOCATION_ID_2,
             serve_nodes=serve_nodes,
             default_storage_type=STORAGE_TYPE,
-            kms_key_name=Config.KMS_KEY.name,
+        )
+        operation = instance.create(clusters=[cluster_1, cluster_2])
+
+        # Make sure this instance gets deleted after the test case.
+        self.instances_to_delete.append(instance)
+
+        # We want to make sure the operation completes.
+        operation.result(timeout=120)
+
+        # Create a new instance instance and make sure it is the same.
+        instance_alt = Config.CLIENT.instance(ALT_INSTANCE_ID)
+        instance_alt.reload()
+
+        self.assertEqual(instance, instance_alt)
+        self.assertEqual(instance.display_name, instance_alt.display_name)
+        self.assertEqual(instance.type_, instance_alt.type_)
+
+        clusters, failed_locations = instance_alt.list_clusters()
+        self.assertEqual(failed_locations, [])
+
+        clusters.sort(key=lambda x: x.name)
+        alt_cluster_1, alt_cluster_2 = clusters
+
+        self.assertEqual(cluster_1.location_id, alt_cluster_1.location_id)
+        self.assertEqual(alt_cluster_1.state, enums.Cluster.State.READY)
+        self.assertEqual(cluster_1.serve_nodes, alt_cluster_1.serve_nodes)
+        self.assertEqual(
+            cluster_1.default_storage_type, alt_cluster_1.default_storage_type
+        )
+        self.assertEqual(cluster_2.location_id, alt_cluster_2.location_id)
+        self.assertEqual(alt_cluster_2.state, enums.Cluster.State.READY)
+        self.assertEqual(cluster_2.serve_nodes, alt_cluster_2.serve_nodes)
+        self.assertEqual(
+            cluster_2.default_storage_type, alt_cluster_2.default_storage_type
+        )
+
+        # Test list clusters in project via 'client.list_clusters'
+        clusters, failed_locations = Config.CLIENT.list_clusters()
+        self.assertFalse(failed_locations)
+        found = set([cluster.name for cluster in clusters])
+        self.assertTrue(
+            {alt_cluster_1.name, alt_cluster_2.name, Config.CLUSTER.name}.issubset(
+                found
+            )
+        )
+
+        temp_table_id = "test-get-cluster-states"
+        temp_table = instance.table(temp_table_id)
+        temp_table.create()
+
+        encryption_info = temp_table.get_encryption_info()
+        self.assertEqual(
+            encryption_info[ALT_CLUSTER_ID_1][0].encryption_type,
+            enums.EncryptionInfo.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION,
+        )
+        self.assertEqual(
+            encryption_info[ALT_CLUSTER_ID_2][0].encryption_type,
+            enums.EncryptionInfo.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION,
+        )
+
+        result = temp_table.get_cluster_states()
+        ReplicationState = enums.Table.ReplicationState
+        expected_results = [
+            ClusterState(ReplicationState.STATE_NOT_KNOWN),
+            ClusterState(ReplicationState.INITIALIZING),
+            ClusterState(ReplicationState.PLANNED_MAINTENANCE),
+            ClusterState(ReplicationState.UNPLANNED_MAINTENANCE),
+            ClusterState(ReplicationState.READY),
+        ]
+        cluster_id_list = result.keys()
+        self.assertEqual(len(cluster_id_list), 2)
+        self.assertIn(ALT_CLUSTER_ID_1, cluster_id_list)
+        self.assertIn(ALT_CLUSTER_ID_2, cluster_id_list)
+        for clusterstate in result.values():
+            self.assertIn(clusterstate, expected_results)
+
+        # Test create app profile with multi_cluster_routing policy
+        app_profiles_to_delete = []
+        description = "routing policy-multy"
+        app_profile_id_1 = "app_profile_id_1"
+        routing = enums.RoutingPolicyType.ANY
+        self._test_create_app_profile_helper(
+            app_profile_id_1,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            ignore_warnings=True,
+        )
+        app_profiles_to_delete.append(app_profile_id_1)
+
+        # Test list app profiles
+        self._test_list_app_profiles_helper(instance, [app_profile_id_1])
+
+        # Test modify app profile app_profile_id_1
+        # routing policy to single cluster policy,
+        # cluster -> ALT_CLUSTER_ID_1,
+        # allow_transactional_writes -> disallowed
+        # modify description
+        description = "to routing policy-single"
+        routing = enums.RoutingPolicyType.SINGLE
+        self._test_modify_app_profile_helper(
+            app_profile_id_1,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            cluster_id=ALT_CLUSTER_ID_1,
+            allow_transactional_writes=False,
+        )
+
+        # Test modify app profile app_profile_id_1
+        # cluster -> ALT_CLUSTER_ID_2,
+        # allow_transactional_writes -> allowed
+        self._test_modify_app_profile_helper(
+            app_profile_id_1,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            cluster_id=ALT_CLUSTER_ID_2,
+            allow_transactional_writes=True,
+            ignore_warnings=True,
+        )
+
+        # Test create app profile with single cluster routing policy
+        description = "routing policy-single"
+        app_profile_id_2 = "app_profile_id_2"
+        routing = enums.RoutingPolicyType.SINGLE
+        self._test_create_app_profile_helper(
+            app_profile_id_2,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            cluster_id=ALT_CLUSTER_ID_2,
+            allow_transactional_writes=False,
+        )
+        app_profiles_to_delete.append(app_profile_id_2)
+
+        # Test list app profiles
+        self._test_list_app_profiles_helper(
+            instance, [app_profile_id_1, app_profile_id_2]
+        )
+
+        # Test modify app profile app_profile_id_2 to
+        # allow transactional writes
+        # Note: no need to set ``ignore_warnings`` to True
+        # since we are not restrictings anything with this modification.
+        self._test_modify_app_profile_helper(
+            app_profile_id_2,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            cluster_id=ALT_CLUSTER_ID_2,
+            allow_transactional_writes=True,
+        )
+
+        # Test modify app profile app_profile_id_2 routing policy
+        # to multi_cluster_routing policy
+        # modify description
+        description = "to routing policy-multy"
+        routing = enums.RoutingPolicyType.ANY
+        self._test_modify_app_profile_helper(
+            app_profile_id_2,
+            instance,
+            routing_policy_type=routing,
+            description=description,
+            allow_transactional_writes=False,
+            ignore_warnings=True,
+        )
+
+        # Test delete app profiles
+        for app_profile_id in app_profiles_to_delete:
+            self._test_delete_app_profile_helper(app_profile_id, instance)
+
+    @pytest.mark.skipif(
+        not KMS_KEY_NAME, reason="requires KMS_KEY_NAME environment variable"
+    )
+    def test_create_instance_w_two_clusters_cmek(self):
+        from google.cloud.bigtable import enums
+        from google.cloud.bigtable.table import ClusterState
+
+        _PRODUCTION = enums.Instance.Type.PRODUCTION
+        ALT_INSTANCE_ID = "dif" + UNIQUE_SUFFIX
+        instance = Config.CLIENT.instance(
+            ALT_INSTANCE_ID, instance_type=_PRODUCTION, labels=LABELS
+        )
+
+        ALT_CLUSTER_ID_1 = ALT_INSTANCE_ID + "-c1"
+        ALT_CLUSTER_ID_2 = ALT_INSTANCE_ID + "-c2"
+        LOCATION_ID_2 = "us-central1-f"
+        STORAGE_TYPE = enums.StorageType.HDD
+        serve_nodes = 1
+        cluster_1 = instance.cluster(
+            ALT_CLUSTER_ID_1,
+            location_id=LOCATION_ID,
+            serve_nodes=serve_nodes,
+            default_storage_type=STORAGE_TYPE,
+            kms_key_name=KMS_KEY_NAME,
+        )
+        cluster_2 = instance.cluster(
+            ALT_CLUSTER_ID_2,
+            location_id=LOCATION_ID_2,
+            serve_nodes=serve_nodes,
+            default_storage_type=STORAGE_TYPE,
+            kms_key_name=KMS_KEY_NAME,
         )
         operation = instance.create(clusters=[cluster_1, cluster_2])
 
@@ -610,7 +762,6 @@ class TestInstanceAdminAPI(unittest.TestCase):
             location_id=ALT_LOCATION_ID,
             serve_nodes=ALT_SERVE_NODES,
             default_storage_type=(StorageType.SSD),
-            kms_key_name=Config.KMS_KEY.name,
         )
         operation = cluster_2.create()
 
