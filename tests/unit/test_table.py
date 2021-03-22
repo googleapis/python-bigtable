@@ -589,9 +589,7 @@ class TestTable(unittest.TestCase):
             "cluster-id1": (
                 EncryptionInfo(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
-                    encryption_status=Status(
-                        _StatusPB(Code.OK, "beats me")
-                    ),
+                    encryption_status=Status(_StatusPB(Code.OK, "beats me")),
                     kms_key_version="",
                 ),
             ),

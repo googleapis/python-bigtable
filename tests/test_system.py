@@ -50,7 +50,7 @@ from google.cloud.bigtable.row_set import RowRange
 # )
 
 UNIQUE_SUFFIX = unique_resource_id("-")
-LOCATION_ID = f"us-central1-c"
+LOCATION_ID = "us-central1-c"
 INSTANCE_ID = "g-c-p" + UNIQUE_SUFFIX
 INSTANCE_ID_DATA = "g-c-p-d" + UNIQUE_SUFFIX
 TABLE_ID = "google-cloud-python-test-table"
@@ -105,7 +105,6 @@ retry_429 = RetryErrors(TooManyRequests, max_tries=9)
 
 
 def setUpModule():
-    from google.cloud import kms
     from google.cloud.exceptions import GrpcRendezvous
     from google.cloud.bigtable.enums import Instance
 
