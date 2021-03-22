@@ -590,7 +590,7 @@ class TestTable(unittest.TestCase):
                 EncryptionInfo(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
                     encryption_status=Status(
-                        _StatusPB(Code.OK, "beats me", "I", "dunno")
+                        _StatusPB(Code.OK, "beats me")
                     ),
                     kms_key_version="",
                 ),
