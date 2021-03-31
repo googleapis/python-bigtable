@@ -4,7 +4,7 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-bigtable.git",
-        "sha": "cf3b9a1820780863911f4741fca4e9936cb79670"
+        "sha": "5089335c220c16ff3675f01b76f7d4e0dc2219e3"
       }
     },
     {
@@ -150,7 +150,6 @@
     "google/cloud/bigtable_v2/types/__init__.py",
     "google/cloud/bigtable_v2/types/bigtable.py",
     "google/cloud/bigtable_v2/types/data.py",
-    "noxfile.py",
     "renovate.json",
     "samples/AUTHORING_GUIDE.md",
     "samples/CONTRIBUTING.md",
