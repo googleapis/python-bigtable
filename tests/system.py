@@ -897,9 +897,7 @@ class TestTableAdminAPI(unittest.TestCase):
         restored_table_id = "test-backup-table-restored"
         restored_table = Config.INSTANCE_DATA.table(restored_table_id)
         temp_table.restore(
-            restored_table_id,
-            cluster_id=CLUSTER_ID_DATA,
-            backup_id=temp_backup_id,
+            restored_table_id, cluster_id=CLUSTER_ID_DATA, backup_id=temp_backup_id,
         ).result()
         tables = Config.INSTANCE_DATA.list_tables()
         self.assertIn(restored_table, tables)
@@ -911,9 +909,7 @@ class TestTableAdminAPI(unittest.TestCase):
         alt_cluster_id = alt_instance_id + "-cluster"
         alt_instance = Config.CLIENT.instance(alt_instance_id, labels=LABELS)
         alt_cluster = alt_instance.cluster(
-            cluster_id=alt_cluster_id,
-            location_id=LOCATION_ID,
-            serve_nodes=SERVE_NODES,
+            cluster_id=alt_cluster_id, location_id=LOCATION_ID, serve_nodes=SERVE_NODES,
         )
         if not Config.IN_EMULATOR:
             alt_instance.create(clusters=[alt_cluster]).result(timeout=10)

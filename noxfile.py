@@ -43,7 +43,6 @@ nox.options.sessions = [
 ]
 
 
-
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
     """Run linters.

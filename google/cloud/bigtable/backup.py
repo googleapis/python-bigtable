@@ -407,21 +407,14 @@ class Backup(object):
         api = self._instance._client._table_admin_client
         if instance_id:
             parent = BigtableTableAdminClient.instance_path(
-                project=self._instance._client.project,
-                instance=instance_id,
+                project=self._instance._client.project, instance=instance_id,
             )
-            return api.restore_table(request={
-                "parent": parent,
-                "table_id": table_id,
-                "backup": self.name,
-            })
         else:
             parent = self._instance.name
-            return api.restore_table(request={
-                "parent": parent,
-                "table_id": table_id,
-                "backup": self.name,
-            })
+
+        return api.restore_table(
+            request={"parent": parent, "table_id": table_id, "backup": self.name,}
+        )
 
     def get_iam_policy(self):
         """Gets the IAM access control policy for this backup.
