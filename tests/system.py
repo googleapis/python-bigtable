@@ -912,7 +912,7 @@ class TestTableAdminAPI(unittest.TestCase):
         alt_instance = Config.CLIENT.instance(alt_instance_id, labels=LABELS)
         alt_cluster = alt_instance.cluster(
             cluster_id=alt_cluster_id,
-            location_id="us-east1-c",  # TODO: Change to default `LOCATION_ID`
+            location_id=LOCATION_ID,
             serve_nodes=SERVE_NODES,
         )
         if not Config.IN_EMULATOR:
