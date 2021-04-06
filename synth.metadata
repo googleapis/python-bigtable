@@ -4,29 +4,29 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-bigtable.git",
-        "sha": "cbd712e6d3aded0c025525f97da1d667fbe2f061"
+        "sha": "5089335c220c16ff3675f01b76f7d4e0dc2219e3"
       }
     },
     {
       "git": {
         "name": "googleapis",
         "remote": "https://github.com/googleapis/googleapis.git",
-        "sha": "458338f8ca444e43b9df96b984b68f3978852b74",
-        "internalRef": "361301101"
+        "sha": "95dd24960cf9f794ef583e59ad9f1fabe1c4a924",
+        "internalRef": "365882072"
       }
     },
     {
       "git": {
         "name": "synthtool",
         "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "0780323da96d5a53925fe0547757181fe76e8f1e"
+        "sha": "f5c5904fb0c6aa3b3730eadf4e5a4485afc65726"
       }
     },
     {
       "git": {
         "name": "synthtool",
         "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "0780323da96d5a53925fe0547757181fe76e8f1e"
+        "sha": "f5c5904fb0c6aa3b3730eadf4e5a4485afc65726"
       }
     }
   ],
@@ -82,16 +82,21 @@
     ".kokoro/samples/lint/presubmit.cfg",
     ".kokoro/samples/python3.6/common.cfg",
     ".kokoro/samples/python3.6/continuous.cfg",
+    ".kokoro/samples/python3.6/periodic-head.cfg",
     ".kokoro/samples/python3.6/periodic.cfg",
     ".kokoro/samples/python3.6/presubmit.cfg",
     ".kokoro/samples/python3.7/common.cfg",
     ".kokoro/samples/python3.7/continuous.cfg",
+    ".kokoro/samples/python3.7/periodic-head.cfg",
     ".kokoro/samples/python3.7/periodic.cfg",
     ".kokoro/samples/python3.7/presubmit.cfg",
     ".kokoro/samples/python3.8/common.cfg",
     ".kokoro/samples/python3.8/continuous.cfg",
+    ".kokoro/samples/python3.8/periodic-head.cfg",
     ".kokoro/samples/python3.8/periodic.cfg",
     ".kokoro/samples/python3.8/presubmit.cfg",
+    ".kokoro/test-samples-against-head.sh",
+    ".kokoro/test-samples-impl.sh",
     ".kokoro/test-samples.sh",
     ".kokoro/trampoline.sh",
     ".kokoro/trampoline_v2.sh",
@@ -150,7 +155,6 @@
     "google/cloud/bigtable_v2/types/__init__.py",
     "google/cloud/bigtable_v2/types/bigtable.py",
     "google/cloud/bigtable_v2/types/data.py",
-    "noxfile.py",
     "renovate.json",
     "samples/AUTHORING_GUIDE.md",
     "samples/CONTRIBUTING.md",

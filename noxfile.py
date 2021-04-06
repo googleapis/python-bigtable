@@ -33,6 +33,7 @@ UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
 # 'docfx' is excluded since it only needs to run in 'docs-presubmit'
 nox.options.sessions = [
     "unit",
+    "system_emulated",
     "system",
     "cover",
     "lint",
@@ -110,6 +111,31 @@ def default(session):
 def unit(session):
     """Run the unit test suite."""
     default(session)
+
+
+@nox.session(python="3.8")
+def system_emulated(session):
+    import subprocess
+    import signal
+
+    try:
+        subprocess.call(["gcloud", "--version"])
+    except OSError:
+        session.skip("gcloud not found but required for emulator support")
+
+    # Currently, CI/CD doesn't have beta component of gcloud.
+    subprocess.call(["gcloud", "components", "install", "beta", "bigtable"])
+
+    hostport = "localhost:8789"
+    p = subprocess.Popen(
+        ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
+    )
+
+    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
+    system(session)
+
+    # Stop Emulator
+    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
@@ -203,9 +229,7 @@ def docfx(session):
     """Build the docfx yaml files for this library."""
 
     session.install("-e", ".")
-    # sphinx-docfx-yaml supports up to sphinx version 1.5.5.
-    # https://github.com/docascode/sphinx-docfx-yaml/issues/97
-    session.install("sphinx==1.5.5", "alabaster", "recommonmark", "sphinx-docfx-yaml")
+    session.install("sphinx", "alabaster", "recommonmark", "gcp-sphinx-docfx-yaml")
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
     session.run(
