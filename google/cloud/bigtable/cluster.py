@@ -162,6 +162,8 @@ class Cluster(object):
         self.default_storage_type = cluster_pb.default_storage_type
         if cluster_pb.encryption_config:
             self._kms_key_name = cluster_pb.encryption_config.kms_key_name
+        else:
+            self._kms_key_name = None
         self._state = cluster_pb.state
 
     @property

@@ -266,6 +266,7 @@ class TestCluster(unittest.TestCase):
             location_id=self.LOCATION_ID,
             serve_nodes=self.SERVE_NODES,
             default_storage_type=STORAGE_TYPE_SSD,
+            kms_key_name=self.KMS_KEY_NAME,
         )
 
         # Create response_pb
@@ -304,6 +305,7 @@ class TestCluster(unittest.TestCase):
         self.assertEqual(cluster.state, STATE)
         self.assertEqual(cluster.serve_nodes, SERVE_NODES_FROM_SERVER)
         self.assertEqual(cluster.default_storage_type, STORAGE_TYPE_FROM_SERVER)
+        self.assertEqual(cluster.kms_key_name, None)
 
     def test_exists(self):
         from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
