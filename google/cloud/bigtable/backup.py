@@ -19,7 +19,7 @@ import re
 from google.cloud._helpers import _datetime_to_pb_timestamp
 from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.types import table
-from google.cloud.bigtable.encryption import EncryptionInfo
+from google.cloud.bigtable.encryption_info import EncryptionInfo
 from google.cloud.bigtable.policy import Policy
 from google.cloud.exceptions import NotFound
 from google.protobuf import field_mask_pb2

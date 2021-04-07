@@ -539,7 +539,7 @@ class TestTable(unittest.TestCase):
         from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
             client as bigtable_table_admin,
         )
-        from google.cloud.bigtable.encryption import EncryptionInfo
+        from google.cloud.bigtable.encryption_info import EncryptionInfo
         from google.cloud.bigtable.enums import EncryptionInfo as enum_crypto
         from google.cloud.bigtable.error import Status
 

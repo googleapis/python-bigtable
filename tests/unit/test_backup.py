@@ -131,7 +131,7 @@ class TestBackup(unittest.TestCase):
             klasse.from_pb(backup_pb, instance)
 
     def test_from_pb_success(self):
-        from google.cloud.bigtable.encryption import EncryptionInfo
+        from google.cloud.bigtable.encryption_info import EncryptionInfo
         from google.cloud.bigtable.error import Status
         from google.cloud.bigtable_admin_v2.types import table
         from google.cloud._helpers import _datetime_to_pb_timestamp

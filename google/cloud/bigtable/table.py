@@ -28,7 +28,7 @@ from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
 from google.cloud.bigtable.batcher import MutationsBatcher
 from google.cloud.bigtable.batcher import FLUSH_COUNT, MAX_ROW_BYTES
-from google.cloud.bigtable.encryption import EncryptionInfo
+from google.cloud.bigtable.encryption_info import EncryptionInfo
 from google.cloud.bigtable.policy import Policy
 from google.cloud.bigtable.row import AppendRow
 from google.cloud.bigtable.row import ConditionalRow
