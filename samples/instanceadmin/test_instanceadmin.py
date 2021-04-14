@@ -34,7 +34,7 @@ def test_run_instance_operations(capsys):
         assert f"Instance {INSTANCE} does not exist." in out
         assert "Creating an instance" in out
         assert f"Created instance: {INSTANCE}" in out
-        assert f"Listing instances" in out
+        assert "Listing instances" in out
         assert f"\n{INSTANCE}\n" in out
         assert f"Name of instance: {INSTANCE}" in out
         assert "Labels: {'prod-label': 'prod-label'}" in out
@@ -44,7 +44,7 @@ def test_run_instance_operations(capsys):
         instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
         out = capsys.readouterr().out
         assert f"Instance {INSTANCE} already exists." in out
-        assert f"Listing instances" in out
+        assert "Listing instances" in out
         assert f"\n{INSTANCE}\n" in out
         assert f"Name of instance: {INSTANCE}" in out
         assert "Labels: {'prod-label': 'prod-label'}" in out
