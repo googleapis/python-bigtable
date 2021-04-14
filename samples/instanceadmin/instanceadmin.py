@@ -254,7 +254,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command.lower() == "run":
-        run_instance_operations(args.project_id, args.instance_id)
+        run_instance_operations(args.project_id, args.instance_id, args.cluster_id)
     elif args.command.lower() == "dev-instance":
         create_dev_instance(args.project_id, args.instance_id, args.cluster_id)
     elif args.command.lower() == "del-instance":
