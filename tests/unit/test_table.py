@@ -563,7 +563,7 @@ class TestTable(unittest.TestCase):
             cluster_states={
                 "cluster-id1": _ClusterStateEncryptionInfoPB(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
-                    encryption_status=_StatusPB(Code.OK, "beats me"),
+                    encryption_status=_StatusPB(Code.OK, "Status OK"),
                 ),
                 "cluster-id2": _ClusterStateEncryptionInfoPB(
                     encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
@@ -573,7 +573,7 @@ class TestTable(unittest.TestCase):
                     encryption_status=_StatusPB(
                         Code.UNKNOWN, "Key version is not yet known."
                     ),
-                    kms_key_version="shrug",
+                    kms_key_version="UNKNOWN",
                 ),
             }
         )
@@ -589,7 +589,7 @@ class TestTable(unittest.TestCase):
             "cluster-id1": (
                 EncryptionInfo(
                     encryption_type=ENCRYPTION_TYPE_UNSPECIFIED,
-                    encryption_status=Status(_StatusPB(Code.OK, "beats me")),
+                    encryption_status=Status(_StatusPB(Code.OK, "Status OK")),
                     kms_key_version="",
                 ),
             ),
@@ -606,7 +606,7 @@ class TestTable(unittest.TestCase):
                     encryption_status=Status(
                         _StatusPB(Code.UNKNOWN, "Key version is not yet known.")
                     ),
-                    kms_key_version="shrug",
+                    kms_key_version="UNKNOWN",
                 ),
             ),
         }

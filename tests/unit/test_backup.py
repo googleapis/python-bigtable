@@ -155,8 +155,8 @@ class TestBackup(unittest.TestCase):
             state=state,
             encryption_info=table.EncryptionInfo(
                 encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
-                encryption_status=_StatusPB(Code.OK, "Looks good over here."),
-                kms_key_version="I dunno, like, 2?",
+                encryption_status=_StatusPB(Code.OK, "Status OK"),
+                kms_key_version="2",
             ),
         )
         klasse = self._get_target_class()
@@ -177,8 +177,8 @@ class TestBackup(unittest.TestCase):
             backup.encryption_info,
             EncryptionInfo(
                 encryption_type=GOOGLE_DEFAULT_ENCRYPTION,
-                encryption_status=Status(_StatusPB(Code.OK, "Looks good over here.")),
-                kms_key_version="I dunno, like, 2?",
+                encryption_status=Status(_StatusPB(Code.OK, "Status OK")),
+                kms_key_version="2",
             ),
         )
 
