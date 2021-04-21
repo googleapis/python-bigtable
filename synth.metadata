@@ -4,7 +4,7 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-bigtable.git",
-        "sha": "39010afb8212bc21ec4538dadc164c4b4f30f5b8"
+        "sha": "ecf4d92d7d8adaa88a03b0f4497b5b8ae809525a"
       }
     },
     {
