@@ -14,7 +14,11 @@
 
 import os
 import random
+import warnings
 
+import pytest
+
+from google.cloud import bigtable
 import instanceadmin
 
 
@@ -27,101 +31,121 @@ CLUSTER1 = ID_FORMAT.format(random.randrange(ID_RANGE))
 CLUSTER2 = ID_FORMAT.format(random.randrange(ID_RANGE))
 
 
-def test_run_instance_operations(capsys):
-    try:
-        instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
-        out = capsys.readouterr().out
-        assert f"Instance {INSTANCE} does not exist." in out
-        assert "Creating an instance" in out
-        assert f"Created instance: {INSTANCE}" in out
-        assert "Listing instances" in out
-        assert f"\n{INSTANCE}\n" in out
-        assert f"Name of instance: {INSTANCE}" in out
-        assert "Labels: {'prod-label': 'prod-label'}" in out
-        assert "Listing clusters..." in out
-        assert f"\n{CLUSTER1}\n" in out
-
-        instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
-        out = capsys.readouterr().out
-        assert f"Instance {INSTANCE} already exists." in out
-        assert "Listing instances" in out
-        assert f"\n{INSTANCE}\n" in out
-        assert f"Name of instance: {INSTANCE}" in out
-        assert "Labels: {'prod-label': 'prod-label'}" in out
-        assert "Listing clusters..." in out
-        assert f"\n{CLUSTER1}\n" in out
-
-    finally:
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
+@pytest.fixture(scope="module", autouse=True)
+def preclean():
+    """In case any test instances weren't cleared out in a previous run."""
+    client = bigtable.Client(project=PROJECT, admin=True)
+    for instance in client.list_instances()[0]:
+        if instance.instance_id.startswith("instanceadmin-test-"):
+            warnings.warn(f"Deleting leftover test instance: {instance.instance_id}")
+            instance.delete()
 
 
-def test_delete_instance(capsys):
-    try:
-        # Can't delete it, it doesn't exist
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
-        out = capsys.readouterr().out
-        assert "Deleting instance" in out
-        assert f"Instance {INSTANCE} does not exist" in out
+@pytest.fixture
+def dispose_of():
+    instances = []
 
-        # Ok, create it then
-        instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
-        capsys.readouterr()  # throw away output
+    def disposal(instance):
+        instances.append(instance)
 
-        # Now delete it
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
-        out = capsys.readouterr().out
-        assert "Deleting instance" in out
-        assert f"Deleted instance: {INSTANCE}" in out
+    yield disposal
 
-    finally:
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
+    client = bigtable.Client(project=PROJECT, admin=True)
+    for instance_id in instances:
+        instance = client.instance(instance_id)
+        if instance.exists():
+            instanceadmin.delete_instance(PROJECT, INSTANCE)
 
 
-def test_add_and_delete_cluster(capsys):
-    try:
-        # This won't work, because the instance isn't created yet
-        instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
-        out = capsys.readouterr().out
-        assert f"Instance {INSTANCE} does not exist" in out
+def test_run_instance_operations(capsys, dispose_of):
+    dispose_of(INSTANCE)
 
-        # Get the instance created
-        instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
-        capsys.readouterr()  # throw away output
+    instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
+    out = capsys.readouterr().out
+    assert f"Instance {INSTANCE} does not exist." in out
+    assert "Creating an instance" in out
+    assert f"Created instance: {INSTANCE}" in out
+    assert "Listing instances" in out
+    assert f"\n{INSTANCE}\n" in out
+    assert f"Name of instance: {INSTANCE}" in out
+    assert "Labels: {'prod-label': 'prod-label'}" in out
+    assert "Listing clusters..." in out
+    assert f"\n{CLUSTER1}\n" in out
 
-        # Add a cluster to that instance
-        instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
-        out = capsys.readouterr().out
-        assert f"Adding cluster to instance {INSTANCE}" in out
-        assert "Listing clusters..." in out
-        assert f"\n{CLUSTER1}\n" in out
-        assert f"Cluster created: {CLUSTER2}" in out
+    instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
+    out = capsys.readouterr().out
+    assert f"Instance {INSTANCE} already exists." in out
+    assert "Listing instances" in out
+    assert f"\n{INSTANCE}\n" in out
+    assert f"Name of instance: {INSTANCE}" in out
+    assert "Labels: {'prod-label': 'prod-label'}" in out
+    assert "Listing clusters..." in out
+    assert f"\n{CLUSTER1}\n" in out
 
-        # Try to add the same cluster again, won't work
-        instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
-        out = capsys.readouterr().out
-        assert "Listing clusters..." in out
-        assert f"\n{CLUSTER1}\n" in out
-        assert f"\n{CLUSTER2}\n" in out
-        assert f"Cluster not created, as {CLUSTER2} already exists."
 
-        # Now delete it
-        instanceadmin.delete_cluster(PROJECT, INSTANCE, CLUSTER2)
-        out = capsys.readouterr().out
-        assert "Deleting cluster" in out
-        assert f"Cluster deleted: {CLUSTER2}" in out
+def test_delete_instance(capsys, dispose_of):
+    dispose_of(INSTANCE)
 
-        # Verify deletion
-        instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
-        out = capsys.readouterr().out
-        assert "Listing clusters..." in out
-        assert f"\n{CLUSTER1}\n" in out
-        assert f"\n{CLUSTER2}\n" not in out
+    # Can't delete it, it doesn't exist
+    instanceadmin.delete_instance(PROJECT, INSTANCE)
+    out = capsys.readouterr().out
+    assert "Deleting instance" in out
+    assert f"Instance {INSTANCE} does not exist" in out
 
-        # Try deleting it again, for fun (and coverage)
-        instanceadmin.delete_cluster(PROJECT, INSTANCE, CLUSTER2)
-        out = capsys.readouterr().out
-        assert "Deleting cluster" in out
-        assert f"Cluster {CLUSTER2} does not exist" in out
+    # Ok, create it then
+    instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
+    capsys.readouterr()  # throw away output
 
-    finally:
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
+    # Now delete it
+    instanceadmin.delete_instance(PROJECT, INSTANCE)
+    out = capsys.readouterr().out
+    assert "Deleting instance" in out
+    assert f"Deleted instance: {INSTANCE}" in out
+
+
+def test_add_and_delete_cluster(capsys, dispose_of):
+    dispose_of(INSTANCE)
+
+    # This won't work, because the instance isn't created yet
+    instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
+    out = capsys.readouterr().out
+    assert f"Instance {INSTANCE} does not exist" in out
+
+    # Get the instance created
+    instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
+    capsys.readouterr()  # throw away output
+
+    # Add a cluster to that instance
+    instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
+    out = capsys.readouterr().out
+    assert f"Adding cluster to instance {INSTANCE}" in out
+    assert "Listing clusters..." in out
+    assert f"\n{CLUSTER1}\n" in out
+    assert f"Cluster created: {CLUSTER2}" in out
+
+    # Try to add the same cluster again, won't work
+    instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
+    out = capsys.readouterr().out
+    assert "Listing clusters..." in out
+    assert f"\n{CLUSTER1}\n" in out
+    assert f"\n{CLUSTER2}\n" in out
+    assert f"Cluster not created, as {CLUSTER2} already exists."
+
+    # Now delete it
+    instanceadmin.delete_cluster(PROJECT, INSTANCE, CLUSTER2)
+    out = capsys.readouterr().out
+    assert "Deleting cluster" in out
+    assert f"Cluster deleted: {CLUSTER2}" in out
+
+    # Verify deletion
+    instanceadmin.run_instance_operations(PROJECT, INSTANCE, CLUSTER1)
+    out = capsys.readouterr().out
+    assert "Listing clusters..." in out
+    assert f"\n{CLUSTER1}\n" in out
+    assert f"\n{CLUSTER2}\n" not in out
+
+    # Try deleting it again, for fun (and coverage)
+    instanceadmin.delete_cluster(PROJECT, INSTANCE, CLUSTER2)
+    out = capsys.readouterr().out
+    assert "Deleting cluster" in out
+    assert f"Cluster {CLUSTER2} does not exist" in out
