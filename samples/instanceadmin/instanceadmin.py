@@ -52,9 +52,8 @@ def run_instance_operations(project_id, instance_id, cluster_id):
     location_id = "us-central1-f"
     serve_nodes = 1
     storage_type = enums.StorageType.SSD
-    production = enums.Instance.Type.PRODUCTION
     labels = {"prod-label": "prod-label"}
-    instance = client.instance(instance_id, instance_type=production, labels=labels)
+    instance = client.instance(instance_id, labels=labels)
 
     # [START bigtable_check_instance_exists]
     if not instance.exists():
@@ -96,45 +95,6 @@ def run_instance_operations(project_id, instance_id, cluster_id):
     for cluster in instance.list_clusters()[0]:
         print(cluster.cluster_id)
     # [END bigtable_get_clusters]
-
-
-def create_dev_instance(project_id, instance_id, cluster_id):
-    """Creates a Development instance with the name "hdd-instance"
-        location us-central1-f
-        Cluster nodes should not be set while creating Development
-        Instance
-
-    :type project_id: str
-    :param project_id: Project id of the client.
-
-    :type instance_id: str
-    :param instance_id: Instance of the client.
-    """
-
-    client = bigtable.Client(project=project_id, admin=True)
-
-    # [START bigtable_create_dev_instance]
-    print("\nCreating a DEVELOPMENT instance")
-    # Set options to create an Instance
-    location_id = "us-central1-f"
-    development = enums.Instance.Type.DEVELOPMENT
-    storage_type = enums.StorageType.HDD
-    labels = {"dev-label": "dev-label"}
-
-    # Create instance with given options
-    instance = client.instance(instance_id, instance_type=development, labels=labels)
-    cluster = instance.cluster(
-        cluster_id, location_id=location_id, default_storage_type=storage_type
-    )
-
-    # Create development instance with given options
-    if not instance.exists():
-        instance.create(clusters=[cluster])
-        print("Created development instance: {}".format(instance_id))
-    else:
-        print("Instance {} already exists.".format(instance_id))
-
-    # [END bigtable_create_dev_instance]
 
 
 def delete_instance(project_id, instance_id):
@@ -235,7 +195,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "command",
-        help="run, dev-instance, del-instance, \
+        help="run, del-instance, \
                         add-cluster or del-cluster. \
                         Operation to perform on Instance.",
     )
@@ -255,8 +215,6 @@ if __name__ == "__main__":
 
     if args.command.lower() == "run":
         run_instance_operations(args.project_id, args.instance_id, args.cluster_id)
-    elif args.command.lower() == "dev-instance":
-        create_dev_instance(args.project_id, args.instance_id, args.cluster_id)
     elif args.command.lower() == "del-instance":
         delete_instance(args.project_id, args.instance_id)
     elif args.command.lower() == "add-cluster":

@@ -77,21 +77,6 @@ def test_delete_instance(capsys):
         instanceadmin.delete_instance(PROJECT, INSTANCE)
 
 
-def test_create_dev_instance(capsys):
-    try:
-        instanceadmin.create_dev_instance(PROJECT, INSTANCE, CLUSTER1)
-        out = capsys.readouterr().out
-        assert "Creating a DEVELOPMENT instance" in out
-        assert f"Created development instance: {INSTANCE}" in out
-
-        instanceadmin.create_dev_instance(PROJECT, INSTANCE, CLUSTER1)
-        out = capsys.readouterr().out
-        assert f"Instance {INSTANCE} already exists" in out
-
-    finally:
-        instanceadmin.delete_instance(PROJECT, INSTANCE)
-
-
 def test_add_and_delete_cluster(capsys):
     try:
         # This won't work, because the instance isn't created yet
