@@ -16,9 +16,10 @@ import os
 import random
 import warnings
 
+from google.cloud import bigtable
+
 import pytest
 
-from google.cloud import bigtable
 import instanceadmin
 
 
