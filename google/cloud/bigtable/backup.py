@@ -413,7 +413,7 @@ class Backup(object):
             parent = self._instance.name
 
         return api.restore_table(
-            request={"parent": parent, "table_id": table_id, "backup": self.name,}
+            request={"parent": parent, "table_id": table_id, "backup": self.name}
         )
 
     def get_iam_policy(self):
