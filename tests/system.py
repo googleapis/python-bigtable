@@ -905,7 +905,7 @@ class TestTableAdminAPI(unittest.TestCase):
 
         # Testing `Backup.restore()` into a different instance:
         # Setting up another instance...
-        alt_instance_id = "gcp-" + UNIQUE_SUFFIX
+        alt_instance_id = "gcp-alt-" + UNIQUE_SUFFIX
         alt_cluster_id = alt_instance_id + "-cluster"
         alt_instance = Config.CLIENT.instance(alt_instance_id, labels=LABELS)
         alt_cluster = alt_instance.cluster(
