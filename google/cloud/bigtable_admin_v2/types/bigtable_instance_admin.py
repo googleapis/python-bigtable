@@ -88,7 +88,7 @@ class CreateInstanceRequest(proto.Message):
     clusters = proto.MapField(
         proto.STRING,
         proto.MESSAGE,
-        number=4
+        number=4,
         message=gba_instance.Cluster,
     )
 

@@ -381,8 +381,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateInstance.
             parent (str):
                 Required. The unique name of the project in which to
@@ -449,7 +448,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateInstanceRequest):
             request = bigtable_instance_admin.CreateInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -503,8 +502,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetInstance.
             name (str):
                 Required. The unique name of the requested instance.
@@ -543,7 +541,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetInstanceRequest):
             request = bigtable_instance_admin.GetInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -583,8 +581,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListInstancesRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListInstances.
             parent (str):
                 Required. The unique name of the project for which a
@@ -620,7 +617,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListInstancesRequest):
             request = bigtable_instance_admin.ListInstancesRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -662,8 +659,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.Instance):
-                The request object.
-                A collection of Bigtable
+                The request object. A collection of Bigtable
                 [Tables][google.bigtable.admin.v2.Table] and the
                 resources that serve them. All tables in an instance are
                 served from all
@@ -730,8 +726,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.PartialUpdateInstance.
             instance (google.cloud.bigtable_admin_v2.types.Instance):
                 Required. The Instance which will
@@ -779,7 +774,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.PartialUpdateInstanceRequest):
             request = bigtable_instance_admin.PartialUpdateInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if instance is not None:
                 request.instance = instance
@@ -829,8 +824,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteInstance.
             name (str):
                 Required. The unique name of the instance to be deleted.
@@ -860,7 +854,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteInstanceRequest):
             request = bigtable_instance_admin.DeleteInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -899,8 +893,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateCluster.
             parent (str):
                 Required. The unique name of the instance in which to
@@ -956,7 +949,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateClusterRequest):
             request = bigtable_instance_admin.CreateClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -1008,8 +1001,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetCluster.
             name (str):
                 Required. The unique name of the requested cluster.
@@ -1047,7 +1039,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetClusterRequest):
             request = bigtable_instance_admin.GetClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -1087,8 +1079,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListClustersRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListClusters.
             parent (str):
                 Required. The unique name of the instance for which a
@@ -1126,7 +1117,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListClustersRequest):
             request = bigtable_instance_admin.ListClustersRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -1165,8 +1156,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.Cluster):
-                The request object.
-                A resizable group of nodes in a
+                The request object. A resizable group of nodes in a
                 particular cloud location, capable of serving all
                 [Tables][google.bigtable.admin.v2.Table] in the parent
                 [Instance][google.bigtable.admin.v2.Instance].
@@ -1237,8 +1227,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteCluster.
             name (str):
                 Required. The unique name of the cluster to be deleted.
@@ -1268,7 +1257,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteClusterRequest):
             request = bigtable_instance_admin.DeleteClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -1307,8 +1296,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateAppProfile.
             parent (str):
                 Required. The unique name of the instance in which to
@@ -1361,7 +1349,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateAppProfileRequest):
             request = bigtable_instance_admin.CreateAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -1405,8 +1393,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetAppProfile.
             name (str):
                 Required. The unique name of the requested app profile.
@@ -1443,7 +1430,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetAppProfileRequest):
             request = bigtable_instance_admin.GetAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -1483,8 +1470,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListAppProfiles.
             parent (str):
                 Required. The unique name of the instance for which a
@@ -1526,7 +1512,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListAppProfilesRequest):
             request = bigtable_instance_admin.ListAppProfilesRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if parent is not None:
                 request.parent = parent
@@ -1576,8 +1562,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.UpdateAppProfile.
             app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
                 Required. The app profile which will
@@ -1622,7 +1607,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.UpdateAppProfileRequest):
             request = bigtable_instance_admin.UpdateAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if app_profile is not None:
                 request.app_profile = app_profile
@@ -1672,8 +1657,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteAppProfile.
             name (str):
                 Required. The unique name of the app profile to be
@@ -1703,7 +1687,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteAppProfileRequest):
             request = bigtable_instance_admin.DeleteAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if name is not None:
                 request.name = name
@@ -1742,8 +1726,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.GetIamPolicyRequest):
-                The request object.
-                Request message for `GetIamPolicy`
+                The request object. Request message for `GetIamPolicy`
                 method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -1827,14 +1810,14 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.GetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.GetIamPolicyRequest()
-             if resource is not None:
+            if resource is not None:
                 request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -1873,8 +1856,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.SetIamPolicyRequest):
-                The request object.
-                Request message for `SetIamPolicy`
+                The request object. Request message for `SetIamPolicy`
                 method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -1958,14 +1940,14 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.SetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.SetIamPolicyRequest()
-             if resource is not None:
+            if resource is not None:
                 request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -2005,8 +1987,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 `TestIamPermissions` method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -2044,14 +2025,14 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.TestIamPermissionsRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.TestIamPermissionsRequest()
-             if resource is not None:
+            if resource is not None:
                 request.resource = resource
             if permissions:
                 request.permissions.extend(permissions)

@@ -341,8 +341,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.ReadRowsRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 Bigtable.ReadRows.
             table_name (str):
                 Required. The unique name of the table from which to
@@ -387,7 +386,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.ReadRowsRequest):
             request = bigtable.ReadRowsRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name
@@ -434,8 +433,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.SampleRowKeysRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 Bigtable.SampleRowKeys.
             table_name (str):
                 Required. The unique name of the table from which to
@@ -480,7 +478,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.SampleRowKeysRequest):
             request = bigtable.SampleRowKeysRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name
@@ -526,8 +524,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.MutateRowRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 Bigtable.MutateRow.
             table_name (str):
                 Required. The unique name of the table to which the
@@ -590,7 +587,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.MutateRowRequest):
             request = bigtable.MutateRowRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name
@@ -640,8 +637,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.MutateRowsRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableService.MutateRows.
             table_name (str):
                 Required. The unique name of the
@@ -700,7 +696,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.MutateRowsRequest):
             request = bigtable.MutateRowsRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name
@@ -750,8 +746,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.CheckAndMutateRowRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (str):
                 Required. The unique name of the table to which the
@@ -837,7 +832,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.CheckAndMutateRowRequest):
             request = bigtable.CheckAndMutateRowRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name
@@ -896,8 +891,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (str):
                 Required. The unique name of the table to which the
@@ -962,7 +956,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.ReadModifyWriteRowRequest):
             request = bigtable.ReadModifyWriteRowRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
             if table_name is not None:
                 request.table_name = table_name

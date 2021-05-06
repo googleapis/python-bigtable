@@ -221,9 +221,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def read_rows(self) -> Callable[
             [bigtable.ReadRowsRequest],
             bigtable.ReadRowsResponse]:
-        r"""Return a callable for the
-        read rows
-          method over gRPC.
+        r"""Return a callable for the read rows method over gRPC.
 
         Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
@@ -254,9 +252,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def sample_row_keys(self) -> Callable[
             [bigtable.SampleRowKeysRequest],
             bigtable.SampleRowKeysResponse]:
-        r"""Return a callable for the
-        sample row keys
-          method over gRPC.
+        r"""Return a callable for the sample row keys method over gRPC.
 
         Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
@@ -286,9 +282,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def mutate_row(self) -> Callable[
             [bigtable.MutateRowRequest],
             bigtable.MutateRowResponse]:
-        r"""Return a callable for the
-        mutate row
-          method over gRPC.
+        r"""Return a callable for the mutate row method over gRPC.
 
         Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
@@ -315,9 +309,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def mutate_rows(self) -> Callable[
             [bigtable.MutateRowsRequest],
             bigtable.MutateRowsResponse]:
-        r"""Return a callable for the
-        mutate rows
-          method over gRPC.
+        r"""Return a callable for the mutate rows method over gRPC.
 
         Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
@@ -345,9 +337,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def check_and_mutate_row(self) -> Callable[
             [bigtable.CheckAndMutateRowRequest],
             bigtable.CheckAndMutateRowResponse]:
-        r"""Return a callable for the
-        check and mutate row
-          method over gRPC.
+        r"""Return a callable for the check and mutate row method over gRPC.
 
         Mutates a row atomically based on the output of a
         predicate Reader filter.
@@ -374,9 +364,7 @@ class BigtableGrpcTransport(BigtableTransport):
     def read_modify_write_row(self) -> Callable[
             [bigtable.ReadModifyWriteRowRequest],
             bigtable.ReadModifyWriteRowResponse]:
-        r"""Return a callable for the
-        read modify write row
-          method over gRPC.
+        r"""Return a callable for the read modify write row method over gRPC.
 
         Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the
