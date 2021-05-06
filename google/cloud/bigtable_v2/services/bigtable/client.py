@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 from collections import OrderedDict
 from distutils import util
 import os
@@ -23,10 +21,10 @@ from typing import Callable, Dict, Optional, Iterable, Sequence, Tuple, Type, Un
 import pkg_resources
 
 from google.api_core import client_options as client_options_lib  # type: ignore
-from google.api_core import exceptions                            # type: ignore
+from google.api_core import exceptions as core_exceptions         # type: ignore
 from google.api_core import gapic_v1                              # type: ignore
 from google.api_core import retry as retries                      # type: ignore
-from google.auth import credentials                               # type: ignore
+from google.auth import credentials as ga_credentials             # type: ignore
 from google.auth.transport import mtls                            # type: ignore
 from google.auth.transport.grpc import SslCredentials             # type: ignore
 from google.auth.exceptions import MutualTLSChannelError          # type: ignore
@@ -34,7 +32,6 @@ from google.oauth2 import service_account                         # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
-
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
@@ -224,7 +221,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         return m.groupdict() if m else {}
 
     def __init__(self, *,
-            credentials: Optional[credentials.Credentials] = None,
+            credentials: Optional[ga_credentials.Credentials] = None,
             transport: Union[str, BigtableTransport, None] = None,
             client_options: Optional[client_options_lib.ClientOptions] = None,
             client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
@@ -363,7 +360,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -390,10 +386,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.ReadRowsRequest):
             request = bigtable.ReadRowsRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if app_profile_id is not None:
@@ -458,7 +452,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -485,10 +478,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.SampleRowKeysRequest):
             request = bigtable.SampleRowKeysRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if app_profile_id is not None:
@@ -570,7 +561,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -597,10 +587,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.MutateRowRequest):
             request = bigtable.MutateRowRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if row_key is not None:
@@ -682,7 +670,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -709,10 +696,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.MutateRowsRequest):
             request = bigtable.MutateRowsRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if entries is not None:
@@ -821,7 +806,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -848,10 +832,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.CheckAndMutateRowRequest):
             request = bigtable.CheckAndMutateRowRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if row_key is not None:
@@ -948,7 +930,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -975,10 +956,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable.ReadModifyWriteRowRequest):
             request = bigtable.ReadModifyWriteRowRequest(request)
-
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-
             if table_name is not None:
                 request.table_name = table_name
             if row_key is not None:
@@ -1010,8 +989,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         # Done; return the response.
         return response
-
-
 
 
 

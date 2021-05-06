@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import proto  # type: ignore
 
-
 from google.cloud.bigtable_v2.types import data
-from google.protobuf import wrappers_pb2 as wrappers  # type: ignore
-from google.rpc import status_pb2 as gr_status  # type: ignore
+from google.protobuf import wrappers_pb2  # type: ignore
+from google.rpc import status_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
@@ -44,7 +41,6 @@ __protobuf__ = proto.module(
 
 class ReadRowsRequest(proto.Message):
     r"""Request message for Bigtable.ReadRows.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table from which to read.
@@ -67,24 +63,32 @@ class ReadRowsRequest(proto.Message):
             return all results.
     """
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=5)
-
-    rows = proto.Field(proto.MESSAGE, number=2,
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=5,
+    )
+    rows = proto.Field(
+        proto.MESSAGE,
+        number=2,
         message=data.RowSet,
     )
-
-    filter = proto.Field(proto.MESSAGE, number=3,
+    filter = proto.Field(
+        proto.MESSAGE,
+        number=3,
         message=data.RowFilter,
     )
-
-    rows_limit = proto.Field(proto.INT64, number=4)
+    rows_limit = proto.Field(
+        proto.INT64,
+        number=4,
+    )
 
 
 class ReadRowsResponse(proto.Message):
     r"""Response message for Bigtable.ReadRows.
-
     Attributes:
         chunks (Sequence[google.cloud.bigtable_v2.types.ReadRowsResponse.CellChunk]):
             A collection of a row's contents as part of
@@ -101,6 +105,7 @@ class ReadRowsResponse(proto.Message):
             row key, allowing the client to skip that work
             on a retry.
     """
+
     class CellChunk(proto.Message):
         r"""Specifies a piece of a row's contents returned as part of the
         read response stream.
@@ -161,38 +166,60 @@ class ReadRowsResponse(proto.Message):
                 chunks for ``row_key``, as its data has been fully read.
         """
 
-        row_key = proto.Field(proto.BYTES, number=1)
-
-        family_name = proto.Field(proto.MESSAGE, number=2,
-            message=wrappers.StringValue,
+        row_key = proto.Field(
+            proto.BYTES,
+            number=1,
+        )
+        family_name = proto.Field(
+            proto.MESSAGE,
+            number=2,
+            message=wrappers_pb2.StringValue,
+        )
+        qualifier = proto.Field(
+            proto.MESSAGE,
+            number=3,
+            message=wrappers_pb2.BytesValue,
+        )
+        timestamp_micros = proto.Field(
+            proto.INT64,
+            number=4,
+        )
+        labels = proto.RepeatedField(
+            proto.STRING,
+            number=5,
+        )
+        value = proto.Field(
+            proto.BYTES,
+            number=6,
+        )
+        value_size = proto.Field(
+            proto.INT32,
+            number=7,
+        )
+        reset_row = proto.Field(
+            proto.BOOL,
+            number=8,
+            oneof='row_status',
+        )
+        commit_row = proto.Field(
+            proto.BOOL,
+            number=9,
+            oneof='row_status',
         )
 
-        qualifier = proto.Field(proto.MESSAGE, number=3,
-            message=wrappers.BytesValue,
-        )
-
-        timestamp_micros = proto.Field(proto.INT64, number=4)
-
-        labels = proto.RepeatedField(proto.STRING, number=5)
-
-        value = proto.Field(proto.BYTES, number=6)
-
-        value_size = proto.Field(proto.INT32, number=7)
-
-        reset_row = proto.Field(proto.BOOL, number=8, oneof='row_status')
-
-        commit_row = proto.Field(proto.BOOL, number=9, oneof='row_status')
-
-    chunks = proto.RepeatedField(proto.MESSAGE, number=1,
+    chunks = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
         message=CellChunk,
     )
-
-    last_scanned_row_key = proto.Field(proto.BYTES, number=2)
+    last_scanned_row_key = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
 
 
 class SampleRowKeysRequest(proto.Message):
     r"""Request message for Bigtable.SampleRowKeys.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table from which to sample
@@ -204,14 +231,18 @@ class SampleRowKeysRequest(proto.Message):
             profile will be used.
     """
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=2)
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=2,
+    )
 
 
 class SampleRowKeysResponse(proto.Message):
     r"""Response message for Bigtable.SampleRowKeys.
-
     Attributes:
         row_key (bytes):
             Sorted streamed sequence of sample row keys
@@ -233,14 +264,18 @@ class SampleRowKeysResponse(proto.Message):
             fields.
     """
 
-    row_key = proto.Field(proto.BYTES, number=1)
-
-    offset_bytes = proto.Field(proto.INT64, number=2)
+    row_key = proto.Field(
+        proto.BYTES,
+        number=1,
+    )
+    offset_bytes = proto.Field(
+        proto.INT64,
+        number=2,
+    )
 
 
 class MutateRowRequest(proto.Message):
     r"""Request message for Bigtable.MutateRow.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table to which the mutation
@@ -261,24 +296,31 @@ class MutateRowRequest(proto.Message):
             at most 100000.
     """
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=4)
-
-    row_key = proto.Field(proto.BYTES, number=2)
-
-    mutations = proto.RepeatedField(proto.MESSAGE, number=3,
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=4,
+    )
+    row_key = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
+    mutations = proto.RepeatedField(
+        proto.MESSAGE,
+        number=3,
         message=data.Mutation,
     )
 
 
 class MutateRowResponse(proto.Message):
-    r"""Response message for Bigtable.MutateRow."""
+    r"""Response message for Bigtable.MutateRow.    """
 
 
 class MutateRowsRequest(proto.Message):
     r"""Request message for BigtableService.MutateRows.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table to
@@ -296,9 +338,9 @@ class MutateRowsRequest(proto.Message):
             must be specified, and in total the entries can
             contain at most 100000 mutations.
     """
+
     class Entry(proto.Message):
         r"""A mutation for a given row.
-
         Attributes:
             row_key (bytes):
                 The key of the row to which the ``mutations`` should be
@@ -311,29 +353,39 @@ class MutateRowsRequest(proto.Message):
                 You must specify at least one mutation.
         """
 
-        row_key = proto.Field(proto.BYTES, number=1)
-
-        mutations = proto.RepeatedField(proto.MESSAGE, number=2,
+        row_key = proto.Field(
+            proto.BYTES,
+            number=1,
+        )
+        mutations = proto.RepeatedField(
+            proto.MESSAGE,
+            number=2,
             message=data.Mutation,
         )
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=3)
-
-    entries = proto.RepeatedField(proto.MESSAGE, number=2,
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    entries = proto.RepeatedField(
+        proto.MESSAGE,
+        number=2,
         message=Entry,
     )
 
 
 class MutateRowsResponse(proto.Message):
     r"""Response message for BigtableService.MutateRows.
-
     Attributes:
         entries (Sequence[google.cloud.bigtable_v2.types.MutateRowsResponse.Entry]):
             One or more results for Entries from the
             batch request.
     """
+
     class Entry(proto.Message):
         r"""The result of applying a passed mutation in the original
         request.
@@ -350,20 +402,25 @@ class MutateRowsResponse(proto.Message):
                 will be reported for both entries.
         """
 
-        index = proto.Field(proto.INT64, number=1)
-
-        status = proto.Field(proto.MESSAGE, number=2,
+        index = proto.Field(
+            proto.INT64,
+            number=1,
+        )
+        status = proto.Field(
+            proto.MESSAGE,
+            number=2,
             message=gr_status.Status,
         )
 
-    entries = proto.RepeatedField(proto.MESSAGE, number=1,
+    entries = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
         message=Entry,
     )
 
 
 class CheckAndMutateRowRequest(proto.Message):
     r"""Request message for Bigtable.CheckAndMutateRow.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table to which the
@@ -399,40 +456,51 @@ class CheckAndMutateRowRequest(proto.Message):
             most 100000.
     """
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=7)
-
-    row_key = proto.Field(proto.BYTES, number=2)
-
-    predicate_filter = proto.Field(proto.MESSAGE, number=6,
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=7,
+    )
+    row_key = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
+    predicate_filter = proto.Field(
+        proto.MESSAGE,
+        number=6,
         message=data.RowFilter,
     )
-
-    true_mutations = proto.RepeatedField(proto.MESSAGE, number=4,
+    true_mutations = proto.RepeatedField(
+        proto.MESSAGE,
+        number=4,
         message=data.Mutation,
     )
-
-    false_mutations = proto.RepeatedField(proto.MESSAGE, number=5,
+    false_mutations = proto.RepeatedField(
+        proto.MESSAGE,
+        number=5,
         message=data.Mutation,
     )
 
 
 class CheckAndMutateRowResponse(proto.Message):
     r"""Response message for Bigtable.CheckAndMutateRow.
-
     Attributes:
         predicate_matched (bool):
             Whether or not the request's ``predicate_filter`` yielded
             any results for the specified row.
     """
 
-    predicate_matched = proto.Field(proto.BOOL, number=1)
+    predicate_matched = proto.Field(
+        proto.BOOL,
+        number=1,
+    )
 
 
 class ReadModifyWriteRowRequest(proto.Message):
     r"""Request message for Bigtable.ReadModifyWriteRow.
-
     Attributes:
         table_name (str):
             Required. The unique name of the table to which the
@@ -454,27 +522,36 @@ class ReadModifyWriteRowRequest(proto.Message):
             later ones.
     """
 
-    table_name = proto.Field(proto.STRING, number=1)
-
-    app_profile_id = proto.Field(proto.STRING, number=4)
-
-    row_key = proto.Field(proto.BYTES, number=2)
-
-    rules = proto.RepeatedField(proto.MESSAGE, number=3,
+    table_name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    app_profile_id = proto.Field(
+        proto.STRING,
+        number=4,
+    )
+    row_key = proto.Field(
+        proto.BYTES,
+        number=2,
+    )
+    rules = proto.RepeatedField(
+        proto.MESSAGE,
+        number=3,
         message=data.ReadModifyWriteRule,
     )
 
 
 class ReadModifyWriteRowResponse(proto.Message):
     r"""Response message for Bigtable.ReadModifyWriteRow.
-
     Attributes:
         row (google.cloud.bigtable_v2.types.Row):
             A Row containing the new contents of all
             cells modified by the request.
     """
 
-    row = proto.Field(proto.MESSAGE, number=1,
+    row = proto.Field(
+        proto.MESSAGE,
+        number=1,
         message=data.Row,
     )
 

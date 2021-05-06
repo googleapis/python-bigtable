@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import proto  # type: ignore
-
 
 from google.cloud.bigtable_admin_v2.types import common
 
@@ -78,19 +75,29 @@ class Instance(proto.Message):
         PRODUCTION = 1
         DEVELOPMENT = 2
 
-    name = proto.Field(proto.STRING, number=1)
-
-    display_name = proto.Field(proto.STRING, number=2)
-
-    state = proto.Field(proto.ENUM, number=3,
+    name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    display_name = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    state = proto.Field(
+        proto.ENUM,
+        number=3,
         enum=State,
     )
-
-    type_ = proto.Field(proto.ENUM, number=4,
+    type_ = proto.Field(
+        proto.ENUM,
+        number=4,
         enum=Type,
     )
-
-    labels = proto.MapField(proto.STRING, proto.STRING, number=5)
+    labels = proto.MapField(
+        proto.STRING,
+        proto.STRING,
+        number=5,
+    )
 
 
 class Cluster(proto.Message):
@@ -150,23 +157,36 @@ class Cluster(proto.Message):
                    key.
         """
 
-        kms_key_name = proto.Field(proto.STRING, number=1)
+        kms_key_name = proto.Field(
+            proto.STRING,
+            number=1,
+        )
 
-    name = proto.Field(proto.STRING, number=1)
-
-    location = proto.Field(proto.STRING, number=2)
-
-    state = proto.Field(proto.ENUM, number=3,
+    name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    location = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    state = proto.Field(
+        proto.ENUM,
+        number=3,
         enum=State,
     )
-
-    serve_nodes = proto.Field(proto.INT32, number=4)
-
-    default_storage_type = proto.Field(proto.ENUM, number=5,
+    serve_nodes = proto.Field(
+        proto.INT32,
+        number=4,
+    )
+    default_storage_type = proto.Field(
+        proto.ENUM,
+        number=5,
         enum=common.StorageType,
     )
-
-    encryption_config = proto.Field(proto.MESSAGE, number=6,
+    encryption_config = proto.Field(
+        proto.MESSAGE,
+        number=6,
         message=EncryptionConfig,
     )
 
@@ -199,13 +219,14 @@ class AppProfile(proto.Message):
         single_cluster_routing (google.cloud.bigtable_admin_v2.types.AppProfile.SingleClusterRouting):
             Use a single-cluster routing policy.
     """
+
     class MultiClusterRoutingUseAny(proto.Message):
         r"""Read/write requests are routed to the nearest cluster in the
         instance, and will fail over to the nearest cluster that is
         available in the event of transient errors or delays. Clusters
         in a region are considered equidistant. Choosing this option
         sacrifices read-your-writes consistency to improve availability.
-        """
+            """
 
     class SingleClusterRouting(proto.Message):
         r"""Unconditionally routes all read/write requests to a specific
@@ -223,21 +244,37 @@ class AppProfile(proto.Message):
                 table/row/column in multiple clusters.
         """
 
-        cluster_id = proto.Field(proto.STRING, number=1)
+        cluster_id = proto.Field(
+            proto.STRING,
+            number=1,
+        )
+        allow_transactional_writes = proto.Field(
+            proto.BOOL,
+            number=2,
+        )
 
-        allow_transactional_writes = proto.Field(proto.BOOL, number=2)
-
-    name = proto.Field(proto.STRING, number=1)
-
-    etag = proto.Field(proto.STRING, number=2)
-
-    description = proto.Field(proto.STRING, number=3)
-
-    multi_cluster_routing_use_any = proto.Field(proto.MESSAGE, number=5, oneof='routing_policy',
+    name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    etag = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    description = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    multi_cluster_routing_use_any = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        oneof='routing_policy',
         message=MultiClusterRoutingUseAny,
     )
-
-    single_cluster_routing = proto.Field(proto.MESSAGE, number=6, oneof='routing_policy',
+    single_cluster_routing = proto.Field(
+        proto.MESSAGE,
+        number=6,
+        oneof='routing_policy',
         message=SingleClusterRouting,
     )
 

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 from collections import OrderedDict
 import functools
 import re
@@ -22,15 +20,14 @@ from typing import Dict, AsyncIterable, Awaitable, Sequence, Tuple, Type, Union
 import pkg_resources
 
 import google.api_core.client_options as ClientOptions # type: ignore
-from google.api_core import exceptions                 # type: ignore
+from google.api_core import exceptions as core_exceptions  # type: ignore
 from google.api_core import gapic_v1                   # type: ignore
 from google.api_core import retry as retries           # type: ignore
-from google.auth import credentials                    # type: ignore
+from google.auth import credentials as ga_credentials   # type: ignore
 from google.oauth2 import service_account              # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
-
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
 from .client import BigtableClient
@@ -48,19 +45,14 @@ class BigtableAsyncClient:
 
     table_path = staticmethod(BigtableClient.table_path)
     parse_table_path = staticmethod(BigtableClient.parse_table_path)
-
     common_billing_account_path = staticmethod(BigtableClient.common_billing_account_path)
     parse_common_billing_account_path = staticmethod(BigtableClient.parse_common_billing_account_path)
-
     common_folder_path = staticmethod(BigtableClient.common_folder_path)
     parse_common_folder_path = staticmethod(BigtableClient.parse_common_folder_path)
-
     common_organization_path = staticmethod(BigtableClient.common_organization_path)
     parse_common_organization_path = staticmethod(BigtableClient.parse_common_organization_path)
-
     common_project_path = staticmethod(BigtableClient.common_project_path)
     parse_common_project_path = staticmethod(BigtableClient.parse_common_project_path)
-
     common_location_path = staticmethod(BigtableClient.common_location_path)
     parse_common_location_path = staticmethod(BigtableClient.parse_common_location_path)
 
@@ -108,7 +100,7 @@ class BigtableAsyncClient:
     get_transport_class = functools.partial(type(BigtableClient).get_transport_class, type(BigtableClient))
 
     def __init__(self, *,
-            credentials: credentials.Credentials = None,
+            credentials: ga_credentials.Credentials = None,
             transport: Union[str, BigtableTransport] = 'grpc_asyncio',
             client_options: ClientOptions = None,
             client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
@@ -145,7 +137,6 @@ class BigtableAsyncClient:
             google.auth.exceptions.MutualTlsChannelError: If mutual TLS transport
                 creation failed for any reason.
         """
-
         self._client = BigtableClient(
             credentials=credentials,
             transport=transport,
@@ -191,7 +182,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -216,7 +206,6 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if app_profile_id is not None:
@@ -227,10 +216,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_rows,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                 ),
                 deadline=43200.0,
             ),
@@ -293,7 +279,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -318,7 +303,6 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if app_profile_id is not None:
@@ -329,10 +313,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.sample_row_keys,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                 ),
                 deadline=60.0,
             ),
@@ -412,7 +393,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -437,14 +417,12 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if row_key is not None:
             request.row_key = row_key
         if app_profile_id is not None:
             request.app_profile_id = app_profile_id
-
         if mutations:
             request.mutations.extend(mutations)
 
@@ -453,10 +431,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.mutate_row,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -534,7 +509,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -559,12 +533,10 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if app_profile_id is not None:
             request.app_profile_id = app_profile_id
-
         if entries:
             request.entries.extend(entries)
 
@@ -573,10 +545,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.mutate_rows,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                 ),
                 deadline=600.0,
             ),
@@ -681,7 +650,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -706,7 +674,6 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if row_key is not None:
@@ -715,7 +682,6 @@ class BigtableAsyncClient:
             request.predicate_filter = predicate_filter
         if app_profile_id is not None:
             request.app_profile_id = app_profile_id
-
         if true_mutations:
             request.true_mutations.extend(true_mutations)
         if false_mutations:
@@ -726,10 +692,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.check_and_mutate_row,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                 ),
                 deadline=20.0,
             ),
@@ -816,7 +779,6 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -841,14 +803,12 @@ class BigtableAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
-
         if table_name is not None:
             request.table_name = table_name
         if row_key is not None:
             request.row_key = row_key
         if app_profile_id is not None:
             request.app_profile_id = app_profile_id
-
         if rules:
             request.rules.extend(rules)
 
@@ -857,10 +817,7 @@ class BigtableAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_modify_write_row,
             default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
+initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
                 ),
                 deadline=20.0,
             ),
@@ -886,8 +843,6 @@ class BigtableAsyncClient:
 
         # Done; return the response.
         return response
-
-
 
 
 

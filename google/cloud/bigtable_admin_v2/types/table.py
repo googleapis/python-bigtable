@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import proto  # type: ignore
 
-
-from google.protobuf import duration_pb2 as duration  # type: ignore
-from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
-from google.rpc import status_pb2 as status  # type: ignore
+from google.protobuf import duration_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
+from google.rpc import status_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
@@ -47,7 +44,6 @@ class RestoreSourceType(proto.Enum):
 
 class RestoreInfo(proto.Message):
     r"""Information about a table restore.
-
     Attributes:
         source_type (google.cloud.bigtable_admin_v2.types.RestoreSourceType):
             The type of the restore source.
@@ -56,11 +52,15 @@ class RestoreInfo(proto.Message):
             the table. The backup may no longer exist.
     """
 
-    source_type = proto.Field(proto.ENUM, number=1,
+    source_type = proto.Field(
+        proto.ENUM,
+        number=1,
         enum='RestoreSourceType',
     )
-
-    backup_info = proto.Field(proto.MESSAGE, number=2, oneof='source_info',
+    backup_info = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof='source_info',
         message='BackupInfo',
     )
 
@@ -117,7 +117,6 @@ class Table(proto.Message):
 
     class ClusterState(proto.Message):
         r"""The state of a table's data in a particular cluster.
-
         Attributes:
             replication_state (google.cloud.bigtable_admin_v2.types.Table.ClusterState.ReplicationState):
                 Output only. The state of replication for the
@@ -141,29 +140,41 @@ class Table(proto.Message):
             READY = 4
             READY_OPTIMIZING = 5
 
-        replication_state = proto.Field(proto.ENUM, number=1,
+        replication_state = proto.Field(
+            proto.ENUM,
+            number=1,
             enum='Table.ClusterState.ReplicationState',
         )
-
-        encryption_info = proto.RepeatedField(proto.MESSAGE, number=2,
+        encryption_info = proto.RepeatedField(
+            proto.MESSAGE,
+            number=2,
             message='EncryptionInfo',
         )
 
-    name = proto.Field(proto.STRING, number=1)
-
-    cluster_states = proto.MapField(proto.STRING, proto.MESSAGE, number=2,
+    name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    cluster_states = proto.MapField(
+        proto.STRING,
+        proto.MESSAGE,
+        number=2,
         message=ClusterState,
     )
-
-    column_families = proto.MapField(proto.STRING, proto.MESSAGE, number=3,
+    column_families = proto.MapField(
+        proto.STRING,
+        proto.MESSAGE,
+        number=3,
         message='ColumnFamily',
     )
-
-    granularity = proto.Field(proto.ENUM, number=4,
+    granularity = proto.Field(
+        proto.ENUM,
+        number=4,
         enum=TimestampGranularity,
     )
-
-    restore_info = proto.Field(proto.MESSAGE, number=6,
+    restore_info = proto.Field(
+        proto.MESSAGE,
+        number=6,
         message='RestoreInfo',
     )
 
@@ -182,7 +193,9 @@ class ColumnFamily(proto.Message):
             matches the active GC expression for its family.
     """
 
-    gc_rule = proto.Field(proto.MESSAGE, number=1,
+    gc_rule = proto.Field(
+        proto.MESSAGE,
+        number=1,
         message='GcRule',
     )
 
@@ -207,43 +220,56 @@ class GcRule(proto.Message):
             Delete cells that would be deleted by any
             nested rule.
     """
+
     class Intersection(proto.Message):
         r"""A GcRule which deletes cells matching all of the given rules.
-
         Attributes:
             rules (Sequence[google.cloud.bigtable_admin_v2.types.GcRule]):
                 Only delete cells which would be deleted by every element of
                 ``rules``.
         """
 
-        rules = proto.RepeatedField(proto.MESSAGE, number=1,
+        rules = proto.RepeatedField(
+            proto.MESSAGE,
+            number=1,
             message='GcRule',
         )
 
     class Union(proto.Message):
         r"""A GcRule which deletes cells matching any of the given rules.
-
         Attributes:
             rules (Sequence[google.cloud.bigtable_admin_v2.types.GcRule]):
                 Delete cells which would be deleted by any element of
                 ``rules``.
         """
 
-        rules = proto.RepeatedField(proto.MESSAGE, number=1,
+        rules = proto.RepeatedField(
+            proto.MESSAGE,
+            number=1,
             message='GcRule',
         )
 
-    max_num_versions = proto.Field(proto.INT32, number=1, oneof='rule')
-
-    max_age = proto.Field(proto.MESSAGE, number=2, oneof='rule',
-        message=duration.Duration,
+    max_num_versions = proto.Field(
+        proto.INT32,
+        number=1,
+        oneof='rule',
     )
-
-    intersection = proto.Field(proto.MESSAGE, number=3, oneof='rule',
+    max_age = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof='rule',
+        message=duration_pb2.Duration,
+    )
+    intersection = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        oneof='rule',
         message=Intersection,
     )
-
-    union = proto.Field(proto.MESSAGE, number=4, oneof='rule',
+    union = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        oneof='rule',
         message=Union,
     )
 
@@ -274,15 +300,20 @@ class EncryptionInfo(proto.Message):
         GOOGLE_DEFAULT_ENCRYPTION = 1
         CUSTOMER_MANAGED_ENCRYPTION = 2
 
-    encryption_type = proto.Field(proto.ENUM, number=3,
+    encryption_type = proto.Field(
+        proto.ENUM,
+        number=3,
         enum=EncryptionType,
     )
-
-    encryption_status = proto.Field(proto.MESSAGE, number=4,
-        message=status.Status,
+    encryption_status = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        message=status_pb2.Status,
     )
-
-    kms_key_version = proto.Field(proto.STRING, number=2)
+    kms_key_version = proto.Field(
+        proto.STRING,
+        number=2,
+    )
 
 
 class Snapshot(proto.Message):
@@ -330,32 +361,42 @@ class Snapshot(proto.Message):
         READY = 1
         CREATING = 2
 
-    name = proto.Field(proto.STRING, number=1)
-
-    source_table = proto.Field(proto.MESSAGE, number=2,
+    name = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    source_table = proto.Field(
+        proto.MESSAGE,
+        number=2,
         message='Table',
     )
-
-    data_size_bytes = proto.Field(proto.INT64, number=3)
-
-    create_time = proto.Field(proto.MESSAGE, number=4,
-        message=timestamp.Timestamp,
+    data_size_bytes = proto.Field(
+        proto.INT64,
+        number=3,
     )
-
-    delete_time = proto.Field(proto.MESSAGE, number=5,
-        message=timestamp.Timestamp,
+    create_time = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        message=timestamp_pb2.Timestamp,
     )
-
-    state = proto.Field(proto.ENUM, number=6,
+    delete_time = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        message=timestamp_pb2.Timestamp,
+    )
+    state = proto.Field(
+        proto.ENUM,
+        number=6,
         enum=State,
     )
-
-    description = proto.Field(proto.STRING, number=7)
+    description = proto.Field(
+        proto.STRING,
+        number=7,
+    )
 
 
 class Backup(proto.Message):
     r"""A backup of a Cloud Bigtable table.
-
     Attributes:
         name (str):
             Output only. A globally unique identifier for the backup
@@ -402,36 +443,47 @@ class Backup(proto.Message):
         CREATING = 1
         READY = 2
 
-    name = proto.Field(proto.STRING, number=1)
-
-    source_table = proto.Field(proto.STRING, number=2)
-
-    expire_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
+    name = proto.Field(
+        proto.STRING,
+        number=1,
     )
-
-    start_time = proto.Field(proto.MESSAGE, number=4,
-        message=timestamp.Timestamp,
+    source_table = proto.Field(
+        proto.STRING,
+        number=2,
     )
-
-    end_time = proto.Field(proto.MESSAGE, number=5,
-        message=timestamp.Timestamp,
+    expire_time = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
     )
-
-    size_bytes = proto.Field(proto.INT64, number=6)
-
-    state = proto.Field(proto.ENUM, number=7,
+    start_time = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        message=timestamp_pb2.Timestamp,
+    )
+    end_time = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        message=timestamp_pb2.Timestamp,
+    )
+    size_bytes = proto.Field(
+        proto.INT64,
+        number=6,
+    )
+    state = proto.Field(
+        proto.ENUM,
+        number=7,
         enum=State,
     )
-
-    encryption_info = proto.Field(proto.MESSAGE, number=9,
+    encryption_info = proto.Field(
+        proto.MESSAGE,
+        number=9,
         message='EncryptionInfo',
     )
 
 
 class BackupInfo(proto.Message):
     r"""Information about a backup.
-
     Attributes:
         backup (str):
             Output only. Name of the backup.
@@ -448,17 +500,24 @@ class BackupInfo(proto.Message):
             created from.
     """
 
-    backup = proto.Field(proto.STRING, number=1)
-
-    start_time = proto.Field(proto.MESSAGE, number=2,
-        message=timestamp.Timestamp,
+    backup = proto.Field(
+        proto.STRING,
+        number=1,
     )
-
-    end_time = proto.Field(proto.MESSAGE, number=3,
-        message=timestamp.Timestamp,
+    start_time = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
     )
-
-    source_table = proto.Field(proto.STRING, number=4)
+    end_time = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+    source_table = proto.Field(
+        proto.STRING,
+        number=4,
+    )
 
 
 __all__ = tuple(sorted(__protobuf__.manifest))

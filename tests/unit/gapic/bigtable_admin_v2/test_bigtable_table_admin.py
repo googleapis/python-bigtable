@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import os
 import mock
+import packaging.version
 
 import grpc
 from grpc.experimental import aio
@@ -24,36 +23,61 @@ import math
 import pytest
 from proto.marshal.rules.dates import DurationRule, TimestampRule
 
-from google import auth
+
 from google.api_core import client_options
-from google.api_core import exceptions
+from google.api_core import exceptions as core_exceptions
 from google.api_core import future
 from google.api_core import gapic_v1
 from google.api_core import grpc_helpers
 from google.api_core import grpc_helpers_async
 from google.api_core import operation_async  # type: ignore
 from google.api_core import operations_v1
-from google.auth import credentials
+from google.auth import credentials as ga_credentials
 from google.auth.exceptions import MutualTLSChannelError
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import BigtableTableAdminAsyncClient
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import pagers
 from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import transports
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.base import _API_CORE_VERSION
+from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.base import _GOOGLE_AUTH_VERSION
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.types import table
 from google.cloud.bigtable_admin_v2.types import table as gba_table
-from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
-from google.iam.v1 import options_pb2 as giv_options  # type: ignore
-from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
+from google.iam.v1 import iam_policy_pb2  # type: ignore
+from google.iam.v1 import options_pb2  # type: ignore
+from google.iam.v1 import policy_pb2  # type: ignore
 from google.longrunning import operations_pb2
 from google.oauth2 import service_account
-from google.protobuf import any_pb2 as gp_any  # type: ignore
-from google.protobuf import duration_pb2 as duration  # type: ignore
-from google.protobuf import field_mask_pb2 as field_mask  # type: ignore
-from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
-from google.rpc import status_pb2 as status  # type: ignore
-from google.type import expr_pb2 as expr  # type: ignore
+from google.protobuf import any_pb2  # type: ignore
+from google.protobuf import duration_pb2  # type: ignore
+from google.protobuf import field_mask_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
+from google.rpc import status_pb2  # type: ignore
+from google.type import expr_pb2  # type: ignore
+import google.auth
 
+
+# TODO(busunkim): Once google-api-core >= 1.26.0 is required:
+# - Delete all the api-core and auth "less than" test cases
+# - Delete these pytest markers (Make the "greater than or equal to" tests the default).
+requires_google_auth_lt_1_25_0 = pytest.mark.skipif(
+    packaging.version.parse(_GOOGLE_AUTH_VERSION) >= packaging.version.parse("1.25.0"),
+    reason="This test requires google-auth < 1.25.0",
+)
+requires_google_auth_gte_1_25_0 = pytest.mark.skipif(
+    packaging.version.parse(_GOOGLE_AUTH_VERSION) < packaging.version.parse("1.25.0"),
+    reason="This test requires google-auth >= 1.25.0",
+)
+
+requires_api_core_lt_1_26_0 = pytest.mark.skipif(
+    packaging.version.parse(_API_CORE_VERSION) >= packaging.version.parse("1.26.0"),
+    reason="This test requires google-api-core < 1.26.0",
+)
+
+requires_api_core_gte_1_26_0 = pytest.mark.skipif(
+    packaging.version.parse(_API_CORE_VERSION) < packaging.version.parse("1.26.0"),
+    reason="This test requires google-api-core >= 1.26.0",
+)
 
 def client_cert_source_callback():
     return b"cert bytes", b"key bytes"
@@ -86,7 +110,7 @@ def test__get_default_mtls_endpoint():
     BigtableTableAdminAsyncClient,
 ])
 def test_bigtable_table_admin_client_from_service_account_info(client_class):
-    creds = credentials.AnonymousCredentials()
+    creds = ga_credentials.AnonymousCredentials()
     with mock.patch.object(service_account.Credentials, 'from_service_account_info') as factory:
         factory.return_value = creds
         info = {"valid": True}
@@ -102,7 +126,7 @@ def test_bigtable_table_admin_client_from_service_account_info(client_class):
     BigtableTableAdminAsyncClient,
 ])
 def test_bigtable_table_admin_client_from_service_account_file(client_class):
-    creds = credentials.AnonymousCredentials()
+    creds = ga_credentials.AnonymousCredentials()
     with mock.patch.object(service_account.Credentials, 'from_service_account_file') as factory:
         factory.return_value = creds
         client = client_class.from_service_account_file("dummy/file/path.json")
@@ -137,7 +161,7 @@ def test_bigtable_table_admin_client_client_options(client_class, transport_clas
     # Check that if channel is provided we won't create a new one.
     with mock.patch.object(BigtableTableAdminClient, 'get_transport_class') as gtc:
         transport = transport_class(
-            credentials=credentials.AnonymousCredentials()
+            credentials=ga_credentials.AnonymousCredentials()
         )
         client = client_class(transport=transport)
         gtc.assert_not_called()
@@ -221,12 +245,10 @@ def test_bigtable_table_admin_client_client_options(client_class, transport_clas
         )
 
 @pytest.mark.parametrize("client_class,transport_class,transport_name,use_client_cert_env", [
-
     (BigtableTableAdminClient, transports.BigtableTableAdminGrpcTransport, "grpc", "true"),
     (BigtableTableAdminAsyncClient, transports.BigtableTableAdminGrpcAsyncIOTransport, "grpc_asyncio", "true"),
     (BigtableTableAdminClient, transports.BigtableTableAdminGrpcTransport, "grpc", "false"),
     (BigtableTableAdminAsyncClient, transports.BigtableTableAdminGrpcAsyncIOTransport, "grpc_asyncio", "false"),
-
 ])
 @mock.patch.object(BigtableTableAdminClient, "DEFAULT_ENDPOINT", modify_default_endpoint(BigtableTableAdminClient))
 @mock.patch.object(BigtableTableAdminAsyncClient, "DEFAULT_ENDPOINT", modify_default_endpoint(BigtableTableAdminAsyncClient))
@@ -366,7 +388,7 @@ def test_bigtable_table_admin_client_client_options_from_dict():
 
 def test_create_table(transport: str = 'grpc', request_type=bigtable_table_admin.CreateTableRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -381,25 +403,18 @@ def test_create_table(transport: str = 'grpc', request_type=bigtable_table_admin
         # Designate an appropriate return value for the call.
         call.return_value = gba_table.Table(
             name='name_value',
-
             granularity=gba_table.Table.TimestampGranularity.MILLIS,
-
         )
-
         response = client.create_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, gba_table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == gba_table.Table.TimestampGranularity.MILLIS
 
 
@@ -411,7 +426,7 @@ def test_create_table_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -422,13 +437,13 @@ def test_create_table_empty_call():
         client.create_table()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableRequest()
+
 
 @pytest.mark.asyncio
 async def test_create_table_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.CreateTableRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -441,24 +456,20 @@ async def test_create_table_async(transport: str = 'grpc_asyncio', request_type=
             type(client.transport.create_table),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(gba_table.Table(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(gba_table.Table(
             name='name_value',
             granularity=gba_table.Table.TimestampGranularity.MILLIS,
         ))
-
         response = await client.create_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, gba_table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == gba_table.Table.TimestampGranularity.MILLIS
 
 
@@ -469,12 +480,13 @@ async def test_create_table_async_from_dict():
 
 def test_create_table_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateTableRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -482,7 +494,6 @@ def test_create_table_field_headers():
             type(client.transport.create_table),
             '__call__') as call:
         call.return_value = gba_table.Table()
-
         client.create_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -501,12 +512,13 @@ def test_create_table_field_headers():
 @pytest.mark.asyncio
 async def test_create_table_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateTableRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -514,7 +526,6 @@ async def test_create_table_field_headers_async():
             type(client.transport.create_table),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(gba_table.Table())
-
         await client.create_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -532,7 +543,7 @@ async def test_create_table_field_headers_async():
 
 def test_create_table_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -541,7 +552,6 @@ def test_create_table_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = gba_table.Table()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.create_table(
@@ -554,17 +564,14 @@ def test_create_table_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].table_id == 'table_id_value'
-
         assert args[0].table == gba_table.Table(name='name_value')
 
 
 def test_create_table_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -581,7 +588,7 @@ def test_create_table_flattened_error():
 @pytest.mark.asyncio
 async def test_create_table_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -604,18 +611,15 @@ async def test_create_table_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].table_id == 'table_id_value'
-
         assert args[0].table == gba_table.Table(name='name_value')
 
 
 @pytest.mark.asyncio
 async def test_create_table_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -631,7 +635,7 @@ async def test_create_table_flattened_error_async():
 
 def test_create_table_from_snapshot(transport: str = 'grpc', request_type=bigtable_table_admin.CreateTableFromSnapshotRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -645,13 +649,11 @@ def test_create_table_from_snapshot(transport: str = 'grpc', request_type=bigtab
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/spam')
-
         response = client.create_table_from_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableFromSnapshotRequest()
 
     # Establish that the response is the type that we expect.
@@ -666,7 +668,7 @@ def test_create_table_from_snapshot_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -677,13 +679,13 @@ def test_create_table_from_snapshot_empty_call():
         client.create_table_from_snapshot()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableFromSnapshotRequest()
+
 
 @pytest.mark.asyncio
 async def test_create_table_from_snapshot_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.CreateTableFromSnapshotRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -699,13 +701,11 @@ async def test_create_table_from_snapshot_async(transport: str = 'grpc_asyncio',
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             operations_pb2.Operation(name='operations/spam')
         )
-
         response = await client.create_table_from_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateTableFromSnapshotRequest()
 
     # Establish that the response is the type that we expect.
@@ -719,12 +719,13 @@ async def test_create_table_from_snapshot_async_from_dict():
 
 def test_create_table_from_snapshot_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateTableFromSnapshotRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -732,7 +733,6 @@ def test_create_table_from_snapshot_field_headers():
             type(client.transport.create_table_from_snapshot),
             '__call__') as call:
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         client.create_table_from_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -751,12 +751,13 @@ def test_create_table_from_snapshot_field_headers():
 @pytest.mark.asyncio
 async def test_create_table_from_snapshot_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateTableFromSnapshotRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -764,7 +765,6 @@ async def test_create_table_from_snapshot_field_headers_async():
             type(client.transport.create_table_from_snapshot),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
-
         await client.create_table_from_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -782,7 +782,7 @@ async def test_create_table_from_snapshot_field_headers_async():
 
 def test_create_table_from_snapshot_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -791,7 +791,6 @@ def test_create_table_from_snapshot_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.create_table_from_snapshot(
@@ -804,17 +803,14 @@ def test_create_table_from_snapshot_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].table_id == 'table_id_value'
-
         assert args[0].source_snapshot == 'source_snapshot_value'
 
 
 def test_create_table_from_snapshot_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -831,7 +827,7 @@ def test_create_table_from_snapshot_flattened_error():
 @pytest.mark.asyncio
 async def test_create_table_from_snapshot_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -856,18 +852,15 @@ async def test_create_table_from_snapshot_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].table_id == 'table_id_value'
-
         assert args[0].source_snapshot == 'source_snapshot_value'
 
 
 @pytest.mark.asyncio
 async def test_create_table_from_snapshot_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -883,7 +876,7 @@ async def test_create_table_from_snapshot_flattened_error_async():
 
 def test_list_tables(transport: str = 'grpc', request_type=bigtable_table_admin.ListTablesRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -898,21 +891,16 @@ def test_list_tables(transport: str = 'grpc', request_type=bigtable_table_admin.
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListTablesResponse(
             next_page_token='next_page_token_value',
-
         )
-
         response = client.list_tables(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListTablesRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, pagers.ListTablesPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -924,7 +912,7 @@ def test_list_tables_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -935,13 +923,13 @@ def test_list_tables_empty_call():
         client.list_tables()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListTablesRequest()
+
 
 @pytest.mark.asyncio
 async def test_list_tables_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.ListTablesRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -954,21 +942,18 @@ async def test_list_tables_async(transport: str = 'grpc_asyncio', request_type=b
             type(client.transport.list_tables),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListTablesResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListTablesResponse(
             next_page_token='next_page_token_value',
         ))
-
         response = await client.list_tables(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListTablesRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListTablesAsyncPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -979,12 +964,13 @@ async def test_list_tables_async_from_dict():
 
 def test_list_tables_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListTablesRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -992,7 +978,6 @@ def test_list_tables_field_headers():
             type(client.transport.list_tables),
             '__call__') as call:
         call.return_value = bigtable_table_admin.ListTablesResponse()
-
         client.list_tables(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1011,12 +996,13 @@ def test_list_tables_field_headers():
 @pytest.mark.asyncio
 async def test_list_tables_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListTablesRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1024,7 +1010,6 @@ async def test_list_tables_field_headers_async():
             type(client.transport.list_tables),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListTablesResponse())
-
         await client.list_tables(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1042,7 +1027,7 @@ async def test_list_tables_field_headers_async():
 
 def test_list_tables_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1051,7 +1036,6 @@ def test_list_tables_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListTablesResponse()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.list_tables(
@@ -1062,13 +1046,12 @@ def test_list_tables_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 def test_list_tables_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1083,7 +1066,7 @@ def test_list_tables_flattened_error():
 @pytest.mark.asyncio
 async def test_list_tables_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1104,14 +1087,13 @@ async def test_list_tables_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 @pytest.mark.asyncio
 async def test_list_tables_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1125,7 +1107,7 @@ async def test_list_tables_flattened_error_async():
 
 def test_list_tables_pager():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1178,7 +1160,7 @@ def test_list_tables_pager():
 
 def test_list_tables_pages():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1220,7 +1202,7 @@ def test_list_tables_pages():
 @pytest.mark.asyncio
 async def test_list_tables_async_pager():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1268,7 +1250,7 @@ async def test_list_tables_async_pager():
 @pytest.mark.asyncio
 async def test_list_tables_async_pages():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1309,10 +1291,9 @@ async def test_list_tables_async_pages():
         for page_, token in zip(pages, ['abc','def','ghi', '']):
             assert page_.raw_page.next_page_token == token
 
-
 def test_get_table(transport: str = 'grpc', request_type=bigtable_table_admin.GetTableRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1327,25 +1308,18 @@ def test_get_table(transport: str = 'grpc', request_type=bigtable_table_admin.Ge
         # Designate an appropriate return value for the call.
         call.return_value = table.Table(
             name='name_value',
-
             granularity=table.Table.TimestampGranularity.MILLIS,
-
         )
-
         response = client.get_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetTableRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
 
 
@@ -1357,7 +1331,7 @@ def test_get_table_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -1368,13 +1342,13 @@ def test_get_table_empty_call():
         client.get_table()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetTableRequest()
+
 
 @pytest.mark.asyncio
 async def test_get_table_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.GetTableRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1387,24 +1361,20 @@ async def test_get_table_async(transport: str = 'grpc_asyncio', request_type=big
             type(client.transport.get_table),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Table(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(table.Table(
             name='name_value',
             granularity=table.Table.TimestampGranularity.MILLIS,
         ))
-
         response = await client.get_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetTableRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
 
 
@@ -1415,12 +1385,13 @@ async def test_get_table_async_from_dict():
 
 def test_get_table_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1428,7 +1399,6 @@ def test_get_table_field_headers():
             type(client.transport.get_table),
             '__call__') as call:
         call.return_value = table.Table()
-
         client.get_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1447,12 +1417,13 @@ def test_get_table_field_headers():
 @pytest.mark.asyncio
 async def test_get_table_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1460,7 +1431,6 @@ async def test_get_table_field_headers_async():
             type(client.transport.get_table),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Table())
-
         await client.get_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1478,7 +1448,7 @@ async def test_get_table_field_headers_async():
 
 def test_get_table_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1487,7 +1457,6 @@ def test_get_table_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = table.Table()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.get_table(
@@ -1498,13 +1467,12 @@ def test_get_table_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_get_table_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1519,7 +1487,7 @@ def test_get_table_flattened_error():
 @pytest.mark.asyncio
 async def test_get_table_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1540,14 +1508,13 @@ async def test_get_table_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_get_table_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1561,7 +1528,7 @@ async def test_get_table_flattened_error_async():
 
 def test_delete_table(transport: str = 'grpc', request_type=bigtable_table_admin.DeleteTableRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1575,13 +1542,11 @@ def test_delete_table(transport: str = 'grpc', request_type=bigtable_table_admin
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         response = client.delete_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -1596,7 +1561,7 @@ def test_delete_table_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -1607,13 +1572,13 @@ def test_delete_table_empty_call():
         client.delete_table()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteTableRequest()
+
 
 @pytest.mark.asyncio
 async def test_delete_table_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.DeleteTableRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1627,13 +1592,11 @@ async def test_delete_table_async(transport: str = 'grpc_asyncio', request_type=
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         response = await client.delete_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -1647,12 +1610,13 @@ async def test_delete_table_async_from_dict():
 
 def test_delete_table_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1660,7 +1624,6 @@ def test_delete_table_field_headers():
             type(client.transport.delete_table),
             '__call__') as call:
         call.return_value = None
-
         client.delete_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1679,12 +1642,13 @@ def test_delete_table_field_headers():
 @pytest.mark.asyncio
 async def test_delete_table_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1692,7 +1656,6 @@ async def test_delete_table_field_headers_async():
             type(client.transport.delete_table),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         await client.delete_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1710,7 +1673,7 @@ async def test_delete_table_field_headers_async():
 
 def test_delete_table_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1719,7 +1682,6 @@ def test_delete_table_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.delete_table(
@@ -1730,13 +1692,12 @@ def test_delete_table_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_delete_table_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1751,7 +1712,7 @@ def test_delete_table_flattened_error():
 @pytest.mark.asyncio
 async def test_delete_table_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1772,14 +1733,13 @@ async def test_delete_table_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_delete_table_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -1793,7 +1753,7 @@ async def test_delete_table_flattened_error_async():
 
 def test_modify_column_families(transport: str = 'grpc', request_type=bigtable_table_admin.ModifyColumnFamiliesRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1808,25 +1768,18 @@ def test_modify_column_families(transport: str = 'grpc', request_type=bigtable_t
         # Designate an appropriate return value for the call.
         call.return_value = table.Table(
             name='name_value',
-
             granularity=table.Table.TimestampGranularity.MILLIS,
-
         )
-
         response = client.modify_column_families(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ModifyColumnFamiliesRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
 
 
@@ -1838,7 +1791,7 @@ def test_modify_column_families_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -1849,13 +1802,13 @@ def test_modify_column_families_empty_call():
         client.modify_column_families()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ModifyColumnFamiliesRequest()
+
 
 @pytest.mark.asyncio
 async def test_modify_column_families_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.ModifyColumnFamiliesRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -1868,24 +1821,20 @@ async def test_modify_column_families_async(transport: str = 'grpc_asyncio', req
             type(client.transport.modify_column_families),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Table(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(table.Table(
             name='name_value',
             granularity=table.Table.TimestampGranularity.MILLIS,
         ))
-
         response = await client.modify_column_families(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ModifyColumnFamiliesRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, table.Table)
-
     assert response.name == 'name_value'
-
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
 
 
@@ -1896,12 +1845,13 @@ async def test_modify_column_families_async_from_dict():
 
 def test_modify_column_families_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ModifyColumnFamiliesRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1909,7 +1859,6 @@ def test_modify_column_families_field_headers():
             type(client.transport.modify_column_families),
             '__call__') as call:
         call.return_value = table.Table()
-
         client.modify_column_families(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1928,12 +1877,13 @@ def test_modify_column_families_field_headers():
 @pytest.mark.asyncio
 async def test_modify_column_families_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ModifyColumnFamiliesRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1941,7 +1891,6 @@ async def test_modify_column_families_field_headers_async():
             type(client.transport.modify_column_families),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Table())
-
         await client.modify_column_families(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -1959,7 +1908,7 @@ async def test_modify_column_families_field_headers_async():
 
 def test_modify_column_families_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -1968,7 +1917,6 @@ def test_modify_column_families_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = table.Table()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.modify_column_families(
@@ -1980,15 +1928,13 @@ def test_modify_column_families_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].modifications == [bigtable_table_admin.ModifyColumnFamiliesRequest.Modification(id='id_value')]
 
 
 def test_modify_column_families_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2004,7 +1950,7 @@ def test_modify_column_families_flattened_error():
 @pytest.mark.asyncio
 async def test_modify_column_families_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2026,16 +1972,14 @@ async def test_modify_column_families_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].modifications == [bigtable_table_admin.ModifyColumnFamiliesRequest.Modification(id='id_value')]
 
 
 @pytest.mark.asyncio
 async def test_modify_column_families_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2050,7 +1994,7 @@ async def test_modify_column_families_flattened_error_async():
 
 def test_drop_row_range(transport: str = 'grpc', request_type=bigtable_table_admin.DropRowRangeRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2064,13 +2008,11 @@ def test_drop_row_range(transport: str = 'grpc', request_type=bigtable_table_adm
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         response = client.drop_row_range(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DropRowRangeRequest()
 
     # Establish that the response is the type that we expect.
@@ -2085,7 +2027,7 @@ def test_drop_row_range_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -2096,13 +2038,13 @@ def test_drop_row_range_empty_call():
         client.drop_row_range()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DropRowRangeRequest()
+
 
 @pytest.mark.asyncio
 async def test_drop_row_range_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.DropRowRangeRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2116,13 +2058,11 @@ async def test_drop_row_range_async(transport: str = 'grpc_asyncio', request_typ
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         response = await client.drop_row_range(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DropRowRangeRequest()
 
     # Establish that the response is the type that we expect.
@@ -2136,12 +2076,13 @@ async def test_drop_row_range_async_from_dict():
 
 def test_drop_row_range_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DropRowRangeRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2149,7 +2090,6 @@ def test_drop_row_range_field_headers():
             type(client.transport.drop_row_range),
             '__call__') as call:
         call.return_value = None
-
         client.drop_row_range(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2168,12 +2108,13 @@ def test_drop_row_range_field_headers():
 @pytest.mark.asyncio
 async def test_drop_row_range_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DropRowRangeRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2181,7 +2122,6 @@ async def test_drop_row_range_field_headers_async():
             type(client.transport.drop_row_range),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         await client.drop_row_range(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2199,7 +2139,7 @@ async def test_drop_row_range_field_headers_async():
 
 def test_generate_consistency_token(transport: str = 'grpc', request_type=bigtable_table_admin.GenerateConsistencyTokenRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2214,21 +2154,16 @@ def test_generate_consistency_token(transport: str = 'grpc', request_type=bigtab
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse(
             consistency_token='consistency_token_value',
-
         )
-
         response = client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GenerateConsistencyTokenRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, bigtable_table_admin.GenerateConsistencyTokenResponse)
-
     assert response.consistency_token == 'consistency_token_value'
 
 
@@ -2240,7 +2175,7 @@ def test_generate_consistency_token_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -2251,13 +2186,13 @@ def test_generate_consistency_token_empty_call():
         client.generate_consistency_token()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GenerateConsistencyTokenRequest()
+
 
 @pytest.mark.asyncio
 async def test_generate_consistency_token_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.GenerateConsistencyTokenRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2270,21 +2205,18 @@ async def test_generate_consistency_token_async(transport: str = 'grpc_asyncio',
             type(client.transport.generate_consistency_token),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.GenerateConsistencyTokenResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.GenerateConsistencyTokenResponse(
             consistency_token='consistency_token_value',
         ))
-
         response = await client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GenerateConsistencyTokenRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.GenerateConsistencyTokenResponse)
-
     assert response.consistency_token == 'consistency_token_value'
 
 
@@ -2295,12 +2227,13 @@ async def test_generate_consistency_token_async_from_dict():
 
 def test_generate_consistency_token_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GenerateConsistencyTokenRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2308,7 +2241,6 @@ def test_generate_consistency_token_field_headers():
             type(client.transport.generate_consistency_token),
             '__call__') as call:
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
-
         client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2327,12 +2259,13 @@ def test_generate_consistency_token_field_headers():
 @pytest.mark.asyncio
 async def test_generate_consistency_token_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GenerateConsistencyTokenRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2340,7 +2273,6 @@ async def test_generate_consistency_token_field_headers_async():
             type(client.transport.generate_consistency_token),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.GenerateConsistencyTokenResponse())
-
         await client.generate_consistency_token(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2358,7 +2290,7 @@ async def test_generate_consistency_token_field_headers_async():
 
 def test_generate_consistency_token_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2367,7 +2299,6 @@ def test_generate_consistency_token_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.GenerateConsistencyTokenResponse()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.generate_consistency_token(
@@ -2378,13 +2309,12 @@ def test_generate_consistency_token_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_generate_consistency_token_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2399,7 +2329,7 @@ def test_generate_consistency_token_flattened_error():
 @pytest.mark.asyncio
 async def test_generate_consistency_token_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2420,14 +2350,13 @@ async def test_generate_consistency_token_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_generate_consistency_token_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2441,7 +2370,7 @@ async def test_generate_consistency_token_flattened_error_async():
 
 def test_check_consistency(transport: str = 'grpc', request_type=bigtable_table_admin.CheckConsistencyRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2456,21 +2385,16 @@ def test_check_consistency(transport: str = 'grpc', request_type=bigtable_table_
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.CheckConsistencyResponse(
             consistent=True,
-
         )
-
         response = client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CheckConsistencyRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, bigtable_table_admin.CheckConsistencyResponse)
-
     assert response.consistent is True
 
 
@@ -2482,7 +2406,7 @@ def test_check_consistency_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -2493,13 +2417,13 @@ def test_check_consistency_empty_call():
         client.check_consistency()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CheckConsistencyRequest()
+
 
 @pytest.mark.asyncio
 async def test_check_consistency_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.CheckConsistencyRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2512,21 +2436,18 @@ async def test_check_consistency_async(transport: str = 'grpc_asyncio', request_
             type(client.transport.check_consistency),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.CheckConsistencyResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.CheckConsistencyResponse(
             consistent=True,
         ))
-
         response = await client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CheckConsistencyRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.CheckConsistencyResponse)
-
     assert response.consistent is True
 
 
@@ -2537,12 +2458,13 @@ async def test_check_consistency_async_from_dict():
 
 def test_check_consistency_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CheckConsistencyRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2550,7 +2472,6 @@ def test_check_consistency_field_headers():
             type(client.transport.check_consistency),
             '__call__') as call:
         call.return_value = bigtable_table_admin.CheckConsistencyResponse()
-
         client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2569,12 +2490,13 @@ def test_check_consistency_field_headers():
 @pytest.mark.asyncio
 async def test_check_consistency_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CheckConsistencyRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2582,7 +2504,6 @@ async def test_check_consistency_field_headers_async():
             type(client.transport.check_consistency),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.CheckConsistencyResponse())
-
         await client.check_consistency(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2600,7 +2521,7 @@ async def test_check_consistency_field_headers_async():
 
 def test_check_consistency_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2609,7 +2530,6 @@ def test_check_consistency_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.CheckConsistencyResponse()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.check_consistency(
@@ -2621,15 +2541,13 @@ def test_check_consistency_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].consistency_token == 'consistency_token_value'
 
 
 def test_check_consistency_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2645,7 +2563,7 @@ def test_check_consistency_flattened_error():
 @pytest.mark.asyncio
 async def test_check_consistency_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2667,16 +2585,14 @@ async def test_check_consistency_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].consistency_token == 'consistency_token_value'
 
 
 @pytest.mark.asyncio
 async def test_check_consistency_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2691,7 +2607,7 @@ async def test_check_consistency_flattened_error_async():
 
 def test_snapshot_table(transport: str = 'grpc', request_type=bigtable_table_admin.SnapshotTableRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2705,13 +2621,11 @@ def test_snapshot_table(transport: str = 'grpc', request_type=bigtable_table_adm
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/spam')
-
         response = client.snapshot_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.SnapshotTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -2726,7 +2640,7 @@ def test_snapshot_table_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -2737,13 +2651,13 @@ def test_snapshot_table_empty_call():
         client.snapshot_table()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.SnapshotTableRequest()
+
 
 @pytest.mark.asyncio
 async def test_snapshot_table_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.SnapshotTableRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2759,13 +2673,11 @@ async def test_snapshot_table_async(transport: str = 'grpc_asyncio', request_typ
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             operations_pb2.Operation(name='operations/spam')
         )
-
         response = await client.snapshot_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.SnapshotTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -2779,12 +2691,13 @@ async def test_snapshot_table_async_from_dict():
 
 def test_snapshot_table_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.SnapshotTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2792,7 +2705,6 @@ def test_snapshot_table_field_headers():
             type(client.transport.snapshot_table),
             '__call__') as call:
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         client.snapshot_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2811,12 +2723,13 @@ def test_snapshot_table_field_headers():
 @pytest.mark.asyncio
 async def test_snapshot_table_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.SnapshotTableRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2824,7 +2737,6 @@ async def test_snapshot_table_field_headers_async():
             type(client.transport.snapshot_table),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
-
         await client.snapshot_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -2842,7 +2754,7 @@ async def test_snapshot_table_field_headers_async():
 
 def test_snapshot_table_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2851,7 +2763,6 @@ def test_snapshot_table_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.snapshot_table(
@@ -2865,19 +2776,15 @@ def test_snapshot_table_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].cluster == 'cluster_value'
-
         assert args[0].snapshot_id == 'snapshot_id_value'
-
         assert args[0].description == 'description_value'
 
 
 def test_snapshot_table_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2895,7 +2802,7 @@ def test_snapshot_table_flattened_error():
 @pytest.mark.asyncio
 async def test_snapshot_table_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -2921,20 +2828,16 @@ async def test_snapshot_table_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
-
         assert args[0].cluster == 'cluster_value'
-
         assert args[0].snapshot_id == 'snapshot_id_value'
-
         assert args[0].description == 'description_value'
 
 
 @pytest.mark.asyncio
 async def test_snapshot_table_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -2951,7 +2854,7 @@ async def test_snapshot_table_flattened_error_async():
 
 def test_get_snapshot(transport: str = 'grpc', request_type=bigtable_table_admin.GetSnapshotRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -2966,33 +2869,22 @@ def test_get_snapshot(transport: str = 'grpc', request_type=bigtable_table_admin
         # Designate an appropriate return value for the call.
         call.return_value = table.Snapshot(
             name='name_value',
-
             data_size_bytes=1594,
-
             state=table.Snapshot.State.READY,
-
             description='description_value',
-
         )
-
         response = client.get_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetSnapshotRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, table.Snapshot)
-
     assert response.name == 'name_value'
-
     assert response.data_size_bytes == 1594
-
     assert response.state == table.Snapshot.State.READY
-
     assert response.description == 'description_value'
 
 
@@ -3004,7 +2896,7 @@ def test_get_snapshot_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -3015,13 +2907,13 @@ def test_get_snapshot_empty_call():
         client.get_snapshot()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetSnapshotRequest()
+
 
 @pytest.mark.asyncio
 async def test_get_snapshot_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.GetSnapshotRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3034,30 +2926,24 @@ async def test_get_snapshot_async(transport: str = 'grpc_asyncio', request_type=
             type(client.transport.get_snapshot),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Snapshot(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(table.Snapshot(
             name='name_value',
             data_size_bytes=1594,
             state=table.Snapshot.State.READY,
             description='description_value',
         ))
-
         response = await client.get_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetSnapshotRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, table.Snapshot)
-
     assert response.name == 'name_value'
-
     assert response.data_size_bytes == 1594
-
     assert response.state == table.Snapshot.State.READY
-
     assert response.description == 'description_value'
 
 
@@ -3068,12 +2954,13 @@ async def test_get_snapshot_async_from_dict():
 
 def test_get_snapshot_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetSnapshotRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3081,7 +2968,6 @@ def test_get_snapshot_field_headers():
             type(client.transport.get_snapshot),
             '__call__') as call:
         call.return_value = table.Snapshot()
-
         client.get_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3100,12 +2986,13 @@ def test_get_snapshot_field_headers():
 @pytest.mark.asyncio
 async def test_get_snapshot_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetSnapshotRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3113,7 +3000,6 @@ async def test_get_snapshot_field_headers_async():
             type(client.transport.get_snapshot),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Snapshot())
-
         await client.get_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3131,7 +3017,7 @@ async def test_get_snapshot_field_headers_async():
 
 def test_get_snapshot_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3140,7 +3026,6 @@ def test_get_snapshot_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = table.Snapshot()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.get_snapshot(
@@ -3151,13 +3036,12 @@ def test_get_snapshot_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_get_snapshot_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3172,7 +3056,7 @@ def test_get_snapshot_flattened_error():
 @pytest.mark.asyncio
 async def test_get_snapshot_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3193,14 +3077,13 @@ async def test_get_snapshot_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_get_snapshot_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3214,7 +3097,7 @@ async def test_get_snapshot_flattened_error_async():
 
 def test_list_snapshots(transport: str = 'grpc', request_type=bigtable_table_admin.ListSnapshotsRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3229,21 +3112,16 @@ def test_list_snapshots(transport: str = 'grpc', request_type=bigtable_table_adm
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListSnapshotsResponse(
             next_page_token='next_page_token_value',
-
         )
-
         response = client.list_snapshots(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListSnapshotsRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, pagers.ListSnapshotsPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -3255,7 +3133,7 @@ def test_list_snapshots_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -3266,13 +3144,13 @@ def test_list_snapshots_empty_call():
         client.list_snapshots()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListSnapshotsRequest()
+
 
 @pytest.mark.asyncio
 async def test_list_snapshots_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.ListSnapshotsRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3285,21 +3163,18 @@ async def test_list_snapshots_async(transport: str = 'grpc_asyncio', request_typ
             type(client.transport.list_snapshots),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListSnapshotsResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListSnapshotsResponse(
             next_page_token='next_page_token_value',
         ))
-
         response = await client.list_snapshots(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListSnapshotsRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListSnapshotsAsyncPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -3310,12 +3185,13 @@ async def test_list_snapshots_async_from_dict():
 
 def test_list_snapshots_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListSnapshotsRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3323,7 +3199,6 @@ def test_list_snapshots_field_headers():
             type(client.transport.list_snapshots),
             '__call__') as call:
         call.return_value = bigtable_table_admin.ListSnapshotsResponse()
-
         client.list_snapshots(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3342,12 +3217,13 @@ def test_list_snapshots_field_headers():
 @pytest.mark.asyncio
 async def test_list_snapshots_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListSnapshotsRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3355,7 +3231,6 @@ async def test_list_snapshots_field_headers_async():
             type(client.transport.list_snapshots),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListSnapshotsResponse())
-
         await client.list_snapshots(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3373,7 +3248,7 @@ async def test_list_snapshots_field_headers_async():
 
 def test_list_snapshots_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3382,7 +3257,6 @@ def test_list_snapshots_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListSnapshotsResponse()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.list_snapshots(
@@ -3393,13 +3267,12 @@ def test_list_snapshots_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 def test_list_snapshots_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3414,7 +3287,7 @@ def test_list_snapshots_flattened_error():
 @pytest.mark.asyncio
 async def test_list_snapshots_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3435,14 +3308,13 @@ async def test_list_snapshots_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 @pytest.mark.asyncio
 async def test_list_snapshots_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3456,7 +3328,7 @@ async def test_list_snapshots_flattened_error_async():
 
 def test_list_snapshots_pager():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3509,7 +3381,7 @@ def test_list_snapshots_pager():
 
 def test_list_snapshots_pages():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3551,7 +3423,7 @@ def test_list_snapshots_pages():
 @pytest.mark.asyncio
 async def test_list_snapshots_async_pager():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3599,7 +3471,7 @@ async def test_list_snapshots_async_pager():
 @pytest.mark.asyncio
 async def test_list_snapshots_async_pages():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3640,10 +3512,9 @@ async def test_list_snapshots_async_pages():
         for page_, token in zip(pages, ['abc','def','ghi', '']):
             assert page_.raw_page.next_page_token == token
 
-
 def test_delete_snapshot(transport: str = 'grpc', request_type=bigtable_table_admin.DeleteSnapshotRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3657,13 +3528,11 @@ def test_delete_snapshot(transport: str = 'grpc', request_type=bigtable_table_ad
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         response = client.delete_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteSnapshotRequest()
 
     # Establish that the response is the type that we expect.
@@ -3678,7 +3547,7 @@ def test_delete_snapshot_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -3689,13 +3558,13 @@ def test_delete_snapshot_empty_call():
         client.delete_snapshot()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteSnapshotRequest()
+
 
 @pytest.mark.asyncio
 async def test_delete_snapshot_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.DeleteSnapshotRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3709,13 +3578,11 @@ async def test_delete_snapshot_async(transport: str = 'grpc_asyncio', request_ty
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         response = await client.delete_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteSnapshotRequest()
 
     # Establish that the response is the type that we expect.
@@ -3729,12 +3596,13 @@ async def test_delete_snapshot_async_from_dict():
 
 def test_delete_snapshot_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteSnapshotRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3742,7 +3610,6 @@ def test_delete_snapshot_field_headers():
             type(client.transport.delete_snapshot),
             '__call__') as call:
         call.return_value = None
-
         client.delete_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3761,12 +3628,13 @@ def test_delete_snapshot_field_headers():
 @pytest.mark.asyncio
 async def test_delete_snapshot_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteSnapshotRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3774,7 +3642,6 @@ async def test_delete_snapshot_field_headers_async():
             type(client.transport.delete_snapshot),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         await client.delete_snapshot(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3792,7 +3659,7 @@ async def test_delete_snapshot_field_headers_async():
 
 def test_delete_snapshot_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3801,7 +3668,6 @@ def test_delete_snapshot_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.delete_snapshot(
@@ -3812,13 +3678,12 @@ def test_delete_snapshot_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_delete_snapshot_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3833,7 +3698,7 @@ def test_delete_snapshot_flattened_error():
 @pytest.mark.asyncio
 async def test_delete_snapshot_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3854,14 +3719,13 @@ async def test_delete_snapshot_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_delete_snapshot_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -3875,7 +3739,7 @@ async def test_delete_snapshot_flattened_error_async():
 
 def test_create_backup(transport: str = 'grpc', request_type=bigtable_table_admin.CreateBackupRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3889,13 +3753,11 @@ def test_create_backup(transport: str = 'grpc', request_type=bigtable_table_admi
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/spam')
-
         response = client.create_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateBackupRequest()
 
     # Establish that the response is the type that we expect.
@@ -3910,7 +3772,7 @@ def test_create_backup_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -3921,13 +3783,13 @@ def test_create_backup_empty_call():
         client.create_backup()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateBackupRequest()
+
 
 @pytest.mark.asyncio
 async def test_create_backup_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.CreateBackupRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -3943,13 +3805,11 @@ async def test_create_backup_async(transport: str = 'grpc_asyncio', request_type
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             operations_pb2.Operation(name='operations/spam')
         )
-
         response = await client.create_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.CreateBackupRequest()
 
     # Establish that the response is the type that we expect.
@@ -3963,12 +3823,13 @@ async def test_create_backup_async_from_dict():
 
 def test_create_backup_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateBackupRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -3976,7 +3837,6 @@ def test_create_backup_field_headers():
             type(client.transport.create_backup),
             '__call__') as call:
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         client.create_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -3995,12 +3855,13 @@ def test_create_backup_field_headers():
 @pytest.mark.asyncio
 async def test_create_backup_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.CreateBackupRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4008,7 +3869,6 @@ async def test_create_backup_field_headers_async():
             type(client.transport.create_backup),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
-
         await client.create_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4026,7 +3886,7 @@ async def test_create_backup_field_headers_async():
 
 def test_create_backup_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4035,7 +3895,6 @@ def test_create_backup_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.create_backup(
@@ -4048,17 +3907,14 @@ def test_create_backup_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].backup_id == 'backup_id_value'
-
         assert args[0].backup == table.Backup(name='name_value')
 
 
 def test_create_backup_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4075,7 +3931,7 @@ def test_create_backup_flattened_error():
 @pytest.mark.asyncio
 async def test_create_backup_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4100,18 +3956,15 @@ async def test_create_backup_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
-
         assert args[0].backup_id == 'backup_id_value'
-
         assert args[0].backup == table.Backup(name='name_value')
 
 
 @pytest.mark.asyncio
 async def test_create_backup_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4127,7 +3980,7 @@ async def test_create_backup_flattened_error_async():
 
 def test_get_backup(transport: str = 'grpc', request_type=bigtable_table_admin.GetBackupRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4142,33 +3995,22 @@ def test_get_backup(transport: str = 'grpc', request_type=bigtable_table_admin.G
         # Designate an appropriate return value for the call.
         call.return_value = table.Backup(
             name='name_value',
-
             source_table='source_table_value',
-
             size_bytes=1089,
-
             state=table.Backup.State.CREATING,
-
         )
-
         response = client.get_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetBackupRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, table.Backup)
-
     assert response.name == 'name_value'
-
     assert response.source_table == 'source_table_value'
-
     assert response.size_bytes == 1089
-
     assert response.state == table.Backup.State.CREATING
 
 
@@ -4180,7 +4022,7 @@ def test_get_backup_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -4191,13 +4033,13 @@ def test_get_backup_empty_call():
         client.get_backup()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetBackupRequest()
+
 
 @pytest.mark.asyncio
 async def test_get_backup_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.GetBackupRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4210,30 +4052,24 @@ async def test_get_backup_async(transport: str = 'grpc_asyncio', request_type=bi
             type(client.transport.get_backup),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Backup(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(table.Backup(
             name='name_value',
             source_table='source_table_value',
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         ))
-
         response = await client.get_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.GetBackupRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, table.Backup)
-
     assert response.name == 'name_value'
-
     assert response.source_table == 'source_table_value'
-
     assert response.size_bytes == 1089
-
     assert response.state == table.Backup.State.CREATING
 
 
@@ -4244,12 +4080,13 @@ async def test_get_backup_async_from_dict():
 
 def test_get_backup_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetBackupRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4257,7 +4094,6 @@ def test_get_backup_field_headers():
             type(client.transport.get_backup),
             '__call__') as call:
         call.return_value = table.Backup()
-
         client.get_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4276,12 +4112,13 @@ def test_get_backup_field_headers():
 @pytest.mark.asyncio
 async def test_get_backup_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.GetBackupRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4289,7 +4126,6 @@ async def test_get_backup_field_headers_async():
             type(client.transport.get_backup),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Backup())
-
         await client.get_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4307,7 +4143,7 @@ async def test_get_backup_field_headers_async():
 
 def test_get_backup_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4316,7 +4152,6 @@ def test_get_backup_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = table.Backup()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.get_backup(
@@ -4327,13 +4162,12 @@ def test_get_backup_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_get_backup_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4348,7 +4182,7 @@ def test_get_backup_flattened_error():
 @pytest.mark.asyncio
 async def test_get_backup_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4369,14 +4203,13 @@ async def test_get_backup_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_get_backup_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4390,7 +4223,7 @@ async def test_get_backup_flattened_error_async():
 
 def test_update_backup(transport: str = 'grpc', request_type=bigtable_table_admin.UpdateBackupRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4405,33 +4238,22 @@ def test_update_backup(transport: str = 'grpc', request_type=bigtable_table_admi
         # Designate an appropriate return value for the call.
         call.return_value = table.Backup(
             name='name_value',
-
             source_table='source_table_value',
-
             size_bytes=1089,
-
             state=table.Backup.State.CREATING,
-
         )
-
         response = client.update_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.UpdateBackupRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, table.Backup)
-
     assert response.name == 'name_value'
-
     assert response.source_table == 'source_table_value'
-
     assert response.size_bytes == 1089
-
     assert response.state == table.Backup.State.CREATING
 
 
@@ -4443,7 +4265,7 @@ def test_update_backup_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -4454,13 +4276,13 @@ def test_update_backup_empty_call():
         client.update_backup()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.UpdateBackupRequest()
+
 
 @pytest.mark.asyncio
 async def test_update_backup_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.UpdateBackupRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4473,30 +4295,24 @@ async def test_update_backup_async(transport: str = 'grpc_asyncio', request_type
             type(client.transport.update_backup),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Backup(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(table.Backup(
             name='name_value',
             source_table='source_table_value',
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         ))
-
         response = await client.update_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.UpdateBackupRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, table.Backup)
-
     assert response.name == 'name_value'
-
     assert response.source_table == 'source_table_value'
-
     assert response.size_bytes == 1089
-
     assert response.state == table.Backup.State.CREATING
 
 
@@ -4507,12 +4323,13 @@ async def test_update_backup_async_from_dict():
 
 def test_update_backup_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.UpdateBackupRequest()
+
     request.backup.name = 'backup.name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4520,7 +4337,6 @@ def test_update_backup_field_headers():
             type(client.transport.update_backup),
             '__call__') as call:
         call.return_value = table.Backup()
-
         client.update_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4539,12 +4355,13 @@ def test_update_backup_field_headers():
 @pytest.mark.asyncio
 async def test_update_backup_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.UpdateBackupRequest()
+
     request.backup.name = 'backup.name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4552,7 +4369,6 @@ async def test_update_backup_field_headers_async():
             type(client.transport.update_backup),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(table.Backup())
-
         await client.update_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4570,7 +4386,7 @@ async def test_update_backup_field_headers_async():
 
 def test_update_backup_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4579,27 +4395,24 @@ def test_update_backup_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = table.Backup()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.update_backup(
             backup=table.Backup(name='name_value'),
-            update_mask=field_mask.FieldMask(paths=['paths_value']),
+            update_mask=field_mask_pb2.FieldMask(paths=['paths_value']),
         )
 
         # Establish that the underlying call was made with the expected
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].backup == table.Backup(name='name_value')
-
-        assert args[0].update_mask == field_mask.FieldMask(paths=['paths_value'])
+        assert args[0].update_mask == field_mask_pb2.FieldMask(paths=['paths_value'])
 
 
 def test_update_backup_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4608,14 +4421,14 @@ def test_update_backup_flattened_error():
         client.update_backup(
             bigtable_table_admin.UpdateBackupRequest(),
             backup=table.Backup(name='name_value'),
-            update_mask=field_mask.FieldMask(paths=['paths_value']),
+            update_mask=field_mask_pb2.FieldMask(paths=['paths_value']),
         )
 
 
 @pytest.mark.asyncio
 async def test_update_backup_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4630,23 +4443,21 @@ async def test_update_backup_flattened_async():
         # using the keyword arguments to the method.
         response = await client.update_backup(
             backup=table.Backup(name='name_value'),
-            update_mask=field_mask.FieldMask(paths=['paths_value']),
+            update_mask=field_mask_pb2.FieldMask(paths=['paths_value']),
         )
 
         # Establish that the underlying call was made with the expected
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].backup == table.Backup(name='name_value')
-
-        assert args[0].update_mask == field_mask.FieldMask(paths=['paths_value'])
+        assert args[0].update_mask == field_mask_pb2.FieldMask(paths=['paths_value'])
 
 
 @pytest.mark.asyncio
 async def test_update_backup_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4655,13 +4466,13 @@ async def test_update_backup_flattened_error_async():
         await client.update_backup(
             bigtable_table_admin.UpdateBackupRequest(),
             backup=table.Backup(name='name_value'),
-            update_mask=field_mask.FieldMask(paths=['paths_value']),
+            update_mask=field_mask_pb2.FieldMask(paths=['paths_value']),
         )
 
 
 def test_delete_backup(transport: str = 'grpc', request_type=bigtable_table_admin.DeleteBackupRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4675,13 +4486,11 @@ def test_delete_backup(transport: str = 'grpc', request_type=bigtable_table_admi
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         response = client.delete_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteBackupRequest()
 
     # Establish that the response is the type that we expect.
@@ -4696,7 +4505,7 @@ def test_delete_backup_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -4707,13 +4516,13 @@ def test_delete_backup_empty_call():
         client.delete_backup()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteBackupRequest()
+
 
 @pytest.mark.asyncio
 async def test_delete_backup_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.DeleteBackupRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4727,13 +4536,11 @@ async def test_delete_backup_async(transport: str = 'grpc_asyncio', request_type
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         response = await client.delete_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.DeleteBackupRequest()
 
     # Establish that the response is the type that we expect.
@@ -4747,12 +4554,13 @@ async def test_delete_backup_async_from_dict():
 
 def test_delete_backup_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteBackupRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4760,7 +4568,6 @@ def test_delete_backup_field_headers():
             type(client.transport.delete_backup),
             '__call__') as call:
         call.return_value = None
-
         client.delete_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4779,12 +4586,13 @@ def test_delete_backup_field_headers():
 @pytest.mark.asyncio
 async def test_delete_backup_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.DeleteBackupRequest()
+
     request.name = 'name/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4792,7 +4600,6 @@ async def test_delete_backup_field_headers_async():
             type(client.transport.delete_backup),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(None)
-
         await client.delete_backup(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -4810,7 +4617,7 @@ async def test_delete_backup_field_headers_async():
 
 def test_delete_backup_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4819,7 +4626,6 @@ def test_delete_backup_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = None
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.delete_backup(
@@ -4830,13 +4636,12 @@ def test_delete_backup_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 def test_delete_backup_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4851,7 +4656,7 @@ def test_delete_backup_flattened_error():
 @pytest.mark.asyncio
 async def test_delete_backup_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -4872,14 +4677,13 @@ async def test_delete_backup_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].name == 'name_value'
 
 
 @pytest.mark.asyncio
 async def test_delete_backup_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -4893,7 +4697,7 @@ async def test_delete_backup_flattened_error_async():
 
 def test_list_backups(transport: str = 'grpc', request_type=bigtable_table_admin.ListBackupsRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4908,21 +4712,16 @@ def test_list_backups(transport: str = 'grpc', request_type=bigtable_table_admin
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListBackupsResponse(
             next_page_token='next_page_token_value',
-
         )
-
         response = client.list_backups(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListBackupsRequest()
 
     # Establish that the response is the type that we expect.
-
     assert isinstance(response, pagers.ListBackupsPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -4934,7 +4733,7 @@ def test_list_backups_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -4945,13 +4744,13 @@ def test_list_backups_empty_call():
         client.list_backups()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListBackupsRequest()
+
 
 @pytest.mark.asyncio
 async def test_list_backups_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.ListBackupsRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -4964,21 +4763,18 @@ async def test_list_backups_async(transport: str = 'grpc_asyncio', request_type=
             type(client.transport.list_backups),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListBackupsResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListBackupsResponse(
             next_page_token='next_page_token_value',
         ))
-
         response = await client.list_backups(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.ListBackupsRequest()
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListBackupsAsyncPager)
-
     assert response.next_page_token == 'next_page_token_value'
 
 
@@ -4989,12 +4785,13 @@ async def test_list_backups_async_from_dict():
 
 def test_list_backups_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListBackupsRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5002,7 +4799,6 @@ def test_list_backups_field_headers():
             type(client.transport.list_backups),
             '__call__') as call:
         call.return_value = bigtable_table_admin.ListBackupsResponse()
-
         client.list_backups(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5021,12 +4817,13 @@ def test_list_backups_field_headers():
 @pytest.mark.asyncio
 async def test_list_backups_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.ListBackupsRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5034,7 +4831,6 @@ async def test_list_backups_field_headers_async():
             type(client.transport.list_backups),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(bigtable_table_admin.ListBackupsResponse())
-
         await client.list_backups(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5052,7 +4848,7 @@ async def test_list_backups_field_headers_async():
 
 def test_list_backups_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5061,7 +4857,6 @@ def test_list_backups_flattened():
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = bigtable_table_admin.ListBackupsResponse()
-
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.list_backups(
@@ -5072,13 +4867,12 @@ def test_list_backups_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 def test_list_backups_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -5093,7 +4887,7 @@ def test_list_backups_flattened_error():
 @pytest.mark.asyncio
 async def test_list_backups_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5114,14 +4908,13 @@ async def test_list_backups_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].parent == 'parent_value'
 
 
 @pytest.mark.asyncio
 async def test_list_backups_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
@@ -5135,7 +4928,7 @@ async def test_list_backups_flattened_error_async():
 
 def test_list_backups_pager():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5188,7 +4981,7 @@ def test_list_backups_pager():
 
 def test_list_backups_pages():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5230,7 +5023,7 @@ def test_list_backups_pages():
 @pytest.mark.asyncio
 async def test_list_backups_async_pager():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5278,7 +5071,7 @@ async def test_list_backups_async_pager():
 @pytest.mark.asyncio
 async def test_list_backups_async_pages():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials,
+        credentials=ga_credentials.AnonymousCredentials,
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5319,10 +5112,9 @@ async def test_list_backups_async_pages():
         for page_, token in zip(pages, ['abc','def','ghi', '']):
             assert page_.raw_page.next_page_token == token
 
-
 def test_restore_table(transport: str = 'grpc', request_type=bigtable_table_admin.RestoreTableRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5336,13 +5128,11 @@ def test_restore_table(transport: str = 'grpc', request_type=bigtable_table_admi
             '__call__') as call:
         # Designate an appropriate return value for the call.
         call.return_value = operations_pb2.Operation(name='operations/spam')
-
         response = client.restore_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.RestoreTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -5357,7 +5147,7 @@ def test_restore_table_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -5368,13 +5158,13 @@ def test_restore_table_empty_call():
         client.restore_table()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.RestoreTableRequest()
+
 
 @pytest.mark.asyncio
 async def test_restore_table_async(transport: str = 'grpc_asyncio', request_type=bigtable_table_admin.RestoreTableRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5390,13 +5180,11 @@ async def test_restore_table_async(transport: str = 'grpc_asyncio', request_type
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
             operations_pb2.Operation(name='operations/spam')
         )
-
         response = await client.restore_table(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0] == bigtable_table_admin.RestoreTableRequest()
 
     # Establish that the response is the type that we expect.
@@ -5410,12 +5198,13 @@ async def test_restore_table_async_from_dict():
 
 def test_restore_table_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.RestoreTableRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5423,7 +5212,6 @@ def test_restore_table_field_headers():
             type(client.transport.restore_table),
             '__call__') as call:
         call.return_value = operations_pb2.Operation(name='operations/op')
-
         client.restore_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5442,12 +5230,13 @@ def test_restore_table_field_headers():
 @pytest.mark.asyncio
 async def test_restore_table_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable_table_admin.RestoreTableRequest()
+
     request.parent = 'parent/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5455,7 +5244,6 @@ async def test_restore_table_field_headers_async():
             type(client.transport.restore_table),
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
-
         await client.restore_table(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5471,9 +5259,9 @@ async def test_restore_table_field_headers_async():
     ) in kw['metadata']
 
 
-def test_get_iam_policy(transport: str = 'grpc', request_type=iam_policy.GetIamPolicyRequest):
+def test_get_iam_policy(transport: str = 'grpc', request_type=iam_policy_pb2.GetIamPolicyRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5486,27 +5274,20 @@ def test_get_iam_policy(transport: str = 'grpc', request_type=iam_policy.GetIamP
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy(
+        call.return_value = policy_pb2.Policy(
             version=774,
-
             etag=b'etag_blob',
-
         )
-
         response = client.get_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.GetIamPolicyRequest()
+        assert args[0] == iam_policy_pb2.GetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-
-    assert isinstance(response, giv_policy.Policy)
-
+    assert isinstance(response, policy_pb2.Policy)
     assert response.version == 774
-
     assert response.etag == b'etag_blob'
 
 
@@ -5518,7 +5299,7 @@ def test_get_iam_policy_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -5529,13 +5310,13 @@ def test_get_iam_policy_empty_call():
         client.get_iam_policy()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
+        assert args[0] == iam_policy_pb2.GetIamPolicyRequest()
 
-        assert args[0] == iam_policy.GetIamPolicyRequest()
 
 @pytest.mark.asyncio
-async def test_get_iam_policy_async(transport: str = 'grpc_asyncio', request_type=iam_policy.GetIamPolicyRequest):
+async def test_get_iam_policy_async(transport: str = 'grpc_asyncio', request_type=iam_policy_pb2.GetIamPolicyRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5548,24 +5329,20 @@ async def test_get_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy(
             version=774,
             etag=b'etag_blob',
         ))
-
         response = await client.get_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.GetIamPolicyRequest()
+        assert args[0] == iam_policy_pb2.GetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-    assert isinstance(response, giv_policy.Policy)
-
+    assert isinstance(response, policy_pb2.Policy)
     assert response.version == 774
-
     assert response.etag == b'etag_blob'
 
 
@@ -5576,20 +5353,20 @@ async def test_get_iam_policy_async_from_dict():
 
 def test_get_iam_policy_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.GetIamPolicyRequest()
+    request = iam_policy_pb2.GetIamPolicyRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.get_iam_policy),
             '__call__') as call:
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         client.get_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5608,20 +5385,20 @@ def test_get_iam_policy_field_headers():
 @pytest.mark.asyncio
 async def test_get_iam_policy_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.GetIamPolicyRequest()
+    request = iam_policy_pb2.GetIamPolicyRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.get_iam_policy),
             '__call__') as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
-
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy())
         await client.get_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5636,21 +5413,19 @@ async def test_get_iam_policy_field_headers_async():
         'resource=resource/value',
     ) in kw['metadata']
 
-
 def test_get_iam_policy_from_dict_foreign():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         response = client.get_iam_policy(request={
             'resource': 'resource_value',
-            'options_': giv_options.GetPolicyOptions(requested_policy_version=2598),
+            'options': options_pb2.GetPolicyOptions(requested_policy_version=2598),
             }
         )
         call.assert_called()
@@ -5658,7 +5433,7 @@ def test_get_iam_policy_from_dict_foreign():
 
 def test_get_iam_policy_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5666,8 +5441,7 @@ def test_get_iam_policy_flattened():
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.get_iam_policy(
@@ -5678,20 +5452,19 @@ def test_get_iam_policy_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
 
 
 def test_get_iam_policy_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         client.get_iam_policy(
-            iam_policy.GetIamPolicyRequest(),
+            iam_policy_pb2.GetIamPolicyRequest(),
             resource='resource_value',
         )
 
@@ -5699,7 +5472,7 @@ def test_get_iam_policy_flattened_error():
 @pytest.mark.asyncio
 async def test_get_iam_policy_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5707,9 +5480,9 @@ async def test_get_iam_policy_flattened_async():
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
+        call.return_value = policy_pb2.Policy()
 
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy())
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         response = await client.get_iam_policy(
@@ -5720,28 +5493,27 @@ async def test_get_iam_policy_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
 
 
 @pytest.mark.asyncio
 async def test_get_iam_policy_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         await client.get_iam_policy(
-            iam_policy.GetIamPolicyRequest(),
+            iam_policy_pb2.GetIamPolicyRequest(),
             resource='resource_value',
         )
 
 
-def test_set_iam_policy(transport: str = 'grpc', request_type=iam_policy.SetIamPolicyRequest):
+def test_set_iam_policy(transport: str = 'grpc', request_type=iam_policy_pb2.SetIamPolicyRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5754,27 +5526,20 @@ def test_set_iam_policy(transport: str = 'grpc', request_type=iam_policy.SetIamP
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy(
+        call.return_value = policy_pb2.Policy(
             version=774,
-
             etag=b'etag_blob',
-
         )
-
         response = client.set_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.SetIamPolicyRequest()
+        assert args[0] == iam_policy_pb2.SetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-
-    assert isinstance(response, giv_policy.Policy)
-
+    assert isinstance(response, policy_pb2.Policy)
     assert response.version == 774
-
     assert response.etag == b'etag_blob'
 
 
@@ -5786,7 +5551,7 @@ def test_set_iam_policy_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -5797,13 +5562,13 @@ def test_set_iam_policy_empty_call():
         client.set_iam_policy()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
+        assert args[0] == iam_policy_pb2.SetIamPolicyRequest()
 
-        assert args[0] == iam_policy.SetIamPolicyRequest()
 
 @pytest.mark.asyncio
-async def test_set_iam_policy_async(transport: str = 'grpc_asyncio', request_type=iam_policy.SetIamPolicyRequest):
+async def test_set_iam_policy_async(transport: str = 'grpc_asyncio', request_type=iam_policy_pb2.SetIamPolicyRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -5816,24 +5581,20 @@ async def test_set_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy(
             version=774,
             etag=b'etag_blob',
         ))
-
         response = await client.set_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.SetIamPolicyRequest()
+        assert args[0] == iam_policy_pb2.SetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-    assert isinstance(response, giv_policy.Policy)
-
+    assert isinstance(response, policy_pb2.Policy)
     assert response.version == 774
-
     assert response.etag == b'etag_blob'
 
 
@@ -5844,20 +5605,20 @@ async def test_set_iam_policy_async_from_dict():
 
 def test_set_iam_policy_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.SetIamPolicyRequest()
+    request = iam_policy_pb2.SetIamPolicyRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.set_iam_policy),
             '__call__') as call:
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         client.set_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5876,20 +5637,20 @@ def test_set_iam_policy_field_headers():
 @pytest.mark.asyncio
 async def test_set_iam_policy_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.SetIamPolicyRequest()
+    request = iam_policy_pb2.SetIamPolicyRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.set_iam_policy),
             '__call__') as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
-
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy())
         await client.set_iam_policy(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -5904,21 +5665,19 @@ async def test_set_iam_policy_field_headers_async():
         'resource=resource/value',
     ) in kw['metadata']
 
-
 def test_set_iam_policy_from_dict_foreign():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         response = client.set_iam_policy(request={
             'resource': 'resource_value',
-            'policy_': giv_policy.Policy(version=774),
+            'policy': policy_pb2.Policy(version=774),
             }
         )
         call.assert_called()
@@ -5926,7 +5685,7 @@ def test_set_iam_policy_from_dict_foreign():
 
 def test_set_iam_policy_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5934,8 +5693,7 @@ def test_set_iam_policy_flattened():
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
-
+        call.return_value = policy_pb2.Policy()
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.set_iam_policy(
@@ -5946,20 +5704,19 @@ def test_set_iam_policy_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
 
 
 def test_set_iam_policy_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         client.set_iam_policy(
-            iam_policy.SetIamPolicyRequest(),
+            iam_policy_pb2.SetIamPolicyRequest(),
             resource='resource_value',
         )
 
@@ -5967,7 +5724,7 @@ def test_set_iam_policy_flattened_error():
 @pytest.mark.asyncio
 async def test_set_iam_policy_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -5975,9 +5732,9 @@ async def test_set_iam_policy_flattened_async():
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = giv_policy.Policy()
+        call.return_value = policy_pb2.Policy()
 
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy_pb2.Policy())
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         response = await client.set_iam_policy(
@@ -5988,28 +5745,27 @@ async def test_set_iam_policy_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
 
 
 @pytest.mark.asyncio
 async def test_set_iam_policy_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         await client.set_iam_policy(
-            iam_policy.SetIamPolicyRequest(),
+            iam_policy_pb2.SetIamPolicyRequest(),
             resource='resource_value',
         )
 
 
-def test_test_iam_permissions(transport: str = 'grpc', request_type=iam_policy.TestIamPermissionsRequest):
+def test_test_iam_permissions(transport: str = 'grpc', request_type=iam_policy_pb2.TestIamPermissionsRequest):
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -6022,23 +5778,18 @@ def test_test_iam_permissions(transport: str = 'grpc', request_type=iam_policy.T
             type(client.transport.test_iam_permissions),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = iam_policy.TestIamPermissionsResponse(
+        call.return_value = iam_policy_pb2.TestIamPermissionsResponse(
             permissions=['permissions_value'],
-
         )
-
         response = client.test_iam_permissions(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.TestIamPermissionsRequest()
+        assert args[0] == iam_policy_pb2.TestIamPermissionsRequest()
 
     # Establish that the response is the type that we expect.
-
-    assert isinstance(response, iam_policy.TestIamPermissionsResponse)
-
+    assert isinstance(response, iam_policy_pb2.TestIamPermissionsResponse)
     assert response.permissions == ['permissions_value']
 
 
@@ -6050,7 +5801,7 @@ def test_test_iam_permissions_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
 
@@ -6061,13 +5812,13 @@ def test_test_iam_permissions_empty_call():
         client.test_iam_permissions()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
+        assert args[0] == iam_policy_pb2.TestIamPermissionsRequest()
 
-        assert args[0] == iam_policy.TestIamPermissionsRequest()
 
 @pytest.mark.asyncio
-async def test_test_iam_permissions_async(transport: str = 'grpc_asyncio', request_type=iam_policy.TestIamPermissionsRequest):
+async def test_test_iam_permissions_async(transport: str = 'grpc_asyncio', request_type=iam_policy_pb2.TestIamPermissionsRequest):
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport=transport,
     )
 
@@ -6080,21 +5831,18 @@ async def test_test_iam_permissions_async(transport: str = 'grpc_asyncio', reque
             type(client.transport.test_iam_permissions),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(iam_policy.TestIamPermissionsResponse(
+        call.return_value =grpc_helpers_async.FakeUnaryUnaryCall(iam_policy_pb2.TestIamPermissionsResponse(
             permissions=['permissions_value'],
         ))
-
         response = await client.test_iam_permissions(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
-        assert args[0] == iam_policy.TestIamPermissionsRequest()
+        assert args[0] == iam_policy_pb2.TestIamPermissionsRequest()
 
     # Establish that the response is the type that we expect.
-    assert isinstance(response, iam_policy.TestIamPermissionsResponse)
-
+    assert isinstance(response, iam_policy_pb2.TestIamPermissionsResponse)
     assert response.permissions == ['permissions_value']
 
 
@@ -6105,20 +5853,20 @@ async def test_test_iam_permissions_async_from_dict():
 
 def test_test_iam_permissions_field_headers():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.TestIamPermissionsRequest()
+    request = iam_policy_pb2.TestIamPermissionsRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.test_iam_permissions),
             '__call__') as call:
-        call.return_value = iam_policy.TestIamPermissionsResponse()
-
+        call.return_value = iam_policy_pb2.TestIamPermissionsResponse()
         client.test_iam_permissions(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -6137,20 +5885,20 @@ def test_test_iam_permissions_field_headers():
 @pytest.mark.asyncio
 async def test_test_iam_permissions_field_headers_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = iam_policy.TestIamPermissionsRequest()
+    request = iam_policy_pb2.TestIamPermissionsRequest()
+
     request.resource = 'resource/value'
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.test_iam_permissions),
             '__call__') as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(iam_policy.TestIamPermissionsResponse())
-
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(iam_policy_pb2.TestIamPermissionsResponse())
         await client.test_iam_permissions(request)
 
         # Establish that the underlying gRPC stub method was called.
@@ -6165,18 +5913,16 @@ async def test_test_iam_permissions_field_headers_async():
         'resource=resource/value',
     ) in kw['metadata']
 
-
 def test_test_iam_permissions_from_dict_foreign():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
             type(client.transport.test_iam_permissions),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = iam_policy.TestIamPermissionsResponse()
-
+        call.return_value = iam_policy_pb2.TestIamPermissionsResponse()
         response = client.test_iam_permissions(request={
             'resource': 'resource_value',
             'permissions': ['permissions_value'],
@@ -6187,7 +5933,7 @@ def test_test_iam_permissions_from_dict_foreign():
 
 def test_test_iam_permissions_flattened():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -6195,8 +5941,7 @@ def test_test_iam_permissions_flattened():
             type(client.transport.test_iam_permissions),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = iam_policy.TestIamPermissionsResponse()
-
+        call.return_value = iam_policy_pb2.TestIamPermissionsResponse()
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         client.test_iam_permissions(
@@ -6208,22 +5953,20 @@ def test_test_iam_permissions_flattened():
         # request object values.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
-
         assert args[0].permissions == ['permissions_value']
 
 
 def test_test_iam_permissions_flattened_error():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         client.test_iam_permissions(
-            iam_policy.TestIamPermissionsRequest(),
+            iam_policy_pb2.TestIamPermissionsRequest(),
             resource='resource_value',
             permissions=['permissions_value'],
         )
@@ -6232,7 +5975,7 @@ def test_test_iam_permissions_flattened_error():
 @pytest.mark.asyncio
 async def test_test_iam_permissions_flattened_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -6240,9 +5983,9 @@ async def test_test_iam_permissions_flattened_async():
             type(client.transport.test_iam_permissions),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = iam_policy.TestIamPermissionsResponse()
+        call.return_value = iam_policy_pb2.TestIamPermissionsResponse()
 
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(iam_policy.TestIamPermissionsResponse())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(iam_policy_pb2.TestIamPermissionsResponse())
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         response = await client.test_iam_permissions(
@@ -6254,23 +5997,21 @@ async def test_test_iam_permissions_flattened_async():
         # request object values.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-
         assert args[0].resource == 'resource_value'
-
         assert args[0].permissions == ['permissions_value']
 
 
 @pytest.mark.asyncio
 async def test_test_iam_permissions_flattened_error_async():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
 
     # Attempting to call a method with both a request object and flattened
     # fields is an error.
     with pytest.raises(ValueError):
         await client.test_iam_permissions(
-            iam_policy.TestIamPermissionsRequest(),
+            iam_policy_pb2.TestIamPermissionsRequest(),
             resource='resource_value',
             permissions=['permissions_value'],
         )
@@ -6279,17 +6020,17 @@ async def test_test_iam_permissions_flattened_error_async():
 def test_credentials_transport_error():
     # It is an error to provide credentials and a transport instance.
     transport = transports.BigtableTableAdminGrpcTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     with pytest.raises(ValueError):
         client = BigtableTableAdminClient(
-            credentials=credentials.AnonymousCredentials(),
+            credentials=ga_credentials.AnonymousCredentials(),
             transport=transport,
         )
 
     # It is an error to provide a credentials file and a transport instance.
     transport = transports.BigtableTableAdminGrpcTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     with pytest.raises(ValueError):
         client = BigtableTableAdminClient(
@@ -6299,7 +6040,7 @@ def test_credentials_transport_error():
 
     # It is an error to provide scopes and a transport instance.
     transport = transports.BigtableTableAdminGrpcTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     with pytest.raises(ValueError):
         client = BigtableTableAdminClient(
@@ -6311,26 +6052,24 @@ def test_credentials_transport_error():
 def test_transport_instance():
     # A client may be instantiated with a custom transport instance.
     transport = transports.BigtableTableAdminGrpcTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     client = BigtableTableAdminClient(transport=transport)
     assert client.transport is transport
 
-
 def test_transport_get_channel():
     # A client may be instantiated with a custom transport instance.
     transport = transports.BigtableTableAdminGrpcTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     channel = transport.grpc_channel
     assert channel
 
     transport = transports.BigtableTableAdminGrpcAsyncIOTransport(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     channel = transport.grpc_channel
     assert channel
-
 
 @pytest.mark.parametrize("transport_class", [
     transports.BigtableTableAdminGrpcTransport,
@@ -6338,28 +6077,26 @@ def test_transport_get_channel():
 ])
 def test_transport_adc(transport_class):
     # Test default credentials are used if not provided.
-    with mock.patch.object(auth, 'default') as adc:
-        adc.return_value = (credentials.AnonymousCredentials(), None)
+    with mock.patch.object(google.auth, 'default') as adc:
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
         transport_class()
         adc.assert_called_once()
-
 
 def test_transport_grpc_default():
     # A client should use the gRPC transport by default.
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
     )
     assert isinstance(
         client.transport,
         transports.BigtableTableAdminGrpcTransport,
     )
 
-
 def test_bigtable_table_admin_base_transport_error():
     # Passing both a credentials object and credentials_file should raise an error
-    with pytest.raises(exceptions.DuplicateCredentialArgs):
+    with pytest.raises(core_exceptions.DuplicateCredentialArgs):
         transport = transports.BigtableTableAdminTransport(
-            credentials=credentials.AnonymousCredentials(),
+            credentials=ga_credentials.AnonymousCredentials(),
             credentials_file="credentials.json"
         )
 
@@ -6369,7 +6106,7 @@ def test_bigtable_table_admin_base_transport():
     with mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport.__init__') as Transport:
         Transport.return_value = None
         transport = transports.BigtableTableAdminTransport(
-            credentials=credentials.AnonymousCredentials(),
+            credentials=ga_credentials.AnonymousCredentials(),
         )
 
     # Every method on the transport should just blindly
@@ -6397,7 +6134,7 @@ def test_bigtable_table_admin_base_transport():
         'get_iam_policy',
         'set_iam_policy',
         'test_iam_permissions',
-        )
+    )
     for method in methods:
         with pytest.raises(NotImplementedError):
             getattr(transport, method)(request=object())
@@ -6408,11 +6145,36 @@ def test_bigtable_table_admin_base_transport():
         transport.operations_client
 
 
+@requires_google_auth_gte_1_25_0
 def test_bigtable_table_admin_base_transport_with_credentials_file():
     # Instantiate the base transport with a credentials file
-    with mock.patch.object(auth, 'load_credentials_from_file') as load_creds, mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport._prep_wrapped_messages') as Transport:
+    with mock.patch.object(google.auth, 'load_credentials_from_file', autospec=True) as load_creds, mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport._prep_wrapped_messages') as Transport:
         Transport.return_value = None
-        load_creds.return_value = (credentials.AnonymousCredentials(), None)
+        load_creds.return_value = (ga_credentials.AnonymousCredentials(), None)
+        transport = transports.BigtableTableAdminTransport(
+            credentials_file="credentials.json",
+            quota_project_id="octopus",
+        )
+        load_creds.assert_called_once_with("credentials.json",
+            scopes=None,
+            default_scopes=(
+            'https://www.googleapis.com/auth/bigtable.admin',
+            'https://www.googleapis.com/auth/bigtable.admin.table',
+            'https://www.googleapis.com/auth/cloud-bigtable.admin',
+            'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
+            'https://www.googleapis.com/auth/cloud-platform',
+            'https://www.googleapis.com/auth/cloud-platform.read-only',
+),
+            quota_project_id="octopus",
+        )
+
+
+@requires_google_auth_lt_1_25_0
+def test_bigtable_table_admin_base_transport_with_credentials_file_old_google_auth():
+    # Instantiate the base transport with a credentials file
+    with mock.patch.object(google.auth, 'load_credentials_from_file', autospec=True) as load_creds, mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport._prep_wrapped_messages') as Transport:
+        Transport.return_value = None
+        load_creds.return_value = (ga_credentials.AnonymousCredentials(), None)
         transport = transports.BigtableTableAdminTransport(
             credentials_file="credentials.json",
             quota_project_id="octopus",
@@ -6431,43 +6193,205 @@ def test_bigtable_table_admin_base_transport_with_credentials_file():
 
 def test_bigtable_table_admin_base_transport_with_adc():
     # Test the default credentials are used if credentials and credentials_file are None.
-    with mock.patch.object(auth, 'default') as adc, mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport._prep_wrapped_messages') as Transport:
+    with mock.patch.object(google.auth, 'default', autospec=True) as adc, mock.patch('google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports.BigtableTableAdminTransport._prep_wrapped_messages') as Transport:
         Transport.return_value = None
-        adc.return_value = (credentials.AnonymousCredentials(), None)
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
         transport = transports.BigtableTableAdminTransport()
         adc.assert_called_once()
 
 
+@requires_google_auth_gte_1_25_0
 def test_bigtable_table_admin_auth_adc():
     # If no credentials are provided, we should use ADC credentials.
-    with mock.patch.object(auth, 'default') as adc:
-        adc.return_value = (credentials.AnonymousCredentials(), None)
+    with mock.patch.object(google.auth, 'default', autospec=True) as adc:
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
         BigtableTableAdminClient()
-        adc.assert_called_once_with(scopes=(
+        adc.assert_called_once_with(
+            scopes=None,
+            default_scopes=(
             'https://www.googleapis.com/auth/bigtable.admin',
             'https://www.googleapis.com/auth/bigtable.admin.table',
             'https://www.googleapis.com/auth/cloud-bigtable.admin',
             'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
             'https://www.googleapis.com/auth/cloud-platform',
-            'https://www.googleapis.com/auth/cloud-platform.read-only',),
+            'https://www.googleapis.com/auth/cloud-platform.read-only',
+),
             quota_project_id=None,
         )
 
 
-def test_bigtable_table_admin_transport_auth_adc():
+@requires_google_auth_lt_1_25_0
+def test_bigtable_table_admin_auth_adc_old_google_auth():
+    # If no credentials are provided, we should use ADC credentials.
+    with mock.patch.object(google.auth, 'default', autospec=True) as adc:
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
+        BigtableTableAdminClient()
+        adc.assert_called_once_with(
+            scopes=(                'https://www.googleapis.com/auth/bigtable.admin',                'https://www.googleapis.com/auth/bigtable.admin.table',                'https://www.googleapis.com/auth/cloud-bigtable.admin',                'https://www.googleapis.com/auth/cloud-bigtable.admin.table',                'https://www.googleapis.com/auth/cloud-platform',                'https://www.googleapis.com/auth/cloud-platform.read-only',),
+            quota_project_id=None,
+        )
+
+
+@pytest.mark.parametrize(
+    "transport_class",
+    [
+        transports.BigtableTableAdminGrpcTransport,
+        transports.BigtableTableAdminGrpcAsyncIOTransport,
+    ],
+)
+@requires_google_auth_gte_1_25_0
+def test_bigtable_table_admin_transport_auth_adc(transport_class):
     # If credentials and host are not provided, the transport class should use
     # ADC credentials.
-    with mock.patch.object(auth, 'default') as adc:
-        adc.return_value = (credentials.AnonymousCredentials(), None)
-        transports.BigtableTableAdminGrpcTransport(host="squid.clam.whelk", quota_project_id="octopus")
+    with mock.patch.object(google.auth, 'default', autospec=True) as adc:
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
+        transport_class(quota_project_id="octopus", scopes=["1", "2"])
+        adc.assert_called_once_with(
+            scopes=["1", "2"],
+            default_scopes=(                'https://www.googleapis.com/auth/bigtable.admin',                'https://www.googleapis.com/auth/bigtable.admin.table',                'https://www.googleapis.com/auth/cloud-bigtable.admin',                'https://www.googleapis.com/auth/cloud-bigtable.admin.table',                'https://www.googleapis.com/auth/cloud-platform',                'https://www.googleapis.com/auth/cloud-platform.read-only',),
+            quota_project_id="octopus",
+        )
+
+
+@pytest.mark.parametrize(
+    "transport_class",
+    [
+        transports.BigtableTableAdminGrpcTransport,
+        transports.BigtableTableAdminGrpcAsyncIOTransport,
+    ],
+)
+@requires_google_auth_lt_1_25_0
+def test_bigtable_table_admin_transport_auth_adc_old_google_auth(transport_class):
+    # If credentials and host are not provided, the transport class should use
+    # ADC credentials.
+    with mock.patch.object(google.auth, "default", autospec=True) as adc:
+        adc.return_value = (ga_credentials.AnonymousCredentials(), None)
+        transport_class(quota_project_id="octopus")
         adc.assert_called_once_with(scopes=(
             'https://www.googleapis.com/auth/bigtable.admin',
             'https://www.googleapis.com/auth/bigtable.admin.table',
             'https://www.googleapis.com/auth/cloud-bigtable.admin',
             'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
             'https://www.googleapis.com/auth/cloud-platform',
-            'https://www.googleapis.com/auth/cloud-platform.read-only',),
+            'https://www.googleapis.com/auth/cloud-platform.read-only',
+),
             quota_project_id="octopus",
+        )
+
+
+@pytest.mark.parametrize(
+    "transport_class,grpc_helpers",
+    [
+        (transports.BigtableTableAdminGrpcTransport, grpc_helpers),
+        (transports.BigtableTableAdminGrpcAsyncIOTransport, grpc_helpers_async)
+    ],
+)
+@requires_api_core_gte_1_26_0
+def test_bigtable_table_admin_transport_create_channel(transport_class, grpc_helpers):
+    # If credentials and host are not provided, the transport class should use
+    # ADC credentials.
+    with mock.patch.object(google.auth, "default", autospec=True) as adc, mock.patch.object(
+        grpc_helpers, "create_channel", autospec=True
+    ) as create_channel:
+        creds = ga_credentials.AnonymousCredentials()
+        adc.return_value = (creds, None)
+        transport_class(
+            quota_project_id="octopus",
+            scopes=["1", "2"]
+        )
+
+        create_channel.assert_called_with(
+            "bigtableadmin.googleapis.com:443",
+            credentials=creds,
+            credentials_file=None,
+            quota_project_id="octopus",
+            default_scopes=(
+                'https://www.googleapis.com/auth/bigtable.admin',
+                'https://www.googleapis.com/auth/bigtable.admin.table',
+                'https://www.googleapis.com/auth/cloud-bigtable.admin',
+                'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
+                'https://www.googleapis.com/auth/cloud-platform',
+                'https://www.googleapis.com/auth/cloud-platform.read-only',
+),
+            scopes=["1", "2"],
+            default_host="bigtableadmin.googleapis.com",
+            ssl_credentials=None,
+            options=[
+                ("grpc.max_send_message_length", -1),
+                ("grpc.max_receive_message_length", -1),
+            ],
+        )
+
+
+@pytest.mark.parametrize(
+    "transport_class,grpc_helpers",
+    [
+        (transports.BigtableTableAdminGrpcTransport, grpc_helpers),
+        (transports.BigtableTableAdminGrpcAsyncIOTransport, grpc_helpers_async)
+    ],
+)
+@requires_api_core_lt_1_26_0
+def test_bigtable_table_admin_transport_create_channel_old_api_core(transport_class, grpc_helpers):
+    # If credentials and host are not provided, the transport class should use
+    # ADC credentials.
+    with mock.patch.object(google.auth, "default", autospec=True) as adc, mock.patch.object(
+        grpc_helpers, "create_channel", autospec=True
+    ) as create_channel:
+        creds = ga_credentials.AnonymousCredentials()
+        adc.return_value = (creds, None)
+        transport_class(quota_project_id="octopus")
+
+        create_channel.assert_called_with(
+            "bigtableadmin.googleapis.com",
+            credentials=creds,
+            credentials_file=None,
+            quota_project_id="octopus",
+            scopes=(
+                'https://www.googleapis.com/auth/bigtable.admin',
+                'https://www.googleapis.com/auth/bigtable.admin.table',
+                'https://www.googleapis.com/auth/cloud-bigtable.admin',
+                'https://www.googleapis.com/auth/cloud-bigtable.admin.table',
+                'https://www.googleapis.com/auth/cloud-platform',
+                'https://www.googleapis.com/auth/cloud-platform.read-only',
+),
+            ssl_credentials=None,
+            options=[
+                ("grpc.max_send_message_length", -1),
+                ("grpc.max_receive_message_length", -1),
+            ],
+        )
+
+
+@pytest.mark.parametrize(
+    "transport_class,grpc_helpers",
+    [
+        (transports.BigtableTableAdminGrpcTransport, grpc_helpers),
+        (transports.BigtableTableAdminGrpcAsyncIOTransport, grpc_helpers_async)
+    ],
+)
+@requires_api_core_lt_1_26_0
+def test_bigtable_table_admin_transport_create_channel_user_scopes(transport_class, grpc_helpers):
+    # If credentials and host are not provided, the transport class should use
+    # ADC credentials.
+    with mock.patch.object(google.auth, "default", autospec=True) as adc, mock.patch.object(
+        grpc_helpers, "create_channel", autospec=True
+    ) as create_channel:
+        creds = ga_credentials.AnonymousCredentials()
+        adc.return_value = (creds, None)
+
+        transport_class(quota_project_id="octopus", scopes=["1", "2"])
+
+        create_channel.assert_called_with(
+            "bigtableadmin.googleapis.com",
+            credentials=creds,
+            credentials_file=None,
+            quota_project_id="octopus",
+            scopes=["1", "2"],
+            ssl_credentials=None,
+            options=[
+                ("grpc.max_send_message_length", -1),
+                ("grpc.max_receive_message_length", -1),
+            ],
         )
 
 
@@ -6475,7 +6399,7 @@ def test_bigtable_table_admin_transport_auth_adc():
 def test_bigtable_table_admin_grpc_transport_client_cert_source_for_mtls(
     transport_class
 ):
-    cred = credentials.AnonymousCredentials()
+    cred = ga_credentials.AnonymousCredentials()
 
     # Check ssl_channel_credentials is used if provided.
     with mock.patch.object(transport_class, "create_channel") as mock_create_channel:
@@ -6522,7 +6446,7 @@ def test_bigtable_table_admin_grpc_transport_client_cert_source_for_mtls(
 
 def test_bigtable_table_admin_host_no_port():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         client_options=client_options.ClientOptions(api_endpoint='bigtableadmin.googleapis.com'),
     )
     assert client.transport._host == 'bigtableadmin.googleapis.com:443'
@@ -6530,11 +6454,10 @@ def test_bigtable_table_admin_host_no_port():
 
 def test_bigtable_table_admin_host_with_port():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         client_options=client_options.ClientOptions(api_endpoint='bigtableadmin.googleapis.com:8000'),
     )
     assert client.transport._host == 'bigtableadmin.googleapis.com:8000'
-
 
 def test_bigtable_table_admin_grpc_transport_channel():
     channel = grpc.secure_channel('http://localhost/', grpc.local_channel_credentials())
@@ -6576,9 +6499,9 @@ def test_bigtable_table_admin_transport_channel_mtls_with_client_cert_source(
             mock_grpc_channel = mock.Mock()
             grpc_create_channel.return_value = mock_grpc_channel
 
-            cred = credentials.AnonymousCredentials()
+            cred = ga_credentials.AnonymousCredentials()
             with pytest.warns(DeprecationWarning):
-                with mock.patch.object(auth, 'default') as adc:
+                with mock.patch.object(google.auth, 'default') as adc:
                     adc.return_value = (cred, None)
                     transport = transport_class(
                         host="squid.clam.whelk",
@@ -6662,7 +6585,7 @@ def test_bigtable_table_admin_transport_channel_mtls_with_adc(
 
 def test_bigtable_table_admin_grpc_lro_client():
     client = BigtableTableAdminClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc',
     )
     transport = client.transport
@@ -6679,7 +6602,7 @@ def test_bigtable_table_admin_grpc_lro_client():
 
 def test_bigtable_table_admin_grpc_lro_async_client():
     client = BigtableTableAdminAsyncClient(
-        credentials=credentials.AnonymousCredentials(),
+        credentials=ga_credentials.AnonymousCredentials(),
         transport='grpc_asyncio',
     )
     transport = client.transport
@@ -6699,7 +6622,6 @@ def test_backup_path():
     instance = "clam"
     cluster = "whelk"
     backup = "octopus"
-
     expected = "projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup}".format(project=project, instance=instance, cluster=cluster, backup=backup, )
     actual = BigtableTableAdminClient.backup_path(project, instance, cluster, backup)
     assert expected == actual
@@ -6707,11 +6629,10 @@ def test_backup_path():
 
 def test_parse_backup_path():
     expected = {
-    "project": "oyster",
-    "instance": "nudibranch",
-    "cluster": "cuttlefish",
-    "backup": "mussel",
-
+        "project": "oyster",
+        "instance": "nudibranch",
+        "cluster": "cuttlefish",
+        "backup": "mussel",
     }
     path = BigtableTableAdminClient.backup_path(**expected)
 
@@ -6723,7 +6644,6 @@ def test_cluster_path():
     project = "winkle"
     instance = "nautilus"
     cluster = "scallop"
-
     expected = "projects/{project}/instances/{instance}/clusters/{cluster}".format(project=project, instance=instance, cluster=cluster, )
     actual = BigtableTableAdminClient.cluster_path(project, instance, cluster)
     assert expected == actual
@@ -6731,10 +6651,9 @@ def test_cluster_path():
 
 def test_parse_cluster_path():
     expected = {
-    "project": "abalone",
-    "instance": "squid",
-    "cluster": "clam",
-
+        "project": "abalone",
+        "instance": "squid",
+        "cluster": "clam",
     }
     path = BigtableTableAdminClient.cluster_path(**expected)
 
@@ -6748,7 +6667,6 @@ def test_crypto_key_version_path():
     key_ring = "oyster"
     crypto_key = "nudibranch"
     crypto_key_version = "cuttlefish"
-
     expected = "projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}/cryptoKeyVersions/{crypto_key_version}".format(project=project, location=location, key_ring=key_ring, crypto_key=crypto_key, crypto_key_version=crypto_key_version, )
     actual = BigtableTableAdminClient.crypto_key_version_path(project, location, key_ring, crypto_key, crypto_key_version)
     assert expected == actual
@@ -6756,12 +6674,11 @@ def test_crypto_key_version_path():
 
 def test_parse_crypto_key_version_path():
     expected = {
-    "project": "mussel",
-    "location": "winkle",
-    "key_ring": "nautilus",
-    "crypto_key": "scallop",
-    "crypto_key_version": "abalone",
-
+        "project": "mussel",
+        "location": "winkle",
+        "key_ring": "nautilus",
+        "crypto_key": "scallop",
+        "crypto_key_version": "abalone",
     }
     path = BigtableTableAdminClient.crypto_key_version_path(**expected)
 
@@ -6772,7 +6689,6 @@ def test_parse_crypto_key_version_path():
 def test_instance_path():
     project = "squid"
     instance = "clam"
-
     expected = "projects/{project}/instances/{instance}".format(project=project, instance=instance, )
     actual = BigtableTableAdminClient.instance_path(project, instance)
     assert expected == actual
@@ -6780,9 +6696,8 @@ def test_instance_path():
 
 def test_parse_instance_path():
     expected = {
-    "project": "whelk",
-    "instance": "octopus",
-
+        "project": "whelk",
+        "instance": "octopus",
     }
     path = BigtableTableAdminClient.instance_path(**expected)
 
@@ -6795,7 +6710,6 @@ def test_snapshot_path():
     instance = "nudibranch"
     cluster = "cuttlefish"
     snapshot = "mussel"
-
     expected = "projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}".format(project=project, instance=instance, cluster=cluster, snapshot=snapshot, )
     actual = BigtableTableAdminClient.snapshot_path(project, instance, cluster, snapshot)
     assert expected == actual
@@ -6803,11 +6717,10 @@ def test_snapshot_path():
 
 def test_parse_snapshot_path():
     expected = {
-    "project": "winkle",
-    "instance": "nautilus",
-    "cluster": "scallop",
-    "snapshot": "abalone",
-
+        "project": "winkle",
+        "instance": "nautilus",
+        "cluster": "scallop",
+        "snapshot": "abalone",
     }
     path = BigtableTableAdminClient.snapshot_path(**expected)
 
@@ -6819,7 +6732,6 @@ def test_table_path():
     project = "squid"
     instance = "clam"
     table = "whelk"
-
     expected = "projects/{project}/instances/{instance}/tables/{table}".format(project=project, instance=instance, table=table, )
     actual = BigtableTableAdminClient.table_path(project, instance, table)
     assert expected == actual
@@ -6827,10 +6739,9 @@ def test_table_path():
 
 def test_parse_table_path():
     expected = {
-    "project": "octopus",
-    "instance": "oyster",
-    "table": "nudibranch",
-
+        "project": "octopus",
+        "instance": "oyster",
+        "table": "nudibranch",
     }
     path = BigtableTableAdminClient.table_path(**expected)
 
@@ -6840,7 +6751,6 @@ def test_parse_table_path():
 
 def test_common_billing_account_path():
     billing_account = "cuttlefish"
-
     expected = "billingAccounts/{billing_account}".format(billing_account=billing_account, )
     actual = BigtableTableAdminClient.common_billing_account_path(billing_account)
     assert expected == actual
@@ -6848,8 +6758,7 @@ def test_common_billing_account_path():
 
 def test_parse_common_billing_account_path():
     expected = {
-    "billing_account": "mussel",
-
+        "billing_account": "mussel",
     }
     path = BigtableTableAdminClient.common_billing_account_path(**expected)
 
@@ -6859,7 +6768,6 @@ def test_parse_common_billing_account_path():
 
 def test_common_folder_path():
     folder = "winkle"
-
     expected = "folders/{folder}".format(folder=folder, )
     actual = BigtableTableAdminClient.common_folder_path(folder)
     assert expected == actual
@@ -6867,8 +6775,7 @@ def test_common_folder_path():
 
 def test_parse_common_folder_path():
     expected = {
-    "folder": "nautilus",
-
+        "folder": "nautilus",
     }
     path = BigtableTableAdminClient.common_folder_path(**expected)
 
@@ -6878,7 +6785,6 @@ def test_parse_common_folder_path():
 
 def test_common_organization_path():
     organization = "scallop"
-
     expected = "organizations/{organization}".format(organization=organization, )
     actual = BigtableTableAdminClient.common_organization_path(organization)
     assert expected == actual
@@ -6886,8 +6792,7 @@ def test_common_organization_path():
 
 def test_parse_common_organization_path():
     expected = {
-    "organization": "abalone",
-
+        "organization": "abalone",
     }
     path = BigtableTableAdminClient.common_organization_path(**expected)
 
@@ -6897,7 +6802,6 @@ def test_parse_common_organization_path():
 
 def test_common_project_path():
     project = "squid"
-
     expected = "projects/{project}".format(project=project, )
     actual = BigtableTableAdminClient.common_project_path(project)
     assert expected == actual
@@ -6905,8 +6809,7 @@ def test_common_project_path():
 
 def test_parse_common_project_path():
     expected = {
-    "project": "clam",
-
+        "project": "clam",
     }
     path = BigtableTableAdminClient.common_project_path(**expected)
 
@@ -6917,7 +6820,6 @@ def test_parse_common_project_path():
 def test_common_location_path():
     project = "whelk"
     location = "octopus"
-
     expected = "projects/{project}/locations/{location}".format(project=project, location=location, )
     actual = BigtableTableAdminClient.common_location_path(project, location)
     assert expected == actual
@@ -6925,9 +6827,8 @@ def test_common_location_path():
 
 def test_parse_common_location_path():
     expected = {
-    "project": "oyster",
-    "location": "nudibranch",
-
+        "project": "oyster",
+        "location": "nudibranch",
     }
     path = BigtableTableAdminClient.common_location_path(**expected)
 
@@ -6941,7 +6842,7 @@ def test_client_withDEFAULT_CLIENT_INFO():
 
     with mock.patch.object(transports.BigtableTableAdminTransport, '_prep_wrapped_messages') as prep:
         client = BigtableTableAdminClient(
-            credentials=credentials.AnonymousCredentials(),
+            credentials=ga_credentials.AnonymousCredentials(),
             client_info=client_info,
         )
         prep.assert_called_once_with(client_info)
@@ -6949,7 +6850,7 @@ def test_client_withDEFAULT_CLIENT_INFO():
     with mock.patch.object(transports.BigtableTableAdminTransport, '_prep_wrapped_messages') as prep:
         transport_class = BigtableTableAdminClient.get_transport_class()
         transport = transport_class(
-            credentials=credentials.AnonymousCredentials(),
+            credentials=ga_credentials.AnonymousCredentials(),
             client_info=client_info,
         )
         prep.assert_called_once_with(client_info)
