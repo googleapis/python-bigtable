@@ -22,7 +22,12 @@ from google.cloud.bigtable_admin_v2.types import common
 
 
 __protobuf__ = proto.module(
-    package="google.bigtable.admin.v2", manifest={"Instance", "Cluster", "AppProfile",},
+    package='google.bigtable.admin.v2',
+    manifest={
+        'Instance',
+        'Cluster',
+        'AppProfile',
+    },
 )
 
 
@@ -61,7 +66,6 @@ class Instance(proto.Message):
                resource.
             -  Keys and values must both be under 128 bytes.
     """
-
     class State(proto.Enum):
         r"""Possible states of an instance."""
         STATE_NOT_KNOWN = 0
@@ -78,9 +82,13 @@ class Instance(proto.Message):
 
     display_name = proto.Field(proto.STRING, number=2)
 
-    state = proto.Field(proto.ENUM, number=3, enum=State,)
+    state = proto.Field(proto.ENUM, number=3,
+        enum=State,
+    )
 
-    type_ = proto.Field(proto.ENUM, number=4, enum=Type,)
+    type_ = proto.Field(proto.ENUM, number=4,
+        enum=Type,
+    )
 
     labels = proto.MapField(proto.STRING, proto.STRING, number=5)
 
@@ -114,7 +122,6 @@ class Cluster(proto.Message):
             Immutable. The encryption configuration for
             CMEK-protected clusters.
     """
-
     class State(proto.Enum):
         r"""Possible states of a cluster."""
         STATE_NOT_KNOWN = 0
@@ -149,13 +156,19 @@ class Cluster(proto.Message):
 
     location = proto.Field(proto.STRING, number=2)
 
-    state = proto.Field(proto.ENUM, number=3, enum=State,)
+    state = proto.Field(proto.ENUM, number=3,
+        enum=State,
+    )
 
     serve_nodes = proto.Field(proto.INT32, number=4)
 
-    default_storage_type = proto.Field(proto.ENUM, number=5, enum=common.StorageType,)
+    default_storage_type = proto.Field(proto.ENUM, number=5,
+        enum=common.StorageType,
+    )
 
-    encryption_config = proto.Field(proto.MESSAGE, number=6, message=EncryptionConfig,)
+    encryption_config = proto.Field(proto.MESSAGE, number=6,
+        message=EncryptionConfig,
+    )
 
 
 class AppProfile(proto.Message):
@@ -186,7 +199,6 @@ class AppProfile(proto.Message):
         single_cluster_routing (google.cloud.bigtable_admin_v2.types.AppProfile.SingleClusterRouting):
             Use a single-cluster routing policy.
     """
-
     class MultiClusterRoutingUseAny(proto.Message):
         r"""Read/write requests are routed to the nearest cluster in the
         instance, and will fail over to the nearest cluster that is
@@ -221,15 +233,12 @@ class AppProfile(proto.Message):
 
     description = proto.Field(proto.STRING, number=3)
 
-    multi_cluster_routing_use_any = proto.Field(
-        proto.MESSAGE,
-        number=5,
-        oneof="routing_policy",
+    multi_cluster_routing_use_any = proto.Field(proto.MESSAGE, number=5, oneof='routing_policy',
         message=MultiClusterRoutingUseAny,
     )
 
-    single_cluster_routing = proto.Field(
-        proto.MESSAGE, number=6, oneof="routing_policy", message=SingleClusterRouting,
+    single_cluster_routing = proto.Field(proto.MESSAGE, number=6, oneof='routing_policy',
+        message=SingleClusterRouting,
     )
 
 

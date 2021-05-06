@@ -18,13 +18,13 @@
 import warnings
 from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple
 
-from google.api_core import gapic_v1  # type: ignore
-from google.api_core import grpc_helpers_async  # type: ignore
-from google import auth  # type: ignore
-from google.auth import credentials  # type: ignore
+from google.api_core import gapic_v1                   # type: ignore
+from google.api_core import grpc_helpers_async         # type: ignore
+from google import auth                                # type: ignore
+from google.auth import credentials                    # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
 
-import grpc  # type: ignore
+import grpc                        # type: ignore
 from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
@@ -51,15 +51,13 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
     _stubs: Dict[str, Callable] = {}
 
     @classmethod
-    def create_channel(
-        cls,
-        host: str = "bigtable.googleapis.com",
-        credentials: credentials.Credentials = None,
-        credentials_file: Optional[str] = None,
-        scopes: Optional[Sequence[str]] = None,
-        quota_project_id: Optional[str] = None,
-        **kwargs,
-    ) -> aio.Channel:
+    def create_channel(cls,
+                       host: str = 'bigtable.googleapis.com',
+                       credentials: credentials.Credentials = None,
+                       credentials_file: Optional[str] = None,
+                       scopes: Optional[Sequence[str]] = None,
+                       quota_project_id: Optional[str] = None,
+                       **kwargs) -> aio.Channel:
         """Create and return a gRPC AsyncIO channel object.
         Args:
             host (Optional[str]): The host for the channel to use.
@@ -88,24 +86,22 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             credentials_file=credentials_file,
             scopes=scopes,
             quota_project_id=quota_project_id,
-            **kwargs,
+            **kwargs
         )
 
-    def __init__(
-        self,
-        *,
-        host: str = "bigtable.googleapis.com",
-        credentials: credentials.Credentials = None,
-        credentials_file: Optional[str] = None,
-        scopes: Optional[Sequence[str]] = None,
-        channel: aio.Channel = None,
-        api_mtls_endpoint: str = None,
-        client_cert_source: Callable[[], Tuple[bytes, bytes]] = None,
-        ssl_channel_credentials: grpc.ChannelCredentials = None,
-        client_cert_source_for_mtls: Callable[[], Tuple[bytes, bytes]] = None,
-        quota_project_id=None,
-        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-    ) -> None:
+    def __init__(self, *,
+            host: str = 'bigtable.googleapis.com',
+            credentials: credentials.Credentials = None,
+            credentials_file: Optional[str] = None,
+            scopes: Optional[Sequence[str]] = None,
+            channel: aio.Channel = None,
+            api_mtls_endpoint: str = None,
+            client_cert_source: Callable[[], Tuple[bytes, bytes]] = None,
+            ssl_channel_credentials: grpc.ChannelCredentials = None,
+            client_cert_source_for_mtls: Callable[[], Tuple[bytes, bytes]] = None,
+            quota_project_id=None,
+            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+            ) -> None:
         """Instantiate the transport.
 
         Args:
@@ -227,9 +223,9 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         return self._grpc_channel
 
     @property
-    def read_rows(
-        self,
-    ) -> Callable[[bigtable.ReadRowsRequest], Awaitable[bigtable.ReadRowsResponse]]:
+    def read_rows(self) -> Callable[
+            [bigtable.ReadRowsRequest],
+            Awaitable[bigtable.ReadRowsResponse]]:
         r"""Return a callable for the read rows method over gRPC.
 
         Streams back the contents of all requested rows in
@@ -249,20 +245,18 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "read_rows" not in self._stubs:
-            self._stubs["read_rows"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/ReadRows",
+        if 'read_rows' not in self._stubs:
+            self._stubs['read_rows'] = self.grpc_channel.unary_stream(
+                '/google.bigtable.v2.Bigtable/ReadRows',
                 request_serializer=bigtable.ReadRowsRequest.serialize,
                 response_deserializer=bigtable.ReadRowsResponse.deserialize,
             )
-        return self._stubs["read_rows"]
+        return self._stubs['read_rows']
 
     @property
-    def sample_row_keys(
-        self,
-    ) -> Callable[
-        [bigtable.SampleRowKeysRequest], Awaitable[bigtable.SampleRowKeysResponse]
-    ]:
+    def sample_row_keys(self) -> Callable[
+            [bigtable.SampleRowKeysRequest],
+            Awaitable[bigtable.SampleRowKeysResponse]]:
         r"""Return a callable for the sample row keys method over gRPC.
 
         Returns a sample of row keys in the table. The
@@ -281,18 +275,18 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "sample_row_keys" not in self._stubs:
-            self._stubs["sample_row_keys"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/SampleRowKeys",
+        if 'sample_row_keys' not in self._stubs:
+            self._stubs['sample_row_keys'] = self.grpc_channel.unary_stream(
+                '/google.bigtable.v2.Bigtable/SampleRowKeys',
                 request_serializer=bigtable.SampleRowKeysRequest.serialize,
                 response_deserializer=bigtable.SampleRowKeysResponse.deserialize,
             )
-        return self._stubs["sample_row_keys"]
+        return self._stubs['sample_row_keys']
 
     @property
-    def mutate_row(
-        self,
-    ) -> Callable[[bigtable.MutateRowRequest], Awaitable[bigtable.MutateRowResponse]]:
+    def mutate_row(self) -> Callable[
+            [bigtable.MutateRowRequest],
+            Awaitable[bigtable.MutateRowResponse]]:
         r"""Return a callable for the mutate row method over gRPC.
 
         Mutates a row atomically. Cells already present in the row are
@@ -308,18 +302,18 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "mutate_row" not in self._stubs:
-            self._stubs["mutate_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/MutateRow",
+        if 'mutate_row' not in self._stubs:
+            self._stubs['mutate_row'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.v2.Bigtable/MutateRow',
                 request_serializer=bigtable.MutateRowRequest.serialize,
                 response_deserializer=bigtable.MutateRowResponse.deserialize,
             )
-        return self._stubs["mutate_row"]
+        return self._stubs['mutate_row']
 
     @property
-    def mutate_rows(
-        self,
-    ) -> Callable[[bigtable.MutateRowsRequest], Awaitable[bigtable.MutateRowsResponse]]:
+    def mutate_rows(self) -> Callable[
+            [bigtable.MutateRowsRequest],
+            Awaitable[bigtable.MutateRowsResponse]]:
         r"""Return a callable for the mutate rows method over gRPC.
 
         Mutates multiple rows in a batch. Each individual row
@@ -336,21 +330,18 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "mutate_rows" not in self._stubs:
-            self._stubs["mutate_rows"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/MutateRows",
+        if 'mutate_rows' not in self._stubs:
+            self._stubs['mutate_rows'] = self.grpc_channel.unary_stream(
+                '/google.bigtable.v2.Bigtable/MutateRows',
                 request_serializer=bigtable.MutateRowsRequest.serialize,
                 response_deserializer=bigtable.MutateRowsResponse.deserialize,
             )
-        return self._stubs["mutate_rows"]
+        return self._stubs['mutate_rows']
 
     @property
-    def check_and_mutate_row(
-        self,
-    ) -> Callable[
-        [bigtable.CheckAndMutateRowRequest],
-        Awaitable[bigtable.CheckAndMutateRowResponse],
-    ]:
+    def check_and_mutate_row(self) -> Callable[
+            [bigtable.CheckAndMutateRowRequest],
+            Awaitable[bigtable.CheckAndMutateRowResponse]]:
         r"""Return a callable for the check and mutate row method over gRPC.
 
         Mutates a row atomically based on the output of a
@@ -366,21 +357,18 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "check_and_mutate_row" not in self._stubs:
-            self._stubs["check_and_mutate_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/CheckAndMutateRow",
+        if 'check_and_mutate_row' not in self._stubs:
+            self._stubs['check_and_mutate_row'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.v2.Bigtable/CheckAndMutateRow',
                 request_serializer=bigtable.CheckAndMutateRowRequest.serialize,
                 response_deserializer=bigtable.CheckAndMutateRowResponse.deserialize,
             )
-        return self._stubs["check_and_mutate_row"]
+        return self._stubs['check_and_mutate_row']
 
     @property
-    def read_modify_write_row(
-        self,
-    ) -> Callable[
-        [bigtable.ReadModifyWriteRowRequest],
-        Awaitable[bigtable.ReadModifyWriteRowResponse],
-    ]:
+    def read_modify_write_row(self) -> Callable[
+            [bigtable.ReadModifyWriteRowRequest],
+            Awaitable[bigtable.ReadModifyWriteRowResponse]]:
         r"""Return a callable for the read modify write row method over gRPC.
 
         Modifies a row atomically on the server. The method
@@ -401,13 +389,15 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "read_modify_write_row" not in self._stubs:
-            self._stubs["read_modify_write_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/ReadModifyWriteRow",
+        if 'read_modify_write_row' not in self._stubs:
+            self._stubs['read_modify_write_row'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.v2.Bigtable/ReadModifyWriteRow',
                 request_serializer=bigtable.ReadModifyWriteRowRequest.serialize,
                 response_deserializer=bigtable.ReadModifyWriteRowResponse.deserialize,
             )
-        return self._stubs["read_modify_write_row"]
+        return self._stubs['read_modify_write_row']
 
 
-__all__ = ("BigtableGrpcAsyncIOTransport",)
+__all__ = (
+    'BigtableGrpcAsyncIOTransport',
+)

@@ -24,14 +24,12 @@ from .grpc_asyncio import BigtableTableAdminGrpcAsyncIOTransport
 
 
 # Compile a registry of transports.
-_transport_registry = (
-    OrderedDict()
-)  # type: Dict[str, Type[BigtableTableAdminTransport]]
-_transport_registry["grpc"] = BigtableTableAdminGrpcTransport
-_transport_registry["grpc_asyncio"] = BigtableTableAdminGrpcAsyncIOTransport
+_transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTableAdminTransport]]
+_transport_registry['grpc'] = BigtableTableAdminGrpcTransport
+_transport_registry['grpc_asyncio'] = BigtableTableAdminGrpcAsyncIOTransport
 
 __all__ = (
-    "BigtableTableAdminTransport",
-    "BigtableTableAdminGrpcTransport",
-    "BigtableTableAdminGrpcAsyncIOTransport",
+    'BigtableTableAdminTransport',
+    'BigtableTableAdminGrpcTransport',
+    'BigtableTableAdminGrpcAsyncIOTransport',
 )
