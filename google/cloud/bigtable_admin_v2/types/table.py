@@ -158,13 +158,13 @@ class Table(proto.Message):
     cluster_states = proto.MapField(
         proto.STRING,
         proto.MESSAGE,
-        number=2,
+        number=2
         message=ClusterState,
     )
     column_families = proto.MapField(
         proto.STRING,
         proto.MESSAGE,
-        number=3,
+        number=3
         message='ColumnFamily',
     )
     granularity = proto.Field(

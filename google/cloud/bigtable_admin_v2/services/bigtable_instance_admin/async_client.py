@@ -176,7 +176,8 @@ class BigtableInstanceAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateInstanceRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.CreateInstance.
             parent (:class:`str`):
                 Required. The unique name of the project in which to
@@ -298,7 +299,8 @@ class BigtableInstanceAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetInstanceRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.GetInstance.
             name (:class:`str`):
                 Required. The unique name of the requested instance.
@@ -384,7 +386,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListInstancesRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.ListInstances.
             parent (:class:`str`):
                 Required. The unique name of the project for which a
@@ -469,7 +472,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
-                The request object. A collection of Bigtable
+                The request object.
+                A collection of Bigtable
                 [Tables][google.bigtable.admin.v2.Table] and the
                 resources that serve them. All tables in an instance are
                 served from all
@@ -542,7 +546,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.PartialUpdateInstance.
             instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
                 Required. The Instance which will
@@ -647,7 +652,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.DeleteInstance.
             name (:class:`str`):
                 Required. The unique name of the instance to be deleted.
@@ -716,7 +722,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateClusterRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.CreateCluster.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
@@ -824,7 +831,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetClusterRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.GetCluster.
             name (:class:`str`):
                 Required. The unique name of the requested cluster.
@@ -909,7 +917,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListClustersRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.ListClusters.
             parent (:class:`str`):
                 Required. The unique name of the instance for which a
@@ -993,7 +1002,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
-                The request object. A resizable group of nodes in a
+                The request object.
+                A resizable group of nodes in a
                 particular cloud location, capable of serving all
                 [Tables][google.bigtable.admin.v2.Table] in the parent
                 [Instance][google.bigtable.admin.v2.Instance].
@@ -1070,7 +1080,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteClusterRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.DeleteCluster.
             name (:class:`str`):
                 Required. The unique name of the cluster to be deleted.
@@ -1139,7 +1150,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.CreateAppProfile.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
@@ -1236,7 +1248,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetAppProfileRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.GetAppProfile.
             name (:class:`str`):
                 Required. The unique name of the requested app profile.
@@ -1320,7 +1333,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.ListAppProfiles.
             parent (:class:`str`):
                 Required. The unique name of the instance for which a
@@ -1419,7 +1433,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.UpdateAppProfile.
             app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
                 Required. The app profile which will
@@ -1521,7 +1536,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableInstanceAdmin.DeleteAppProfile.
             name (:class:`str`):
                 Required. The unique name of the app profile to be
@@ -1590,7 +1606,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.GetIamPolicyRequest`):
-                The request object. Request message for `GetIamPolicy`
+                The request object.
+                Request message for `GetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -1728,7 +1745,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.SetIamPolicyRequest`):
-                The request object. Request message for `SetIamPolicy`
+                The request object.
+                Request message for `SetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -1860,7 +1878,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 `TestIamPermissions` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the

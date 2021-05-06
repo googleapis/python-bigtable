@@ -182,7 +182,8 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateTableRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
@@ -288,7 +289,8 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
@@ -402,7 +404,8 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListTablesRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
             parent (:class:`str`):
                 Required. The unique name of the instance for which
@@ -497,7 +500,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetTableRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
             name (:class:`str`):
                 Required. The unique name of the requested table. Values
@@ -583,7 +587,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteTableRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
             name (:class:`str`):
                 Required. The unique name of the table to be deleted.
@@ -655,7 +660,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies]
             name (:class:`str`):
                 Required. The unique name of the table whose families
@@ -749,7 +755,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DropRowRangeRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
@@ -800,7 +807,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
             name (:class:`str`):
                 Required. The unique name of the Table for which to
@@ -887,7 +895,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
             name (:class:`str`):
                 Required. The unique name of the Table for which to
@@ -990,7 +999,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.SnapshotTableRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
@@ -1126,7 +1136,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetSnapshotRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
@@ -1232,7 +1243,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
@@ -1349,7 +1361,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
@@ -1432,7 +1445,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateBackupRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
             parent (:class:`str`):
                 Required. This must be one of the clusters in the
@@ -1542,7 +1556,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetBackupRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
             name (:class:`str`):
                 Required. Name of the backup. Values are of the form
@@ -1623,7 +1638,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.UpdateBackupRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
             backup (:class:`google.cloud.bigtable_admin_v2.types.Backup`):
                 Required. The backup to update. ``backup.name``, and the
@@ -1714,7 +1730,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteBackupRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup].
             name (:class:`str`):
                 Required. Name of the backup to delete. Values are of
@@ -1782,7 +1799,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListBackupsRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
             parent (:class:`str`):
                 Required. The cluster to list backups from. Values are
@@ -1887,7 +1905,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.RestoreTableRequest`):
-                The request object. The request for
+                The request object.
+                The request for
                 [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
@@ -1956,7 +1975,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.GetIamPolicyRequest`):
-                The request object. Request message for `GetIamPolicy`
+                The request object.
+                Request message for `GetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -2094,7 +2114,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.SetIamPolicyRequest`):
-                The request object. Request message for `SetIamPolicy`
+                The request object.
+                Request message for `SetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -2226,7 +2247,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 `TestIamPermissions` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the

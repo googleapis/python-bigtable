@@ -163,7 +163,8 @@ class BigtableAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.ReadRowsRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 Bigtable.ReadRows.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
@@ -260,7 +261,8 @@ initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exce
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.SampleRowKeysRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 Bigtable.SampleRowKeys.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
@@ -356,7 +358,8 @@ initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exce
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.MutateRowRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 Bigtable.MutateRow.
             table_name (:class:`str`):
                 Required. The unique name of the table to which the
@@ -476,7 +479,8 @@ initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exce
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.MutateRowsRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 BigtableService.MutateRows.
             table_name (:class:`str`):
                 Required. The unique name of the
@@ -590,7 +594,8 @@ initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exce
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.CheckAndMutateRowRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (:class:`str`):
                 Required. The unique name of the table to which the
@@ -740,7 +745,8 @@ initial=0.01,maximum=60.0,multiplier=2,                predicate=retries.if_exce
 
         Args:
             request (:class:`google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest`):
-                The request object. Request message for
+                The request object.
+                Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (:class:`str`):
                 Required. The unique name of the table to which the

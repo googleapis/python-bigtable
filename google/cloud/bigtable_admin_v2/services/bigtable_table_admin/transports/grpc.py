@@ -248,7 +248,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def create_table(self) -> Callable[
             [bigtable_table_admin.CreateTableRequest],
             gba_table.Table]:
-        r"""Return a callable for the create table method over gRPC.
+        r"""Return a callable for the
+        create table
+          method over gRPC.
 
         Creates a new table in the specified instance.
         The table can be created with a full set of initial
@@ -276,7 +278,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def create_table_from_snapshot(self) -> Callable[
             [bigtable_table_admin.CreateTableFromSnapshotRequest],
             operations.Operation]:
-        r"""Return a callable for the create table from snapshot method over gRPC.
+        r"""Return a callable for the
+        create table from snapshot
+          method over gRPC.
 
         Creates a new table from the specified snapshot. The
         target table must not exist. The snapshot and the table
@@ -310,7 +314,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def list_tables(self) -> Callable[
             [bigtable_table_admin.ListTablesRequest],
             bigtable_table_admin.ListTablesResponse]:
-        r"""Return a callable for the list tables method over gRPC.
+        r"""Return a callable for the
+        list tables
+          method over gRPC.
 
         Lists all tables served from a specified instance.
 
@@ -336,7 +342,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def get_table(self) -> Callable[
             [bigtable_table_admin.GetTableRequest],
             table.Table]:
-        r"""Return a callable for the get table method over gRPC.
+        r"""Return a callable for the
+        get table
+          method over gRPC.
 
         Gets metadata information about the specified table.
 
@@ -362,7 +370,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def delete_table(self) -> Callable[
             [bigtable_table_admin.DeleteTableRequest],
             empty.Empty]:
-        r"""Return a callable for the delete table method over gRPC.
+        r"""Return a callable for the
+        delete table
+          method over gRPC.
 
         Permanently deletes a specified table and all of its
         data.
@@ -389,7 +399,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def modify_column_families(self) -> Callable[
             [bigtable_table_admin.ModifyColumnFamiliesRequest],
             table.Table]:
-        r"""Return a callable for the modify column families method over gRPC.
+        r"""Return a callable for the
+        modify column families
+          method over gRPC.
 
         Performs a series of column family modifications on
         the specified table. Either all or none of the
@@ -419,7 +431,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def drop_row_range(self) -> Callable[
             [bigtable_table_admin.DropRowRangeRequest],
             empty.Empty]:
-        r"""Return a callable for the drop row range method over gRPC.
+        r"""Return a callable for the
+        drop row range
+          method over gRPC.
 
         Permanently drop/delete a row range from a specified
         table. The request can specify whether to delete all
@@ -448,7 +462,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def generate_consistency_token(self) -> Callable[
             [bigtable_table_admin.GenerateConsistencyTokenRequest],
             bigtable_table_admin.GenerateConsistencyTokenResponse]:
-        r"""Return a callable for the generate consistency token method over gRPC.
+        r"""Return a callable for the
+        generate consistency token
+          method over gRPC.
 
         Generates a consistency token for a Table, which can
         be used in CheckConsistency to check whether mutations
@@ -478,7 +494,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def check_consistency(self) -> Callable[
             [bigtable_table_admin.CheckConsistencyRequest],
             bigtable_table_admin.CheckConsistencyResponse]:
-        r"""Return a callable for the check consistency method over gRPC.
+        r"""Return a callable for the
+        check consistency
+          method over gRPC.
 
         Checks replication consistency based on a consistency
         token, that is, if replication has caught up based on
@@ -507,7 +525,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def snapshot_table(self) -> Callable[
             [bigtable_table_admin.SnapshotTableRequest],
             operations.Operation]:
-        r"""Return a callable for the snapshot table method over gRPC.
+        r"""Return a callable for the
+        snapshot table
+          method over gRPC.
 
         Creates a new snapshot in the specified cluster from
         the specified source table. The cluster and the table
@@ -541,7 +561,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def get_snapshot(self) -> Callable[
             [bigtable_table_admin.GetSnapshotRequest],
             table.Snapshot]:
-        r"""Return a callable for the get snapshot method over gRPC.
+        r"""Return a callable for the
+        get snapshot
+          method over gRPC.
 
         Gets metadata information about the specified
         snapshot.
@@ -574,7 +596,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def list_snapshots(self) -> Callable[
             [bigtable_table_admin.ListSnapshotsRequest],
             bigtable_table_admin.ListSnapshotsResponse]:
-        r"""Return a callable for the list snapshots method over gRPC.
+        r"""Return a callable for the
+        list snapshots
+          method over gRPC.
 
         Lists all snapshots associated with the specified
         cluster.
@@ -607,7 +631,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def delete_snapshot(self) -> Callable[
             [bigtable_table_admin.DeleteSnapshotRequest],
             empty.Empty]:
-        r"""Return a callable for the delete snapshot method over gRPC.
+        r"""Return a callable for the
+        delete snapshot
+          method over gRPC.
 
         Permanently deletes the specified snapshot.
         Note: This is a private alpha release of Cloud Bigtable
@@ -639,7 +665,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def create_backup(self) -> Callable[
             [bigtable_table_admin.CreateBackupRequest],
             operations.Operation]:
-        r"""Return a callable for the create backup method over gRPC.
+        r"""Return a callable for the
+        create backup
+          method over gRPC.
 
         Starts creating a new Cloud Bigtable Backup. The returned backup
         [long-running operation][google.longrunning.Operation] can be
@@ -673,7 +701,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def get_backup(self) -> Callable[
             [bigtable_table_admin.GetBackupRequest],
             table.Backup]:
-        r"""Return a callable for the get backup method over gRPC.
+        r"""Return a callable for the
+        get backup
+          method over gRPC.
 
         Gets metadata on a pending or completed Cloud
         Bigtable Backup.
@@ -700,7 +730,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def update_backup(self) -> Callable[
             [bigtable_table_admin.UpdateBackupRequest],
             table.Backup]:
-        r"""Return a callable for the update backup method over gRPC.
+        r"""Return a callable for the
+        update backup
+          method over gRPC.
 
         Updates a pending or completed Cloud Bigtable Backup.
 
@@ -726,7 +758,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def delete_backup(self) -> Callable[
             [bigtable_table_admin.DeleteBackupRequest],
             empty.Empty]:
-        r"""Return a callable for the delete backup method over gRPC.
+        r"""Return a callable for the
+        delete backup
+          method over gRPC.
 
         Deletes a pending or completed Cloud Bigtable backup.
 
@@ -752,7 +786,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def list_backups(self) -> Callable[
             [bigtable_table_admin.ListBackupsRequest],
             bigtable_table_admin.ListBackupsResponse]:
-        r"""Return a callable for the list backups method over gRPC.
+        r"""Return a callable for the
+        list backups
+          method over gRPC.
 
         Lists Cloud Bigtable backups. Returns both completed
         and pending backups.
@@ -779,7 +815,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def restore_table(self) -> Callable[
             [bigtable_table_admin.RestoreTableRequest],
             operations.Operation]:
-        r"""Return a callable for the restore table method over gRPC.
+        r"""Return a callable for the
+        restore table
+          method over gRPC.
 
         Create a new table by restoring from a completed backup. The new
         table must be in the same instance as the instance containing
@@ -813,7 +851,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def get_iam_policy(self) -> Callable[
             [iam_policy.GetIamPolicyRequest],
             giv_policy.Policy]:
-        r"""Return a callable for the get iam policy method over gRPC.
+        r"""Return a callable for the
+        get iam policy
+          method over gRPC.
 
         Gets the access control policy for a Table or Backup
         resource. Returns an empty policy if the resource exists
@@ -841,7 +881,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def set_iam_policy(self) -> Callable[
             [iam_policy.SetIamPolicyRequest],
             giv_policy.Policy]:
-        r"""Return a callable for the set iam policy method over gRPC.
+        r"""Return a callable for the
+        set iam policy
+          method over gRPC.
 
         Sets the access control policy on a Table or Backup
         resource. Replaces any existing policy.
@@ -868,7 +910,9 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     def test_iam_permissions(self) -> Callable[
             [iam_policy.TestIamPermissionsRequest],
             iam_policy.TestIamPermissionsResponse]:
-        r"""Return a callable for the test iam permissions method over gRPC.
+        r"""Return a callable for the
+        test iam permissions
+          method over gRPC.
 
         Returns permissions that the caller has on the
         specified Table or Backup resource.

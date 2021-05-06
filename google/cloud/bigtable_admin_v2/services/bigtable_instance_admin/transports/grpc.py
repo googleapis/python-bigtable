@@ -246,7 +246,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def create_instance(self) -> Callable[
             [bigtable_instance_admin.CreateInstanceRequest],
             operations.Operation]:
-        r"""Return a callable for the create instance method over gRPC.
+        r"""Return a callable for the
+        create instance
+          method over gRPC.
 
         Create an instance within a project.
 
@@ -272,7 +274,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def get_instance(self) -> Callable[
             [bigtable_instance_admin.GetInstanceRequest],
             instance.Instance]:
-        r"""Return a callable for the get instance method over gRPC.
+        r"""Return a callable for the
+        get instance
+          method over gRPC.
 
         Gets information about an instance.
 
@@ -298,7 +302,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def list_instances(self) -> Callable[
             [bigtable_instance_admin.ListInstancesRequest],
             bigtable_instance_admin.ListInstancesResponse]:
-        r"""Return a callable for the list instances method over gRPC.
+        r"""Return a callable for the
+        list instances
+          method over gRPC.
 
         Lists information about instances in a project.
 
@@ -324,7 +330,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def update_instance(self) -> Callable[
             [instance.Instance],
             instance.Instance]:
-        r"""Return a callable for the update instance method over gRPC.
+        r"""Return a callable for the
+        update instance
+          method over gRPC.
 
         Updates an instance within a project. This method
         updates only the display name and type for an Instance.
@@ -353,7 +361,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def partial_update_instance(self) -> Callable[
             [bigtable_instance_admin.PartialUpdateInstanceRequest],
             operations.Operation]:
-        r"""Return a callable for the partial update instance method over gRPC.
+        r"""Return a callable for the
+        partial update instance
+          method over gRPC.
 
         Partially updates an instance within a project. This
         method can modify all fields of an Instance and is the
@@ -381,7 +391,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def delete_instance(self) -> Callable[
             [bigtable_instance_admin.DeleteInstanceRequest],
             empty.Empty]:
-        r"""Return a callable for the delete instance method over gRPC.
+        r"""Return a callable for the
+        delete instance
+          method over gRPC.
 
         Delete an instance from a project.
 
@@ -407,7 +419,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def create_cluster(self) -> Callable[
             [bigtable_instance_admin.CreateClusterRequest],
             operations.Operation]:
-        r"""Return a callable for the create cluster method over gRPC.
+        r"""Return a callable for the
+        create cluster
+          method over gRPC.
 
         Creates a cluster within an instance.
 
@@ -433,7 +447,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def get_cluster(self) -> Callable[
             [bigtable_instance_admin.GetClusterRequest],
             instance.Cluster]:
-        r"""Return a callable for the get cluster method over gRPC.
+        r"""Return a callable for the
+        get cluster
+          method over gRPC.
 
         Gets information about a cluster.
 
@@ -459,7 +475,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def list_clusters(self) -> Callable[
             [bigtable_instance_admin.ListClustersRequest],
             bigtable_instance_admin.ListClustersResponse]:
-        r"""Return a callable for the list clusters method over gRPC.
+        r"""Return a callable for the
+        list clusters
+          method over gRPC.
 
         Lists information about clusters in an instance.
 
@@ -485,7 +503,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def update_cluster(self) -> Callable[
             [instance.Cluster],
             operations.Operation]:
-        r"""Return a callable for the update cluster method over gRPC.
+        r"""Return a callable for the
+        update cluster
+          method over gRPC.
 
         Updates a cluster within an instance.
 
@@ -511,7 +531,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def delete_cluster(self) -> Callable[
             [bigtable_instance_admin.DeleteClusterRequest],
             empty.Empty]:
-        r"""Return a callable for the delete cluster method over gRPC.
+        r"""Return a callable for the
+        delete cluster
+          method over gRPC.
 
         Deletes a cluster from an instance.
 
@@ -537,7 +559,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def create_app_profile(self) -> Callable[
             [bigtable_instance_admin.CreateAppProfileRequest],
             instance.AppProfile]:
-        r"""Return a callable for the create app profile method over gRPC.
+        r"""Return a callable for the
+        create app profile
+          method over gRPC.
 
         Creates an app profile within an instance.
 
@@ -563,7 +587,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def get_app_profile(self) -> Callable[
             [bigtable_instance_admin.GetAppProfileRequest],
             instance.AppProfile]:
-        r"""Return a callable for the get app profile method over gRPC.
+        r"""Return a callable for the
+        get app profile
+          method over gRPC.
 
         Gets information about an app profile.
 
@@ -589,7 +615,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def list_app_profiles(self) -> Callable[
             [bigtable_instance_admin.ListAppProfilesRequest],
             bigtable_instance_admin.ListAppProfilesResponse]:
-        r"""Return a callable for the list app profiles method over gRPC.
+        r"""Return a callable for the
+        list app profiles
+          method over gRPC.
 
         Lists information about app profiles in an instance.
 
@@ -615,7 +643,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def update_app_profile(self) -> Callable[
             [bigtable_instance_admin.UpdateAppProfileRequest],
             operations.Operation]:
-        r"""Return a callable for the update app profile method over gRPC.
+        r"""Return a callable for the
+        update app profile
+          method over gRPC.
 
         Updates an app profile within an instance.
 
@@ -641,7 +671,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def delete_app_profile(self) -> Callable[
             [bigtable_instance_admin.DeleteAppProfileRequest],
             empty.Empty]:
-        r"""Return a callable for the delete app profile method over gRPC.
+        r"""Return a callable for the
+        delete app profile
+          method over gRPC.
 
         Deletes an app profile from an instance.
 
@@ -667,7 +699,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def get_iam_policy(self) -> Callable[
             [iam_policy.GetIamPolicyRequest],
             giv_policy.Policy]:
-        r"""Return a callable for the get iam policy method over gRPC.
+        r"""Return a callable for the
+        get iam policy
+          method over gRPC.
 
         Gets the access control policy for an instance
         resource. Returns an empty policy if an instance exists
@@ -695,7 +729,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def set_iam_policy(self) -> Callable[
             [iam_policy.SetIamPolicyRequest],
             giv_policy.Policy]:
-        r"""Return a callable for the set iam policy method over gRPC.
+        r"""Return a callable for the
+        set iam policy
+          method over gRPC.
 
         Sets the access control policy on an instance
         resource. Replaces any existing policy.
@@ -722,7 +758,9 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     def test_iam_permissions(self) -> Callable[
             [iam_policy.TestIamPermissionsRequest],
             iam_policy.TestIamPermissionsResponse]:
-        r"""Return a callable for the test iam permissions method over gRPC.
+        r"""Return a callable for the
+        test iam permissions
+          method over gRPC.
 
         Returns permissions that the caller has on the
         specified instance resource.
