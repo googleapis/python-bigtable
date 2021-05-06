@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import warnings
-from typing import Callable, Dict, Optional, Sequence, Tuple
+from typing import Callable, Dict, Optional, Sequence, Tuple, Union
 
 from google.api_core import grpc_helpers   # type: ignore
 from google.api_core import gapic_v1       # type: ignore
@@ -27,7 +25,6 @@ from google.auth.transport.grpc import SslCredentials  # type: ignore
 import grpc  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
-
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 
 
@@ -62,7 +59,8 @@ class BigtableGrpcTransport(BigtableTransport):
         """Instantiate the transport.
 
         Args:
-            host (Optional[str]): The hostname to connect to.
+            host (Optional[str]):
+                 The hostname to connect to.
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -201,13 +199,15 @@ class BigtableGrpcTransport(BigtableTransport):
             google.api_core.exceptions.DuplicateCredentialArgs: If both ``credentials``
               and ``credentials_file`` are passed.
         """
-        scopes = scopes or cls.AUTH_SCOPES
+
+        self_signed_jwt_kwargs = cls._get_self_signed_jwt_kwargs(host, scopes)
+
         return grpc_helpers.create_channel(
             host,
             credentials=credentials,
             credentials_file=credentials_file,
-            scopes=scopes,
             quota_project_id=quota_project_id,
+            **self_signed_jwt_kwargs,
             **kwargs
         )
 
@@ -221,7 +221,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def read_rows(self) -> Callable[
             [bigtable.ReadRowsRequest],
             bigtable.ReadRowsResponse]:
-        r"""Return a callable for the read rows method over gRPC.
+        r"""Return a callable for the
+        read rows
+          method over gRPC.
 
         Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
@@ -252,7 +254,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def sample_row_keys(self) -> Callable[
             [bigtable.SampleRowKeysRequest],
             bigtable.SampleRowKeysResponse]:
-        r"""Return a callable for the sample row keys method over gRPC.
+        r"""Return a callable for the
+        sample row keys
+          method over gRPC.
 
         Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
@@ -282,7 +286,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def mutate_row(self) -> Callable[
             [bigtable.MutateRowRequest],
             bigtable.MutateRowResponse]:
-        r"""Return a callable for the mutate row method over gRPC.
+        r"""Return a callable for the
+        mutate row
+          method over gRPC.
 
         Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
@@ -309,7 +315,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def mutate_rows(self) -> Callable[
             [bigtable.MutateRowsRequest],
             bigtable.MutateRowsResponse]:
-        r"""Return a callable for the mutate rows method over gRPC.
+        r"""Return a callable for the
+        mutate rows
+          method over gRPC.
 
         Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
@@ -337,7 +345,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def check_and_mutate_row(self) -> Callable[
             [bigtable.CheckAndMutateRowRequest],
             bigtable.CheckAndMutateRowResponse]:
-        r"""Return a callable for the check and mutate row method over gRPC.
+        r"""Return a callable for the
+        check and mutate row
+          method over gRPC.
 
         Mutates a row atomically based on the output of a
         predicate Reader filter.
@@ -364,7 +374,9 @@ class BigtableGrpcTransport(BigtableTransport):
     def read_modify_write_row(self) -> Callable[
             [bigtable.ReadModifyWriteRowRequest],
             bigtable.ReadModifyWriteRowResponse]:
-        r"""Return a callable for the read modify write row method over gRPC.
+        r"""Return a callable for the
+        read modify write row
+          method over gRPC.
 
         Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the

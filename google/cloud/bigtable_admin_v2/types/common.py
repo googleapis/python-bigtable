@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import proto  # type: ignore
-
 
 from google.protobuf import timestamp_pb2 as timestamp  # type: ignore
 
@@ -52,13 +49,18 @@ class OperationProgress(proto.Message):
             failed or was completed successfully.
     """
 
-    progress_percent = proto.Field(proto.INT32, number=1)
-
-    start_time = proto.Field(proto.MESSAGE, number=2,
+    progress_percent = proto.Field(
+        proto.INT32,
+        number=1,
+    )
+    start_time = proto.Field(
+        proto.MESSAGE,
+        number=2,
         message=timestamp.Timestamp,
     )
-
-    end_time = proto.Field(proto.MESSAGE, number=3,
+    end_time = proto.Field(
+        proto.MESSAGE,
+        number=3,
         message=timestamp.Timestamp,
     )
 

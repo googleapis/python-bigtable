@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import warnings
-from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple
+from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union
 
 from google.api_core import gapic_v1                   # type: ignore
 from google.api_core import grpc_helpers_async         # type: ignore
@@ -24,6 +22,7 @@ from google.api_core import operations_v1              # type: ignore
 from google import auth                                # type: ignore
 from google.auth import credentials                    # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
+import packaging.version
 
 import grpc                        # type: ignore
 from grpc.experimental import aio  # type: ignore
@@ -35,7 +34,6 @@ from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
 from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.longrunning import operations_pb2 as operations  # type: ignore
 from google.protobuf import empty_pb2 as empty  # type: ignore
-
 from .base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
 from .grpc import BigtableTableAdminGrpcTransport
 
@@ -89,13 +87,15 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
         Returns:
             aio.Channel: A gRPC AsyncIO channel object.
         """
-        scopes = scopes or cls.AUTH_SCOPES
+
+        self_signed_jwt_kwargs = cls._get_self_signed_jwt_kwargs(host, scopes)
+
         return grpc_helpers_async.create_channel(
             host,
             credentials=credentials,
             credentials_file=credentials_file,
-            scopes=scopes,
             quota_project_id=quota_project_id,
+            **self_signed_jwt_kwargs,
             **kwargs
         )
 
@@ -115,7 +115,8 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
         """Instantiate the transport.
 
         Args:
-            host (Optional[str]): The hostname to connect to.
+            host (Optional[str]):
+                 The hostname to connect to.
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -174,7 +175,6 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
             # If a channel was explicitly provided, set it.
             self._grpc_channel = channel
             self._ssl_channel_credentials = None
-
         else:
             if api_mtls_endpoint:
                 host = api_mtls_endpoint
@@ -253,7 +253,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def create_table(self) -> Callable[
             [bigtable_table_admin.CreateTableRequest],
             Awaitable[gba_table.Table]]:
-        r"""Return a callable for the create table method over gRPC.
+        r"""Return a callable for the
+        create table
+          method over gRPC.
 
         Creates a new table in the specified instance.
         The table can be created with a full set of initial
@@ -281,7 +283,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def create_table_from_snapshot(self) -> Callable[
             [bigtable_table_admin.CreateTableFromSnapshotRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the create table from snapshot method over gRPC.
+        r"""Return a callable for the
+        create table from snapshot
+          method over gRPC.
 
         Creates a new table from the specified snapshot. The
         target table must not exist. The snapshot and the table
@@ -315,7 +319,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def list_tables(self) -> Callable[
             [bigtable_table_admin.ListTablesRequest],
             Awaitable[bigtable_table_admin.ListTablesResponse]]:
-        r"""Return a callable for the list tables method over gRPC.
+        r"""Return a callable for the
+        list tables
+          method over gRPC.
 
         Lists all tables served from a specified instance.
 
@@ -341,7 +347,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def get_table(self) -> Callable[
             [bigtable_table_admin.GetTableRequest],
             Awaitable[table.Table]]:
-        r"""Return a callable for the get table method over gRPC.
+        r"""Return a callable for the
+        get table
+          method over gRPC.
 
         Gets metadata information about the specified table.
 
@@ -367,7 +375,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def delete_table(self) -> Callable[
             [bigtable_table_admin.DeleteTableRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the delete table method over gRPC.
+        r"""Return a callable for the
+        delete table
+          method over gRPC.
 
         Permanently deletes a specified table and all of its
         data.
@@ -394,7 +404,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def modify_column_families(self) -> Callable[
             [bigtable_table_admin.ModifyColumnFamiliesRequest],
             Awaitable[table.Table]]:
-        r"""Return a callable for the modify column families method over gRPC.
+        r"""Return a callable for the
+        modify column families
+          method over gRPC.
 
         Performs a series of column family modifications on
         the specified table. Either all or none of the
@@ -424,7 +436,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def drop_row_range(self) -> Callable[
             [bigtable_table_admin.DropRowRangeRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the drop row range method over gRPC.
+        r"""Return a callable for the
+        drop row range
+          method over gRPC.
 
         Permanently drop/delete a row range from a specified
         table. The request can specify whether to delete all
@@ -453,7 +467,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def generate_consistency_token(self) -> Callable[
             [bigtable_table_admin.GenerateConsistencyTokenRequest],
             Awaitable[bigtable_table_admin.GenerateConsistencyTokenResponse]]:
-        r"""Return a callable for the generate consistency token method over gRPC.
+        r"""Return a callable for the
+        generate consistency token
+          method over gRPC.
 
         Generates a consistency token for a Table, which can
         be used in CheckConsistency to check whether mutations
@@ -483,7 +499,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def check_consistency(self) -> Callable[
             [bigtable_table_admin.CheckConsistencyRequest],
             Awaitable[bigtable_table_admin.CheckConsistencyResponse]]:
-        r"""Return a callable for the check consistency method over gRPC.
+        r"""Return a callable for the
+        check consistency
+          method over gRPC.
 
         Checks replication consistency based on a consistency
         token, that is, if replication has caught up based on
@@ -512,7 +530,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def snapshot_table(self) -> Callable[
             [bigtable_table_admin.SnapshotTableRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the snapshot table method over gRPC.
+        r"""Return a callable for the
+        snapshot table
+          method over gRPC.
 
         Creates a new snapshot in the specified cluster from
         the specified source table. The cluster and the table
@@ -546,7 +566,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def get_snapshot(self) -> Callable[
             [bigtable_table_admin.GetSnapshotRequest],
             Awaitable[table.Snapshot]]:
-        r"""Return a callable for the get snapshot method over gRPC.
+        r"""Return a callable for the
+        get snapshot
+          method over gRPC.
 
         Gets metadata information about the specified
         snapshot.
@@ -579,7 +601,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def list_snapshots(self) -> Callable[
             [bigtable_table_admin.ListSnapshotsRequest],
             Awaitable[bigtable_table_admin.ListSnapshotsResponse]]:
-        r"""Return a callable for the list snapshots method over gRPC.
+        r"""Return a callable for the
+        list snapshots
+          method over gRPC.
 
         Lists all snapshots associated with the specified
         cluster.
@@ -612,7 +636,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def delete_snapshot(self) -> Callable[
             [bigtable_table_admin.DeleteSnapshotRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the delete snapshot method over gRPC.
+        r"""Return a callable for the
+        delete snapshot
+          method over gRPC.
 
         Permanently deletes the specified snapshot.
         Note: This is a private alpha release of Cloud Bigtable
@@ -644,7 +670,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def create_backup(self) -> Callable[
             [bigtable_table_admin.CreateBackupRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the create backup method over gRPC.
+        r"""Return a callable for the
+        create backup
+          method over gRPC.
 
         Starts creating a new Cloud Bigtable Backup. The returned backup
         [long-running operation][google.longrunning.Operation] can be
@@ -678,7 +706,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def get_backup(self) -> Callable[
             [bigtable_table_admin.GetBackupRequest],
             Awaitable[table.Backup]]:
-        r"""Return a callable for the get backup method over gRPC.
+        r"""Return a callable for the
+        get backup
+          method over gRPC.
 
         Gets metadata on a pending or completed Cloud
         Bigtable Backup.
@@ -705,7 +735,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def update_backup(self) -> Callable[
             [bigtable_table_admin.UpdateBackupRequest],
             Awaitable[table.Backup]]:
-        r"""Return a callable for the update backup method over gRPC.
+        r"""Return a callable for the
+        update backup
+          method over gRPC.
 
         Updates a pending or completed Cloud Bigtable Backup.
 
@@ -731,7 +763,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def delete_backup(self) -> Callable[
             [bigtable_table_admin.DeleteBackupRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the delete backup method over gRPC.
+        r"""Return a callable for the
+        delete backup
+          method over gRPC.
 
         Deletes a pending or completed Cloud Bigtable backup.
 
@@ -757,7 +791,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def list_backups(self) -> Callable[
             [bigtable_table_admin.ListBackupsRequest],
             Awaitable[bigtable_table_admin.ListBackupsResponse]]:
-        r"""Return a callable for the list backups method over gRPC.
+        r"""Return a callable for the
+        list backups
+          method over gRPC.
 
         Lists Cloud Bigtable backups. Returns both completed
         and pending backups.
@@ -784,7 +820,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def restore_table(self) -> Callable[
             [bigtable_table_admin.RestoreTableRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the restore table method over gRPC.
+        r"""Return a callable for the
+        restore table
+          method over gRPC.
 
         Create a new table by restoring from a completed backup. The new
         table must be in the same instance as the instance containing
@@ -818,7 +856,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def get_iam_policy(self) -> Callable[
             [iam_policy.GetIamPolicyRequest],
             Awaitable[giv_policy.Policy]]:
-        r"""Return a callable for the get iam policy method over gRPC.
+        r"""Return a callable for the
+        get iam policy
+          method over gRPC.
 
         Gets the access control policy for a Table or Backup
         resource. Returns an empty policy if the resource exists
@@ -846,7 +886,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def set_iam_policy(self) -> Callable[
             [iam_policy.SetIamPolicyRequest],
             Awaitable[giv_policy.Policy]]:
-        r"""Return a callable for the set iam policy method over gRPC.
+        r"""Return a callable for the
+        set iam policy
+          method over gRPC.
 
         Sets the access control policy on a Table or Backup
         resource. Replaces any existing policy.
@@ -873,7 +915,9 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
     def test_iam_permissions(self) -> Callable[
             [iam_policy.TestIamPermissionsRequest],
             Awaitable[iam_policy.TestIamPermissionsResponse]]:
-        r"""Return a callable for the test iam permissions method over gRPC.
+        r"""Return a callable for the
+        test iam permissions
+          method over gRPC.
 
         Returns permissions that the caller has on the
         specified Table or Backup resource.
