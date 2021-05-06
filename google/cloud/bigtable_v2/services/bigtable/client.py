@@ -23,14 +23,14 @@ from typing import Callable, Dict, Optional, Iterable, Sequence, Tuple, Type, Un
 import pkg_resources
 
 from google.api_core import client_options as client_options_lib  # type: ignore
-from google.api_core import exceptions  # type: ignore
-from google.api_core import gapic_v1  # type: ignore
-from google.api_core import retry as retries  # type: ignore
-from google.auth import credentials  # type: ignore
-from google.auth.transport import mtls  # type: ignore
-from google.auth.transport.grpc import SslCredentials  # type: ignore
-from google.auth.exceptions import MutualTLSChannelError  # type: ignore
-from google.oauth2 import service_account  # type: ignore
+from google.api_core import exceptions                            # type: ignore
+from google.api_core import gapic_v1                              # type: ignore
+from google.api_core import retry as retries                      # type: ignore
+from google.auth import credentials                               # type: ignore
+from google.auth.transport import mtls                            # type: ignore
+from google.auth.transport.grpc import SslCredentials             # type: ignore
+from google.auth.exceptions import MutualTLSChannelError          # type: ignore
+from google.oauth2 import service_account                         # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
@@ -47,12 +47,13 @@ class BigtableClientMeta(type):
     support objects (e.g. transport) without polluting the client instance
     objects.
     """
-
     _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
-    _transport_registry["grpc"] = BigtableGrpcTransport
-    _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
+    _transport_registry['grpc'] = BigtableGrpcTransport
+    _transport_registry['grpc_asyncio'] = BigtableGrpcAsyncIOTransport
 
-    def get_transport_class(cls, label: str = None,) -> Type[BigtableTransport]:
+    def get_transport_class(cls,
+            label: str = None,
+        ) -> Type[BigtableTransport]:
         """Return an appropriate transport class.
 
         Args:
@@ -105,7 +106,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         return api_endpoint.replace(".googleapis.com", ".mtls.googleapis.com")
 
-    DEFAULT_ENDPOINT = "bigtable.googleapis.com"
+    DEFAULT_ENDPOINT = 'bigtable.googleapis.com'
     DEFAULT_MTLS_ENDPOINT = _get_default_mtls_endpoint.__func__(  # type: ignore
         DEFAULT_ENDPOINT
     )
@@ -140,8 +141,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
         Returns:
             BigtableClient: The constructed client.
         """
-        credentials = service_account.Credentials.from_service_account_file(filename)
-        kwargs["credentials"] = credentials
+        credentials = service_account.Credentials.from_service_account_file(
+            filename)
+        kwargs['credentials'] = credentials
         return cls(*args, **kwargs)
 
     from_service_account_json = from_service_account_file
@@ -156,88 +158,77 @@ class BigtableClient(metaclass=BigtableClientMeta):
         return self._transport
 
     @staticmethod
-    def table_path(project: str, instance: str, table: str,) -> str:
+    def table_path(project: str,instance: str,table: str,) -> str:
         """Return a fully-qualified table string."""
-        return "projects/{project}/instances/{instance}/tables/{table}".format(
-            project=project, instance=instance, table=table,
-        )
+        return "projects/{project}/instances/{instance}/tables/{table}".format(project=project, instance=instance, table=table, )
 
     @staticmethod
-    def parse_table_path(path: str) -> Dict[str, str]:
+    def parse_table_path(path: str) -> Dict[str,str]:
         """Parse a table path into its component segments."""
-        m = re.match(
-            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)$",
-            path,
-        )
+        m = re.match(r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)$", path)
         return m.groupdict() if m else {}
 
     @staticmethod
-    def common_billing_account_path(billing_account: str,) -> str:
+    def common_billing_account_path(billing_account: str, ) -> str:
         """Return a fully-qualified billing_account string."""
-        return "billingAccounts/{billing_account}".format(
-            billing_account=billing_account,
-        )
+        return "billingAccounts/{billing_account}".format(billing_account=billing_account, )
 
     @staticmethod
-    def parse_common_billing_account_path(path: str) -> Dict[str, str]:
+    def parse_common_billing_account_path(path: str) -> Dict[str,str]:
         """Parse a billing_account path into its component segments."""
         m = re.match(r"^billingAccounts/(?P<billing_account>.+?)$", path)
         return m.groupdict() if m else {}
 
     @staticmethod
-    def common_folder_path(folder: str,) -> str:
+    def common_folder_path(folder: str, ) -> str:
         """Return a fully-qualified folder string."""
-        return "folders/{folder}".format(folder=folder,)
+        return "folders/{folder}".format(folder=folder, )
 
     @staticmethod
-    def parse_common_folder_path(path: str) -> Dict[str, str]:
+    def parse_common_folder_path(path: str) -> Dict[str,str]:
         """Parse a folder path into its component segments."""
         m = re.match(r"^folders/(?P<folder>.+?)$", path)
         return m.groupdict() if m else {}
 
     @staticmethod
-    def common_organization_path(organization: str,) -> str:
+    def common_organization_path(organization: str, ) -> str:
         """Return a fully-qualified organization string."""
-        return "organizations/{organization}".format(organization=organization,)
+        return "organizations/{organization}".format(organization=organization, )
 
     @staticmethod
-    def parse_common_organization_path(path: str) -> Dict[str, str]:
+    def parse_common_organization_path(path: str) -> Dict[str,str]:
         """Parse a organization path into its component segments."""
         m = re.match(r"^organizations/(?P<organization>.+?)$", path)
         return m.groupdict() if m else {}
 
     @staticmethod
-    def common_project_path(project: str,) -> str:
+    def common_project_path(project: str, ) -> str:
         """Return a fully-qualified project string."""
-        return "projects/{project}".format(project=project,)
+        return "projects/{project}".format(project=project, )
 
     @staticmethod
-    def parse_common_project_path(path: str) -> Dict[str, str]:
+    def parse_common_project_path(path: str) -> Dict[str,str]:
         """Parse a project path into its component segments."""
         m = re.match(r"^projects/(?P<project>.+?)$", path)
         return m.groupdict() if m else {}
 
     @staticmethod
-    def common_location_path(project: str, location: str,) -> str:
+    def common_location_path(project: str, location: str, ) -> str:
         """Return a fully-qualified location string."""
-        return "projects/{project}/locations/{location}".format(
-            project=project, location=location,
-        )
+        return "projects/{project}/locations/{location}".format(project=project, location=location, )
 
     @staticmethod
-    def parse_common_location_path(path: str) -> Dict[str, str]:
+    def parse_common_location_path(path: str) -> Dict[str,str]:
         """Parse a location path into its component segments."""
         m = re.match(r"^projects/(?P<project>.+?)/locations/(?P<location>.+?)$", path)
         return m.groupdict() if m else {}
 
-    def __init__(
-        self,
-        *,
-        credentials: Optional[credentials.Credentials] = None,
-        transport: Union[str, BigtableTransport, None] = None,
-        client_options: Optional[client_options_lib.ClientOptions] = None,
-        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-    ) -> None:
+    def __init__(self, *,
+            credentials: Optional[credentials.Credentials] = None,
+            transport: Union[str, BigtableTransport, None] = None,
+            client_options: Optional[client_options_lib.ClientOptions] = None,
+            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+            ) -> None:
         """Instantiate the bigtable client.
 
         Args:
@@ -281,9 +272,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
             client_options = client_options_lib.ClientOptions()
 
         # Create SSL credentials for mutual TLS if needed.
-        use_client_cert = bool(
-            util.strtobool(os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"))
-        )
+        use_client_cert = bool(util.strtobool(os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false")))
 
         client_cert_source_func = None
         is_mtls = False
@@ -293,9 +282,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 client_cert_source_func = client_options.client_cert_source
             else:
                 is_mtls = mtls.has_default_client_cert_source()
-                client_cert_source_func = (
-                    mtls.default_client_cert_source() if is_mtls else None
-                )
+                client_cert_source_func = mtls.default_client_cert_source() if is_mtls else None
 
         # Figure out which api endpoint to use.
         if client_options.api_endpoint is not None:
@@ -307,9 +294,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
             elif use_mtls_env == "always":
                 api_endpoint = self.DEFAULT_MTLS_ENDPOINT
             elif use_mtls_env == "auto":
-                api_endpoint = (
-                    self.DEFAULT_MTLS_ENDPOINT if is_mtls else self.DEFAULT_ENDPOINT
-                )
+                api_endpoint = self.DEFAULT_MTLS_ENDPOINT if is_mtls else self.DEFAULT_ENDPOINT
             else:
                 raise MutualTLSChannelError(
                     "Unsupported GOOGLE_API_USE_MTLS_ENDPOINT value. Accepted values: never, auto, always"
@@ -321,10 +306,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if isinstance(transport, BigtableTransport):
             # transport is a BigtableTransport instance.
             if credentials or client_options.credentials_file:
-                raise ValueError(
-                    "When providing a transport instance, "
-                    "provide its credentials directly."
-                )
+                raise ValueError('When providing a transport instance, '
+                                 'provide its credentials directly.')
             if client_options.scopes:
                 raise ValueError(
                     "When providing a transport instance, "
@@ -343,16 +326,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 client_info=client_info,
             )
 
-    def read_rows(
-        self,
-        request: bigtable.ReadRowsRequest = None,
-        *,
-        table_name: str = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Iterable[bigtable.ReadRowsResponse]:
+    def read_rows(self,
+            request: bigtable.ReadRowsRequest = None,
+            *,
+            table_name: str = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> Iterable[bigtable.ReadRowsResponse]:
         r"""Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
         each. Depending on their size, rows and cells may be
@@ -399,10 +381,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.ReadRowsRequest.
@@ -426,27 +406,31 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
-    def sample_row_keys(
-        self,
-        request: bigtable.SampleRowKeysRequest = None,
-        *,
-        table_name: str = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Iterable[bigtable.SampleRowKeysResponse]:
+    def sample_row_keys(self,
+            request: bigtable.SampleRowKeysRequest = None,
+            *,
+            table_name: str = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> Iterable[bigtable.SampleRowKeysResponse]:
         r"""Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
@@ -492,10 +476,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.SampleRowKeysRequest.
@@ -519,29 +501,33 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
-    def mutate_row(
-        self,
-        request: bigtable.MutateRowRequest = None,
-        *,
-        table_name: str = None,
-        row_key: bytes = None,
-        mutations: Sequence[data.Mutation] = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> bigtable.MutateRowResponse:
+    def mutate_row(self,
+            request: bigtable.MutateRowRequest = None,
+            *,
+            table_name: str = None,
+            row_key: bytes = None,
+            mutations: Sequence[data.Mutation] = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> bigtable.MutateRowResponse:
         r"""Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
 
@@ -602,10 +588,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, mutations, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.MutateRowRequest.
@@ -633,28 +617,32 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
-    def mutate_rows(
-        self,
-        request: bigtable.MutateRowsRequest = None,
-        *,
-        table_name: str = None,
-        entries: Sequence[bigtable.MutateRowsRequest.Entry] = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Iterable[bigtable.MutateRowsResponse]:
+    def mutate_rows(self,
+            request: bigtable.MutateRowsRequest = None,
+            *,
+            table_name: str = None,
+            entries: Sequence[bigtable.MutateRowsRequest.Entry] = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> Iterable[bigtable.MutateRowsResponse]:
         r"""Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
@@ -712,10 +700,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, entries, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.MutateRowsRequest.
@@ -741,31 +727,35 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
-    def check_and_mutate_row(
-        self,
-        request: bigtable.CheckAndMutateRowRequest = None,
-        *,
-        table_name: str = None,
-        row_key: bytes = None,
-        predicate_filter: data.RowFilter = None,
-        true_mutations: Sequence[data.Mutation] = None,
-        false_mutations: Sequence[data.Mutation] = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> bigtable.CheckAndMutateRowResponse:
+    def check_and_mutate_row(self,
+            request: bigtable.CheckAndMutateRowRequest = None,
+            *,
+            table_name: str = None,
+            row_key: bytes = None,
+            predicate_filter: data.RowFilter = None,
+            true_mutations: Sequence[data.Mutation] = None,
+            false_mutations: Sequence[data.Mutation] = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> bigtable.CheckAndMutateRowResponse:
         r"""Mutates a row atomically based on the output of a
         predicate Reader filter.
 
@@ -847,21 +837,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Create or coerce a protobuf request object.
         # Sanity check: If we got a request object, we should *not* have
         # gotten any keyword arguments that map to the request.
-        has_flattened_params = any(
-            [
-                table_name,
-                row_key,
-                predicate_filter,
-                true_mutations,
-                false_mutations,
-                app_profile_id,
-            ]
-        )
+        has_flattened_params = any([table_name, row_key, predicate_filter, true_mutations, false_mutations, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.CheckAndMutateRowRequest.
@@ -893,29 +872,33 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
-    def read_modify_write_row(
-        self,
-        request: bigtable.ReadModifyWriteRowRequest = None,
-        *,
-        table_name: str = None,
-        row_key: bytes = None,
-        rules: Sequence[data.ReadModifyWriteRule] = None,
-        app_profile_id: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
-        metadata: Sequence[Tuple[str, str]] = (),
-    ) -> bigtable.ReadModifyWriteRowResponse:
+    def read_modify_write_row(self,
+            request: bigtable.ReadModifyWriteRowRequest = None,
+            *,
+            table_name: str = None,
+            row_key: bytes = None,
+            rules: Sequence[data.ReadModifyWriteRule] = None,
+            app_profile_id: str = None,
+            retry: retries.Retry = gapic_v1.method.DEFAULT,
+            timeout: float = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> bigtable.ReadModifyWriteRowResponse:
         r"""Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the
         specified columns and writes a new entry based on pre-
@@ -983,10 +966,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, rules, app_profile_id])
         if request is not None and has_flattened_params:
-            raise ValueError(
-                "If the `request` argument is set, then none of "
-                "the individual field arguments should be set."
-            )
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
 
         # Minor optimization to avoid making a copy if the user passes
         # in a bigtable.ReadModifyWriteRowRequest.
@@ -1014,24 +995,38 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+            gapic_v1.routing_header.to_grpc_metadata((
+                ('table_name', request.table_name),
+            )),
         )
 
         # Send the request.
-        response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
 
         # Done; return the response.
         return response
 
 
+
+
+
+
+
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
-        gapic_version=pkg_resources.get_distribution("google-cloud-bigtable",).version,
+        gapic_version=pkg_resources.get_distribution(
+            'google-cloud-bigtable',
+        ).version,
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
 
 
-__all__ = ("BigtableClient",)
+__all__ = (
+    'BigtableClient',
+)

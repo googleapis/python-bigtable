@@ -21,7 +21,7 @@ import pkg_resources
 
 from google import auth  # type: ignore
 from google.api_core import exceptions  # type: ignore
-from google.api_core import gapic_v1  # type: ignore
+from google.api_core import gapic_v1    # type: ignore
 from google.api_core import retry as retries  # type: ignore
 from google.auth import credentials  # type: ignore
 
@@ -30,35 +30,35 @@ from google.cloud.bigtable_v2.types import bigtable
 
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
-        gapic_version=pkg_resources.get_distribution("google-cloud-bigtable",).version,
+        gapic_version=pkg_resources.get_distribution(
+            'google-cloud-bigtable',
+        ).version,
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
-
 
 class BigtableTransport(abc.ABC):
     """Abstract transport class for Bigtable."""
 
     AUTH_SCOPES = (
-        "https://www.googleapis.com/auth/bigtable.data",
-        "https://www.googleapis.com/auth/bigtable.data.readonly",
-        "https://www.googleapis.com/auth/cloud-bigtable.data",
-        "https://www.googleapis.com/auth/cloud-bigtable.data.readonly",
-        "https://www.googleapis.com/auth/cloud-platform",
-        "https://www.googleapis.com/auth/cloud-platform.read-only",
+        'https://www.googleapis.com/auth/bigtable.data',
+        'https://www.googleapis.com/auth/bigtable.data.readonly',
+        'https://www.googleapis.com/auth/cloud-bigtable.data',
+        'https://www.googleapis.com/auth/cloud-bigtable.data.readonly',
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/cloud-platform.read-only',
     )
 
     def __init__(
-        self,
-        *,
-        host: str = "bigtable.googleapis.com",
-        credentials: credentials.Credentials = None,
-        credentials_file: typing.Optional[str] = None,
-        scopes: typing.Optional[typing.Sequence[str]] = AUTH_SCOPES,
-        quota_project_id: typing.Optional[str] = None,
-        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-        **kwargs,
-    ) -> None:
+            self, *,
+            host: str = 'bigtable.googleapis.com',
+            credentials: credentials.Credentials = None,
+            credentials_file: typing.Optional[str] = None,
+            scopes: typing.Optional[typing.Sequence[str]] = AUTH_SCOPES,
+            quota_project_id: typing.Optional[str] = None,
+            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+            **kwargs,
+            ) -> None:
         """Instantiate the transport.
 
         Args:
@@ -81,8 +81,8 @@ class BigtableTransport(abc.ABC):
                 your own client library.
         """
         # Save the hostname. Default to port 443 (HTTPS) if none is specified.
-        if ":" not in host:
-            host += ":443"
+        if ':' not in host:
+            host += ':443'
         self._host = host
 
         # Save the scopes.
@@ -91,19 +91,17 @@ class BigtableTransport(abc.ABC):
         # If no credentials are provided, then determine the appropriate
         # defaults.
         if credentials and credentials_file:
-            raise exceptions.DuplicateCredentialArgs(
-                "'credentials_file' and 'credentials' are mutually exclusive"
-            )
+            raise exceptions.DuplicateCredentialArgs("'credentials_file' and 'credentials' are mutually exclusive")
 
         if credentials_file is not None:
             credentials, _ = auth.load_credentials_from_file(
-                credentials_file, scopes=self._scopes, quota_project_id=quota_project_id
-            )
+                                credentials_file,
+                                scopes=self._scopes,
+                                quota_project_id=quota_project_id
+                            )
 
         elif credentials is None:
-            credentials, _ = auth.default(
-                scopes=self._scopes, quota_project_id=quota_project_id
-            )
+            credentials, _ = auth.default(scopes=self._scopes, quota_project_id=quota_project_id)
 
         # Save the credentials.
         self._credentials = credentials
@@ -117,7 +115,8 @@ class BigtableTransport(abc.ABC):
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
-                    predicate=retries.if_exception_type(),
+                    predicate=retries.if_exception_type(
+                    ),
                     deadline=43200.0,
                 ),
                 default_timeout=43200.0,
@@ -129,7 +128,8 @@ class BigtableTransport(abc.ABC):
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
-                    predicate=retries.if_exception_type(),
+                    predicate=retries.if_exception_type(
+                    ),
                     deadline=60.0,
                 ),
                 default_timeout=60.0,
@@ -142,7 +142,8 @@ class BigtableTransport(abc.ABC):
                     maximum=60.0,
                     multiplier=2,
                     predicate=retries.if_exception_type(
-                        exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
+                        exceptions.DeadlineExceeded,
+                        exceptions.ServiceUnavailable,
                     ),
                     deadline=60.0,
                 ),
@@ -155,7 +156,8 @@ class BigtableTransport(abc.ABC):
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
-                    predicate=retries.if_exception_type(),
+                    predicate=retries.if_exception_type(
+                    ),
                     deadline=600.0,
                 ),
                 default_timeout=600.0,
@@ -167,7 +169,8 @@ class BigtableTransport(abc.ABC):
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
-                    predicate=retries.if_exception_type(),
+                    predicate=retries.if_exception_type(
+                    ),
                     deadline=20.0,
                 ),
                 default_timeout=20.0,
@@ -179,82 +182,71 @@ class BigtableTransport(abc.ABC):
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
-                    predicate=retries.if_exception_type(),
+                    predicate=retries.if_exception_type(
+                    ),
                     deadline=20.0,
                 ),
                 default_timeout=20.0,
                 client_info=client_info,
             ),
+
         }
 
     @property
-    def read_rows(
-        self,
-    ) -> typing.Callable[
-        [bigtable.ReadRowsRequest],
-        typing.Union[
-            bigtable.ReadRowsResponse, typing.Awaitable[bigtable.ReadRowsResponse]
-        ],
-    ]:
+    def read_rows(self) -> typing.Callable[
+            [bigtable.ReadRowsRequest],
+            typing.Union[
+                bigtable.ReadRowsResponse,
+                typing.Awaitable[bigtable.ReadRowsResponse]
+            ]]:
         raise NotImplementedError()
 
     @property
-    def sample_row_keys(
-        self,
-    ) -> typing.Callable[
-        [bigtable.SampleRowKeysRequest],
-        typing.Union[
-            bigtable.SampleRowKeysResponse,
-            typing.Awaitable[bigtable.SampleRowKeysResponse],
-        ],
-    ]:
+    def sample_row_keys(self) -> typing.Callable[
+            [bigtable.SampleRowKeysRequest],
+            typing.Union[
+                bigtable.SampleRowKeysResponse,
+                typing.Awaitable[bigtable.SampleRowKeysResponse]
+            ]]:
         raise NotImplementedError()
 
     @property
-    def mutate_row(
-        self,
-    ) -> typing.Callable[
-        [bigtable.MutateRowRequest],
-        typing.Union[
-            bigtable.MutateRowResponse, typing.Awaitable[bigtable.MutateRowResponse]
-        ],
-    ]:
+    def mutate_row(self) -> typing.Callable[
+            [bigtable.MutateRowRequest],
+            typing.Union[
+                bigtable.MutateRowResponse,
+                typing.Awaitable[bigtable.MutateRowResponse]
+            ]]:
         raise NotImplementedError()
 
     @property
-    def mutate_rows(
-        self,
-    ) -> typing.Callable[
-        [bigtable.MutateRowsRequest],
-        typing.Union[
-            bigtable.MutateRowsResponse, typing.Awaitable[bigtable.MutateRowsResponse]
-        ],
-    ]:
+    def mutate_rows(self) -> typing.Callable[
+            [bigtable.MutateRowsRequest],
+            typing.Union[
+                bigtable.MutateRowsResponse,
+                typing.Awaitable[bigtable.MutateRowsResponse]
+            ]]:
         raise NotImplementedError()
 
     @property
-    def check_and_mutate_row(
-        self,
-    ) -> typing.Callable[
-        [bigtable.CheckAndMutateRowRequest],
-        typing.Union[
-            bigtable.CheckAndMutateRowResponse,
-            typing.Awaitable[bigtable.CheckAndMutateRowResponse],
-        ],
-    ]:
+    def check_and_mutate_row(self) -> typing.Callable[
+            [bigtable.CheckAndMutateRowRequest],
+            typing.Union[
+                bigtable.CheckAndMutateRowResponse,
+                typing.Awaitable[bigtable.CheckAndMutateRowResponse]
+            ]]:
         raise NotImplementedError()
 
     @property
-    def read_modify_write_row(
-        self,
-    ) -> typing.Callable[
-        [bigtable.ReadModifyWriteRowRequest],
-        typing.Union[
-            bigtable.ReadModifyWriteRowResponse,
-            typing.Awaitable[bigtable.ReadModifyWriteRowResponse],
-        ],
-    ]:
+    def read_modify_write_row(self) -> typing.Callable[
+            [bigtable.ReadModifyWriteRowRequest],
+            typing.Union[
+                bigtable.ReadModifyWriteRowResponse,
+                typing.Awaitable[bigtable.ReadModifyWriteRowResponse]
+            ]]:
         raise NotImplementedError()
 
 
-__all__ = ("BigtableTransport",)
+__all__ = (
+    'BigtableTransport',
+)

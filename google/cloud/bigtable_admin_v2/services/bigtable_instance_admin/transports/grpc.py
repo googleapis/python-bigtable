@@ -18,11 +18,11 @@
 import warnings
 from typing import Callable, Dict, Optional, Sequence, Tuple
 
-from google.api_core import grpc_helpers  # type: ignore
+from google.api_core import grpc_helpers   # type: ignore
 from google.api_core import operations_v1  # type: ignore
-from google.api_core import gapic_v1  # type: ignore
-from google import auth  # type: ignore
-from google.auth import credentials  # type: ignore
+from google.api_core import gapic_v1       # type: ignore
+from google import auth                    # type: ignore
+from google.auth import credentials        # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
 
 import grpc  # type: ignore
@@ -52,24 +52,21 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
     It sends protocol buffers over the wire using gRPC (which is built on
     top of HTTP/2); the ``grpcio`` package must be installed.
     """
-
     _stubs: Dict[str, Callable]
 
-    def __init__(
-        self,
-        *,
-        host: str = "bigtableadmin.googleapis.com",
-        credentials: credentials.Credentials = None,
-        credentials_file: str = None,
-        scopes: Sequence[str] = None,
-        channel: grpc.Channel = None,
-        api_mtls_endpoint: str = None,
-        client_cert_source: Callable[[], Tuple[bytes, bytes]] = None,
-        ssl_channel_credentials: grpc.ChannelCredentials = None,
-        client_cert_source_for_mtls: Callable[[], Tuple[bytes, bytes]] = None,
-        quota_project_id: Optional[str] = None,
-        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-    ) -> None:
+    def __init__(self, *,
+            host: str = 'bigtableadmin.googleapis.com',
+            credentials: credentials.Credentials = None,
+            credentials_file: str = None,
+            scopes: Sequence[str] = None,
+            channel: grpc.Channel = None,
+            api_mtls_endpoint: str = None,
+            client_cert_source: Callable[[], Tuple[bytes, bytes]] = None,
+            ssl_channel_credentials: grpc.ChannelCredentials = None,
+            client_cert_source_for_mtls: Callable[[], Tuple[bytes, bytes]] = None,
+            quota_project_id: Optional[str] = None,
+            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+            ) -> None:
         """Instantiate the transport.
 
         Args:
@@ -181,15 +178,13 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         self._prep_wrapped_messages(client_info)
 
     @classmethod
-    def create_channel(
-        cls,
-        host: str = "bigtableadmin.googleapis.com",
-        credentials: credentials.Credentials = None,
-        credentials_file: str = None,
-        scopes: Optional[Sequence[str]] = None,
-        quota_project_id: Optional[str] = None,
-        **kwargs,
-    ) -> grpc.Channel:
+    def create_channel(cls,
+                       host: str = 'bigtableadmin.googleapis.com',
+                       credentials: credentials.Credentials = None,
+                       credentials_file: str = None,
+                       scopes: Optional[Sequence[str]] = None,
+                       quota_project_id: Optional[str] = None,
+                       **kwargs) -> grpc.Channel:
         """Create and return a gRPC channel object.
         Args:
             host (Optional[str]): The host for the channel to use.
@@ -222,7 +217,7 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
             credentials_file=credentials_file,
             scopes=scopes,
             quota_project_id=quota_project_id,
-            **kwargs,
+            **kwargs
         )
 
     @property
@@ -240,17 +235,17 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         """
         # Sanity check: Only create a new client if we do not already have one.
         if self._operations_client is None:
-            self._operations_client = operations_v1.OperationsClient(self.grpc_channel)
+            self._operations_client = operations_v1.OperationsClient(
+                self.grpc_channel
+            )
 
         # Return the client from cache.
         return self._operations_client
 
     @property
-    def create_instance(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.CreateInstanceRequest], operations.Operation
-    ]:
+    def create_instance(self) -> Callable[
+            [bigtable_instance_admin.CreateInstanceRequest],
+            operations.Operation]:
         r"""Return a callable for the create instance method over gRPC.
 
         Create an instance within a project.
@@ -265,18 +260,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "create_instance" not in self._stubs:
-            self._stubs["create_instance"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateInstance",
+        if 'create_instance' not in self._stubs:
+            self._stubs['create_instance'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateInstance',
                 request_serializer=bigtable_instance_admin.CreateInstanceRequest.serialize,
                 response_deserializer=operations.Operation.FromString,
             )
-        return self._stubs["create_instance"]
+        return self._stubs['create_instance']
 
     @property
-    def get_instance(
-        self,
-    ) -> Callable[[bigtable_instance_admin.GetInstanceRequest], instance.Instance]:
+    def get_instance(self) -> Callable[
+            [bigtable_instance_admin.GetInstanceRequest],
+            instance.Instance]:
         r"""Return a callable for the get instance method over gRPC.
 
         Gets information about an instance.
@@ -291,21 +286,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "get_instance" not in self._stubs:
-            self._stubs["get_instance"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetInstance",
+        if 'get_instance' not in self._stubs:
+            self._stubs['get_instance'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/GetInstance',
                 request_serializer=bigtable_instance_admin.GetInstanceRequest.serialize,
                 response_deserializer=instance.Instance.deserialize,
             )
-        return self._stubs["get_instance"]
+        return self._stubs['get_instance']
 
     @property
-    def list_instances(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.ListInstancesRequest],
-        bigtable_instance_admin.ListInstancesResponse,
-    ]:
+    def list_instances(self) -> Callable[
+            [bigtable_instance_admin.ListInstancesRequest],
+            bigtable_instance_admin.ListInstancesResponse]:
         r"""Return a callable for the list instances method over gRPC.
 
         Lists information about instances in a project.
@@ -320,16 +312,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "list_instances" not in self._stubs:
-            self._stubs["list_instances"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/ListInstances",
+        if 'list_instances' not in self._stubs:
+            self._stubs['list_instances'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/ListInstances',
                 request_serializer=bigtable_instance_admin.ListInstancesRequest.serialize,
                 response_deserializer=bigtable_instance_admin.ListInstancesResponse.deserialize,
             )
-        return self._stubs["list_instances"]
+        return self._stubs['list_instances']
 
     @property
-    def update_instance(self) -> Callable[[instance.Instance], instance.Instance]:
+    def update_instance(self) -> Callable[
+            [instance.Instance],
+            instance.Instance]:
         r"""Return a callable for the update instance method over gRPC.
 
         Updates an instance within a project. This method
@@ -347,20 +341,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "update_instance" not in self._stubs:
-            self._stubs["update_instance"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateInstance",
+        if 'update_instance' not in self._stubs:
+            self._stubs['update_instance'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateInstance',
                 request_serializer=instance.Instance.serialize,
                 response_deserializer=instance.Instance.deserialize,
             )
-        return self._stubs["update_instance"]
+        return self._stubs['update_instance']
 
     @property
-    def partial_update_instance(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.PartialUpdateInstanceRequest], operations.Operation
-    ]:
+    def partial_update_instance(self) -> Callable[
+            [bigtable_instance_admin.PartialUpdateInstanceRequest],
+            operations.Operation]:
         r"""Return a callable for the partial update instance method over gRPC.
 
         Partially updates an instance within a project. This
@@ -377,18 +369,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "partial_update_instance" not in self._stubs:
-            self._stubs["partial_update_instance"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/PartialUpdateInstance",
+        if 'partial_update_instance' not in self._stubs:
+            self._stubs['partial_update_instance'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/PartialUpdateInstance',
                 request_serializer=bigtable_instance_admin.PartialUpdateInstanceRequest.serialize,
                 response_deserializer=operations.Operation.FromString,
             )
-        return self._stubs["partial_update_instance"]
+        return self._stubs['partial_update_instance']
 
     @property
-    def delete_instance(
-        self,
-    ) -> Callable[[bigtable_instance_admin.DeleteInstanceRequest], empty.Empty]:
+    def delete_instance(self) -> Callable[
+            [bigtable_instance_admin.DeleteInstanceRequest],
+            empty.Empty]:
         r"""Return a callable for the delete instance method over gRPC.
 
         Delete an instance from a project.
@@ -403,18 +395,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "delete_instance" not in self._stubs:
-            self._stubs["delete_instance"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteInstance",
+        if 'delete_instance' not in self._stubs:
+            self._stubs['delete_instance'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteInstance',
                 request_serializer=bigtable_instance_admin.DeleteInstanceRequest.serialize,
                 response_deserializer=empty.Empty.FromString,
             )
-        return self._stubs["delete_instance"]
+        return self._stubs['delete_instance']
 
     @property
-    def create_cluster(
-        self,
-    ) -> Callable[[bigtable_instance_admin.CreateClusterRequest], operations.Operation]:
+    def create_cluster(self) -> Callable[
+            [bigtable_instance_admin.CreateClusterRequest],
+            operations.Operation]:
         r"""Return a callable for the create cluster method over gRPC.
 
         Creates a cluster within an instance.
@@ -429,18 +421,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "create_cluster" not in self._stubs:
-            self._stubs["create_cluster"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateCluster",
+        if 'create_cluster' not in self._stubs:
+            self._stubs['create_cluster'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateCluster',
                 request_serializer=bigtable_instance_admin.CreateClusterRequest.serialize,
                 response_deserializer=operations.Operation.FromString,
             )
-        return self._stubs["create_cluster"]
+        return self._stubs['create_cluster']
 
     @property
-    def get_cluster(
-        self,
-    ) -> Callable[[bigtable_instance_admin.GetClusterRequest], instance.Cluster]:
+    def get_cluster(self) -> Callable[
+            [bigtable_instance_admin.GetClusterRequest],
+            instance.Cluster]:
         r"""Return a callable for the get cluster method over gRPC.
 
         Gets information about a cluster.
@@ -455,21 +447,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "get_cluster" not in self._stubs:
-            self._stubs["get_cluster"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetCluster",
+        if 'get_cluster' not in self._stubs:
+            self._stubs['get_cluster'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/GetCluster',
                 request_serializer=bigtable_instance_admin.GetClusterRequest.serialize,
                 response_deserializer=instance.Cluster.deserialize,
             )
-        return self._stubs["get_cluster"]
+        return self._stubs['get_cluster']
 
     @property
-    def list_clusters(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.ListClustersRequest],
-        bigtable_instance_admin.ListClustersResponse,
-    ]:
+    def list_clusters(self) -> Callable[
+            [bigtable_instance_admin.ListClustersRequest],
+            bigtable_instance_admin.ListClustersResponse]:
         r"""Return a callable for the list clusters method over gRPC.
 
         Lists information about clusters in an instance.
@@ -484,16 +473,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "list_clusters" not in self._stubs:
-            self._stubs["list_clusters"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/ListClusters",
+        if 'list_clusters' not in self._stubs:
+            self._stubs['list_clusters'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/ListClusters',
                 request_serializer=bigtable_instance_admin.ListClustersRequest.serialize,
                 response_deserializer=bigtable_instance_admin.ListClustersResponse.deserialize,
             )
-        return self._stubs["list_clusters"]
+        return self._stubs['list_clusters']
 
     @property
-    def update_cluster(self) -> Callable[[instance.Cluster], operations.Operation]:
+    def update_cluster(self) -> Callable[
+            [instance.Cluster],
+            operations.Operation]:
         r"""Return a callable for the update cluster method over gRPC.
 
         Updates a cluster within an instance.
@@ -508,18 +499,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "update_cluster" not in self._stubs:
-            self._stubs["update_cluster"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateCluster",
+        if 'update_cluster' not in self._stubs:
+            self._stubs['update_cluster'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateCluster',
                 request_serializer=instance.Cluster.serialize,
                 response_deserializer=operations.Operation.FromString,
             )
-        return self._stubs["update_cluster"]
+        return self._stubs['update_cluster']
 
     @property
-    def delete_cluster(
-        self,
-    ) -> Callable[[bigtable_instance_admin.DeleteClusterRequest], empty.Empty]:
+    def delete_cluster(self) -> Callable[
+            [bigtable_instance_admin.DeleteClusterRequest],
+            empty.Empty]:
         r"""Return a callable for the delete cluster method over gRPC.
 
         Deletes a cluster from an instance.
@@ -534,20 +525,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "delete_cluster" not in self._stubs:
-            self._stubs["delete_cluster"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteCluster",
+        if 'delete_cluster' not in self._stubs:
+            self._stubs['delete_cluster'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteCluster',
                 request_serializer=bigtable_instance_admin.DeleteClusterRequest.serialize,
                 response_deserializer=empty.Empty.FromString,
             )
-        return self._stubs["delete_cluster"]
+        return self._stubs['delete_cluster']
 
     @property
-    def create_app_profile(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.CreateAppProfileRequest], instance.AppProfile
-    ]:
+    def create_app_profile(self) -> Callable[
+            [bigtable_instance_admin.CreateAppProfileRequest],
+            instance.AppProfile]:
         r"""Return a callable for the create app profile method over gRPC.
 
         Creates an app profile within an instance.
@@ -562,18 +551,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "create_app_profile" not in self._stubs:
-            self._stubs["create_app_profile"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateAppProfile",
+        if 'create_app_profile' not in self._stubs:
+            self._stubs['create_app_profile'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/CreateAppProfile',
                 request_serializer=bigtable_instance_admin.CreateAppProfileRequest.serialize,
                 response_deserializer=instance.AppProfile.deserialize,
             )
-        return self._stubs["create_app_profile"]
+        return self._stubs['create_app_profile']
 
     @property
-    def get_app_profile(
-        self,
-    ) -> Callable[[bigtable_instance_admin.GetAppProfileRequest], instance.AppProfile]:
+    def get_app_profile(self) -> Callable[
+            [bigtable_instance_admin.GetAppProfileRequest],
+            instance.AppProfile]:
         r"""Return a callable for the get app profile method over gRPC.
 
         Gets information about an app profile.
@@ -588,21 +577,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "get_app_profile" not in self._stubs:
-            self._stubs["get_app_profile"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetAppProfile",
+        if 'get_app_profile' not in self._stubs:
+            self._stubs['get_app_profile'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/GetAppProfile',
                 request_serializer=bigtable_instance_admin.GetAppProfileRequest.serialize,
                 response_deserializer=instance.AppProfile.deserialize,
             )
-        return self._stubs["get_app_profile"]
+        return self._stubs['get_app_profile']
 
     @property
-    def list_app_profiles(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.ListAppProfilesRequest],
-        bigtable_instance_admin.ListAppProfilesResponse,
-    ]:
+    def list_app_profiles(self) -> Callable[
+            [bigtable_instance_admin.ListAppProfilesRequest],
+            bigtable_instance_admin.ListAppProfilesResponse]:
         r"""Return a callable for the list app profiles method over gRPC.
 
         Lists information about app profiles in an instance.
@@ -617,20 +603,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "list_app_profiles" not in self._stubs:
-            self._stubs["list_app_profiles"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/ListAppProfiles",
+        if 'list_app_profiles' not in self._stubs:
+            self._stubs['list_app_profiles'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/ListAppProfiles',
                 request_serializer=bigtable_instance_admin.ListAppProfilesRequest.serialize,
                 response_deserializer=bigtable_instance_admin.ListAppProfilesResponse.deserialize,
             )
-        return self._stubs["list_app_profiles"]
+        return self._stubs['list_app_profiles']
 
     @property
-    def update_app_profile(
-        self,
-    ) -> Callable[
-        [bigtable_instance_admin.UpdateAppProfileRequest], operations.Operation
-    ]:
+    def update_app_profile(self) -> Callable[
+            [bigtable_instance_admin.UpdateAppProfileRequest],
+            operations.Operation]:
         r"""Return a callable for the update app profile method over gRPC.
 
         Updates an app profile within an instance.
@@ -645,18 +629,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "update_app_profile" not in self._stubs:
-            self._stubs["update_app_profile"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateAppProfile",
+        if 'update_app_profile' not in self._stubs:
+            self._stubs['update_app_profile'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/UpdateAppProfile',
                 request_serializer=bigtable_instance_admin.UpdateAppProfileRequest.serialize,
                 response_deserializer=operations.Operation.FromString,
             )
-        return self._stubs["update_app_profile"]
+        return self._stubs['update_app_profile']
 
     @property
-    def delete_app_profile(
-        self,
-    ) -> Callable[[bigtable_instance_admin.DeleteAppProfileRequest], empty.Empty]:
+    def delete_app_profile(self) -> Callable[
+            [bigtable_instance_admin.DeleteAppProfileRequest],
+            empty.Empty]:
         r"""Return a callable for the delete app profile method over gRPC.
 
         Deletes an app profile from an instance.
@@ -671,18 +655,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "delete_app_profile" not in self._stubs:
-            self._stubs["delete_app_profile"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteAppProfile",
+        if 'delete_app_profile' not in self._stubs:
+            self._stubs['delete_app_profile'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/DeleteAppProfile',
                 request_serializer=bigtable_instance_admin.DeleteAppProfileRequest.serialize,
                 response_deserializer=empty.Empty.FromString,
             )
-        return self._stubs["delete_app_profile"]
+        return self._stubs['delete_app_profile']
 
     @property
-    def get_iam_policy(
-        self,
-    ) -> Callable[[iam_policy.GetIamPolicyRequest], policy.Policy]:
+    def get_iam_policy(self) -> Callable[
+            [iam_policy.GetIamPolicyRequest],
+            policy.Policy]:
         r"""Return a callable for the get iam policy method over gRPC.
 
         Gets the access control policy for an instance
@@ -699,18 +683,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "get_iam_policy" not in self._stubs:
-            self._stubs["get_iam_policy"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/GetIamPolicy",
+        if 'get_iam_policy' not in self._stubs:
+            self._stubs['get_iam_policy'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/GetIamPolicy',
                 request_serializer=iam_policy.GetIamPolicyRequest.SerializeToString,
                 response_deserializer=policy.Policy.FromString,
             )
-        return self._stubs["get_iam_policy"]
+        return self._stubs['get_iam_policy']
 
     @property
-    def set_iam_policy(
-        self,
-    ) -> Callable[[iam_policy.SetIamPolicyRequest], policy.Policy]:
+    def set_iam_policy(self) -> Callable[
+            [iam_policy.SetIamPolicyRequest],
+            policy.Policy]:
         r"""Return a callable for the set iam policy method over gRPC.
 
         Sets the access control policy on an instance
@@ -726,20 +710,18 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "set_iam_policy" not in self._stubs:
-            self._stubs["set_iam_policy"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/SetIamPolicy",
+        if 'set_iam_policy' not in self._stubs:
+            self._stubs['set_iam_policy'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/SetIamPolicy',
                 request_serializer=iam_policy.SetIamPolicyRequest.SerializeToString,
                 response_deserializer=policy.Policy.FromString,
             )
-        return self._stubs["set_iam_policy"]
+        return self._stubs['set_iam_policy']
 
     @property
-    def test_iam_permissions(
-        self,
-    ) -> Callable[
-        [iam_policy.TestIamPermissionsRequest], iam_policy.TestIamPermissionsResponse
-    ]:
+    def test_iam_permissions(self) -> Callable[
+            [iam_policy.TestIamPermissionsRequest],
+            iam_policy.TestIamPermissionsResponse]:
         r"""Return a callable for the test iam permissions method over gRPC.
 
         Returns permissions that the caller has on the
@@ -755,13 +737,15 @@ class BigtableInstanceAdminGrpcTransport(BigtableInstanceAdminTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if "test_iam_permissions" not in self._stubs:
-            self._stubs["test_iam_permissions"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.admin.v2.BigtableInstanceAdmin/TestIamPermissions",
+        if 'test_iam_permissions' not in self._stubs:
+            self._stubs['test_iam_permissions'] = self.grpc_channel.unary_unary(
+                '/google.bigtable.admin.v2.BigtableInstanceAdmin/TestIamPermissions',
                 request_serializer=iam_policy.TestIamPermissionsRequest.SerializeToString,
                 response_deserializer=iam_policy.TestIamPermissionsResponse.FromString,
             )
-        return self._stubs["test_iam_permissions"]
+        return self._stubs['test_iam_permissions']
 
 
-__all__ = ("BigtableInstanceAdminGrpcTransport",)
+__all__ = (
+    'BigtableInstanceAdminGrpcTransport',
+)
