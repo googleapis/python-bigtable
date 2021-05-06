@@ -40,7 +40,7 @@ from google.cloud.bigtable_admin_v2.types import common
 from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable_admin_v2.types import instance as gba_instance
 from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
-from google.iam.v1 import policy_pb2 as policy  # type: ignore
+from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.protobuf import field_mask_pb2 as field_mask  # type: ignore
 
 from .transports.base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
@@ -1768,7 +1768,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             retry: retries.Retry = gapic_v1.method.DEFAULT,
             timeout: float = None,
             metadata: Sequence[Tuple[str, str]] = (),
-            ) -> policy.Policy:
+            ) -> giv_policy.Policy:
         r"""Gets the access control policy for an instance
         resource. Returns an empty policy if an instance exists
         but does not have a policy set.
@@ -1901,7 +1901,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             retry: retries.Retry = gapic_v1.method.DEFAULT,
             timeout: float = None,
             metadata: Sequence[Tuple[str, str]] = (),
-            ) -> policy.Policy:
+            ) -> giv_policy.Policy:
         r"""Sets the access control policy on an instance
         resource. Replaces any existing policy.
 

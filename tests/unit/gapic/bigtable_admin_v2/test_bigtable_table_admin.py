@@ -43,8 +43,8 @@ from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.types import table
 from google.cloud.bigtable_admin_v2.types import table as gba_table
 from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
-from google.iam.v1 import options_pb2 as options  # type: ignore
-from google.iam.v1 import policy_pb2 as policy  # type: ignore
+from google.iam.v1 import options_pb2 as giv_options  # type: ignore
+from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.longrunning import operations_pb2
 from google.oauth2 import service_account
 from google.protobuf import any_pb2 as gp_any  # type: ignore
@@ -5486,7 +5486,7 @@ def test_get_iam_policy(transport: str = 'grpc', request_type=iam_policy.GetIamP
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy(
+        call.return_value = giv_policy.Policy(
             version=774,
 
             etag=b'etag_blob',
@@ -5503,7 +5503,7 @@ def test_get_iam_policy(transport: str = 'grpc', request_type=iam_policy.GetIamP
 
     # Establish that the response is the type that we expect.
 
-    assert isinstance(response, policy.Policy)
+    assert isinstance(response, giv_policy.Policy)
 
     assert response.version == 774
 
@@ -5548,7 +5548,7 @@ async def test_get_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy(
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy(
             version=774,
             etag=b'etag_blob',
         ))
@@ -5562,7 +5562,7 @@ async def test_get_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
         assert args[0] == iam_policy.GetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-    assert isinstance(response, policy.Policy)
+    assert isinstance(response, giv_policy.Policy)
 
     assert response.version == 774
 
@@ -5588,7 +5588,7 @@ def test_get_iam_policy_field_headers():
     with mock.patch.object(
             type(client.transport.get_iam_policy),
             '__call__') as call:
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         client.get_iam_policy(request)
 
@@ -5620,7 +5620,7 @@ async def test_get_iam_policy_field_headers_async():
     with mock.patch.object(
             type(client.transport.get_iam_policy),
             '__call__') as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
 
         await client.get_iam_policy(request)
 
@@ -5646,11 +5646,11 @@ def test_get_iam_policy_from_dict_foreign():
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         response = client.get_iam_policy(request={
             'resource': 'resource_value',
-            'options': options.GetPolicyOptions(requested_policy_version=2598),
+            'options_': giv_options.GetPolicyOptions(requested_policy_version=2598),
             }
         )
         call.assert_called()
@@ -5666,7 +5666,7 @@ def test_get_iam_policy_flattened():
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
@@ -5707,9 +5707,9 @@ async def test_get_iam_policy_flattened_async():
             type(client.transport.get_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         response = await client.get_iam_policy(
@@ -5754,7 +5754,7 @@ def test_set_iam_policy(transport: str = 'grpc', request_type=iam_policy.SetIamP
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy(
+        call.return_value = giv_policy.Policy(
             version=774,
 
             etag=b'etag_blob',
@@ -5771,7 +5771,7 @@ def test_set_iam_policy(transport: str = 'grpc', request_type=iam_policy.SetIamP
 
     # Establish that the response is the type that we expect.
 
-    assert isinstance(response, policy.Policy)
+    assert isinstance(response, giv_policy.Policy)
 
     assert response.version == 774
 
@@ -5816,7 +5816,7 @@ async def test_set_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy(
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy(
             version=774,
             etag=b'etag_blob',
         ))
@@ -5830,7 +5830,7 @@ async def test_set_iam_policy_async(transport: str = 'grpc_asyncio', request_typ
         assert args[0] == iam_policy.SetIamPolicyRequest()
 
     # Establish that the response is the type that we expect.
-    assert isinstance(response, policy.Policy)
+    assert isinstance(response, giv_policy.Policy)
 
     assert response.version == 774
 
@@ -5856,7 +5856,7 @@ def test_set_iam_policy_field_headers():
     with mock.patch.object(
             type(client.transport.set_iam_policy),
             '__call__') as call:
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         client.set_iam_policy(request)
 
@@ -5888,7 +5888,7 @@ async def test_set_iam_policy_field_headers_async():
     with mock.patch.object(
             type(client.transport.set_iam_policy),
             '__call__') as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
 
         await client.set_iam_policy(request)
 
@@ -5914,11 +5914,11 @@ def test_set_iam_policy_from_dict_foreign():
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         response = client.set_iam_policy(request={
             'resource': 'resource_value',
-            'policy': policy.Policy(version=774),
+            'policy_': giv_policy.Policy(version=774),
             }
         )
         call.assert_called()
@@ -5934,7 +5934,7 @@ def test_set_iam_policy_flattened():
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
@@ -5975,9 +5975,9 @@ async def test_set_iam_policy_flattened_async():
             type(client.transport.set_iam_policy),
             '__call__') as call:
         # Designate an appropriate return value for the call.
-        call.return_value = policy.Policy()
+        call.return_value = giv_policy.Policy()
 
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(policy.Policy())
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(giv_policy.Policy())
         # Call the method with a truthy value for each flattened field,
         # using the keyword arguments to the method.
         response = await client.set_iam_policy(
