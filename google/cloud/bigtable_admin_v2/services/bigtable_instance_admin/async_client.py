@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from collections import OrderedDict
 import functools
 import re
@@ -36,6 +38,7 @@ from google.cloud.bigtable_admin_v2.types import instance as gba_instance
 from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
 from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.protobuf import field_mask_pb2 as field_mask  # type: ignore
+
 from .transports.base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc_asyncio import BigtableInstanceAdminGrpcAsyncIOTransport
 from .client import BigtableInstanceAdminClient
@@ -61,14 +64,19 @@ class BigtableInstanceAdminAsyncClient:
     parse_crypto_key_path = staticmethod(BigtableInstanceAdminClient.parse_crypto_key_path)
     instance_path = staticmethod(BigtableInstanceAdminClient.instance_path)
     parse_instance_path = staticmethod(BigtableInstanceAdminClient.parse_instance_path)
+
     common_billing_account_path = staticmethod(BigtableInstanceAdminClient.common_billing_account_path)
     parse_common_billing_account_path = staticmethod(BigtableInstanceAdminClient.parse_common_billing_account_path)
+
     common_folder_path = staticmethod(BigtableInstanceAdminClient.common_folder_path)
     parse_common_folder_path = staticmethod(BigtableInstanceAdminClient.parse_common_folder_path)
+
     common_organization_path = staticmethod(BigtableInstanceAdminClient.common_organization_path)
     parse_common_organization_path = staticmethod(BigtableInstanceAdminClient.parse_common_organization_path)
+
     common_project_path = staticmethod(BigtableInstanceAdminClient.common_project_path)
     parse_common_project_path = staticmethod(BigtableInstanceAdminClient.parse_common_project_path)
+
     common_location_path = staticmethod(BigtableInstanceAdminClient.common_location_path)
     parse_common_location_path = staticmethod(BigtableInstanceAdminClient.parse_common_location_path)
 
@@ -153,6 +161,7 @@ class BigtableInstanceAdminAsyncClient:
             google.auth.exceptions.MutualTlsChannelError: If mutual TLS transport
                 creation failed for any reason.
         """
+
         self._client = BigtableInstanceAdminClient(
             credentials=credentials,
             transport=transport,
@@ -176,8 +185,7 @@ class BigtableInstanceAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateInstanceRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateInstance.
             parent (:class:`str`):
                 Required. The unique name of the project in which to
@@ -213,6 +221,7 @@ class BigtableInstanceAdminAsyncClient:
                 This corresponds to the ``clusters`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -242,6 +251,7 @@ class BigtableInstanceAdminAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
         if instance_id is not None:
@@ -299,8 +309,7 @@ class BigtableInstanceAdminAsyncClient:
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetInstanceRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetInstance.
             name (:class:`str`):
                 Required. The unique name of the requested instance.
@@ -310,6 +319,7 @@ class BigtableInstanceAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -337,6 +347,7 @@ class BigtableInstanceAdminAsyncClient:
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -345,7 +356,10 @@ class BigtableInstanceAdminAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_instance,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -386,8 +400,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListInstancesRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListInstances.
             parent (:class:`str`):
                 Required. The unique name of the project for which a
@@ -397,6 +410,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -421,6 +435,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
 
@@ -429,7 +444,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_instances,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -472,13 +490,13 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
-                The request object.
-                A collection of Bigtable
+                The request object. A collection of Bigtable
                 [Tables][google.bigtable.admin.v2.Table] and the
                 resources that serve them. All tables in an instance are
                 served from all
                 [Clusters][google.bigtable.admin.v2.Cluster] in the
                 instance.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -495,6 +513,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         """
         # Create or coerce a protobuf request object.
+
         request = instance.Instance(request)
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -502,7 +521,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.update_instance,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -546,8 +568,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.PartialUpdateInstance.
             instance (:class:`google.cloud.bigtable_admin_v2.types.Instance`):
                 Required. The Instance which will
@@ -564,6 +585,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -593,6 +615,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if instance is not None:
             request.instance = instance
         if update_mask is not None:
@@ -603,7 +626,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.partial_update_instance,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -652,8 +678,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteInstance.
             name (:class:`str`):
                 Required. The unique name of the instance to be deleted.
@@ -663,6 +688,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -681,6 +707,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -722,8 +749,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateClusterRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateCluster.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
@@ -749,6 +775,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``cluster`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -777,6 +804,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
         if cluster_id is not None:
@@ -831,8 +859,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetClusterRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetCluster.
             name (:class:`str`):
                 Required. The unique name of the requested cluster.
@@ -842,6 +869,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -868,6 +896,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -876,7 +905,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_cluster,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -917,8 +949,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListClustersRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListClusters.
             parent (:class:`str`):
                 Required. The unique name of the instance for which a
@@ -930,6 +961,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -954,6 +986,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
 
@@ -962,7 +995,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_clusters,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1002,11 +1038,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.Cluster`):
-                The request object.
-                A resizable group of nodes in a
+                The request object. A resizable group of nodes in a
                 particular cloud location, capable of serving all
                 [Tables][google.bigtable.admin.v2.Table] in the parent
                 [Instance][google.bigtable.admin.v2.Instance].
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1024,6 +1060,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         """
         # Create or coerce a protobuf request object.
+
         request = instance.Cluster(request)
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -1031,7 +1068,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.update_cluster,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1080,8 +1120,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteClusterRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteCluster.
             name (:class:`str`):
                 Required. The unique name of the cluster to be deleted.
@@ -1091,6 +1130,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1109,6 +1149,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -1150,8 +1191,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateAppProfile.
             parent (:class:`str`):
                 Required. The unique name of the instance in which to
@@ -1177,6 +1217,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``app_profile`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1202,6 +1243,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
         if app_profile_id is not None:
@@ -1248,8 +1290,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.GetAppProfileRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetAppProfile.
             name (:class:`str`):
                 Required. The unique name of the requested app profile.
@@ -1259,6 +1300,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1284,6 +1326,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -1292,7 +1335,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_app_profile,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1333,8 +1379,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListAppProfiles.
             parent (:class:`str`):
                 Required. The unique name of the instance for which a
@@ -1347,6 +1392,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1374,6 +1420,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if parent is not None:
             request.parent = parent
 
@@ -1382,7 +1429,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_app_profiles,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1433,8 +1483,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.UpdateAppProfile.
             app_profile (:class:`google.cloud.bigtable_admin_v2.types.AppProfile`):
                 Required. The app profile which will
@@ -1451,6 +1500,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1477,6 +1527,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if app_profile is not None:
             request.app_profile = app_profile
         if update_mask is not None:
@@ -1487,7 +1538,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.update_app_profile,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1536,8 +1590,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteAppProfile.
             name (:class:`str`):
                 Required. The unique name of the app profile to be
@@ -1547,6 +1600,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1565,6 +1619,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
+
         if name is not None:
             request.name = name
 
@@ -1606,8 +1661,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.GetIamPolicyRequest`):
-                The request object.
-                Request message for `GetIamPolicy`
+                The request object. Request message for `GetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -1618,6 +1672,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1691,10 +1746,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy.GetIamPolicyRequest(**request)
+
         elif not request:
             request = iam_policy.GetIamPolicyRequest(resource=resource, )
 
@@ -1703,7 +1759,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_iam_policy,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1745,8 +1804,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.SetIamPolicyRequest`):
-                The request object.
-                Request message for `SetIamPolicy`
+                The request object. Request message for `SetIamPolicy`
                 method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -1757,6 +1815,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1830,10 +1889,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy.SetIamPolicyRequest(**request)
+
         elif not request:
             request = iam_policy.SetIamPolicyRequest(resource=resource, )
 
@@ -1878,8 +1938,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         Args:
             request (:class:`google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest`):
-                The request object.
-                Request message for
+                The request object. Request message for
                 `TestIamPermissions` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
@@ -1899,6 +1958,7 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1917,10 +1977,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy.TestIamPermissionsRequest(**request)
+
         elif not request:
             request = iam_policy.TestIamPermissionsRequest(resource=resource, permissions=permissions, )
 
@@ -1929,7 +1990,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.test_iam_permissions,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
                     exceptions.DeadlineExceeded,
                     exceptions.ServiceUnavailable,
                 ),
@@ -1957,6 +2021,8 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
 
         # Done; return the response.
         return response
+
+
 
 
 

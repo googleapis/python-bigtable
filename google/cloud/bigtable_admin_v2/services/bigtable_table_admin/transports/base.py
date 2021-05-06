@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import abc
-from typing import Awaitable, Callable, Dict, Optional, Sequence, Union
-import packaging.version
+import typing
 import pkg_resources
 
 from google import auth  # type: ignore
-import google.api_core  # type: ignore
 from google.api_core import exceptions  # type: ignore
 from google.api_core import gapic_v1    # type: ignore
 from google.api_core import retry as retries  # type: ignore
@@ -34,6 +34,7 @@ from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.longrunning import operations_pb2 as operations  # type: ignore
 from google.protobuf import empty_pb2 as empty  # type: ignore
 
+
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
         gapic_version=pkg_resources.get_distribution(
@@ -42,18 +43,6 @@ try:
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
-
-try:
-    # google.auth.__version__ was added in 1.26.0
-    _GOOGLE_AUTH_VERSION = auth.__version__
-except AttributeError:
-    try:  # try pkg_resources if it is available
-        _GOOGLE_AUTH_VERSION = pkg_resources.get_distribution("google-auth").version
-    except pkg_resources.DistributionNotFound:  # pragma: NO COVER
-        _GOOGLE_AUTH_VERSION = None
-
-_API_CORE_VERSION = google.api_core.__version__
-
 
 class BigtableTableAdminTransport(abc.ABC):
     """Abstract transport class for BigtableTableAdmin."""
@@ -67,22 +56,20 @@ class BigtableTableAdminTransport(abc.ABC):
         'https://www.googleapis.com/auth/cloud-platform.read-only',
     )
 
-    DEFAULT_HOST: str = 'bigtableadmin.googleapis.com'
     def __init__(
             self, *,
-            host: str = DEFAULT_HOST,
+            host: str = 'bigtableadmin.googleapis.com',
             credentials: credentials.Credentials = None,
-            credentials_file: Optional[str] = None,
-            scopes: Optional[Sequence[str]] = None,
-            quota_project_id: Optional[str] = None,
+            credentials_file: typing.Optional[str] = None,
+            scopes: typing.Optional[typing.Sequence[str]] = AUTH_SCOPES,
+            quota_project_id: typing.Optional[str] = None,
             client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
             **kwargs,
             ) -> None:
         """Instantiate the transport.
 
         Args:
-            host (Optional[str]):
-                 The hostname to connect to.
+            host (Optional[str]): The hostname to connect to.
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -91,7 +78,7 @@ class BigtableTableAdminTransport(abc.ABC):
             credentials_file (Optional[str]): A file with credentials that can
                 be loaded with :func:`google.auth.load_credentials_from_file`.
                 This argument is mutually exclusive with credentials.
-            scopes (Optional[Sequence[str]]): A list of scopes.
+            scope (Optional[Sequence[str]]): A list of scopes.
             quota_project_id (Optional[str]): An optional project to use for billing
                 and quota.
             client_info (google.api_core.gapic_v1.client_info.ClientInfo):
@@ -105,8 +92,6 @@ class BigtableTableAdminTransport(abc.ABC):
             host += ':443'
         self._host = host
 
-        scopes_kwargs = self._get_scopes_kwargs(self._host, scopes)
-
         # Save the scopes.
         self._scopes = scopes or self.AUTH_SCOPES
 
@@ -118,56 +103,15 @@ class BigtableTableAdminTransport(abc.ABC):
         if credentials_file is not None:
             credentials, _ = auth.load_credentials_from_file(
                                 credentials_file,
-                                **scopes_kwargs,
+                                scopes=self._scopes,
                                 quota_project_id=quota_project_id
                             )
 
         elif credentials is None:
-            credentials, _ = auth.default(**scopes_kwargs, quota_project_id=quota_project_id)
+            credentials, _ = auth.default(scopes=self._scopes, quota_project_id=quota_project_id)
 
         # Save the credentials.
         self._credentials = credentials
-
-    # TODO(busunkim): These two class methods are in the base transport
-    # to avoid duplicating code across the transport classes. These functions
-    # should be deleted once the minimum required versions of google-api-core
-    # and google-auth are increased.
-
-    # TODO: Remove this function once google-auth >= 1.25.0 is required
-    @classmethod
-    def _get_scopes_kwargs(cls, host: str, scopes: Optional[Sequence[str]]) -> Dict[str, Optional[Sequence[str]]]:
-        """Returns scopes kwargs to pass to google-auth methods depending on the google-auth version"""
-
-        scopes_kwargs = {}
-
-        if _GOOGLE_AUTH_VERSION and (
-            packaging.version.parse(_GOOGLE_AUTH_VERSION)
-            >= packaging.version.parse("1.25.0")
-        ):
-            scopes_kwargs = {"scopes": scopes, "default_scopes": cls.AUTH_SCOPES}
-        else:
-            scopes_kwargs = {"scopes": scopes or cls.AUTH_SCOPES}
-
-        return scopes_kwargs
-
-    # TODO: Remove this function once google-api-core >= 1.26.0 is required
-    @classmethod
-    def _get_self_signed_jwt_kwargs(cls, host: str, scopes: Optional[Sequence[str]]) -> Dict[str, Union[Optional[Sequence[str]], str]]:
-        """Returns kwargs to pass to grpc_helpers.create_channel depending on the google-api-core version"""
-
-        self_signed_jwt_kwargs: Dict[str, Union[Optional[Sequence[str]], str]] = {}
-
-        if _API_CORE_VERSION and (
-            packaging.version.parse(_API_CORE_VERSION)
-            >= packaging.version.parse("1.26.0")
-        ):
-            self_signed_jwt_kwargs["default_scopes"] = cls.AUTH_SCOPES
-            self_signed_jwt_kwargs["scopes"] = scopes
-            self_signed_jwt_kwargs["default_host"] = cls.DEFAULT_HOST
-        else:
-            self_signed_jwt_kwargs["scopes"] = scopes or cls.AUTH_SCOPES
-
-        return self_signed_jwt_kwargs
 
     def _prep_wrapped_messages(self, client_info):
         # Precompute the wrapped methods.
@@ -185,7 +129,10 @@ class BigtableTableAdminTransport(abc.ABC):
             self.list_tables: gapic_v1.method.wrap_method(
                 self.list_tables,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -197,7 +144,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.get_table: gapic_v1.method.wrap_method(
                 self.get_table,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -224,7 +174,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.generate_consistency_token: gapic_v1.method.wrap_method(
                 self.generate_consistency_token,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -236,7 +189,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.check_consistency: gapic_v1.method.wrap_method(
                 self.check_consistency,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -253,7 +209,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.get_snapshot: gapic_v1.method.wrap_method(
                 self.get_snapshot,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -265,7 +224,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.list_snapshots: gapic_v1.method.wrap_method(
                 self.list_snapshots,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -287,7 +249,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.get_backup: gapic_v1.method.wrap_method(
                 self.get_backup,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -309,7 +274,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.list_backups: gapic_v1.method.wrap_method(
                 self.list_backups,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -326,7 +294,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.get_iam_policy: gapic_v1.method.wrap_method(
                 self.get_iam_policy,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -343,7 +314,10 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
             self.test_iam_permissions: gapic_v1.method.wrap_method(
                 self.test_iam_permissions,
                 default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_exception_type(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
                         exceptions.DeadlineExceeded,
                         exceptions.ServiceUnavailable,
                     ),
@@ -352,7 +326,8 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-         }
+
+        }
 
     @property
     def operations_client(self) -> operations_v1.OperationsClient:
@@ -360,200 +335,200 @@ initial=1.0,maximum=60.0,multiplier=2,                    predicate=retries.if_e
         raise NotImplementedError()
 
     @property
-    def create_table(self) -> Callable[
+    def create_table(self) -> typing.Callable[
             [bigtable_table_admin.CreateTableRequest],
-            Union[
+            typing.Union[
                 gba_table.Table,
-                Awaitable[gba_table.Table]
+                typing.Awaitable[gba_table.Table]
             ]]:
         raise NotImplementedError()
 
     @property
-    def create_table_from_snapshot(self) -> Callable[
+    def create_table_from_snapshot(self) -> typing.Callable[
             [bigtable_table_admin.CreateTableFromSnapshotRequest],
-            Union[
+            typing.Union[
                 operations.Operation,
-                Awaitable[operations.Operation]
+                typing.Awaitable[operations.Operation]
             ]]:
         raise NotImplementedError()
 
     @property
-    def list_tables(self) -> Callable[
+    def list_tables(self) -> typing.Callable[
             [bigtable_table_admin.ListTablesRequest],
-            Union[
+            typing.Union[
                 bigtable_table_admin.ListTablesResponse,
-                Awaitable[bigtable_table_admin.ListTablesResponse]
+                typing.Awaitable[bigtable_table_admin.ListTablesResponse]
             ]]:
         raise NotImplementedError()
 
     @property
-    def get_table(self) -> Callable[
+    def get_table(self) -> typing.Callable[
             [bigtable_table_admin.GetTableRequest],
-            Union[
+            typing.Union[
                 table.Table,
-                Awaitable[table.Table]
+                typing.Awaitable[table.Table]
             ]]:
         raise NotImplementedError()
 
     @property
-    def delete_table(self) -> Callable[
+    def delete_table(self) -> typing.Callable[
             [bigtable_table_admin.DeleteTableRequest],
-            Union[
+            typing.Union[
                 empty.Empty,
-                Awaitable[empty.Empty]
+                typing.Awaitable[empty.Empty]
             ]]:
         raise NotImplementedError()
 
     @property
-    def modify_column_families(self) -> Callable[
+    def modify_column_families(self) -> typing.Callable[
             [bigtable_table_admin.ModifyColumnFamiliesRequest],
-            Union[
+            typing.Union[
                 table.Table,
-                Awaitable[table.Table]
+                typing.Awaitable[table.Table]
             ]]:
         raise NotImplementedError()
 
     @property
-    def drop_row_range(self) -> Callable[
+    def drop_row_range(self) -> typing.Callable[
             [bigtable_table_admin.DropRowRangeRequest],
-            Union[
+            typing.Union[
                 empty.Empty,
-                Awaitable[empty.Empty]
+                typing.Awaitable[empty.Empty]
             ]]:
         raise NotImplementedError()
 
     @property
-    def generate_consistency_token(self) -> Callable[
+    def generate_consistency_token(self) -> typing.Callable[
             [bigtable_table_admin.GenerateConsistencyTokenRequest],
-            Union[
+            typing.Union[
                 bigtable_table_admin.GenerateConsistencyTokenResponse,
-                Awaitable[bigtable_table_admin.GenerateConsistencyTokenResponse]
+                typing.Awaitable[bigtable_table_admin.GenerateConsistencyTokenResponse]
             ]]:
         raise NotImplementedError()
 
     @property
-    def check_consistency(self) -> Callable[
+    def check_consistency(self) -> typing.Callable[
             [bigtable_table_admin.CheckConsistencyRequest],
-            Union[
+            typing.Union[
                 bigtable_table_admin.CheckConsistencyResponse,
-                Awaitable[bigtable_table_admin.CheckConsistencyResponse]
+                typing.Awaitable[bigtable_table_admin.CheckConsistencyResponse]
             ]]:
         raise NotImplementedError()
 
     @property
-    def snapshot_table(self) -> Callable[
+    def snapshot_table(self) -> typing.Callable[
             [bigtable_table_admin.SnapshotTableRequest],
-            Union[
+            typing.Union[
                 operations.Operation,
-                Awaitable[operations.Operation]
+                typing.Awaitable[operations.Operation]
             ]]:
         raise NotImplementedError()
 
     @property
-    def get_snapshot(self) -> Callable[
+    def get_snapshot(self) -> typing.Callable[
             [bigtable_table_admin.GetSnapshotRequest],
-            Union[
+            typing.Union[
                 table.Snapshot,
-                Awaitable[table.Snapshot]
+                typing.Awaitable[table.Snapshot]
             ]]:
         raise NotImplementedError()
 
     @property
-    def list_snapshots(self) -> Callable[
+    def list_snapshots(self) -> typing.Callable[
             [bigtable_table_admin.ListSnapshotsRequest],
-            Union[
+            typing.Union[
                 bigtable_table_admin.ListSnapshotsResponse,
-                Awaitable[bigtable_table_admin.ListSnapshotsResponse]
+                typing.Awaitable[bigtable_table_admin.ListSnapshotsResponse]
             ]]:
         raise NotImplementedError()
 
     @property
-    def delete_snapshot(self) -> Callable[
+    def delete_snapshot(self) -> typing.Callable[
             [bigtable_table_admin.DeleteSnapshotRequest],
-            Union[
+            typing.Union[
                 empty.Empty,
-                Awaitable[empty.Empty]
+                typing.Awaitable[empty.Empty]
             ]]:
         raise NotImplementedError()
 
     @property
-    def create_backup(self) -> Callable[
+    def create_backup(self) -> typing.Callable[
             [bigtable_table_admin.CreateBackupRequest],
-            Union[
+            typing.Union[
                 operations.Operation,
-                Awaitable[operations.Operation]
+                typing.Awaitable[operations.Operation]
             ]]:
         raise NotImplementedError()
 
     @property
-    def get_backup(self) -> Callable[
+    def get_backup(self) -> typing.Callable[
             [bigtable_table_admin.GetBackupRequest],
-            Union[
+            typing.Union[
                 table.Backup,
-                Awaitable[table.Backup]
+                typing.Awaitable[table.Backup]
             ]]:
         raise NotImplementedError()
 
     @property
-    def update_backup(self) -> Callable[
+    def update_backup(self) -> typing.Callable[
             [bigtable_table_admin.UpdateBackupRequest],
-            Union[
+            typing.Union[
                 table.Backup,
-                Awaitable[table.Backup]
+                typing.Awaitable[table.Backup]
             ]]:
         raise NotImplementedError()
 
     @property
-    def delete_backup(self) -> Callable[
+    def delete_backup(self) -> typing.Callable[
             [bigtable_table_admin.DeleteBackupRequest],
-            Union[
+            typing.Union[
                 empty.Empty,
-                Awaitable[empty.Empty]
+                typing.Awaitable[empty.Empty]
             ]]:
         raise NotImplementedError()
 
     @property
-    def list_backups(self) -> Callable[
+    def list_backups(self) -> typing.Callable[
             [bigtable_table_admin.ListBackupsRequest],
-            Union[
+            typing.Union[
                 bigtable_table_admin.ListBackupsResponse,
-                Awaitable[bigtable_table_admin.ListBackupsResponse]
+                typing.Awaitable[bigtable_table_admin.ListBackupsResponse]
             ]]:
         raise NotImplementedError()
 
     @property
-    def restore_table(self) -> Callable[
+    def restore_table(self) -> typing.Callable[
             [bigtable_table_admin.RestoreTableRequest],
-            Union[
+            typing.Union[
                 operations.Operation,
-                Awaitable[operations.Operation]
+                typing.Awaitable[operations.Operation]
             ]]:
         raise NotImplementedError()
 
     @property
-    def get_iam_policy(self) -> Callable[
+    def get_iam_policy(self) -> typing.Callable[
             [iam_policy.GetIamPolicyRequest],
-            Union[
+            typing.Union[
                 giv_policy.Policy,
-                Awaitable[giv_policy.Policy]
+                typing.Awaitable[giv_policy.Policy]
             ]]:
         raise NotImplementedError()
 
     @property
-    def set_iam_policy(self) -> Callable[
+    def set_iam_policy(self) -> typing.Callable[
             [iam_policy.SetIamPolicyRequest],
-            Union[
+            typing.Union[
                 giv_policy.Policy,
-                Awaitable[giv_policy.Policy]
+                typing.Awaitable[giv_policy.Policy]
             ]]:
         raise NotImplementedError()
 
     @property
-    def test_iam_permissions(self) -> Callable[
+    def test_iam_permissions(self) -> typing.Callable[
             [iam_policy.TestIamPermissionsRequest],
-            Union[
+            typing.Union[
                 iam_policy.TestIamPermissionsResponse,
-                Awaitable[iam_policy.TestIamPermissionsResponse]
+                typing.Awaitable[iam_policy.TestIamPermissionsResponse]
             ]]:
         raise NotImplementedError()
 

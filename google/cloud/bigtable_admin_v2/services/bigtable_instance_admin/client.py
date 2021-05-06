@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from collections import OrderedDict
 from distutils import util
 import os
@@ -40,6 +42,7 @@ from google.cloud.bigtable_admin_v2.types import instance as gba_instance
 from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
 from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.protobuf import field_mask_pb2 as field_mask  # type: ignore
+
 from .transports.base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableInstanceAdminGrpcTransport
 from .transports.grpc_asyncio import BigtableInstanceAdminGrpcAsyncIOTransport
@@ -381,8 +384,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateInstance.
             parent (str):
                 Required. The unique name of the project in which to
@@ -418,6 +420,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``clusters`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -449,8 +452,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateInstanceRequest):
             request = bigtable_instance_admin.CreateInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
             if instance_id is not None:
@@ -503,8 +508,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetInstance.
             name (str):
                 Required. The unique name of the requested instance.
@@ -514,6 +518,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -543,8 +548,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetInstanceRequest):
             request = bigtable_instance_admin.GetInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -583,8 +590,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListInstancesRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListInstances.
             parent (str):
                 Required. The unique name of the project for which a
@@ -594,6 +600,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -620,8 +627,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListInstancesRequest):
             request = bigtable_instance_admin.ListInstancesRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
 
@@ -662,13 +671,13 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.Instance):
-                The request object.
-                A collection of Bigtable
+                The request object. A collection of Bigtable
                 [Tables][google.bigtable.admin.v2.Table] and the
                 resources that serve them. All tables in an instance are
                 served from all
                 [Clusters][google.bigtable.admin.v2.Cluster] in the
                 instance.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -685,6 +694,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
+
         # Minor optimization to avoid making a copy if the user passes
         # in a instance.Instance.
         # There's no risk of modifying the input as we've already verified
@@ -730,8 +740,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.PartialUpdateInstance.
             instance (google.cloud.bigtable_admin_v2.types.Instance):
                 Required. The Instance which will
@@ -748,6 +757,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -779,8 +789,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.PartialUpdateInstanceRequest):
             request = bigtable_instance_admin.PartialUpdateInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if instance is not None:
                 request.instance = instance
             if update_mask is not None:
@@ -829,8 +841,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteInstance.
             name (str):
                 Required. The unique name of the instance to be deleted.
@@ -840,6 +851,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -860,8 +872,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteInstanceRequest):
             request = bigtable_instance_admin.DeleteInstanceRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -899,8 +913,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateCluster.
             parent (str):
                 Required. The unique name of the instance in which to
@@ -926,6 +939,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``cluster`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -956,8 +970,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateClusterRequest):
             request = bigtable_instance_admin.CreateClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
             if cluster_id is not None:
@@ -1008,8 +1024,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetCluster.
             name (str):
                 Required. The unique name of the requested cluster.
@@ -1019,6 +1034,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1047,8 +1063,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetClusterRequest):
             request = bigtable_instance_admin.GetClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -1087,8 +1105,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListClustersRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListClusters.
             parent (str):
                 Required. The unique name of the instance for which a
@@ -1100,6 +1117,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1126,8 +1144,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListClustersRequest):
             request = bigtable_instance_admin.ListClustersRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
 
@@ -1165,11 +1185,11 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.Cluster):
-                The request object.
-                A resizable group of nodes in a
+                The request object. A resizable group of nodes in a
                 particular cloud location, capable of serving all
                 [Tables][google.bigtable.admin.v2.Table] in the parent
                 [Instance][google.bigtable.admin.v2.Instance].
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1187,6 +1207,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
+
         # Minor optimization to avoid making a copy if the user passes
         # in a instance.Cluster.
         # There's no risk of modifying the input as we've already verified
@@ -1237,8 +1258,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteClusterRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteCluster.
             name (str):
                 Required. The unique name of the cluster to be deleted.
@@ -1248,6 +1268,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1268,8 +1289,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteClusterRequest):
             request = bigtable_instance_admin.DeleteClusterRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -1307,8 +1330,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.CreateAppProfile.
             parent (str):
                 Required. The unique name of the instance in which to
@@ -1334,6 +1356,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``app_profile`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1361,8 +1384,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.CreateAppProfileRequest):
             request = bigtable_instance_admin.CreateAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
             if app_profile_id is not None:
@@ -1405,8 +1430,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.GetAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.GetAppProfile.
             name (str):
                 Required. The unique name of the requested app profile.
@@ -1416,6 +1440,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1443,8 +1468,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.GetAppProfileRequest):
             request = bigtable_instance_admin.GetAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -1483,8 +1510,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.ListAppProfiles.
             parent (str):
                 Required. The unique name of the instance for which a
@@ -1497,6 +1523,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1526,8 +1553,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.ListAppProfilesRequest):
             request = bigtable_instance_admin.ListAppProfilesRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if parent is not None:
                 request.parent = parent
 
@@ -1576,8 +1605,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.UpdateAppProfile.
             app_profile (google.cloud.bigtable_admin_v2.types.AppProfile):
                 Required. The app profile which will
@@ -1594,6 +1622,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1622,8 +1651,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.UpdateAppProfileRequest):
             request = bigtable_instance_admin.UpdateAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if app_profile is not None:
                 request.app_profile = app_profile
             if update_mask is not None:
@@ -1672,8 +1703,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 BigtableInstanceAdmin.DeleteAppProfile.
             name (str):
                 Required. The unique name of the app profile to be
@@ -1683,6 +1713,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1703,8 +1734,10 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         # there are no flattened fields.
         if not isinstance(request, bigtable_instance_admin.DeleteAppProfileRequest):
             request = bigtable_instance_admin.DeleteAppProfileRequest(request)
-             # If we have keyword arguments corresponding to fields on the
+
+            # If we have keyword arguments corresponding to fields on the
             # request, apply these.
+
             if name is not None:
                 request.name = name
 
@@ -1742,8 +1775,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.GetIamPolicyRequest):
-                The request object.
-                Request message for `GetIamPolicy`
+                The request object. Request message for `GetIamPolicy`
                 method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -1754,6 +1786,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1827,14 +1860,15 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.GetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.GetIamPolicyRequest()
-             if resource is not None:
+
+            if resource is not None:
                 request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -1873,8 +1907,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.SetIamPolicyRequest):
-                The request object.
-                Request message for `SetIamPolicy`
+                The request object. Request message for `SetIamPolicy`
                 method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -1885,6 +1918,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -1958,14 +1992,15 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.SetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.SetIamPolicyRequest()
-             if resource is not None:
+
+            if resource is not None:
                 request.resource = resource
 
         # Wrap the RPC method; this adds retry and timeout information,
@@ -2005,8 +2040,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         Args:
             request (google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest):
-                The request object.
-                Request message for
+                The request object. Request message for
                 `TestIamPermissions` method.
             resource (str):
                 REQUIRED: The resource for which the
@@ -2026,6 +2060,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
+
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
@@ -2044,15 +2079,17 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-         if isinstance(request, dict):
+        if isinstance(request, dict):
             # The request isn't a proto-plus wrapped type,
             # so it must be constructed via keyword expansion.
             request = iam_policy.TestIamPermissionsRequest(**request)
         elif not request:
             # Null request, just make one.
             request = iam_policy.TestIamPermissionsRequest()
-             if resource is not None:
+
+            if resource is not None:
                 request.resource = resource
+
             if permissions:
                 request.permissions.extend(permissions)
 
@@ -2078,6 +2115,8 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
 
         # Done; return the response.
         return response
+
+
 
 
 

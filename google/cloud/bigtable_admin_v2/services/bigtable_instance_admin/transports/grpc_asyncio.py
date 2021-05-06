@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import warnings
-from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple
 
 from google.api_core import gapic_v1                   # type: ignore
 from google.api_core import grpc_helpers_async         # type: ignore
@@ -22,7 +24,6 @@ from google.api_core import operations_v1              # type: ignore
 from google import auth                                # type: ignore
 from google.auth import credentials                    # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
-import packaging.version
 
 import grpc                        # type: ignore
 from grpc.experimental import aio  # type: ignore
@@ -33,6 +34,7 @@ from google.iam.v1 import iam_policy_pb2 as iam_policy  # type: ignore
 from google.iam.v1 import policy_pb2 as giv_policy  # type: ignore
 from google.longrunning import operations_pb2 as operations  # type: ignore
 from google.protobuf import empty_pb2 as empty  # type: ignore
+
 from .base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
 from .grpc import BigtableInstanceAdminGrpcTransport
 
@@ -85,15 +87,13 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
         Returns:
             aio.Channel: A gRPC AsyncIO channel object.
         """
-
-        self_signed_jwt_kwargs = cls._get_self_signed_jwt_kwargs(host, scopes)
-
+        scopes = scopes or cls.AUTH_SCOPES
         return grpc_helpers_async.create_channel(
             host,
             credentials=credentials,
             credentials_file=credentials_file,
+            scopes=scopes,
             quota_project_id=quota_project_id,
-            **self_signed_jwt_kwargs,
             **kwargs
         )
 
@@ -113,8 +113,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
         """Instantiate the transport.
 
         Args:
-            host (Optional[str]):
-                 The hostname to connect to.
+            host (Optional[str]): The hostname to connect to.
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -173,6 +172,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
             # If a channel was explicitly provided, set it.
             self._grpc_channel = channel
             self._ssl_channel_credentials = None
+
         else:
             if api_mtls_endpoint:
                 host = api_mtls_endpoint
@@ -251,9 +251,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def create_instance(self) -> Callable[
             [bigtable_instance_admin.CreateInstanceRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the
-        create instance
-          method over gRPC.
+        r"""Return a callable for the create instance method over gRPC.
 
         Create an instance within a project.
 
@@ -279,9 +277,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def get_instance(self) -> Callable[
             [bigtable_instance_admin.GetInstanceRequest],
             Awaitable[instance.Instance]]:
-        r"""Return a callable for the
-        get instance
-          method over gRPC.
+        r"""Return a callable for the get instance method over gRPC.
 
         Gets information about an instance.
 
@@ -307,9 +303,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def list_instances(self) -> Callable[
             [bigtable_instance_admin.ListInstancesRequest],
             Awaitable[bigtable_instance_admin.ListInstancesResponse]]:
-        r"""Return a callable for the
-        list instances
-          method over gRPC.
+        r"""Return a callable for the list instances method over gRPC.
 
         Lists information about instances in a project.
 
@@ -335,9 +329,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def update_instance(self) -> Callable[
             [instance.Instance],
             Awaitable[instance.Instance]]:
-        r"""Return a callable for the
-        update instance
-          method over gRPC.
+        r"""Return a callable for the update instance method over gRPC.
 
         Updates an instance within a project. This method
         updates only the display name and type for an Instance.
@@ -366,9 +358,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def partial_update_instance(self) -> Callable[
             [bigtable_instance_admin.PartialUpdateInstanceRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the
-        partial update instance
-          method over gRPC.
+        r"""Return a callable for the partial update instance method over gRPC.
 
         Partially updates an instance within a project. This
         method can modify all fields of an Instance and is the
@@ -396,9 +386,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def delete_instance(self) -> Callable[
             [bigtable_instance_admin.DeleteInstanceRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the
-        delete instance
-          method over gRPC.
+        r"""Return a callable for the delete instance method over gRPC.
 
         Delete an instance from a project.
 
@@ -424,9 +412,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def create_cluster(self) -> Callable[
             [bigtable_instance_admin.CreateClusterRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the
-        create cluster
-          method over gRPC.
+        r"""Return a callable for the create cluster method over gRPC.
 
         Creates a cluster within an instance.
 
@@ -452,9 +438,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def get_cluster(self) -> Callable[
             [bigtable_instance_admin.GetClusterRequest],
             Awaitable[instance.Cluster]]:
-        r"""Return a callable for the
-        get cluster
-          method over gRPC.
+        r"""Return a callable for the get cluster method over gRPC.
 
         Gets information about a cluster.
 
@@ -480,9 +464,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def list_clusters(self) -> Callable[
             [bigtable_instance_admin.ListClustersRequest],
             Awaitable[bigtable_instance_admin.ListClustersResponse]]:
-        r"""Return a callable for the
-        list clusters
-          method over gRPC.
+        r"""Return a callable for the list clusters method over gRPC.
 
         Lists information about clusters in an instance.
 
@@ -508,9 +490,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def update_cluster(self) -> Callable[
             [instance.Cluster],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the
-        update cluster
-          method over gRPC.
+        r"""Return a callable for the update cluster method over gRPC.
 
         Updates a cluster within an instance.
 
@@ -536,9 +516,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def delete_cluster(self) -> Callable[
             [bigtable_instance_admin.DeleteClusterRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the
-        delete cluster
-          method over gRPC.
+        r"""Return a callable for the delete cluster method over gRPC.
 
         Deletes a cluster from an instance.
 
@@ -564,9 +542,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def create_app_profile(self) -> Callable[
             [bigtable_instance_admin.CreateAppProfileRequest],
             Awaitable[instance.AppProfile]]:
-        r"""Return a callable for the
-        create app profile
-          method over gRPC.
+        r"""Return a callable for the create app profile method over gRPC.
 
         Creates an app profile within an instance.
 
@@ -592,9 +568,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def get_app_profile(self) -> Callable[
             [bigtable_instance_admin.GetAppProfileRequest],
             Awaitable[instance.AppProfile]]:
-        r"""Return a callable for the
-        get app profile
-          method over gRPC.
+        r"""Return a callable for the get app profile method over gRPC.
 
         Gets information about an app profile.
 
@@ -620,9 +594,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def list_app_profiles(self) -> Callable[
             [bigtable_instance_admin.ListAppProfilesRequest],
             Awaitable[bigtable_instance_admin.ListAppProfilesResponse]]:
-        r"""Return a callable for the
-        list app profiles
-          method over gRPC.
+        r"""Return a callable for the list app profiles method over gRPC.
 
         Lists information about app profiles in an instance.
 
@@ -648,9 +620,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def update_app_profile(self) -> Callable[
             [bigtable_instance_admin.UpdateAppProfileRequest],
             Awaitable[operations.Operation]]:
-        r"""Return a callable for the
-        update app profile
-          method over gRPC.
+        r"""Return a callable for the update app profile method over gRPC.
 
         Updates an app profile within an instance.
 
@@ -676,9 +646,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def delete_app_profile(self) -> Callable[
             [bigtable_instance_admin.DeleteAppProfileRequest],
             Awaitable[empty.Empty]]:
-        r"""Return a callable for the
-        delete app profile
-          method over gRPC.
+        r"""Return a callable for the delete app profile method over gRPC.
 
         Deletes an app profile from an instance.
 
@@ -704,9 +672,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def get_iam_policy(self) -> Callable[
             [iam_policy.GetIamPolicyRequest],
             Awaitable[giv_policy.Policy]]:
-        r"""Return a callable for the
-        get iam policy
-          method over gRPC.
+        r"""Return a callable for the get iam policy method over gRPC.
 
         Gets the access control policy for an instance
         resource. Returns an empty policy if an instance exists
@@ -734,9 +700,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def set_iam_policy(self) -> Callable[
             [iam_policy.SetIamPolicyRequest],
             Awaitable[giv_policy.Policy]]:
-        r"""Return a callable for the
-        set iam policy
-          method over gRPC.
+        r"""Return a callable for the set iam policy method over gRPC.
 
         Sets the access control policy on an instance
         resource. Replaces any existing policy.
@@ -763,9 +727,7 @@ class BigtableInstanceAdminGrpcAsyncIOTransport(BigtableInstanceAdminTransport):
     def test_iam_permissions(self) -> Callable[
             [iam_policy.TestIamPermissionsRequest],
             Awaitable[iam_policy.TestIamPermissionsResponse]]:
-        r"""Return a callable for the
-        test iam permissions
-          method over gRPC.
+        r"""Return a callable for the test iam permissions method over gRPC.
 
         Returns permissions that the caller has on the
         specified instance resource.
