@@ -19,12 +19,12 @@ import re
 from typing import Dict, Sequence, Tuple, Type, Union
 import pkg_resources
 
-import google.api_core.client_options as ClientOptions # type: ignore
+import google.api_core.client_options as ClientOptions  # type: ignore
 from google.api_core import exceptions as core_exceptions  # type: ignore
-from google.api_core import gapic_v1                   # type: ignore
-from google.api_core import retry as retries           # type: ignore
-from google.auth import credentials as ga_credentials   # type: ignore
-from google.oauth2 import service_account              # type: ignore
+from google.api_core import gapic_v1  # type: ignore
+from google.api_core import retry as retries  # type: ignore
+from google.auth import credentials as ga_credentials  # type: ignore
+from google.oauth2 import service_account  # type: ignore
 
 from google.api_core import operation  # type: ignore
 from google.api_core import operation_async  # type: ignore
@@ -58,24 +58,42 @@ class BigtableTableAdminAsyncClient:
     parse_backup_path = staticmethod(BigtableTableAdminClient.parse_backup_path)
     cluster_path = staticmethod(BigtableTableAdminClient.cluster_path)
     parse_cluster_path = staticmethod(BigtableTableAdminClient.parse_cluster_path)
-    crypto_key_version_path = staticmethod(BigtableTableAdminClient.crypto_key_version_path)
-    parse_crypto_key_version_path = staticmethod(BigtableTableAdminClient.parse_crypto_key_version_path)
+    crypto_key_version_path = staticmethod(
+        BigtableTableAdminClient.crypto_key_version_path
+    )
+    parse_crypto_key_version_path = staticmethod(
+        BigtableTableAdminClient.parse_crypto_key_version_path
+    )
     instance_path = staticmethod(BigtableTableAdminClient.instance_path)
     parse_instance_path = staticmethod(BigtableTableAdminClient.parse_instance_path)
     snapshot_path = staticmethod(BigtableTableAdminClient.snapshot_path)
     parse_snapshot_path = staticmethod(BigtableTableAdminClient.parse_snapshot_path)
     table_path = staticmethod(BigtableTableAdminClient.table_path)
     parse_table_path = staticmethod(BigtableTableAdminClient.parse_table_path)
-    common_billing_account_path = staticmethod(BigtableTableAdminClient.common_billing_account_path)
-    parse_common_billing_account_path = staticmethod(BigtableTableAdminClient.parse_common_billing_account_path)
+    common_billing_account_path = staticmethod(
+        BigtableTableAdminClient.common_billing_account_path
+    )
+    parse_common_billing_account_path = staticmethod(
+        BigtableTableAdminClient.parse_common_billing_account_path
+    )
     common_folder_path = staticmethod(BigtableTableAdminClient.common_folder_path)
-    parse_common_folder_path = staticmethod(BigtableTableAdminClient.parse_common_folder_path)
-    common_organization_path = staticmethod(BigtableTableAdminClient.common_organization_path)
-    parse_common_organization_path = staticmethod(BigtableTableAdminClient.parse_common_organization_path)
+    parse_common_folder_path = staticmethod(
+        BigtableTableAdminClient.parse_common_folder_path
+    )
+    common_organization_path = staticmethod(
+        BigtableTableAdminClient.common_organization_path
+    )
+    parse_common_organization_path = staticmethod(
+        BigtableTableAdminClient.parse_common_organization_path
+    )
     common_project_path = staticmethod(BigtableTableAdminClient.common_project_path)
-    parse_common_project_path = staticmethod(BigtableTableAdminClient.parse_common_project_path)
+    parse_common_project_path = staticmethod(
+        BigtableTableAdminClient.parse_common_project_path
+    )
     common_location_path = staticmethod(BigtableTableAdminClient.common_location_path)
-    parse_common_location_path = staticmethod(BigtableTableAdminClient.parse_common_location_path)
+    parse_common_location_path = staticmethod(
+        BigtableTableAdminClient.parse_common_location_path
+    )
 
     @classmethod
     def from_service_account_info(cls, info: dict, *args, **kwargs):
@@ -118,14 +136,19 @@ class BigtableTableAdminAsyncClient:
         """
         return self._client.transport
 
-    get_transport_class = functools.partial(type(BigtableTableAdminClient).get_transport_class, type(BigtableTableAdminClient))
+    get_transport_class = functools.partial(
+        type(BigtableTableAdminClient).get_transport_class,
+        type(BigtableTableAdminClient),
+    )
 
-    def __init__(self, *,
-            credentials: ga_credentials.Credentials = None,
-            transport: Union[str, BigtableTableAdminTransport] = 'grpc_asyncio',
-            client_options: ClientOptions = None,
-            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-            ) -> None:
+    def __init__(
+        self,
+        *,
+        credentials: ga_credentials.Credentials = None,
+        transport: Union[str, BigtableTableAdminTransport] = "grpc_asyncio",
+        client_options: ClientOptions = None,
+        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+    ) -> None:
         """Instantiate the bigtable table admin client.
 
         Args:
@@ -163,19 +186,19 @@ class BigtableTableAdminAsyncClient:
             transport=transport,
             client_options=client_options,
             client_info=client_info,
-
         )
 
-    async def create_table(self,
-            request: bigtable_table_admin.CreateTableRequest = None,
-            *,
-            parent: str = None,
-            table_id: str = None,
-            table: gba_table.Table = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> gba_table.Table:
+    async def create_table(
+        self,
+        request: bigtable_table_admin.CreateTableRequest = None,
+        *,
+        parent: str = None,
+        table_id: str = None,
+        table: gba_table.Table = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> gba_table.Table:
         r"""Creates a new table in the specified instance.
         The table can be created with a full set of initial
         column families, specified in the request.
@@ -225,8 +248,10 @@ class BigtableTableAdminAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, table])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.CreateTableRequest(request)
 
@@ -250,32 +275,26 @@ class BigtableTableAdminAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def create_table_from_snapshot(self,
-            request: bigtable_table_admin.CreateTableFromSnapshotRequest = None,
-            *,
-            parent: str = None,
-            table_id: str = None,
-            source_snapshot: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> operation_async.AsyncOperation:
+    async def create_table_from_snapshot(
+        self,
+        request: bigtable_table_admin.CreateTableFromSnapshotRequest = None,
+        *,
+        parent: str = None,
+        table_id: str = None,
+        source_snapshot: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> operation_async.AsyncOperation:
         r"""Creates a new table from the specified snapshot. The
         target table must not exist. The snapshot and the table
         must be in the same instance.
@@ -341,8 +360,10 @@ class BigtableTableAdminAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, source_snapshot])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
 
@@ -366,18 +387,11 @@ class BigtableTableAdminAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Wrap the response in an operation future.
         response = operation_async.from_gapic(
@@ -390,14 +404,15 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def list_tables(self,
-            request: bigtable_table_admin.ListTablesRequest = None,
-            *,
-            parent: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> pagers.ListTablesAsyncPager:
+    async def list_tables(
+        self,
+        request: bigtable_table_admin.ListTablesRequest = None,
+        *,
+        parent: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> pagers.ListTablesAsyncPager:
         r"""Lists all tables served from a specified instance.
 
         Args:
@@ -432,8 +447,10 @@ class BigtableTableAdminAsyncClient:
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.ListTablesRequest(request)
 
@@ -447,9 +464,11 @@ class BigtableTableAdminAsyncClient:
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_tables,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -460,39 +479,30 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # This method is paged; wrap the response in a pager, which provides
         # an `__aiter__` convenience method.
         response = pagers.ListTablesAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            metadata=metadata,
+            method=rpc, request=request, response=response, metadata=metadata,
         )
 
         # Done; return the response.
         return response
 
-    async def get_table(self,
-            request: bigtable_table_admin.GetTableRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> table.Table:
+    async def get_table(
+        self,
+        request: bigtable_table_admin.GetTableRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> table.Table:
         r"""Gets metadata information about the specified table.
 
         Args:
@@ -526,8 +536,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.GetTableRequest(request)
 
@@ -541,9 +553,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_table,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -554,30 +568,24 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def delete_table(self,
-            request: bigtable_table_admin.DeleteTableRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
+    async def delete_table(
+        self,
+        request: bigtable_table_admin.DeleteTableRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> None:
         r"""Permanently deletes a specified table and all of its
         data.
 
@@ -604,8 +612,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.DeleteTableRequest(request)
 
@@ -625,28 +635,26 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
         await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
+            request, retry=retry, timeout=timeout, metadata=metadata,
         )
 
-    async def modify_column_families(self,
-            request: bigtable_table_admin.ModifyColumnFamiliesRequest = None,
-            *,
-            name: str = None,
-            modifications: Sequence[bigtable_table_admin.ModifyColumnFamiliesRequest.Modification] = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> table.Table:
+    async def modify_column_families(
+        self,
+        request: bigtable_table_admin.ModifyColumnFamiliesRequest = None,
+        *,
+        name: str = None,
+        modifications: Sequence[
+            bigtable_table_admin.ModifyColumnFamiliesRequest.Modification
+        ] = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> table.Table:
         r"""Performs a series of column family modifications on
         the specified table. Either all or none of the
         modifications will occur before this method returns, but
@@ -696,8 +704,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, modifications])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
 
@@ -719,29 +729,23 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def drop_row_range(self,
-            request: bigtable_table_admin.DropRowRangeRequest = None,
-            *,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
+    async def drop_row_range(
+        self,
+        request: bigtable_table_admin.DropRowRangeRequest = None,
+        *,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> None:
         r"""Permanently drop/delete a row range from a specified
         table. The request can specify whether to delete all
         rows in a table, or only those that match a particular
@@ -771,27 +775,23 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
         await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
+            request, retry=retry, timeout=timeout, metadata=metadata,
         )
 
-    async def generate_consistency_token(self,
-            request: bigtable_table_admin.GenerateConsistencyTokenRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
+    async def generate_consistency_token(
+        self,
+        request: bigtable_table_admin.GenerateConsistencyTokenRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
         r"""Generates a consistency token for a Table, which can
         be used in CheckConsistency to check whether mutations
         to the table that finished before this call started have
@@ -827,8 +827,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.GenerateConsistencyTokenRequest(request)
 
@@ -842,9 +844,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.generate_consistency_token,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -855,31 +859,25 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def check_consistency(self,
-            request: bigtable_table_admin.CheckConsistencyRequest = None,
-            *,
-            name: str = None,
-            consistency_token: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> bigtable_table_admin.CheckConsistencyResponse:
+    async def check_consistency(
+        self,
+        request: bigtable_table_admin.CheckConsistencyRequest = None,
+        *,
+        name: str = None,
+        consistency_token: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> bigtable_table_admin.CheckConsistencyResponse:
         r"""Checks replication consistency based on a consistency
         token, that is, if replication has caught up based on
         the conditions specified in the token and the check
@@ -921,8 +919,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, consistency_token])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.CheckConsistencyRequest(request)
 
@@ -938,9 +938,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.check_consistency,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -951,33 +953,27 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def snapshot_table(self,
-            request: bigtable_table_admin.SnapshotTableRequest = None,
-            *,
-            name: str = None,
-            cluster: str = None,
-            snapshot_id: str = None,
-            description: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> operation_async.AsyncOperation:
+    async def snapshot_table(
+        self,
+        request: bigtable_table_admin.SnapshotTableRequest = None,
+        *,
+        name: str = None,
+        cluster: str = None,
+        snapshot_id: str = None,
+        description: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> operation_async.AsyncOperation:
         r"""Creates a new snapshot in the specified cluster from
         the specified source table. The cluster and the table
         must be in the same instance.
@@ -1056,8 +1052,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, cluster, snapshot_id, description])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.SnapshotTableRequest(request)
 
@@ -1083,18 +1081,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Wrap the response in an operation future.
         response = operation_async.from_gapic(
@@ -1107,14 +1098,15 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Done; return the response.
         return response
 
-    async def get_snapshot(self,
-            request: bigtable_table_admin.GetSnapshotRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> table.Snapshot:
+    async def get_snapshot(
+        self,
+        request: bigtable_table_admin.GetSnapshotRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> table.Snapshot:
         r"""Gets metadata information about the specified
         snapshot.
         Note: This is a private alpha release of Cloud Bigtable
@@ -1169,8 +1161,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.GetSnapshotRequest(request)
 
@@ -1184,9 +1178,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_snapshot,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -1197,30 +1193,24 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def list_snapshots(self,
-            request: bigtable_table_admin.ListSnapshotsRequest = None,
-            *,
-            parent: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> pagers.ListSnapshotsAsyncPager:
+    async def list_snapshots(
+        self,
+        request: bigtable_table_admin.ListSnapshotsRequest = None,
+        *,
+        parent: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> pagers.ListSnapshotsAsyncPager:
         r"""Lists all snapshots associated with the specified
         cluster.
         Note: This is a private alpha release of Cloud Bigtable
@@ -1278,8 +1268,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.ListSnapshotsRequest(request)
 
@@ -1293,9 +1285,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_snapshots,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -1306,39 +1300,30 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # This method is paged; wrap the response in a pager, which provides
         # an `__aiter__` convenience method.
         response = pagers.ListSnapshotsAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            metadata=metadata,
+            method=rpc, request=request, response=response, metadata=metadata,
         )
 
         # Done; return the response.
         return response
 
-    async def delete_snapshot(self,
-            request: bigtable_table_admin.DeleteSnapshotRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
+    async def delete_snapshot(
+        self,
+        request: bigtable_table_admin.DeleteSnapshotRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> None:
         r"""Permanently deletes the specified snapshot.
         Note: This is a private alpha release of Cloud Bigtable
         snapshots. This feature is not currently available to
@@ -1376,8 +1361,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.DeleteSnapshotRequest(request)
 
@@ -1397,29 +1384,25 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
         await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
+            request, retry=retry, timeout=timeout, metadata=metadata,
         )
 
-    async def create_backup(self,
-            request: bigtable_table_admin.CreateBackupRequest = None,
-            *,
-            parent: str = None,
-            backup_id: str = None,
-            backup: table.Backup = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> operation_async.AsyncOperation:
+    async def create_backup(
+        self,
+        request: bigtable_table_admin.CreateBackupRequest = None,
+        *,
+        parent: str = None,
+        backup_id: str = None,
+        backup: table.Backup = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> operation_async.AsyncOperation:
         r"""Starts creating a new Cloud Bigtable Backup. The returned backup
         [long-running operation][google.longrunning.Operation] can be
         used to track creation of the backup. The
@@ -1480,8 +1463,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, backup_id, backup])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.CreateBackupRequest(request)
 
@@ -1505,18 +1490,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Wrap the response in an operation future.
         response = operation_async.from_gapic(
@@ -1529,14 +1507,15 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Done; return the response.
         return response
 
-    async def get_backup(self,
-            request: bigtable_table_admin.GetBackupRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> table.Backup:
+    async def get_backup(
+        self,
+        request: bigtable_table_admin.GetBackupRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> table.Backup:
         r"""Gets metadata on a pending or completed Cloud
         Bigtable Backup.
 
@@ -1566,8 +1545,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.GetBackupRequest(request)
 
@@ -1581,9 +1562,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_backup,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -1594,31 +1577,25 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def update_backup(self,
-            request: bigtable_table_admin.UpdateBackupRequest = None,
-            *,
-            backup: table.Backup = None,
-            update_mask: field_mask_pb2.FieldMask = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> table.Backup:
+    async def update_backup(
+        self,
+        request: bigtable_table_admin.UpdateBackupRequest = None,
+        *,
+        backup: table.Backup = None,
+        update_mask: field_mask_pb2.FieldMask = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> table.Backup:
         r"""Updates a pending or completed Cloud Bigtable Backup.
 
         Args:
@@ -1663,8 +1640,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([backup, update_mask])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.UpdateBackupRequest(request)
 
@@ -1686,30 +1665,26 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('backup.name', request.backup.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("backup.name", request.backup.name),)
+            ),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def delete_backup(self,
-            request: bigtable_table_admin.DeleteBackupRequest = None,
-            *,
-            name: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
+    async def delete_backup(
+        self,
+        request: bigtable_table_admin.DeleteBackupRequest = None,
+        *,
+        name: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> None:
         r"""Deletes a pending or completed Cloud Bigtable backup.
 
         Args:
@@ -1735,8 +1710,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.DeleteBackupRequest(request)
 
@@ -1756,27 +1733,23 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('name', request.name),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
         # Send the request.
         await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
+            request, retry=retry, timeout=timeout, metadata=metadata,
         )
 
-    async def list_backups(self,
-            request: bigtable_table_admin.ListBackupsRequest = None,
-            *,
-            parent: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> pagers.ListBackupsAsyncPager:
+    async def list_backups(
+        self,
+        request: bigtable_table_admin.ListBackupsRequest = None,
+        *,
+        parent: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> pagers.ListBackupsAsyncPager:
         r"""Lists Cloud Bigtable backups. Returns both completed
         and pending backups.
 
@@ -1815,8 +1788,10 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
         request = bigtable_table_admin.ListBackupsRequest(request)
 
@@ -1830,9 +1805,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_backups,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -1843,38 +1820,29 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # This method is paged; wrap the response in a pager, which provides
         # an `__aiter__` convenience method.
         response = pagers.ListBackupsAsyncPager(
-            method=rpc,
-            request=request,
-            response=response,
-            metadata=metadata,
+            method=rpc, request=request, response=response, metadata=metadata,
         )
 
         # Done; return the response.
         return response
 
-    async def restore_table(self,
-            request: bigtable_table_admin.RestoreTableRequest = None,
-            *,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> operation_async.AsyncOperation:
+    async def restore_table(
+        self,
+        request: bigtable_table_admin.RestoreTableRequest = None,
+        *,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> operation_async.AsyncOperation:
         r"""Create a new table by restoring from a completed backup. The new
         table must be in the same instance as the instance containing
         the backup. The returned table [long-running
@@ -1918,18 +1886,11 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('parent', request.parent),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Wrap the response in an operation future.
         response = operation_async.from_gapic(
@@ -1942,14 +1903,15 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Done; return the response.
         return response
 
-    async def get_iam_policy(self,
-            request: iam_policy_pb2.GetIamPolicyRequest = None,
-            *,
-            resource: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> policy_pb2.Policy:
+    async def get_iam_policy(
+        self,
+        request: iam_policy_pb2.GetIamPolicyRequest = None,
+        *,
+        resource: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> policy_pb2.Policy:
         r"""Gets the access control policy for a Table or Backup
         resource. Returns an empty policy if the resource exists
         but does not have a policy set.
@@ -2037,24 +1999,28 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.GetIamPolicyRequest(**request)
         elif not request:
-            request = iam_policy_pb2.GetIamPolicyRequest(resource=resource, )
+            request = iam_policy_pb2.GetIamPolicyRequest(resource=resource,)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_iam_policy,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -2065,30 +2031,24 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('resource', request.resource),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("resource", request.resource),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def set_iam_policy(self,
-            request: iam_policy_pb2.SetIamPolicyRequest = None,
-            *,
-            resource: str = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> policy_pb2.Policy:
+    async def set_iam_policy(
+        self,
+        request: iam_policy_pb2.SetIamPolicyRequest = None,
+        *,
+        resource: str = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> policy_pb2.Policy:
         r"""Sets the access control policy on a Table or Backup
         resource. Replaces any existing policy.
 
@@ -2175,15 +2135,17 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.SetIamPolicyRequest(**request)
         elif not request:
-            request = iam_policy_pb2.SetIamPolicyRequest(resource=resource, )
+            request = iam_policy_pb2.SetIamPolicyRequest(resource=resource,)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
@@ -2196,31 +2158,25 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('resource', request.resource),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("resource", request.resource),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
-    async def test_iam_permissions(self,
-            request: iam_policy_pb2.TestIamPermissionsRequest = None,
-            *,
-            resource: str = None,
-            permissions: Sequence[str] = None,
-            retry: retries.Retry = gapic_v1.method.DEFAULT,
-            timeout: float = None,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> iam_policy_pb2.TestIamPermissionsResponse:
+    async def test_iam_permissions(
+        self,
+        request: iam_policy_pb2.TestIamPermissionsRequest = None,
+        *,
+        resource: str = None,
+        permissions: Sequence[str] = None,
+        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        timeout: float = None,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> iam_policy_pb2.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
         specified Table or Backup resource.
 
@@ -2261,24 +2217,30 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource, permissions])
         if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
 
-         # The request isn't a proto-plus wrapped type,
+        # The request isn't a proto-plus wrapped type,
         # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.TestIamPermissionsRequest(**request)
         elif not request:
-            request = iam_policy_pb2.TestIamPermissionsRequest(resource=resource, permissions=permissions, )
+            request = iam_policy_pb2.TestIamPermissionsRequest(
+                resource=resource, permissions=permissions,
+            )
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.test_iam_permissions,
             default_retry=retries.Retry(
-initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_exception_type(
-                    exceptions.DeadlineExceeded,
-                    exceptions.ServiceUnavailable,
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    exceptions.DeadlineExceeded, exceptions.ServiceUnavailable,
                 ),
                 deadline=60.0,
             ),
@@ -2289,36 +2251,24 @@ initial=1.0,maximum=60.0,multiplier=2,                predicate=retries.if_excep
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata((
-                ('resource', request.resource),
-            )),
+            gapic_v1.routing_header.to_grpc_metadata((("resource", request.resource),)),
         )
 
         # Send the request.
-        response = await rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
+        response = await rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
 
         # Done; return the response.
         return response
 
 
-
-
-
 try:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
         gapic_version=pkg_resources.get_distribution(
-            'google-cloud-bigtable-admin',
+            "google-cloud-bigtable-admin",
         ).version,
     )
 except pkg_resources.DistributionNotFound:
     DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo()
 
 
-__all__ = (
-    'BigtableTableAdminAsyncClient',
-)
+__all__ = ("BigtableTableAdminAsyncClient",)

@@ -13,7 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, AsyncIterable, Awaitable, Callable, Iterable, Sequence, Tuple, Optional
+from typing import (
+    Any,
+    AsyncIterable,
+    Awaitable,
+    Callable,
+    Iterable,
+    Sequence,
+    Tuple,
+    Optional,
+)
 
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.types import table
@@ -36,12 +45,15 @@ class ListTablesPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., bigtable_table_admin.ListTablesResponse],
-            request: bigtable_table_admin.ListTablesRequest,
-            response: bigtable_table_admin.ListTablesResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., bigtable_table_admin.ListTablesResponse],
+        request: bigtable_table_admin.ListTablesRequest,
+        response: bigtable_table_admin.ListTablesResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -75,7 +87,7 @@ class ListTablesPager:
             yield from page.tables
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)
 
 
 class ListTablesAsyncPager:
@@ -95,12 +107,15 @@ class ListTablesAsyncPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., Awaitable[bigtable_table_admin.ListTablesResponse]],
-            request: bigtable_table_admin.ListTablesRequest,
-            response: bigtable_table_admin.ListTablesResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., Awaitable[bigtable_table_admin.ListTablesResponse]],
+        request: bigtable_table_admin.ListTablesRequest,
+        response: bigtable_table_admin.ListTablesResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -138,7 +153,7 @@ class ListTablesAsyncPager:
         return async_generator()
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)
 
 
 class ListSnapshotsPager:
@@ -158,12 +173,15 @@ class ListSnapshotsPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., bigtable_table_admin.ListSnapshotsResponse],
-            request: bigtable_table_admin.ListSnapshotsRequest,
-            response: bigtable_table_admin.ListSnapshotsResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., bigtable_table_admin.ListSnapshotsResponse],
+        request: bigtable_table_admin.ListSnapshotsRequest,
+        response: bigtable_table_admin.ListSnapshotsResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -197,7 +215,7 @@ class ListSnapshotsPager:
             yield from page.snapshots
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)
 
 
 class ListSnapshotsAsyncPager:
@@ -217,12 +235,15 @@ class ListSnapshotsAsyncPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., Awaitable[bigtable_table_admin.ListSnapshotsResponse]],
-            request: bigtable_table_admin.ListSnapshotsRequest,
-            response: bigtable_table_admin.ListSnapshotsResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., Awaitable[bigtable_table_admin.ListSnapshotsResponse]],
+        request: bigtable_table_admin.ListSnapshotsRequest,
+        response: bigtable_table_admin.ListSnapshotsResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -260,7 +281,7 @@ class ListSnapshotsAsyncPager:
         return async_generator()
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)
 
 
 class ListBackupsPager:
@@ -280,12 +301,15 @@ class ListBackupsPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., bigtable_table_admin.ListBackupsResponse],
-            request: bigtable_table_admin.ListBackupsRequest,
-            response: bigtable_table_admin.ListBackupsResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., bigtable_table_admin.ListBackupsResponse],
+        request: bigtable_table_admin.ListBackupsRequest,
+        response: bigtable_table_admin.ListBackupsResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -319,7 +343,7 @@ class ListBackupsPager:
             yield from page.backups
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)
 
 
 class ListBackupsAsyncPager:
@@ -339,12 +363,15 @@ class ListBackupsAsyncPager:
     attributes are available on the pager. If multiple requests are made, only
     the most recent response is retained, and thus used for attribute lookup.
     """
-    def __init__(self,
-            method: Callable[..., Awaitable[bigtable_table_admin.ListBackupsResponse]],
-            request: bigtable_table_admin.ListBackupsRequest,
-            response: bigtable_table_admin.ListBackupsResponse,
-            *,
-            metadata: Sequence[Tuple[str, str]] = ()):
+
+    def __init__(
+        self,
+        method: Callable[..., Awaitable[bigtable_table_admin.ListBackupsResponse]],
+        request: bigtable_table_admin.ListBackupsRequest,
+        response: bigtable_table_admin.ListBackupsResponse,
+        *,
+        metadata: Sequence[Tuple[str, str]] = ()
+    ):
         """Instantiate the pager.
 
         Args:
@@ -382,4 +409,4 @@ class ListBackupsAsyncPager:
         return async_generator()
 
     def __repr__(self) -> str:
-        return '{0}<{1!r}>'.format(self.__class__.__name__, self._response)
+        return "{0}<{1!r}>".format(self.__class__.__name__, self._response)

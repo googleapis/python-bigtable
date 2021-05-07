@@ -21,30 +21,30 @@ from google.protobuf import timestamp_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
+    package="google.bigtable.admin.v2",
     manifest={
-        'CreateInstanceRequest',
-        'GetInstanceRequest',
-        'ListInstancesRequest',
-        'ListInstancesResponse',
-        'PartialUpdateInstanceRequest',
-        'DeleteInstanceRequest',
-        'CreateClusterRequest',
-        'GetClusterRequest',
-        'ListClustersRequest',
-        'ListClustersResponse',
-        'DeleteClusterRequest',
-        'CreateInstanceMetadata',
-        'UpdateInstanceMetadata',
-        'CreateClusterMetadata',
-        'UpdateClusterMetadata',
-        'CreateAppProfileRequest',
-        'GetAppProfileRequest',
-        'ListAppProfilesRequest',
-        'ListAppProfilesResponse',
-        'UpdateAppProfileRequest',
-        'DeleteAppProfileRequest',
-        'UpdateAppProfileMetadata',
+        "CreateInstanceRequest",
+        "GetInstanceRequest",
+        "ListInstancesRequest",
+        "ListInstancesResponse",
+        "PartialUpdateInstanceRequest",
+        "DeleteInstanceRequest",
+        "CreateClusterRequest",
+        "GetClusterRequest",
+        "ListClustersRequest",
+        "ListClustersResponse",
+        "DeleteClusterRequest",
+        "CreateInstanceMetadata",
+        "UpdateInstanceMetadata",
+        "CreateClusterMetadata",
+        "UpdateClusterMetadata",
+        "CreateAppProfileRequest",
+        "GetAppProfileRequest",
+        "ListAppProfilesRequest",
+        "ListAppProfilesResponse",
+        "UpdateAppProfileRequest",
+        "DeleteAppProfileRequest",
+        "UpdateAppProfileMetadata",
     },
 )
 
@@ -72,24 +72,11 @@ class CreateInstanceRequest(proto.Message):
             at most four clusters can be specified.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    instance_id = proto.Field(
-        proto.STRING,
-        number=2,
-    )
-    instance = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=gba_instance.Instance,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    instance_id = proto.Field(proto.STRING, number=2,)
+    instance = proto.Field(proto.MESSAGE, number=3, message=gba_instance.Instance,)
     clusters = proto.MapField(
-        proto.STRING,
-        proto.MESSAGE,
-        number=4,
-        message=gba_instance.Cluster,
+        proto.STRING, proto.MESSAGE, number=4, message=gba_instance.Cluster,
     )
 
 
@@ -101,10 +88,7 @@ class GetInstanceRequest(proto.Message):
             are of the form ``projects/{project}/instances/{instance}``.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
+    name = proto.Field(proto.STRING, number=1,)
 
 
 class ListInstancesRequest(proto.Message):
@@ -118,14 +102,8 @@ class ListInstancesRequest(proto.Message):
             DEPRECATED: This field is unused and ignored.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    page_token = proto.Field(
-        proto.STRING,
-        number=2,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    page_token = proto.Field(proto.STRING, number=2,)
 
 
 class ListInstancesResponse(proto.Message):
@@ -150,18 +128,10 @@ class ListInstancesResponse(proto.Message):
         return self
 
     instances = proto.RepeatedField(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.Instance,
+        proto.MESSAGE, number=1, message=gba_instance.Instance,
     )
-    failed_locations = proto.RepeatedField(
-        proto.STRING,
-        number=2,
-    )
-    next_page_token = proto.Field(
-        proto.STRING,
-        number=3,
-    )
+    failed_locations = proto.RepeatedField(proto.STRING, number=2,)
+    next_page_token = proto.Field(proto.STRING, number=3,)
 
 
 class PartialUpdateInstanceRequest(proto.Message):
@@ -177,15 +147,9 @@ class PartialUpdateInstanceRequest(proto.Message):
             should be replaced. Must be explicitly set.
     """
 
-    instance = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.Instance,
-    )
+    instance = proto.Field(proto.MESSAGE, number=1, message=gba_instance.Instance,)
     update_mask = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=field_mask_pb2.FieldMask,
+        proto.MESSAGE, number=2, message=field_mask_pb2.FieldMask,
     )
 
 
@@ -198,10 +162,7 @@ class DeleteInstanceRequest(proto.Message):
             ``projects/{project}/instances/{instance}``.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
+    name = proto.Field(proto.STRING, number=1,)
 
 
 class CreateClusterRequest(proto.Message):
@@ -221,19 +182,9 @@ class CreateClusterRequest(proto.Message):
             ``OutputOnly`` must be left blank.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    cluster_id = proto.Field(
-        proto.STRING,
-        number=2,
-    )
-    cluster = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=gba_instance.Cluster,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    cluster_id = proto.Field(proto.STRING, number=2,)
+    cluster = proto.Field(proto.MESSAGE, number=3, message=gba_instance.Cluster,)
 
 
 class GetClusterRequest(proto.Message):
@@ -245,10 +196,7 @@ class GetClusterRequest(proto.Message):
             ``projects/{project}/instances/{instance}/clusters/{cluster}``.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
+    name = proto.Field(proto.STRING, number=1,)
 
 
 class ListClustersRequest(proto.Message):
@@ -264,14 +212,8 @@ class ListClustersRequest(proto.Message):
             DEPRECATED: This field is unused and ignored.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    page_token = proto.Field(
-        proto.STRING,
-        number=2,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    page_token = proto.Field(proto.STRING, number=2,)
 
 
 class ListClustersResponse(proto.Message):
@@ -295,18 +237,10 @@ class ListClustersResponse(proto.Message):
         return self
 
     clusters = proto.RepeatedField(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.Cluster,
+        proto.MESSAGE, number=1, message=gba_instance.Cluster,
     )
-    failed_locations = proto.RepeatedField(
-        proto.STRING,
-        number=2,
-    )
-    next_page_token = proto.Field(
-        proto.STRING,
-        number=3,
-    )
+    failed_locations = proto.RepeatedField(proto.STRING, number=2,)
+    next_page_token = proto.Field(proto.STRING, number=3,)
 
 
 class DeleteClusterRequest(proto.Message):
@@ -318,10 +252,7 @@ class DeleteClusterRequest(proto.Message):
             ``projects/{project}/instances/{instance}/clusters/{cluster}``.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
+    name = proto.Field(proto.STRING, number=1,)
 
 
 class CreateInstanceMetadata(proto.Message):
@@ -339,20 +270,12 @@ class CreateInstanceMetadata(proto.Message):
     """
 
     original_request = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message='CreateInstanceRequest',
+        proto.MESSAGE, number=1, message="CreateInstanceRequest",
     )
     request_time = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=timestamp_pb2.Timestamp,
+        proto.MESSAGE, number=2, message=timestamp_pb2.Timestamp,
     )
-    finish_time = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=timestamp_pb2.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp_pb2.Timestamp,)
 
 
 class UpdateInstanceMetadata(proto.Message):
@@ -370,20 +293,12 @@ class UpdateInstanceMetadata(proto.Message):
     """
 
     original_request = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message='PartialUpdateInstanceRequest',
+        proto.MESSAGE, number=1, message="PartialUpdateInstanceRequest",
     )
     request_time = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=timestamp_pb2.Timestamp,
+        proto.MESSAGE, number=2, message=timestamp_pb2.Timestamp,
     )
-    finish_time = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=timestamp_pb2.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp_pb2.Timestamp,)
 
 
 class CreateClusterMetadata(proto.Message):
@@ -401,20 +316,12 @@ class CreateClusterMetadata(proto.Message):
     """
 
     original_request = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message='CreateClusterRequest',
+        proto.MESSAGE, number=1, message="CreateClusterRequest",
     )
     request_time = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=timestamp_pb2.Timestamp,
+        proto.MESSAGE, number=2, message=timestamp_pb2.Timestamp,
     )
-    finish_time = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=timestamp_pb2.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp_pb2.Timestamp,)
 
 
 class UpdateClusterMetadata(proto.Message):
@@ -432,20 +339,12 @@ class UpdateClusterMetadata(proto.Message):
     """
 
     original_request = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.Cluster,
+        proto.MESSAGE, number=1, message=gba_instance.Cluster,
     )
     request_time = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=timestamp_pb2.Timestamp,
+        proto.MESSAGE, number=2, message=timestamp_pb2.Timestamp,
     )
-    finish_time = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=timestamp_pb2.Timestamp,
-    )
+    finish_time = proto.Field(proto.MESSAGE, number=3, message=timestamp_pb2.Timestamp,)
 
 
 class CreateAppProfileRequest(proto.Message):
@@ -468,23 +367,10 @@ class CreateAppProfileRequest(proto.Message):
             the app profile.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    app_profile_id = proto.Field(
-        proto.STRING,
-        number=2,
-    )
-    app_profile = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=gba_instance.AppProfile,
-    )
-    ignore_warnings = proto.Field(
-        proto.BOOL,
-        number=4,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    app_profile_id = proto.Field(proto.STRING, number=2,)
+    app_profile = proto.Field(proto.MESSAGE, number=3, message=gba_instance.AppProfile,)
+    ignore_warnings = proto.Field(proto.BOOL, number=4,)
 
 
 class GetAppProfileRequest(proto.Message):
@@ -496,10 +382,7 @@ class GetAppProfileRequest(proto.Message):
             ``projects/{project}/instances/{instance}/appProfiles/{app_profile}``.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
+    name = proto.Field(proto.STRING, number=1,)
 
 
 class ListAppProfilesRequest(proto.Message):
@@ -528,18 +411,9 @@ class ListAppProfilesRequest(proto.Message):
             call.
     """
 
-    parent = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    page_size = proto.Field(
-        proto.INT32,
-        number=3,
-    )
-    page_token = proto.Field(
-        proto.STRING,
-        number=2,
-    )
+    parent = proto.Field(proto.STRING, number=1,)
+    page_size = proto.Field(proto.INT32, number=3,)
+    page_token = proto.Field(proto.STRING, number=2,)
 
 
 class ListAppProfilesResponse(proto.Message):
@@ -564,18 +438,10 @@ class ListAppProfilesResponse(proto.Message):
         return self
 
     app_profiles = proto.RepeatedField(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.AppProfile,
+        proto.MESSAGE, number=1, message=gba_instance.AppProfile,
     )
-    next_page_token = proto.Field(
-        proto.STRING,
-        number=2,
-    )
-    failed_locations = proto.RepeatedField(
-        proto.STRING,
-        number=3,
-    )
+    next_page_token = proto.Field(proto.STRING, number=2,)
+    failed_locations = proto.RepeatedField(proto.STRING, number=3,)
 
 
 class UpdateAppProfileRequest(proto.Message):
@@ -593,20 +459,11 @@ class UpdateAppProfileRequest(proto.Message):
             the app profile.
     """
 
-    app_profile = proto.Field(
-        proto.MESSAGE,
-        number=1,
-        message=gba_instance.AppProfile,
-    )
+    app_profile = proto.Field(proto.MESSAGE, number=1, message=gba_instance.AppProfile,)
     update_mask = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=field_mask_pb2.FieldMask,
+        proto.MESSAGE, number=2, message=field_mask_pb2.FieldMask,
     )
-    ignore_warnings = proto.Field(
-        proto.BOOL,
-        number=3,
-    )
+    ignore_warnings = proto.Field(proto.BOOL, number=3,)
 
 
 class DeleteAppProfileRequest(proto.Message):
@@ -621,14 +478,8 @@ class DeleteAppProfileRequest(proto.Message):
             deleting the app profile.
     """
 
-    name = proto.Field(
-        proto.STRING,
-        number=1,
-    )
-    ignore_warnings = proto.Field(
-        proto.BOOL,
-        number=2,
-    )
+    name = proto.Field(proto.STRING, number=1,)
+    ignore_warnings = proto.Field(proto.BOOL, number=2,)
 
 
 class UpdateAppProfileMetadata(proto.Message):

@@ -19,11 +19,7 @@ from google.protobuf import timestamp_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
-    manifest={
-        'StorageType',
-        'OperationProgress',
-    },
+    package="google.bigtable.admin.v2", manifest={"StorageType", "OperationProgress",},
 )
 
 
@@ -49,20 +45,9 @@ class OperationProgress(proto.Message):
             failed or was completed successfully.
     """
 
-    progress_percent = proto.Field(
-        proto.INT32,
-        number=1,
-    )
-    start_time = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        message=timestamp_pb2.Timestamp,
-    )
-    end_time = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        message=timestamp_pb2.Timestamp,
-    )
+    progress_percent = proto.Field(proto.INT32, number=1,)
+    start_time = proto.Field(proto.MESSAGE, number=2, message=timestamp_pb2.Timestamp,)
+    end_time = proto.Field(proto.MESSAGE, number=3, message=timestamp_pb2.Timestamp,)
 
 
 __all__ = tuple(sorted(__protobuf__.manifest))
