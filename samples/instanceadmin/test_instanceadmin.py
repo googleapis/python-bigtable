@@ -45,7 +45,7 @@ def preclean():
     for instance in client.list_instances()[0]:
         if instance.instance_id.startswith("instanceadmin-"):
             timestamp = instance.instance_id.split("-")[-1]
-            timestamp = float(timestamp.replace("_", "."))
+            timestamp = int(timestamp)
             if time.time() - timestamp > 3600:
                 warnings.warn(
                     f"Deleting leftover test instance: {instance.instance_id}"
