@@ -92,7 +92,7 @@ templated_files = common.py_library(
 s.move(templated_files, excludes=[".coveragerc"])
 
 # ----------------------------------------------------------------------------
-# Fix noxfile.py
+# Customize noxfile.py
 # ----------------------------------------------------------------------------
 
 def place_before(path, text, *before_text, escape=None):
