@@ -4,6 +4,20 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+### [2.2.1](https://www.github.com/googleapis/python-bigtable/compare/v2.2.0...v2.2.1) (2021-06-22)
+
+
+### Bug Fixes
+
+* **deps:** add packaging requirement ([#326](https://www.github.com/googleapis/python-bigtable/issues/326)) ([d31c27b](https://www.github.com/googleapis/python-bigtable/commit/d31c27b01d1f7c351effc2856a8d4777a1a10690))
+
+
+### Documentation
+
+* add paramter mutation_timeout to instance.table docs ([#305](https://www.github.com/googleapis/python-bigtable/issues/305)) ([5bbd06e](https://www.github.com/googleapis/python-bigtable/commit/5bbd06e5413e8b7597ba128174b10fe45fd38380))
+* fix broken links in multiprocessing.rst ([#317](https://www.github.com/googleapis/python-bigtable/issues/317)) ([e329352](https://www.github.com/googleapis/python-bigtable/commit/e329352d7e6d81de1d1d770c73406a60d29d01bb))
+* omit mention of Python 2.7 in 'CONTRIBUTING.rst' ([#1127](https://www.github.com/googleapis/python-bigtable/issues/1127)) ([#329](https://www.github.com/googleapis/python-bigtable/issues/329)) ([6bf0c64](https://www.github.com/googleapis/python-bigtable/commit/6bf0c647bcebed641b4cbdc5eb70528c88b26a01)), closes [#1126](https://www.github.com/googleapis/python-bigtable/issues/1126)
+
 ## [2.2.0](https://www.github.com/googleapis/python-bigtable/compare/v2.1.0...v2.2.0) (2021-04-30)
 
 
