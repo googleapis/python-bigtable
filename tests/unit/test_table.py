@@ -1720,6 +1720,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         prior_statuses=None,
         expected_result=None,
         raising_retry=False,
+        timeout=None,
     ):
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import _BigtableRetryableError
@@ -1767,6 +1768,11 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
                 )
                 expected_entries.append(entry)
 
+        expected_kwargs = {}
+        if timeout is not None:
+            worker.timeout = timeout
+            expected_kwargs["timeout"] = mock.ANY
+
         if raising_retry:
             with self.assertRaises(_BigtableRetryableError):
                 worker._do_mutate_retryable_rows()
@@ -1789,7 +1795,11 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
                 entries=expected_entries,
                 app_profile_id=None,
                 retry=None,
+                **expected_kwargs,
             )
+            if timeout is not None:
+                called = data_api.mutate_rows.mock_calls[0]
+                self.assertEqual(called.kwargs["timeout"]._deadline, timeout)
 
     def test_do_mutate_retryable_rows_empty_rows(self):
         #
@@ -1805,7 +1815,7 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         self._do_mutate_retryable_rows_helper(row_cells, responses)
 
-    def test_do_mutate_retryable_rows(self):
+    def test_do_mutate_retryable_rows_w_timeout(self):
         #
         # Setup:
         #   - Mutate 2 rows.
@@ -1822,7 +1832,11 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         responses = [self.SUCCESS, self.NON_RETRYABLE]
 
-        self._do_mutate_retryable_rows_helper(row_cells, responses)
+        timeout = 5  # seconds
+
+        self._do_mutate_retryable_rows_helper(
+            row_cells, responses, timeout=timeout,
+        )
 
     def test_do_mutate_retryable_rows_retry(self):
         #
