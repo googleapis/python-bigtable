@@ -1720,8 +1720,10 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
         prior_statuses=None,
         expected_result=None,
         raising_retry=False,
+        retryable_error=False,
         timeout=None,
     ):
+        from google.api_core.exceptions import ServiceUnavailable
         from google.cloud.bigtable.row import DirectRow
         from google.cloud.bigtable.table import _BigtableRetryableError
         from google.cloud.bigtable_v2.services.bigtable import BigtableClient
@@ -1751,7 +1753,11 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
             rows.append(row)
 
         response = self._make_responses(responses)
-        data_api.mutate_rows.side_effect = [[response]]
+
+        if retryable_error:
+            data_api.mutate_rows.side_effect = ServiceUnavailable("testing")
+        else:
+            data_api.mutate_rows.side_effect = [[response]]
 
         worker = self._make_worker(client, table.name, rows=rows)
         if prior_statuses is not None:
@@ -1773,21 +1779,22 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
             worker.timeout = timeout
             expected_kwargs["timeout"] = mock.ANY
 
-        if raising_retry:
+        if retryable_error or raising_retry:
             with self.assertRaises(_BigtableRetryableError):
                 worker._do_mutate_retryable_rows()
             statuses = worker.responses_statuses
         else:
             statuses = worker._do_mutate_retryable_rows()
 
-        result = [status.code for status in statuses]
+        if not retryable_error:
+            result = [status.code for status in statuses]
 
-        if expected_result is None:
-            expected_result = responses
+            if expected_result is None:
+                expected_result = responses
 
-        self.assertEqual(result, expected_result)
+            self.assertEqual(result, expected_result)
 
-        if len(responses) == 0:
+        if len(responses) == 0 and not retryable_error:
             data_api.mutate_rows.assert_not_called()
         else:
             data_api.mutate_rows.assert_called_once_with(
@@ -1836,6 +1843,27 @@ class Test__RetryableMutateRowsWorker(unittest.TestCase):
 
         self._do_mutate_retryable_rows_helper(
             row_cells, responses, timeout=timeout,
+        )
+
+    def test_do_mutate_retryable_rows_w_retryable_error(self):
+        #
+        # Setup:
+        #   - Mutate 2 rows.
+        # Action:
+        #   - Initial attempt will mutate all 2 rows.
+        # Expectation:
+        #   - No retryable error codes, so don't expect a raise.
+        #   - State of responses_statuses should be [success, non-retryable].
+        #
+        row_cells = [
+            (b"row_key_1", ("cf", b"col", b"value1")),
+            (b"row_key_2", ("cf", b"col", b"value2")),
+        ]
+
+        responses = ()
+
+        self._do_mutate_retryable_rows_helper(
+            row_cells, responses, retryable_error=True,
         )
 
     def test_do_mutate_retryable_rows_retry(self):
