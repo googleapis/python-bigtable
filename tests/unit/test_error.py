@@ -14,8 +14,6 @@
 
 import unittest
 
-import mock
-
 
 class TestStatus(unittest.TestCase):
     @staticmethod
