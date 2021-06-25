@@ -250,6 +250,41 @@ class TestClient(unittest.TestCase):
             emulator_host, lcc.return_value, options=options,
         )
 
+    def test__local_composite_credentials(self):
+        client = self._make_one(
+            project=self.PROJECT, credentials=_make_credentials(), read_only=True
+        )
+
+        wsir_patch = mock.patch("google.auth.credentials.with_scopes_if_required")
+        request_patch = mock.patch("google.auth.transport.requests.Request")
+        amp_patch = mock.patch("google.auth.transport.grpc.AuthMetadataPlugin")
+        grpc_patches = mock.patch.multiple(
+            "grpc",
+            metadata_call_credentials=mock.DEFAULT,
+            local_channel_credentials=mock.DEFAULT,
+            composite_channel_credentials=mock.DEFAULT,
+        )
+        with wsir_patch as wsir_patched:
+            with request_patch as request_patched:
+                with amp_patch as amp_patched:
+                    with grpc_patches as grpc_patched:
+                        credentials = client._local_composite_credentials()
+
+        grpc_mcc = grpc_patched["metadata_call_credentials"]
+        grpc_lcc = grpc_patched["local_channel_credentials"]
+        grpc_ccc = grpc_patched["composite_channel_credentials"]
+
+        self.assertIs(credentials, grpc_ccc.return_value)
+
+        wsir_patched.assert_called_once_with(client._credentials, None)
+        request_patched.assert_called_once_with()
+        amp_patched.assert_called_once_with(
+            wsir_patched.return_value, request_patched.return_value,
+        )
+        grpc_mcc.assert_called_once_with(amp_patched.return_value)
+        grpc_lcc.assert_called_once_with()
+        grpc_ccc.assert_called_once_with(grpc_lcc.return_value, grpc_mcc.return_value)
+
     def test_project_path_property(self):
         credentials = _make_credentials()
         project = "PROJECT"
