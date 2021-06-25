@@ -256,14 +256,14 @@ class Client(ClientWithProject):
         )
 
     def _create_gapic_client_channel(self, client_class, grpc_transport):
-        if self._client_options and self._client_options.api_endpoint:
+        if self._emulator_host is not None:
+            api_endpoint = self._emulator_host
+        elif self._client_options and self._client_options.api_endpoint:
             api_endpoint = self._client_options.api_endpoint
         else:
             api_endpoint = client_class.DEFAULT_ENDPOINT
 
-        channel = None
         if self._emulator_host is not None:
-            api_endpoint = self._emulator_host
             channel = self._emulator_channel(
                 transport=grpc_transport, options=_GRPC_CHANNEL_OPTIONS,
             )
@@ -273,8 +273,7 @@ class Client(ClientWithProject):
                 credentials=self._credentials,
                 options=_GRPC_CHANNEL_OPTIONS,
             )
-        transport = grpc_transport(channel=channel, host=api_endpoint)
-        return transport
+        return grpc_transport(channel=channel, host=api_endpoint)
 
     @property
     def project_path(self):
