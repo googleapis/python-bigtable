@@ -215,6 +215,44 @@ class TestClient(unittest.TestCase):
         )
         self.assertEqual(client._get_scopes(), (READ_ONLY_SCOPE,))
 
+    def test__emulator_channel_sync(self):
+        emulator_host = "localhost:8081"
+        transport_name = "GrpcTransportTesting"
+        transport = mock.Mock(spec=["__name__"], __name__=transport_name)
+        options = mock.Mock(spec=[])
+        client = self._make_one(
+            project=self.PROJECT, credentials=_make_credentials(), read_only=True
+        )
+        client._emulator_host = emulator_host
+        lcc = client._local_composite_credentials = mock.Mock(spec=[])
+
+        with mock.patch("grpc.secure_channel") as patched:
+            channel = client._emulator_channel(transport, options)
+
+        assert channel is patched.return_value
+        patched.assert_called_once_with(
+            emulator_host, lcc.return_value, options=options,
+        )
+
+    def test__emulator_channel_async(self):
+        emulator_host = "localhost:8081"
+        transport_name = "GrpcAsyncIOTransportTesting"
+        transport = mock.Mock(spec=["__name__"], __name__=transport_name)
+        options = mock.Mock(spec=[])
+        client = self._make_one(
+            project=self.PROJECT, credentials=_make_credentials(), read_only=True
+        )
+        client._emulator_host = emulator_host
+        lcc = client._local_composite_credentials = mock.Mock(spec=[])
+
+        with mock.patch("grpc.aio.secure_channel") as patched:
+            channel = client._emulator_channel(transport, options)
+
+        assert channel is patched.return_value
+        patched.assert_called_once_with(
+            emulator_host, lcc.return_value, options=options,
+        )
+
     def test_project_path_property(self):
         credentials = _make_credentials()
         project = "PROJECT"
