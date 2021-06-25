@@ -285,6 +285,67 @@ class TestClient(unittest.TestCase):
         grpc_lcc.assert_called_once_with()
         grpc_ccc.assert_called_once_with(grpc_lcc.return_value, grpc_mcc.return_value)
 
+    def _create_gapic_client_channel_helper(
+        self, endpoint=None, emulator_host=None,
+    ):
+        from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
+
+        client_class = mock.Mock(spec=["DEFAULT_ENDPOINT"])
+        credentials = _make_credentials()
+        client = self._make_one(project=self.PROJECT, credentials=credentials)
+
+        if endpoint is not None:
+            client._client_options = mock.Mock(
+                spec=["api_endpoint"], api_endpoint=endpoint,
+            )
+            expected_host = endpoint
+        else:
+            expected_host = client_class.DEFAULT_ENDPOINT
+
+        if emulator_host is not None:
+            client._emulator_host = emulator_host
+            client._emulator_channel = mock.Mock(spec=[])
+            expected_host = emulator_host
+
+        grpc_transport = mock.Mock(spec=["create_channel"])
+
+        transport = client._create_gapic_client_channel(client_class, grpc_transport)
+
+        self.assertIs(transport, grpc_transport.return_value)
+
+        if emulator_host is not None:
+            client._emulator_channel.assert_called_once_with(
+                transport=grpc_transport, options=_GRPC_CHANNEL_OPTIONS,
+            )
+            grpc_transport.assert_called_once_with(
+                channel=client._emulator_channel.return_value, host=expected_host,
+            )
+        else:
+            grpc_transport.create_channel.assert_called_once_with(
+                host=expected_host,
+                credentials=client._credentials,
+                options=_GRPC_CHANNEL_OPTIONS,
+            )
+            grpc_transport.assert_called_once_with(
+                channel=grpc_transport.create_channel.return_value, host=expected_host,
+            )
+
+    def test__create_gapic_client_channel_w_defaults(self):
+        self._create_gapic_client_channel_helper()
+
+    def test__create_gapic_client_channel_w_endpoint(self):
+        endpoint = "api.example.com"
+        self._create_gapic_client_channel_helper(endpoint=endpoint)
+
+    def test__create_gapic_client_channel_w_emulator_host(self):
+        host = "api.example.com:1234"
+        self._create_gapic_client_channel_helper(emulator_host=host)
+
+    def test__create_gapic_client_channel_w_endpoint_w_emulator_host(self):
+        endpoint = "api.example.com"
+        host = "other.example.com:1234"
+        self._create_gapic_client_channel_helper(endpoint=endpoint, emulator_host=host)
+
     def test_project_path_property(self):
         credentials = _make_credentials()
         project = "PROJECT"
