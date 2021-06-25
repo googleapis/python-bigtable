@@ -195,11 +195,15 @@ class Client(ClientWithProject):
         return scopes
 
     def _emulator_channel(self, transport, options):
-        """
-        Creates a channel using self._credentials in a similar way to grpc.secure_channel but
-        using grpc.local_channel_credentials() rather than grpc.ssh_channel_credentials()
-        to allow easy connection to a local emulator.
-        :return: grpc.Channel or grpc.aio.Channel
+        """Create a channel using self._credentials
+
+        Works in a similar way to ``grpc.secure_channel`` but using
+        ``grpc.local_channel_credentials`` rather than
+        ``grpc.ssh_channel_credentials`` to allow easy connection to a
+        local emulator.
+
+        Returns:
+            grpc.Channel or grpc.aio.Channel
         """
         # TODO: Implement a special credentials type for emulator and use
         # "transport.create_channel" to create gRPC channels once google-auth
@@ -219,8 +223,8 @@ class Client(ClientWithProject):
             )
 
     def _local_composite_credentials(self):
-        """
-        Creates the credentials for the local emulator channel
+        """Create credentials for the local emulator channel.
+
         :return: grpc.ChannelCredentials
         """
         credentials = google.auth.credentials.with_scopes_if_required(
