@@ -67,6 +67,13 @@ DATA_SCOPE = "https://www.googleapis.com/auth/bigtable.data"
 READ_ONLY_SCOPE = "https://www.googleapis.com/auth/bigtable.data.readonly"
 """Scope for reading table data."""
 
+_GRPC_CHANNEL_OPTIONS = (
+    ("grpc.max_send_message_length", -1),
+    ("grpc.max_receive_message_length", -1),
+    ("grpc.keepalive_time_ms", 30000),
+    ("grpc.keepalive_timeout_ms", 10000),
+)
+
 
 def _create_gapic_client(client_class, client_options=None, transport=None):
     def inner(self):
@@ -249,12 +256,6 @@ class Client(ClientWithProject):
         )
 
     def _create_gapic_client_channel(self, client_class, grpc_transport):
-        options = {
-            "grpc.max_send_message_length": -1,
-            "grpc.max_receive_message_length": -1,
-            "grpc.keepalive_time_ms": 30000,
-            "grpc.keepalive_timeout_ms": 10000,
-        }.items()
         if self._client_options and self._client_options.api_endpoint:
             api_endpoint = self._client_options.api_endpoint
         else:
@@ -263,10 +264,14 @@ class Client(ClientWithProject):
         channel = None
         if self._emulator_host is not None:
             api_endpoint = self._emulator_host
-            channel = self._emulator_channel(grpc_transport, options)
+            channel = self._emulator_channel(
+                transport=grpc_transport, options=_GRPC_CHANNEL_OPTIONS,
+            )
         else:
             channel = grpc_transport.create_channel(
-                host=api_endpoint, credentials=self._credentials, options=options,
+                host=api_endpoint,
+                credentials=self._credentials,
+                options=_GRPC_CHANNEL_OPTIONS,
             )
         transport = grpc_transport(channel=channel, host=api_endpoint)
         return transport

@@ -170,6 +170,7 @@ class TestClient(unittest.TestCase):
 
     def test_constructor_with_emulator_host(self):
         from google.cloud.environment_vars import BIGTABLE_EMULATOR
+        from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
         credentials = _make_credentials()
         emulator_host = "localhost:8081"
@@ -183,13 +184,9 @@ class TestClient(unittest.TestCase):
                 client.table_data_client
 
         self.assertEqual(client._emulator_host, emulator_host)
-        options = {
-            "grpc.max_send_message_length": -1,
-            "grpc.max_receive_message_length": -1,
-            "grpc.keepalive_time_ms": 30000,
-            "grpc.keepalive_timeout_ms": 10000,
-        }.items()
-        factory.assert_called_once_with(emulator_host, credentials, options=options)
+        factory.assert_called_once_with(
+            emulator_host, credentials, options=_GRPC_CHANNEL_OPTIONS,
+        )
 
     def test__get_scopes_default(self):
         from google.cloud.bigtable.client import DATA_SCOPE
