@@ -73,7 +73,7 @@ def run_instance_operations(project_id, instance_id, cluster_id):
         print("\nCreating an instance")
         # Create instance with given options
         operation = instance.create(clusters=[cluster])
-        # Enssure the operation completes.
+        # Ensure the operation completes.
         operation.result(timeout=10)
         print("\nCreated instance: {}".format(instance_id))
     # [END bigtable_create_prod_instance]
@@ -158,7 +158,7 @@ def add_cluster(project_id, instance_id, cluster_id):
             print("\nCluster not created, as {} already exists.".format(cluster_id))
         else:
             operation = cluster.create()
-            # Enssure the operation completes.
+            # Ensure the operation completes.
             operation.result(timeout=30)
             print("\nCluster created: {}".format(cluster_id))
         # [END bigtable_create_cluster]
