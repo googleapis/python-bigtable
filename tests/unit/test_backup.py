@@ -494,7 +494,7 @@ class TestBackup(unittest.TestCase):
         from google.api_core.exceptions import Unknown
 
         client = _Client()
-        api = client._table_admin_client = self._make_table_admin_client()
+        api = client.table_admin_client = self._make_table_admin_client()
         api.get_backup.side_effect = Unknown("testing")
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
@@ -510,7 +510,7 @@ class TestBackup(unittest.TestCase):
         from google.api_core.exceptions import NotFound
 
         client = _Client()
-        api = client._table_admin_client = self._make_table_admin_client()
+        api = client.table_admin_client = self._make_table_admin_client()
         api.get_backup.side_effect = NotFound("testing")
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
@@ -537,7 +537,7 @@ class TestBackup(unittest.TestCase):
             size_bytes=0,
             state=state,
         )
-        api = client._table_admin_client = self._make_table_admin_client()
+        api = client.table_admin_client = self._make_table_admin_client()
         api.get_backup.return_value = backup_pb
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
@@ -562,7 +562,7 @@ class TestBackup(unittest.TestCase):
             size_bytes=0,
             state=state,
         )
-        api = client._table_admin_client = self._make_table_admin_client()
+        api = client.table_admin_client = self._make_table_admin_client()
         api.get_backup.return_value = backup_pb
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
@@ -581,7 +581,7 @@ class TestBackup(unittest.TestCase):
 
         client = _Client()
         backup_pb = table.Backup(name=self.BACKUP_NAME)
-        api = client._table_admin_client = self._make_table_admin_client()
+        api = client.table_admin_client = self._make_table_admin_client()
         api.get_backup.return_value = backup_pb
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
