@@ -17,9 +17,11 @@ import random
 import time
 import warnings
 
-from google.cloud import bigtable
-
+import backoff
 import pytest
+
+from google.api_core import exceptions
+from google.cloud import bigtable
 
 import instanceadmin
 
@@ -128,7 +130,10 @@ def test_add_and_delete_cluster(capsys, dispose_of):
     capsys.readouterr()  # throw away output
 
     # Add a cluster to that instance
-    instanceadmin.add_cluster(PROJECT, INSTANCE, CLUSTER2)
+    # Avoid failing for "instance is currently being changed" by
+    # applying an exponential backoff
+    w_backoff = backoff.on_exception(backoff.expo, exceptions.ServiceUnavailable)
+    w_backoff(instanceadmin.add_cluster)(PROJECT, INSTANCE, CLUSTER2)
     out = capsys.readouterr().out
     assert f"Adding cluster to instance {INSTANCE}" in out
     assert "Listing clusters..." in out
