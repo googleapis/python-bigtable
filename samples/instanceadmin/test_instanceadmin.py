@@ -18,10 +18,9 @@ import time
 import warnings
 
 import backoff
-import pytest
-
 from google.api_core import exceptions
 from google.cloud import bigtable
+import pytest
 
 import instanceadmin
 
