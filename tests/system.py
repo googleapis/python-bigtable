@@ -24,6 +24,7 @@ from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import TooManyRequests
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
+from google.cloud.exceptions import GrpcRendezvous
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryResult
 
@@ -102,11 +103,13 @@ def _retry_on_unavailable(exc):
     return exc.code() == StatusCode.UNAVAILABLE
 
 
+retry_grpc_unavailable = RetryErrors(
+    GrpcRendezvous, error_predicate=_retry_on_unavailable,
+)
 retry_429 = RetryErrors(TooManyRequests, max_tries=9)
 
 
 def setUpModule():
-    from google.cloud.exceptions import GrpcRendezvous
     from google.cloud.bigtable.enums import Instance
 
     # See: https://github.com/googleapis/google-cloud-python/issues/5928
@@ -134,8 +137,9 @@ def setUpModule():
     )
 
     if not Config.IN_EMULATOR:
-        retry = RetryErrors(GrpcRendezvous, error_predicate=_retry_on_unavailable)
-        instances, failed_locations = retry(Config.CLIENT.list_instances)()
+        instances, failed_locations = retry_grpc_unavailable(
+            Config.CLIENT.list_instances
+        )()
 
         if len(failed_locations) != 0:
             raise ValueError("List instances failed in module set up.")
@@ -333,7 +337,7 @@ class TestInstanceAdminAPI(unittest.TestCase):
 
         temp_table_id = "test-get-cluster-states"
         temp_table = instance.table(temp_table_id)
-        temp_table.create()
+        retry_grpc_unavailable(temp_table.create)()
 
         encryption_info = temp_table.get_encryption_info()
         self.assertEqual(
