@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import os
 
 import pytest
 from test_utils.system import unique_resource_id
 
-from google.cloud._helpers import UTC
 from google.cloud.bigtable.client import Client
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
@@ -28,6 +26,18 @@ from . import _helpers
 @pytest.fixture(scope="session")
 def in_emulator():
     return os.getenv(BIGTABLE_EMULATOR) is not None
+
+
+@pytest.fixture(scope="session")
+def kms_key_name():
+    return os.getenv("KMS_KEY_NAME")
+
+
+@pytest.fixture(scope="session")
+def with_kms_key_name(kms_key_name):
+    if kms_key_name is None:
+        pytest.skip("Test requires KMS_KEY_NAME environment variable")
+    return kms_key_name
 
 
 @pytest.fixture(scope="session")
@@ -52,14 +62,13 @@ def serve_nodes():
 
 
 @pytest.fixture(scope="session")
-def instance_labels():
-    label_key = "python-system"
-    label_stamp = (
-        datetime.datetime.utcnow()
-        .replace(microsecond=0, tzinfo=UTC)
-        .strftime("%Y-%m-%dt%H-%M-%S")
-    )
-    return {label_key: str(label_stamp)}
+def label_key():
+    return "python-system"
+
+
+@pytest.fixture(scope="session")
+def instance_labels(label_key):
+    return {label_key: _helpers.label_stamp()}
 
 
 @pytest.fixture(scope="session")
@@ -78,7 +87,7 @@ def admin_cluster_id(admin_instance_id):
 
 
 @pytest.fixture(scope="session")
-def admin_instance(admin_client, admin_instance_id, instance_labels, in_emulator):
+def admin_instance(admin_client, admin_instance_id, instance_labels):
     return admin_client.instance(admin_instance_id, labels=instance_labels)
 
 
