@@ -77,6 +77,15 @@ def admin_client():
 
 
 @pytest.fixture(scope="session")
+def service_account(admin_client):
+    from google.oauth2.service_account import Credentials
+
+    if not isinstance(admin_client._credentials, Credentials):
+        pytest.skip("These tests require a service account credential")
+    return admin_client._credentials
+
+
+@pytest.fixture(scope="session")
 def admin_instance_id(unique_suffix):
     return f"g-c-p{unique_suffix}"
 
@@ -108,3 +117,52 @@ def admin_instance_populated(admin_instance, admin_cluster, in_emulator):
 
     if not in_emulator:
         _helpers.retry_429(admin_instance.delete)()
+
+
+@pytest.fixture(scope="session")
+def data_client():
+    return Client(admin=False)
+
+
+@pytest.fixture(scope="session")
+def data_instance_id(unique_suffix):
+    return f"g-c-p-d{unique_suffix}"
+
+
+@pytest.fixture(scope="session")
+def data_cluster_id(data_instance_id):
+    return f"{data_instance_id}-cluster"
+
+
+@pytest.fixture(scope="session")
+def data_instance_populated(
+    admin_client,
+    data_instance_id,
+    instance_labels,
+    data_cluster_id,
+    location_id,
+    serve_nodes,
+    in_emulator,
+):
+    if not in_emulator:
+        instance = admin_client.instance(data_instance_id, labels=instance_labels)
+        cluster = instance.cluster(
+            data_cluster_id, location_id=location_id, serve_nodes=serve_nodes,
+        )
+        operation = instance.create(clusters=[cluster])
+        operation.result(timeout=30)
+
+    yield instance
+
+    if not in_emulator:
+        _helpers.retry_429(instance.delete)()
+
+
+@pytest.fixture(scope="function")
+def instances_to_delete():
+    instances_to_delete = []
+
+    yield instances_to_delete
+
+    for instance in instances_to_delete:
+        _helpers.retry_429(instance.delete)()

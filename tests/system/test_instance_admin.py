@@ -15,19 +15,7 @@
 from google.cloud.bigtable import enums
 from google.cloud.bigtable.table import ClusterState
 
-import pytest
-
 from . import _helpers
-
-
-@pytest.fixture(scope="function")
-def instances_to_delete():
-    instances_to_delete = []
-
-    yield instances_to_delete
-
-    for instance in instances_to_delete:
-        _helpers.retry_429(instance.delete)()
 
 
 def _create_app_profile_helper(

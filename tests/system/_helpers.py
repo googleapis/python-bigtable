@@ -20,6 +20,9 @@ from test_utils import retry
 
 
 retry_429 = retry.RetryErrors(exceptions.TooManyRequests, max_tries=9)
+retry_504 = retry.RetryErrors(exceptions.DeadlineExceeded)
+retry_until_true = retry.RetryResult(lambda result: result)
+retry_until_false = retry.RetryResult(lambda result: not result)
 
 
 def label_stamp():
