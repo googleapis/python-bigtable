@@ -23,6 +23,7 @@ from mock import Mock, patch
 
 import pytest
 from test_utils.retry import RetryInstanceState
+from test_utils.retry import RetryResult
 
 from metricscaler import get_cpu_load
 from metricscaler import get_storage_utilization
@@ -74,6 +75,10 @@ def instance():
                                    default_storage_type=storage_type)
         instance.create(clusters=[cluster])
 
+        # Eventual consistency check
+        retry_found = RetryResult(bool)
+        retry_found(instance.exists)()
+
     yield
 
     instance.delete()
@@ -96,6 +101,10 @@ def dev_instance():
         cluster = instance.cluster(cluster_id, location_id=BIGTABLE_ZONE,
                                    default_storage_type=storage_type)
         instance.create(clusters=[cluster])
+
+        # Eventual consistency check
+        retry_found = RetryResult(bool)
+        retry_found(instance.exists)()
 
     yield
 
