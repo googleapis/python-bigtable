@@ -527,9 +527,7 @@ def test_instance_update_w_type(
         labels=instance_labels,
     )
     alt_cluster_id = f"{alt_instance_id}-cluster"
-    cluster = instance.cluster(
-        alt_cluster_id, location_id=location_id,
-    )
+    cluster = instance.cluster(alt_cluster_id, location_id=location_id,)
 
     operation = instance.create(clusters=[cluster])
     instances_to_delete.append(instance)
