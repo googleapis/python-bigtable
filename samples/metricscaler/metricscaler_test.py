@@ -141,19 +141,21 @@ def test_scale_bigtable(instance):
 
     scale_bigtable(BIGTABLE_INSTANCE, BIGTABLE_INSTANCE, True)
 
-    expected_predicate = ClusterNodeCountPredicate(
+    scaled_node_count_predicate = ClusterNodeCountPredicate(
         original_node_count + SIZE_CHANGE_STEP
     )
+    scaled_node_count_predicate.__name__ = "scaled_node_count_predicate"
     _scaled_node_count = RetryInstanceState(
-        instance_predicate=expected_predicate, max_tries=10,
+        instance_predicate=scaled_node_count_predicate, max_tries=10,
     )
     _scaled_node_count(cluster.reload)()
 
     scale_bigtable(BIGTABLE_INSTANCE, BIGTABLE_INSTANCE, False)
 
-    restored_predicate = ClusterNodeCountPredicate(original_node_count)
+    restored_node_count_predicate = ClusterNodeCountPredicate(original_node_count)
+    restored_node_count_predicate.__name__ = "restored_node_count_predicate"
     _restored_node_count = RetryInstanceState(
-        instance_predicate=restored_predicate, max_tries=10,
+        instance_predicate=restored_node_count_predicate, max_tries=10,
     )
     _restored_node_count(cluster.reload)()
 
