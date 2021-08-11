@@ -264,7 +264,7 @@ def test_instance_create_w_two_clusters(
 
     temp_table_id = "test-get-cluster-states"
     temp_table = instance.table(temp_table_id)
-    temp_table.create()
+    _helpers.retry_grpc_unavailable(temp_table.create)()
 
     EncryptionType = enums.EncryptionInfo.EncryptionType
     encryption_info = temp_table.get_encryption_info()

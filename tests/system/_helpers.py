@@ -14,7 +14,9 @@
 
 import datetime
 
+import grpc
 from google.api_core import exceptions
+from google.cloud import exceptions as core_exceptions
 from google.cloud._helpers import UTC
 from test_utils import retry
 
@@ -23,6 +25,16 @@ retry_429 = retry.RetryErrors(exceptions.TooManyRequests, max_tries=9)
 retry_504 = retry.RetryErrors(exceptions.DeadlineExceeded)
 retry_until_true = retry.RetryResult(lambda result: result)
 retry_until_false = retry.RetryResult(lambda result: not result)
+
+
+def _retry_on_unavailable(exc):
+    """Retry only errors whose status code is 'UNAVAILABLE'."""
+    return exc.code() == grpc.StatusCode.UNAVAILABLE
+
+
+retry_grpc_unavailable = retry.RetryErrors(
+    core_exceptions.GrpcRendezvous, error_predicate=_retry_on_unavailable,
+)
 
 
 def label_stamp():
