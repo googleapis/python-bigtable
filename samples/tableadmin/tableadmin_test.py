@@ -29,6 +29,7 @@ TABLE_ID_FORMAT = 'tableadmin-test-{}'
 
 retry_429_503 = RetryErrors(exceptions.TooManyRequests, exceptions.ServiceUnavailable)
 
+
 def test_run_table_operations(capsys):
     table_id = TABLE_ID_FORMAT.format(uuid.uuid4().hex[:8])
 
