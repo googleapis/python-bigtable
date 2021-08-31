@@ -205,9 +205,10 @@ sample_files = common.py_samples(samples=True)
 for path in sample_files:
     s.move(path)
 
-s.replace(
-    "samples/**/*.md", r"/blob/master/", "/blob/main/",
-)
+# Note: google-cloud-python and python-docs-samples are nnt yet usin 'main':
+#s.replace(
+#    "samples/**/*.md", r"/blob/master/", "/blob/main/",
+#)
 
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
