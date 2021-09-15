@@ -109,6 +109,8 @@ def admin_cluster(admin_instance, admin_cluster_id, location_id, serve_nodes):
 
 @pytest.fixture(scope="session")
 def admin_instance_populated(admin_instance, admin_cluster, in_emulator):
+    # Emulator does not support instance admin operations (create / delete).
+    # See: https://cloud.google.com/bigtable/docs/emulator
     if not in_emulator:
         operation = admin_instance.create(clusters=[admin_cluster])
         operation.result(timeout=30)
@@ -144,6 +146,8 @@ def data_instance_populated(
     serve_nodes,
     in_emulator,
 ):
+    # Emulator does not support instance admin operations (create / delete).
+    # See: https://cloud.google.com/bigtable/docs/emulator
     if not in_emulator:
         instance = admin_client.instance(data_instance_id, labels=instance_labels)
         cluster = instance.cluster(

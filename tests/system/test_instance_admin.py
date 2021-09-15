@@ -106,6 +106,9 @@ def test_client_list_instances(admin_client, admin_instance_populated, not_in_em
 
 
 def test_instance_exists_hit(admin_instance_populated):
+    # Emulator does not support instance admin operations (create / delete).
+    # It allows connecting with *any* project / instance name.
+    # See: https://cloud.google.com/bigtable/docs/emulator
     assert admin_instance_populated.exists()
 
 
