@@ -99,6 +99,13 @@ def test_table_mutate_rows(data_table, rows_to_delete):
     assert row2_data.cells[COLUMN_FAMILY_ID1][COL_NAME1][0].value == CELL_VAL4
 
 
+def _populate_table(data_table, rows_to_delete, row_keys):
+    for row_key in row_keys:
+        row = data_table.direct_row(row_key)
+        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
+        row.commit()
+        rows_to_delete.append(row)
+
 def test_table_truncate(data_table, rows_to_delete):
     row_keys = [
         b"row_key_1",
@@ -112,12 +119,7 @@ def test_table_truncate(data_table, rows_to_delete):
         b"row_key_pr_4",
         b"row_key_pr_5",
     ]
-
-    for row_key in row_keys:
-        row = data_table.direct_row(row_key)
-        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-        row.commit()
-        rows_to_delete.append(row)
+    _populate_table(data_table, rows_to_delete, row_keys)
 
     data_table.truncate(timeout=200)
 
@@ -137,12 +139,7 @@ def test_table_drop_by_prefix(data_table, rows_to_delete):
         b"row_key_pr_4",
         b"row_key_pr_5",
     ]
-
-    for row_key in row_keys:
-        row = data_table.direct_row(row_key)
-        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-        row.commit()
-        rows_to_delete.append(row)
+    _populate_table(data_table, rows_to_delete, row_keys)
 
     data_table.drop_by_prefix(row_key_prefix="row_key_pr", timeout=200)
 
@@ -174,15 +171,7 @@ def test_table_read_rows_w_row_set(data_table, rows_to_delete):
         b"row_key_8",
         b"row_key_9",
     ]
-
-    rows = []
-    for row_key in row_keys:
-        row = data_table.direct_row(row_key)
-        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-        rows.append(row)
-        rows_to_delete.append(row)
-
-    data_table.mutate_rows(rows)
+    _populate_table(data_table, rows_to_delete, row_keys)
 
     row_range = RowRange(start_key=b"row_key_3", end_key=b"row_key_7")
     row_set = RowSet()
@@ -209,14 +198,7 @@ def test_rowset_add_row_range_w_pfx(data_table, rows_to_delete):
         b"sample_row_key_1",
         b"sample_row_key_2",
     ]
-
-    rows = []
-    for row_key in row_keys:
-        row = data_table.direct_row(row_key)
-        row.set_cell(COLUMN_FAMILY_ID1, COL_NAME1, CELL_VAL1)
-        rows.append(row)
-        rows_to_delete.append(row)
-    data_table.mutate_rows(rows)
+    _populate_table(data_table, rows_to_delete, row_keys)
 
     row_set = RowSet()
     row_set.add_row_range_with_prefix("row")
