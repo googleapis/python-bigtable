@@ -106,6 +106,7 @@ def _populate_table(data_table, rows_to_delete, row_keys):
         row.commit()
         rows_to_delete.append(row)
 
+
 def test_table_truncate(data_table, rows_to_delete):
     row_keys = [
         b"row_key_1",
