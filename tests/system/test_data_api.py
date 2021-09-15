@@ -121,8 +121,7 @@ def test_table_truncate(data_table, rows_to_delete):
 
     data_table.truncate(timeout=200)
 
-    for row in data_table.read_rows():
-        assert row.row_key.decode("utf-8") not in row_keys
+    assert list(data_table.read_rows()) == []
 
 
 def test_table_drop_by_prefix(data_table, rows_to_delete):
