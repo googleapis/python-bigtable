@@ -172,20 +172,43 @@ class TestClient(unittest.TestCase):
         from google.cloud.environment_vars import BIGTABLE_EMULATOR
         from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
-        credentials = _make_credentials()
         emulator_host = "localhost:8081"
         with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
             with mock.patch("grpc.secure_channel") as factory:
-                client = self._make_one(project=self.PROJECT, credentials=credentials)
+                client = self._make_one(project=self.PROJECT)
                 # don't test local_composite_credentials
-                client._local_composite_credentials = lambda: credentials
+                #client._local_composite_credentials = lambda: credentials
                 # channels are formed when needed, so access a client
                 # create a gapic channel
                 client.table_data_client
 
         self.assertEqual(client._emulator_host, emulator_host)
         factory.assert_called_once_with(
-            emulator_host, credentials, options=_GRPC_CHANNEL_OPTIONS,
+            emulator_host,
+            mock.ANY,  # test of creds wrapping in '_emulator_host' below
+            options=_GRPC_CHANNEL_OPTIONS,
+        )
+
+    def test_constructor_with_emulator_host_no_project(self):
+        from google.cloud.environment_vars import BIGTABLE_EMULATOR
+        from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
+
+        emulator_host = "localhost:8081"
+        with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
+            with mock.patch("grpc.secure_channel") as factory:
+                client = self._make_one()
+                # don't test local_composite_credentials
+                #client._local_composite_credentials = lambda: credentials
+                # channels are formed when needed, so access a client
+                # create a gapic channel
+                client.table_data_client
+
+        self.assertEqual(client._emulator_host, emulator_host)
+        self.assertEqual(client.project, "nonesuch-project-123")
+        factory.assert_called_once_with(
+            emulator_host,
+            mock.ANY,  # test of creds wrapping in '_emulator_host' below
+            options=_GRPC_CHANNEL_OPTIONS,
         )
 
     def test__get_scopes_default(self):
