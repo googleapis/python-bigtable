@@ -155,6 +155,8 @@ def data_instance_populated(
         )
         operation = instance.create(clusters=[cluster])
         operation.result(timeout=30)
+    else:
+        instance = admin_client.instance(data_instance_id)
 
     yield instance
 

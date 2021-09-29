@@ -105,14 +105,14 @@ def test_client_list_instances(admin_client, admin_instance_populated, not_in_em
     assert admin_instance_populated.name in found
 
 
-def test_instance_exists_hit(admin_instance_populated):
+def test_instance_exists_hit(admin_instance_populated, not_in_emulator):
     # Emulator does not support instance admin operations (create / delete).
     # It allows connecting with *any* project / instance name.
     # See: https://cloud.google.com/bigtable/docs/emulator
     assert admin_instance_populated.exists()
 
 
-def test_instance_exists_miss(admin_client):
+def test_instance_exists_miss(admin_client, not_in_emulator):
     alt_instance = admin_client.instance("nonesuch-instance")
     assert not alt_instance.exists()
 
@@ -558,7 +558,7 @@ def test_cluster_exists_miss(admin_instance_populated, not_in_emulator):
 
 
 def test_cluster_create(
-    admin_instance_populated, admin_instance_id,
+    admin_instance_populated, admin_instance_id, not_in_emulator,
 ):
     alt_cluster_id = f"{admin_instance_id}-c2"
     alt_location_id = "us-central1-f"
