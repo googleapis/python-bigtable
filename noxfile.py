@@ -133,17 +133,15 @@ def system_emulated(session):
     subprocess.call(["gcloud", "components", "install", "beta", "bigtable"])
 
     hostport = "localhost:8789"
-    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
-    session.env["GOOGLE_CLOD_PROJECT"] = "nonesuch-project-123"
-
     p = subprocess.Popen(
         ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
     )
-    try:
-        system(session)
-    finally:
-        # Stop Emulator
-        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+
+    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
+    system(session)
+
+    # Stop Emulator
+    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)

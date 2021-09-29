@@ -177,7 +177,7 @@ class TestClient(unittest.TestCase):
             with mock.patch("grpc.secure_channel") as factory:
                 client = self._make_one(project=self.PROJECT)
                 # don't test local_composite_credentials
-                #client._local_composite_credentials = lambda: credentials
+                # client._local_composite_credentials = lambda: credentials
                 # channels are formed when needed, so access a client
                 # create a gapic channel
                 client.table_data_client
@@ -198,7 +198,7 @@ class TestClient(unittest.TestCase):
             with mock.patch("grpc.secure_channel") as factory:
                 client = self._make_one()
                 # don't test local_composite_credentials
-                #client._local_composite_credentials = lambda: credentials
+                # client._local_composite_credentials = lambda: credentials
                 # channels are formed when needed, so access a client
                 # create a gapic channel
                 client.table_data_client
