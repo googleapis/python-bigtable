@@ -138,6 +138,7 @@ def system_emulated(session):
     p = subprocess.Popen(
         ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
     )
+
     try:
         system(session)
     finally:
