@@ -134,6 +134,7 @@ def system_emulated(session):
 
     hostport = "localhost:8789"
     session.env["BIGTABLE_EMULATOR_HOST"] = hostport
+    session.env["GOOGLE_CLOD_PROJECT"] = "nonesuch-project-123"
 
     p = subprocess.Popen(
         ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
