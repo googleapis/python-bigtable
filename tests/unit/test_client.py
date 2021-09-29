@@ -175,7 +175,7 @@ class TestClient(unittest.TestCase):
         emulator_host = "localhost:8081"
         with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
             with mock.patch("grpc.secure_channel") as factory:
-                client = self._make_one(project=self.PROJECT)
+                client = self._make_one()
                 # don't test local_composite_credentials
                 # client._local_composite_credentials = lambda: credentials
                 # channels are formed when needed, so access a client
@@ -183,22 +183,42 @@ class TestClient(unittest.TestCase):
                 client.table_data_client
 
         self.assertEqual(client._emulator_host, emulator_host)
+        self.assertEqual(client.project, "nonesuch-project-123")
         factory.assert_called_once_with(
             emulator_host,
             mock.ANY,  # test of creds wrapping in '_emulator_host' below
             options=_GRPC_CHANNEL_OPTIONS,
         )
 
-    def test_constructor_with_emulator_host_no_project(self):
+    def test_constructor_with_emulator_host_w_project(self):
         from google.cloud.environment_vars import BIGTABLE_EMULATOR
         from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
         emulator_host = "localhost:8081"
         with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
             with mock.patch("grpc.secure_channel") as factory:
-                client = self._make_one()
-                # don't test local_composite_credentials
-                # client._local_composite_credentials = lambda: credentials
+                client = self._make_one(project=self.PROJECT)
+                # channels are formed when needed, so access a client
+                # create a gapic channel
+                client.table_data_client
+
+        self.assertEqual(client._emulator_host, emulator_host)
+        self.assertEqual(client.project, self.PROJECT)
+        factory.assert_called_once_with(
+            emulator_host,
+            mock.ANY,  # test of creds wrapping in '_emulator_host' below
+            options=_GRPC_CHANNEL_OPTIONS,
+        )
+
+    def test_constructor_with_emulator_host_w_credentials(self):
+        from google.cloud.environment_vars import BIGTABLE_EMULATOR
+        from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
+
+        emulator_host = "localhost:8081"
+        credentials = _make_credentials()
+        with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
+            with mock.patch("grpc.secure_channel") as factory:
+                client = self._make_one(credentials=credentials)
                 # channels are formed when needed, so access a client
                 # create a gapic channel
                 client.table_data_client

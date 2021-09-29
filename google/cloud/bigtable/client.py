@@ -172,8 +172,8 @@ class Client(ClientWithProject):
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
 
         if self._emulator_host is not None:
-            assert credentials is None
-            credentials = AnonymousCredentials()
+            if credentials is None:
+                credentials = AnonymousCredentials()
             if project is None:
                 project = "nonesuch-project-123"
 
