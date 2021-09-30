@@ -68,6 +68,7 @@ DATA_SCOPE = "https://www.googleapis.com/auth/bigtable.data"
 READ_ONLY_SCOPE = "https://www.googleapis.com/auth/bigtable.data.readonly"
 """Scope for reading table data."""
 
+_DEFAULT_BIGTABLE_EMULATOR_CLIENT = "google-cloud-bigtable-emulator"
 _GRPC_CHANNEL_OPTIONS = (
     ("grpc.max_send_message_length", -1),
     ("grpc.max_receive_message_length", -1),
@@ -175,7 +176,7 @@ class Client(ClientWithProject):
             if credentials is None:
                 credentials = AnonymousCredentials()
             if project is None:
-                project = "nonesuch-project-123"
+                project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 
         if channel is not None:
             warnings.warn(

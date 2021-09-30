@@ -170,6 +170,7 @@ class TestClient(unittest.TestCase):
 
     def test_constructor_with_emulator_host(self):
         from google.cloud.environment_vars import BIGTABLE_EMULATOR
+        from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
         from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
         emulator_host = "localhost:8081"
@@ -183,7 +184,7 @@ class TestClient(unittest.TestCase):
                 client.table_data_client
 
         self.assertEqual(client._emulator_host, emulator_host)
-        self.assertEqual(client.project, "nonesuch-project-123")
+        self.assertEqual(client.project, _DEFAULT_BIGTABLE_EMULATOR_CLIENT)
         factory.assert_called_once_with(
             emulator_host,
             mock.ANY,  # test of creds wrapping in '_emulator_host' below
@@ -212,6 +213,7 @@ class TestClient(unittest.TestCase):
 
     def test_constructor_with_emulator_host_w_credentials(self):
         from google.cloud.environment_vars import BIGTABLE_EMULATOR
+        from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
         from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
         emulator_host = "localhost:8081"
@@ -224,7 +226,7 @@ class TestClient(unittest.TestCase):
                 client.table_data_client
 
         self.assertEqual(client._emulator_host, emulator_host)
-        self.assertEqual(client.project, "nonesuch-project-123")
+        self.assertEqual(client.project, _DEFAULT_BIGTABLE_EMULATOR_CLIENT)
         factory.assert_called_once_with(
             emulator_host,
             mock.ANY,  # test of creds wrapping in '_emulator_host' below
