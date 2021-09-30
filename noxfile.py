@@ -119,7 +119,7 @@ def unit(session):
     default(session)
 
 
-@nox.session(python="3.8")
+@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system_emulated(session):
     import subprocess
     import signal
