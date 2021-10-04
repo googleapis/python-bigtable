@@ -74,6 +74,6 @@
             "override_path": "tableadmin"
         }
     ],
-    "default_version": "",
-    "codeowner_team": ""
+    "default_version": "v2",
+    "codeowner_team": "@googleapis/api-bigtable"
 }
