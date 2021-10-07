@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+### [2.4.1](https://www.github.com/googleapis/python-bigtable/compare/v2.4.0...v2.4.1) (2021-10-07)
+
+
+### Bug Fixes
+
+* improper types in pagers generation ([f9c7699](https://www.github.com/googleapis/python-bigtable/commit/f9c7699eb6d4071314abbb0477ba47370059e041))
+
 ## [2.4.0](https://www.github.com/googleapis/python-bigtable/compare/v2.3.3...v2.4.0) (2021-09-24)
 
 
