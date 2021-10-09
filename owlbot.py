@@ -155,9 +155,7 @@ s.replace("noxfile.py",
 # Samples templates
 # ----------------------------------------------------------------------------
 
-sample_files = common.py_samples(samples=True)
-for path in sample_files:
-    s.move(path)
+python.py_samples(skip_readmes=True)
 
 # Note: python-docs-samples is not yet using 'main':
 #s.replace(
