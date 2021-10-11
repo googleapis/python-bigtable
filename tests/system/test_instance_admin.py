@@ -96,7 +96,9 @@ def _delete_app_profile_helper(app_profile):
     assert not app_profile.exists()
 
 
-def test_client_list_instances(admin_client, admin_instance_populated, skip_on_emulator):
+def test_client_list_instances(
+    admin_client, admin_instance_populated, skip_on_emulator
+):
     instances, failed_locations = admin_client.list_instances()
 
     assert failed_locations == []
