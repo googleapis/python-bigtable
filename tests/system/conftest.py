@@ -41,7 +41,7 @@ def with_kms_key_name(kms_key_name):
 
 
 @pytest.fixture(scope="session")
-def not_in_emulator(in_emulator):
+def skip_on_emulator(in_emulator):
     if in_emulator:
         pytest.skip("Emulator does not support this feature")
 
