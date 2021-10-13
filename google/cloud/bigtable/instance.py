@@ -26,7 +26,7 @@ from google.cloud.bigtable_admin_v2.types import instance
 
 from google.iam.v1 import options_pb2 # type: ignore
 
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound # type: ignore
 
 from google.cloud.bigtable.policy import Policy
 

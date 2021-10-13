@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     __version__ : str
 
-from google.api_core.gapic_v1 import client_info
+from google.api_core.gapic_v1 import client_info # type: ignore
 import google.auth # type: ignore
 from google.auth.credentials import AnonymousCredentials # type: ignore
 
