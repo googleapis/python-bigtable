@@ -38,6 +38,7 @@ nox.options.sessions = [
     "unit",
     "system_emulated",
     "system",
+    "mypy",
     "cover",
     "lint",
     "lint_setup_py",
@@ -77,6 +78,15 @@ def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install("docutils", "pygments")
     session.run("python", "setup.py", "check", "--restructuredtext", "--strict")
+
+
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def mypy(session):
+    """Verify type hints are mypy compatible."""
+    session.install("-e", ".")
+    session.install("mypy")
+    session.run("mypy", "-p", "google.cloud.bigtable", "--no-incremental")
 
 
 def default(session):
