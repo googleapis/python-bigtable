@@ -15,8 +15,10 @@
 """Google Cloud Bigtable API package."""
 
 
+from typing import Optional
 import pkg_resources  # type: ignore
 
+__version__ : Optional[str]
 try:
     __version__ = pkg_resources.get_distribution("google-cloud-bigtable").version
 except pkg_resources.DistributionNotFound:

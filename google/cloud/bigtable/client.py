@@ -30,10 +30,6 @@ In the hierarchy of API concepts
 import os
 import warnings
 import grpc  # type: ignore
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    __version__: str
 
 from google.api_core.gapic_v1 import client_info  # type: ignore
 import google.auth  # type: ignore
@@ -49,7 +45,7 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports imp
     BigtableTableAdminGrpcTransport,
 )
 
-from google.cloud.bigtable import __version__  # type: ignore
+from google.cloud.bigtable import __version__ 
 from google.cloud.bigtable.instance import Instance
 from google.cloud.bigtable.cluster import Cluster
 
