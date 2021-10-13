@@ -15,7 +15,7 @@
 """Google Cloud Bigtable API package."""
 
 
-import pkg_resources # type: ignore
+import pkg_resources  # type: ignore
 
 try:
     __version__ = pkg_resources.get_distribution("google-cloud-bigtable").version

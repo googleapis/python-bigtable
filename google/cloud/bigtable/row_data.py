@@ -17,7 +17,7 @@
 
 import copy
 
-import grpc # type: ignore
+import grpc  # type: ignore
 
 from google.api_core import exceptions # type: ignore
 from google.api_core import retry # type: ignore

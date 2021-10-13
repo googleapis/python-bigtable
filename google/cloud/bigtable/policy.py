@@ -14,9 +14,9 @@
 
 import base64
 
-from google.api_core.iam import Policy as BasePolicy # type: ignore
-from google.cloud._helpers import _to_bytes # type: ignore
-from google.iam.v1 import policy_pb2 # type: ignore
+from google.api_core.iam import Policy as BasePolicy
+from google.cloud._helpers import _to_bytes
+from google.iam.v1 import policy_pb2  # type: ignore
 
 """IAM roles supported by Bigtable Instance resource"""
 BIGTABLE_ADMIN_ROLE = "roles/bigtable.admin"
