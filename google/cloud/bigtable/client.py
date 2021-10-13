@@ -29,11 +29,15 @@ In the hierarchy of API concepts
 """
 import os
 import warnings
-import grpc
+import grpc # type: ignore
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    __version__ : str
 
 from google.api_core.gapic_v1 import client_info
-import google.auth
-from google.auth.credentials import AnonymousCredentials
+import google.auth # type: ignore
+from google.auth.credentials import AnonymousCredentials # type: ignore
 
 from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
@@ -45,15 +49,16 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports imp
     BigtableTableAdminGrpcTransport,
 )
 
-from google.cloud.bigtable import __version__
+from google.cloud.bigtable import __version__  # type: ignore
 from google.cloud.bigtable.instance import Instance
 from google.cloud.bigtable.cluster import Cluster
 
-from google.cloud.client import ClientWithProject
+from google.cloud.client import ClientWithProject # type: ignore
 
 from google.cloud.bigtable_admin_v2.types import instance
 from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
-from google.cloud.environment_vars import BIGTABLE_EMULATOR
+from google.cloud.environment_vars import BIGTABLE_EMULATOR # type: ignore
+
 
 
 INSTANCE_TYPE_PRODUCTION = instance.Instance.Type.PRODUCTION
