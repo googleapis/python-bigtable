@@ -39,7 +39,6 @@ nox.options.sessions = [
     "system_emulated",
     "system",
     "mypy",
-    "pytype",
     "cover",
     "lint",
     "lint_setup_py",
