@@ -45,7 +45,7 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports imp
     BigtableTableAdminGrpcTransport,
 )
 
-from google.cloud.bigtable import __version__ 
+from google.cloud.bigtable import __version__
 from google.cloud.bigtable.instance import Instance
 from google.cloud.bigtable.cluster import Cluster
 
