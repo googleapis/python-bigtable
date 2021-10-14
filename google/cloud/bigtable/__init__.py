@@ -18,14 +18,13 @@
 from typing import Optional
 import pkg_resources
 
+from google.cloud.bigtable.client import Client
+
 __version__: Optional[str]
 try:
     __version__ = pkg_resources.get_distribution("google-cloud-bigtable").version
 except pkg_resources.DistributionNotFound:
     __version__ = None
-
-
-from google.cloud.bigtable.client import Client
 
 
 __all__ = ["__version__", "Client"]
