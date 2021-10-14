@@ -166,7 +166,7 @@ def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
     session.install("mypy", "types-setuptools")
-    # TODO: also verify types on tests
+    # TODO: also verify types on tests, all of google package
     session.run("mypy", "-p", "google", "--no-incremental")
 
 
