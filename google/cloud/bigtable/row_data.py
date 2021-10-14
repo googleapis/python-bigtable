@@ -19,8 +19,8 @@ import copy
 
 import grpc  # type: ignore
 
-from google.api_core import exceptions  # type: ignore
-from google.api_core import retry  # type: ignore
+from google.api_core import exceptions
+from google.api_core import retry
 from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2

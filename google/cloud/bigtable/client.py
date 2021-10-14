@@ -31,7 +31,7 @@ import os
 import warnings
 import grpc  # type: ignore
 
-from google.api_core.gapic_v1 import client_info  # type: ignore
+from google.api_core.gapic_v1 import client_info
 import google.auth  # type: ignore
 from google.auth.credentials import AnonymousCredentials  # type: ignore
 

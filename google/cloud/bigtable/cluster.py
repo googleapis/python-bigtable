@@ -17,7 +17,7 @@
 
 import re
 from google.cloud.bigtable_admin_v2.types import instance
-from google.api_core.exceptions import NotFound  # type: ignore
+from google.api_core.exceptions import NotFound
 
 
 _CLUSTER_NAME_RE = re.compile(

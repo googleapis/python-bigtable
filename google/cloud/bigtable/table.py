@@ -16,14 +16,14 @@
 
 import warnings
 
-from google.api_core import timeout  # type: ignore
-from google.api_core.exceptions import Aborted  # type: ignore
+from google.api_core import timeout
+from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
 from google.api_core.exceptions import RetryError
 from google.api_core.exceptions import ServiceUnavailable
-from google.api_core.gapic_v1.method import DEFAULT  # type: ignore
-from google.api_core.retry import if_exception_type  # type: ignore
+from google.api_core.gapic_v1.method import DEFAULT
+from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable.backup import Backup
