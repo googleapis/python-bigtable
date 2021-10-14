@@ -14,6 +14,7 @@
 
 """User-friendly container for Google Cloud Bigtable Table."""
 
+from typing import Set
 import warnings
 
 from google.api_core import timeout
@@ -56,6 +57,12 @@ VIEW_NAME_ONLY = enums.Table.View.NAME_ONLY
 
 RETRYABLE_MUTATION_ERRORS = (Aborted, DeadlineExceeded, ServiceUnavailable)
 """Errors which can be retried during row mutation."""
+
+RETRYABLE_CODES: Set[int] = set()
+
+for retryable in RETRYABLE_MUTATION_ERRORS:
+    if retryable.grpc_status_code is not None:
+        RETRYABLE_CODES.add(retryable.grpc_status_code.value[0])
 
 
 class _BigtableRetryableError(Exception):
@@ -1079,12 +1086,7 @@ class _RetryableMutateRowsWorker(object):
 
     @staticmethod
     def _is_retryable(status):
-        RETRY_CODES = tuple(
-            retryable.grpc_status_code.value[0]
-            for retryable in RETRYABLE_MUTATION_ERRORS
-        )
-
-        return status is None or status.code in RETRY_CODES
+        return status is None or status.code in RETRYABLE_CODES
 
     def _do_mutate_retryable_rows(self):
         """Mutate all the rows that are eligible for retry.
