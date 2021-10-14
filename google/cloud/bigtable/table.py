@@ -61,7 +61,7 @@ RETRYABLE_MUTATION_ERRORS = (Aborted, DeadlineExceeded, ServiceUnavailable)
 RETRYABLE_CODES: Set[int] = set()
 
 for retryable in RETRYABLE_MUTATION_ERRORS:
-    if retryable.grpc_status_code is not None:
+    if retryable.grpc_status_code is not None:  # pragma: NO COVER
         RETRYABLE_CODES.add(retryable.grpc_status_code.value[0])
 
 
