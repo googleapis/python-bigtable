@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from concurrent.futures import TimeoutError
 import datetime
 
 import grpc
@@ -33,7 +34,9 @@ def _retry_on_unavailable(exc):
 
 
 retry_grpc_unavailable = retry.RetryErrors(
-    core_exceptions.GrpcRendezvous, error_predicate=_retry_on_unavailable,
+    core_exceptions.GrpcRendezvous,
+    error_predicate=_retry_on_unavailable,
+    max_tries=9,
 )
 
 
