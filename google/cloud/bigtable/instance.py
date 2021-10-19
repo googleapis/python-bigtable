@@ -15,22 +15,18 @@
 """User-friendly container for Google Cloud Bigtable Instance."""
 
 import re
+import warnings
 
-from google.cloud.bigtable.app_profile import AppProfile
-from google.cloud.bigtable.cluster import Cluster
-from google.cloud.bigtable.table import Table
-
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
+from google.api_core.exceptions import NotFound
+from google.iam.v1 import options_pb2  # type: ignore
 from google.protobuf import field_mask_pb2
 
 from google.cloud.bigtable_admin_v2.types import instance
-
-from google.iam.v1 import options_pb2  # type: ignore
-
-from google.api_core.exceptions import NotFound
-
+from google.cloud.bigtable.app_profile import AppProfile
+from google.cloud.bigtable.cluster import Cluster
 from google.cloud.bigtable.policy import Policy
-
-import warnings
+from google.cloud.bigtable.table import Table
 
 _INSTANCE_NAME_RE = re.compile(
     r"^projects/(?P<project>[^/]+)/" r"instances/(?P<instance_id>[a-z][-a-z0-9]*)$"
@@ -115,6 +111,7 @@ class Instance(object):
         self.type_ = instance_type
         self.labels = labels
         self._state = _state
+        self._create_time = None
 
     def _update_from_pb(self, instance_pb):
         """Refresh self from the server-provided protobuf.
@@ -126,6 +123,12 @@ class Instance(object):
         self.type_ = instance_pb.type_
         self.labels = dict(instance_pb.labels)
         self._state = instance_pb.state
+        if instance_pb.create_time is not None:
+            self._create_time = DatetimeWithNanoseconds.from_pb(
+                instance_pb.create_time
+            )
+        else:
+            self._create_time = None
 
     @classmethod
     def from_pb(cls, instance_pb, client):
@@ -207,6 +210,16 @@ class Instance(object):
 
         """
         return self._state
+
+    @property
+    def create_time(self):
+        """Timestamp when the instance was created.
+
+        :rtype:
+            :class:`~google.api_core.datetime_helpers.DatetimeWithNanoseconds`
+            or ``None``
+        """
+        return self._create_time
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

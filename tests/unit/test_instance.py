@@ -72,6 +72,7 @@ class TestInstance(unittest.TestCase):
         self.assertIsNone(instance.labels)
         self.assertIs(instance._client, client)
         self.assertIsNone(instance.state)
+        self.assertIsNone(instance.create_time)
 
     def test_constructor_non_default(self):
         from google.cloud.bigtable import enums
@@ -95,19 +96,34 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(instance.labels, labels)
         self.assertIs(instance._client, client)
         self.assertEqual(instance.state, state)
+        self.assertIsNone(instance.create_time)
+
+    @staticmethod
+    def _make_timestamp_pb():
+        import datetime
+        from google.protobuf import timestamp_pb2
+
+        now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+        seconds = int(now.timestamp())
+        nanos = int((now.timestamp() - seconds) * 1e9)
+        return timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)
 
     def test__update_from_pb_success(self):
+        import datetime
+        from google.api_core.datetime_helpers import DatetimeWithNanoseconds
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
         from google.cloud.bigtable import enums
 
         instance_type = data_v2_pb2.Instance.Type.PRODUCTION
         state = enums.Instance.State.READY
+        timestamp = self._make_timestamp_pb()
         # todo type to type_?
         instance_pb = data_v2_pb2.Instance(
             display_name=self.DISPLAY_NAME,
             type_=instance_type,
             labels=self.LABELS,
             state=state,
+            create_time=timestamp,
         )
 
         instance = self._make_one(None, None)
@@ -119,6 +135,8 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(instance.type_, instance_type)
         self.assertEqual(instance.labels, self.LABELS)
         self.assertEqual(instance._state, state)
+        expected_dt = DatetimeWithNanoseconds.from_timestamp_pb(timestamp)
+        self.assertEqual( instance.create_time, expected_dt )
 
     def test__update_from_pb_success_defaults(self):
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
@@ -134,6 +152,7 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(instance.display_name, self.DISPLAY_NAME)
         self.assertEqual(instance.type_, enums.Instance.Type.UNSPECIFIED)
         self.assertFalse(instance.labels)
+        self.assertIsNone(instance.create_time)
 
     def test__update_from_pb_no_display_name(self):
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
@@ -145,6 +164,7 @@ class TestInstance(unittest.TestCase):
             instance._update_from_pb(instance_pb)
 
     def test_from_pb_success(self):
+        from google.api_core.datetime_helpers import DatetimeWithNanoseconds
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
         from google.cloud.bigtable import enums
 
@@ -154,12 +174,14 @@ class TestInstance(unittest.TestCase):
         )
         instance_type = enums.Instance.Type.PRODUCTION
         state = enums.Instance.State.READY
+        timestamp = self._make_timestamp_pb()
         instance_pb = data_v2_pb2.Instance(
             name=self.INSTANCE_NAME,
             display_name=self.INSTANCE_ID,
             type_=instance_type,
             labels=self.LABELS,
             state=state,
+            created_time=timestamp,
         )
 
         klass = self._get_target_class()
@@ -171,6 +193,8 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(instance.type_, instance_type)
         self.assertEqual(instance.labels, self.LABELS)
         self.assertEqual(instance._state, state)
+        expected_dt = DatetimeWithNanoseconds.from_timestamp_pb(timestamp)
+        self.assertEqual( instance.create_time, expected_dt )
 
     def test_from_pb_bad_instance_name(self):
         from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
