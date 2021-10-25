@@ -117,14 +117,15 @@ class Instance(object):
         """Refresh self from the server-provided protobuf.
         Helper for :meth:`from_pb` and :meth:`reload`.
         """
+        instance_pb = getattr(instance_pb, "_pb", instance_pb)
         if not instance_pb.display_name:  # Simple field (string)
             raise ValueError("Instance protobuf does not contain display_name")
         self.display_name = instance_pb.display_name
         self.type_ = instance_pb.type_
         self.labels = dict(instance_pb.labels)
         self._state = instance_pb.state
-        if instance_pb.create_time is not None:
-            self._create_time = DatetimeWithNanoseconds.from_pb(
+        if instance_pb.create_time.seconds:
+            self._create_time = DatetimeWithNanoseconds.from_timestamp_pb(
                 instance_pb.create_time
             )
         else:
