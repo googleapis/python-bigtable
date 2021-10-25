@@ -160,6 +160,16 @@ def test_row_sample_filter___eq__same_value():
     assert row_filter1 == row_filter2
 
 
+def test_row_sample_filter___ne__():
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+
+    sample = object()
+    other_sample = object()
+    row_filter1 = RowSampleFilter(sample)
+    row_filter2 = RowSampleFilter(other_sample)
+    assert row_filter1 != row_filter2
+
+
 def test_row_sample_filter_to_pb():
     from google.cloud.bigtable.row_filters import RowSampleFilter
 
@@ -306,6 +316,16 @@ def test_timestamp_range_filter___eq__same_value():
     assert row_filter1 == row_filter2
 
 
+def test_timestamp_range_filter___ne__():
+    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+
+    range_ = object()
+    other_range_ = object()
+    row_filter1 = TimestampRangeFilter(range_)
+    row_filter2 = TimestampRangeFilter(other_range_)
+    assert row_filter1 != row_filter2
+
+
 def test_timestamp_range_filter_to_pb():
     from google.cloud.bigtable.row_filters import TimestampRangeFilter
     from google.cloud.bigtable.row_filters import TimestampRange
@@ -399,6 +419,32 @@ def test_column_range_filter___eq__type_differ():
     row_filter1 = ColumnRangeFilter(column_family_id)
     row_filter2 = object()
     assert not (row_filter1 == row_filter2)
+
+
+def test_column_range_filter___ne__():
+    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+
+    column_family_id = object()
+    other_column_family_id = object()
+    start_column = object()
+    end_column = object()
+    inclusive_start = object()
+    inclusive_end = object()
+    row_filter1 = ColumnRangeFilter(
+        column_family_id,
+        start_column=start_column,
+        end_column=end_column,
+        inclusive_start=inclusive_start,
+        inclusive_end=inclusive_end,
+    )
+    row_filter2 = ColumnRangeFilter(
+        other_column_family_id,
+        start_column=start_column,
+        end_column=end_column,
+        inclusive_start=inclusive_start,
+        inclusive_end=inclusive_end,
+    )
+    assert row_filter1 != row_filter2
 
 
 def test_column_range_filter_to_pb():
@@ -615,6 +661,29 @@ def test_value_range_filter___eq__type_differ():
     assert not (row_filter1 == row_filter2)
 
 
+def test_value_range_filter___ne__():
+    from google.cloud.bigtable.row_filters import ValueRangeFilter
+
+    start_value = object()
+    other_start_value = object()
+    end_value = object()
+    inclusive_start = object()
+    inclusive_end = object()
+    row_filter1 = ValueRangeFilter(
+        start_value=start_value,
+        end_value=end_value,
+        inclusive_start=inclusive_start,
+        inclusive_end=inclusive_end,
+    )
+    row_filter2 = ValueRangeFilter(
+        start_value=other_start_value,
+        end_value=end_value,
+        inclusive_start=inclusive_start,
+        inclusive_end=inclusive_end,
+    )
+    assert row_filter1 != row_filter2
+
+
 def test_value_range_filter_to_pb():
     from google.cloud.bigtable.row_filters import ValueRangeFilter
 
@@ -764,6 +833,16 @@ def test_apply_label_filter___eq__same_value():
     assert row_filter1 == row_filter2
 
 
+def test_apply_label_filter___ne__():
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    label = object()
+    other_label = object()
+    row_filter1 = ApplyLabelFilter(label)
+    row_filter2 = ApplyLabelFilter(other_label)
+    assert row_filter1 != row_filter2
+
+
 def test_apply_label_filter_to_pb():
     from google.cloud.bigtable.row_filters import ApplyLabelFilter
 
@@ -805,6 +884,16 @@ def test_filter_combination___eq__type_differ():
     row_filter1 = _FilterCombination(filters=filters)
     row_filter2 = object()
     assert not (row_filter1 == row_filter2)
+
+
+def test_filter_combination___ne__():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+
+    filters = object()
+    other_filters = object()
+    row_filter1 = _FilterCombination(filters=filters)
+    row_filter2 = _FilterCombination(filters=other_filters)
+    assert row_filter1 != row_filter2
 
 
 def test_row_filter_chain_to_pb():
@@ -935,6 +1024,22 @@ def test_conditional_row_filter___eq__type_differ():
     )
     cond_filter2 = object()
     assert not (cond_filter1 == cond_filter2)
+
+
+def test_conditional_row_filter___ne__():
+    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+
+    base_filter = object()
+    other_base_filter = object()
+    true_filter = object()
+    false_filter = object()
+    cond_filter1 = ConditionalRowFilter(
+        base_filter, true_filter=true_filter, false_filter=false_filter
+    )
+    cond_filter2 = ConditionalRowFilter(
+        other_base_filter, true_filter=true_filter, false_filter=false_filter
+    )
+    assert cond_filter1 != cond_filter2
 
 
 def test_conditional_row_filter_to_pb():
