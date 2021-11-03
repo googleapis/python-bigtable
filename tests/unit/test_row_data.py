@@ -283,6 +283,9 @@ def _make_grpc_call_error(exception):
         def details(self):
             return "Testing"
 
+        def trailing_metadata(self):
+            return None
+
     return TestingException(exception)
 
 
