@@ -79,7 +79,7 @@ def _modify_app_profile_helper(
     )
 
     operation = app_profile.update(ignore_warnings=ignore_warnings)
-    operation.result(timeout=30)
+    operation.result(timeout=60)
 
     alt_profile = instance.app_profile(app_profile_id)
     alt_profile.reload()
@@ -96,7 +96,9 @@ def _delete_app_profile_helper(app_profile):
     assert not app_profile.exists()
 
 
-def test_client_list_instances(admin_client, admin_instance_populated, not_in_emulator):
+def test_client_list_instances(
+    admin_client, admin_instance_populated, skip_on_emulator
+):
     instances, failed_locations = admin_client.list_instances()
 
     assert failed_locations == []
@@ -105,20 +107,20 @@ def test_client_list_instances(admin_client, admin_instance_populated, not_in_em
     assert admin_instance_populated.name in found
 
 
-def test_instance_exists_hit(admin_instance_populated):
+def test_instance_exists_hit(admin_instance_populated, skip_on_emulator):
     # Emulator does not support instance admin operations (create / delete).
     # It allows connecting with *any* project / instance name.
     # See: https://cloud.google.com/bigtable/docs/emulator
     assert admin_instance_populated.exists()
 
 
-def test_instance_exists_miss(admin_client):
+def test_instance_exists_miss(admin_client, skip_on_emulator):
     alt_instance = admin_client.instance("nonesuch-instance")
     assert not alt_instance.exists()
 
 
 def test_instance_reload(
-    admin_client, admin_instance_id, admin_instance_populated, not_in_emulator
+    admin_client, admin_instance_id, admin_instance_populated, skip_on_emulator
 ):
     # Use same arguments as 'admin_instance_populated'
     # so we can use reload() on a fresh instance.
@@ -139,7 +141,7 @@ def test_instance_create_prod(
     location_id,
     instance_labels,
     instances_to_delete,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     from google.cloud.bigtable import enums
 
@@ -153,7 +155,7 @@ def test_instance_create_prod(
 
     operation = instance.create(clusters=[cluster])
     instances_to_delete.append(instance)
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.
     assert instance.type_ is None
 
     # Create a new instance instance and make sure it is the same.
@@ -171,7 +173,7 @@ def test_instance_create_development(
     location_id,
     instance_labels,
     instances_to_delete,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     alt_instance_id = f"new{unique_suffix}"
     instance = admin_client.instance(
@@ -184,7 +186,7 @@ def test_instance_create_development(
 
     operation = instance.create(clusters=[cluster])
     instances_to_delete.append(instance)
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.
 
     # Create a new instance instance and make sure it is the same.
     instance_alt = admin_client.instance(alt_instance_id)
@@ -205,7 +207,7 @@ def test_instance_create_w_two_clusters(
     location_id,
     instance_labels,
     instances_to_delete,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     alt_instance_id = f"dif{unique_suffix}"
     instance = admin_client.instance(
@@ -400,7 +402,7 @@ def test_instance_create_w_two_clusters_cmek(
     instance_labels,
     instances_to_delete,
     with_kms_key_name,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     alt_instance_id = f"dif-cmek{unique_suffix}"
     instance = admin_client.instance(
@@ -484,7 +486,7 @@ def test_instance_update_display_name_and_labels(
     admin_instance_populated,
     label_key,
     instance_labels,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     old_display_name = admin_instance_populated.display_name
     new_display_name = "Foo Bar Baz"
@@ -494,7 +496,7 @@ def test_instance_update_display_name_and_labels(
     admin_instance_populated.labels = new_labels
 
     operation = admin_instance_populated.update()
-    operation.result(timeout=30)  # ensure the operation completes.
+    operation.result(timeout=60)  # ensure the operation completes.
 
     # Create a new instance instance and reload it.
     instance_alt = admin_client.instance(admin_instance_id, labels={})
@@ -511,7 +513,7 @@ def test_instance_update_display_name_and_labels(
     admin_instance_populated.display_name = old_display_name
     admin_instance_populated.labels = instance_labels
     operation = admin_instance_populated.update()
-    operation.result(timeout=30)  # ensure the operation completes.
+    operation.result(timeout=60)  # ensure the operation completes.
 
 
 def test_instance_update_w_type(
@@ -521,7 +523,7 @@ def test_instance_update_w_type(
     location_id,
     instance_labels,
     instances_to_delete,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     alt_instance_id = f"ndif{unique_suffix}"
     instance = admin_client.instance(
@@ -534,12 +536,12 @@ def test_instance_update_w_type(
 
     operation = instance.create(clusters=[cluster])
     instances_to_delete.append(instance)
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.
 
     instance.display_name = None
     instance.type_ = enums.Instance.Type.PRODUCTION
     operation = instance.update()
-    operation.result(timeout=30)  # ensure the operation completes.
+    operation.result(timeout=60)  # ensure the operation completes.
 
     # Create a new instance instance and reload it.
     instance_alt = admin_client.instance(alt_instance_id)
@@ -548,17 +550,17 @@ def test_instance_update_w_type(
     assert instance_alt.type_ == enums.Instance.Type.PRODUCTION
 
 
-def test_cluster_exists_hit(admin_cluster, not_in_emulator):
+def test_cluster_exists_hit(admin_cluster, skip_on_emulator):
     assert admin_cluster.exists()
 
 
-def test_cluster_exists_miss(admin_instance_populated, not_in_emulator):
+def test_cluster_exists_miss(admin_instance_populated, skip_on_emulator):
     alt_cluster = admin_instance_populated.cluster("nonesuch-cluster")
     assert not alt_cluster.exists()
 
 
 def test_cluster_create(
-    admin_instance_populated, admin_instance_id,
+    admin_instance_populated, admin_instance_id, skip_on_emulator,
 ):
     alt_cluster_id = f"{admin_instance_id}-c2"
     alt_location_id = "us-central1-f"
@@ -571,7 +573,7 @@ def test_cluster_create(
         default_storage_type=(enums.StorageType.SSD),
     )
     operation = cluster_2.create()
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.
 
     # Create a new object instance, reload  and make sure it is the same.
     alt_cluster = admin_instance_populated.cluster(alt_cluster_id)
@@ -594,14 +596,14 @@ def test_cluster_update(
     admin_cluster_id,
     admin_cluster,
     serve_nodes,
-    not_in_emulator,
+    skip_on_emulator,
 ):
     new_serve_nodes = 4
 
     admin_cluster.serve_nodes = new_serve_nodes
 
     operation = admin_cluster.update()
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.
 
     # Create a new cluster instance and reload it.
     alt_cluster = admin_instance_populated.cluster(admin_cluster_id)
@@ -611,4 +613,4 @@ def test_cluster_update(
     # Put the cluster back the way it was for the other test cases.
     admin_cluster.serve_nodes = serve_nodes
     operation = admin_cluster.update()
-    operation.result(timeout=30)  # Ensure the operation completes.
+    operation.result(timeout=60)  # Ensure the operation completes.

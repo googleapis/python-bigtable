@@ -16,6 +16,7 @@
 import proto  # type: ignore
 
 from google.cloud.bigtable_admin_v2.types import common
+from google.protobuf import timestamp_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
@@ -57,6 +58,11 @@ class Instance(proto.Message):
             -  No more than 64 labels can be associated with a given
                resource.
             -  Keys and values must both be under 128 bytes.
+        create_time (google.protobuf.timestamp_pb2.Timestamp):
+            Output only. A server-assigned timestamp representing when
+            this Instance was created. For instances created before this
+            field was added (August 2021), this value is
+            ``seconds: 0, nanos: 1``.
     """
 
     class State(proto.Enum):
@@ -76,6 +82,7 @@ class Instance(proto.Message):
     state = proto.Field(proto.ENUM, number=3, enum=State,)
     type_ = proto.Field(proto.ENUM, number=4, enum=Type,)
     labels = proto.MapField(proto.STRING, proto.STRING, number=5,)
+    create_time = proto.Field(proto.MESSAGE, number=7, message=timestamp_pb2.Timestamp,)
 
 
 class Cluster(proto.Message):
@@ -150,6 +157,13 @@ class AppProfile(proto.Message):
     r"""A configuration object describing how Cloud Bigtable should
     treat traffic from a particular end user application.
 
+    This message has `oneof`_ fields (mutually exclusive fields).
+    For each oneof, at most one member field can be set at the same time.
+    Setting any member of the oneof automatically clears all other
+    members.
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
     Attributes:
         name (str):
             (``OutputOnly``) The unique name of the app profile. Values
@@ -171,8 +185,10 @@ class AppProfile(proto.Message):
             case for this AppProfile.
         multi_cluster_routing_use_any (google.cloud.bigtable_admin_v2.types.AppProfile.MultiClusterRoutingUseAny):
             Use a multi-cluster routing policy.
+            This field is a member of `oneof`_ ``routing_policy``.
         single_cluster_routing (google.cloud.bigtable_admin_v2.types.AppProfile.SingleClusterRouting):
             Use a single-cluster routing policy.
+            This field is a member of `oneof`_ ``routing_policy``.
     """
 
     class MultiClusterRoutingUseAny(proto.Message):

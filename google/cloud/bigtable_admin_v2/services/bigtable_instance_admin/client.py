@@ -30,6 +30,8 @@ from google.auth.transport.grpc import SslCredentials  # type: ignore
 from google.auth.exceptions import MutualTLSChannelError  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
+OptionalRetry = Union[retries.Retry, object]
+
 from google.api_core import operation  # type: ignore
 from google.api_core import operation_async  # type: ignore
 from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import pagers
@@ -40,6 +42,7 @@ from google.cloud.bigtable_admin_v2.types import instance as gba_instance
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
 from .transports.base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableInstanceAdminGrpcTransport
 from .transports.grpc_asyncio import BigtableInstanceAdminGrpcAsyncIOTransport
@@ -421,7 +424,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         clusters: Sequence[
             bigtable_instance_admin.CreateInstanceRequest.ClustersEntry
         ] = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
@@ -538,7 +541,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.GetInstanceRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.Instance:
@@ -613,7 +616,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.ListInstancesRequest, dict] = None,
         *,
         parent: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> bigtable_instance_admin.ListInstancesResponse:
@@ -684,7 +687,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         self,
         request: Union[instance.Instance, dict] = None,
         *,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.Instance:
@@ -748,7 +751,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         *,
         instance: gba_instance.Instance = None,
         update_mask: field_mask_pb2.FieldMask = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
@@ -848,7 +851,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.DeleteInstanceRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
@@ -915,7 +918,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         parent: str = None,
         cluster_id: str = None,
         cluster: instance.Cluster = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
@@ -1019,7 +1022,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.GetClusterRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.Cluster:
@@ -1093,7 +1096,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.ListClustersRequest, dict] = None,
         *,
         parent: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> bigtable_instance_admin.ListClustersResponse:
@@ -1166,7 +1169,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         self,
         request: Union[instance.Cluster, dict] = None,
         *,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
@@ -1231,7 +1234,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.DeleteClusterRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
@@ -1298,7 +1301,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         parent: str = None,
         app_profile_id: str = None,
         app_profile: instance.AppProfile = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.AppProfile:
@@ -1391,7 +1394,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.GetAppProfileRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.AppProfile:
@@ -1464,7 +1467,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.ListAppProfilesRequest, dict] = None,
         *,
         parent: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> pagers.ListAppProfilesPager:
@@ -1549,7 +1552,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         *,
         app_profile: instance.AppProfile = None,
         update_mask: field_mask_pb2.FieldMask = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
@@ -1642,7 +1645,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[bigtable_instance_admin.DeleteAppProfileRequest, dict] = None,
         *,
         name: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
@@ -1707,7 +1710,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[iam_policy_pb2.GetIamPolicyRequest, dict] = None,
         *,
         resource: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> policy_pb2.Policy:
@@ -1834,7 +1837,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         request: Union[iam_policy_pb2.SetIamPolicyRequest, dict] = None,
         *,
         resource: str = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> policy_pb2.Policy:
@@ -1961,7 +1964,7 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         *,
         resource: str = None,
         permissions: Sequence[str] = None,
-        retry: retries.Retry = gapic_v1.method.DEFAULT,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> iam_policy_pb2.TestIamPermissionsResponse:

@@ -38,6 +38,7 @@ nox.options.sessions = [
     "unit",
     "system_emulated",
     "system",
+    "mypy",
     "cover",
     "lint",
     "lint_setup_py",
@@ -73,6 +74,15 @@ def blacken(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+def mypy(session):
+    """Verify type hints are mypy compatible."""
+    session.install("-e", ".")
+    session.install("mypy", "types-setuptools")
+    # TODO: also verify types on tests, all of google package
+    session.run("mypy", "-p", "google.cloud.bigtable", "--no-incremental")
+
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install("docutils", "pygments")
@@ -102,7 +112,7 @@ def default(session):
         "py.test",
         "--quiet",
         f"--junitxml=unit_{session.python}_sponge_log.xml",
-        "--cov=google/cloud",
+        "--cov=google",
         "--cov=tests/unit",
         "--cov-append",
         "--cov-config=.coveragerc",
@@ -119,7 +129,7 @@ def unit(session):
     default(session)
 
 
-@nox.session(python="3.8")
+@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system_emulated(session):
     import subprocess
     import signal
@@ -133,15 +143,17 @@ def system_emulated(session):
     subprocess.call(["gcloud", "components", "install", "beta", "bigtable"])
 
     hostport = "localhost:8789"
+    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
+
     p = subprocess.Popen(
         ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port", hostport]
     )
 
-    session.env["BIGTABLE_EMULATOR_HOST"] = hostport
-    system(session)
-
-    # Stop Emulator
-    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+    try:
+        system(session)
+    finally:
+        # Stop Emulator
+        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
