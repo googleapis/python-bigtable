@@ -17,7 +17,7 @@ Analytics, Maps, and Gmail.
 .. |versions| image:: https://img.shields.io/pypi/pyversions/google-cloud-bigtable.svg
    :target: https://pypi.org/project/google-cloud-bigtable/
 .. _Google Cloud Bigtable: https://cloud.google.com/bigtable
-.. _Client Library Documentation: https://googleapis.dev/python/bigtable/latest
+.. _Client Library Documentation: https://cloud.google.com/python/docs/reference/bigtable/latest
 .. _Product Documentation:  https://cloud.google.com/bigtable/docs
 
 Quick Start
