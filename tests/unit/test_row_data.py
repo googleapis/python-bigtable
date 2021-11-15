@@ -283,7 +283,7 @@ def _make_grpc_call_error(exception):
         def details(self):
             return "Testing"
 
-        def trailing_metadata(self):
+        def trailing_metadata(self):  # pragma: NO COVER
             return None
 
     return TestingException(exception)
