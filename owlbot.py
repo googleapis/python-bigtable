@@ -175,6 +175,20 @@ def lint_setup_py(session):
 ''',
 )
 
+bad_clusters_typing = r"""
+        clusters: Sequence\[
+            bigtable_instance_admin\.CreateInstanceRequest\.ClustersEntry
+        \] = None,"""
+
+good_clusters_typing = """
+        clusters: Dict[str, gba_instance.Cluster] = None,"""
+
+s.replace(
+    "google/cloud/bigtable_admin_v2/services/bigtable_instance_admin/*client.py",
+    bad_clusters_typing,
+    good_clusters_typing,
+)
+
 # ----------------------------------------------------------------------------
 # Samples templates
 # ----------------------------------------------------------------------------
