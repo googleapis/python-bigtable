@@ -199,7 +199,7 @@ bad_clusters_docstring_2 = re.escape(r"""
             clusters (Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]):""")
 
 good_clusters_docstring = """
-        clusters (Dict[str, gba_instance.Cluster]):"""
+            clusters (Dict[str, gba_instance.Cluster]):"""
 
 s.replace(
     "google/cloud/bigtable_admin_v2/services/bigtable_instance_admin/*client.py",
