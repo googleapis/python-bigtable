@@ -233,7 +233,7 @@ class BigtableInstanceAdminAsyncClient:
                 This corresponds to the ``instance`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            clusters (:class:`Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]`):
+        clusters (Dict[str, gba_instance.Cluster]):
                 Required. The clusters to be created within the
                 instance, mapped by desired cluster ID, e.g., just
                 ``mycluster`` rather than
