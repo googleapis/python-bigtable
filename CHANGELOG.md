@@ -4,6 +4,28 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.5.0](https://www.github.com/googleapis/python-bigtable/compare/v2.4.0...v2.5.0) (2021-12-21)
+
+
+### Features
+
+* add 'Instance.create_time' field ([#449](https://www.github.com/googleapis/python-bigtable/issues/449)) ([b9ecfa9](https://www.github.com/googleapis/python-bigtable/commit/b9ecfa97281ae21dcf233e60c70cacc701f12c32))
+* add context manager support in client ([#440](https://www.github.com/googleapis/python-bigtable/issues/440)) ([a3d2cf1](https://www.github.com/googleapis/python-bigtable/commit/a3d2cf18b49cddc91e5e6448c46d6b936d86954d))
+* add support for Python 3.10 ([#437](https://www.github.com/googleapis/python-bigtable/issues/437)) ([3cf0814](https://www.github.com/googleapis/python-bigtable/commit/3cf08149411f3f4df41e9b5a9894dbfb101bd86f))
+
+
+### Bug Fixes
+
+* **deps:** drop packaging dependency ([a535f99](https://www.github.com/googleapis/python-bigtable/commit/a535f99e9f0bb16488a5d372a0a6efc3c4b69186))
+* **deps:** require google-api-core >= 1.28.0 ([a535f99](https://www.github.com/googleapis/python-bigtable/commit/a535f99e9f0bb16488a5d372a0a6efc3c4b69186))
+* improper types in pagers generation ([f9c7699](https://www.github.com/googleapis/python-bigtable/commit/f9c7699eb6d4071314abbb0477ba47370059e041))
+* improve type hints, mypy checks ([#448](https://www.github.com/googleapis/python-bigtable/issues/448)) ([a99bf88](https://www.github.com/googleapis/python-bigtable/commit/a99bf88417d6aec03923447c70c2752f6bb5c459))
+
+
+### Documentation
+
+* list oneofs in docstring ([a535f99](https://www.github.com/googleapis/python-bigtable/commit/a535f99e9f0bb16488a5d372a0a6efc3c4b69186))
+
 ## [2.4.0](https://www.github.com/googleapis/python-bigtable/compare/v2.3.3...v2.4.0) (2021-09-24)
 
 
