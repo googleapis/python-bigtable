@@ -115,7 +115,6 @@ class BigtableInstanceAdminTransport(abc.ABC):
             credentials, _ = google.auth.load_credentials_from_file(
                 credentials_file, **scopes_kwargs, quota_project_id=quota_project_id
             )
-
         elif credentials is None:
             credentials, _ = google.auth.default(
                 **scopes_kwargs, quota_project_id=quota_project_id
@@ -236,6 +235,21 @@ class BigtableInstanceAdminTransport(abc.ABC):
             ),
             self.update_cluster: gapic_v1.method.wrap_method(
                 self.update_cluster,
+                default_retry=retries.Retry(
+                    initial=1.0,
+                    maximum=60.0,
+                    multiplier=2,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.DeadlineExceeded,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=60.0,
+                ),
+                default_timeout=60.0,
+                client_info=client_info,
+            ),
+            self.partial_update_cluster: gapic_v1.method.wrap_method(
+                self.partial_update_cluster,
                 default_retry=retries.Retry(
                     initial=1.0,
                     maximum=60.0,
@@ -443,6 +457,15 @@ class BigtableInstanceAdminTransport(abc.ABC):
         self,
     ) -> Callable[
         [instance.Cluster],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def partial_update_cluster(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.PartialUpdateClusterRequest],
         Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
     ]:
         raise NotImplementedError()

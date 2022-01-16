@@ -15,6 +15,7 @@
 """This script is used to synthesize generated parts of this library."""
 
 from pathlib import Path
+import re
 from typing import List, Optional
 
 import synthtool as s
@@ -91,7 +92,7 @@ templated_files = common.py_library(
     cov_level=100,
 )
 
-s.move(templated_files, excludes=[".coveragerc", ".github/CODEOWNERS"])
+s.move(templated_files, excludes=[".coveragerc"])
 
 # ----------------------------------------------------------------------------
 # Customize noxfile.py
@@ -165,9 +166,10 @@ def lint_setup_py\(session\):
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
-    session.install("mypy", "types-setuptools")
+    session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
+    session.install("google-cloud-testutils")
     # TODO: also verify types on tests, all of google package
-    session.run("mypy", "-p", "google.cloud.bigtable", "--no-incremental")
+    session.run("mypy", "google/", "tests/")
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
@@ -175,24 +177,55 @@ def lint_setup_py(session):
 ''',
 )
 
+# Work around https://github.com/googleapis/gapic-generator-python/issues/689
+bad_clusters_typing = r"""
+        clusters: Sequence\[
+            bigtable_instance_admin\.CreateInstanceRequest\.ClustersEntry
+        \] = None,"""
+
+good_clusters_typing = """
+        clusters: Dict[str, gba_instance.Cluster] = None,"""
+
+s.replace(
+    "google/cloud/bigtable_admin_v2/services/bigtable_instance_admin/*client.py",
+    bad_clusters_typing,
+    good_clusters_typing,
+)
+
+bad_clusters_docstring_1 = re.escape(r"""
+            clusters (:class:`Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]`):""")
+
+bad_clusters_docstring_2 = re.escape(r"""
+            clusters (Sequence[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest.ClustersEntry]):""")
+
+good_clusters_docstring = """
+            clusters (Dict[str, gba_instance.Cluster]):"""
+
+s.replace(
+    "google/cloud/bigtable_admin_v2/services/bigtable_instance_admin/*client.py",
+    bad_clusters_docstring_1,
+    good_clusters_docstring,
+)
+
+s.replace(
+    "google/cloud/bigtable_admin_v2/services/bigtable_instance_admin/*client.py",
+    bad_clusters_docstring_2,
+    good_clusters_docstring,
+)
+
 # ----------------------------------------------------------------------------
 # Samples templates
 # ----------------------------------------------------------------------------
 
-sample_files = common.py_samples(samples=True)
-for path in sample_files:
-    s.move(path)
+python.py_samples(skip_readmes=True)
 
-# Note: python-docs-samples is not yet using 'main':
-#s.replace(
-#    "samples/**/*.md",
-#    r"python-docs-samples/blob/master/",
-#    "python-docs-samples/blob/main/",
-#)
 s.replace(
-    "samples/**/*.md",
-    r"google-cloud-python/blob/master/",
-    "google-cloud-python/blob/main/",
-)
+    "samples/beam/noxfile.py",
+    """INSTALL_LIBRARY_FROM_SOURCE \= os.environ.get\("INSTALL_LIBRARY_FROM_SOURCE", False\) in \(
+    "True",
+    "true",
+\)""",
+    """# todo(kolea2): temporary workaround to install pinned dep version
+INSTALL_LIBRARY_FROM_SOURCE = False""")
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
