@@ -430,7 +430,9 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         parent: str = None,
         instance_id: str = None,
         instance: gba_instance.Instance = None,
-        clusters: Dict[str, gba_instance.Cluster] = None,
+        clusters: Sequence[
+            bigtable_instance_admin.CreateInstanceRequest.ClustersEntry
+        ] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
