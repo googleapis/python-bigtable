@@ -416,6 +416,26 @@ class BigtableClient(metaclass=BigtableClientMeta):
         each row will still be preserved. See the
         ReadRowsResponse documentation for details.
 
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_read_rows():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                request = bigtable_v2.ReadRowsRequest(
+                    table_name="table_name_value",
+                )
+
+                # Make the request
+                stream = client.read_rows(request=request)
+                for response in stream:
+                    print(response)
+
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadRowsRequest, dict]):
                 The request object. Request message for
@@ -476,13 +496,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.read_rows]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
@@ -505,6 +534,26 @@ class BigtableClient(metaclass=BigtableClientMeta):
         the table of approximately equal size, which can be used
         to break up the data for distributed tasks like
         mapreduces.
+
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_sample_row_keys():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                request = bigtable_v2.SampleRowKeysRequest(
+                    table_name="table_name_value",
+                )
+
+                # Make the request
+                stream = client.sample_row_keys(request=request)
+                for response in stream:
+                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.SampleRowKeysRequest, dict]):
@@ -566,13 +615,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.sample_row_keys]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
@@ -594,6 +652,28 @@ class BigtableClient(metaclass=BigtableClientMeta):
     ) -> bigtable.MutateRowResponse:
         r"""Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
+
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_mutate_row():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                request = bigtable_v2.MutateRowRequest(
+                    table_name="table_name_value",
+                    row_key=b'row_key_blob',
+                )
+
+                # Make the request
+                response = client.mutate_row(request=request)
+
+                # Handle response
+                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.MutateRowRequest, dict]):
@@ -677,13 +757,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.mutate_row]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
@@ -705,6 +794,26 @@ class BigtableClient(metaclass=BigtableClientMeta):
         r"""Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
+
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_mutate_rows():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                request = bigtable_v2.MutateRowsRequest(
+                    table_name="table_name_value",
+                )
+
+                # Make the request
+                stream = client.mutate_rows(request=request)
+                for response in stream:
+                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.MutateRowsRequest, dict]):
@@ -782,13 +891,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.mutate_rows]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
@@ -812,6 +930,28 @@ class BigtableClient(metaclass=BigtableClientMeta):
     ) -> bigtable.CheckAndMutateRowResponse:
         r"""Mutates a row atomically based on the output of a
         predicate Reader filter.
+
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_check_and_mutate_row():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                request = bigtable_v2.CheckAndMutateRowRequest(
+                    table_name="table_name_value",
+                    row_key=b'row_key_blob',
+                )
+
+                # Make the request
+                response = client.check_and_mutate_row(request=request)
+
+                # Handle response
+                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.CheckAndMutateRowRequest, dict]):
@@ -931,13 +1071,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.check_and_mutate_row]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
@@ -964,6 +1113,32 @@ class BigtableClient(metaclass=BigtableClientMeta):
         the timestamp is the greater of the existing timestamp
         or the current server time. The method returns the new
         contents of all modified cells.
+
+
+
+        .. code-block::
+
+            from google.cloud import bigtable_v2
+
+            def sample_read_modify_write_row():
+                # Create a client
+                client = bigtable_v2.BigtableClient()
+
+                # Initialize request argument(s)
+                rules = bigtable_v2.ReadModifyWriteRule()
+                rules.append_value = b'append_value_blob'
+
+                request = bigtable_v2.ReadModifyWriteRowRequest(
+                    table_name="table_name_value",
+                    row_key=b'row_key_blob',
+                    rules=rules,
+                )
+
+                # Make the request
+                response = client.read_modify_write_row(request=request)
+
+                # Handle response
+                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest, dict]):
@@ -1049,13 +1224,22 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.read_modify_write_row]
 
-        # Certain fields should be provided within the metadata header;
-        # add these here.
-        metadata = tuple(metadata) + (
-            gapic_v1.routing_header.to_grpc_metadata(
-                (("table_name", request.table_name),)
-            ),
+        header_params = {}
+
+        routing_param_regex = re.compile(
+            "^(?P<table_name>projects/[^/]+/instances/[^/]+/tables/[^/]+)$"
         )
+        regex_match = routing_param_regex.match(request.table_name)
+        if regex_match and regex_match.group("table_name"):
+            header_params["table_name"] = regex_match.group("table_name")
+
+        if request.app_profile_id:
+            header_params["app_profile_id"] = request.app_profile_id
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
 
         # Send the request.
         response = rpc(request, retry=retry, timeout=timeout, metadata=metadata,)
