@@ -676,14 +676,14 @@ async def test_read_rows_async_from_dict():
     await test_read_rows_async(request_type=dict)
 
 
-def test_read_rows_field_headers():
+def test_read_rows_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.ReadRowsRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.ReadRowsRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
@@ -695,37 +695,26 @@ def test_read_rows_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_read_rows_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.ReadRowsRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.ReadRowsRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
-        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
-        call.return_value.read = mock.AsyncMock(
-            side_effect=[bigtable.ReadRowsResponse()]
-        )
-        await client.read_rows(request)
+        call.return_value = iter([bigtable.ReadRowsResponse()])
+        client.read_rows(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_read_rows_flattened():
@@ -885,14 +874,14 @@ async def test_sample_row_keys_async_from_dict():
     await test_sample_row_keys_async(request_type=dict)
 
 
-def test_sample_row_keys_field_headers():
+def test_sample_row_keys_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.SampleRowKeysRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.SampleRowKeysRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
@@ -904,37 +893,26 @@ def test_sample_row_keys_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_sample_row_keys_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.SampleRowKeysRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.SampleRowKeysRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
-        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
-        call.return_value.read = mock.AsyncMock(
-            side_effect=[bigtable.SampleRowKeysResponse()]
-        )
-        await client.sample_row_keys(request)
+        call.return_value = iter([bigtable.SampleRowKeysResponse()])
+        client.sample_row_keys(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_sample_row_keys_flattened():
@@ -1091,14 +1069,14 @@ async def test_mutate_row_async_from_dict():
     await test_mutate_row_async(request_type=dict)
 
 
-def test_mutate_row_field_headers():
+def test_mutate_row_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.MutateRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.MutateRowRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
@@ -1110,36 +1088,26 @@ def test_mutate_row_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_mutate_row_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.MutateRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.MutateRowRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
-            bigtable.MutateRowResponse()
-        )
-        await client.mutate_row(request)
+        call.return_value = bigtable.MutateRowResponse()
+        client.mutate_row(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_mutate_row_flattened():
@@ -1347,14 +1315,14 @@ async def test_mutate_rows_async_from_dict():
     await test_mutate_rows_async(request_type=dict)
 
 
-def test_mutate_rows_field_headers():
+def test_mutate_rows_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.MutateRowsRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.MutateRowsRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
@@ -1366,37 +1334,26 @@ def test_mutate_rows_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_mutate_rows_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.MutateRowsRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.MutateRowsRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
-        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
-        call.return_value.read = mock.AsyncMock(
-            side_effect=[bigtable.MutateRowsResponse()]
-        )
-        await client.mutate_rows(request)
+        call.return_value = iter([bigtable.MutateRowsResponse()])
+        client.mutate_rows(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_mutate_rows_flattened():
@@ -1573,14 +1530,14 @@ async def test_check_and_mutate_row_async_from_dict():
     await test_check_and_mutate_row_async(request_type=dict)
 
 
-def test_check_and_mutate_row_field_headers():
+def test_check_and_mutate_row_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.CheckAndMutateRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.CheckAndMutateRowRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
@@ -1594,38 +1551,28 @@ def test_check_and_mutate_row_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_check_and_mutate_row_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.CheckAndMutateRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.CheckAndMutateRowRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
         type(client.transport.check_and_mutate_row), "__call__"
     ) as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
-            bigtable.CheckAndMutateRowResponse()
-        )
-        await client.check_and_mutate_row(request)
+        call.return_value = bigtable.CheckAndMutateRowResponse()
+        client.check_and_mutate_row(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_check_and_mutate_row_flattened():
@@ -1940,14 +1887,14 @@ async def test_read_modify_write_row_async_from_dict():
     await test_read_modify_write_row_async(request_type=dict)
 
 
-def test_read_modify_write_row_field_headers():
+def test_read_modify_write_row_routing_parameters():
     client = BigtableClient(credentials=ga_credentials.AnonymousCredentials(),)
 
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.ReadModifyWriteRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.ReadModifyWriteRowRequest(
+        {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
@@ -1961,38 +1908,28 @@ def test_read_modify_write_row_field_headers():
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
-
-
-@pytest.mark.asyncio
-async def test_read_modify_write_row_field_headers_async():
-    client = BigtableAsyncClient(credentials=ga_credentials.AnonymousCredentials(),)
-
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
-    request = bigtable.ReadModifyWriteRowRequest()
-
-    request.table_name = "table_name/value"
+    request = bigtable.ReadModifyWriteRowRequest({"app_profile_id": "sample1"})
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
         type(client.transport.read_modify_write_row), "__call__"
     ) as call:
-        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
-            bigtable.ReadModifyWriteRowResponse()
-        )
-        await client.read_modify_write_row(request)
+        call.return_value = bigtable.ReadModifyWriteRowResponse()
+        client.read_modify_write_row(request)
 
         # Establish that the underlying gRPC stub method was called.
-        assert len(call.mock_calls)
+        assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
         assert args[0] == request
 
-    # Establish that the field header was sent.
     _, _, kw = call.mock_calls[0]
-    assert ("x-goog-request-params", "table_name=table_name/value",) in kw["metadata"]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
 
 
 def test_read_modify_write_row_flattened():
