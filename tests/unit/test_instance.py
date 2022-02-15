@@ -314,9 +314,6 @@ def test_instance_create():
     api, response = _instance_api_response_for_create()
     client._instance_admin_client = api
     api.common_project_path.return_value = "projects/project"
-    api.cluster_path.return_value = (
-        "projects/project/instances/instance-id/clusters/cluster-id"
-    )
     serve_nodes = 3
 
     with warnings.catch_warnings(record=True) as warned:
@@ -328,7 +325,6 @@ def test_instance_create():
         location=api.location_path(PROJECT, LOCATION_ID),
         serve_nodes=serve_nodes,
         default_storage_type=enums.StorageType.UNSPECIFIED,
-        name=CLUSTER_NAME,
     )
     instance_pb = Instance(
         display_name=DISPLAY_NAME, type_=enums.Instance.Type.PRODUCTION, labels=LABELS,
@@ -361,9 +357,6 @@ def test_instance_create_w_clusters():
     api, response = _instance_api_response_for_create()
     client._instance_admin_client = api
     api.common_project_path.return_value = "projects/project"
-    api.cluster_path.return_value = (
-        "projects/project/instances/instance-id/clusters/cluster-id"
-    )
     cluster_id_1 = "cluster-1"
     cluster_id_2 = "cluster-2"
     location_id_1 = "location-id-1"
@@ -393,13 +386,11 @@ def test_instance_create_w_clusters():
         location=api.location_path(PROJECT, location_id_1),
         serve_nodes=serve_nodes_1,
         default_storage_type=enums.StorageType.UNSPECIFIED,
-        name="projects/project/instances/instance-id/clusters/cluster-id",
     )
     cluster_pb_2 = cluster_pb(
         location=api.location_path(PROJECT, location_id_2),
         serve_nodes=serve_nodes_2,
         default_storage_type=enums.StorageType.UNSPECIFIED,
-        name="projects/project/instances/instance-id/clusters/cluster-id",
     )
     instance_pb = instance_pb(
         display_name=DISPLAY_NAME, type_=enums.Instance.Type.PRODUCTION, labels=LABELS,

@@ -446,7 +446,6 @@ def test_cluster_create():
     api.common_location_path.return_value = LOCATION
     api.instance_path.return_value = instance.name
     api.create_cluster.return_value = response_pb
-    api.cluster_path.return_value = CLUSTER_NAME
 
     cluster.create()
 
@@ -454,7 +453,6 @@ def test_cluster_create():
         location=LOCATION,
         serve_nodes=cluster.serve_nodes,
         default_storage_type=cluster.default_storage_type,
-        name=CLUSTER_NAME,
     )
     expected_request = {
         "parent": instance.name,
@@ -505,9 +503,6 @@ def test_cluster_create_w_cmek():
     api.common_location_path.return_value = LOCATION
     api.instance_path.return_value = name
     api.create_cluster.return_value = response_pb
-    api.cluster_path.return_value = (
-        "projects/project/instances/instance-id/clusters/cluster-id"
-    )
 
     cluster.create()
 
@@ -518,7 +513,6 @@ def test_cluster_create_w_cmek():
         encryption_config=instance_v2_pb2.Cluster.EncryptionConfig(
             kms_key_name=KMS_KEY_NAME,
         ),
-        name=CLUSTER_NAME,
     )
     expected_request = {
         "parent": instance.name,
@@ -569,7 +563,6 @@ def test_cluster_create_w_autoscaling():
     api.common_location_path.return_value = LOCATION
     api.instance_path.return_value = instance.name
     api.create_cluster.return_value = response_pb
-    api.cluster_path.return_value = CLUSTER_NAME
 
     cluster.create()
 
@@ -586,7 +579,6 @@ def test_cluster_create_w_autoscaling():
     expected_request_cluster = instance_v2_pb2.Cluster(
         location=LOCATION,
         default_storage_type=cluster.default_storage_type,
-        name=CLUSTER_NAME,
         cluster_config=cluster_config,
     )
     expected_request = {
@@ -641,6 +633,7 @@ def test_cluster_update():
 
     cluster.update()
     cluster_pb = cluster._to_pb()
+    cluster_pb.name = cluster.name
     update_mask_pb = field_mask_pb2.FieldMask(paths=["serve_nodes"])
 
     expected_request = {
@@ -709,6 +702,7 @@ def test_cluster_update_w_autoscaling():
 
     cluster.update()
     cluster_pb = cluster._to_pb()
+    cluster_pb.name = cluster.name
     update_mask_pb = field_mask_pb2.FieldMask(paths=["cluster_config"])
 
     expected_request = {
@@ -766,6 +760,7 @@ def test_cluster_disable_autoscaling():
     cluster.disable_autoscaling(serve_nodes=SERVE_NODES)
 
     cluster_pb = cluster._to_pb()
+    cluster_pb.name = cluster.name
     update_mask_pb = field_mask_pb2.FieldMask(paths=["serve_nodes", "cluster_config"])
 
     expected_request = {

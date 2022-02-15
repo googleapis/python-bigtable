@@ -384,6 +384,7 @@ class Cluster(object):
             update_mask_pb.paths.append("cluster_config")
 
         cluster_pb = self._to_pb()
+        cluster_pb.name = self.name
 
         return client.instance_admin_client.partial_update_cluster(
             request={"cluster": cluster_pb, "update_mask": update_mask_pb}
@@ -415,9 +416,11 @@ class Cluster(object):
 
         update_mask_pb.paths.append("serve_nodes")
         update_mask_pb.paths.append("cluster_config")
+        cluster_pb = self._to_pb()
+        cluster_pb.name = self.name
 
         return client.instance_admin_client.partial_update_cluster(
-            request={"cluster": self._to_pb(), "update_mask": update_mask_pb}
+            request={"cluster": cluster_pb, "update_mask": update_mask_pb}
         )
 
     def delete(self):
@@ -461,7 +464,6 @@ class Cluster(object):
             location=location,
             serve_nodes=self.serve_nodes,
             default_storage_type=self.default_storage_type,
-            name=self.name,
         )
         if self._kms_key_name:
             cluster_pb.encryption_config = instance.Cluster.EncryptionConfig(
