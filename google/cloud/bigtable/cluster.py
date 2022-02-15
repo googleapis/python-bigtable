@@ -18,6 +18,7 @@
 import re
 from google.cloud.bigtable_admin_v2.types import instance
 from google.api_core.exceptions import NotFound
+from google.protobuf import field_mask_pb2
 
 
 _CLUSTER_NAME_RE = re.compile(
@@ -36,6 +37,7 @@ class Cluster(object):
     * :meth:`create` itself
     * :meth:`update` itself
     * :meth:`delete` itself
+    * :meth:`disable_autoscaling` itself
 
     :type cluster_id: str
     :param cluster_id: The ID of the cluster.
@@ -52,7 +54,9 @@ class Cluster(object):
                         https://cloud.google.com/bigtable/docs/locations
 
     :type serve_nodes: int
-    :param serve_nodes: (Optional) The number of nodes in the cluster.
+    :param serve_nodes: (Optional) The number of nodes in the cluster. If any, of the
+                        autoscaling configuration are specified, then the autoscaling
+                        configuration will take precedent.
 
     :type default_storage_type: int
     :param default_storage_type: (Optional) The type of storage
@@ -85,6 +89,28 @@ class Cluster(object):
                    :data:`google.cloud.bigtable.enums.Cluster.State.CREATING`.
                    :data:`google.cloud.bigtable.enums.Cluster.State.RESIZING`.
                    :data:`google.cloud.bigtable.enums.Cluster.State.DISABLED`.
+
+    :type min_serve_nodes: int
+    :param min_serve_nodes: (Optional) The minimum number of nodes in the cluster. Must be
+                            1 or greater. One of the autoscaling configuration.
+                            If specified, this configuration takes precedence over
+                            ``serve_nodes``.
+                            If specified, then
+                            ``max_serve_nodes`` and ``cpu_utilization_percent`` must be
+                            specified too.
+
+    :type max_serve_nodes: int
+    :param max_serve_nodes: (Optional) The maximum number of nodes in the cluster. One of the
+                            autoscaling configuration. If specified, this configuration
+                            takes precedence over ``serve_nodes``. If specified, then
+                            ``min_serve_nodes`` and ``cpu_utilization_percent`` must be
+                            specified too.
+
+    :param cpu_utilization_percent: (Optional) The CPU utilization target for the cluster's workload.
+                                    One of the autoscaling configuration.
+                                    If specified, this configuration takes precedence over ``serve_nodes``. If specified, then
+                                    ``min_serve_nodes`` and ``max_serve_nodes`` must be
+                                    specified too.
     """
 
     def __init__(
@@ -96,6 +122,9 @@ class Cluster(object):
         default_storage_type=None,
         kms_key_name=None,
         _state=None,
+        min_serve_nodes=None,
+        max_serve_nodes=None,
+        cpu_utilization_percent=None,
     ):
         self.cluster_id = cluster_id
         self._instance = instance
@@ -104,10 +133,13 @@ class Cluster(object):
         self.default_storage_type = default_storage_type
         self._kms_key_name = kms_key_name
         self._state = _state
+        self.min_serve_nodes = min_serve_nodes
+        self.max_serve_nodes = max_serve_nodes
+        self.cpu_utilization_percent = cpu_utilization_percent
 
     @classmethod
     def from_pb(cls, cluster_pb, instance):
-        """Creates an cluster instance from a protobuf.
+        """Creates a cluster instance from a protobuf.
 
         For example:
 
@@ -159,6 +191,17 @@ class Cluster(object):
 
         self.location_id = cluster_pb.location.split("/")[-1]
         self.serve_nodes = cluster_pb.serve_nodes
+
+        self.min_serve_nodes = (
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_limits.min_serve_nodes
+        )
+        self.max_serve_nodes = (
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_limits.max_serve_nodes
+        )
+        self.cpu_utilization_percent = (
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_targets.cpu_utilization_percent
+        )
+
         self.default_storage_type = cluster_pb.default_storage_type
         if cluster_pb.encryption_config:
             self._kms_key_name = cluster_pb.encryption_config.kms_key_name
@@ -323,20 +366,58 @@ class Cluster(object):
 
             before calling :meth:`update`.
 
+            If autoscaling is already enabled, manual scaling will be silently ignored.
+            To disable autoscaling and enable manual scaling, use the :meth:`disable_autoscaling` instead.
+
         :rtype: :class:`Operation`
         :returns: The long-running operation corresponding to the
                   update operation.
         """
         client = self._instance._client
-        # We are passing `None` for third argument location.
-        # Location is set only at the time of creation of a cluster
-        # and can not be changed after cluster has been created.
-        return client.instance_admin_client.update_cluster(
-            request={
-                "serve_nodes": self.serve_nodes,
-                "name": self.name,
-                "location": None,
-            }
+
+        update_mask_pb = field_mask_pb2.FieldMask()
+
+        if self.serve_nodes:
+            update_mask_pb.paths.append("serve_nodes")
+
+        if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
+            update_mask_pb.paths.append("cluster_config")
+
+        cluster_pb = self._to_pb()
+
+        return client.instance_admin_client.partial_update_cluster(
+            request={"cluster": cluster_pb, "update_mask": update_mask_pb}
+        )
+
+    def disable_autoscaling(self, serve_nodes):
+        """
+        Disable autoscaling by specifying the number of nodes.
+
+        For example:
+
+        .. literalinclude:: snippets.py
+            :start-after: [START bigtable_api_cluster_disable_autoscaling]
+            :end-before: [END bigtable_api_cluster_disable_autoscaling]
+            :dedent: 4
+
+        :type serve_nodes: int
+        :param serve_nodes: The number of nodes in the cluster.
+        """
+
+        client = self._instance._client
+
+        update_mask_pb = field_mask_pb2.FieldMask()
+
+        self.serve_nodes = serve_nodes
+        self.min_serve_nodes = 0
+        self.max_serve_nodes = 0
+        self.cpu_utilization_percent = 0
+
+        update_mask_pb.paths.append("serve_nodes")
+        update_mask_pb.paths.append("cluster_config")
+
+        return client.instance_admin_client.partial_update_cluster(
+            request={"cluster": self._to_pb(), "update_mask": update_mask_pb}
         )
 
     def delete(self):
@@ -375,13 +456,29 @@ class Cluster(object):
         location = client.instance_admin_client.common_location_path(
             client.project, self.location_id
         )
+
         cluster_pb = instance.Cluster(
             location=location,
             serve_nodes=self.serve_nodes,
             default_storage_type=self.default_storage_type,
+            name=self.name,
         )
         if self._kms_key_name:
             cluster_pb.encryption_config = instance.Cluster.EncryptionConfig(
                 kms_key_name=self._kms_key_name,
             )
+
+        if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
+            cluster_pb.cluster_config = instance.Cluster.ClusterConfig(
+                cluster_autoscaling_config=instance.Cluster.ClusterAutoscalingConfig(
+                    autoscaling_limits=instance.AutoscalingLimits(
+                        min_serve_nodes=self.min_serve_nodes,
+                        max_serve_nodes=self.max_serve_nodes,
+                    ),
+                    autoscaling_targets=instance.AutoscalingTargets(
+                        cpu_utilization_percent=self.cpu_utilization_percent
+                    ),
+                ),
+            )
+
         return cluster_pb
