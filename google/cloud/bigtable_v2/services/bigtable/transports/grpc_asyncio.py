@@ -380,6 +380,36 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         return self._stubs["check_and_mutate_row"]
 
     @property
+    def ping_and_warm(
+        self,
+    ) -> Callable[
+        [bigtable.PingAndWarmRequest], Awaitable[bigtable.PingAndWarmResponse]
+    ]:
+        r"""Return a callable for the ping and warm method over gRPC.
+
+        Warm up associated instance metadata for this
+        connection. This call is not required but may be useful
+        for connection keep-alive.
+
+        Returns:
+            Callable[[~.PingAndWarmRequest],
+                    Awaitable[~.PingAndWarmResponse]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "ping_and_warm" not in self._stubs:
+            self._stubs["ping_and_warm"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.v2.Bigtable/PingAndWarm",
+                request_serializer=bigtable.PingAndWarmRequest.serialize,
+                response_deserializer=bigtable.PingAndWarmResponse.deserialize,
+            )
+        return self._stubs["ping_and_warm"]
+
+    @property
     def read_modify_write_row(
         self,
     ) -> Callable[
