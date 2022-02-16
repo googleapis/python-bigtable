@@ -657,7 +657,7 @@ def test_cluster_update(
 def test_cluster_update_w_autoscaling(
     admin_instance_populated,
     admin_cluster_id,
-    admin_cluster,
+    admin_cluster_with_autoscaling,
     min_serve_nodes,
     max_serve_nodes,
     cpu_utilization_percent,
@@ -666,11 +666,11 @@ def test_cluster_update_w_autoscaling(
     new_min_serve_nodes = min_serve_nodes + 1
     new_max_serve_nodes = max_serve_nodes + 1
     new_cpu_utilization_percent = cpu_utilization_percent + 10
-    admin_cluster.min_serve_nodes = new_min_serve_nodes
-    admin_cluster.max_serve_nodes = new_max_serve_nodes
-    admin_cluster.cpu_utilization_percent = new_cpu_utilization_percent
+    admin_cluster_with_autoscaling.min_serve_nodes = new_min_serve_nodes
+    admin_cluster_with_autoscaling.max_serve_nodes = new_max_serve_nodes
+    admin_cluster_with_autoscaling.cpu_utilization_percent = new_cpu_utilization_percent
 
-    operation = admin_cluster.update()
+    operation = admin_cluster_with_autoscaling.update()
     operation.result(timeout=60)  # Ensure the operation completes.
 
     # Create a new cluster instance and reload it.
@@ -681,8 +681,8 @@ def test_cluster_update_w_autoscaling(
     assert alt_cluster.cpu_utilization_percent == new_cpu_utilization_percent
 
     # Put the cluster back the way it was for the other test cases.
-    admin_cluster.min_serve_nodes = min_serve_nodes
-    admin_cluster.max_serve_nodes = max_serve_nodes
-    admin_cluster.cpu_utilization_percent = cpu_utilization_percent
-    operation = admin_cluster.update()
+    admin_cluster_with_autoscaling.min_serve_nodes = min_serve_nodes
+    admin_cluster_with_autoscaling.max_serve_nodes = max_serve_nodes
+    admin_cluster_with_autoscaling.cpu_utilization_percent = cpu_utilization_percent
+    operation = admin_cluster_with_autoscaling.update()
     operation.result(timeout=60)  # Ensure the operation completes.
