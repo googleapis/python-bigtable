@@ -624,6 +624,9 @@ class _ReadRowsRequestManager(object):
 
     def build_updated_request(self):
         """Updates the given message request as per last scanned key"""
+
+        # TODO: Generalize this to ensure fields don't get rewritten when retrying the request
+
         r_kwargs = {
             "table_name": self.message.table_name,
             "filter": self.message.filter,
