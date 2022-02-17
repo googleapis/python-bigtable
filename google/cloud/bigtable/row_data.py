@@ -453,6 +453,7 @@ class PartialRowsData(object):
         req_manager = _ReadRowsRequestManager(
             self.request, self.last_scanned_row_key, self._counter
         )
+        print("retry request")
         return req_manager.build_updated_request()
 
     def _on_error(self, exc):
@@ -627,6 +628,7 @@ class _ReadRowsRequestManager(object):
         r_kwargs = {
             "table_name": self.message.table_name,
             "filter": self.message.filter,
+            "app_profile_id": self.message.app_profile_id,
         }
 
         if self.message.rows_limit != 0:
