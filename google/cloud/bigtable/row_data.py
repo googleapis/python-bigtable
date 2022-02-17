@@ -453,7 +453,6 @@ class PartialRowsData(object):
         req_manager = _ReadRowsRequestManager(
             self.request, self.last_scanned_row_key, self._counter
         )
-        print("retry request")
         return req_manager.build_updated_request()
 
     def _on_error(self, exc):
