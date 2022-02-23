@@ -703,13 +703,106 @@ def test_cluster_update_w_autoscaling():
     cluster.update()
     cluster_pb = cluster._to_pb()
     cluster_pb.name = cluster.name
-    update_mask_pb = field_mask_pb2.FieldMask(paths=["cluster_config"])
+    update_mask_pb = field_mask_pb2.FieldMask(
+        paths=["cluster_config.cluster_autoscaling_config"]
+    )
 
     expected_request = {
         "cluster": cluster_pb,
         "update_mask": update_mask_pb,
     }
     api.partial_update_cluster.assert_called_once_with(request=expected_request)
+
+
+def test_cluster_update_w_both_manual_and_autoscaling():
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = _Instance(INSTANCE_ID, client)
+    cluster = _make_cluster(
+        CLUSTER_ID,
+        instance,
+        location_id=LOCATION_ID,
+        default_storage_type=STORAGE_TYPE_SSD,
+        min_serve_nodes=1,
+        max_serve_nodes=8,
+        cpu_utilization_percent=20,
+    )
+    cluster.serve_nodes = SERVE_NODES
+
+    with pytest.raises(ValueError) as excinfo:
+
+        cluster.update()
+        assert (
+            str(excinfo.value)
+            == "Cannot specify both serve_nodes and autoscaling configurations."
+        )
+
+
+def test_cluster_update_w_no_scaling_config():
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = _Instance(INSTANCE_ID, client)
+    cluster = _make_cluster(
+        CLUSTER_ID,
+        instance,
+        location_id=LOCATION_ID,
+        default_storage_type=STORAGE_TYPE_SSD,
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+
+        cluster.update()
+        assert (
+            str(excinfo.value)
+            == "Must specify either serve_nodes or all of the autoscaling configurations."
+        )
+
+
+def test_cluster_update_w_partial_autoscaling_config():
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = _Instance(INSTANCE_ID, client)
+
+    cluster_config = [
+        {"min_serve_nodes": MIN_SERVE_NODES},
+        {"max_serve_nodes": MAX_SERVE_NODES},
+        {"cpu_utilization_percent": CPU_UTILIZATION_PERCENT},
+        {
+            "min_serve_nodes": MIN_SERVE_NODES,
+            "cpu_utilization_percent": CPU_UTILIZATION_PERCENT,
+        },
+        {"min_serve_nodes": MIN_SERVE_NODES, "max_serve_nodes": MAX_SERVE_NODES},
+        {
+            "max_serve_nodes": MAX_SERVE_NODES,
+            "cpu_utilization_percent": CPU_UTILIZATION_PERCENT,
+        },
+    ]
+    for config in cluster_config:
+
+        cluster = _make_cluster(
+            CLUSTER_ID,
+            instance,
+            location_id=LOCATION_ID,
+            default_storage_type=STORAGE_TYPE_SSD,
+            **config,
+        )
+
+        with pytest.raises(ValueError) as excinfo:
+
+            cluster.update()
+            assert (
+                str(excinfo.value)
+                == "Must specify either serve_nodes or all of the autoscaling configurations."
+            )
 
 
 def test_cluster_disable_autoscaling():
@@ -761,7 +854,9 @@ def test_cluster_disable_autoscaling():
 
     cluster_pb = cluster._to_pb()
     cluster_pb.name = cluster.name
-    update_mask_pb = field_mask_pb2.FieldMask(paths=["serve_nodes", "cluster_config"])
+    update_mask_pb = field_mask_pb2.FieldMask(
+        paths=["serve_nodes", "cluster_config.cluster_autoscaling_config"]
+    )
 
     expected_request = {
         "cluster": cluster_pb,
@@ -772,6 +867,99 @@ def test_cluster_disable_autoscaling():
     assert cluster.min_serve_nodes == 0
     assert cluster.max_serve_nodes == 0
     assert cluster.cpu_utilization_percent == 0
+
+
+def test_create_cluster_with_both_manual_and_autoscaling():
+
+    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = Instance(INSTANCE_ID, client)
+    cluster = _make_cluster(
+        CLUSTER_ID,
+        instance,
+        location_id=LOCATION_ID,
+        serve_nodes=SERVE_NODES,
+        default_storage_type=STORAGE_TYPE_SSD,
+        min_serve_nodes=MIN_SERVE_NODES,
+        max_serve_nodes=MAX_SERVE_NODES,
+        cpu_utilization_percent=CPU_UTILIZATION_PERCENT,
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        cluster.create()
+    assert (
+        str(excinfo.value)
+        == "Cannot specify both serve_nodes and autoscaling configurations."
+    )
+
+
+def test_create_cluster_with_partial_autoscaling_config():
+
+    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = Instance(INSTANCE_ID, client)
+
+    cluster_config = [
+        {"min_serve_nodes": MIN_SERVE_NODES},
+        {"max_serve_nodes": MAX_SERVE_NODES},
+        {"cpu_utilization_percent": CPU_UTILIZATION_PERCENT},
+        {
+            "min_serve_nodes": MIN_SERVE_NODES,
+            "cpu_utilization_percent": CPU_UTILIZATION_PERCENT,
+        },
+        {"min_serve_nodes": MIN_SERVE_NODES, "max_serve_nodes": MAX_SERVE_NODES},
+        {
+            "max_serve_nodes": MAX_SERVE_NODES,
+            "cpu_utilization_percent": CPU_UTILIZATION_PERCENT,
+        },
+    ]
+    for config in cluster_config:
+        cluster = _make_cluster(
+            CLUSTER_ID,
+            instance,
+            location_id=LOCATION_ID,
+            default_storage_type=STORAGE_TYPE_SSD,
+            **config,
+        )
+
+        with pytest.raises(ValueError) as excinfo:
+            cluster.create()
+            assert (
+                str(excinfo.value)
+                == "All of autoscaling configurations must be specified at the same time."
+            )
+
+
+def test_create_cluster_with_no_scaling_config():
+
+    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable.enums import StorageType
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    instance = Instance(INSTANCE_ID, client)
+    cluster = _make_cluster(
+        CLUSTER_ID,
+        instance,
+        location_id=LOCATION_ID,
+        default_storage_type=STORAGE_TYPE_SSD,
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        cluster.create()
+        assert (
+            str(excinfo.value)
+            == "Must specify either serve_nodes or all of the autoscaling configurations."
+        )
 
 
 def test_cluster_delete():

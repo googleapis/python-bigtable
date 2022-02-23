@@ -54,7 +54,7 @@ class Cluster(object):
                         https://cloud.google.com/bigtable/docs/locations
 
     :type serve_nodes: int
-    :param serve_nodes: (Optional) The number of nodes in the cluster. If any, of the
+    :param serve_nodes: (Optional) The number of nodes in the cluster for manual scaling. If any of the
                         autoscaling configuration are specified, then the autoscaling
                         configuration will take precedent.
 
@@ -91,8 +91,8 @@ class Cluster(object):
                    :data:`google.cloud.bigtable.enums.Cluster.State.DISABLED`.
 
     :type min_serve_nodes: int
-    :param min_serve_nodes: (Optional) The minimum number of nodes in the cluster. Must be
-                            1 or greater. One of the autoscaling configuration.
+    :param min_serve_nodes: (Optional) The minimum number of nodes to be set in the cluster for autoscaling.
+                            Must be 1 or greater.
                             If specified, this configuration takes precedence over
                             ``serve_nodes``.
                             If specified, then
@@ -100,14 +100,13 @@ class Cluster(object):
                             specified too.
 
     :type max_serve_nodes: int
-    :param max_serve_nodes: (Optional) The maximum number of nodes in the cluster. One of the
-                            autoscaling configuration. If specified, this configuration
+    :param max_serve_nodes: (Optional) The maximum number of nodes to be set in the cluster for autoscaling.
+                            If specified, this configuration
                             takes precedence over ``serve_nodes``. If specified, then
                             ``min_serve_nodes`` and ``cpu_utilization_percent`` must be
                             specified too.
 
-    :param cpu_utilization_percent: (Optional) The CPU utilization target for the cluster's workload.
-                                    One of the autoscaling configuration.
+    :param cpu_utilization_percent: (Optional) The CPU utilization target for the cluster's workload for autoscaling.
                                     If specified, this configuration takes precedence over ``serve_nodes``. If specified, then
                                     ``min_serve_nodes`` and ``max_serve_nodes`` must be
                                     specified too.
@@ -254,6 +253,42 @@ class Cluster(object):
         """str: Customer managed encryption key for the cluster."""
         return self._kms_key_name
 
+    def _validate_scaling_config(self):
+        """Validate auto/manual scaling configuration before creating or updating."""
+
+        if (
+            not self.serve_nodes
+            and not self.min_serve_nodes
+            and not self.max_serve_nodes
+            and not self.cpu_utilization_percent
+        ):
+            raise ValueError(
+                "Must specify either serve_nodes or all of the autoscaling configurations."
+            )
+        if self.serve_nodes and (
+            self.max_serve_nodes or self.min_serve_nodes or self.cpu_utilization_percent
+        ):
+            raise ValueError(
+                "Cannot specify both serve_nodes and autoscaling configurations."
+            )
+        if (
+            (
+                self.min_serve_nodes
+                and (not self.max_serve_nodes or not self.cpu_utilization_percent)
+            )
+            or (
+                self.max_serve_nodes
+                and (not self.min_serve_nodes or not self.cpu_utilization_percent)
+            )
+            or (
+                self.cpu_utilization_percent
+                and (not self.min_serve_nodes or not self.max_serve_nodes)
+            )
+        ):
+            raise ValueError(
+                "All of autoscaling configurations must be specified at the same time."
+            )
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
@@ -333,7 +368,15 @@ class Cluster(object):
         :rtype: :class:`~google.api_core.operation.Operation`
         :returns: The long-running operation corresponding to the
                   create operation.
+
+        :raises: :class:`ValueError <exceptions.ValueError>` if the both ``serve_nodes`` and autoscaling configurations
+                  are set at the same time or if none of the ``serve_nodes`` or autoscaling configurations are set
+                  or if the autoscaling configurations are only partially set.
+
         """
+
+        self._validate_scaling_config()
+
         client = self._instance._client
         cluster_pb = self._to_pb()
 
@@ -372,7 +415,14 @@ class Cluster(object):
         :rtype: :class:`Operation`
         :returns: The long-running operation corresponding to the
                   update operation.
+
+        :raises: :class:`ValueError <exceptions.ValueError>` if the both ``serve_nodes`` and autoscaling configurations
+          are set at the same time or if none of the ``serve_nodes`` or autoscaling configurations are set
+          or if the autoscaling configurations are only partially set.
         """
+
+        self._validate_scaling_config()
+
         client = self._instance._client
 
         update_mask_pb = field_mask_pb2.FieldMask()
@@ -381,7 +431,7 @@ class Cluster(object):
             update_mask_pb.paths.append("serve_nodes")
 
         if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
-            update_mask_pb.paths.append("cluster_config")
+            update_mask_pb.paths.append("cluster_config.cluster_autoscaling_config")
 
         cluster_pb = self._to_pb()
         cluster_pb.name = self.name
@@ -415,7 +465,7 @@ class Cluster(object):
         self.cpu_utilization_percent = 0
 
         update_mask_pb.paths.append("serve_nodes")
-        update_mask_pb.paths.append("cluster_config")
+        update_mask_pb.paths.append("cluster_config.cluster_autoscaling_config")
         cluster_pb = self._to_pb()
         cluster_pb.name = self.name
 
@@ -471,15 +521,13 @@ class Cluster(object):
             )
 
         if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
-            cluster_pb.cluster_config = instance.Cluster.ClusterConfig(
-                cluster_autoscaling_config=instance.Cluster.ClusterAutoscalingConfig(
-                    autoscaling_limits=instance.AutoscalingLimits(
-                        min_serve_nodes=self.min_serve_nodes,
-                        max_serve_nodes=self.max_serve_nodes,
-                    ),
-                    autoscaling_targets=instance.AutoscalingTargets(
-                        cpu_utilization_percent=self.cpu_utilization_percent
-                    ),
+            cluster_pb.cluster_config.cluster_autoscaling_config = instance.Cluster.ClusterAutoscalingConfig(
+                autoscaling_limits=instance.AutoscalingLimits(
+                    min_serve_nodes=self.min_serve_nodes,
+                    max_serve_nodes=self.max_serve_nodes,
+                ),
+                autoscaling_targets=instance.AutoscalingTargets(
+                    cpu_utilization_percent=self.cpu_utilization_percent
                 ),
             )
 
