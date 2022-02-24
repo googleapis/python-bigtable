@@ -516,28 +516,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         The table can be created with a full set of initial
         column families, specified in the request.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_table():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.CreateTableRequest(
-                    parent="parent_value",
-                    table_id="table_id_value",
-                )
-
-                # Make the request
-                response = client.create_table(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateTableRequest, dict]):
                 The request object. Request message for
@@ -641,33 +619,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         changed in backward-incompatible ways and is not
         recommended for production use. It is not subject to any
         SLA or deprecation policy.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_table_from_snapshot():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.CreateTableFromSnapshotRequest(
-                    parent="parent_value",
-                    table_id="table_id_value",
-                    source_snapshot="source_snapshot_value",
-                )
-
-                # Make the request
-                operation = client.create_table_from_snapshot(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest, dict]):
@@ -781,27 +732,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     ) -> pagers.ListTablesPager:
         r"""Lists all tables served from a specified instance.
 
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_tables():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListTablesRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                page_result = client.list_tables(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListTablesRequest, dict]):
                 The request object. Request message for
@@ -883,26 +813,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     ) -> table.Table:
         r"""Gets metadata information about the specified table.
 
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_table():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetTableRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_table(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetTableRequest, dict]):
                 The request object. Request message for
@@ -978,24 +888,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Permanently deletes a specified table and all of its
         data.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_table():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteTableRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_table(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteTableRequest, dict]):
                 The request object. Request message for
@@ -1067,27 +959,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         modifications will occur before this method returns, but
         data requests received prior to that point may see a
         table where only some modifications have taken effect.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_modify_column_families():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ModifyColumnFamiliesRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.modify_column_families(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest, dict]):
@@ -1179,25 +1050,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         rows in a table, or only those that match a particular
         prefix.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_drop_row_range():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DropRowRangeRequest(
-                    row_key_prefix=b'row_key_prefix_blob',
-                    name="name_value",
-                )
-
-                # Make the request
-                client.drop_row_range(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DropRowRangeRequest, dict]):
                 The request object. Request message for
@@ -1247,27 +1099,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         to the table that finished before this call started have
         been replicated. The tokens will be available for 90
         days.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_generate_consistency_token():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GenerateConsistencyTokenRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.generate_consistency_token(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GenerateConsistencyTokenRequest, dict]):
@@ -1348,28 +1179,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         token, that is, if replication has caught up based on
         the conditions specified in the token and the check
         request.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_check_consistency():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.CheckConsistencyRequest(
-                    name="name_value",
-                    consistency_token="consistency_token_value",
-                )
-
-                # Make the request
-                response = client.check_consistency(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CheckConsistencyRequest, dict]):
@@ -1462,33 +1271,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         changed in backward-incompatible ways and is not
         recommended for production use. It is not subject to any
         SLA or deprecation policy.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_snapshot_table():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.SnapshotTableRequest(
-                    name="name_value",
-                    cluster="cluster_value",
-                    snapshot_id="snapshot_id_value",
-                )
-
-                # Make the request
-                operation = client.snapshot_table(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.SnapshotTableRequest, dict]):
@@ -1622,27 +1404,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         recommended for production use. It is not subject to any
         SLA or deprecation policy.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_snapshot():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetSnapshotRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_snapshot(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetSnapshotRequest, dict]):
                 The request object. Request message for
@@ -1737,28 +1498,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         changed in backward-incompatible ways and is not
         recommended for production use. It is not subject to any
         SLA or deprecation policy.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_snapshots():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListSnapshotsRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                page_result = client.list_snapshots(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest, dict]):
@@ -1863,24 +1602,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         recommended for production use. It is not subject to any
         SLA or deprecation policy.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_snapshot():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteSnapshotRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_snapshot(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest, dict]):
                 The request object. Request message for
@@ -1961,36 +1682,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         is [Backup][google.bigtable.admin.v2.Backup], if successful.
         Cancelling the returned operation will stop the creation and
         delete the backup.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_backup():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                backup = bigtable_admin_v2.Backup()
-                backup.source_table = "source_table_value"
-
-                request = bigtable_admin_v2.CreateBackupRequest(
-                    parent="parent_value",
-                    backup_id="backup_id_value",
-                    backup=backup,
-                )
-
-                # Make the request
-                operation = client.create_backup(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateBackupRequest, dict]):
@@ -2098,27 +1789,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Gets metadata on a pending or completed Cloud
         Bigtable Backup.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_backup():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetBackupRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_backup(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetBackupRequest, dict]):
                 The request object. The request for
@@ -2188,29 +1858,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Backup:
         r"""Updates a pending or completed Cloud Bigtable Backup.
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_update_backup():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                backup = bigtable_admin_v2.Backup()
-                backup.source_table = "source_table_value"
-
-                request = bigtable_admin_v2.UpdateBackupRequest(
-                    backup=backup,
-                )
-
-                # Make the request
-                response = client.update_backup(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.UpdateBackupRequest, dict]):
@@ -2301,23 +1948,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     ) -> None:
         r"""Deletes a pending or completed Cloud Bigtable backup.
 
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_backup():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteBackupRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_backup(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteBackupRequest, dict]):
                 The request object. The request for
@@ -2383,28 +2013,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     ) -> pagers.ListBackupsPager:
         r"""Lists Cloud Bigtable backups. Returns both completed
         and pending backups.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_backups():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListBackupsRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                page_result = client.list_backups(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListBackupsRequest, dict]):
@@ -2497,33 +2105,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         The [response][google.longrunning.Operation.response] type is
         [Table][google.bigtable.admin.v2.Table], if successful.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_restore_table():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.RestoreTableRequest(
-                    backup="backup_value",
-                    parent="parent_value",
-                    table_id="table_id_value",
-                )
-
-                # Make the request
-                operation = client.restore_table(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.RestoreTableRequest, dict]):
                 The request object. The request for
@@ -2587,27 +2168,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Gets the access control policy for a Table or Backup
         resource. Returns an empty policy if the resource exists
         but does not have a policy set.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_iam_policy():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetIamPolicyRequest(
-                    resource="resource_value",
-                )
-
-                # Make the request
-                response = client.get_iam_policy(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.GetIamPolicyRequest, dict]):
@@ -2735,27 +2295,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         r"""Sets the access control policy on a Table or Backup
         resource. Replaces any existing policy.
 
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_set_iam_policy():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.SetIamPolicyRequest(
-                    resource="resource_value",
-                )
-
-                # Make the request
-                response = client.set_iam_policy(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.SetIamPolicyRequest, dict]):
                 The request object. Request message for `SetIamPolicy`
@@ -2882,28 +2421,6 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
         specified Table or Backup resource.
-
-
-
-        .. code-block::
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_test_iam_permissions():
-                # Create a client
-                client = bigtable_admin_v2.BigtableTableAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.TestIamPermissionsRequest(
-                    resource="resource_value",
-                    permissions=['permissions_value_1', 'permissions_value_2'],
-                )
-
-                # Make the request
-                response = client.test_iam_permissions(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]):
