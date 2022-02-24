@@ -263,13 +263,13 @@ class Cluster(object):
             and not self.cpu_utilization_percent
         ):
             raise ValueError(
-                "Must specify either serve_nodes or all of the autoscaling configurations."
+                "Must specify either serve_nodes or all of the autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
             )
         if self.serve_nodes and (
             self.max_serve_nodes or self.min_serve_nodes or self.cpu_utilization_percent
         ):
             raise ValueError(
-                "Cannot specify both serve_nodes and autoscaling configurations."
+                "Cannot specify both serve_nodes and autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
             )
         if (
             (
@@ -286,7 +286,7 @@ class Cluster(object):
             )
         ):
             raise ValueError(
-                "All of autoscaling configurations must be specified at the same time."
+                "All of autoscaling configurations must be specified at the same time (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
             )
 
     def __eq__(self, other):

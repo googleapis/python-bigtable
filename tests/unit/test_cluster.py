@@ -737,7 +737,7 @@ def test_cluster_update_w_both_manual_and_autoscaling():
         cluster.update()
         assert (
             str(excinfo.value)
-            == "Cannot specify both serve_nodes and autoscaling configurations."
+            == "Cannot specify both serve_nodes and autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
         )
 
 
@@ -893,7 +893,7 @@ def test_create_cluster_with_both_manual_and_autoscaling():
         cluster.create()
     assert (
         str(excinfo.value)
-        == "Cannot specify both serve_nodes and autoscaling configurations."
+        == "Cannot specify both serve_nodes and autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
     )
 
 
@@ -934,7 +934,7 @@ def test_create_cluster_with_partial_autoscaling_config():
             cluster.create()
             assert (
                 str(excinfo.value)
-                == "All of autoscaling configurations must be specified at the same time."
+                == "All of autoscaling configurations must be specified at the same time (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
             )
 
 
@@ -958,7 +958,7 @@ def test_create_cluster_with_no_scaling_config():
         cluster.create()
         assert (
             str(excinfo.value)
-            == "Must specify either serve_nodes or all of the autoscaling configurations."
+            == "Must specify either serve_nodes or all of the autoscaling configurations  (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
         )
 
 
