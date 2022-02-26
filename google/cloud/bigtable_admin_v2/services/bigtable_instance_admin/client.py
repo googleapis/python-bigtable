@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2020 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -471,7 +471,9 @@ class BigtableInstanceAdminClient(metaclass=BigtableInstanceAdminClientMeta):
         parent: str = None,
         instance_id: str = None,
         instance: gba_instance.Instance = None,
-        clusters: Dict[str, gba_instance.Cluster] = None,
+        clusters: Sequence[
+            bigtable_instance_admin.CreateInstanceRequest.ClustersEntry
+        ] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
