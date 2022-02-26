@@ -235,7 +235,9 @@ class BigtableInstanceAdminAsyncClient:
         parent: str = None,
         instance_id: str = None,
         instance: gba_instance.Instance = None,
-        clusters: Dict[str, gba_instance.Cluster] = None,
+        clusters: Sequence[
+            bigtable_instance_admin.CreateInstanceRequest.ClustersEntry
+        ] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: float = None,
         metadata: Sequence[Tuple[str, str]] = (),
@@ -247,35 +249,6 @@ class BigtableInstanceAdminAsyncClient:
         serve_nodes is set to non-zero, then the cluster is manually
         scaled. If cluster_config.cluster_autoscaling_config is
         non-empty, then autoscaling is enabled.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_instance():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                instance = bigtable_admin_v2.Instance()
-                instance.display_name = "display_name_value"
-
-                request = bigtable_admin_v2.CreateInstanceRequest(
-                    parent="parent_value",
-                    instance_id="instance_id_value",
-                    instance=instance,
-                )
-
-                # Make the request
-                operation = client.create_instance(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateInstanceRequest, dict]):
@@ -395,25 +368,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> instance.Instance:
         r"""Gets information about an instance.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_instance():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetInstanceRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_instance(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetInstanceRequest, dict]):
                 The request object. Request message for
@@ -499,25 +453,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> bigtable_instance_admin.ListInstancesResponse:
         r"""Lists information about instances in a project.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_instances():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListInstancesRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                response = client.list_instances(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListInstancesRequest, dict]):
                 The request object. Request message for
@@ -602,26 +537,6 @@ class BigtableInstanceAdminAsyncClient:
         To update other Instance properties, such as labels, use
         PartialUpdateInstance.
 
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_update_instance():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.Instance(
-                    display_name="display_name_value",
-                )
-
-                # Make the request
-                response = client.update_instance(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.Instance, dict]):
                 The request object. A collection of Bigtable
@@ -693,33 +608,6 @@ class BigtableInstanceAdminAsyncClient:
         r"""Partially updates an instance within a project. This
         method can modify all fields of an Instance and is the
         preferred way to update an Instance.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_partial_update_instance():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                instance = bigtable_admin_v2.Instance()
-                instance.display_name = "display_name_value"
-
-                request = bigtable_admin_v2.PartialUpdateInstanceRequest(
-                    instance=instance,
-                )
-
-                # Make the request
-                operation = client.partial_update_instance(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.PartialUpdateInstanceRequest, dict]):
@@ -827,22 +715,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> None:
         r"""Delete an instance from a project.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_instance():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteInstanceRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_instance(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteInstanceRequest, dict]):
                 The request object. Request message for
@@ -915,31 +787,6 @@ class BigtableInstanceAdminAsyncClient:
         serve_nodes is set to non-zero, then the cluster is manually
         scaled. If cluster_config.cluster_autoscaling_config is
         non-empty, then autoscaling is enabled.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_cluster():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.CreateClusterRequest(
-                    parent="parent_value",
-                    cluster_id="cluster_id_value",
-                )
-
-                # Make the request
-                operation = client.create_cluster(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateClusterRequest, dict]):
@@ -1045,25 +892,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> instance.Cluster:
         r"""Gets information about a cluster.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_cluster():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetClusterRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_cluster(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetClusterRequest, dict]):
                 The request object. Request message for
@@ -1147,25 +975,6 @@ class BigtableInstanceAdminAsyncClient:
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> bigtable_instance_admin.ListClustersResponse:
         r"""Lists information about clusters in an instance.
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_clusters():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListClustersRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                response = client.list_clusters(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListClustersRequest, dict]):
@@ -1253,29 +1062,6 @@ class BigtableInstanceAdminAsyncClient:
         Note that UpdateCluster does not support updating
         cluster_config.cluster_autoscaling_config. In order to update
         it, you must use PartialUpdateCluster.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_update_cluster():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.Cluster(
-                )
-
-                # Make the request
-                operation = client.update_cluster(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.Cluster, dict]):
@@ -1366,29 +1152,6 @@ class BigtableInstanceAdminAsyncClient:
         To disable autoscaling, clear
         cluster_config.cluster_autoscaling_config, and explicitly set a
         serve_node count via the update_mask.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_partial_update_cluster():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.PartialUpdateClusterRequest(
-                )
-
-                # Make the request
-                operation = client.partial_update_cluster(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.PartialUpdateClusterRequest, dict]):
@@ -1494,22 +1257,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> None:
         r"""Deletes a cluster from an instance.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_cluster():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteClusterRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_cluster(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteClusterRequest, dict]):
                 The request object. Request message for
@@ -1576,26 +1323,6 @@ class BigtableInstanceAdminAsyncClient:
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> instance.AppProfile:
         r"""Creates an app profile within an instance.
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_create_app_profile():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.CreateAppProfileRequest(
-                    parent="parent_value",
-                    app_profile_id="app_profile_id_value",
-                )
-
-                # Make the request
-                response = client.create_app_profile(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.CreateAppProfileRequest, dict]):
@@ -1690,25 +1417,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> instance.AppProfile:
         r"""Gets information about an app profile.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_app_profile():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetAppProfileRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_app_profile(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.GetAppProfileRequest, dict]):
                 The request object. Request message for
@@ -1791,26 +1499,6 @@ class BigtableInstanceAdminAsyncClient:
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> pagers.ListAppProfilesAsyncPager:
         r"""Lists information about app profiles in an instance.
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_list_app_profiles():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.ListAppProfilesRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                page_result = client.list_app_profiles(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.ListAppProfilesRequest, dict]):
@@ -1906,28 +1594,6 @@ class BigtableInstanceAdminAsyncClient:
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation_async.AsyncOperation:
         r"""Updates an app profile within an instance.
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_update_app_profile():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.UpdateAppProfileRequest(
-                )
-
-                # Make the request
-                operation = client.update_app_profile(request=request)
-
-                print("Waiting for operation to complete...")
-
-                response = operation.result()
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.UpdateAppProfileRequest, dict]):
@@ -2032,23 +1698,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> None:
         r"""Deletes an app profile from an instance.
 
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_delete_app_profile():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.DeleteAppProfileRequest(
-                    name="name_value",
-                    ignore_warnings=True,
-                )
-
-                # Make the request
-                client.delete_app_profile(request=request)
-
         Args:
             request (Union[google.cloud.bigtable_admin_v2.types.DeleteAppProfileRequest, dict]):
                 The request object. Request message for
@@ -2115,26 +1764,6 @@ class BigtableInstanceAdminAsyncClient:
         r"""Gets the access control policy for an instance
         resource. Returns an empty policy if an instance exists
         but does not have a policy set.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_get_iam_policy():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.GetIamPolicyRequest(
-                    resource="resource_value",
-                )
-
-                # Make the request
-                response = client.get_iam_policy(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.GetIamPolicyRequest, dict]):
@@ -2273,26 +1902,6 @@ class BigtableInstanceAdminAsyncClient:
         r"""Sets the access control policy on an instance
         resource. Replaces any existing policy.
 
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_set_iam_policy():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.SetIamPolicyRequest(
-                    resource="resource_value",
-                )
-
-                # Make the request
-                response = client.set_iam_policy(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.SetIamPolicyRequest, dict]):
                 The request object. Request message for `SetIamPolicy`
@@ -2420,27 +2029,6 @@ class BigtableInstanceAdminAsyncClient:
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
         specified instance resource.
-
-
-        .. code-block:: python
-
-            from google.cloud import bigtable_admin_v2
-
-            def sample_test_iam_permissions():
-                # Create a client
-                client = bigtable_admin_v2.BigtableInstanceAdminClient()
-
-                # Initialize request argument(s)
-                request = bigtable_admin_v2.TestIamPermissionsRequest(
-                    resource="resource_value",
-                    permissions=['permissions_value_1', 'permissions_value_2'],
-                )
-
-                # Make the request
-                response = client.test_iam_permissions(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]):
