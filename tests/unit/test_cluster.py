@@ -680,9 +680,7 @@ def test_cluster_update_w_autoscaling():
         instance,
         location_id=LOCATION_ID,
         default_storage_type=STORAGE_TYPE_SSD,
-        min_serve_nodes=1,
-        max_serve_nodes=8,
-        cpu_utilization_percent=20,
+        min_serve_nodes=2,
     )
     metadata = messages_v2_pb2.UpdateClusterMetadata(request_time=NOW_PB)
     type_url = "type.googleapis.com/{}".format(
@@ -692,6 +690,7 @@ def test_cluster_update_w_autoscaling():
         name=OP_NAME,
         metadata=Any(type_url=type_url, value=metadata._pb.SerializeToString()),
     )
+    cluster.min_serve_nodes = 2
 
     api = client._instance_admin_client = _make_instance_admin_client()
     api.cluster_path.return_value = (
@@ -704,7 +703,9 @@ def test_cluster_update_w_autoscaling():
     cluster_pb = cluster._to_pb()
     cluster_pb.name = cluster.name
     update_mask_pb = field_mask_pb2.FieldMask(
-        paths=["cluster_config.cluster_autoscaling_config"]
+        paths=[
+            "cluster_config.cluster_autoscaling_config.autoscaling_limits.min_serve_nodes"
+        ]
     )
 
     expected_request = {
@@ -714,62 +715,24 @@ def test_cluster_update_w_autoscaling():
     api.partial_update_cluster.assert_called_once_with(request=expected_request)
 
 
-def test_cluster_update_w_both_manual_and_autoscaling():
-    from google.cloud.bigtable.enums import StorageType
-
-    credentials = _make_credentials()
-    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
-    STORAGE_TYPE_SSD = StorageType.SSD
-    instance = _Instance(INSTANCE_ID, client)
-    cluster = _make_cluster(
-        CLUSTER_ID,
-        instance,
-        location_id=LOCATION_ID,
-        default_storage_type=STORAGE_TYPE_SSD,
-        min_serve_nodes=1,
-        max_serve_nodes=8,
-        cpu_utilization_percent=20,
-    )
-    cluster.serve_nodes = SERVE_NODES
-
-    with pytest.raises(ValueError) as excinfo:
-
-        cluster.update()
-        assert (
-            str(excinfo.value)
-            == "Cannot specify both serve_nodes and autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
-        )
-
-
-def test_cluster_update_w_no_scaling_config():
-    from google.cloud.bigtable.enums import StorageType
-
-    credentials = _make_credentials()
-    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
-    STORAGE_TYPE_SSD = StorageType.SSD
-    instance = _Instance(INSTANCE_ID, client)
-    cluster = _make_cluster(
-        CLUSTER_ID,
-        instance,
-        location_id=LOCATION_ID,
-        default_storage_type=STORAGE_TYPE_SSD,
-    )
-
-    with pytest.raises(ValueError) as excinfo:
-
-        cluster.update()
-        assert (
-            str(excinfo.value)
-            == "Must specify either serve_nodes or all of the autoscaling configurations."
-        )
-
-
 def test_cluster_update_w_partial_autoscaling_config():
+    import datetime
+    from google.longrunning import operations_pb2
+    from google.protobuf import field_mask_pb2
+    from google.protobuf.any_pb2 import Any
+    from google.cloud._helpers import _datetime_to_pb_timestamp
+    from google.cloud.bigtable_admin_v2.types import (
+        bigtable_instance_admin as messages_v2_pb2,
+    )
     from google.cloud.bigtable.enums import StorageType
+
+    NOW = datetime.datetime.utcnow()
+    NOW_PB = _datetime_to_pb_timestamp(NOW)
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
     STORAGE_TYPE_SSD = StorageType.SSD
+    LOCATION = LOCATION_PATH + LOCATION_ID
     instance = _Instance(INSTANCE_ID, client)
 
     cluster_config = [
@@ -795,14 +758,106 @@ def test_cluster_update_w_partial_autoscaling_config():
             default_storage_type=STORAGE_TYPE_SSD,
             **config,
         )
+        metadata = messages_v2_pb2.UpdateClusterMetadata(request_time=NOW_PB)
+        type_url = "type.googleapis.com/{}".format(
+            messages_v2_pb2.UpdateClusterMetadata._meta._pb.DESCRIPTOR.full_name
+        )
+        response_pb = operations_pb2.Operation(
+            name=OP_NAME,
+            metadata=Any(type_url=type_url, value=metadata._pb.SerializeToString()),
+        )
+        api = client._instance_admin_client = _make_instance_admin_client()
+        api.cluster_path.return_value = (
+            "projects/project/instances/instance-id/clusters/cluster-id"
+        )
+        api.update_cluster.return_value = response_pb
+        api.common_location_path.return_value = LOCATION
 
-        with pytest.raises(ValueError) as excinfo:
+        cluster.update()
+        cluster_pb = cluster._to_pb()
+        cluster_pb.name = cluster.name
 
-            cluster.update()
-            assert (
-                str(excinfo.value)
-                == "Must specify either serve_nodes or all of the autoscaling configurations."
-            )
+        expected_paths = []
+        for key, _ in config.items():
+            if key == "min_serve_nodes":
+                expected_paths.append(
+                    "cluster_config.cluster_autoscaling_config.autoscaling_limits.min_serve_nodes"
+                )
+            if key == "max_serve_nodes":
+                expected_paths.append(
+                    "cluster_config.cluster_autoscaling_config.autoscaling_limits.max_serve_nodes"
+                )
+            if key == "cpu_utilization_percent":
+                expected_paths.append(
+                    "cluster_config.cluster_autoscaling_config.autoscaling_targets.cpu_utilization_percent"
+                )
+        update_mask_pb = field_mask_pb2.FieldMask(paths=expected_paths)
+
+        expected_request = {
+            "cluster": cluster_pb,
+            "update_mask": update_mask_pb,
+        }
+        api.partial_update_cluster.assert_called_once_with(request=expected_request)
+
+
+def test_cluster_update_w_both_manual_and_autoscaling():
+    import datetime
+    from google.longrunning import operations_pb2
+    from google.protobuf import field_mask_pb2
+    from google.protobuf.any_pb2 import Any
+    from google.cloud._helpers import _datetime_to_pb_timestamp
+    from google.cloud.bigtable_admin_v2.types import (
+        bigtable_instance_admin as messages_v2_pb2,
+    )
+    from google.cloud.bigtable.enums import StorageType
+
+    NOW = datetime.datetime.utcnow()
+    NOW_PB = _datetime_to_pb_timestamp(NOW)
+
+    credentials = _make_credentials()
+    client = _make_client(project=PROJECT, credentials=credentials, admin=True)
+    STORAGE_TYPE_SSD = StorageType.SSD
+    LOCATION = LOCATION_PATH + LOCATION_ID
+    instance = _Instance(INSTANCE_ID, client)
+    cluster = _make_cluster(
+        CLUSTER_ID,
+        instance,
+        location_id=LOCATION_ID,
+        default_storage_type=STORAGE_TYPE_SSD,
+    )
+    cluster.max_serve_nodes = 2
+    cluster.serve_nodes = SERVE_NODES
+    metadata = messages_v2_pb2.UpdateClusterMetadata(request_time=NOW_PB)
+    type_url = "type.googleapis.com/{}".format(
+        messages_v2_pb2.UpdateClusterMetadata._meta._pb.DESCRIPTOR.full_name
+    )
+    response_pb = operations_pb2.Operation(
+        name=OP_NAME,
+        metadata=Any(type_url=type_url, value=metadata._pb.SerializeToString()),
+    )
+    api = client._instance_admin_client = _make_instance_admin_client()
+    api.cluster_path.return_value = (
+        "projects/project/instances/instance-id/clusters/cluster-id"
+    )
+    api.update_cluster.return_value = response_pb
+    api.common_location_path.return_value = LOCATION
+
+    cluster.update()
+    cluster_pb = cluster._to_pb()
+    cluster_pb.name = cluster.name
+
+    expected_paths = [
+        "serve_nodes",
+        "cluster_config.cluster_autoscaling_config.autoscaling_limits.max_serve_nodes",
+    ]
+
+    update_mask_pb = field_mask_pb2.FieldMask(paths=expected_paths)
+
+    expected_request = {
+        "cluster": cluster_pb,
+        "update_mask": update_mask_pb,
+    }
+    api.partial_update_cluster.assert_called_once_with(request=expected_request)
 
 
 def test_cluster_disable_autoscaling():
@@ -932,10 +987,10 @@ def test_create_cluster_with_partial_autoscaling_config():
 
         with pytest.raises(ValueError) as excinfo:
             cluster.create()
-            assert (
-                str(excinfo.value)
-                == "All of autoscaling configurations must be specified at the same time (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
-            )
+        assert (
+            str(excinfo.value)
+            == "All of autoscaling configurations must be specified at the same time (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
+        )
 
 
 def test_create_cluster_with_no_scaling_config():
@@ -956,10 +1011,10 @@ def test_create_cluster_with_no_scaling_config():
 
     with pytest.raises(ValueError) as excinfo:
         cluster.create()
-        assert (
-            str(excinfo.value)
-            == "Must specify either serve_nodes or all of the autoscaling configurations  (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
-        )
+    assert (
+        str(excinfo.value)
+        == "Must specify either serve_nodes or all of the autoscaling configurations (min_serve_nodes, max_serve_nodes, and cpu_utilization_percent)."
+    )
 
 
 def test_cluster_delete():

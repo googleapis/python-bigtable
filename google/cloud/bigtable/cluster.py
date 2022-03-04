@@ -416,12 +416,7 @@ class Cluster(object):
         :returns: The long-running operation corresponding to the
                   update operation.
 
-        :raises: :class:`ValueError <exceptions.ValueError>` if the both ``serve_nodes`` and autoscaling configurations
-          are set at the same time or if none of the ``serve_nodes`` or autoscaling configurations are set
-          or if the autoscaling configurations are only partially set.
         """
-
-        self._validate_scaling_config()
 
         client = self._instance._client
 
@@ -430,8 +425,18 @@ class Cluster(object):
         if self.serve_nodes:
             update_mask_pb.paths.append("serve_nodes")
 
-        if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
-            update_mask_pb.paths.append("cluster_config.cluster_autoscaling_config")
+        if self.min_serve_nodes:
+            update_mask_pb.paths.append(
+                "cluster_config.cluster_autoscaling_config.autoscaling_limits.min_serve_nodes"
+            )
+        if self.max_serve_nodes:
+            update_mask_pb.paths.append(
+                "cluster_config.cluster_autoscaling_config.autoscaling_limits.max_serve_nodes"
+            )
+        if self.cpu_utilization_percent:
+            update_mask_pb.paths.append(
+                "cluster_config.cluster_autoscaling_config.autoscaling_targets.cpu_utilization_percent"
+            )
 
         cluster_pb = self._to_pb()
         cluster_pb.name = self.name
@@ -520,15 +525,17 @@ class Cluster(object):
                 kms_key_name=self._kms_key_name,
             )
 
-        if self.min_serve_nodes or self.max_serve_nodes or self.cpu_utilization_percent:
-            cluster_pb.cluster_config.cluster_autoscaling_config = instance.Cluster.ClusterAutoscalingConfig(
-                autoscaling_limits=instance.AutoscalingLimits(
-                    min_serve_nodes=self.min_serve_nodes,
-                    max_serve_nodes=self.max_serve_nodes,
-                ),
-                autoscaling_targets=instance.AutoscalingTargets(
-                    cpu_utilization_percent=self.cpu_utilization_percent
-                ),
+        if self.min_serve_nodes:
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_limits.min_serve_nodes = (
+                self.min_serve_nodes
+            )
+        if self.max_serve_nodes:
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_limits.max_serve_nodes = (
+                self.max_serve_nodes
+            )
+        if self.cpu_utilization_percent:
+            cluster_pb.cluster_config.cluster_autoscaling_config.autoscaling_targets.cpu_utilization_percent = (
+                self.cpu_utilization_percent
             )
 
         return cluster_pb
