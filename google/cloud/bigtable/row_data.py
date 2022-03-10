@@ -25,6 +25,7 @@ from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
+from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
 
 _MISSING_COLUMN_FAMILY = "Column family {} is not among the cells stored in this row."
 _MISSING_COLUMN = (
@@ -625,13 +626,8 @@ class _ReadRowsRequestManager(object):
     def build_updated_request(self):
         """Updates the given message request as per last scanned key"""
 
-        # TODO: Generalize this to ensure fields don't get rewritten when retrying the request
-
-        r_kwargs = {
-            "table_name": self.message.table_name,
-            "filter": self.message.filter,
-            "app_profile_id": self.message.app_profile_id,
-        }
+        r_kwargs = ReadRowsRequest.to_dict(self.message)
+        r_kwargs["filter"] = self.message.filter
 
         if self.message.rows_limit != 0:
             r_kwargs["rows_limit"] = max(
