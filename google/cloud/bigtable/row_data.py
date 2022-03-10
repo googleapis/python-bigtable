@@ -25,7 +25,6 @@ from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
-from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
 
 _MISSING_COLUMN_FAMILY = "Column family {} is not among the cells stored in this row."
 _MISSING_COLUMN = (
@@ -626,11 +625,11 @@ class _ReadRowsRequestManager(object):
     def build_updated_request(self):
         """Updates the given message request as per last scanned key"""
 
-        r_kwargs = ReadRowsRequest.to_dict(self.message)
-        r_kwargs["filter"] = self.message.filter
+        updated_message = data_messages_v2_pb2.ReadRowsRequest()
+        data_messages_v2_pb2.ReadRowsRequest.copy_from(updated_message, self.message)
 
         if self.message.rows_limit != 0:
-            r_kwargs["rows_limit"] = max(
+            updated_message.rows_limit = max(
                 1, self.message.rows_limit - self.rows_read_so_far
             )
 
@@ -639,14 +638,14 @@ class _ReadRowsRequestManager(object):
         # to request only rows that have not been returned yet
         if "rows" not in self.message:
             row_range = data_v2_pb2.RowRange(start_key_open=self.last_scanned_key)
-            r_kwargs["rows"] = data_v2_pb2.RowSet(row_ranges=[row_range])
+            updated_message.rows = data_v2_pb2.RowSet(row_ranges=[row_range])
         else:
             row_keys = self._filter_rows_keys()
             row_ranges = self._filter_row_ranges()
-            r_kwargs["rows"] = data_v2_pb2.RowSet(
+            updated_message.rows = data_v2_pb2.RowSet(
                 row_keys=row_keys, row_ranges=row_ranges
             )
-        return data_messages_v2_pb2.ReadRowsRequest(**r_kwargs)
+        return updated_message
 
     def _filter_rows_keys(self):
         """ Helper for :meth:`build_updated_request`"""
