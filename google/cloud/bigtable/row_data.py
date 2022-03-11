@@ -16,6 +16,7 @@
 
 
 import copy
+import proto
 
 import grpc  # type: ignore
 
@@ -626,7 +627,7 @@ class _ReadRowsRequestManager(object):
         """Updates the given message request as per last scanned key"""
 
         updated_message = data_messages_v2_pb2.ReadRowsRequest()
-        data_messages_v2_pb2.ReadRowsRequest.copy_from(updated_message, self.message)
+        proto.Message.copy_from(updated_message, self.message)
 
         if self.message.rows_limit != 0:
             updated_message.rows_limit = max(
