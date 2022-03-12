@@ -88,7 +88,7 @@ class TestCell(unittest.TestCase):
         self._from_pb_test_helper()
 
     def test_from_pb_with_labels(self):
-        labels = [u"label1", u"label2"]
+        labels = ["label1", "label2"]
         self._from_pb_test_helper(labels)
 
     def test_constructor(self):
@@ -175,8 +175,8 @@ class TestPartialRowData(unittest.TestCase):
         cell2 = object()
         cell3 = object()
 
-        family_name1 = u"name1"
-        family_name2 = u"name2"
+        family_name1 = "name1"
+        family_name2 = "name2"
         qual1 = b"col1"
         qual2 = b"col2"
         qual3 = b"col3"
@@ -196,7 +196,7 @@ class TestPartialRowData(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_cell_value(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
         cell = _make_cell(b"value-bytes")
 
@@ -207,7 +207,7 @@ class TestPartialRowData(unittest.TestCase):
         self.assertEqual(result, cell.value)
 
     def test_cell_value_invalid_index(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
         cell = _make_cell(b"")
 
@@ -218,7 +218,7 @@ class TestPartialRowData(unittest.TestCase):
             partial_row_data.cell_value(family_name, qualifier, index=None)
 
     def test_cell_value_invalid_column_family_key(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
 
         partial_row_data = self._make_one(None)
@@ -227,7 +227,7 @@ class TestPartialRowData(unittest.TestCase):
             partial_row_data.cell_value(family_name, qualifier)
 
     def test_cell_value_invalid_column_key(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
 
         partial_row_data = self._make_one(None)
@@ -237,7 +237,7 @@ class TestPartialRowData(unittest.TestCase):
             partial_row_data.cell_value(family_name, qualifier)
 
     def test_cell_values(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
         cell = _make_cell(b"value-bytes")
 
@@ -253,7 +253,7 @@ class TestPartialRowData(unittest.TestCase):
         self.assertEqual(values[0], cell.value)
 
     def test_cell_values_with_max_count(self):
-        family_name = u"name1"
+        family_name = "name1"
         qualifier = b"col1"
         cell_1 = _make_cell(b"value-bytes-1")
         cell_2 = _make_cell(b"value-bytes-2")
@@ -353,7 +353,7 @@ class Test_retry_read_rows_exception(unittest.TestCase):
 
 class TestPartialRowsData(unittest.TestCase):
     ROW_KEY = b"row-key"
-    FAMILY_NAME = u"family"
+    FAMILY_NAME = "family"
     QUALIFIER = b"qualifier"
     TIMESTAMP_MICROS = 100
     VALUE = b"value"
@@ -548,14 +548,14 @@ class TestPartialRowsData(unittest.TestCase):
         cell = _PartialCellData()
         yrd._copy_from_previous(cell)
         self.assertEqual(cell.row_key, b"")
-        self.assertEqual(cell.family_name, u"")
+        self.assertEqual(cell.family_name, "")
         self.assertIsNone(cell.qualifier)
         self.assertEqual(cell.timestamp_micros, 0)
         self.assertEqual(cell.labels, [])
 
     def test__copy_from_previous_blank(self):
         ROW_KEY = "RK"
-        FAMILY_NAME = u"A"
+        FAMILY_NAME = "A"
         QUALIFIER = b"C"
         TIMESTAMP_MICROS = 100
         LABELS = ["L1", "L2"]
@@ -580,7 +580,7 @@ class TestPartialRowsData(unittest.TestCase):
 
     def test__copy_from_previous_filled(self):
         ROW_KEY = "RK"
-        FAMILY_NAME = u"A"
+        FAMILY_NAME = "A"
         QUALIFIER = b"C"
         TIMESTAMP_MICROS = 100
         LABELS = ["L1", "L2"]
@@ -1200,13 +1200,13 @@ def _flatten_cells(prd):
             for qualifier, column in family.items():
                 for cell in column:
                     yield {
-                        u"rk": _bytes_to_unicode(row_key),
-                        u"fm": family_name,
-                        u"qual": _bytes_to_unicode(qualifier),
-                        u"ts": _microseconds_from_datetime(cell.timestamp),
-                        u"value": _bytes_to_unicode(cell.value),
-                        u"label": u" ".join(cell.labels),
-                        u"error": False,
+                        "rk": _bytes_to_unicode(row_key),
+                        "fm": family_name,
+                        "qual": _bytes_to_unicode(qualifier),
+                        "ts": _microseconds_from_datetime(cell.timestamp),
+                        "value": _bytes_to_unicode(cell.value),
+                        "label": " ".join(cell.labels),
+                        "error": False,
                     }
 
 
@@ -1236,7 +1236,7 @@ class _MockFailureIterator_1(object):
 class _PartialCellData(object):
 
     row_key = b""
-    family_name = u""
+    family_name = ""
     qualifier = None
     timestamp_micros = 0
 

@@ -457,7 +457,7 @@ class TestInstance(unittest.TestCase):
         instance = self._make_one(self.INSTANCE_ID, client)
 
         # Create response_pb
-        DISPLAY_NAME = u"hey-hi-hello"
+        DISPLAY_NAME = "hey-hi-hello"
         instance_type = enums.Instance.Type.PRODUCTION
         response_pb = data_v2_pb2.Instance(
             display_name=DISPLAY_NAME, type=instance_type, labels=self.LABELS

@@ -141,7 +141,7 @@ class TestTable(unittest.TestCase):
     ROW_KEY_1 = b"row-key-1"
     ROW_KEY_2 = b"row-key-2"
     ROW_KEY_3 = b"row-key-3"
-    FAMILY_NAME = u"family"
+    FAMILY_NAME = "family"
     QUALIFIER = b"qualifier"
     TIMESTAMP_MICROS = 100
     VALUE = b"value"
@@ -507,9 +507,9 @@ class TestTable(unittest.TestCase):
 
         # build expected result
         expected_result = {
-            u"cluster-id1": ClusterState(INITIALIZING),
-            u"cluster-id2": ClusterState(PLANNED_MAINTENANCE),
-            u"cluster-id3": ClusterState(READY),
+            "cluster-id1": ClusterState(INITIALIZING),
+            "cluster-id2": ClusterState(PLANNED_MAINTENANCE),
+            "cluster-id3": ClusterState(READY),
         }
 
         # Perform the method and check the result.
