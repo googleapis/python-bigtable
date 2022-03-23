@@ -105,7 +105,7 @@ class MutationsBatcher(object):
             self.flush()
 
     def mutate_rows(self, rows):
-        """Add a row to the batch. If the current batch meets one of the size
+        """Add multiple rows to the batch. If the current batch meets one of the size
         limits, the batch is sent synchronously.
 
         For example:
