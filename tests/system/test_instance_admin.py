@@ -24,6 +24,7 @@ def _create_app_profile_helper(
     routing_policy_type,
     description=None,
     cluster_id=None,
+    multi_cluster_ids=None,
     allow_transactional_writes=None,
     ignore_warnings=None,
 ):
@@ -33,6 +34,7 @@ def _create_app_profile_helper(
         routing_policy_type=routing_policy_type,
         description=description,
         cluster_id=cluster_id,
+        multi_cluster_ids=multi_cluster_ids,
         allow_transactional_writes=allow_transactional_writes,
     )
     assert app_profile.allow_transactional_writes == allow_transactional_writes
@@ -40,7 +42,7 @@ def _create_app_profile_helper(
     app_profile.create(ignore_warnings=ignore_warnings)
 
     # Load a different app_profile objec form the server and
-    # verrify that it is the same
+    # verify that it is the same
     alt_app_profile = instance.app_profile(app_profile_id)
     alt_app_profile.reload()
 
@@ -67,6 +69,7 @@ def _modify_app_profile_helper(
     routing_policy_type,
     description=None,
     cluster_id=None,
+    multi_cluster_ids=None,
     allow_transactional_writes=None,
     ignore_warnings=None,
 ):
@@ -75,6 +78,7 @@ def _modify_app_profile_helper(
         routing_policy_type=routing_policy_type,
         description=description,
         cluster_id=cluster_id,
+        multi_cluster_ids=multi_cluster_ids,
         allow_transactional_writes=allow_transactional_writes,
     )
 
@@ -87,6 +91,7 @@ def _modify_app_profile_helper(
     assert alt_profile.description == description
     assert alt_profile.routing_policy_type == routing_policy_type
     assert alt_profile.cluster_id == cluster_id
+    assert alt_profile.multi_cluster_ids == multi_cluster_ids
     assert alt_profile.allow_transactional_writes == allow_transactional_writes
 
 
