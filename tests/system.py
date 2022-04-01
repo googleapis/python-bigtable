@@ -53,8 +53,8 @@ TABLE_ID = "google-cloud-python-test-table"
 CLUSTER_ID = INSTANCE_ID + "-cluster"
 CLUSTER_ID_DATA = INSTANCE_ID_DATA + "-cluster"
 SERVE_NODES = 3
-COLUMN_FAMILY_ID1 = u"col-fam-id1"
-COLUMN_FAMILY_ID2 = u"col-fam-id2"
+COLUMN_FAMILY_ID1 = "col-fam-id1"
+COLUMN_FAMILY_ID2 = "col-fam-id2"
 COL_NAME1 = b"col-name1"
 COL_NAME2 = b"col-name2"
 COL_NAME3 = b"col-name3-but-other-fam"
@@ -65,7 +65,7 @@ CELL_VAL4 = b"foo"
 ROW_KEY = b"row-key"
 ROW_KEY_ALT = b"row-key-alt"
 EXISTING_INSTANCES = []
-LABEL_KEY = u"python-system"
+LABEL_KEY = "python-system"
 label_stamp = (
     datetime.datetime.utcnow()
     .replace(microsecond=0, tzinfo=UTC)
@@ -1202,13 +1202,13 @@ class TestDataAPI(unittest.TestCase):
         row.commit()
 
         # Combine a label with column 1.
-        label1 = u"label-red"
+        label1 = "label-red"
         label1_filter = ApplyLabelFilter(label1)
         col1_filter = ColumnQualifierRegexFilter(COL_NAME1)
         chain1 = RowFilterChain(filters=[col1_filter, label1_filter])
 
         # Combine a label with column 2.
-        label2 = u"label-blue"
+        label2 = "label-blue"
         label2_filter = ApplyLabelFilter(label2)
         col2_filter = ColumnQualifierRegexFilter(COL_NAME2)
         chain2 = RowFilterChain(filters=[col2_filter, label2_filter])

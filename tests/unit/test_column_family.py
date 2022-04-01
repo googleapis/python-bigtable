@@ -283,7 +283,7 @@ class TestColumnFamily(unittest.TestCase):
         return self._get_target_client_class()(*args, **kwargs)
 
     def test_constructor(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         table = object()
         gc_rule = object()
         column_family = self._make_one(column_family_id, table, gc_rule=gc_rule)
@@ -293,7 +293,7 @@ class TestColumnFamily(unittest.TestCase):
         self.assertIs(column_family.gc_rule, gc_rule)
 
     def test_name_property(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         table_name = "table_name"
         table = _Table(table_name)
         column_family = self._make_one(column_family_id, table)

@@ -84,7 +84,7 @@ class TestDirectRow(unittest.TestCase):
         self.assertEqual(row._pb_mutations, [])
 
     def test_constructor_with_unicode(self):
-        row_key = u"row_key"
+        row_key = "row_key"
         row_key_bytes = b"row_key"
         table = object()
 
@@ -108,8 +108,8 @@ class TestDirectRow(unittest.TestCase):
         row_key = b"row_key"
         row = self._make_one(row_key, None)
 
-        column_family_id1 = u"column_family_id1"
-        column_family_id2 = u"column_family_id2"
+        column_family_id1 = "column_family_id1"
+        column_family_id2 = "column_family_id2"
         column1 = b"column1"
         column2 = b"column2"
         number_of_bytes = 1 * 1024 * 1024
@@ -136,7 +136,7 @@ class TestDirectRow(unittest.TestCase):
         import struct
 
         row_key = b"row_key"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         if column is None:
             column = b"column"
         table = object()
@@ -161,7 +161,7 @@ class TestDirectRow(unittest.TestCase):
 
     def test_set_cell_with_string_column(self):
         column_bytes = b"column"
-        column_non_bytes = u"column"
+        column_non_bytes = "column"
         self._set_cell_helper(column=column_non_bytes, column_bytes=column_bytes)
 
     def test_set_cell_with_integer_value(self):
@@ -171,7 +171,7 @@ class TestDirectRow(unittest.TestCase):
     def test_set_cell_with_non_bytes_value(self):
         row_key = b"row_key"
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -213,7 +213,7 @@ class TestDirectRow(unittest.TestCase):
 
         row_key = b"row_key"
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         mock_row = MockRow(row_key, table)
@@ -231,7 +231,7 @@ class TestDirectRow(unittest.TestCase):
 
     def test_delete_cells_non_iterable(self):
         row_key = b"row_key"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -241,7 +241,7 @@ class TestDirectRow(unittest.TestCase):
 
     def test_delete_cells_all_columns(self):
         row_key = b"row_key"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -256,7 +256,7 @@ class TestDirectRow(unittest.TestCase):
 
     def test_delete_cells_no_columns(self):
         row_key = b"row_key"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -268,7 +268,7 @@ class TestDirectRow(unittest.TestCase):
     def _delete_cells_helper(self, time_range=None):
         row_key = b"row_key"
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -303,7 +303,7 @@ class TestDirectRow(unittest.TestCase):
         # the row's mutations in a bad state.
         row_key = b"row_key"
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         table = object()
 
         row = self._make_one(row_key, table)
@@ -315,10 +315,10 @@ class TestDirectRow(unittest.TestCase):
 
     def test_delete_cells_with_string_columns(self):
         row_key = b"row_key"
-        column_family_id = u"column_family_id"
-        column1 = u"column1"
+        column_family_id = "column_family_id"
+        column1 = "column1"
         column1_bytes = b"column1"
-        column2 = u"column2"
+        column2 = "column2"
         column2_bytes = b"column2"
         table = object()
 
@@ -343,7 +343,7 @@ class TestDirectRow(unittest.TestCase):
         project_id = "project-id"
         row_key = b"row_key"
         table_name = "projects/more-stuff"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         column = b"column"
 
         credentials = _make_credentials()
@@ -365,7 +365,7 @@ class TestDirectRow(unittest.TestCase):
         project_id = "project-id"
         row_key = b"row_key"
         table_name = "projects/more-stuff"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         column = b"column"
 
         credentials = _make_credentials()
@@ -433,9 +433,9 @@ class TestConditionalRow(unittest.TestCase):
         row_key = b"row_key"
         table_name = "projects/more-stuff"
         app_profile_id = "app_profile_id"
-        column_family_id1 = u"column_family_id1"
-        column_family_id2 = u"column_family_id2"
-        column_family_id3 = u"column_family_id3"
+        column_family_id1 = "column_family_id1"
+        column_family_id2 = "column_family_id2"
+        column_family_id3 = "column_family_id3"
         column1 = b"column1"
         column2 = b"column2"
 
@@ -557,7 +557,7 @@ class TestAppendRow(unittest.TestCase):
         self.assertEqual(row._rule_pb_list, [])
 
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         value = b"bytes-val"
         row.append_cell_value(column_family_id, column, value)
         expected_pb = _ReadModifyWriteRulePB(
@@ -572,7 +572,7 @@ class TestAppendRow(unittest.TestCase):
         self.assertEqual(row._rule_pb_list, [])
 
         column = b"column"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         int_value = 281330
         row.increment_cell_value(column_family_id, column, int_value)
         expected_pb = _ReadModifyWriteRulePB(
@@ -591,7 +591,7 @@ class TestAppendRow(unittest.TestCase):
         row_key = b"row_key"
         table_name = "projects/more-stuff"
         app_profile_id = "app_profile_id"
-        column_family_id = u"column_family_id"
+        column_family_id = "column_family_id"
         column = b"column"
 
         api = bigtable_client.BigtableClient(mock.Mock())
@@ -671,8 +671,8 @@ class Test__parse_rmw_row_response(unittest.TestCase):
     def test_it(self):
         from google.cloud._helpers import _datetime_from_microseconds
 
-        col_fam1 = u"col-fam-id"
-        col_fam2 = u"col-fam-id2"
+        col_fam1 = "col-fam-id"
+        col_fam2 = "col-fam-id2"
         col_name1 = b"col-name1"
         col_name2 = b"col-name2"
         col_name3 = b"col-name3-but-other-fam"
@@ -736,7 +736,7 @@ class Test__parse_family_pb(unittest.TestCase):
     def test_it(self):
         from google.cloud._helpers import _datetime_from_microseconds
 
-        col_fam1 = u"col-fam-id"
+        col_fam1 = "col-fam-id"
         col_name1 = b"col-name1"
         col_name2 = b"col-name2"
         cell_val1 = b"cell-val"
