@@ -121,7 +121,7 @@ class Test_RegexFilter(unittest.TestCase):
         self.assertIs(row_filter.regex, regex)
 
     def test_constructor_non_bytes(self):
-        regex = u"abc"
+        regex = "abc"
         row_filter = self._make_one(regex)
         self.assertEqual(row_filter.regex, b"abc")
 
@@ -209,7 +209,7 @@ class TestFamilyNameRegexFilter(unittest.TestCase):
         return self._get_target_class()(*args, **kwargs)
 
     def test_to_pb(self):
-        regex = u"family-regex"
+        regex = "family-regex"
         row_filter = self._make_one(regex)
         pb_val = row_filter.to_pb()
         expected_pb = _RowFilterPB(family_name_regex_filter=regex)
@@ -437,14 +437,14 @@ class TestColumnRangeFilter(unittest.TestCase):
         self.assertNotEqual(row_filter1, row_filter2)
 
     def test_to_pb(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         row_filter = self._make_one(column_family_id)
         col_range_pb = _ColumnRangePB(family_name=column_family_id)
         expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
         self.assertEqual(row_filter.to_pb(), expected_pb)
 
     def test_to_pb_inclusive_start(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         column = b"column"
         row_filter = self._make_one(column_family_id, start_column=column)
         col_range_pb = _ColumnRangePB(
@@ -454,7 +454,7 @@ class TestColumnRangeFilter(unittest.TestCase):
         self.assertEqual(row_filter.to_pb(), expected_pb)
 
     def test_to_pb_exclusive_start(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         column = b"column"
         row_filter = self._make_one(
             column_family_id, start_column=column, inclusive_start=False
@@ -466,7 +466,7 @@ class TestColumnRangeFilter(unittest.TestCase):
         self.assertEqual(row_filter.to_pb(), expected_pb)
 
     def test_to_pb_inclusive_end(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         column = b"column"
         row_filter = self._make_one(column_family_id, end_column=column)
         col_range_pb = _ColumnRangePB(
@@ -476,7 +476,7 @@ class TestColumnRangeFilter(unittest.TestCase):
         self.assertEqual(row_filter.to_pb(), expected_pb)
 
     def test_to_pb_exclusive_end(self):
-        column_family_id = u"column-family-id"
+        column_family_id = "column-family-id"
         column = b"column"
         row_filter = self._make_one(
             column_family_id, end_column=column, inclusive_end=False
@@ -506,7 +506,7 @@ class TestValueRegexFilter(unittest.TestCase):
         self.assertEqual(pb_val, expected_pb)
 
     def test_to_pb_w_str(self):
-        value = u"value-regex"
+        value = "value-regex"
         regex = value.encode("ascii")
         row_filter = self._make_one(value)
         pb_val = row_filter.to_pb()
@@ -532,7 +532,7 @@ class TestExactValueFilter(unittest.TestCase):
         self.assertEqual(pb_val, expected_pb)
 
     def test_to_pb_w_str(self):
-        value = u"value-regex"
+        value = "value-regex"
         regex = value.encode("ascii")
         row_filter = self._make_one(value)
         pb_val = row_filter.to_pb()
@@ -803,7 +803,7 @@ class TestApplyLabelFilter(unittest.TestCase):
         self.assertEqual(row_filter1, row_filter2)
 
     def test_to_pb(self):
-        label = u"label"
+        label = "label"
         row_filter = self._make_one(label)
         pb_val = row_filter.to_pb()
         expected_pb = _RowFilterPB(apply_label_transformer=label)

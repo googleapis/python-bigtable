@@ -336,7 +336,7 @@ class Cluster(object):
         client.instance_admin_client.delete_cluster(self.name)
 
     def _to_pb(self):
-        """ Create cluster proto buff message for API calls """
+        """Create cluster proto buff message for API calls"""
         client = self._instance._client
         location = client.instance_admin_client.location_path(
             client.project, self.location_id
