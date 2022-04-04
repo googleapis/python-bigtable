@@ -20,11 +20,16 @@ import shutil
 
 import nox
 
+BLACK_VERSION = "black==22.3.0"
 
 DEFAULT_PYTHON_VERSION = "3.8"
 SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
 UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
 LOCAL_DEPS = ()
+
+# Error if a python version is missing
+nox.options.error_on_missing_interpreters = True
+
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
@@ -44,7 +49,7 @@ def lint(session):
     session.run("flake8", "google", "tests")
 
 
-@nox.session(python="3.6")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def blacken(session):
     """Run black.
 
@@ -194,7 +199,7 @@ def docfx(session):
     """Build the docfx yaml files for this library."""
 
     session.install("-e", ".")
-    session.install("sphinx", "alabaster", "recommonmark", "sphinx-docfx-yaml")
+    session.install("sphinx", "alabaster", "recommonmark", "gcp-sphinx-docfx-yaml")
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
     session.run(
