@@ -1036,6 +1036,55 @@ def test_RRRM__key_already_read():
     assert not request_manager._key_already_read(b"row_key16")
 
 
+def test_RRRM__rows_limit_reached():
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
+
+    last_scanned_key = b"row_key14"
+    request = _ReadRowsRequestPB(table_name=TABLE_NAME)
+    request.rows_limit = 2
+    request_manager = _make_read_rows_request_manager(
+        request, last_scanned_key=last_scanned_key, rows_read_so_far=2
+    )
+    with pytest.raises(InvalidRetryRequest):
+        request_manager.build_updated_request()
+
+
+def test_RRRM_build_updated_request_last_row_read_raises_invalid_retry_request():
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
+
+    last_scanned_key = b"row_key4"
+    request = _ReadRowsRequestPB(table_name=TABLE_NAME)
+    request.rows.row_keys.extend([b"row_key1", b"row_key2", b"row_key4"])
+
+    request_manager = _make_read_rows_request_manager(
+        request, last_scanned_key, rows_read_so_far=3
+    )
+    with pytest.raises(InvalidRetryRequest):
+        request_manager.build_updated_request()
+
+
+def test_RRRM_build_updated_request_row_ranges_read_raises_invalid_retry_request():
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
+    from google.cloud.bigtable import row_set
+
+    row_range1 = row_set.RowRange(b"row_key21", b"row_key29")
+
+    request = _ReadRowsRequestPB(table_name=TABLE_NAME)
+    request.rows.row_ranges.append(row_range1.get_range_kwargs())
+
+    last_scanned_key = b"row_key4"
+    request = _ReadRowsRequestPB(
+        table_name=TABLE_NAME,
+    )
+    request.rows.row_ranges.append(row_range1.get_range_kwargs())
+
+    request_manager = _make_read_rows_request_manager(
+        request, last_scanned_key, rows_read_so_far=2
+    )
+    with pytest.raises(InvalidRetryRequest):
+        request_manager.build_updated_request()
+
+
 @pytest.fixture(scope="session")
 def json_tests():
     dirname = os.path.dirname(__file__)
