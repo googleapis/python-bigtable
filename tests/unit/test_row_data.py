@@ -810,6 +810,18 @@ def test_RRRM__filter_row_key():
     assert expected_row_keys == row_keys
 
 
+def test_RRRM__filter_row_key_is_empty():
+    table_name = "table_name"
+    request = _ReadRowsRequestPB(table_name=table_name)
+    request.rows.row_keys.extend([b"row_key1", b"row_key2", b"row_key3", b"row_key4"])
+
+    last_scanned_key = b"row_key4"
+    request_manager = _make_read_rows_request_manager(request, last_scanned_key, 4)
+    row_keys = request_manager._filter_rows_keys()
+
+    assert row_keys == []
+
+
 def test_RRRM__filter_row_ranges_all_ranges_added_back(rrrm_data):
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
@@ -1083,6 +1095,27 @@ def test_RRRM_build_updated_request_row_ranges_read_raises_invalid_retry_request
     )
     with pytest.raises(InvalidRetryRequest):
         request_manager.build_updated_request()
+
+
+def test_RRRM_build_updated_request_row_ranges_valid():
+    from google.cloud.bigtable import row_set
+
+    row_range1 = row_set.RowRange(b"row_key21", b"row_key29")
+
+    request = _ReadRowsRequestPB(table_name=TABLE_NAME)
+    request.rows.row_ranges.append(row_range1.get_range_kwargs())
+
+    last_scanned_key = b"row_key21"
+    request = _ReadRowsRequestPB(
+        table_name=TABLE_NAME,
+    )
+    request.rows.row_ranges.append(row_range1.get_range_kwargs())
+
+    request_manager = _make_read_rows_request_manager(
+        request, last_scanned_key, rows_read_so_far=1
+    )
+    updated_request = request_manager.build_updated_request()
+    assert len(updated_request.rows.row_ranges) > 0
 
 
 @pytest.fixture(scope="session")

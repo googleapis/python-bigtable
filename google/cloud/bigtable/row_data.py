@@ -655,11 +655,7 @@ class _ReadRowsRequestManager(object):
             if len(row_keys) == 0 and len(row_ranges) == 0:
                 # Avoid sending empty row_keys and row_ranges
                 # if that was not the intention
-                if (
-                    len(self.message.rows.row_ranges) > 0
-                    or len(self.message.rows.row_keys) > 0
-                ):
-                    raise InvalidRetryRequest
+                raise InvalidRetryRequest
 
             resume_request.rows = data_v2_pb2.RowSet(
                 row_keys=row_keys, row_ranges=row_ranges
