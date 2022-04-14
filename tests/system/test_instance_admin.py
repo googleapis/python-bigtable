@@ -438,7 +438,7 @@ def test_instance_create_app_profile_create_with_multi_cluster_ids(
     )
     operation = instance.create(clusters=[cluster_1, cluster_2])
     instances_to_delete.append(instance)
-    operation.result(timeout=120)  # Ensure the operation completes.
+    operation.result(timeout=240)  # Ensure the operation completes.
 
     # Create a new instance and make sure it is the same.
     instance_alt = admin_client.instance(alt_instance_id)
