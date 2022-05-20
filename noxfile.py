@@ -302,7 +302,7 @@ def cover(session):
     This outputs the coverage report aggregating coverage from the unit
     test runs (not system test runs), and then erases coverage data.
     """
-    session.install("git+https://github.com/nedbat/coveragepy.git@53e5dd3ec190a788e88af88b3592fc3d41ac8778", "pytest-cov")
+    session.install("coverage", "pytest-cov")
     session.run("coverage", "report", "--show-missing", "--fail-under=100")
 
     session.run("coverage", "erase")
