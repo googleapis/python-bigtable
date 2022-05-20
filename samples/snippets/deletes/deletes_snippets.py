@@ -53,6 +53,7 @@ def delete_from_column_family_sample(project_id, instance_id, table_id):
     for row in table.read_rows():
         print_row(row)
 
+
 # [END bigtable_delete_from_column_family_sample]
 
 
@@ -68,6 +69,7 @@ def delete_from_row_sample(project_id, instance_id, table_id):
     print(f"Successfully deleted row {row.row_key}")
     for row in table.read_rows():
         print_row(row)
+
 
 # [END bigtable_delete_from_row_sample]
 
@@ -87,6 +89,7 @@ def streaming_and_batching_sample(project_id, instance_id, table_id):
     for row in table.read_rows():
         print_row(row)
 
+
 # [END bigtable_streaming_and_batching_sample]
 
 # [START bigtable_check_and_mutate_sample]
@@ -102,6 +105,7 @@ def check_and_mutate_sample(project_id, instance_id, table_id):
     for row in table.read_rows():
         print_row(row)
 
+
 # [END bigtable_check_and_mutate_sample]
 
 
@@ -115,6 +119,7 @@ def drop_row_range_sample(project_id, instance_id, table_id):
     print(f"Successfully deleted rows with prefix P{row_key_prefix}")
     for row in table.read_rows():
         print_row(row)
+
 
 # [END bigtable_drop_row_range_sample]
 
@@ -131,6 +136,7 @@ def delete_column_family_sample(project_id, instance_id, table_id):
     for row in table.read_rows():
         print_row(row)
 
+
 # [END bigtable_delete_column_family_sample]
 
 # [START bigtable_delete_table_sample]
@@ -141,6 +147,7 @@ def delete_table_sample(project_id, instance_id, table_id):
     table.delete()
 
     print(f"Successfully deleted table {table_id}")
+
 
 # [END bigtable_delete_table_sample]
 
