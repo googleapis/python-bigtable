@@ -40,7 +40,7 @@ Column Family stats_summary
 \tconnected_wifi: \x00\x00\x00\x00\x00\x00\x00\x00 @2019-05-01 00:00:00+00:00
 \tos_build: PQ2A.190406.000 @2019-05-01 00:00:00+00:00
 
-<snapshottest.pytest.PyTestSnapshotTest object at 0x1130466d0>
+<snapshottest.pytest.PyTestSnapshotTest object at 0x2919cf460>
 '''
 
 snapshots['test_delete_column_family 1'] = '''Successfully deleted column family stats_summary.
@@ -95,7 +95,7 @@ Column Family stats_summary
 \tconnected_wifi: \x00\x00\x00\x00\x00\x00\x00\x00 @2019-05-01 00:00:00+00:00
 \tos_build: PQ2A.190406.000 @2019-05-01 00:00:00+00:00
 
-<snapshottest.pytest.PyTestSnapshotTest object at 0x113037940>
+<snapshottest.pytest.PyTestSnapshotTest object at 0x2919bad30>
 '''
 
 snapshots['test_delete_from_column_family 1'] = '''Successfully deleted columns 'data_plan_01gb' and 'data_plan_05gb' from column family 'cell_plan'.
@@ -137,7 +137,7 @@ Column Family stats_summary
 \tconnected_wifi: \x00\x00\x00\x00\x00\x00\x00\x00 @2019-05-01 00:00:00+00:00
 \tos_build: PQ2A.190406.000 @2019-05-01 00:00:00+00:00
 
-<snapshottest.pytest.PyTestSnapshotTest object at 0x113037c70>
+<snapshottest.pytest.PyTestSnapshotTest object at 0x2919badf0>
 '''
 
 snapshots['test_delete_from_row 1'] = '''Successfully deleted row b'phone#4c410523#20190501'
@@ -175,7 +175,7 @@ Column Family stats_summary
 
 '''
 
-snapshots['test_delete_table 1'] = '''Successfully deleted table mobile-time-series-07894df0-39a2-4e
+snapshots['test_delete_table 1'] = '''Successfully deleted table mobile-time-series-94a0c0b5-67ae-47
 '''
 
 snapshots['test_drop_row_range 1'] = '''Successfully deleted rows with prefix Pb'phone#4c'
