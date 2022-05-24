@@ -146,7 +146,7 @@ def delete_table_sample(project_id, instance_id, table_id):
     table = instance.table(table_id)
     table.delete()
 
-    print(f"Successfully deleted table {table_id}")
+    print("Successfully deleted table.")
 
 
 # [END bigtable_delete_table_sample]
@@ -155,22 +155,12 @@ def delete_table_sample(project_id, instance_id, table_id):
 
 
 def print_row(row):
-    print("Reading data for {}:".format(row.row_key.decode("utf-8")))
+    print(f"Reading data for {(row.row_key.decode('utf-8'))}:")
     for cf, cols in sorted(row.cells.items()):
-        print("Column Family {}".format(cf))
+        print(f"Column Family {cf}")
         for col, cells in sorted(cols.items()):
             for cell in cells:
-                labels = (
-                    " [{}]".format(",".join(cell.labels)) if len(cell.labels) else ""
-                )
-                print(
-                    "\t{}: {} @{}{}".format(
-                        col.decode("utf-8"),
-                        cell.value.decode("utf-8"),
-                        cell.timestamp,
-                        labels,
-                    )
-                )
+                print(f"\t{col.decode('utf-8')}: {cell.value.decode('utf-8')}")
     print("")
 
 

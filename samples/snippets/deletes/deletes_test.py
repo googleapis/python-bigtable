@@ -29,7 +29,6 @@ TABLE_ID_PREFIX = "mobile-time-series-{}"
 
 @pytest.fixture(scope="module", autouse=True)
 def table_id():
-    print("setup fixture")
     from google.cloud.bigtable.row_set import RowSet
 
     client = bigtable.Client(project=PROJECT, admin=True)
@@ -97,7 +96,6 @@ def table_id():
 
 def test_delete_from_column(capsys, snapshot, table_id):
     deletes_snippets.delete_from_column_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
-    print(snapshot)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
     # assert "Successfully deleted column" in out
@@ -107,7 +105,6 @@ def test_delete_from_column_family(capsys, snapshot, table_id):
     deletes_snippets.delete_from_column_family_sample(
         PROJECT, BIGTABLE_INSTANCE, table_id
     )
-    print(snapshot)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
@@ -126,7 +123,6 @@ def test_streaming_and_batching(capsys, snapshot, table_id):
 
 def test_check_and_mutate(capsys, snapshot, table_id):
     deletes_snippets.check_and_mutate_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
-    print(snapshot)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
