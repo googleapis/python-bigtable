@@ -98,7 +98,6 @@ def test_delete_from_column(capsys, snapshot, table_id):
     deletes_snippets.delete_from_column_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
-    # assert "Successfully deleted column" in out
 
 
 def test_delete_from_column_family(capsys, snapshot, table_id):
