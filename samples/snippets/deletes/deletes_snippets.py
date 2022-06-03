@@ -93,7 +93,7 @@ def drop_row_range_sample(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
-    row_key_prefix = b"phone#4c"
+    row_key_prefix = "phone#4c410523"
     table.drop_by_prefix(row_key_prefix, timeout=200)
 
 
