@@ -19,8 +19,8 @@ from google.cloud import bigtable
 # Write your code here.
 
 
-# [START bigtable_delete_from_column_sample]
-def delete_from_column_sample(project_id, instance_id, table_id):
+# [START bigtable_delete_from_column]
+def delete_from_column(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -29,10 +29,10 @@ def delete_from_column_sample(project_id, instance_id, table_id):
     row.commit()
 
 
-# [END bigtable_delete_from_column_sample]
+# [END bigtable_delete_from_column]
 
-# [START bigtable_delete_from_column_family_sample]
-def delete_from_column_family_sample(project_id, instance_id, table_id):
+# [START bigtable_delete_from_column_family]
+def delete_from_column_family(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -43,11 +43,11 @@ def delete_from_column_family_sample(project_id, instance_id, table_id):
     row.commit()
 
 
-# [END bigtable_delete_from_column_family_sample]
+# [END bigtable_delete_from_column_family]
 
 
-# [START bigtable_delete_from_row_sample]
-def delete_from_row_sample(project_id, instance_id, table_id):
+# [START bigtable_delete_from_row]
+def delete_from_row(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -56,10 +56,10 @@ def delete_from_row_sample(project_id, instance_id, table_id):
     row.commit()
 
 
-# [END bigtable_delete_from_row_sample]
+# [END bigtable_delete_from_row]
 
-# [START bigtable_streaming_and_batching_sample]
-def streaming_and_batching_sample(project_id, instance_id, table_id):
+# [START bigtable_streaming_and_batching]
+def streaming_and_batching(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -72,10 +72,10 @@ def streaming_and_batching_sample(project_id, instance_id, table_id):
     batcher.mutate_rows(rows)
 
 
-# [END bigtable_streaming_and_batching_sample]
+# [END bigtable_streaming_and_batching]
 
-# [START bigtable_check_and_mutate_sample]
-def check_and_mutate_sample(project_id, instance_id, table_id):
+# [START bigtable_check_and_mutate]
+def check_and_mutate(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -85,11 +85,11 @@ def check_and_mutate_sample(project_id, instance_id, table_id):
     row.commit()
 
 
-# [END bigtable_check_and_mutate_sample]
+# [END bigtable_check_and_mutate]
 
 
-# [START bigtable_drop_row_range_sample]
-def drop_row_range_sample(project_id, instance_id, table_id):
+# [START bigtable_drop_row_range]
+def drop_row_range(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -97,10 +97,10 @@ def drop_row_range_sample(project_id, instance_id, table_id):
     table.drop_by_prefix(row_key_prefix, timeout=200)
 
 
-# [END bigtable_drop_row_range_sample]
+# [END bigtable_drop_row_range]
 
-# [START bigtable_delete_column_family_sample]
-def delete_column_family_sample(project_id, instance_id, table_id):
+# [START bigtable_delete_column_family]
+def delete_column_family(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
@@ -109,14 +109,14 @@ def delete_column_family_sample(project_id, instance_id, table_id):
     column.delete()
 
 
-# [END bigtable_delete_column_family_sample]
+# [END bigtable_delete_column_family]
 
-# [START bigtable_delete_table_sample]
-def delete_table_sample(project_id, instance_id, table_id):
+# [START bigtable_delete_table]
+def delete_table(project_id, instance_id, table_id):
     client = bigtable.Client(project=project_id, admin=True)
     instance = client.instance(instance_id)
     table = instance.table(table_id)
     table.delete()
 
 
-# [END bigtable_delete_table_sample]
+# [END bigtable_delete_table]

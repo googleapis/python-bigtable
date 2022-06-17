@@ -95,50 +95,48 @@ def table_id():
 
 
 def test_delete_from_column(capsys, snapshot, table_id):
-    deletes_snippets.delete_from_column_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.delete_from_column(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_delete_from_column_family(capsys, snapshot, table_id):
-    deletes_snippets.delete_from_column_family_sample(
-        PROJECT, BIGTABLE_INSTANCE, table_id
-    )
+    deletes_snippets.delete_from_column_family(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_delete_from_row(capsys, snapshot, table_id):
-    deletes_snippets.delete_from_row_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.delete_from_row(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_streaming_and_batching(capsys, snapshot, table_id):
-    deletes_snippets.streaming_and_batching_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.streaming_and_batching(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_check_and_mutate(capsys, snapshot, table_id):
-    deletes_snippets.check_and_mutate_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.check_and_mutate(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_drop_row_range(capsys, snapshot, table_id):
-    deletes_snippets.drop_row_range_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.drop_row_range(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_delete_column_family(capsys, snapshot, table_id):
-    deletes_snippets.delete_column_family_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.delete_column_family(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
 
 
 def test_delete_table(capsys, snapshot, table_id):
-    deletes_snippets.delete_table_sample(PROJECT, BIGTABLE_INSTANCE, table_id)
+    deletes_snippets.delete_table(PROJECT, BIGTABLE_INSTANCE, table_id)
     out, _ = capsys.readouterr()
     snapshot.assert_match(out)
