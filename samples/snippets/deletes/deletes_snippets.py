@@ -105,8 +105,8 @@ def delete_column_family(project_id, instance_id, table_id):
     instance = client.instance(instance_id)
     table = instance.table(table_id)
     column_family_id = "stats_summary"
-    column = table.column_family(column_family_id)
-    column.delete()
+    column_family_obj = table.column_family(column_family_id)
+    column_family_obj.delete()
 
 
 # [END bigtable_delete_column_family]
