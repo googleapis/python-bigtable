@@ -186,6 +186,11 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
+            self.undelete_table: gapic_v1.method.wrap_method(
+                self.undelete_table,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.modify_column_families: gapic_v1.method.wrap_method(
                 self.modify_column_families,
                 default_timeout=300.0,
@@ -412,6 +417,15 @@ class BigtableTableAdminTransport(abc.ABC):
     ) -> Callable[
         [bigtable_table_admin.DeleteTableRequest],
         Union[empty_pb2.Empty, Awaitable[empty_pb2.Empty]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def undelete_table(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UndeleteTableRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
     ]:
         raise NotImplementedError()
 
