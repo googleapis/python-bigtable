@@ -1,24 +1,22 @@
-Python Client for Google Cloud Bigtable
-=======================================
+Python Client for Cloud Bigtable API
+====================================
 
-|GA| |pypi| |versions| 
+|stable| |pypi| |versions|
 
-`Google Cloud Bigtable`_ is Google's NoSQL Big Data database service. It's the
-same database that powers many core Google services, including Search,
-Analytics, Maps, and Gmail.
+`Cloud Bigtable API`_: 
 
 - `Client Library Documentation`_
 - `Product Documentation`_
 
-.. |GA| image:: https://img.shields.io/badge/support-GA-gold.svg
-   :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#general-availability
+.. |stable| image:: https://img.shields.io/badge/support-stable-gold.svg
+   :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#stability-levels
 .. |pypi| image:: https://img.shields.io/pypi/v/google-cloud-bigtable.svg
    :target: https://pypi.org/project/google-cloud-bigtable/
 .. |versions| image:: https://img.shields.io/pypi/pyversions/google-cloud-bigtable.svg
    :target: https://pypi.org/project/google-cloud-bigtable/
-.. _Google Cloud Bigtable: https://cloud.google.com/bigtable
-.. _Client Library Documentation: https://googleapis.dev/python/bigtable/latest
-.. _Product Documentation:  https://cloud.google.com/bigtable/docs
+.. _Cloud Bigtable API: https://cloud.google.com/bigtable
+.. _Client Library Documentation: https://cloud.google.com/python/docs/reference/bigtable/latest
+.. _Product Documentation:  https://cloud.google.com/bigtable
 
 Quick Start
 -----------
@@ -49,19 +47,25 @@ dependencies.
 .. _`virtualenv`: https://virtualenv.pypa.io/en/latest/
 
 
+Code samples and snippets
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Code samples and snippets live in the `samples/` folder.
+
+
 Supported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+Our client libraries are compatible with all current [active](https://devguide.python.org/devcycle/#in-development-main-branch) and [maintenance](https://devguide.python.org/devcycle/#maintenance-branches) versions of
+Python.
 
-Python >= 3.6
+Python >= 3.7
 
-Deprecated Python Versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Unsupported Python Versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Python <= 3.6
 
-- Python 2.7:  the last released version which supported Python 2.7 was
-  version 1.7.0, released 2021-02-09.
-
-- Python 3.5:  the last released version which supported Python 3.5 was
-  version 1.7.0, released 2021-02-09.
+If you are using an [end-of-life](https://devguide.python.org/devcycle/#end-of-life-branches)
+version of Python, we recommend that you update as soon as possible to an actively supported version.
 
 
 Mac/Linux
@@ -90,16 +94,10 @@ Next Steps
 
 -  Read the `Client Library Documentation`_ for Cloud Bigtable API
    to see other available methods on the client.
--  Read the `Product documentation`_ to learn
+-  Read the `Cloud Bigtable API Product documentation`_ to learn
    more about the product and see How-to Guides.
+-  View this `README`_ to see the full list of Cloud
+   APIs that we cover.
 
-``google-cloud-happybase``
---------------------------
-
-In addition to the core ``google-cloud-bigtable``, we provide a
-`google-cloud-happybase
-<http://google-cloud-python-happybase.readthedocs.io/en/latest/>`__ library
-with the same interface as the popular `HappyBase
-<https://happybase.readthedocs.io/en/latest/>`__ library. Unlike HappyBase,
-``google-cloud-happybase`` uses ``google-cloud-bigtable`` under the covers,
-rather than Apache HBase.
+.. _Cloud Bigtable API Product documentation:  https://cloud.google.com/bigtable
+.. _README: https://github.com/googleapis/google-cloud-python/blob/main/README.rst
