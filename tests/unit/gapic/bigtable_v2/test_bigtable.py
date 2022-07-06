@@ -2684,7 +2684,6 @@ def test_bigtable_transport_auth_adc(transport_class):
     [
         transports.BigtableGrpcTransport,
         transports.BigtableGrpcAsyncIOTransport,
-        transports.BigtableRestTransport,
     ],
 )
 def test_bigtable_transport_auth_gdch_credentials(transport_class):
