@@ -39,7 +39,7 @@ dependencies = [
     "google-cloud-core >= 1.4.1, <3.0.0dev",
     "grpc-google-iam-v1 >= 0.12.4, <1.0.0dev",
     "proto-plus >= 1.18.0, <2.0.0dev",
-    "protobuf >=4.21.1, <4.22.0",
+    "protobuf >= 3.19.0, <4.0.0dev",
 ]
 extras = {"libcst": "libcst >= 0.2.5"}
 
