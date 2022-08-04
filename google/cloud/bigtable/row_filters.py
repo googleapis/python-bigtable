@@ -460,13 +460,18 @@ class ValueRegexFilter(_RegexFilter):
 
 
 class ExactValueFilter(ValueRegexFilter):
-    """Row filter for an exact value.
+    """Row filter for an exact integer value.
 
 
     :type value: bytes or str or int
     :param value:
         a literal string encodable as ASCII, or the
         equivalent bytes, or an integer (which will be packed into 8-bytes).
+
+    When passing non-integer ``value``, it must be valid RE2 patterns. See Google's
+    `RE2 reference`_ for the accepted syntax.
+
+    .. _RE2 reference: https://github.com/google/re2/wiki/Syntax
     """
 
     def __init__(self, value):
