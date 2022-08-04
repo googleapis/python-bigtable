@@ -1463,6 +1463,7 @@ def _ReadRowsResponseV2(chunks, last_scanned_row_key=b""):
     from google.cloud.bigtable_v2.types import bigtable as messages_v2_pb2
     return messages_v2_pb2.ReadRowsResponse(chunks=chunks, last_scanned_row_key=last_scanned_row_key)
 
+
 def _generate_cell_chunks(chunk_text_pbs):
     from google.protobuf.text_format import Merge
     from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
