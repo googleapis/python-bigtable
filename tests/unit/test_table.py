@@ -1667,9 +1667,9 @@ def _do_mutate_retryable_rows_helper(
     data_api = client._table_data_client = _make_data_api()
     if retryable_error:
         if mutate_rows_side_effect is not None:
-            data_api.mutate_rows.side_effect = ServiceUnavailable("testing")
-        else:
             data_api.mutate_rows.side_effect = mutate_rows_side_effect
+        else:
+            data_api.mutate_rows.side_effect = ServiceUnavailable("testing")
     else:
         if mutate_rows_side_effect is not None:
             data_api.mutate_rows.side_effect = mutate_rows_side_effect
@@ -1806,14 +1806,16 @@ def test_rmrw_do_mutate_retryable_rows_w_retryable_error_internal_rst_stream_err
     responses = ()
 
     for retryable_internal_error_message in RETRYABLE_INTERNAL_ERROR_MESSAGES:
-        _do_mutate_retryable_rows_helper(
-            row_cells,
-            responses,
-            retryable_error=True,
-            mutate_rows_side_effect=InternalServerError(
-                retryable_internal_error_message
-            ),
-        )
+        for message in [
+            retryable_internal_error_message,
+            retryable_internal_error_message.upper(),
+        ]:
+            _do_mutate_retryable_rows_helper(
+                row_cells,
+                responses,
+                retryable_error=True,
+                mutate_rows_side_effect=InternalServerError(message),
+            )
 
 
 def test_rmrw_do_mutate_rows_w_retryable_error_internal_not_retryable():
