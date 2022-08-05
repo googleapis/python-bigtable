@@ -23,6 +23,7 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import NotFound
 from google.api_core.exceptions import RetryError
 from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.exceptions import InternalServerError
 from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
@@ -55,8 +56,20 @@ from google.cloud.bigtable_admin_v2.types import (
 _MAX_BULK_MUTATIONS = 100000
 VIEW_NAME_ONLY = enums.Table.View.NAME_ONLY
 
-RETRYABLE_MUTATION_ERRORS = (Aborted, DeadlineExceeded, ServiceUnavailable)
+RETRYABLE_MUTATION_ERRORS = (
+    Aborted,
+    DeadlineExceeded,
+    ServiceUnavailable,
+    InternalServerError,
+)
 """Errors which can be retried during row mutation."""
+
+RETRYABLE_INTERNAL_ERROR_MESSAGES = (
+    "RST_STREAM",
+    "Received Rst Stream",
+    "Received unexpected EOS on DATA frame from server",
+)
+"""Internal error messages that can be retried during row mutation."""
 
 RETRYABLE_CODES: Set[int] = set()
 
@@ -1130,11 +1143,21 @@ class _RetryableMutateRowsWorker(object):
                 retry=None,
                 **kwargs
             )
-        except RETRYABLE_MUTATION_ERRORS:
+        except RETRYABLE_MUTATION_ERRORS as exc:
             # If an exception, considered retryable by `RETRYABLE_MUTATION_ERRORS`, is
             # returned from the initial call, consider
             # it to be retryable. Wrap as a Bigtable Retryable Error.
-            raise _BigtableRetryableError
+            # For InternalServerError, it is only retriable if the message is related to RST Stream messages
+            if (
+                isinstance(exc, InternalServerError)
+                and exc.message in RETRYABLE_MUTATION_ERRORS
+            ):
+                raise _BigtableRetryableError
+            elif not isinstance(exc, InternalServerError):
+                raise _BigtableRetryableError
+            else:
+                # re-raise the original exception
+                raise
 
         num_responses = 0
         num_retryable_responses = 0
