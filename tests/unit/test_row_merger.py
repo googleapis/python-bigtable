@@ -5,7 +5,7 @@ from typing import List
 import proto
 import pytest
 
-from google.cloud.bigtable.row_data import PartialRowsData, PartialRowData
+from google.cloud.bigtable.row_data import PartialRowsData, PartialRowData, InvalidChunk
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
 
@@ -70,7 +70,7 @@ def test_scenario(test_case: ReadRowsTest):
     try:
         for row in PartialRowsData(fake_read, request=None):
             actual_results.extend(extract_results_from_row(row))
-    except:
+    except (InvalidChunk, ValueError):
         actual_results.append(ReadRowsTest.Result(error=True))
 
     for expected, actual in zip_longest(test_case.results, actual_results):
