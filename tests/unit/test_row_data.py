@@ -365,6 +365,51 @@ def test_partial_rows_data_constructor():
     assert partial_rows_data.retry == DEFAULT_RETRY_READ_ROWS
 
 
+def test_partial_rows_data_consume_all():
+    resp = _ReadRowsResponseV2(
+        [
+            _ReadRowsResponseCellChunkPB(
+                row_key=ROW_KEY,
+                family_name=FAMILY_NAME,
+                qualifier=QUALIFIER,
+                timestamp_micros=TIMESTAMP_MICROS,
+                value=VALUE,
+                commit_row=True,
+            ),
+            _ReadRowsResponseCellChunkPB(
+                row_key=ROW_KEY + b"2",
+                family_name=FAMILY_NAME,
+                qualifier=QUALIFIER,
+                timestamp_micros=TIMESTAMP_MICROS,
+                value=VALUE,
+                commit_row=True,
+            ),
+        ]
+    )
+
+    call_count = 0
+    iterator = _MockCancellableIterator(resp)
+
+    def fake_read(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return iterator
+
+    partial_rows_data = _make_partial_rows_data(fake_read, None)
+    partial_rows_data.consume_all()
+
+    row1 = _make_partial_row_data(ROW_KEY)
+    row1._cells[FAMILY_NAME] = {
+        QUALIFIER: [_make_cell(value=VALUE, timestamp_micros=TIMESTAMP_MICROS)]
+    }
+    row2 = _make_partial_row_data(ROW_KEY + b"2")
+    row2._cells[FAMILY_NAME] = {
+        QUALIFIER: [_make_cell(value=VALUE, timestamp_micros=TIMESTAMP_MICROS)]
+    }
+
+    assert partial_rows_data.rows == {row1.row_key: row1, row2.row_key: row2}
+
+
 def test_partial_rows_data_constructor_with_retry():
     from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
