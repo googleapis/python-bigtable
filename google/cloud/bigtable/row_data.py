@@ -18,104 +18,25 @@
 import copy
 
 import grpc  # type: ignore
-
+import warnings
 from google.api_core import exceptions
 from google.api_core import retry
 from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
+
+from google.cloud.bigtable.row_merger import Cell, InvalidChunk, PartialRowData
+from google.cloud.bigtable.row_merger import _RowMerger, _State
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-_MISSING_COLUMN_FAMILY = "Column family {} is not among the cells stored in this row."
-_MISSING_COLUMN = (
-    "Column {} is not among the cells stored in this row in the " "column family {}."
-)
-_MISSING_INDEX = (
-    "Index {!r} is not valid for the cells stored in this row for column {} "
-    "in the column family {}. There are {} such cells."
-)
-
-
-class Cell(object):
-    """Representation of a Google Cloud Bigtable Cell.
-
-    :type value: bytes
-    :param value: The value stored in the cell.
-
-    :type timestamp_micros: int
-    :param timestamp_micros: The timestamp_micros when the cell was stored.
-
-    :type labels: list
-    :param labels: (Optional) List of strings. Labels applied to the cell.
-    """
-
-    def __init__(self, value, timestamp_micros, labels=None):
-        self.value = value
-        self.timestamp_micros = timestamp_micros
-        self.labels = list(labels) if labels is not None else []
-
-    @classmethod
-    def from_pb(cls, cell_pb):
-        """Create a new cell from a Cell protobuf.
-
-        :type cell_pb: :class:`._generated.data_pb2.Cell`
-        :param cell_pb: The protobuf to convert.
-
-        :rtype: :class:`Cell`
-        :returns: The cell corresponding to the protobuf.
-        """
-        if cell_pb.labels:
-            return cls(cell_pb.value, cell_pb.timestamp_micros, labels=cell_pb.labels)
-        else:
-            return cls(cell_pb.value, cell_pb.timestamp_micros)
-
-    @property
-    def timestamp(self):
-        return _datetime_from_microseconds(self.timestamp_micros)
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return (
-            other.value == self.value
-            and other.timestamp_micros == self.timestamp_micros
-            and other.labels == self.labels
-        )
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __repr__(self):
-        return "<{name} value={value!r} timestamp={timestamp}>".format(
-            name=self.__class__.__name__, value=self.value, timestamp=self.timestamp
-        )
+# Some classes need to be re-exported here to keep backwards
+# compatibility. Those classes were moved to row_merger, but we dont want to
+# break enduser's imports. This hack, ensures they don't get marked as unused.
+_ = (Cell, InvalidChunk, PartialRowData)
 
 
 class PartialCellData(object):
-    """Representation of partial cell in a Google Cloud Bigtable Table.
-
-    These are expected to be updated directly from a
-    :class:`._generated.bigtable_service_messages_pb2.ReadRowsResponse`
-
-    :type row_key: bytes
-    :param row_key: The key for the row holding the (partial) cell.
-
-    :type family_name: str
-    :param family_name: The family name of the (partial) cell.
-
-    :type qualifier: bytes
-    :param qualifier: The column qualifier of the (partial) cell.
-
-    :type timestamp_micros: int
-    :param timestamp_micros: The timestamp (in microsecods) of the
-                             (partial) cell.
-
-    :type labels: list of str
-    :param labels: labels assigned to the (partial) cell
-
-    :type value: bytes
-    :param value: The (accumulated) value of the (partial) cell.
-    """
+    """This class is no longer used and will be removed in the future"""
 
     def __init__(
         self, row_key, family_name, qualifier, timestamp_micros, labels=(), value=b""
@@ -128,204 +49,11 @@ class PartialCellData(object):
         self.value = value
 
     def append_value(self, value):
-        """Append bytes from a new chunk to value.
-
-        :type value: bytes
-        :param value: bytes to append
-        """
         self.value += value
-
-
-class PartialRowData(object):
-    """Representation of partial row in a Google Cloud Bigtable Table.
-
-    These are expected to be updated directly from a
-    :class:`._generated.bigtable_service_messages_pb2.ReadRowsResponse`
-
-    :type row_key: bytes
-    :param row_key: The key for the row holding the (partial) data.
-    """
-
-    def __init__(self, row_key):
-        self._row_key = row_key
-        self._cells = {}
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return other._row_key == self._row_key and other._cells == self._cells
-
-    def __ne__(self, other):
-        return not self == other
-
-    def to_dict(self):
-        """Convert the cells to a dictionary.
-
-        This is intended to be used with HappyBase, so the column family and
-        column qualiers are combined (with ``:``).
-
-        :rtype: dict
-        :returns: Dictionary containing all the data in the cells of this row.
-        """
-        result = {}
-        for column_family_id, columns in self._cells.items():
-            for column_qual, cells in columns.items():
-                key = _to_bytes(column_family_id) + b":" + _to_bytes(column_qual)
-                result[key] = cells
-        return result
-
-    @property
-    def cells(self):
-        """Property returning all the cells accumulated on this partial row.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_api_row_data_cells]
-            :end-before: [END bigtable_api_row_data_cells]
-            :dedent: 4
-
-        :rtype: dict
-        :returns: Dictionary of the :class:`Cell` objects accumulated. This
-                  dictionary has two-levels of keys (first for column families
-                  and second for column names/qualifiers within a family). For
-                  a given column, a list of :class:`Cell` objects is stored.
-        """
-        return self._cells
-
-    @property
-    def row_key(self):
-        """Getter for the current (partial) row's key.
-
-        :rtype: bytes
-        :returns: The current (partial) row's key.
-        """
-        return self._row_key
-
-    def find_cells(self, column_family_id, column):
-        """Get a time series of cells stored on this instance.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_api_row_find_cells]
-            :end-before: [END bigtable_api_row_find_cells]
-            :dedent: 4
-
-        Args:
-            column_family_id (str): The ID of the column family. Must be of the
-                form ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
-            column (bytes): The column within the column family where the cells
-                are located.
-
-        Returns:
-            List[~google.cloud.bigtable.row_data.Cell]: The cells stored in the
-            specified column.
-
-        Raises:
-            KeyError: If ``column_family_id`` is not among the cells stored
-                in this row.
-            KeyError: If ``column`` is not among the cells stored in this row
-                for the given ``column_family_id``.
-        """
-        try:
-            column_family = self._cells[column_family_id]
-        except KeyError:
-            raise KeyError(_MISSING_COLUMN_FAMILY.format(column_family_id))
-
-        try:
-            cells = column_family[column]
-        except KeyError:
-            raise KeyError(_MISSING_COLUMN.format(column, column_family_id))
-
-        return cells
-
-    def cell_value(self, column_family_id, column, index=0):
-        """Get a single cell value stored on this instance.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_api_row_cell_value]
-            :end-before: [END bigtable_api_row_cell_value]
-            :dedent: 4
-
-        Args:
-            column_family_id (str): The ID of the column family. Must be of the
-                form ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
-            column (bytes): The column within the column family where the cell
-                is located.
-            index (Optional[int]): The offset within the series of values. If
-                not specified, will return the first cell.
-
-        Returns:
-            ~google.cloud.bigtable.row_data.Cell value: The cell value stored
-            in the specified column and specified index.
-
-        Raises:
-            KeyError: If ``column_family_id`` is not among the cells stored
-                in this row.
-            KeyError: If ``column`` is not among the cells stored in this row
-                for the given ``column_family_id``.
-            IndexError: If ``index`` cannot be found within the cells stored
-                in this row for the given ``column_family_id``, ``column``
-                pair.
-        """
-        cells = self.find_cells(column_family_id, column)
-
-        try:
-            cell = cells[index]
-        except (TypeError, IndexError):
-            num_cells = len(cells)
-            msg = _MISSING_INDEX.format(index, column, column_family_id, num_cells)
-            raise IndexError(msg)
-
-        return cell.value
-
-    def cell_values(self, column_family_id, column, max_count=None):
-        """Get a time series of cells stored on this instance.
-
-        For example:
-
-        .. literalinclude:: snippets_table.py
-            :start-after: [START bigtable_api_row_cell_values]
-            :end-before: [END bigtable_api_row_cell_values]
-            :dedent: 4
-
-        Args:
-            column_family_id (str): The ID of the column family. Must be of the
-                form ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
-            column (bytes): The column within the column family where the cells
-                are located.
-            max_count (int): The maximum number of cells to use.
-
-        Returns:
-            A generator which provides: cell.value, cell.timestamp_micros
-                for each cell in the list of cells
-
-        Raises:
-            KeyError: If ``column_family_id`` is not among the cells stored
-                in this row.
-            KeyError: If ``column`` is not among the cells stored in this row
-                for the given ``column_family_id``.
-        """
-        cells = self.find_cells(column_family_id, column)
-        if max_count is None:
-            max_count = len(cells)
-
-        for index, cell in enumerate(cells):
-            if index == max_count:
-                break
-
-            yield cell.value, cell.timestamp_micros
 
 
 class InvalidReadRowsResponse(RuntimeError):
     """Exception raised to invalid response data from back-end."""
-
-
-class InvalidChunk(RuntimeError):
-    """Exception raised to invalid chunk data from back-end."""
 
 
 class InvalidRetryRequest(RuntimeError):
@@ -393,14 +121,7 @@ class PartialRowsData(object):
     def __init__(self, read_method, request, retry=DEFAULT_RETRY_READ_ROWS):
         # Counter for rows returned to the user
         self._counter = 0
-        # In-progress row, unset until first response, after commit/reset
-        self._row = None
-        # Last complete row, unset until first commit
-        self._previous_row = None
-        # In-progress cell, unset until first response, after completion
-        self._cell = None
-        # Last complete cell, unset until first completion, after new row
-        self._previous_cell = None
+        self._row_merger = _RowMerger()
 
         # May be cached from previous response
         self.last_scanned_row_key = None
@@ -417,20 +138,33 @@ class PartialRowsData(object):
         self.response_iterator = read_method(request, timeout=self.retry._deadline + 1)
 
         self.rows = {}
-        self._state = self.STATE_NEW_ROW
 
         # Flag to stop iteration, for any reason not related to self.retry()
         self._cancelled = False
 
     @property
     def state(self):
-        """State machine state.
-
-        :rtype: str
-        :returns:  name of state corresponding to current row / chunk
-                   processing.
         """
-        return self.read_states[self._state]
+        DEPRECATED: this property is deprecated and will be removed in the
+        future.
+        """
+        warnings.warn(
+            "`PartialRowsData#state()` is deprecated and will be removed in the future",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        # Best effort: try to map internal RowMerger states to old strings for
+        # backwards compatibility
+        internal_state = self._row_merger.state
+        if internal_state == _State.NEW_ROW:
+            return self.NEW_ROW
+        elif internal_state in (_State.ROW_IN_PROGRESS, _State.CELL_COMPLETE):
+            return self.ROW_IN_PROGRESS
+        elif internal_state == _State.ROW_COMPLETE:
+            return self.NEW_ROW
+        else:
+            raise RuntimeError("unexpected internal state: " + self._)
 
     def cancel(self):
         """Cancels the iterator, closing the stream."""
@@ -466,6 +200,7 @@ class PartialRowsData(object):
         if self.last_scanned_row_key:
             retry_request = self._create_retry_request()
 
+        self._row_merger = _RowMerger(self._row_merger.last_seen_row_key)
         self.response_iterator = self.read_method(retry_request)
 
     def _read_next(self):
@@ -491,125 +226,25 @@ class PartialRowsData(object):
             try:
                 response = self._read_next_response()
             except StopIteration:
-                if self.state != self.NEW_ROW:
-                    raise ValueError("The row remains partial / is not committed.")
+                self._row_merger.finalize()
                 break
             except InvalidRetryRequest:
                 self._cancelled = True
                 break
 
-            for chunk in response.chunks:
+            for row in self._row_merger.process_chunks(response):
                 if self._cancelled:
                     break
-                self._process_chunk(chunk)
-                if chunk.commit_row:
-                    self.last_scanned_row_key = self._previous_row.row_key
-                    self._counter += 1
-                    yield self._previous_row
+                self.last_scanned_row_key = self._row_merger.last_seen_row_key
+                self._counter += 1
 
-            resp_last_key = response.last_scanned_row_key
-            if resp_last_key and resp_last_key > self.last_scanned_row_key:
-                self.last_scanned_row_key = resp_last_key
+                yield row
 
-    def _process_chunk(self, chunk):
-        if chunk.reset_row:
-            self._validate_chunk_reset_row(chunk)
-            self._row = None
-            self._cell = self._previous_cell = None
-            self._state = self.STATE_NEW_ROW
-            return
-
-        self._update_cell(chunk)
-
-        if self._row is None:
-            if (
-                self._previous_row is not None
-                and self._cell.row_key <= self._previous_row.row_key
-            ):
-                raise InvalidChunk()
-            self._row = PartialRowData(self._cell.row_key)
-
-        if chunk.value_size == 0:
-            self._state = self.STATE_ROW_IN_PROGRESS
-            self._save_current_cell()
-        else:
-            self._state = self.STATE_CELL_IN_PROGRESS
-
-        if chunk.commit_row:
-            if chunk.value_size > 0:
-                raise InvalidChunk()
-
-            self._previous_row = self._row
-            self._row = None
-            self._previous_cell = None
-            self._state = self.STATE_NEW_ROW
-
-    def _update_cell(self, chunk):
-        if self._cell is None:
-            qualifier = None
-            if chunk.HasField("qualifier"):
-                qualifier = chunk.qualifier.value
-
-            family = None
-            if chunk.HasField("family_name"):
-                family = chunk.family_name.value
-
-            self._cell = PartialCellData(
-                chunk.row_key,
-                family,
-                qualifier,
-                chunk.timestamp_micros,
-                chunk.labels,
-                chunk.value,
-            )
-            self._copy_from_previous(self._cell)
-            self._validate_cell_data_new_cell()
-        else:
-            self._cell.append_value(chunk.value)
-
-    def _validate_cell_data_new_cell(self):
-        cell = self._cell
-        if not cell.row_key or not cell.family_name or cell.qualifier is None:
-            raise InvalidChunk()
-
-        prev = self._previous_cell
-        if prev and prev.row_key != cell.row_key:
-            raise InvalidChunk()
-
-    def _validate_chunk_reset_row(self, chunk):
-        # No reset for new row
-        _raise_if(self._state == self.STATE_NEW_ROW)
-
-        # No reset with other keys
-        _raise_if(chunk.row_key)
-        _raise_if(chunk.HasField("family_name"))
-        _raise_if(chunk.HasField("qualifier"))
-        _raise_if(chunk.timestamp_micros)
-        _raise_if(chunk.labels)
-        _raise_if(chunk.value_size)
-        _raise_if(chunk.value)
-        _raise_if(chunk.commit_row)
-
-    def _save_current_cell(self):
-        """Helper for :meth:`consume_next`."""
-        row, cell = self._row, self._cell
-        family = row._cells.setdefault(cell.family_name, {})
-        qualified = family.setdefault(cell.qualifier, [])
-        complete = Cell.from_pb(cell)
-        qualified.append(complete)
-        self._cell, self._previous_cell = None, cell
-
-    def _copy_from_previous(self, cell):
-        """Helper for :meth:`consume_next`."""
-        previous = self._previous_cell
-        if previous is not None:
-            if not cell.row_key:
-                cell.row_key = previous.row_key
-                if not cell.family_name:
-                    cell.family_name = previous.family_name
-                    # NOTE: ``cell.qualifier`` **can** be empty string.
-                    if cell.qualifier is None:
-                        cell.qualifier = previous.qualifier
+                if self._cancelled:
+                    break
+            # The last response might not have generated any rows, but it
+            # could've updated last_scanned_row_key
+            self.last_scanned_row_key = self._row_merger.last_seen_row_key
 
 
 class _ReadRowsRequestManager(object):
@@ -719,9 +354,3 @@ class _ReadRowsRequestManager(object):
     def _end_key_set(row_range):
         """Helper for :meth:`_filter_row_ranges`"""
         return row_range.end_key_open or row_range.end_key_closed
-
-
-def _raise_if(predicate, *args):
-    """Helper for validation methods."""
-    if predicate:
-        raise InvalidChunk(*args)
