@@ -29,6 +29,7 @@ class ReadRowsTest(proto.Message):
 
 
 class TestFile(proto.Message):
+    __test__ = False
     read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
 
 
