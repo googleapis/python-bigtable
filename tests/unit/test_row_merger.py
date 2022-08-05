@@ -1,6 +1,6 @@
 import os
 from itertools import zip_longest
-from typing import Union
+from typing import List
 
 import proto
 import pytest
@@ -66,7 +66,7 @@ def test_scenario(test_case: ReadRowsTest):
     def fake_read(*args, **kwargs):
         return iter([ReadRowsResponse(chunks=test_case.chunks)])
 
-    actual_results: list[Union[ReadRowsTest.Result, BaseException]] = []
+    actual_results: List[ReadRowsTest.Result] = []
     try:
         for row in PartialRowsData(fake_read, request=None):
             actual_results.extend(extract_results_from_row(row))
