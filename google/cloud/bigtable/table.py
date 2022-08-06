@@ -67,7 +67,6 @@ RETRYABLE_MUTATION_ERRORS = (
 RETRYABLE_INTERNAL_ERROR_MESSAGES = (
     "rst_stream",
     "rst stream",
-    "received rst stream",
     "received unexpected eos on data frame from server",
 )
 """Internal error messages that can be retried during row mutation."""
@@ -1151,10 +1150,12 @@ class _RetryableMutateRowsWorker(object):
             # For InternalServerError, it is only retriable if the message is related to RST Stream messages
             if (
                 isinstance(exc, InternalServerError)
-                and exc.message.lower() in RETRYABLE_INTERNAL_ERROR_MESSAGES
+                and any(
+                    retryable_message in exc.message.lower()
+                    for retryable_message in RETRYABLE_INTERNAL_ERROR_MESSAGES
+                )
+                or not isinstance(exc, InternalServerError)
             ):
-                raise _BigtableRetryableError
-            elif not isinstance(exc, InternalServerError):
                 raise _BigtableRetryableError
             else:
                 # re-raise the original exception
