@@ -71,7 +71,7 @@ def test_scenario(test_case: ReadRowsTest):
     try:
         for row in PartialRowsData(fake_read, request=None):
             actual_results.extend(extract_results_from_row(row))
-    except (InvalidChunk, ValueError) as e:
+    except (InvalidChunk, ValueError):
         actual_results.append(ReadRowsTest.Result(error=True))
 
     for expected, actual in zip_longest(test_case.results, actual_results):
