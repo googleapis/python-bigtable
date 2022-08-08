@@ -301,6 +301,14 @@ class _RowMerger(object):
     """
     State machine to merge chunks from a response stream into logical rows.
 
+    The implementation is a fairly linear state machine that is implemented as
+    a method for every state in the _State enum. In general the states flow
+    from top to bottom with some repetition. Each state handler will do some
+    sanity checks, update in progress data and set the next state.
+
+    There can be multiple state transitions for each chunk, ie. a single chunk
+    row will flow from ROW_START -> CELL_START -> CELL_COMPLETE -> ROW_COMPLETE
+    in a single iteration.
     """
 
     __slots__ = ["state", "last_seen_row_key", "row"]
@@ -374,10 +382,13 @@ class _RowMerger(object):
         self.state = _State.CELL_START
 
     def _handle_cell_start(self, chunk):
-        if not self.row.cells:
-            self.row.cell = _PartialCell()
-        elif chunk.row_key and chunk.row_key != self.row.row_key:
+        # Ensure that all chunks after the first one either are missing a row
+        # key or the row is the same
+        if self.row.cells and chunk.row_key and chunk.row_key != self.row.row_key:
             raise InvalidChunk("row key changed mid row")
+
+        if not self.row.cell:
+            self.row.cell = _PartialCell()
 
         if chunk.HasField("family_name"):
             self.row.cell.family = chunk.family_name.value
@@ -394,6 +405,8 @@ class _RowMerger(object):
         self.row.cell.labels = chunk.labels
 
         if chunk.value_size > 0:
+            # explicitly avoid pre-allocation as it seems that bytearray
+            # concatenation performs better than slice copies.
             self.row.cell.value = bytearray()
             self.state = _State.CELL_IN_PROGRESS
         else:
@@ -401,8 +414,8 @@ class _RowMerger(object):
             self.state = _State.CELL_COMPLETE
 
     def _handle_cell_in_progress(self, chunk):
-        # if this isn't the first cell chunk, make sure that everything but the
-        # value stayed constant
+        # if this isn't the first cell chunk, make sure that everything except
+        # the value stayed constant.
         if self.row.cell.value_index > 0:
             if chunk.row_key:
                 raise InvalidChunk("found row key mid cell")
