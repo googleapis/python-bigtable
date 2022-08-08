@@ -1797,7 +1797,7 @@ def test_rmrw_do_mutate_retryable_rows_w_retryable_error_internal_rst_stream_err
     # Raise internal server error with RST STREAM error messages
     # There should be no error raised and that the request is retried
     from google.api_core.exceptions import InternalServerError
-    from google.cloud.bigtable.table import RETRYABLE_INTERNAL_ERROR_MESSAGES
+    from google.cloud.bigtable.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
 
     row_cells = [
         (b"row_key_1", ("cf", b"col", b"value1")),

@@ -38,7 +38,10 @@ from google.cloud.bigtable.policy import Policy
 from google.cloud.bigtable.row import AppendRow
 from google.cloud.bigtable.row import ConditionalRow
 from google.cloud.bigtable.row import DirectRow
-from google.cloud.bigtable.row_data import PartialRowsData
+from google.cloud.bigtable.row_data import (
+    PartialRowsData,
+    _retriable_internal_server_error,
+)
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.row_set import RowRange
@@ -64,12 +67,6 @@ RETRYABLE_MUTATION_ERRORS = (
 )
 """Errors which can be retried during row mutation."""
 
-RETRYABLE_INTERNAL_ERROR_MESSAGES = (
-    "rst_stream",
-    "rst stream",
-    "received unexpected eos on data frame from server",
-)
-"""Internal error messages that can be retried during row mutation."""
 
 RETRYABLE_CODES: Set[int] = set()
 
@@ -1148,13 +1145,8 @@ class _RetryableMutateRowsWorker(object):
             # returned from the initial call, consider
             # it to be retryable. Wrap as a Bigtable Retryable Error.
             # For InternalServerError, it is only retriable if the message is related to RST Stream messages
-            if (
-                isinstance(exc, InternalServerError)
-                and any(
-                    retryable_message in exc.message.lower()
-                    for retryable_message in RETRYABLE_INTERNAL_ERROR_MESSAGES
-                )
-                or not isinstance(exc, InternalServerError)
+            if _retriable_internal_server_error(exc) or not isinstance(
+                exc, InternalServerError
             ):
                 raise _BigtableRetryableError
             else:
