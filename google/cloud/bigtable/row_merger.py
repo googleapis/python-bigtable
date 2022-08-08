@@ -283,9 +283,9 @@ class Cell(object):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
-                other.value == self.value
-                and other.timestamp_micros == self.timestamp_micros
-                and other.labels == self.labels
+            other.value == self.value
+            and other.timestamp_micros == self.timestamp_micros
+            and other.labels == self.labels
         )
 
     def __ne__(self, other):
@@ -302,6 +302,7 @@ class _RowMerger(object):
     State machine to merge chunks from a response stream into logical rows.
 
     """
+
     __slots__ = ["state", "last_seen_row_key", "row"]
 
     def __init__(self, last_seen_row=b""):
@@ -340,7 +341,9 @@ class _RowMerger(object):
             if self.state == _State.ROW_COMPLETE:
                 yield self._handle_row_complete(chunk)
             elif chunk.commit_row:
-                raise InvalidChunk(f"Chunk tried to commit row in wrong state (${self.state})")
+                raise InvalidChunk(
+                    f"Chunk tried to commit row in wrong state (${self.state})"
+                )
 
     def _handle_reset(self, chunk):
         if self.state == _State.ROW_START:
@@ -432,15 +435,15 @@ class _RowMerger(object):
         if self.row.last_family != self.row.cell.family:
             family_changed = True
             self.row.last_family = self.row.cell.family
-            self.row.cells[self.row.cell.family] = \
-                self.row.last_family_cells = \
-                OrderedDict()
+            self.row.cells[
+                self.row.cell.family
+            ] = self.row.last_family_cells = OrderedDict()
 
         if family_changed or self.row.last_qualifier != self.row.cell.qualifier:
             self.row.last_qualifier = self.row.cell.qualifier
-            self.row.last_family_cells[self.row.cell.qualifier] = \
-                self.row.last_qualifier_cells = \
-                []
+            self.row.last_family_cells[
+                self.row.cell.qualifier
+            ] = self.row.last_qualifier_cells = []
 
         self.row.last_qualifier_cells.append(
             Cell(
