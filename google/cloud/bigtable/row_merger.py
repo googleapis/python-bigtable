@@ -476,7 +476,8 @@ class _RowMerger(object):
             self.state = _State.ROW_COMPLETE
 
     def _handle_row_complete(self, chunk):
-        new_row = self.row
+        new_row = PartialRowData(self.row.row_key)
+        new_row._cells = self.row.cells
 
         self.last_seen_row_key = new_row.row_key
         self.row = None

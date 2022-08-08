@@ -178,10 +178,12 @@ class PartialRowsData(object):
         # Best effort: try to map internal RowMerger states to old strings for
         # backwards compatibility
         internal_state = self._row_merger.state
-        if internal_state == _State.NEW_ROW:
+        if internal_state == _State.ROW_START:
             return self.NEW_ROW
-        elif internal_state in (_State.ROW_IN_PROGRESS, _State.CELL_COMPLETE):
+        elif internal_state in (_State.CELL_START, _State.CELL_COMPLETE):
             return self.ROW_IN_PROGRESS
+        elif internal_state == _State.CELL_IN_PROGRESS:
+            return self.CELL_IN_PROGRESS
         elif internal_state == _State.ROW_COMPLETE:
             return self.NEW_ROW
         else:
