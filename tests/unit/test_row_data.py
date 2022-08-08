@@ -660,9 +660,6 @@ def test_partial_rows_data_invalid_empty_chunk():
 
 
 def test_partial_rows_data_state_cell_in_progress():
-    from google.cloud.bigtable_v2.services.bigtable import BigtableClient
-    from google.cloud.bigtable_v2.types import bigtable as messages_v2_pb2
-
     labels = ["L1", "L2"]
     resp = _ReadRowsResponseV2(
         [

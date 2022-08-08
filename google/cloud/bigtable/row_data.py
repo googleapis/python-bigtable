@@ -21,7 +21,6 @@ import grpc  # type: ignore
 import warnings
 from google.api_core import exceptions
 from google.api_core import retry
-from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
 
 from google.cloud.bigtable.row_merger import Cell, InvalidChunk, PartialRowData
