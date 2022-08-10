@@ -1141,19 +1141,6 @@ class _MockFailureIterator_1(object):
     __next__ = next
 
 
-class _PartialCellData(object):
-
-    row_key = b""
-    family_name = ""
-    qualifier = None
-    timestamp_micros = 0
-    last_scanned_row_key = ""
-
-    def __init__(self, **kw):
-        self.labels = kw.pop("labels", [])
-        self.__dict__.update(kw)
-
-
 def _ReadRowsResponseV2(chunks, last_scanned_row_key=b""):
     from google.cloud.bigtable_v2.types import bigtable as messages_v2_pb2
 

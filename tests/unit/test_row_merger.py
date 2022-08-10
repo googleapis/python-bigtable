@@ -106,8 +106,8 @@ def test_bare_reset():
             ),
         )
     with pytest.raises(InvalidChunk):
-        first_chunk,
         _process_chunks(
+            first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, qualifier=b"q")
             )
@@ -117,6 +117,13 @@ def test_bare_reset():
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, timestamp_micros=1000)
+            ),
+        )
+    with pytest.raises(InvalidChunk):
+        _process_chunks(
+            first_chunk,
+            ReadRowsResponse.CellChunk(
+                ReadRowsResponse.CellChunk(reset_row=True, labels=["a"])
             ),
         )
     with pytest.raises(InvalidChunk):
