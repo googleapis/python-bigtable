@@ -390,6 +390,8 @@ class _RowMerger(object):
         if not self.row.cell:
             self.row.cell = _PartialCell()
 
+        # Cells can inherit family/qualifier from previous cells
+        # However if the family changes, then qualifier must be specified as well
         if chunk.HasField("family_name"):
             self.row.cell.family = chunk.family_name.value
             self.row.cell.qualifier = None
