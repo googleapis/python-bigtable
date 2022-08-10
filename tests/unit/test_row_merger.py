@@ -157,7 +157,7 @@ def test_mid_cell_family_change():
                 value_size=2,
                 value=b"v",
             ),
-            ReadRowsResponse.CellChunk(family="f2", value=b"v", commit_row=True),
+            ReadRowsResponse.CellChunk(family_name="f2", value=b"v", commit_row=True),
         )
 
 
