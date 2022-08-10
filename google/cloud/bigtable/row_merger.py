@@ -5,7 +5,7 @@ from google.cloud._helpers import _to_bytes  # type: ignore
 
 _MISSING_COLUMN_FAMILY = "Column family {} is not among the cells stored in this row."
 _MISSING_COLUMN = (
-    "Column {} is not among the cells stored in this row in the " "column family {}."
+    "Column {} is not among the cells stored in this row in the column family {}."
 )
 _MISSING_INDEX = (
     "Index {!r} is not valid for the cells stored in this row for column {} "
@@ -258,7 +258,7 @@ class Cell(object):
     def __init__(self, value, timestamp_micros, labels=None):
         self.value = value
         self.timestamp_micros = timestamp_micros
-        self.labels = list(labels) if labels is not None else []
+        self.labels = list(labels) if labels else []
 
     @classmethod
     def from_pb(cls, cell_pb):
@@ -399,7 +399,7 @@ class _RowMerger(object):
         if chunk.HasField("qualifier"):
             self.row.cell.qualifier = chunk.qualifier.value
         if self.row.cell.qualifier is None:
-            raise InvalidChunk("missing family for a new cell")
+            raise InvalidChunk("missing qualifier for a new cell")
 
         self.row.cell.timestamp = chunk.timestamp_micros
         self.row.cell.labels = chunk.labels

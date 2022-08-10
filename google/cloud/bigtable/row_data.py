@@ -34,7 +34,7 @@ from google.cloud.bigtable_v2.types import data as data_v2_pb2
 _ = (Cell, InvalidChunk, PartialRowData)
 
 
-class PartialCellData(object):
+class PartialCellData(object): # pragma: no cover
     """This class is no longer used and will be removed in the future"""
 
     def __init__(
@@ -180,8 +180,8 @@ class PartialRowsData(object):
         internal_state = self._row_merger.state
         if internal_state == _State.ROW_START:
             return self.NEW_ROW
-        elif internal_state in (_State.CELL_START, _State.CELL_COMPLETE):
-            return self.ROW_IN_PROGRESS
+        # note: _State.CELL_START, _State.CELL_COMPLETE are transient states
+        # and will not be visible in between chunks
         elif internal_state == _State.CELL_IN_PROGRESS:
             return self.CELL_IN_PROGRESS
         elif internal_state == _State.ROW_COMPLETE:
@@ -256,8 +256,6 @@ class PartialRowsData(object):
                 break
 
             for row in self._row_merger.process_chunks(response):
-                if self._cancelled:
-                    break
                 self.last_scanned_row_key = self._row_merger.last_seen_row_key
                 self._counter += 1
 
