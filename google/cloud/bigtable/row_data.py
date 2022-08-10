@@ -34,7 +34,7 @@ from google.cloud.bigtable_v2.types import data as data_v2_pb2
 _ = (Cell, InvalidChunk, PartialRowData)
 
 
-class PartialCellData(object):  # pragma: no cover
+class PartialCellData(object):  # pragma: NO COVER
     """This class is no longer used and will be removed in the future"""
 
     def __init__(
@@ -164,7 +164,7 @@ class PartialRowsData(object):
         self._cancelled = False
 
     @property
-    def state(self):
+    def state(self):  # pragma: NO COVER
         """
         DEPRECATED: this property is deprecated and will be removed in the
         future.

@@ -85,20 +85,28 @@ def test_out_of_order_rows():
         list(row_merger.process_chunks(ReadRowsResponse(last_scanned_row_key=b"a")))
 
 
-def test_bare_rest():
+def test_bare_reset():
+    first_chunk = ReadRowsResponse.CellChunk(
+        ReadRowsResponse.CellChunk(
+            row_key=b"a", family_name="f", qualifier=b"q", value=b"v"
+        )
+    )
     with pytest.raises(InvalidChunk):
         _process_chunks(
+            first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, row_key=b"a")
-            )
+            ),
         )
     with pytest.raises(InvalidChunk):
         _process_chunks(
+            first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, family_name="f")
-            )
+            ),
         )
     with pytest.raises(InvalidChunk):
+        first_chunk,
         _process_chunks(
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, qualifier=b"q")
@@ -106,15 +114,17 @@ def test_bare_rest():
         )
     with pytest.raises(InvalidChunk):
         _process_chunks(
+            first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, timestamp_micros=1000)
-            )
+            ),
         )
     with pytest.raises(InvalidChunk):
         _process_chunks(
+            first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, value=b"v")
-            )
+            ),
         )
 
 

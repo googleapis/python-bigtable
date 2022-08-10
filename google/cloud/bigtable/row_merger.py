@@ -440,9 +440,6 @@ class _RowMerger(object):
             self.state = _State.CELL_COMPLETE
 
     def _handle_cell_complete(self, chunk):
-        if chunk.row_key and chunk.row_key != self.row.row_key:
-            raise InvalidChunk("row key changed mid row")
-
         # since we are guaranteed that all family & qualifier cells are
         # contiguous, we can optimize away the dict lookup by caching the last
         # family/qualifier and simply comparing and appending
