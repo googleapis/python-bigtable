@@ -37,6 +37,7 @@ _MISSING_INDEX = (
     "in the column family {}. There are {} such cells."
 )
 
+
 class Row(object):
     """Base representation of a Google Cloud Bigtable Row.
 
