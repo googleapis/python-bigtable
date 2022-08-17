@@ -1,7 +1,5 @@
 from enum import Enum
 from collections import OrderedDict
-from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
-from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable.row import Cell, PartialRowData, InvalidChunk
 
 _MISSING_COLUMN_FAMILY = "Column family {} is not among the cells stored in this row."
