@@ -19,7 +19,7 @@ class _State(Enum):
     CELL_START = "CELL_START"
     CELL_IN_PROGRESS = "CELL_IN_PROGRESS"
     CELL_COMPLETE = "CELL_COMPLETE"
-    ROW_COMPLETE = "COMPLETE_ROW"
+    ROW_COMPLETE = "ROW_COMPLETE"
 
 
 class _PartialRow(object):
@@ -66,7 +66,7 @@ class _RowMerger(object):
     from top to bottom with some repetition. Each state handler will do some
     sanity checks, update in progress data and set the next state.
 
-    There can be multiple state transitions for each chunk, ie. a single chunk
+    There can be multiple state transitions for each chunk, i.e. a single chunk
     row will flow from ROW_START -> CELL_START -> CELL_COMPLETE -> ROW_COMPLETE
     in a single iteration.
     """
@@ -81,8 +81,7 @@ class _RowMerger(object):
     def process_chunks(self, response):
         """
         Process the chunks in the given response and yield logical rows.
-        The internal state of this class will maintain state across multiple
-        response protos.
+        This class will maintain state across multiple response protos.
         """
         if response.last_scanned_row_key:
             if self.last_seen_row_key >= response.last_scanned_row_key:
