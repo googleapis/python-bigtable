@@ -4,6 +4,21 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.11.2](https://github.com/googleapis/python-bigtable/compare/v2.11.1...v2.11.2) (2022-08-11)
+
+
+### Bug Fixes
+
+* **deps:** allow protobuf < 5.0.0 ([#631](https://github.com/googleapis/python-bigtable/issues/631)) ([fd54fc6](https://github.com/googleapis/python-bigtable/commit/fd54fc63340a3e01fae1ccc4c648dd90900f8a94))
+* **deps:** require proto-plus >= 1.22.0 ([fd54fc6](https://github.com/googleapis/python-bigtable/commit/fd54fc63340a3e01fae1ccc4c648dd90900f8a94))
+
+## [2.11.1](https://github.com/googleapis/python-bigtable/compare/v2.11.0...v2.11.1) (2022-08-08)
+
+
+### Bug Fixes
+
+* Retry the RST Stream error in mutate rows and read rows([#624](https://github.com/googleapis/python-bigtable/issues/624)) ([d24574a](https://github.com/googleapis/python-bigtable/commit/d24574a722de61bdeffa6588bcb08f56e62ba3bd))
+
 ## [2.11.0](https://github.com/googleapis/python-bigtable/compare/v2.10.1...v2.11.0) (2022-08-04)
 
 
