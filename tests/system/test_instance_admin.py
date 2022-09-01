@@ -194,7 +194,7 @@ def test_instance_create_development(
 
     operation = instance.create(clusters=[cluster])
     instances_to_delete.append(instance)
-    operation.result(timeout=60)  # Ensure the operation completes.
+    operation.result(timeout=120)  # Ensure the operation completes.
 
     # Create a new instance instance and make sure it is the same.
     instance_alt = admin_client.instance(alt_instance_id)

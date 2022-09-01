@@ -293,7 +293,7 @@ def test_table_backup(
 
     # Testing `Backup.create()` method
     backup_op = temp_backup.create()
-    backup_op.result(timeout=30)
+    backup_op.result(timeout=60)
 
     # Implicit testing of `Backup.delete()` method
     backups_to_delete.append(temp_backup)
