@@ -74,7 +74,7 @@ def run_instance_operations(project_id, instance_id, cluster_id):
         # Create instance with given options
         operation = instance.create(clusters=[cluster])
         # Ensure the operation completes.
-        operation.result(timeout=120)
+        operation.result(timeout=240)
         print("\nCreated instance: {}".format(instance_id))
     # [END bigtable_create_prod_instance]
 
