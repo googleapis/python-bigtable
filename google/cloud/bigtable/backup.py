@@ -65,6 +65,9 @@ class Backup(object):
     :param expire_time: (Optional) The expiration time after which the Backup
                         will be automatically deleted. Required if the `create`
                         method will be called.
+
+    :type source_backup: :class:`datetime.datetime`
+    :param source_backup: (Optional) The source of this Backup.
     """
 
     def __init__(
@@ -75,6 +78,7 @@ class Backup(object):
         table_id=None,
         expire_time=None,
         encryption_info=None,
+        source_backup=None
     ):
         self.backup_id = backup_id
         self._instance = instance
@@ -82,6 +86,7 @@ class Backup(object):
         self.table_id = table_id
         self._expire_time = expire_time
         self._encryption_info = encryption_info
+        self._source_backup = source_backup
 
         self._parent = None
         self._source_table = None
@@ -231,6 +236,16 @@ class Backup(object):
         """
         return self._state
 
+    @property
+    def source_backup(self):
+        """
+        The source of this Backup
+
+        :rtype: :class:`~google.cloud.bigtable.backup.Backup`
+        :returns: The source of this Backup
+        """
+        return self._source_backup
+
     @classmethod
     def from_pb(cls, backup_pb, instance):
         """Creates a Backup instance from a protobuf message.
@@ -273,6 +288,7 @@ class Backup(object):
 
         expire_time = backup_pb._pb.expire_time
         encryption_info = EncryptionInfo._from_pb(backup_pb.encryption_info)
+        source_backup = backup_pb.source_backup
 
         backup = cls(
             backup_id,
@@ -281,6 +297,7 @@ class Backup(object):
             table_id=table_id,
             expire_time=expire_time,
             encryption_info=encryption_info,
+            source_backup=source_backup
         )
         backup._start_time = backup_pb._pb.start_time
         backup._end_time = backup_pb._pb.end_time
@@ -339,6 +356,23 @@ class Backup(object):
             }
         )
 
+    def copy(self, new_backup_id, expire_time=None):
+        """ copy backup"""
+        if not expire_time:
+            expire_time = self._expire_time
+
+        api = self._instance._client.table_admin_client
+        response = api.copy_backup(
+            request={
+                "parent": self.parent,
+                "backup_id": new_backup_id,
+                "source_backup": self.name,
+                "expire_time": expire_time
+            }
+        )
+        return response
+
+
     def get(self):
         """Retrieves metadata of a pending or completed Backup.
 
@@ -366,6 +400,7 @@ class Backup(object):
         self._end_time = backup._pb.end_time
         self._size_bytes = backup._pb.size_bytes
         self._state = backup._pb.state
+        self._source_backup = backup.source_backup
 
     def exists(self):
         """Tests whether this Backup exists.

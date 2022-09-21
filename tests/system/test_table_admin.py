@@ -265,6 +265,7 @@ def test_table_backup(
 ):
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable import enums
+    from google.api_core.exceptions import FailedPrecondition
 
     temp_table_id = "test-backup-table"
     temp_table = data_instance_populated.table(temp_table_id)
@@ -322,6 +323,26 @@ def test_table_backup(
     assert test.seconds == DatetimeWithNanoseconds.timestamp(
         temp_table_backup.expire_time
     )
+
+    # Testing `backup.copy()` method
+    backup_op = temp_backup.copy("copied-backup")
+    backup_op.result(timeout=30)
+    backups_to_delete.append("copied-backup")
+
+    backup_copy = temp_table.backup("copied-backup", cluster_id=data_cluster_id)
+    assert backup_copy.exists()
+    backup_copy.reload()
+    assert backup_copy.expire_time.seconds == DatetimeWithNanoseconds.timestamp(temp_backup.expire_time)
+    assert backup_copy.source_backup == temp_backup.name
+
+    new_expire_time = expire + 7200
+    backup_op = temp_backup.copy("copied-backup-exp", expire_time=new_expire_time)
+    backup_op.result(timeout=30)
+    backups_to_delete.append("copied-backup-exp")
+    # Testing cannot copy a copied backup
+    with pytest.raises(FailedPrecondition):
+        backup_copy.copy("copied-backup-again")
+
 
     # Testing `Table.restore()` and `Backup.retore()` methods
     restored_table_id = "test-backup-table-restored"

@@ -914,6 +914,51 @@ def test_backup_test_iam_permissions():
         request={"resource": backup.name, "permissions": permissions}
     )
 
+def test_backup_copy():
+
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+    backup.copy(copy_backup_id)
+
+    api.copy_backup.assert_called_once_with(
+        request={"parent": CLUSTER_NAME, "backup_id": copy_backup_id, "source_backup": backup.name, "expire_time": timestamp}
+    )
+
+
+def test_backup_copy_w_expire_time():
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+
+    timestamp_new = _make_timestamp()
+    backup.copy(copy_backup_id, expire_time=timestamp_new)
+
+    api.copy_backup.assert_called_once_with(
+        request={"parent": CLUSTER_NAME, "backup_id": copy_backup_id, "source_backup": backup.name,
+                 "expire_time": timestamp_new}
+    )
+
 
 class _Client(object):
     def __init__(self, project=PROJECT_ID):
