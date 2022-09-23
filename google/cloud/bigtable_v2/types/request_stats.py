@@ -19,13 +19,13 @@ from google.protobuf import duration_pb2  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.v2',
+    package="google.bigtable.v2",
     manifest={
-        'ReadIteratorStats',
-        'RequestLatencyStats',
-        'ReadEfficiencyStats',
-        'AllReadStats',
-        'RequestStats',
+        "ReadIteratorStats",
+        "RequestLatencyStats",
+        "ReadEfficiencyStats",
+        "AllReadStats",
+        "RequestStats",
     },
 )
 
@@ -123,12 +123,12 @@ class ReadEfficiencyStats(proto.Message):
     read_iterator_stats = proto.Field(
         proto.MESSAGE,
         number=1,
-        message='ReadIteratorStats',
+        message="ReadIteratorStats",
     )
     request_latency_stats = proto.Field(
         proto.MESSAGE,
         number=2,
-        message='RequestLatencyStats',
+        message="RequestLatencyStats",
     )
 
 
@@ -150,12 +150,12 @@ class AllReadStats(proto.Message):
     read_iterator_stats = proto.Field(
         proto.MESSAGE,
         number=1,
-        message='ReadIteratorStats',
+        message="ReadIteratorStats",
     )
     request_latency_stats = proto.Field(
         proto.MESSAGE,
         number=2,
-        message='RequestLatencyStats',
+        message="RequestLatencyStats",
     )
 
 
@@ -191,14 +191,14 @@ class RequestStats(proto.Message):
     read_efficiency_stats = proto.Field(
         proto.MESSAGE,
         number=1,
-        oneof='stats',
-        message='ReadEfficiencyStats',
+        oneof="stats",
+        message="ReadEfficiencyStats",
     )
     all_read_stats = proto.Field(
         proto.MESSAGE,
         number=2,
-        oneof='stats',
-        message='AllReadStats',
+        oneof="stats",
+        message="AllReadStats",
     )
 
 
