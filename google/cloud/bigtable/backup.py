@@ -241,8 +241,8 @@ class Backup(object):
         """
         The source of this Backup
 
-        :rtype: :class:`~google.cloud.bigtable.backup.Backup`
-        :returns: The source of this Backup
+        :rtype: str
+        :returns: The name of the source of this Backup
         """
         return self._source_backup
 
