@@ -357,12 +357,27 @@ class Backup(object):
         )
 
     def copy(self, new_backup_id, expire_time=None):
-        """ copy backup"""
+        """Make a copy of this backup.
+
+        :type new_backup_id: str
+        :param new_backup_id: The name of the copied backup
+
+        :type expire_time: :class:`datetime.datetime`
+        :param expire_time: (Optional) the new expiration time timestamp
+
+        :rtype: :class:`~google.api_core.operation.Operation`
+        :returns: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
+                  instance, to be used to poll the status of the 'copy' request
+        :raises Conflict: if the Backup already exists
+        :raises NotFound: if the Instance owning the Backup does not exist
+        :raises BadRequest: if the `table` or `expire_time` values are invalid,
+                            or `expire_time` is not set
+        """
         if not expire_time:
             expire_time = self._expire_time
 
         api = self._instance._client.table_admin_client
-        response = api.copy_backup(
+        return api.copy_backup(
             request={
                 "parent": self.parent,
                 "backup_id": new_backup_id,
@@ -370,7 +385,6 @@ class Backup(object):
                 "expire_time": expire_time
             }
         )
-        return response
 
 
     def get(self):
