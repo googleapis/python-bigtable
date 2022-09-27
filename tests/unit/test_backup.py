@@ -914,6 +914,7 @@ def test_backup_test_iam_permissions():
         request={"resource": backup.name, "permissions": permissions}
     )
 
+
 def test_backup_copy():
 
     client = _Client()
@@ -932,7 +933,12 @@ def test_backup_copy():
     backup.copy(copy_backup_id)
 
     api.copy_backup.assert_called_once_with(
-        request={"parent": CLUSTER_NAME, "backup_id": copy_backup_id, "source_backup": backup.name, "expire_time": timestamp}
+        request={
+            "parent": CLUSTER_NAME,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp,
+        }
     )
 
 
@@ -955,8 +961,12 @@ def test_backup_copy_w_expire_time():
     backup.copy(copy_backup_id, expire_time=timestamp_new)
 
     api.copy_backup.assert_called_once_with(
-        request={"parent": CLUSTER_NAME, "backup_id": copy_backup_id, "source_backup": backup.name,
-                 "expire_time": timestamp_new}
+        request={
+            "parent": CLUSTER_NAME,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp_new,
+        }
     )
 
 

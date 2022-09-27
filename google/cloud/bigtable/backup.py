@@ -79,7 +79,7 @@ class Backup(object):
         table_id=None,
         expire_time=None,
         encryption_info=None,
-        source_backup=None
+        source_backup=None,
     ):
         self.backup_id = backup_id
         self._instance = instance
@@ -298,7 +298,7 @@ class Backup(object):
             table_id=table_id,
             expire_time=expire_time,
             encryption_info=encryption_info,
-            source_backup=source_backup
+            source_backup=source_backup,
         )
         backup._start_time = backup_pb._pb.start_time
         backup._end_time = backup_pb._pb.end_time
@@ -383,10 +383,9 @@ class Backup(object):
                 "parent": self.parent,
                 "backup_id": new_backup_id,
                 "source_backup": self.name,
-                "expire_time": expire_time
+                "expire_time": expire_time,
             }
         )
-
 
     def get(self):
         """Retrieves metadata of a pending or completed Backup.
