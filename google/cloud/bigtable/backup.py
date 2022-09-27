@@ -46,6 +46,7 @@ class Backup(object):
     * :meth:`create` the backup
     * :meth:`update` the backup
     * :meth:`delete` the backup
+    * :meth:`copy` the backup
 
     :type backup_id: str
     :param backup_id: The ID of the backup.
