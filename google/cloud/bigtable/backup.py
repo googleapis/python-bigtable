@@ -66,8 +66,8 @@ class Backup(object):
                         will be automatically deleted. Required if the `create`
                         method will be called.
 
-    :type source_backup: :class:`datetime.datetime`
-    :param source_backup: (Optional) The source of this Backup.
+    :type source_backup: str
+    :param source_backup: (Optional) The name of the source of this Backup.
     """
 
     def __init__(
