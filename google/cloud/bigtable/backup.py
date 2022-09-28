@@ -46,7 +46,6 @@ class Backup(object):
     * :meth:`create` the backup
     * :meth:`update` the backup
     * :meth:`delete` the backup
-    * :meth:`copy` the backup
 
     :type backup_id: str
     :param backup_id: The ID of the backup.
@@ -357,11 +356,27 @@ class Backup(object):
             }
         )
 
-    def copy(self, new_backup_id, expire_time=None):
+    def copy(
+        self,
+        new_backup_id,
+        project_id=None,
+        instance_id=None,
+        cluster_id=None,
+        expire_time=None,
+    ):
         """Make a copy of this backup.
 
         :type new_backup_id: str
         :param new_backup_id: The name of the copied backup
+
+        :type project_id: str
+        :param project_id: The destination project id for the backup
+
+        :type instance_id: str
+        :param instance_id: The destination instance for the backup
+
+        :type cluster_id: str
+        :param cluster_id: The destination cluster for the backup
 
         :type expire_time: :class:`datetime.datetime`
         :param expire_time: (Optional) the new expiration time timestamp
@@ -377,10 +392,26 @@ class Backup(object):
         if not expire_time:
             expire_time = self._expire_time
 
+        if not project_id:
+            project_id = self._instance._client.project
+
+        if not instance_id:
+            instance_id = self._instance.instance_id
+
+        if not cluster_id:
+            cluster_id = self._cluster
+
         api = self._instance._client.table_admin_client
+
+        parent = BigtableTableAdminClient.cluster_path(
+            project=project_id,
+            instance=instance_id,
+            cluster=cluster_id,
+        )
+
         return api.copy_backup(
             request={
-                "parent": self.parent,
+                "parent": parent,
                 "backup_id": new_backup_id,
                 "source_backup": self.name,
                 "expire_time": expire_time,
