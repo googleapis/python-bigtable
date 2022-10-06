@@ -77,8 +77,7 @@ class ReadRowsRequest(proto.Message):
         """
         REQUEST_STATS_VIEW_UNSPECIFIED = 0
         REQUEST_STATS_NONE = 1
-        REQUEST_STATS_EFFICIENCY = 2
-        REQUEST_STATS_FULL = 3
+        REQUEST_STATS_FULL = 2
 
     table_name = proto.Field(
         proto.STRING,
@@ -415,8 +414,8 @@ class MutateRowsRequest(proto.Message):
                 Required. Changes to be atomically applied to
                 the specified row. Mutations are applied in
                 order, meaning that earlier mutations can be
-                masked by later ones. You must specify at least
-                one mutation.
+                masked by later ones.
+                You must specify at least one mutation.
         """
 
         row_key = proto.Field(
