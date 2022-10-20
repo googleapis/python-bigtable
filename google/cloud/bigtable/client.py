@@ -78,7 +78,7 @@ _GRPC_CHANNEL_OPTIONS = (
 
 def _create_gapic_client(client_class, client_options=None, transport=None):
     def inner(self):
-        klass =  client_class(
+        klass = client_class(
             credentials=None,
             client_info=self._client_info,
             client_options=client_options,
@@ -99,8 +99,12 @@ def _create_gapic_client(client_class, client_options=None, transport=None):
             if name.startswith("__"):
                 continue
 
-            if m.__kwdefaults__ is not None and 'timeout' in m.__kwdefaults__ and m.__kwdefaults__['timeout'] is None:
-                m.__kwdefaults__['timeout'] = METHOD_DEFAULT
+            if (
+                m.__kwdefaults__ is not None
+                and "timeout" in m.__kwdefaults__
+                and m.__kwdefaults__["timeout"] is None
+            ):
+                m.__kwdefaults__["timeout"] = METHOD_DEFAULT
 
         return klass
 
