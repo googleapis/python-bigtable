@@ -277,7 +277,7 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=DEFAULT
+            timeout=DEFAULT,
         )
 
     def update(self):
@@ -305,7 +305,7 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=DEFAULT
+            timeout=DEFAULT,
         )
 
     def delete(self):
@@ -328,7 +328,7 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=DEFAULT
+            timeout=DEFAULT,
         )
 
 
