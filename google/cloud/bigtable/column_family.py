@@ -256,7 +256,7 @@ class ColumnFamily(object):
         else:
             return table_v2_pb2.ColumnFamily(gc_rule=self.gc_rule.to_pb())
 
-    def create(self, timeout=DEFAULT):
+    def create(self):
         """Create this column family.
 
         For example:
@@ -277,10 +277,10 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=timeout
+            timeout=DEFAULT
         )
 
-    def update(self, timeout=DEFAULT):
+    def update(self):
         """Update this column family.
 
         For example:
@@ -305,10 +305,10 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=timeout
+            timeout=DEFAULT
         )
 
-    def delete(self, timeout=DEFAULT):
+    def delete(self):
         """Delete this column family.
 
         For example:
@@ -328,7 +328,7 @@ class ColumnFamily(object):
         # stored on this instance.
         client.table_admin_client.modify_column_families(
             request={"name": self._table.name, "modifications": [modification]},
-            timeout=timeout
+            timeout=DEFAULT
         )
 
 
