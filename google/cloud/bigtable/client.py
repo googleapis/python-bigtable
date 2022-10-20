@@ -78,12 +78,31 @@ _GRPC_CHANNEL_OPTIONS = (
 
 def _create_gapic_client(client_class, client_options=None, transport=None):
     def inner(self):
-        return client_class(
+        klass =  client_class(
             credentials=None,
             client_info=self._client_info,
             client_options=client_options,
             transport=transport,
         )
+        # TODO: remove this when https://github.com/googleapis/gapic-generator-python/issues/1477
+        # is fixed
+        # Workaround microgenerator issue where the default deadline is not
+        # respected. This will monkeypatch the method default timeout of None
+        # to a sentinel value. It seems like python-api-core expects None to be
+        # explicitly removed deadline and DEFAULT to be the client default
+        # deadline. However the microgenerator generates code that uses None to
+        # denote the default deadline
+        import inspect
+        from google.api_core.gapic_v1.method import DEFAULT as METHOD_DEFAULT
+
+        for name, m in inspect.getmembers(klass, inspect.ismethod):
+            if name.startswith("__"):
+                continue
+
+            if m.__kwdefaults__ is not None and 'timeout' in m.__kwdefaults__ and m.__kwdefaults__['timeout'] is None:
+                m.__kwdefaults__['timeout'] = METHOD_DEFAULT
+
+        return klass
 
     return inner
 
