@@ -16,7 +16,18 @@
 from collections import OrderedDict
 import os
 import re
-from typing import Dict, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import (
+    Dict,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import pkg_resources
 
 from google.api_core import client_options as client_options_lib
@@ -65,7 +76,7 @@ class BigtableTableAdminClientMeta(type):
 
     def get_transport_class(
         cls,
-        label: str = None,
+        label: Optional[str] = None,
     ) -> Type[BigtableTableAdminTransport]:
         """Returns an appropriate transport class.
 
@@ -458,7 +469,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Union[str, BigtableTableAdminTransport, None] = None,
+        transport: Optional[Union[str, BigtableTableAdminTransport]] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -556,13 +567,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def create_table(
         self,
-        request: Union[bigtable_table_admin.CreateTableRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.CreateTableRequest, dict]] = None,
         *,
-        parent: str = None,
-        table_id: str = None,
-        table: gba_table.Table = None,
+        parent: Optional[str] = None,
+        table_id: Optional[str] = None,
+        table: Optional[gba_table.Table] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> gba_table.Table:
         r"""Creates a new table in the specified instance.
@@ -657,15 +668,15 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def create_table_from_snapshot(
         self,
-        request: Union[
-            bigtable_table_admin.CreateTableFromSnapshotRequest, dict
+        request: Optional[
+            Union[bigtable_table_admin.CreateTableFromSnapshotRequest, dict]
         ] = None,
         *,
-        parent: str = None,
-        table_id: str = None,
-        source_snapshot: str = None,
+        parent: Optional[str] = None,
+        table_id: Optional[str] = None,
+        source_snapshot: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Creates a new table from the specified snapshot. The
@@ -786,11 +797,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def list_tables(
         self,
-        request: Union[bigtable_table_admin.ListTablesRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.ListTablesRequest, dict]] = None,
         *,
-        parent: str = None,
+        parent: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> pagers.ListTablesPager:
         r"""Lists all tables served from a specified instance.
@@ -875,11 +886,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def get_table(
         self,
-        request: Union[bigtable_table_admin.GetTableRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.GetTableRequest, dict]] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Table:
         r"""Gets metadata information about the specified table.
@@ -954,12 +965,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def update_table(
         self,
-        request: Union[bigtable_table_admin.UpdateTableRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.UpdateTableRequest, dict]] = None,
         *,
-        table: gba_table.Table = None,
-        update_mask: field_mask_pb2.FieldMask = None,
+        table: Optional[gba_table.Table] = None,
+        update_mask: Optional[field_mask_pb2.FieldMask] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Updates a specified table.
@@ -1062,11 +1073,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def delete_table(
         self,
-        request: Union[bigtable_table_admin.DeleteTableRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.DeleteTableRequest, dict]] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
         r"""Permanently deletes a specified table and all of its
@@ -1131,11 +1142,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def undelete_table(
         self,
-        request: Union[bigtable_table_admin.UndeleteTableRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.UndeleteTableRequest, dict]
+        ] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Restores a specified table which was accidentally
@@ -1220,14 +1233,18 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def modify_column_families(
         self,
-        request: Union[bigtable_table_admin.ModifyColumnFamiliesRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.ModifyColumnFamiliesRequest, dict]
+        ] = None,
         *,
-        name: str = None,
-        modifications: Sequence[
-            bigtable_table_admin.ModifyColumnFamiliesRequest.Modification
+        name: Optional[str] = None,
+        modifications: Optional[
+            MutableSequence[
+                bigtable_table_admin.ModifyColumnFamiliesRequest.Modification
+            ]
         ] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Table:
         r"""Performs a series of column family modifications on
@@ -1248,7 +1265,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            modifications (Sequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]):
+            modifications (MutableSequence[google.cloud.bigtable_admin_v2.types.ModifyColumnFamiliesRequest.Modification]):
                 Required. Modifications to be
                 atomically applied to the specified
                 table's families. Entries are applied in
@@ -1320,10 +1337,10 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def drop_row_range(
         self,
-        request: Union[bigtable_table_admin.DropRowRangeRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.DropRowRangeRequest, dict]] = None,
         *,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
         r"""Permanently drop/delete a row range from a specified
@@ -1369,13 +1386,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def generate_consistency_token(
         self,
-        request: Union[
-            bigtable_table_admin.GenerateConsistencyTokenRequest, dict
+        request: Optional[
+            Union[bigtable_table_admin.GenerateConsistencyTokenRequest, dict]
         ] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> bigtable_table_admin.GenerateConsistencyTokenResponse:
         r"""Generates a consistency token for a Table, which can
@@ -1456,12 +1473,14 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def check_consistency(
         self,
-        request: Union[bigtable_table_admin.CheckConsistencyRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.CheckConsistencyRequest, dict]
+        ] = None,
         *,
-        name: str = None,
-        consistency_token: str = None,
+        name: Optional[str] = None,
+        consistency_token: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> bigtable_table_admin.CheckConsistencyResponse:
         r"""Checks replication consistency based on a consistency
@@ -1546,14 +1565,16 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def snapshot_table(
         self,
-        request: Union[bigtable_table_admin.SnapshotTableRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.SnapshotTableRequest, dict]
+        ] = None,
         *,
-        name: str = None,
-        cluster: str = None,
-        snapshot_id: str = None,
-        description: str = None,
+        name: Optional[str] = None,
+        cluster: Optional[str] = None,
+        snapshot_id: Optional[str] = None,
+        description: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Creates a new snapshot in the specified cluster from
@@ -1687,11 +1708,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def get_snapshot(
         self,
-        request: Union[bigtable_table_admin.GetSnapshotRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.GetSnapshotRequest, dict]] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Snapshot:
         r"""Gets metadata information about the specified
@@ -1787,11 +1808,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def list_snapshots(
         self,
-        request: Union[bigtable_table_admin.ListSnapshotsRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.ListSnapshotsRequest, dict]
+        ] = None,
         *,
-        parent: str = None,
+        parent: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> pagers.ListSnapshotsPager:
         r"""Lists all snapshots associated with the specified
@@ -1899,11 +1922,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def delete_snapshot(
         self,
-        request: Union[bigtable_table_admin.DeleteSnapshotRequest, dict] = None,
+        request: Optional[
+            Union[bigtable_table_admin.DeleteSnapshotRequest, dict]
+        ] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
         r"""Permanently deletes the specified snapshot.
@@ -1979,13 +2004,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def create_backup(
         self,
-        request: Union[bigtable_table_admin.CreateBackupRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.CreateBackupRequest, dict]] = None,
         *,
-        parent: str = None,
-        backup_id: str = None,
-        backup: table.Backup = None,
+        parent: Optional[str] = None,
+        backup_id: Optional[str] = None,
+        backup: Optional[table.Backup] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Starts creating a new Cloud Bigtable Backup. The returned backup
@@ -2099,11 +2124,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def get_backup(
         self,
-        request: Union[bigtable_table_admin.GetBackupRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.GetBackupRequest, dict]] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Backup:
         r"""Gets metadata on a pending or completed Cloud
@@ -2174,12 +2199,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def update_backup(
         self,
-        request: Union[bigtable_table_admin.UpdateBackupRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.UpdateBackupRequest, dict]] = None,
         *,
-        backup: table.Backup = None,
-        update_mask: field_mask_pb2.FieldMask = None,
+        backup: Optional[table.Backup] = None,
+        update_mask: Optional[field_mask_pb2.FieldMask] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> table.Backup:
         r"""Updates a pending or completed Cloud Bigtable Backup.
@@ -2269,11 +2294,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def delete_backup(
         self,
-        request: Union[bigtable_table_admin.DeleteBackupRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.DeleteBackupRequest, dict]] = None,
         *,
-        name: str = None,
+        name: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
         r"""Deletes a pending or completed Cloud Bigtable backup.
@@ -2337,11 +2362,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def list_backups(
         self,
-        request: Union[bigtable_table_admin.ListBackupsRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.ListBackupsRequest, dict]] = None,
         *,
-        parent: str = None,
+        parent: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> pagers.ListBackupsPager:
         r"""Lists Cloud Bigtable backups. Returns both completed
@@ -2430,10 +2455,10 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def restore_table(
         self,
-        request: Union[bigtable_table_admin.RestoreTableRequest, dict] = None,
+        request: Optional[Union[bigtable_table_admin.RestoreTableRequest, dict]] = None,
         *,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation.Operation:
         r"""Create a new table by restoring from a completed backup. The new
@@ -2504,11 +2529,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def get_iam_policy(
         self,
-        request: Union[iam_policy_pb2.GetIamPolicyRequest, dict] = None,
+        request: Optional[Union[iam_policy_pb2.GetIamPolicyRequest, dict]] = None,
         *,
-        resource: str = None,
+        resource: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> policy_pb2.Policy:
         r"""Gets the access control policy for a Table or Backup
@@ -2642,11 +2667,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def set_iam_policy(
         self,
-        request: Union[iam_policy_pb2.SetIamPolicyRequest, dict] = None,
+        request: Optional[Union[iam_policy_pb2.SetIamPolicyRequest, dict]] = None,
         *,
-        resource: str = None,
+        resource: Optional[str] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> policy_pb2.Policy:
         r"""Sets the access control policy on a Table or Backup
@@ -2779,12 +2804,12 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
     def test_iam_permissions(
         self,
-        request: Union[iam_policy_pb2.TestIamPermissionsRequest, dict] = None,
+        request: Optional[Union[iam_policy_pb2.TestIamPermissionsRequest, dict]] = None,
         *,
-        resource: str = None,
-        permissions: Sequence[str] = None,
+        resource: Optional[str] = None,
+        permissions: Optional[MutableSequence[str]] = None,
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
-        timeout: float = None,
+        timeout: Optional[float] = None,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> iam_policy_pb2.TestIamPermissionsResponse:
         r"""Returns permissions that the caller has on the
@@ -2803,7 +2828,7 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            permissions (Sequence[str]):
+            permissions (MutableSequence[str]):
                 The set of permissions to check for the ``resource``.
                 Permissions with wildcards (such as '*' or 'storage.*')
                 are not allowed. For more information see `IAM
