@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import MutableMapping, MutableSequence
+
 import proto  # type: ignore
 
 from google.protobuf import duration_pb2  # type: ignore
@@ -50,19 +52,19 @@ class ReadIterationStats(proto.Message):
             The cells returned as part of the request.
     """
 
-    rows_seen_count = proto.Field(
+    rows_seen_count: int = proto.Field(
         proto.INT64,
         number=1,
     )
-    rows_returned_count = proto.Field(
+    rows_returned_count: int = proto.Field(
         proto.INT64,
         number=2,
     )
-    cells_seen_count = proto.Field(
+    cells_seen_count: int = proto.Field(
         proto.INT64,
         number=3,
     )
-    cells_returned_count = proto.Field(
+    cells_returned_count: int = proto.Field(
         proto.INT64,
         number=4,
     )
@@ -101,7 +103,7 @@ class RequestLatencyStats(proto.Message):
             caller.
     """
 
-    frontend_server_latency = proto.Field(
+    frontend_server_latency: duration_pb2.Duration = proto.Field(
         proto.MESSAGE,
         number=1,
         message=duration_pb2.Duration,
@@ -124,12 +126,12 @@ class FullReadStatsView(proto.Message):
             to complete a request, from the server side.
     """
 
-    read_iteration_stats = proto.Field(
+    read_iteration_stats: "ReadIterationStats" = proto.Field(
         proto.MESSAGE,
         number=1,
         message="ReadIterationStats",
     )
-    request_latency_stats = proto.Field(
+    request_latency_stats: "RequestLatencyStats" = proto.Field(
         proto.MESSAGE,
         number=2,
         message="RequestLatencyStats",
@@ -155,7 +157,7 @@ class RequestStats(proto.Message):
             This field is a member of `oneof`_ ``stats_view``.
     """
 
-    full_read_stats_view = proto.Field(
+    full_read_stats_view: "FullReadStatsView" = proto.Field(
         proto.MESSAGE,
         number=1,
         oneof="stats_view",
