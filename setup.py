@@ -22,7 +22,14 @@ import setuptools
 
 name = "google-cloud-bigtable"
 description = "Google Cloud Bigtable API client library"
-version = "2.13.0"
+
+version = {}
+package_root = os.path.abspath(os.path.dirname(__file__))
+
+with open(os.path.join(package_root, "google/cloud/bigtable/gapic_version.py")) as fp:
+    exec(fp.read(), version)
+version = version["__version__"]
+
 # Should be one of:
 # 'Development Status :: 3 - Alpha'
 # 'Development Status :: 4 - Beta'
