@@ -797,7 +797,6 @@ class TestTable(unittest.TestCase):
 
     def test_read_retry_rows(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.cloud.bigtable_admin_v2.gapic import bigtable_table_admin_client
         from google.api_core import retry
 
         data_api = bigtable_client.BigtableClient(mock.Mock())
@@ -854,7 +853,6 @@ class TestTable(unittest.TestCase):
 
     def test_read_retry_rows_timeouts(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
-        from google.api_core import retry
 
         data_api = bigtable_client.BigtableClient(mock.Mock())
         credentials = _make_credentials()
