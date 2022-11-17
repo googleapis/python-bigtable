@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import time
 import unittest
 
 import mock
@@ -802,13 +801,9 @@ class TestTable(unittest.TestCase):
         from google.api_core import retry
 
         data_api = bigtable_client.BigtableClient(mock.Mock())
-        table_api = bigtable_table_admin_client.BigtableTableAdminClient(mock.Mock())
         credentials = _make_credentials()
-        client = self._make_client(
-            project="project-id", credentials=credentials, admin=True
-        )
+        client = self._make_client(project="project-id", credentials=credentials)
         client._table_data_client = data_api
-        client._table_admin_client = table_api
         instance = client.instance(instance_id=self.INSTANCE_ID)
         table = self._make_one(self.TABLE_ID, instance)
 
@@ -856,6 +851,75 @@ class TestTable(unittest.TestCase):
 
         result = rows[1]
         self.assertEqual(result.row_key, self.ROW_KEY_2)
+
+    def test_read_retry_rows_timeouts(self):
+        from google.cloud.bigtable_v2.gapic import bigtable_client
+        from google.api_core import retry
+
+        data_api = bigtable_client.BigtableClient(mock.Mock())
+        credentials = _make_credentials()
+        client = self._make_client(project="project-id", credentials=credentials)
+        client._table_data_client = data_api
+        instance = client.instance(instance_id=self.INSTANCE_ID)
+        table = self._make_one(self.TABLE_ID, instance)
+
+        # Patch the stub used by the API method.
+        client._table_data_client.transport.read_rows = mock.Mock(
+            side_effect=[_MockReadRowsIterator()]
+        )
+
+        # By default there is no timeout
+        list(table.read_rows())
+        self.assertIsNone(
+            client._table_data_client.transport.read_rows.call_args.kwargs["timeout"]
+        )
+
+        # attempt timeout should be passed thru
+        client._table_data_client.transport.read_rows = mock.Mock(
+            side_effect=[_MockReadRowsIterator()]
+        )
+        list(table.read_rows(attempt_timeout=1.0))
+        self.assertEquals(
+            1.0,
+            client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],
+        )
+
+        # overall timeout should be passed thru
+        client._table_data_client.transport.read_rows = mock.Mock(
+            side_effect=[_MockReadRowsIterator()]
+        )
+        list(table.read_rows(overall_timeout=10.0))
+        self.assertLess(
+            8.0,
+            client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],
+        )
+
+        # attempt timeout limits overall timeout
+        client._table_data_client.transport.read_rows = mock.Mock(
+            side_effect=[_MockReadRowsIterator()]
+        )
+        list(table.read_rows(attempt_timeout=5.0, overall_timeout=10.0))
+        self.assertLessEqual(
+            5.0,
+            client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],
+        )
+
+        # attempt timeout is truncated by overall timeout
+        class DelayedFailureIterator(object):
+            def next(self):
+                time.sleep(0.75)
+                raise DeadlineExceeded("delayed error")
+
+            __next__ = next
+
+        client._table_data_client.transport.read_rows = mock.Mock(
+            side_effect=[DelayedFailureIterator(), _MockReadRowsIterator()]
+        )
+        list(table.read_rows(attempt_timeout=1.0, overall_timeout=1.0))
+        self.assertGreater(
+            1.0,
+            client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],
+        )
 
     def test_yield_retry_rows(self):
         from google.cloud.bigtable_v2.gapic import bigtable_client
