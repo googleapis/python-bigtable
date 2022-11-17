@@ -394,7 +394,12 @@ class PartialRowsData(object):
     }
 
     def __init__(
-        self, read_method, request, retry=DEFAULT_RETRY_READ_ROWS, overall_timeout=None
+        self,
+        read_method,
+        request,
+        retry=DEFAULT_RETRY_READ_ROWS,
+        attempt_timeout=None,
+        overall_timeout=None,
     ):
         # Counter for rows returned to the user
         self._counter = 0
@@ -412,6 +417,7 @@ class PartialRowsData(object):
         self.read_method = read_method
         self.request = request
         self.retry = retry
+        self._attempt_timeout = attempt_timeout
         # absolute timestamp when all retry attempts should end
         if overall_timeout:
             self._overall_deadline = time.time() + overall_timeout
@@ -470,7 +476,13 @@ class PartialRowsData(object):
 
         :type req: class:`data_messages_v2_pb2.ReadRowsRequest`
         """
-        return self.read_method(req, timeout=self.remaining_overall_timeout)
+        effective_timeout = self.remaining_overall_timeout
+        if effective_timeout is None:
+            effective_timeout = self._attempt_timeout
+        elif self._attempt_timeout is not None:
+            effective_timeout = min(effective_timeout, self._attempt_timeout)
+
+        return self.read_method(req, timeout=effective_timeout)
 
     def _create_retry_request(self):
         """Helper for :meth:`__iter__`."""
@@ -497,13 +509,13 @@ class PartialRowsData(object):
         # Calculate the maximum amount of time that retries should be scheduled.
         # This will not actually set any deadlines, it will only limit the
         # duration of time that we are willing to schedule retries for.
-        remaining_timeout = self.remaining_overall_timeout
-        if (
-            remaining_timeout is not None
-            and self.retry.deadline is not None
-            and remaining_timeout < self.retry.deadline
-        ):
-            self.retry = self.retry.with_deadline(remaining_timeout)
+        effective_timeout = self.remaining_overall_timeout
+
+        if self.retry.deadline is not None:
+            if effective_timeout is None or self.retry.deadline < effective_timeout:
+                effective_timeout = self.retry.deadline
+
+        self.retry = self.retry.with_deadline(effective_timeout)
 
         return self.retry(self._read_next, on_error=self._on_error)()
 

@@ -523,6 +523,7 @@ class Table(object):
         end_inclusive=False,
         row_set=None,
         retry=DEFAULT_RETRY_READ_ROWS,
+        attempt_timeout=None,
         overall_timeout=None,
     ):
         """Read rows from this table.
@@ -575,6 +576,12 @@ class Table(object):
             deadline, it will not limit how long a single attempt to read the
             next row will run. Prefer to use overall_timeout below.
 
+
+        :type attempt_timeout: float
+        :param attempt_timeout: (Optional) the attempt timeout to execute a
+                single RPC. If this attempt fails and there is overall_timeout
+                left, another attempt will be sent.
+
         :type overall_timeout: float
         :param overall_timeout: (Optional) the overall operation deadline to
                       to completely read the entire ReadRows stream.
@@ -598,6 +605,7 @@ class Table(object):
             data_client.transport.read_rows,
             request_pb,
             retry,
+            attempt_timeout=attempt_timeout,
             overall_timeout=overall_timeout,
         )
 
