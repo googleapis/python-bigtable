@@ -16,6 +16,8 @@
 
 
 import copy
+import time
+
 import six
 
 import grpc
@@ -340,6 +342,10 @@ DEFAULT_RETRY_READ_ROWS = retry.Retry(
     initial=1.0,
     maximum=15.0,
     multiplier=2.0,
+    # NOTE: this is a soft read timeout: this limits for how long we are willing
+    # to schedule retry attempts to read the next row. This does not set the
+    # RPC timeout. Please use the separate overal_timeout parameter of read_rows
+    # to limit the attempt duration
     deadline=60.0,  # 60 seconds
 )
 """The default retry strategy to be used on retry-able errors.
@@ -387,7 +393,9 @@ class PartialRowsData(object):
         STATE_CELL_IN_PROGRESS: CELL_IN_PROGRESS,
     }
 
-    def __init__(self, read_method, request, retry=DEFAULT_RETRY_READ_ROWS):
+    def __init__(
+        self, read_method, request, retry=DEFAULT_RETRY_READ_ROWS, overall_timeout=None
+    ):
         # Counter for rows returned to the user
         self._counter = 0
         # In-progress row, unset until first response, after commit/reset
@@ -404,14 +412,13 @@ class PartialRowsData(object):
         self.read_method = read_method
         self.request = request
         self.retry = retry
+        # absolute timestamp when all retry attempts should end
+        if overall_timeout:
+            self._overall_deadline = time.time() + overall_timeout
+        else:
+            self._overall_deadline = None
 
-        # The `timeout` parameter must be somewhat greater than the value
-        # contained in `self.retry`, in order to avoid race-like condition and
-        # allow registering the first deadline error before invoking the retry.
-        # Otherwise there is a risk of entering an infinite loop that resets
-        # the timeout counter just before it being triggered. The increment
-        # by 1 second here is customary but should not be much less than that.
-        self.response_iterator = read_method(request, timeout=self.retry._deadline + 1)
+        self.response_iterator = self._create_read_stream(request)
 
         self.rows = {}
         self._state = self.STATE_NEW_ROW
@@ -449,6 +456,22 @@ class PartialRowsData(object):
         for row in self:
             self.rows[row.row_key] = row
 
+    @property
+    def remaining_overall_timeout(self):
+        """Returns the remaining deadline allotted for the entire stream.
+        Returns a float of seconds"""
+        if not self._overall_deadline:
+            return None
+
+        return self._overall_deadline - time.time()
+
+    def _create_read_stream(self, req):
+        """Starts a new RPC bounded by the overall deadline and attempt timeout.
+
+        :type req: class:`data_messages_v2_pb2.ReadRowsRequest`
+        """
+        return self.read_method(req, timeout=self.remaining_overall_timeout)
+
     def _create_retry_request(self):
         """Helper for :meth:`__iter__`."""
         req_manager = _ReadRowsRequestManager(
@@ -463,7 +486,7 @@ class PartialRowsData(object):
         if self.last_scanned_row_key:
             retry_request = self._create_retry_request()
 
-        self.response_iterator = self.read_method(retry_request)
+        self.response_iterator = self._create_read_stream(retry_request)
 
     def _read_next(self):
         """Helper for :meth:`__iter__`."""
@@ -471,6 +494,17 @@ class PartialRowsData(object):
 
     def _read_next_response(self):
         """Helper for :meth:`__iter__`."""
+        # Calculate the maximum amount of time that retries should be scheduled.
+        # This will not actually set any deadlines, it will only limit the
+        # duration of time that we are willing to schedule retries for.
+        remaining_timeout = self.remaining_overall_timeout
+        if (
+            remaining_timeout is not None
+            and self.retry.deadline is not None
+            and remaining_timeout < self.retry.deadline
+        ):
+            self.retry = self.retry.with_deadline(remaining_timeout)
+
         return self.retry(self._read_next, on_error=self._on_error)()
 
     def __iter__(self):

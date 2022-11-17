@@ -506,7 +506,9 @@ class Table(object):
         """
         row_set = RowSet()
         row_set.add_row_key(row_key)
-        result_iter = iter(self.read_rows(filter_=filter_, row_set=row_set))
+        result_iter = iter(
+            self.read_rows(filter_=filter_, row_set=row_set, overall_timeout=60)
+        )
         row = next(result_iter, None)
         if next(result_iter, None) is not None:
             raise ValueError("More than one row was returned.")
@@ -521,6 +523,7 @@ class Table(object):
         end_inclusive=False,
         row_set=None,
         retry=DEFAULT_RETRY_READ_ROWS,
+        overall_timeout=None,
     ):
         """Read rows from this table.
 
@@ -565,7 +568,16 @@ class Table(object):
             default value :attr:`DEFAULT_RETRY_READ_ROWS` can be used and
             modified with the :meth:`~google.api_core.retry.Retry.with_delay`
             method or the :meth:`~google.api_core.retry.Retry.with_deadline`
-            method.
+            method. This retry object is used to try to fetch the next row:
+            this means that the deadline specified by this object is reset
+            after every row read. Furthermore, this deadline is loosely enforced:
+            it will only prevent additional attempts from be scheduled after the
+            deadline, it will not limit how long a single attempt to read the
+            next row will run. Prefer to use overall_timeout below.
+
+        :type overall_timeout: float
+        :param overall_timeout: (Optional) the overall operation deadline to
+                      to completely read the entire ReadRows stream.
 
         :rtype: :class:`.PartialRowsData`
         :returns: A :class:`.PartialRowsData` a generator for consuming
@@ -582,7 +594,12 @@ class Table(object):
             row_set=row_set,
         )
         data_client = self._instance._client.table_data_client
-        return PartialRowsData(data_client.transport.read_rows, request_pb, retry)
+        return PartialRowsData(
+            data_client.transport.read_rows,
+            request_pb,
+            retry,
+            overall_timeout=overall_timeout,
+        )
 
     def yield_rows(self, **kwargs):
         """Read rows from this table.
@@ -614,6 +631,10 @@ class Table(object):
         :type row_set: :class:`.RowSet`
         :param row_set: (Optional) The row set containing multiple row keys and
                         row_ranges.
+
+        :type overall_timeout: float
+        :param overall_timeout: (Optional) the overall operation deadline to
+                      to completely read the entire ReadRows stream.
 
         :rtype: :class:`.PartialRowData`
         :returns: A :class:`.PartialRowData` for each row returned
