@@ -509,13 +509,16 @@ class PartialRowsData(object):
         # Calculate the maximum amount of time that retries should be scheduled.
         # This will not actually set any deadlines, it will only limit the
         # duration of time that we are willing to schedule retries for.
-        effective_timeout = self.remaining_overall_timeout
+        remaining_overall_timeout = self.remaining_overall_timeout
 
-        if self.retry.deadline is not None:
-            if effective_timeout is None or self.retry.deadline < effective_timeout:
-                effective_timeout = self.retry.deadline
-
-        self.retry = self.retry.with_deadline(effective_timeout)
+        if remaining_overall_timeout is not None:
+            # we want make sure that the retry logic doesnt retry after the
+            # operation deadline is past
+            if (
+                self.retry.deadline is None
+                or self.retry.deadline > remaining_overall_timeout
+            ):
+                self.retry = self.retry.with_deadline(remaining_overall_timeout)
 
         return self.retry(self._read_next, on_error=self._on_error)()
 
