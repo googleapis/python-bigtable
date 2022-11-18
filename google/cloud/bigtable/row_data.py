@@ -18,6 +18,7 @@
 import copy
 import time
 
+import google.api_core.exceptions
 import six
 
 import grpc
@@ -507,7 +508,16 @@ class PartialRowsData(object):
         try:
             return six.next(self.response_iterator)
         except grpc.RpcError as grpc_error:
-            raise exceptions.from_grpc_error(grpc_error)
+            # TODO: this needs to be moved to a more general location (ie interceptor)
+            e = exceptions.from_grpc_error(grpc_error)
+            # Sometimes GOAWAYs are surfaced as INTERNAL errors, which makes
+            # them unretriable. This patches that behavior
+            if (
+                e.grpc_status_code == grpc.StatusCode.INTERNAL
+                and "RST_STREAM" in e.message
+            ):
+                raise google.api_core.exceptions.ServiceUnavailable(e.message)
+            raise e
 
     def _read_next_response(self):
         """Helper for :meth:`__iter__`."""
