@@ -512,9 +512,8 @@ class PartialRowsData(object):
             e = exceptions.from_grpc_error(grpc_error)
             # Sometimes GOAWAYs are surfaced as INTERNAL errors, which makes
             # them unretriable. This patches that behavior
-            if (
-                e.grpc_status_code == grpc.StatusCode.INTERNAL
-                and "RST_STREAM" in e.message
+            if e.grpc_status_code == grpc.StatusCode.INTERNAL and (
+                "rst_stream" in e.message.lower() or "rst stream" in e.message.lower()
             ):
                 raise google.api_core.exceptions.ServiceUnavailable(e.message)
             raise e
