@@ -393,8 +393,9 @@ class TestPartialRowsData(unittest.TestCase):
         )
         partial_rows_data.read_method.assert_called_once_with(request, timeout=mock.ANY)
 
-        # the deadline being passed to the first RPC should be close to 11
-        # But to avoid flakiness on slow test runners, its padded down by 3 secs
+        # the deadline being passed to the first RPC should be slightly less
+        # than 11. But to avoid flakiness on slow test runners, its padded down
+        # by 3 secs
         self.assertLess(8, partial_rows_data.read_method.call_args.kwargs["timeout"])
 
         self.assertIs(partial_rows_data.request, request)

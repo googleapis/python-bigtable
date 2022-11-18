@@ -887,6 +887,8 @@ class TestTable(unittest.TestCase):
             side_effect=[_MockReadRowsIterator()]
         )
         list(table.read_rows(overall_timeout=10.0))
+        # The RPC timeout should be slightly less than 10.0 but to avoid test
+        # flakiness its padded by a couple of secs.
         self.assertLess(
             8.0,
             client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],
@@ -914,6 +916,7 @@ class TestTable(unittest.TestCase):
             side_effect=[DelayedFailureIterator(), _MockReadRowsIterator()]
         )
         list(table.read_rows(attempt_timeout=1.0, overall_timeout=1.0))
+
         self.assertGreater(
             1.0,
             client._table_data_client.transport.read_rows.call_args.kwargs["timeout"],

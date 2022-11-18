@@ -481,7 +481,7 @@ class Table(object):
             for cluster_id, value_pb in table_pb.cluster_states.items()
         }
 
-    def read_row(self, row_key, filter_=None):
+    def read_row(self, row_key, filter_=None, overall_timeout=60):
         """Read a single row from this table.
 
         For example:
@@ -507,7 +507,9 @@ class Table(object):
         row_set = RowSet()
         row_set.add_row_key(row_key)
         result_iter = iter(
-            self.read_rows(filter_=filter_, row_set=row_set, overall_timeout=60)
+            self.read_rows(
+                filter_=filter_, row_set=row_set, overall_timeout=overall_timeout
+            )
         )
         row = next(result_iter, None)
         if next(result_iter, None) is not None:
