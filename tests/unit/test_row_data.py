@@ -336,20 +336,6 @@ class Test_retry_read_rows_exception(unittest.TestCase):
         exception = self._make_grpc_call_error(wrapped)
         self.assertFalse(self._call_fut(exception))
 
-    def test_w_service_unavailable_wrapped_in_grpc(self):
-        from google.api_core.exceptions import ServiceUnavailable
-
-        wrapped = ServiceUnavailable("testing")
-        exception = self._make_grpc_call_error(wrapped)
-        self.assertTrue(self._call_fut(exception))
-
-    def test_w_deadline_exceeded_wrapped_in_grpc(self):
-        from google.api_core.exceptions import DeadlineExceeded
-
-        wrapped = DeadlineExceeded("testing")
-        exception = self._make_grpc_call_error(wrapped)
-        self.assertTrue(self._call_fut(exception))
-
 
 class TestPartialRowsData(unittest.TestCase):
     ROW_KEY = b"row-key"
@@ -861,7 +847,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
         request_manager = self._make_one(request, last_scanned_key, 2)
 
         result = request_manager.build_updated_request()
-        expected_result = _ReadRowsRequestPB(table_name=self.table_name, filter={})
+        expected_result = _ReadRowsRequestPB(table_name=self.table_name)
         expected_result.rows.row_ranges.add(start_key_open=last_scanned_key)
         self.assertEqual(expected_result, result)
 
@@ -946,9 +932,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
         request_manager = self._make_one(request, last_scanned_key, 2)
 
         result = request_manager.build_updated_request()
-        expected_result = _ReadRowsRequestPB(
-            table_name=self.table_name, filter={}, rows_limit=8
-        )
+        expected_result = _ReadRowsRequestPB(table_name=self.table_name, rows_limit=8)
         expected_result.rows.row_ranges.add(start_key_open=last_scanned_key)
         self.assertEqual(expected_result, result)
 

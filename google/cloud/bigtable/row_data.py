@@ -331,9 +331,11 @@ class InvalidChunk(RuntimeError):
     """Exception raised to to invalid chunk data from back-end."""
 
 
+class InvalidRetryRequest(RuntimeError):
+    """Exception raised when retry request is invalid."""
+
+
 def _retry_read_rows_exception(exc):
-    if isinstance(exc, grpc.RpcError):
-        exc = exceptions.from_grpc_error(exc)
     return isinstance(exc, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
 
 
@@ -502,7 +504,10 @@ class PartialRowsData(object):
 
     def _read_next(self):
         """Helper for :meth:`__iter__`."""
-        return six.next(self.response_iterator)
+        try:
+            return six.next(self.response_iterator)
+        except grpc.RpcError as grpc_error:
+            raise exceptions.from_grpc_error(grpc_error)
 
     def _read_next_response(self):
         """Helper for :meth:`__iter__`."""
@@ -535,6 +540,9 @@ class PartialRowsData(object):
             except StopIteration:
                 if self.state != self.NEW_ROW:
                     raise ValueError("The row remains partial / is not committed.")
+                break
+            except InvalidRetryRequest:
+                self._cancelled = True
                 break
 
             for chunk in response.chunks:
@@ -674,29 +682,38 @@ class _ReadRowsRequestManager(object):
 
     def build_updated_request(self):
         """Updates the given message request as per last scanned key"""
-        r_kwargs = {
-            "table_name": self.message.table_name,
-            "filter": self.message.filter,
-        }
+
+        resume_request = data_messages_v2_pb2.ReadRowsRequest()
+        data_messages_v2_pb2.ReadRowsRequest.CopyFrom(resume_request, self.message)
+        resume_request.rows.Clear()
 
         if self.message.rows_limit != 0:
-            r_kwargs["rows_limit"] = max(
-                1, self.message.rows_limit - self.rows_read_so_far
-            )
+            row_limit_remaining = self.message.rows_limit - self.rows_read_so_far
+            if row_limit_remaining > 0:
+                resume_request.rows_limit = row_limit_remaining
+            else:
+                raise InvalidRetryRequest
 
         # if neither RowSet.row_keys nor RowSet.row_ranges currently exist,
         # add row_range that starts with last_scanned_key as start_key_open
         # to request only rows that have not been returned yet
         if not self.message.HasField("rows"):
             row_range = data_v2_pb2.RowRange(start_key_open=self.last_scanned_key)
-            r_kwargs["rows"] = data_v2_pb2.RowSet(row_ranges=[row_range])
+            resume_request.rows.row_ranges.add().CopyFrom(row_range)
         else:
             row_keys = self._filter_rows_keys()
             row_ranges = self._filter_row_ranges()
-            r_kwargs["rows"] = data_v2_pb2.RowSet(
-                row_keys=row_keys, row_ranges=row_ranges
-            )
-        return data_messages_v2_pb2.ReadRowsRequest(**r_kwargs)
+
+            if len(row_keys) == 0 and len(row_ranges) == 0:
+                # Avoid sending empty row_keys and row_ranges
+                # if that was not the intention
+                raise InvalidRetryRequest
+
+            resume_request.rows.row_keys[:] = row_keys
+            for rr in row_ranges:
+                resume_request.rows.row_ranges.add().CopyFrom(rr)
+
+        return resume_request
 
     def _filter_rows_keys(self):
         """Helper for :meth:`build_updated_request`"""
