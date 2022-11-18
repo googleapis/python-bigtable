@@ -370,20 +370,26 @@ class TestPartialRowsData(unittest.TestCase):
         self.assertEqual(partial_rows_data.rows, {})
         self.assertEqual(partial_rows_data.retry, DEFAULT_RETRY_READ_ROWS)
 
-    def test_constructor_with_retry(self):
-        from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
-
+    def test_constructor_with_overall_timeout(self):
         client = _Client()
         client._data_stub = mock.MagicMock()
         request = object()
-        retry = DEFAULT_RETRY_READ_ROWS
-        partial_rows_data = self._make_one(client._data_stub.ReadRows, request, retry)
-        partial_rows_data.read_method.assert_called_once_with(
-            request, timeout=DEFAULT_RETRY_READ_ROWS.deadline + 1
+        partial_rows_data = self._make_one(
+            client._data_stub.ReadRows, request, overall_timeout=11
         )
+        partial_rows_data.read_method.assert_called_once_with(request, timeout=mock.ANY)
+
+        # the deadline being passed to the first RPC should be slightly less
+        # than 11. But to avoid flakiness on slow test runners, its padded down
+        # by 3 secs
+        self.assertLess(8, partial_rows_data.read_method.call_args.kwargs["timeout"])
+
         self.assertIs(partial_rows_data.request, request)
         self.assertEqual(partial_rows_data.rows, {})
-        self.assertEqual(partial_rows_data.retry, retry)
+        # The remaining deadline should be
+        # But to avoid flakiness on slow test runners, its padded down by 3 secs
+        self.assertLess(8, partial_rows_data.remaining_overall_timeout)
+        self.assertLessEqual(partial_rows_data.remaining_overall_timeout, 11)
 
     def test___eq__(self):
         client = _Client()
