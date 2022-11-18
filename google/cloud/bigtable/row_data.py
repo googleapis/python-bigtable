@@ -334,8 +334,6 @@ class InvalidRetryRequest(RuntimeError):
 
 
 def _retry_read_rows_exception(exc):
-    if isinstance(exc, grpc.RpcError):
-        exc = exceptions.from_grpc_error(exc)
     return isinstance(exc, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
 
 
@@ -471,7 +469,10 @@ class PartialRowsData(object):
 
     def _read_next(self):
         """Helper for :meth:`__iter__`."""
-        return six.next(self.response_iterator)
+        try:
+            return six.next(self.response_iterator)
+        except grpc.RpcError as grpc_error:
+            raise exceptions.from_grpc_error(grpc_error)
 
     def _read_next_response(self):
         """Helper for :meth:`__iter__`."""
