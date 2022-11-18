@@ -70,7 +70,7 @@ bigtable_default_version = "v2"
 bigtable_admin_default_version = "v2"
 
 for library in get_staging_dirs(bigtable_default_version, "bigtable"):
-    s.move(library / "google/cloud/bigtable_v*")
+    s.move(library / "google/cloud/bigtable_v2")
     s.move(library / "tests")
     s.move(library / "scripts")
 
