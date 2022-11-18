@@ -640,6 +640,11 @@ class Table(object):
         :param row_set: (Optional) The row set containing multiple row keys and
                         row_ranges.
 
+        :type attempt_timeout: float
+        :param attempt_timeout: (Optional) the attempt timeout to execute a
+                single RPC. If this attempt fails and there is overall_timeout
+                left, another attempt will be sent.
+
         :type overall_timeout: float
         :param overall_timeout: (Optional) the overall operation deadline to
                       to completely read the entire ReadRows stream.

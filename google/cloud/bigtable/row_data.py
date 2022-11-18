@@ -345,7 +345,7 @@ DEFAULT_RETRY_READ_ROWS = retry.Retry(
     # NOTE: this is a soft read timeout: this limits for how long we are willing
     # to schedule retry attempts to read the next row. This does not set the
     # RPC timeout. Please use the separate overal_timeout parameter of read_rows
-    # to limit the attempt duration
+    # to limit the operation duration
     deadline=60.0,  # 60 seconds
 )
 """The default retry strategy to be used on retry-able errors.
