@@ -855,7 +855,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
         request_manager = self._make_one(request, last_scanned_key, 2)
 
         result = request_manager.build_updated_request()
-        expected_result = _ReadRowsRequestPB(table_name=self.table_name, filter={})
+        expected_result = _ReadRowsRequestPB(table_name=self.table_name)
         expected_result.rows.row_ranges.add(start_key_open=last_scanned_key)
         self.assertEqual(expected_result, result)
 
@@ -940,9 +940,7 @@ class Test_ReadRowsRequestManager(unittest.TestCase):
         request_manager = self._make_one(request, last_scanned_key, 2)
 
         result = request_manager.build_updated_request()
-        expected_result = _ReadRowsRequestPB(
-            table_name=self.table_name, filter={}, rows_limit=8
-        )
+        expected_result = _ReadRowsRequestPB(table_name=self.table_name, rows_limit=8)
         expected_result.rows.row_ranges.add(start_key_open=last_scanned_key)
         self.assertEqual(expected_result, result)
 
