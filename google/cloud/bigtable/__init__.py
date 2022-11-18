@@ -17,7 +17,6 @@
 from typing import Optional
 import pkg_resources
 from google.cloud.bigtable.client import Client
-from google.cloud.bigtable import gapic_version as package_version
 
 
 __version__: Optional[str]
