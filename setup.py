@@ -27,7 +27,7 @@ description = "Google Cloud Bigtable API client library"
 
 version = {}
 with open(
-    os.path.join(package_root, "google/cloud/accessapproval/gapic_version.py")
+    os.path.join(package_root, "google/cloud/bigtable/gapic_version.py")
 ) as fp:
     exec(fp.read(), version)
 version = version["__version__"]
