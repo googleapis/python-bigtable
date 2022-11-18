@@ -4,6 +4,16 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [1.7.3](https://github.com/googleapis/python-bigtable/compare/v1.7.2...v1.7.3) (2022-11-18)
+
+
+### Bug Fixes
+
+* First pass on making retry configuration more consistent ([#695](https://github.com/googleapis/python-bigtable/issues/695)) ([c707c30](https://github.com/googleapis/python-bigtable/commit/c707c309a4095e14ecc678f327d417d5a2a55243))
+* Make internal rst_stream errors retriable ([#699](https://github.com/googleapis/python-bigtable/issues/699)) ([770feb8](https://github.com/googleapis/python-bigtable/commit/770feb840c5bc30ebf30447e9460d581c1a5c5b0))
+* Make sure that the proper exception type is bubbled up for ReadRows ([#696](https://github.com/googleapis/python-bigtable/issues/696)) ([5c72780](https://github.com/googleapis/python-bigtable/commit/5c727802ea55611a103bca1d4fff2a3d305be758))
+* Prevent sending full table scan when retrying (backport [#554](https://github.com/googleapis/python-bigtable/issues/554)) ([#697](https://github.com/googleapis/python-bigtable/issues/697)) ([c4ae6ad](https://github.com/googleapis/python-bigtable/commit/c4ae6ad5d2ce8e495250b1df41a4ba1877dacca2))
+
 ## [1.7.2](https://github.com/googleapis/python-bigtable/compare/v1.7.1...v1.7.2) (2022-06-07)
 
 
