@@ -37,7 +37,7 @@ from google.auth.credentials import AnonymousCredentials  # type: ignore
 
 from google.cloud import bigtable_v2
 from google.cloud import bigtable_admin_v2
-from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport
+from google.cloud.bigtable_v2.services.bigtable.transports import BigtableGrpcTransport, BigtableGrpcAsyncIOTransport
 from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin.transports import (
     BigtableInstanceAdminGrpcTransport,
 )
@@ -145,6 +145,7 @@ class Client(ClientWithProject):
     """
 
     _table_data_client = None
+    _async_table_data_client = None
     _table_admin_client = None
     _instance_admin_client = None
 
@@ -340,6 +341,23 @@ class Client(ClientWithProject):
             )
             self._table_data_client = klass(self)
         return self._table_data_client
+
+    @property
+    def async_table_data_client(self):
+        """only mutate_rows is supported here
+        """
+        if self._async_table_data_client is None:
+            transport = self._create_gapic_client_channel(
+                bigtable_v2.BigtableAsyncClient,
+                BigtableGrpcAsyncIOTransport,
+            )
+            klass = _create_gapic_client(
+                bigtable_v2.BigtableAsyncClient,
+                client_options=self._client_options,
+                transport=transport,
+            )
+            self._async_table_data_client = klass(self)
+        return self._async_table_data_client
 
     @property
     def table_admin_client(self):

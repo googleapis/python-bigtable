@@ -526,7 +526,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    def mutate_rows(
+    async def mutate_rows(
         self,
         request: Optional[Union[bigtable.MutateRowsRequest, dict]] = None,
         *,
@@ -626,7 +626,7 @@ class BigtableAsyncClient:
         )
 
         # Send the request.
-        response = rpc(
+        response = await rpc(
             request,
             retry=retry,
             timeout=timeout,

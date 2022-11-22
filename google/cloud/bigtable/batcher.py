@@ -14,6 +14,8 @@
 
 """User friendly container for Google Cloud Bigtable MutationBatcher."""
 
+import asyncio
+
 
 FLUSH_COUNT = 1000
 MAX_MUTATIONS = 100000
@@ -65,6 +67,9 @@ class MutationsBatcher(object):
         self.max_row_bytes = max_row_bytes
 
     def mutate(self, row):
+        asyncio.run(self.async_mutate(row))
+
+    async def async_mutate(self, row):
         """Add a row to the batch. If the current batch meets one of the size
         limits, the batch is sent synchronously.
 
@@ -95,16 +100,19 @@ class MutationsBatcher(object):
             )
 
         if (self.total_mutation_count + mutation_count) >= MAX_MUTATIONS:
-            self.flush()
+            await self.async_flush()
 
         self.rows.append(row)
         self.total_mutation_count += mutation_count
         self.total_size += row.get_mutations_size()
 
         if self.total_size >= self.max_row_bytes or len(self.rows) >= self.flush_count:
-            self.flush()
+            await self.async_flush()
 
     def mutate_rows(self, rows):
+        asyncio.run(self.async_mutate_rows(rows))
+
+    async def async_mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
         limits, the batch is sent synchronously.
 
@@ -127,9 +135,12 @@ class MutationsBatcher(object):
                    mutations count.
         """
         for row in rows:
-            self.mutate(row)
+            await self.async_mutate(row)
 
     def flush(self):
+        asyncio.run(self.async_flush())
+
+    async def async_flush(self):
         """Sends the current. batch to Cloud Bigtable.
         For example:
 
@@ -140,7 +151,7 @@ class MutationsBatcher(object):
 
         """
         if len(self.rows) != 0:
-            self.table.mutate_rows(self.rows)
+            await self.table.async_mutate_rows(self.rows)
             self.total_mutation_count = 0
             self.total_size = 0
             self.rows = []
