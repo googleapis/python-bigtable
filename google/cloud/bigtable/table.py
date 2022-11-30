@@ -100,6 +100,7 @@ ASYNC_DEFAULT_RETRY = AsyncRetry(
     deadline=120.0,  # 2 minutes
 )
 
+
 class TableMismatchError(ValueError):
     """Row from another table."""
 
@@ -686,7 +687,7 @@ class Table(object):
         return self.read_rows(**kwargs)
 
     async def async_mutate_rows(self, rows, retry=ASYNC_DEFAULT_RETRY, timeout=DEFAULT):
-        """async mutate_rows """
+        """async mutate_rows"""
         if timeout is DEFAULT:
             timeout = self.mutation_timeout
 

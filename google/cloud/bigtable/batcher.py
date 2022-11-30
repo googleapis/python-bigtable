@@ -67,7 +67,23 @@ class MutationsBatcher(object):
         self.max_row_bytes = max_row_bytes
 
     def mutate(self, row):
-        asyncio.run(self.async_mutate(row))
+        mutation_count = len(row._get_mutations())
+        if mutation_count > MAX_MUTATIONS:
+            raise MaxMutationsError(
+                "The row key {} exceeds the number of mutations {}.".format(
+                    row.row_key, mutation_count
+                )
+            )
+
+        if (self.total_mutation_count + mutation_count) >= MAX_MUTATIONS:
+            self.flush()
+
+        self.rows.append(row)
+        self.total_mutation_count += mutation_count
+        self.total_size += row.get_mutations_size()
+
+        if self.total_size >= self.max_row_bytes or len(self.rows) >= self.flush_count:
+            self.flush()
 
     async def async_mutate(self, row):
         """Add a row to the batch. If the current batch meets one of the size
@@ -110,7 +126,8 @@ class MutationsBatcher(object):
             await self.async_flush()
 
     def mutate_rows(self, rows):
-        asyncio.run(self.async_mutate_rows(rows))
+        for row in rows:
+            self.mutate(row)
 
     async def async_mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
@@ -138,7 +155,11 @@ class MutationsBatcher(object):
             await self.async_mutate(row)
 
     def flush(self):
-        asyncio.run(self.async_flush())
+        if len(self.rows) != 0:
+            self.table.mutate_rows(self.rows)
+            self.total_mutation_count = 0
+            self.total_size = 0
+            self.rows = []
 
     async def async_flush(self):
         """Sends the current. batch to Cloud Bigtable.
