@@ -14,8 +14,6 @@
 
 """User friendly container for Google Cloud Bigtable MutationBatcher."""
 
-import asyncio
-
 
 FLUSH_COUNT = 1000
 MAX_MUTATIONS = 100000
