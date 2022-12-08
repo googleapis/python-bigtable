@@ -370,13 +370,13 @@ class Backup(object):
         :param new_backup_id: The name of the copied backup
 
         :type project_id: str
-        :param project_id: The destination project id for the backup
+        :param project_id: (Optional) The destination project id for the backup
 
         :type instance_id: str
-        :param instance_id: The destination instance for the backup
+        :param instance_id: (Optional) The destination instance for the backup
 
         :type cluster_id: str
-        :param cluster_id: The destination cluster for the backup
+        :param cluster_id: (Optional) The destination cluster for the backup
 
         :type expire_time: :class:`datetime.datetime`
         :param expire_time: (Optional) the new expiration time timestamp
