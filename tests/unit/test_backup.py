@@ -949,10 +949,14 @@ def test_backup_with_source_backup():
     timestamp = _make_timestamp()
 
     copy_backup_id = "copied-backup"
-    copied_backup = _make_backup(copy_backup_id, _Instance(INSTANCE_NAME, client=client),
+    copied_backup = _make_backup(
+        copy_backup_id,
+        _Instance(INSTANCE_NAME, client=client),
         cluster_id=CLUSTER_ID,
         table_id=TABLE_ID,
-        expire_time=timestamp, source_backup = BACKUP_ID)
+        expire_time=timestamp,
+        source_backup=BACKUP_ID,
+    )
 
     assert copied_backup.source_backup == BACKUP_ID
 
