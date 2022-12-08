@@ -98,6 +98,7 @@ def test_backup_constructor_explicit():
     assert backup._end_time is None
     assert backup._size_bytes is None
     assert backup._state is None
+    assert backup.source_backup is None
 
 
 def test_backup_from_pb_w_project_mismatch():
@@ -940,6 +941,20 @@ def test_backup_copy():
             "expire_time": timestamp,
         }
     )
+
+
+def test_backup_with_source_backup():
+
+    client = _Client()
+    timestamp = _make_timestamp()
+
+    copy_backup_id = "copied-backup"
+    copied_backup = _make_backup(copy_backup_id, _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp, source_backup = BACKUP_ID)
+
+    assert copied_backup.source_backup == BACKUP_ID
 
 
 def test_backup_copy_w_expire_time():

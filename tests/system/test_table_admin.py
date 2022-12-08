@@ -14,10 +14,8 @@
 
 import datetime
 import operator
-import time
 
 import pytest
-from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 from . import _helpers
 
@@ -265,7 +263,6 @@ def test_table_backup(
 ):
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable import enums
-    from google.api_core.exceptions import FailedPrecondition
 
     temp_table_id = "test-backup-table"
     temp_table = data_instance_populated.table(temp_table_id)
@@ -274,15 +271,15 @@ def test_table_backup(
 
     temp_backup_id = "test-backup"
 
-    # TODO: consider using `datetime.datetime.now().timestamp()`
-    #  when support for Python 2 is fully dropped
-    expire = int(time.mktime(datetime.datetime.now().timetuple())) + 604800
+    expire = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
+        days=7
+    )
 
     # Testing `Table.backup()` factory
     temp_backup = temp_table.backup(
         temp_backup_id,
         cluster_id=data_cluster_id,
-        expire_time=datetime.datetime.utcfromtimestamp(expire),
+        expire_time=expire,
     )
 
     # Reinitialize the admin client. This is to test `_table_admin_client`
@@ -306,46 +303,23 @@ def test_table_backup(
     temp_table_backup = temp_table.list_backups()[0]
     assert temp_backup_id == temp_table_backup.backup_id
     assert data_cluster_id == temp_table_backup.cluster
-    assert expire == temp_table_backup.expire_time.seconds
+
+    assert _datetime_to_pb_timestamp(expire) == temp_table_backup.expire_time
     assert (
         temp_table_backup.encryption_info.encryption_type
         == enums.EncryptionInfo.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION
     )
 
     # Testing `Backup.update_expire_time()` method
-    expire += 3600  # A one-hour change in the `expire_time` parameter
-    updated_time = datetime.datetime.utcfromtimestamp(expire)
+    # A one-hour change in the `expire_time` parameter
+    updated_time = expire + datetime.timedelta(hours=1)
     temp_backup.update_expire_time(updated_time)
-    test = _datetime_to_pb_timestamp(updated_time)
 
     # Testing `Backup.get()` method
     temp_table_backup = temp_backup.get()
-    assert test.seconds == DatetimeWithNanoseconds.timestamp(
-        temp_table_backup.expire_time
-    )
+    assert updated_time == temp_table_backup.expire_time
 
-    # Testing `backup.copy()` method
-    backup_op = temp_backup.copy("copied-backup")
-    backup_op.result(timeout=30)
-    backups_to_delete.append("copied-backup")
-
-    backup_copy = temp_table.backup("copied-backup", cluster_id=data_cluster_id)
-    assert backup_copy.exists()
-    backup_copy.reload()
-    assert backup_copy.expire_time.seconds == DatetimeWithNanoseconds.timestamp(
-        temp_backup.expire_time
-    )
-    assert backup_copy.source_backup == temp_backup.name
-
-    new_expire_time = expire + 7200
-    backup_op = temp_backup.copy("copied-backup-exp", expire_time=new_expire_time)
-    backup_op.result(timeout=30)
-    backups_to_delete.append("copied-backup-exp")
-    # Testing cannot copy a copied backup
-    with pytest.raises(FailedPrecondition):
-        backup_copy.copy("copied-backup-again")
-
-    # Testing `Table.restore()` and `Backup.retore()` methods
+    # Testing `Table.restore()` and `Backup.restore()` methods
     restored_table_id = "test-backup-table-restored"
     restored_table = data_instance_populated.table(restored_table_id)
     local_restore_op = temp_table.restore(
@@ -376,3 +350,103 @@ def test_table_backup(
     restored_table = alt_instance.table(restored_table_id)
     assert restored_table in alt_instance.list_tables()
     restored_table.delete()
+
+
+def test_table_copy_backup_to_new_instance(
+    admin_client,
+    unique_suffix,
+    instance_labels,
+    location_id,
+    data_instance_populated,
+    data_cluster_id,
+    instances_to_delete,
+    tables_to_delete,
+    backups_to_delete,
+    skip_on_emulator,
+):
+    from google.cloud._helpers import _datetime_to_pb_timestamp
+    from google.api_core.exceptions import FailedPrecondition
+    from google.cloud.bigtable.backup import Backup
+
+    source_instance = data_instance_populated
+    temp_table_id = "test-backup-table"
+    source_table = source_instance.table(temp_table_id)
+    source_table.create()
+    tables_to_delete.append(source_table)
+
+    temp_backup_id = "test-backup"
+
+    expire = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
+        days=7
+    )
+
+    # create a backup to be copied
+    temp_backup = source_table.backup(
+        temp_backup_id,
+        cluster_id=data_cluster_id,
+        expire_time=expire,
+    )
+    temp_backup.create()
+    backups_to_delete.append(temp_backup)
+
+    # Test copying to the same instance
+    backup_op = temp_backup.copy("copied-backup")
+    backup_op.result(timeout=30)
+
+    # assert the copy was successful and the properties are set correctly
+    copied_backup = source_table.backup(
+        "copied-backup", cluster_id=data_cluster_id, expire_time=expire
+    )
+    assert copied_backup.exists()
+    copied_backup.reload()
+    assert copied_backup is not None
+    assert copied_backup._instance.instance_id == source_instance.instance_id
+    assert copied_backup.cluster == data_cluster_id
+    assert copied_backup.expire_time == _datetime_to_pb_timestamp(expire)
+
+    backups_to_delete.append(copied_backup)
+
+    # Test copying to a different instance, cluster, expire_time
+
+    # Set up the alt instance and cluster
+    alt_instance_id = f"gcp-alt-{unique_suffix}"
+    alt_cluster_id = f"{alt_instance_id}-cluster"
+    alt_instance = admin_client.instance(alt_instance_id, labels=instance_labels)
+    alt_cluster = alt_instance.cluster(
+        cluster_id=alt_cluster_id,
+        location_id=location_id,
+        serve_nodes=1,
+    )
+    alt_instance.create(clusters=[alt_cluster])
+    instances_to_delete.append(alt_instance)
+
+    # create a copy to the new instance, cluster, and new expire_time
+    copied_backup_id = "copy-new-instance"
+    new_expire_time = expire + datetime.timedelta(days=1)
+    backup_op = temp_backup.copy(
+        copied_backup_id,
+        instance_id=alt_instance_id,
+        cluster_id=alt_cluster_id,
+        expire_time=new_expire_time,
+    )
+    backup_op.result(timeout=30)
+
+    # assert the copy was successful and the properties are set correctly
+    copied_backup = Backup(
+        copied_backup_id,
+        instance=alt_instance,
+        cluster_id=alt_cluster_id,
+        expire_time=new_expire_time,
+    )
+    assert copied_backup.exists()
+    copied_backup.reload()
+    assert copied_backup is not None
+    assert copied_backup._instance.instance_id == alt_instance_id
+    assert copied_backup.cluster == alt_cluster_id
+    assert copied_backup.expire_time == _datetime_to_pb_timestamp(new_expire_time)
+
+    backups_to_delete.append(copied_backup)
+
+    # Testing cannot copy a copied backup
+    with pytest.raises(FailedPrecondition):
+        copied_backup.copy("copied-backup-again")
