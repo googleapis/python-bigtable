@@ -369,12 +369,12 @@ def test_table_copy_backup_to_new_instance(
     from google.cloud.bigtable.backup import Backup
 
     source_instance = data_instance_populated
-    temp_table_id = "test-backup-table"
+    temp_table_id = f"test-backup-table-{unique_suffix}"
     source_table = source_instance.table(temp_table_id)
     source_table.create()
     tables_to_delete.append(source_table)
 
-    temp_backup_id = "test-backup"
+    temp_backup_id = f"test-backup-{unique_suffix}"
 
     expire = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
         days=7
@@ -390,12 +390,13 @@ def test_table_copy_backup_to_new_instance(
     backups_to_delete.append(temp_backup)
 
     # Test copying to the same instance
-    backup_op = temp_backup.copy("copied-backup")
+    copied_backup_id = f"copied-backup-{unique_suffix}"
+    backup_op = temp_backup.copy(copied_backup_id)
     backup_op.result(timeout=30)
 
     # assert the copy was successful and the properties are set correctly
     copied_backup = source_table.backup(
-        "copied-backup", cluster_id=data_cluster_id, expire_time=expire
+        copied_backup_id, cluster_id=data_cluster_id, expire_time=expire
     )
     assert copied_backup.exists()
     copied_backup.reload()
@@ -421,7 +422,7 @@ def test_table_copy_backup_to_new_instance(
     instances_to_delete.append(alt_instance)
 
     # create a copy to the new instance, cluster, and new expire_time
-    copied_backup_id = "copy-new-instance"
+    copied_backup_id = f"copy-new-instance-{unique_suffix}"
     new_expire_time = expire + datetime.timedelta(days=1)
     backup_op = temp_backup.copy(
         copied_backup_id,
