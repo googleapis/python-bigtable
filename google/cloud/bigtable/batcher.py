@@ -27,19 +27,19 @@ class MaxMutationsError(ValueError):
     """The number of mutations for bulk request is too big."""
 
 
-class MutationsBatchQueue(queue.Queue):
-    """Threadsafe Queue to hold rows for batching"""
+class _MutationsBatchQueue(object):
+    """Private Threadsafe Queue to hold rows for batching."""
 
     def __init__(self, max_row_bytes=MAX_ROW_BYTES, flush_count=FLUSH_COUNT):
         """Specify the queue constraints"""
+        self._queue = queue.Queue(maxsize=flush_count)
         self.total_mutation_count = 0
         self.total_size = 0
         self.max_row_bytes = max_row_bytes
-        super().__init__(maxsize=flush_count)
 
     def get(self, block=True, timeout=None):
         """Retrieve an item from the queue. Recalculate queue size."""
-        row = super().get(block=block, timeout=timeout)
+        row = self._queue.get(block=block, timeout=timeout)
         mutation_size = row.get_mutations_size()
         self.total_mutation_count -= len(row._get_mutations())
         self.total_size -= mutation_size
@@ -49,13 +49,16 @@ class MutationsBatchQueue(queue.Queue):
         """Insert an item to the queue. Recalculate queue size."""
         self.total_size += item.get_mutations_size()
         self.total_mutation_count += len(item._get_mutations())
-        super().put(item, block=block, timeout=timeout)
+        self._queue.put(item, block=block, timeout=timeout)
 
     def full(self):
         """Check if the queue is full."""
-        if self.total_size >= self.max_row_bytes or super().full():
+        if self.total_size >= self.max_row_bytes or self._queue.full():
             return True
         return False
+
+    def empty(self):
+        return self._queue.empty()
 
 
 class MutationsBatcher(object):
@@ -91,7 +94,7 @@ class MutationsBatcher(object):
     """
 
     def __init__(self, table, flush_count=FLUSH_COUNT, max_row_bytes=MAX_ROW_BYTES):
-        self.rows = MutationsBatchQueue(
+        self.rows = _MutationsBatchQueue(
             max_row_bytes=max_row_bytes, flush_count=flush_count
         )
         self.table = table
@@ -126,7 +129,7 @@ class MutationsBatcher(object):
                    mutations count.
         """
         if self.rows.full():
-            self.flush(in_executor=True)
+            self.flush_async()
         self.rows.put(row)
 
     def mutate_rows(self, rows):
@@ -154,8 +157,8 @@ class MutationsBatcher(object):
         for row in rows:
             self.mutate(row)
 
-    def flush(self, in_executor=False):
-        """Sends the rows in the batch to Cloud Bigtable.
+    def flush(self):
+        """Sends the current. batch to Cloud Bigtable.
         For example:
 
         .. literalinclude:: snippets.py
@@ -167,11 +170,13 @@ class MutationsBatcher(object):
         rows_to_flush = []
         while not self.rows.empty():
             rows_to_flush.append(self.rows.get())
-        if in_executor:
-            self.executor.submit(self.flush_rows, rows_to_flush)
-        else:
-            # running it directly not in thread
-            self.flush_rows(rows_to_flush)
+        self.flush_rows(rows_to_flush)
+
+    def flush_async(self):
+        rows_to_flush = []
+        while not self.rows.empty():
+            rows_to_flush.append(self.rows.get())
+        self.executor.submit(self.flush_rows, rows_to_flush)
 
     def flush_rows(self, rows_to_flush=None):
         """Mutate the specified rows."""
