@@ -144,6 +144,25 @@ def test_mutation_batcher_mutate_w_max_row_bytes():
     assert table.mutation_calls == 1
 
 
+def test_mutations_batcher_flushed_when_closed():
+    table = _Table(TABLE_NAME)
+    mutation_batcher = _make_mutation_batcher(
+        table=table, max_row_bytes=3 * 1024 * 1024
+    )
+
+    number_of_bytes = 1 * 1024 * 1024
+    max_value = b"1" * number_of_bytes
+
+    row = DirectRow(row_key=b"row_key")
+    row.set_cell("cf1", b"c1", max_value)
+    row.set_cell("cf1", b"c2", max_value)
+
+    mutation_batcher.mutate(row)
+    mutation_batcher.close()
+
+    assert table.mutation_calls == 1
+
+
 class _Instance(object):
     def __init__(self, client=None):
         self._client = client

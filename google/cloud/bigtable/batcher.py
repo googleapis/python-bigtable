@@ -47,13 +47,27 @@ class _MutationsBatchQueue(object):
 
     def put(self, item, block=True, timeout=None):
         """Insert an item to the queue. Recalculate queue size."""
+
+        mutation_count = len(item._get_mutations())
+
+        if mutation_count > MAX_MUTATIONS:
+            raise MaxMutationsError(
+                "The row key {} exceeds the number of mutations {}.".format(
+                    item.row_key, mutation_count
+                )
+            )
         self.total_size += item.get_mutations_size()
-        self.total_mutation_count += len(item._get_mutations())
+        self.total_mutation_count += mutation_count
+
         self._queue.put(item, block=block, timeout=timeout)
 
     def full(self):
         """Check if the queue is full."""
-        if self.total_size >= self.max_row_bytes or self._queue.full():
+        if (
+            self.total_mutation_count >= MAX_MUTATIONS
+            or self.total_size >= self.max_row_bytes
+            or self._queue.full()
+        ):
             return True
         return False
 
@@ -94,13 +108,20 @@ class MutationsBatcher(object):
     """
 
     def __init__(self, table, flush_count=FLUSH_COUNT, max_row_bytes=MAX_ROW_BYTES):
-        self.rows = _MutationsBatchQueue(
+        self._rows = _MutationsBatchQueue(
             max_row_bytes=max_row_bytes, flush_count=flush_count
         )
         self.table = table
-        self.flushed_counter = 0
-        self.executor = concurrent.futures.ThreadPoolExecutor()
+        self._executor = concurrent.futures.ThreadPoolExecutor()
         threading.Timer(1, self.flush).start()
+
+    @property
+    def flush_count(self):
+        return self._rows._queue.maxsize
+
+    @property
+    def max_row_bytes(self):
+        return self._rows.max_row_bytes
 
     def __enter__(self):
         """Starting the MutationsBatcher as a context manager"""
@@ -128,9 +149,10 @@ class MutationsBatcher(object):
                  * :exc:`.batcher.MaxMutationsError` if any row exceeds max
                    mutations count.
         """
-        if self.rows.full():
+        self._rows.put(row)
+
+        if self._rows.full():
             self.flush_async()
-        self.rows.put(row)
 
     def mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
@@ -168,15 +190,15 @@ class MutationsBatcher(object):
 
         """
         rows_to_flush = []
-        while not self.rows.empty():
-            rows_to_flush.append(self.rows.get())
+        while not self._rows.empty():
+            rows_to_flush.append(self._rows.get())
         self.flush_rows(rows_to_flush)
 
     def flush_async(self):
         rows_to_flush = []
-        while not self.rows.empty():
-            rows_to_flush.append(self.rows.get())
-        self.executor.submit(self.flush_rows, rows_to_flush)
+        while not self._rows.empty():
+            rows_to_flush.append(self._rows.get())
+        self._executor.submit(self.flush_rows, rows_to_flush)
 
     def flush_rows(self, rows_to_flush=None):
         """Mutate the specified rows."""
@@ -190,4 +212,4 @@ class MutationsBatcher(object):
     def close(self):
         """Clean up resources. Flush and shutdown the ThreadPoolExecutor."""
         self.flush()
-        self.executor.shutdown(wait=True)
+        self._executor.shutdown(wait=True)
