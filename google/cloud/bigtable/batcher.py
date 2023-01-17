@@ -129,7 +129,7 @@ class MutationsBatcher(object):
 
     def mutate(self, row):
         """Add a row to the batch. If the current batch meets one of the size
-        limits, the batch is sent synchronously.
+        limits, the batch is sent asynchronously.
 
         For example:
 
@@ -156,7 +156,7 @@ class MutationsBatcher(object):
 
     def mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
-        limits, the batch is sent synchronously.
+        limits, the batch is sent asynchronously.
 
         For example:
 
@@ -180,7 +180,7 @@ class MutationsBatcher(object):
             self.mutate(row)
 
     def flush(self):
-        """Sends the current. batch to Cloud Bigtable.
+        """Sends the current batch to Cloud Bigtable synchronously.
         For example:
 
         .. literalinclude:: snippets.py
@@ -195,6 +195,8 @@ class MutationsBatcher(object):
         self.flush_rows(rows_to_flush)
 
     def flush_async(self):
+        """Sends the current batch to Cloud Bigtable asynchronously."""
+
         rows_to_flush = []
         while not self._rows.empty():
             rows_to_flush.append(self._rows.get())
