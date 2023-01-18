@@ -171,6 +171,21 @@ def test_mutations_batcher_context_manager_flushed_when_closed():
     assert table.mutation_calls == 1
 
 
+def test_mutations_batcher_mutate_after_batcher_closed_raise_error():
+    from google.cloud.bigtable.batcher import BatcherIsClosedError
+
+    table = _Table(TABLE_NAME)
+    mutation_batcher = MutationsBatcher(table=table)
+    mutation_batcher.close()
+
+    assert table.mutation_calls == 0
+    with pytest.raises(BatcherIsClosedError):
+        mutation_batcher.close()
+        row = DirectRow(row_key=b"row_key")
+        row.set_cell("cf1", b"c1", 1)
+        mutation_batcher.mutate(row)
+
+
 class _Instance(object):
     def __init__(self, client=None):
         self._client = client

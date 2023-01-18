@@ -16,7 +16,7 @@
 import threading
 import queue
 import concurrent.futures
-
+import atexit
 
 FLUSH_COUNT = 1000
 MAX_MUTATIONS = 100000
@@ -25,6 +25,10 @@ MAX_ROW_BYTES = 5242880  # 5MB
 
 class MaxMutationsError(ValueError):
     """The number of mutations for bulk request is too big."""
+
+
+class BatcherIsClosedError(ValueError):
+    """Batcher is already closed and not accepting any mutation."""
 
 
 class _MutationsBatchQueue(object):
@@ -75,6 +79,22 @@ class _MutationsBatchQueue(object):
         return self._queue.empty()
 
 
+def _batcher_is_open(func):
+    """Decorator to check if the batcher is open or closed.
+    :raises:
+     * :exc:`.batcher.BatcherIsClosedError` if batcher is already
+       closed
+
+    """
+
+    def wrapper(self, *args, **kwargs):
+        if not self._is_open:
+            raise BatcherIsClosedError()
+        func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class MutationsBatcher(object):
     """A MutationsBatcher is used in batch cases where the number of mutations
     is large or unknown. It will store DirectRows in memory until one of the
@@ -105,15 +125,27 @@ class MutationsBatcher(object):
     flush. If it reaches the max number of row mutations size it calls
     finish_batch() to mutate the current row batch. Default is MAX_ROW_BYTES
     (5 MB).
+
+    :type flush_interval: float
+    :param flush_interval: (Optional) The interval (in seconds) between asynchronous flush.
+    Default is 1 second.
     """
 
-    def __init__(self, table, flush_count=FLUSH_COUNT, max_row_bytes=MAX_ROW_BYTES):
+    def __init__(
+        self,
+        table,
+        flush_count=FLUSH_COUNT,
+        max_row_bytes=MAX_ROW_BYTES,
+        flush_interval=1,
+    ):
         self._rows = _MutationsBatchQueue(
             max_row_bytes=max_row_bytes, flush_count=flush_count
         )
         self.table = table
         self._executor = concurrent.futures.ThreadPoolExecutor()
-        threading.Timer(1, self.flush).start()
+        self._is_open = True
+        atexit.register(self.close)
+        threading.Timer(flush_interval, self.flush).start()
 
     @property
     def flush_count(self):
@@ -127,9 +159,14 @@ class MutationsBatcher(object):
         """Starting the MutationsBatcher as a context manager"""
         return self
 
+    @_batcher_is_open
     def mutate(self, row):
         """Add a row to the batch. If the current batch meets one of the size
         limits, the batch is sent asynchronously.
+
+        :raises:
+         * :exc:`.batcher.BatcherIsClosedError` if batcher is already
+           closed
 
         For example:
 
@@ -154,6 +191,7 @@ class MutationsBatcher(object):
         if self._rows.full():
             self.flush_async()
 
+    @_batcher_is_open
     def mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
         limits, the batch is sent asynchronously.
@@ -213,5 +251,6 @@ class MutationsBatcher(object):
 
     def close(self):
         """Clean up resources. Flush and shutdown the ThreadPoolExecutor."""
+        self._is_open = False
         self.flush()
         self._executor.shutdown(wait=True)
