@@ -14,6 +14,8 @@
 
 
 import mock
+import time
+
 import pytest
 
 from google.cloud.bigtable.row import DirectRow
@@ -180,10 +182,27 @@ def test_mutations_batcher_mutate_after_batcher_closed_raise_error():
 
     assert table.mutation_calls == 0
     with pytest.raises(BatcherIsClosedError):
-        mutation_batcher.close()
         row = DirectRow(row_key=b"row_key")
         row.set_cell("cf1", b"c1", 1)
         mutation_batcher.mutate(row)
+
+
+@mock.patch("google.cloud.bigtable.batcher.MutationsBatcher.flush")
+def test_mutations_batcher_flush_interval(mocked_flush):
+    table = _Table(TABLE_NAME)
+    flush_interval = 0.5
+    mutation_batcher = MutationsBatcher(table=table, flush_interval=flush_interval)
+
+    assert mutation_batcher._timer.interval == flush_interval
+    mocked_flush.assert_not_called()
+
+    time.sleep(0.4)
+    mocked_flush.assert_not_called()
+
+    time.sleep(0.1)
+    mocked_flush.assert_called_once_with()
+
+    mutation_batcher.close()
 
 
 class _Instance(object):

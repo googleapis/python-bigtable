@@ -145,7 +145,8 @@ class MutationsBatcher(object):
         self._executor = concurrent.futures.ThreadPoolExecutor()
         self._is_open = True
         atexit.register(self.close)
-        threading.Timer(flush_interval, self.flush).start()
+        self._timer = threading.Timer(flush_interval, self.flush)
+        self._timer.start()
 
     @property
     def flush_count(self):
