@@ -18,10 +18,10 @@ import queue
 import concurrent.futures
 import atexit
 
-FLUSH_COUNT = 1000
+FLUSH_COUNT = 100
 MAX_MUTATIONS = 100000
-MAX_ROW_BYTES = 5242880  # 5MB
-
+MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB
+MAX_BATCH_SIZE = 100 * 1024 * 1024
 
 class MaxMutationsError(ValueError):
     """The number of mutations for bulk request is too big."""
@@ -60,10 +60,12 @@ class _MutationsBatchQueue(object):
                     item.row_key, mutation_count
                 )
             )
-        self.total_size += item.get_mutations_size()
-        self.total_mutation_count += mutation_count
+
 
         self._queue.put(item, block=block, timeout=timeout)
+
+        self.total_size += item.get_mutations_size()
+        self.total_mutation_count += mutation_count
 
     def full(self):
         """Check if the queue is full."""
