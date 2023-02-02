@@ -18,7 +18,6 @@ import queue
 import concurrent.futures
 import atexit
 
-from google.cloud.bigtable.error import Status
 
 FLUSH_COUNT = 100
 MAX_MUTATIONS = 100000
@@ -291,9 +290,16 @@ class MutationsBatcher(object):
         """
         response = []
         if len(rows_to_flush) > 0:
-            # returns a list of error codes
+            # returns a list of status codes
             response = self.table.mutate_rows(rows_to_flush)
-            if any(isinstance(result, Status) for result in response):
+            responses = []
+            has_error = False
+            for result in response:
+                if result.code != 0:
+                    has_error = True
+                responses.append(result)
+
+            if has_error:
                 raise MutationsBatchError(status_codes=response)
         return response
 

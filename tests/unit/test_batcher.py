@@ -19,7 +19,11 @@ import time
 import pytest
 
 from google.cloud.bigtable.row import DirectRow
-from google.cloud.bigtable.batcher import MutationsBatcher
+from google.cloud.bigtable.batcher import (
+    MutationsBatcher,
+    MutationsBatchError,
+    MAX_MUTATIONS_SIZE,
+)
 
 TABLE_ID = "table-id"
 TABLE_NAME = "/tables/" + TABLE_ID
@@ -98,8 +102,25 @@ def test_mutation_batcher_mutate_with_max_mutations_failure():
         row.set_cell("cf1", b"c3", 3)
         row.set_cell("cf1", b"c4", 4)
 
-        with pytest.raises(MaxMutationsError):
+        with pytest.raises(MaxMutationsError) as exc:
             mutation_batcher.mutate(row)
+        assert "exceeds the number of mutations" in str(exc.value)
+
+
+def test_mutation_batcher_mutate_with_max_mutations_size_failure():
+    from google.cloud.bigtable.batcher import MaxMutationsError
+
+    table = _Table(TABLE_NAME)
+    with MutationsBatcher(table=table) as mutation_batcher, mock.patch(
+        "google.cloud.bigtable.row.DirectRow"
+    ) as mocked:
+
+        row = mocked.return_value
+        row.get_mutations_size.return_value = MAX_MUTATIONS_SIZE + 1
+
+        with pytest.raises(MaxMutationsError) as exc:
+            mutation_batcher.mutate(row)
+        assert "exceeds the size of mutations" in str(exc.value)
 
 
 @mock.patch("google.cloud.bigtable.batcher.MAX_MUTATIONS", new=3)
@@ -205,6 +226,46 @@ def test_mutations_batcher_flush_interval(mocked_flush):
     mutation_batcher.close()
 
 
+def test_mutations_batcher_response_with_error_codes():
+    from google.rpc.status_pb2 import Status
+
+    mocked_response = [Status(code=0), Status(code=1)]
+
+    with mock.patch("tests.unit.test_batcher._Table") as mocked_table:
+        table = mocked_table.return_value
+        mutation_batcher = MutationsBatcher(table=table)
+
+        row1 = DirectRow(row_key=b"row_key")
+        row2 = DirectRow(row_key=b"row_key")
+        table.mutate_rows.return_value = mocked_response
+
+        mutation_batcher.mutate_rows([row1, row2])
+        with pytest.raises(MutationsBatchError) as exc:
+            mutation_batcher.flush()
+        assert exc.value.message == "Errors in batch mutations."
+        assert exc.value.status_codes == mocked_response
+
+
+def test_mutations_batcher_flush_async_raises_exception():
+    from google.rpc.status_pb2 import Status
+
+    mocked_response = [Status(code=0), Status(code=1)]
+
+    with mock.patch("tests.unit.test_batcher._Table") as mocked_table:
+        table = mocked_table.return_value
+        mutation_batcher = MutationsBatcher(table=table)
+
+        row1 = DirectRow(row_key=b"row_key")
+        row2 = DirectRow(row_key=b"row_key")
+        table.mutate_rows.return_value = mocked_response
+
+        mutation_batcher.mutate_rows([row1, row2])
+        with pytest.raises(MutationsBatchError) as exc:
+            mutation_batcher.flush_async()
+        assert exc.value.message == "Errors in batch mutations."
+        assert exc.value.status_codes == mocked_response
+
+
 class _Instance(object):
     def __init__(self, client=None):
         self._client = client
@@ -217,5 +278,8 @@ class _Table(object):
         self.mutation_calls = 0
 
     def mutate_rows(self, rows):
+        from google.rpc.status_pb2 import Status
+
         self.mutation_calls += 1
-        return rows
+
+        return [Status(code=0) for _ in rows]
