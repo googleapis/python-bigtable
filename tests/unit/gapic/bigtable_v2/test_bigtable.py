@@ -24,10 +24,17 @@ except ImportError:  # pragma: NO COVER
 
 import grpc
 from grpc.experimental import aio
+from collections.abc import Iterable
+from google.protobuf import json_format
+import json
 import math
 import pytest
 from proto.marshal.rules.dates import DurationRule, TimestampRule
 from proto.marshal.rules import wrappers
+from requests import Response
+from requests import Request, PreparedRequest
+from requests.sessions import Session
+from google.protobuf import json_format
 
 from google.api_core import client_options
 from google.api_core import exceptions as core_exceptions
@@ -91,6 +98,7 @@ def test__get_default_mtls_endpoint():
     [
         (BigtableClient, "grpc"),
         (BigtableAsyncClient, "grpc_asyncio"),
+        (BigtableClient, "rest"),
     ],
 )
 def test_bigtable_client_from_service_account_info(client_class, transport_name):
@@ -104,7 +112,11 @@ def test_bigtable_client_from_service_account_info(client_class, transport_name)
         assert client.transport._credentials == creds
         assert isinstance(client, client_class)
 
-        assert client.transport._host == ("bigtable.googleapis.com:443")
+        assert client.transport._host == (
+            "bigtable.googleapis.com:443"
+            if transport_name in ["grpc", "grpc_asyncio"]
+            else "https://bigtable.googleapis.com"
+        )
 
 
 @pytest.mark.parametrize(
@@ -112,6 +124,7 @@ def test_bigtable_client_from_service_account_info(client_class, transport_name)
     [
         (transports.BigtableGrpcTransport, "grpc"),
         (transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
+        (transports.BigtableRestTransport, "rest"),
     ],
 )
 def test_bigtable_client_service_account_always_use_jwt(
@@ -137,6 +150,7 @@ def test_bigtable_client_service_account_always_use_jwt(
     [
         (BigtableClient, "grpc"),
         (BigtableAsyncClient, "grpc_asyncio"),
+        (BigtableClient, "rest"),
     ],
 )
 def test_bigtable_client_from_service_account_file(client_class, transport_name):
@@ -157,13 +171,18 @@ def test_bigtable_client_from_service_account_file(client_class, transport_name)
         assert client.transport._credentials == creds
         assert isinstance(client, client_class)
 
-        assert client.transport._host == ("bigtable.googleapis.com:443")
+        assert client.transport._host == (
+            "bigtable.googleapis.com:443"
+            if transport_name in ["grpc", "grpc_asyncio"]
+            else "https://bigtable.googleapis.com"
+        )
 
 
 def test_bigtable_client_get_transport_class():
     transport = BigtableClient.get_transport_class()
     available_transports = [
         transports.BigtableGrpcTransport,
+        transports.BigtableRestTransport,
     ]
     assert transport in available_transports
 
@@ -176,6 +195,7 @@ def test_bigtable_client_get_transport_class():
     [
         (BigtableClient, transports.BigtableGrpcTransport, "grpc"),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
+        (BigtableClient, transports.BigtableRestTransport, "rest"),
     ],
 )
 @mock.patch.object(
@@ -317,6 +337,8 @@ def test_bigtable_client_client_options(client_class, transport_class, transport
             "grpc_asyncio",
             "false",
         ),
+        (BigtableClient, transports.BigtableRestTransport, "rest", "true"),
+        (BigtableClient, transports.BigtableRestTransport, "rest", "false"),
     ],
 )
 @mock.patch.object(
@@ -506,6 +528,7 @@ def test_bigtable_client_get_mtls_endpoint_and_cert_source(client_class):
     [
         (BigtableClient, transports.BigtableGrpcTransport, "grpc"),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
+        (BigtableClient, transports.BigtableRestTransport, "rest"),
     ],
 )
 def test_bigtable_client_client_options_scopes(
@@ -541,6 +564,7 @@ def test_bigtable_client_client_options_scopes(
             "grpc_asyncio",
             grpc_helpers_async,
         ),
+        (BigtableClient, transports.BigtableRestTransport, "rest", None),
     ],
 )
 def test_bigtable_client_client_options_credentials_file(
@@ -2434,6 +2458,2022 @@ async def test_read_modify_write_row_flattened_error_async():
         )
 
 
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.ReadRowsRequest,
+        dict,
+    ],
+)
+def test_read_rows_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadRowsResponse(
+            last_scanned_row_key=b"last_scanned_row_key_blob",
+        )
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadRowsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        json_return_value = "[{}]".format(json_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            response = client.read_rows(request)
+
+    assert isinstance(response, Iterable)
+    response = next(response)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.ReadRowsResponse)
+    assert response.last_scanned_row_key == b"last_scanned_row_key_blob"
+
+
+def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_rows._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_rows._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.ReadRowsResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.ReadRowsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = "[{}]".format(json_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            with mock.patch.object(response_value, "iter_content") as iter_content:
+                iter_content.return_value = iter(json_return_value)
+                response = client.read_rows(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_read_rows_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.read_rows._get_unset_required_fields({})
+    assert set(unset_fields) == (set(()) & set(("tableName",)))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_read_rows_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_rows"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_read_rows"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.ReadRowsRequest.pb(bigtable.ReadRowsRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.ReadRowsResponse.to_json(
+            bigtable.ReadRowsResponse()
+        )
+        req.return_value._content = "[{}]".format(req.return_value._content)
+
+        request = bigtable.ReadRowsRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.ReadRowsResponse()
+
+        client.read_rows(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_read_rows_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.ReadRowsRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.read_rows(request)
+
+
+def test_read_rows_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadRowsResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadRowsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = "[{}]".format(json_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            client.read_rows(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:readRows"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_read_rows_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.read_rows(
+            bigtable.ReadRowsRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_read_rows_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.SampleRowKeysRequest,
+        dict,
+    ],
+)
+def test_sample_row_keys_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.SampleRowKeysResponse(
+            row_key=b"row_key_blob",
+            offset_bytes=1293,
+        )
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.SampleRowKeysResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        json_return_value = "[{}]".format(json_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            response = client.sample_row_keys(request)
+
+    assert isinstance(response, Iterable)
+    response = next(response)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.SampleRowKeysResponse)
+    assert response.row_key == b"row_key_blob"
+    assert response.offset_bytes == 1293
+
+
+def test_sample_row_keys_rest_required_fields(
+    request_type=bigtable.SampleRowKeysRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).sample_row_keys._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).sample_row_keys._get_unset_required_fields(jsonified_request)
+    # Check that path parameters and body parameters are not mixing in.
+    assert not set(unset_fields) - set(("app_profile_id",))
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.SampleRowKeysResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "get",
+                "query_params": pb_request,
+            }
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.SampleRowKeysResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = "[{}]".format(json_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            with mock.patch.object(response_value, "iter_content") as iter_content:
+                iter_content.return_value = iter(json_return_value)
+                response = client.sample_row_keys(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_sample_row_keys_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.sample_row_keys._get_unset_required_fields({})
+    assert set(unset_fields) == (set(("appProfileId",)) & set(("tableName",)))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_sample_row_keys_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_sample_row_keys"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_sample_row_keys"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.SampleRowKeysRequest.pb(bigtable.SampleRowKeysRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.SampleRowKeysResponse.to_json(
+            bigtable.SampleRowKeysResponse()
+        )
+        req.return_value._content = "[{}]".format(req.return_value._content)
+
+        request = bigtable.SampleRowKeysRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.SampleRowKeysResponse()
+
+        client.sample_row_keys(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_sample_row_keys_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.SampleRowKeysRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.sample_row_keys(request)
+
+
+def test_sample_row_keys_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.SampleRowKeysResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.SampleRowKeysResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = "[{}]".format(json_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            client.sample_row_keys(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:sampleRowKeys"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_sample_row_keys_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.sample_row_keys(
+            bigtable.SampleRowKeysRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_sample_row_keys_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.MutateRowRequest,
+        dict,
+    ],
+)
+def test_mutate_row_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.MutateRowResponse()
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.MutateRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        response = client.mutate_row(request)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.MutateRowResponse)
+
+
+def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request_init["row_key"] = b""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).mutate_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+    jsonified_request["rowKey"] = b"row_key_blob"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).mutate_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+    assert "rowKey" in jsonified_request
+    assert jsonified_request["rowKey"] == b"row_key_blob"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.MutateRowResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.MutateRowResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            response = client.mutate_row(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_mutate_row_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.mutate_row._get_unset_required_fields({})
+    assert set(unset_fields) == (
+        set(())
+        & set(
+            (
+                "tableName",
+                "rowKey",
+                "mutations",
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_mutate_row_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_mutate_row"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_mutate_row"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.MutateRowRequest.pb(bigtable.MutateRowRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.MutateRowResponse.to_json(
+            bigtable.MutateRowResponse()
+        )
+
+        request = bigtable.MutateRowRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.MutateRowResponse()
+
+        client.mutate_row(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_mutate_row_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.MutateRowRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.mutate_row(request)
+
+
+def test_mutate_row_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.MutateRowResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.MutateRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        client.mutate_row(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:mutateRow"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_mutate_row_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.mutate_row(
+            bigtable.MutateRowRequest(),
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_mutate_row_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.MutateRowsRequest,
+        dict,
+    ],
+)
+def test_mutate_rows_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.MutateRowsResponse()
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.MutateRowsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        json_return_value = "[{}]".format(json_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            response = client.mutate_rows(request)
+
+    assert isinstance(response, Iterable)
+    response = next(response)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.MutateRowsResponse)
+
+
+def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsRequest):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).mutate_rows._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).mutate_rows._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.MutateRowsResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.MutateRowsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = "[{}]".format(json_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            with mock.patch.object(response_value, "iter_content") as iter_content:
+                iter_content.return_value = iter(json_return_value)
+                response = client.mutate_rows(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_mutate_rows_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.mutate_rows._get_unset_required_fields({})
+    assert set(unset_fields) == (
+        set(())
+        & set(
+            (
+                "tableName",
+                "entries",
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_mutate_rows_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_mutate_rows"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_mutate_rows"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.MutateRowsRequest.pb(bigtable.MutateRowsRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.MutateRowsResponse.to_json(
+            bigtable.MutateRowsResponse()
+        )
+        req.return_value._content = "[{}]".format(req.return_value._content)
+
+        request = bigtable.MutateRowsRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.MutateRowsResponse()
+
+        client.mutate_rows(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_mutate_rows_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.MutateRowsRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.mutate_rows(request)
+
+
+def test_mutate_rows_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.MutateRowsResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            entries=[bigtable.MutateRowsRequest.Entry(row_key=b"row_key_blob")],
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.MutateRowsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = "[{}]".format(json_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            client.mutate_rows(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:mutateRows"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_mutate_rows_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.mutate_rows(
+            bigtable.MutateRowsRequest(),
+            table_name="table_name_value",
+            entries=[bigtable.MutateRowsRequest.Entry(row_key=b"row_key_blob")],
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_mutate_rows_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.CheckAndMutateRowRequest,
+        dict,
+    ],
+)
+def test_check_and_mutate_row_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.CheckAndMutateRowResponse(
+            predicate_matched=True,
+        )
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.CheckAndMutateRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        response = client.check_and_mutate_row(request)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.CheckAndMutateRowResponse)
+    assert response.predicate_matched is True
+
+
+def test_check_and_mutate_row_rest_required_fields(
+    request_type=bigtable.CheckAndMutateRowRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request_init["row_key"] = b""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).check_and_mutate_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+    jsonified_request["rowKey"] = b"row_key_blob"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).check_and_mutate_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+    assert "rowKey" in jsonified_request
+    assert jsonified_request["rowKey"] == b"row_key_blob"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.CheckAndMutateRowResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.CheckAndMutateRowResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            response = client.check_and_mutate_row(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_check_and_mutate_row_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.check_and_mutate_row._get_unset_required_fields({})
+    assert set(unset_fields) == (
+        set(())
+        & set(
+            (
+                "tableName",
+                "rowKey",
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_check_and_mutate_row_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_check_and_mutate_row"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_check_and_mutate_row"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.CheckAndMutateRowRequest.pb(
+            bigtable.CheckAndMutateRowRequest()
+        )
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.CheckAndMutateRowResponse.to_json(
+            bigtable.CheckAndMutateRowResponse()
+        )
+
+        request = bigtable.CheckAndMutateRowRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.CheckAndMutateRowResponse()
+
+        client.check_and_mutate_row(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_check_and_mutate_row_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.CheckAndMutateRowRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.check_and_mutate_row(request)
+
+
+def test_check_and_mutate_row_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.CheckAndMutateRowResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            predicate_filter=data.RowFilter(
+                chain=data.RowFilter.Chain(
+                    filters=[
+                        data.RowFilter(
+                            chain=data.RowFilter.Chain(
+                                filters=[data.RowFilter(chain=None)]
+                            )
+                        )
+                    ]
+                )
+            ),
+            true_mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            false_mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.CheckAndMutateRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        client.check_and_mutate_row(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:checkAndMutateRow"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_check_and_mutate_row_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.check_and_mutate_row(
+            bigtable.CheckAndMutateRowRequest(),
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            predicate_filter=data.RowFilter(
+                chain=data.RowFilter.Chain(
+                    filters=[
+                        data.RowFilter(
+                            chain=data.RowFilter.Chain(
+                                filters=[data.RowFilter(chain=None)]
+                            )
+                        )
+                    ]
+                )
+            ),
+            true_mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            false_mutations=[
+                data.Mutation(
+                    set_cell=data.Mutation.SetCell(family_name="family_name_value")
+                )
+            ],
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_check_and_mutate_row_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.PingAndWarmRequest,
+        dict,
+    ],
+)
+def test_ping_and_warm_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"name": "projects/sample1/instances/sample2"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.PingAndWarmResponse()
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.PingAndWarmResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        response = client.ping_and_warm(request)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.PingAndWarmResponse)
+
+
+def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmRequest):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).ping_and_warm._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["name"] = "name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).ping_and_warm._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "name" in jsonified_request
+    assert jsonified_request["name"] == "name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.PingAndWarmResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.PingAndWarmResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            response = client.ping_and_warm(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_ping_and_warm_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.ping_and_warm._get_unset_required_fields({})
+    assert set(unset_fields) == (set(()) & set(("name",)))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_ping_and_warm_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_ping_and_warm"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_ping_and_warm"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.PingAndWarmRequest.pb(bigtable.PingAndWarmRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.PingAndWarmResponse.to_json(
+            bigtable.PingAndWarmResponse()
+        )
+
+        request = bigtable.PingAndWarmRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.PingAndWarmResponse()
+
+        client.ping_and_warm(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_ping_and_warm_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.PingAndWarmRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"name": "projects/sample1/instances/sample2"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.ping_and_warm(request)
+
+
+def test_ping_and_warm_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.PingAndWarmResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {"name": "projects/sample1/instances/sample2"}
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            name="name_value",
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.PingAndWarmResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        client.ping_and_warm(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{name=projects/*/instances/*}:ping" % client.transport._host, args[1]
+        )
+
+
+def test_ping_and_warm_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.ping_and_warm(
+            bigtable.PingAndWarmRequest(),
+            name="name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_ping_and_warm_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.ReadModifyWriteRowRequest,
+        dict,
+    ],
+)
+def test_read_modify_write_row_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadModifyWriteRowResponse()
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadModifyWriteRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        response = client.read_modify_write_row(request)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.ReadModifyWriteRowResponse)
+
+
+def test_read_modify_write_row_rest_required_fields(
+    request_type=bigtable.ReadModifyWriteRowRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request_init["row_key"] = b""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_modify_write_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+    jsonified_request["rowKey"] = b"row_key_blob"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_modify_write_row._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+    assert "rowKey" in jsonified_request
+    assert jsonified_request["rowKey"] == b"row_key_blob"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.ReadModifyWriteRowResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.ReadModifyWriteRowResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            response = client.read_modify_write_row(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_read_modify_write_row_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.read_modify_write_row._get_unset_required_fields({})
+    assert set(unset_fields) == (
+        set(())
+        & set(
+            (
+                "tableName",
+                "rowKey",
+                "rules",
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_read_modify_write_row_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_modify_write_row"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_read_modify_write_row"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.ReadModifyWriteRowRequest.pb(
+            bigtable.ReadModifyWriteRowRequest()
+        )
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.ReadModifyWriteRowResponse.to_json(
+            bigtable.ReadModifyWriteRowResponse()
+        )
+
+        request = bigtable.ReadModifyWriteRowRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.ReadModifyWriteRowResponse()
+
+        client.read_modify_write_row(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_read_modify_write_row_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.ReadModifyWriteRowRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.read_modify_write_row(request)
+
+
+def test_read_modify_write_row_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadModifyWriteRowResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            rules=[data.ReadModifyWriteRule(family_name="family_name_value")],
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadModifyWriteRowResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        client.read_modify_write_row(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:readModifyWriteRow"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_read_modify_write_row_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.read_modify_write_row(
+            bigtable.ReadModifyWriteRowRequest(),
+            table_name="table_name_value",
+            row_key=b"row_key_blob",
+            rules=[data.ReadModifyWriteRule(family_name="family_name_value")],
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_read_modify_write_row_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
 def test_credentials_transport_error():
     # It is an error to provide credentials and a transport instance.
     transport = transports.BigtableGrpcTransport(
@@ -2515,6 +4555,7 @@ def test_transport_get_channel():
     [
         transports.BigtableGrpcTransport,
         transports.BigtableGrpcAsyncIOTransport,
+        transports.BigtableRestTransport,
     ],
 )
 def test_transport_adc(transport_class):
@@ -2529,6 +4570,7 @@ def test_transport_adc(transport_class):
     "transport_name",
     [
         "grpc",
+        "rest",
     ],
 )
 def test_transport_kind(transport_name):
@@ -2685,6 +4727,7 @@ def test_bigtable_transport_auth_adc(transport_class):
     [
         transports.BigtableGrpcTransport,
         transports.BigtableGrpcAsyncIOTransport,
+        transports.BigtableRestTransport,
     ],
 )
 def test_bigtable_transport_auth_gdch_credentials(transport_class):
@@ -2786,11 +4829,23 @@ def test_bigtable_grpc_transport_client_cert_source_for_mtls(transport_class):
             )
 
 
+def test_bigtable_http_transport_client_cert_source_for_mtls():
+    cred = ga_credentials.AnonymousCredentials()
+    with mock.patch(
+        "google.auth.transport.requests.AuthorizedSession.configure_mtls_channel"
+    ) as mock_configure_mtls_channel:
+        transports.BigtableRestTransport(
+            credentials=cred, client_cert_source_for_mtls=client_cert_source_callback
+        )
+        mock_configure_mtls_channel.assert_called_once_with(client_cert_source_callback)
+
+
 @pytest.mark.parametrize(
     "transport_name",
     [
         "grpc",
         "grpc_asyncio",
+        "rest",
     ],
 )
 def test_bigtable_host_no_port(transport_name):
@@ -2801,7 +4856,11 @@ def test_bigtable_host_no_port(transport_name):
         ),
         transport=transport_name,
     )
-    assert client.transport._host == ("bigtable.googleapis.com:443")
+    assert client.transport._host == (
+        "bigtable.googleapis.com:443"
+        if transport_name in ["grpc", "grpc_asyncio"]
+        else "https://bigtable.googleapis.com"
+    )
 
 
 @pytest.mark.parametrize(
@@ -2809,6 +4868,7 @@ def test_bigtable_host_no_port(transport_name):
     [
         "grpc",
         "grpc_asyncio",
+        "rest",
     ],
 )
 def test_bigtable_host_with_port(transport_name):
@@ -2819,7 +4879,51 @@ def test_bigtable_host_with_port(transport_name):
         ),
         transport=transport_name,
     )
-    assert client.transport._host == ("bigtable.googleapis.com:8000")
+    assert client.transport._host == (
+        "bigtable.googleapis.com:8000"
+        if transport_name in ["grpc", "grpc_asyncio"]
+        else "https://bigtable.googleapis.com:8000"
+    )
+
+
+@pytest.mark.parametrize(
+    "transport_name",
+    [
+        "rest",
+    ],
+)
+def test_bigtable_client_transport_session_collision(transport_name):
+    creds1 = ga_credentials.AnonymousCredentials()
+    creds2 = ga_credentials.AnonymousCredentials()
+    client1 = BigtableClient(
+        credentials=creds1,
+        transport=transport_name,
+    )
+    client2 = BigtableClient(
+        credentials=creds2,
+        transport=transport_name,
+    )
+    session1 = client1.transport.read_rows._session
+    session2 = client2.transport.read_rows._session
+    assert session1 != session2
+    session1 = client1.transport.sample_row_keys._session
+    session2 = client2.transport.sample_row_keys._session
+    assert session1 != session2
+    session1 = client1.transport.mutate_row._session
+    session2 = client2.transport.mutate_row._session
+    assert session1 != session2
+    session1 = client1.transport.mutate_rows._session
+    session2 = client2.transport.mutate_rows._session
+    assert session1 != session2
+    session1 = client1.transport.check_and_mutate_row._session
+    session2 = client2.transport.check_and_mutate_row._session
+    assert session1 != session2
+    session1 = client1.transport.ping_and_warm._session
+    session2 = client2.transport.ping_and_warm._session
+    assert session1 != session2
+    session1 = client1.transport.read_modify_write_row._session
+    session2 = client2.transport.read_modify_write_row._session
+    assert session1 != session2
 
 
 def test_bigtable_grpc_transport_channel():
@@ -3131,6 +5235,7 @@ async def test_transport_close_async():
 
 def test_transport_close():
     transports = {
+        "rest": "_session",
         "grpc": "_grpc_channel",
     }
 
@@ -3148,6 +5253,7 @@ def test_transport_close():
 
 def test_client_ctx():
     transports = [
+        "rest",
         "grpc",
     ]
     for transport in transports:

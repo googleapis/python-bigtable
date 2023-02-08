@@ -86,6 +86,46 @@
               ]
             }
           }
+        },
+        "rest": {
+          "libraryClient": "BigtableClient",
+          "rpcs": {
+            "CheckAndMutateRow": {
+              "methods": [
+                "check_and_mutate_row"
+              ]
+            },
+            "MutateRow": {
+              "methods": [
+                "mutate_row"
+              ]
+            },
+            "MutateRows": {
+              "methods": [
+                "mutate_rows"
+              ]
+            },
+            "PingAndWarm": {
+              "methods": [
+                "ping_and_warm"
+              ]
+            },
+            "ReadModifyWriteRow": {
+              "methods": [
+                "read_modify_write_row"
+              ]
+            },
+            "ReadRows": {
+              "methods": [
+                "read_rows"
+              ]
+            },
+            "SampleRowKeys": {
+              "methods": [
+                "sample_row_keys"
+              ]
+            }
+          }
         }
       }
     }

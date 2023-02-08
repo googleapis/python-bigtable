@@ -47,7 +47,10 @@ from google.iam.v1 import policy_pb2  # type: ignore
 from google.longrunning import operations_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 
-from .base import BigtableInstanceAdminTransport, DEFAULT_CLIENT_INFO as BASE_DEFAULT_CLIENT_INFO
+from .base import (
+    BigtableInstanceAdminTransport,
+    DEFAULT_CLIENT_INFO as BASE_DEFAULT_CLIENT_INFO,
+)
 
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
@@ -233,7 +236,14 @@ class BigtableInstanceAdminRestInterceptor:
 
 
     """
-    def pre_create_app_profile(self, request: bigtable_instance_admin.CreateAppProfileRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.CreateAppProfileRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_create_app_profile(
+        self,
+        request: bigtable_instance_admin.CreateAppProfileRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.CreateAppProfileRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for create_app_profile
 
         Override in a subclass to manipulate the request or metadata
@@ -241,7 +251,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_create_app_profile(self, response: instance.AppProfile) -> instance.AppProfile:
+    def post_create_app_profile(
+        self, response: instance.AppProfile
+    ) -> instance.AppProfile:
         """Post-rpc interceptor for create_app_profile
 
         Override in a subclass to manipulate the response
@@ -249,7 +261,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_create_cluster(self, request: bigtable_instance_admin.CreateClusterRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.CreateClusterRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_create_cluster(
+        self,
+        request: bigtable_instance_admin.CreateClusterRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.CreateClusterRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for create_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -257,7 +274,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_create_cluster(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_create_cluster(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_cluster
 
         Override in a subclass to manipulate the response
@@ -265,7 +284,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_create_instance(self, request: bigtable_instance_admin.CreateInstanceRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.CreateInstanceRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_create_instance(
+        self,
+        request: bigtable_instance_admin.CreateInstanceRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.CreateInstanceRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for create_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -273,7 +299,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_create_instance(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_create_instance(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for create_instance
 
         Override in a subclass to manipulate the response
@@ -281,7 +309,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_delete_app_profile(self, request: bigtable_instance_admin.DeleteAppProfileRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.DeleteAppProfileRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_delete_app_profile(
+        self,
+        request: bigtable_instance_admin.DeleteAppProfileRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.DeleteAppProfileRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for delete_app_profile
 
         Override in a subclass to manipulate the request or metadata
@@ -289,7 +324,11 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def pre_delete_cluster(self, request: bigtable_instance_admin.DeleteClusterRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.DeleteClusterRequest, Sequence[Tuple[str, str]]]:
+    def pre_delete_cluster(
+        self,
+        request: bigtable_instance_admin.DeleteClusterRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.DeleteClusterRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for delete_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -297,7 +336,13 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def pre_delete_instance(self, request: bigtable_instance_admin.DeleteInstanceRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.DeleteInstanceRequest, Sequence[Tuple[str, str]]]:
+    def pre_delete_instance(
+        self,
+        request: bigtable_instance_admin.DeleteInstanceRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.DeleteInstanceRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for delete_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -305,7 +350,11 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def pre_get_app_profile(self, request: bigtable_instance_admin.GetAppProfileRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.GetAppProfileRequest, Sequence[Tuple[str, str]]]:
+    def pre_get_app_profile(
+        self,
+        request: bigtable_instance_admin.GetAppProfileRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.GetAppProfileRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for get_app_profile
 
         Override in a subclass to manipulate the request or metadata
@@ -313,7 +362,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_get_app_profile(self, response: instance.AppProfile) -> instance.AppProfile:
+    def post_get_app_profile(
+        self, response: instance.AppProfile
+    ) -> instance.AppProfile:
         """Post-rpc interceptor for get_app_profile
 
         Override in a subclass to manipulate the response
@@ -321,7 +372,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_get_cluster(self, request: bigtable_instance_admin.GetClusterRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.GetClusterRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_get_cluster(
+        self,
+        request: bigtable_instance_admin.GetClusterRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.GetClusterRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for get_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -337,7 +393,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_get_iam_policy(self, request: iam_policy_pb2.GetIamPolicyRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_get_iam_policy(
+        self,
+        request: iam_policy_pb2.GetIamPolicyRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[iam_policy_pb2.GetIamPolicyRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for get_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -353,7 +414,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_get_instance(self, request: bigtable_instance_admin.GetInstanceRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.GetInstanceRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_get_instance(
+        self,
+        request: bigtable_instance_admin.GetInstanceRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.GetInstanceRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for get_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -369,7 +435,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_list_app_profiles(self, request: bigtable_instance_admin.ListAppProfilesRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.ListAppProfilesRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_list_app_profiles(
+        self,
+        request: bigtable_instance_admin.ListAppProfilesRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListAppProfilesRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for list_app_profiles
 
         Override in a subclass to manipulate the request or metadata
@@ -377,7 +450,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_list_app_profiles(self, response: bigtable_instance_admin.ListAppProfilesResponse) -> bigtable_instance_admin.ListAppProfilesResponse:
+    def post_list_app_profiles(
+        self, response: bigtable_instance_admin.ListAppProfilesResponse
+    ) -> bigtable_instance_admin.ListAppProfilesResponse:
         """Post-rpc interceptor for list_app_profiles
 
         Override in a subclass to manipulate the response
@@ -385,7 +460,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_list_clusters(self, request: bigtable_instance_admin.ListClustersRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.ListClustersRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_list_clusters(
+        self,
+        request: bigtable_instance_admin.ListClustersRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.ListClustersRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for list_clusters
 
         Override in a subclass to manipulate the request or metadata
@@ -393,7 +473,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_list_clusters(self, response: bigtable_instance_admin.ListClustersResponse) -> bigtable_instance_admin.ListClustersResponse:
+    def post_list_clusters(
+        self, response: bigtable_instance_admin.ListClustersResponse
+    ) -> bigtable_instance_admin.ListClustersResponse:
         """Post-rpc interceptor for list_clusters
 
         Override in a subclass to manipulate the response
@@ -401,7 +483,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_list_hot_tablets(self, request: bigtable_instance_admin.ListHotTabletsRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.ListHotTabletsRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_list_hot_tablets(
+        self,
+        request: bigtable_instance_admin.ListHotTabletsRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.ListHotTabletsRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for list_hot_tablets
 
         Override in a subclass to manipulate the request or metadata
@@ -409,7 +498,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_list_hot_tablets(self, response: bigtable_instance_admin.ListHotTabletsResponse) -> bigtable_instance_admin.ListHotTabletsResponse:
+    def post_list_hot_tablets(
+        self, response: bigtable_instance_admin.ListHotTabletsResponse
+    ) -> bigtable_instance_admin.ListHotTabletsResponse:
         """Post-rpc interceptor for list_hot_tablets
 
         Override in a subclass to manipulate the response
@@ -417,7 +508,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_list_instances(self, request: bigtable_instance_admin.ListInstancesRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.ListInstancesRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_list_instances(
+        self,
+        request: bigtable_instance_admin.ListInstancesRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[bigtable_instance_admin.ListInstancesRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for list_instances
 
         Override in a subclass to manipulate the request or metadata
@@ -425,7 +521,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_list_instances(self, response: bigtable_instance_admin.ListInstancesResponse) -> bigtable_instance_admin.ListInstancesResponse:
+    def post_list_instances(
+        self, response: bigtable_instance_admin.ListInstancesResponse
+    ) -> bigtable_instance_admin.ListInstancesResponse:
         """Post-rpc interceptor for list_instances
 
         Override in a subclass to manipulate the response
@@ -433,7 +531,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_partial_update_cluster(self, request: bigtable_instance_admin.PartialUpdateClusterRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.PartialUpdateClusterRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_partial_update_cluster(
+        self,
+        request: bigtable_instance_admin.PartialUpdateClusterRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.PartialUpdateClusterRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for partial_update_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -441,7 +546,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_partial_update_cluster(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_partial_update_cluster(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for partial_update_cluster
 
         Override in a subclass to manipulate the response
@@ -449,7 +556,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_partial_update_instance(self, request: bigtable_instance_admin.PartialUpdateInstanceRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.PartialUpdateInstanceRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_partial_update_instance(
+        self,
+        request: bigtable_instance_admin.PartialUpdateInstanceRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.PartialUpdateInstanceRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for partial_update_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -457,7 +571,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_partial_update_instance(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_partial_update_instance(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for partial_update_instance
 
         Override in a subclass to manipulate the response
@@ -465,7 +581,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_set_iam_policy(self, request: iam_policy_pb2.SetIamPolicyRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_set_iam_policy(
+        self,
+        request: iam_policy_pb2.SetIamPolicyRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[iam_policy_pb2.SetIamPolicyRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for set_iam_policy
 
         Override in a subclass to manipulate the request or metadata
@@ -481,7 +602,12 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_test_iam_permissions(self, request: iam_policy_pb2.TestIamPermissionsRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[iam_policy_pb2.TestIamPermissionsRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_test_iam_permissions(
+        self,
+        request: iam_policy_pb2.TestIamPermissionsRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[iam_policy_pb2.TestIamPermissionsRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for test_iam_permissions
 
         Override in a subclass to manipulate the request or metadata
@@ -489,7 +615,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_test_iam_permissions(self, response: iam_policy_pb2.TestIamPermissionsResponse) -> iam_policy_pb2.TestIamPermissionsResponse:
+    def post_test_iam_permissions(
+        self, response: iam_policy_pb2.TestIamPermissionsResponse
+    ) -> iam_policy_pb2.TestIamPermissionsResponse:
         """Post-rpc interceptor for test_iam_permissions
 
         Override in a subclass to manipulate the response
@@ -497,7 +625,14 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_update_app_profile(self, request: bigtable_instance_admin.UpdateAppProfileRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[bigtable_instance_admin.UpdateAppProfileRequest, Sequence[Tuple[str, str]]]:
+
+    def pre_update_app_profile(
+        self,
+        request: bigtable_instance_admin.UpdateAppProfileRequest,
+        metadata: Sequence[Tuple[str, str]],
+    ) -> Tuple[
+        bigtable_instance_admin.UpdateAppProfileRequest, Sequence[Tuple[str, str]]
+    ]:
         """Pre-rpc interceptor for update_app_profile
 
         Override in a subclass to manipulate the request or metadata
@@ -505,7 +640,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_update_app_profile(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_update_app_profile(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for update_app_profile
 
         Override in a subclass to manipulate the response
@@ -513,7 +650,10 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_update_cluster(self, request: instance.Cluster, metadata: Sequence[Tuple[str, str]]) -> Tuple[instance.Cluster, Sequence[Tuple[str, str]]]:
+
+    def pre_update_cluster(
+        self, request: instance.Cluster, metadata: Sequence[Tuple[str, str]]
+    ) -> Tuple[instance.Cluster, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for update_cluster
 
         Override in a subclass to manipulate the request or metadata
@@ -521,7 +661,9 @@ class BigtableInstanceAdminRestInterceptor:
         """
         return request, metadata
 
-    def post_update_cluster(self, response: operations_pb2.Operation) -> operations_pb2.Operation:
+    def post_update_cluster(
+        self, response: operations_pb2.Operation
+    ) -> operations_pb2.Operation:
         """Post-rpc interceptor for update_cluster
 
         Override in a subclass to manipulate the response
@@ -529,7 +671,10 @@ class BigtableInstanceAdminRestInterceptor:
         it is returned to user code.
         """
         return response
-    def pre_update_instance(self, request: instance.Instance, metadata: Sequence[Tuple[str, str]]) -> Tuple[instance.Instance, Sequence[Tuple[str, str]]]:
+
+    def pre_update_instance(
+        self, request: instance.Instance, metadata: Sequence[Tuple[str, str]]
+    ) -> Tuple[instance.Instance, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for update_instance
 
         Override in a subclass to manipulate the request or metadata
@@ -570,20 +715,21 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
     """
 
-    def __init__(self, *,
-            host: str = 'bigtableadmin.googleapis.com',
-            credentials: Optional[ga_credentials.Credentials] = None,
-            credentials_file: Optional[str] = None,
-            scopes: Optional[Sequence[str]] = None,
-            client_cert_source_for_mtls: Optional[Callable[[
-                ], Tuple[bytes, bytes]]] = None,
-            quota_project_id: Optional[str] = None,
-            client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
-            always_use_jwt_access: Optional[bool] = False,
-            url_scheme: str = 'https',
-            interceptor: Optional[BigtableInstanceAdminRestInterceptor] = None,
-            api_audience: Optional[str] = None,
-            ) -> None:
+    def __init__(
+        self,
+        *,
+        host: str = "bigtableadmin.googleapis.com",
+        credentials: Optional[ga_credentials.Credentials] = None,
+        credentials_file: Optional[str] = None,
+        scopes: Optional[Sequence[str]] = None,
+        client_cert_source_for_mtls: Optional[Callable[[], Tuple[bytes, bytes]]] = None,
+        quota_project_id: Optional[str] = None,
+        client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
+        always_use_jwt_access: Optional[bool] = False,
+        url_scheme: str = "https",
+        interceptor: Optional[BigtableInstanceAdminRestInterceptor] = None,
+        api_audience: Optional[str] = None,
+    ) -> None:
         """Instantiate the transport.
 
         Args:
@@ -622,7 +768,9 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         # credentials object
         maybe_url_match = re.match("^(?P<scheme>http(?:s)?://)?(?P<host>.*)$", host)
         if maybe_url_match is None:
-            raise ValueError(f"Unexpected hostname structure: {host}")  # pragma: NO COVER
+            raise ValueError(
+                f"Unexpected hostname structure: {host}"
+            )  # pragma: NO COVER
 
         url_match_items = maybe_url_match.groupdict()
 
@@ -633,10 +781,11 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             credentials=credentials,
             client_info=client_info,
             always_use_jwt_access=always_use_jwt_access,
-            api_audience=api_audience
+            api_audience=api_audience,
         )
         self._session = AuthorizedSession(
-            self._credentials, default_host=self.DEFAULT_HOST)
+            self._credentials, default_host=self.DEFAULT_HOST
+        )
         self._operations_client: Optional[operations_v1.AbstractOperationsClient] = None
         if client_cert_source_for_mtls:
             self._session.configure_mtls_channel(client_cert_source_for_mtls)
@@ -652,18 +801,20 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         """
         # Only create a new client if we do not already have one.
         if self._operations_client is None:
-            http_options: Dict[str, List[Dict[str, str]]] = {
-            }
+            http_options: Dict[str, List[Dict[str, str]]] = {}
 
             rest_transport = operations_v1.OperationsRestTransport(
-                    host=self._host,
-                    # use the credentials which are saved
-                    credentials=self._credentials,
-                    scopes=self._scopes,
-                    http_options=http_options,
-                    path_prefix="v2")
+                host=self._host,
+                # use the credentials which are saved
+                credentials=self._credentials,
+                scopes=self._scopes,
+                http_options=http_options,
+                path_prefix="v2",
+            )
 
-            self._operations_client = operations_v1.AbstractOperationsClient(transport=rest_transport)
+            self._operations_client = operations_v1.AbstractOperationsClient(
+                transport=rest_transport
+            )
 
         # Return the client from cache.
         return self._operations_client
@@ -672,19 +823,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "appProfileId" : "",        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "appProfileId": "",
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.CreateAppProfileRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> instance.AppProfile:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.CreateAppProfileRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> instance.AppProfile:
             r"""Call the create app profile method over HTTP.
 
             Args:
@@ -706,46 +864,51 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{parent=projects/*/instances/*}/appProfiles',
-                'body': 'app_profile',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*}/appProfiles",
+                    "body": "app_profile",
+                },
             ]
-            request, metadata = self._interceptor.pre_create_app_profile(request, metadata)
+            request, metadata = self._interceptor.pre_create_app_profile(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.CreateAppProfileRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -764,19 +927,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "clusterId" : "",        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "clusterId": "",
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.CreateClusterRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.CreateClusterRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the create cluster method over HTTP.
 
             Args:
@@ -798,11 +968,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{parent=projects/*/instances/*}/clusters',
-                'body': 'cluster',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*/instances/*}/clusters",
+                    "body": "cluster",
+                },
             ]
             request, metadata = self._interceptor.pre_create_cluster(request, metadata)
             pb_request = bigtable_instance_admin.CreateClusterRequest.pb(request)
@@ -811,33 +982,35 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -854,19 +1027,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.CreateInstanceRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.CreateInstanceRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the create instance method over HTTP.
 
             Args:
@@ -888,11 +1066,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{parent=projects/*}/instances',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{parent=projects/*}/instances",
+                    "body": "*",
+                },
             ]
             request, metadata = self._interceptor.pre_create_instance(request, metadata)
             pb_request = bigtable_instance_admin.CreateInstanceRequest.pb(request)
@@ -901,33 +1080,35 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -944,19 +1125,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "ignoreWarnings" : False,        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "ignoreWarnings": False,
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.DeleteAppProfileRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ):
+        def __call__(
+            self,
+            request: bigtable_instance_admin.DeleteAppProfileRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ):
             r"""Call the delete app profile method over HTTP.
 
             Args:
@@ -971,37 +1159,42 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     sent along with the request as metadata.
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'delete',
-                'uri': '/v2/{name=projects/*/instances/*/appProfiles/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/appProfiles/*}",
+                },
             ]
-            request, metadata = self._interceptor.pre_delete_app_profile(request, metadata)
+            request, metadata = self._interceptor.pre_delete_app_profile(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.DeleteAppProfileRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1012,19 +1205,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.DeleteClusterRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ):
+        def __call__(
+            self,
+            request: bigtable_instance_admin.DeleteClusterRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ):
             r"""Call the delete cluster method over HTTP.
 
             Args:
@@ -1039,37 +1237,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     sent along with the request as metadata.
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'delete',
-                'uri': '/v2/{name=projects/*/instances/*/clusters/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
+                },
             ]
             request, metadata = self._interceptor.pre_delete_cluster(request, metadata)
             pb_request = bigtable_instance_admin.DeleteClusterRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1080,19 +1281,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.DeleteInstanceRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ):
+        def __call__(
+            self,
+            request: bigtable_instance_admin.DeleteInstanceRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ):
             r"""Call the delete instance method over HTTP.
 
             Args:
@@ -1107,37 +1313,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     sent along with the request as metadata.
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'delete',
-                'uri': '/v2/{name=projects/*/instances/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "delete",
+                    "uri": "/v2/{name=projects/*/instances/*}",
+                },
             ]
             request, metadata = self._interceptor.pre_delete_instance(request, metadata)
             pb_request = bigtable_instance_admin.DeleteInstanceRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1148,19 +1357,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.GetAppProfileRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> instance.AppProfile:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.GetAppProfileRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> instance.AppProfile:
             r"""Call the get app profile method over HTTP.
 
             Args:
@@ -1182,37 +1396,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{name=projects/*/instances/*/appProfiles/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{name=projects/*/instances/*/appProfiles/*}",
+                },
             ]
             request, metadata = self._interceptor.pre_get_app_profile(request, metadata)
             pb_request = bigtable_instance_admin.GetAppProfileRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1231,19 +1448,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.GetClusterRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> instance.Cluster:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.GetClusterRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> instance.Cluster:
             r"""Call the get cluster method over HTTP.
 
             Args:
@@ -1266,37 +1488,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{name=projects/*/instances/*/clusters/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
+                },
             ]
             request, metadata = self._interceptor.pre_get_cluster(request, metadata)
             pb_request = bigtable_instance_admin.GetClusterRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1315,19 +1540,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: iam_policy_pb2.GetIamPolicyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> policy_pb2.Policy:
+        def __call__(
+            self,
+            request: iam_policy_pb2.GetIamPolicyRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> policy_pb2.Policy:
             r"""Call the get iam policy method over HTTP.
 
             Args:
@@ -1418,11 +1648,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{resource=projects/*/instances/*}:getIamPolicy',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*}:getIamPolicy",
+                    "body": "*",
+                },
             ]
             request, metadata = self._interceptor.pre_get_iam_policy(request, metadata)
             pb_request = request
@@ -1431,33 +1662,35 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1476,19 +1709,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.GetInstanceRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> instance.Instance:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.GetInstanceRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> instance.Instance:
             r"""Call the get instance method over HTTP.
 
             Args:
@@ -1513,37 +1751,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{name=projects/*/instances/*}',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{name=projects/*/instances/*}",
+                },
             ]
             request, metadata = self._interceptor.pre_get_instance(request, metadata)
             pb_request = bigtable_instance_admin.GetInstanceRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1562,19 +1803,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListAppProfiles")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.ListAppProfilesRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> bigtable_instance_admin.ListAppProfilesResponse:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListAppProfilesRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> bigtable_instance_admin.ListAppProfilesResponse:
             r"""Call the list app profiles method over HTTP.
 
             Args:
@@ -1595,37 +1841,42 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{parent=projects/*/instances/*}/appProfiles',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{parent=projects/*/instances/*}/appProfiles",
+                },
             ]
-            request, metadata = self._interceptor.pre_list_app_profiles(request, metadata)
+            request, metadata = self._interceptor.pre_list_app_profiles(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.ListAppProfilesRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1644,19 +1895,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListClusters")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.ListClustersRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> bigtable_instance_admin.ListClustersResponse:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListClustersRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> bigtable_instance_admin.ListClustersResponse:
             r"""Call the list clusters method over HTTP.
 
             Args:
@@ -1677,37 +1933,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{parent=projects/*/instances/*}/clusters',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{parent=projects/*/instances/*}/clusters",
+                },
             ]
             request, metadata = self._interceptor.pre_list_clusters(request, metadata)
             pb_request = bigtable_instance_admin.ListClustersRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1726,19 +1985,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListHotTablets")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.ListHotTabletsRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> bigtable_instance_admin.ListHotTabletsResponse:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListHotTabletsRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> bigtable_instance_admin.ListHotTabletsResponse:
             r"""Call the list hot tablets method over HTTP.
 
             Args:
@@ -1759,37 +2023,42 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{parent=projects/*/instances/*/clusters/*}/hotTablets',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{parent=projects/*/instances/*/clusters/*}/hotTablets",
+                },
             ]
-            request, metadata = self._interceptor.pre_list_hot_tablets(request, metadata)
+            request, metadata = self._interceptor.pre_list_hot_tablets(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.ListHotTabletsRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1808,19 +2077,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListInstances")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.ListInstancesRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> bigtable_instance_admin.ListInstancesResponse:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.ListInstancesRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> bigtable_instance_admin.ListInstancesResponse:
             r"""Call the list instances method over HTTP.
 
             Args:
@@ -1841,37 +2115,40 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'get',
-                'uri': '/v2/{parent=projects/*}/instances',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "get",
+                    "uri": "/v2/{parent=projects/*}/instances",
+                },
             ]
             request, metadata = self._interceptor.pre_list_instances(request, metadata)
             pb_request = bigtable_instance_admin.ListInstancesRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
 
             # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True,
-            ))
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1890,19 +2167,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("PartialUpdateCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "updateMask" : {},        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "updateMask": {},
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.PartialUpdateClusterRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.PartialUpdateClusterRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the partial update cluster method over HTTP.
 
             Args:
@@ -1924,46 +2208,51 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'patch',
-                'uri': '/v2/{cluster.name=projects/*/instances/*/clusters/*}',
-                'body': 'cluster',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "patch",
+                    "uri": "/v2/{cluster.name=projects/*/instances/*/clusters/*}",
+                    "body": "cluster",
+                },
             ]
-            request, metadata = self._interceptor.pre_partial_update_cluster(request, metadata)
+            request, metadata = self._interceptor.pre_partial_update_cluster(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.PartialUpdateClusterRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -1980,19 +2269,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("PartialUpdateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "updateMask" : {},        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "updateMask": {},
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.PartialUpdateInstanceRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.PartialUpdateInstanceRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the partial update instance method over HTTP.
 
             Args:
@@ -2014,46 +2310,53 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'patch',
-                'uri': '/v2/{instance.name=projects/*/instances/*}',
-                'body': 'instance',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "patch",
+                    "uri": "/v2/{instance.name=projects/*/instances/*}",
+                    "body": "instance",
+                },
             ]
-            request, metadata = self._interceptor.pre_partial_update_instance(request, metadata)
-            pb_request = bigtable_instance_admin.PartialUpdateInstanceRequest.pb(request)
+            request, metadata = self._interceptor.pre_partial_update_instance(
+                request, metadata
+            )
+            pb_request = bigtable_instance_admin.PartialUpdateInstanceRequest.pb(
+                request
+            )
             transcoded_request = path_template.transcode(http_options, pb_request)
 
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2070,19 +2373,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("SetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: iam_policy_pb2.SetIamPolicyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> policy_pb2.Policy:
+        def __call__(
+            self,
+            request: iam_policy_pb2.SetIamPolicyRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> policy_pb2.Policy:
             r"""Call the set iam policy method over HTTP.
 
             Args:
@@ -2173,11 +2481,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{resource=projects/*/instances/*}:setIamPolicy',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*}:setIamPolicy",
+                    "body": "*",
+                },
             ]
             request, metadata = self._interceptor.pre_set_iam_policy(request, metadata)
             pb_request = request
@@ -2186,33 +2495,35 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2231,19 +2542,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("TestIamPermissions")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: iam_policy_pb2.TestIamPermissionsRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> iam_policy_pb2.TestIamPermissionsResponse:
+        def __call__(
+            self,
+            request: iam_policy_pb2.TestIamPermissionsRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> iam_policy_pb2.TestIamPermissionsResponse:
             r"""Call the test iam permissions method over HTTP.
 
             Args:
@@ -2260,46 +2576,51 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
                     Response message for ``TestIamPermissions`` method.
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'post',
-                'uri': '/v2/{resource=projects/*/instances/*}:testIamPermissions',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "post",
+                    "uri": "/v2/{resource=projects/*/instances/*}:testIamPermissions",
+                    "body": "*",
+                },
             ]
-            request, metadata = self._interceptor.pre_test_iam_permissions(request, metadata)
+            request, metadata = self._interceptor.pre_test_iam_permissions(
+                request, metadata
+            )
             pb_request = request
             transcoded_request = path_template.transcode(http_options, pb_request)
 
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2318,19 +2639,26 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("UpdateAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-            "updateMask" : {},        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+            "updateMask": {},
+        }
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: bigtable_instance_admin.UpdateAppProfileRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: bigtable_instance_admin.UpdateAppProfileRequest,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the update app profile method over HTTP.
 
             Args:
@@ -2352,46 +2680,51 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'patch',
-                'uri': '/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}',
-                'body': 'app_profile',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "patch",
+                    "uri": "/v2/{app_profile.name=projects/*/instances/*/appProfiles/*}",
+                    "body": "app_profile",
+                },
             ]
-            request, metadata = self._interceptor.pre_update_app_profile(request, metadata)
+            request, metadata = self._interceptor.pre_update_app_profile(
+                request, metadata
+            )
             pb_request = bigtable_instance_admin.UpdateAppProfileRequest.pb(request)
             transcoded_request = path_template.transcode(http_options, pb_request)
 
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2408,12 +2741,14 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("UpdateCluster")
 
-        def __call__(self,
-                request: instance.Cluster, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> operations_pb2.Operation:
+        def __call__(
+            self,
+            request: instance.Cluster,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> operations_pb2.Operation:
             r"""Call the update cluster method over HTTP.
 
             Args:
@@ -2437,11 +2772,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'put',
-                'uri': '/v2/{name=projects/*/instances/*/clusters/*}',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "put",
+                    "uri": "/v2/{name=projects/*/instances/*/clusters/*}",
+                    "body": "*",
+                },
             ]
             request, metadata = self._interceptor.pre_update_cluster(request, metadata)
             pb_request = instance.Cluster.pb(request)
@@ -2450,32 +2786,34 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2492,19 +2830,24 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("UpdateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] =  {
-        }
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
-            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+            return {
+                k: v
+                for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items()
+                if k not in message_dict
+            }
 
-        def __call__(self,
-                request: instance.Instance, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> instance.Instance:
+        def __call__(
+            self,
+            request: instance.Instance,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Optional[float] = None,
+            metadata: Sequence[Tuple[str, str]] = (),
+        ) -> instance.Instance:
             r"""Call the update instance method over HTTP.
 
             Args:
@@ -2533,11 +2876,12 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
 
             """
 
-            http_options: List[Dict[str, str]] = [{
-                'method': 'put',
-                'uri': '/v2/{name=projects/*/instances/*}',
-                'body': '*',
-            },
+            http_options: List[Dict[str, str]] = [
+                {
+                    "method": "put",
+                    "uri": "/v2/{name=projects/*/instances/*}",
+                    "body": "*",
+                },
             ]
             request, metadata = self._interceptor.pre_update_instance(request, metadata)
             pb_request = instance.Instance.pb(request)
@@ -2546,33 +2890,35 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             # Jsonify the request body
 
             body = json_format.MessageToJson(
-                transcoded_request['body'],
-                including_default_value_fields=False,
-                use_integers_for_enums=True
-            )
-            uri = transcoded_request['uri']
-            method = transcoded_request['method']
-
-            # Jsonify the query params
-            query_params = json.loads(json_format.MessageToJson(
-                transcoded_request['query_params'],
+                transcoded_request["body"],
                 including_default_value_fields=False,
                 use_integers_for_enums=True,
-            ))
+            )
+            uri = transcoded_request["uri"]
+            method = transcoded_request["method"]
+
+            # Jsonify the query params
+            query_params = json.loads(
+                json_format.MessageToJson(
+                    transcoded_request["query_params"],
+                    including_default_value_fields=False,
+                    use_integers_for_enums=True,
+                )
+            )
             query_params.update(self._get_unset_required_fields(query_params))
 
             query_params["$alt"] = "json;enum-encoding=int"
 
             # Send the request
             headers = dict(metadata)
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             response = getattr(self._session, method)(
                 "{host}{uri}".format(host=self._host, uri=uri),
                 timeout=timeout,
                 headers=headers,
                 params=rest_helpers.flatten_query_params(query_params, strict=True),
                 data=body,
-                )
+            )
 
             # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
             # subclass.
@@ -2588,172 +2934,195 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
             return resp
 
     @property
-    def create_app_profile(self) -> Callable[
-            [bigtable_instance_admin.CreateAppProfileRequest],
-            instance.AppProfile]:
+    def create_app_profile(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateAppProfileRequest], instance.AppProfile
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._CreateAppProfile(self._session, self._host, self._interceptor) # type: ignore
+        return self._CreateAppProfile(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def create_cluster(self) -> Callable[
-            [bigtable_instance_admin.CreateClusterRequest],
-            operations_pb2.Operation]:
+    def create_cluster(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateClusterRequest], operations_pb2.Operation
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._CreateCluster(self._session, self._host, self._interceptor) # type: ignore
+        return self._CreateCluster(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def create_instance(self) -> Callable[
-            [bigtable_instance_admin.CreateInstanceRequest],
-            operations_pb2.Operation]:
+    def create_instance(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.CreateInstanceRequest], operations_pb2.Operation
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._CreateInstance(self._session, self._host, self._interceptor) # type: ignore
+        return self._CreateInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def delete_app_profile(self) -> Callable[
-            [bigtable_instance_admin.DeleteAppProfileRequest],
-            empty_pb2.Empty]:
+    def delete_app_profile(
+        self,
+    ) -> Callable[[bigtable_instance_admin.DeleteAppProfileRequest], empty_pb2.Empty]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._DeleteAppProfile(self._session, self._host, self._interceptor) # type: ignore
+        return self._DeleteAppProfile(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def delete_cluster(self) -> Callable[
-            [bigtable_instance_admin.DeleteClusterRequest],
-            empty_pb2.Empty]:
+    def delete_cluster(
+        self,
+    ) -> Callable[[bigtable_instance_admin.DeleteClusterRequest], empty_pb2.Empty]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._DeleteCluster(self._session, self._host, self._interceptor) # type: ignore
+        return self._DeleteCluster(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def delete_instance(self) -> Callable[
-            [bigtable_instance_admin.DeleteInstanceRequest],
-            empty_pb2.Empty]:
+    def delete_instance(
+        self,
+    ) -> Callable[[bigtable_instance_admin.DeleteInstanceRequest], empty_pb2.Empty]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._DeleteInstance(self._session, self._host, self._interceptor) # type: ignore
+        return self._DeleteInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def get_app_profile(self) -> Callable[
-            [bigtable_instance_admin.GetAppProfileRequest],
-            instance.AppProfile]:
+    def get_app_profile(
+        self,
+    ) -> Callable[[bigtable_instance_admin.GetAppProfileRequest], instance.AppProfile]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._GetAppProfile(self._session, self._host, self._interceptor) # type: ignore
+        return self._GetAppProfile(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def get_cluster(self) -> Callable[
-            [bigtable_instance_admin.GetClusterRequest],
-            instance.Cluster]:
+    def get_cluster(
+        self,
+    ) -> Callable[[bigtable_instance_admin.GetClusterRequest], instance.Cluster]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._GetCluster(self._session, self._host, self._interceptor) # type: ignore
+        return self._GetCluster(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def get_iam_policy(self) -> Callable[
-            [iam_policy_pb2.GetIamPolicyRequest],
-            policy_pb2.Policy]:
+    def get_iam_policy(
+        self,
+    ) -> Callable[[iam_policy_pb2.GetIamPolicyRequest], policy_pb2.Policy]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._GetIamPolicy(self._session, self._host, self._interceptor) # type: ignore
+        return self._GetIamPolicy(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def get_instance(self) -> Callable[
-            [bigtable_instance_admin.GetInstanceRequest],
-            instance.Instance]:
+    def get_instance(
+        self,
+    ) -> Callable[[bigtable_instance_admin.GetInstanceRequest], instance.Instance]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._GetInstance(self._session, self._host, self._interceptor) # type: ignore
+        return self._GetInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def list_app_profiles(self) -> Callable[
-            [bigtable_instance_admin.ListAppProfilesRequest],
-            bigtable_instance_admin.ListAppProfilesResponse]:
+    def list_app_profiles(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListAppProfilesRequest],
+        bigtable_instance_admin.ListAppProfilesResponse,
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._ListAppProfiles(self._session, self._host, self._interceptor) # type: ignore
+        return self._ListAppProfiles(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def list_clusters(self) -> Callable[
-            [bigtable_instance_admin.ListClustersRequest],
-            bigtable_instance_admin.ListClustersResponse]:
+    def list_clusters(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListClustersRequest],
+        bigtable_instance_admin.ListClustersResponse,
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._ListClusters(self._session, self._host, self._interceptor) # type: ignore
+        return self._ListClusters(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def list_hot_tablets(self) -> Callable[
-            [bigtable_instance_admin.ListHotTabletsRequest],
-            bigtable_instance_admin.ListHotTabletsResponse]:
+    def list_hot_tablets(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListHotTabletsRequest],
+        bigtable_instance_admin.ListHotTabletsResponse,
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._ListHotTablets(self._session, self._host, self._interceptor) # type: ignore
+        return self._ListHotTablets(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def list_instances(self) -> Callable[
-            [bigtable_instance_admin.ListInstancesRequest],
-            bigtable_instance_admin.ListInstancesResponse]:
+    def list_instances(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.ListInstancesRequest],
+        bigtable_instance_admin.ListInstancesResponse,
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._ListInstances(self._session, self._host, self._interceptor) # type: ignore
+        return self._ListInstances(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def partial_update_cluster(self) -> Callable[
-            [bigtable_instance_admin.PartialUpdateClusterRequest],
-            operations_pb2.Operation]:
+    def partial_update_cluster(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.PartialUpdateClusterRequest], operations_pb2.Operation
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._PartialUpdateCluster(self._session, self._host, self._interceptor) # type: ignore
+        return self._PartialUpdateCluster(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def partial_update_instance(self) -> Callable[
-            [bigtable_instance_admin.PartialUpdateInstanceRequest],
-            operations_pb2.Operation]:
+    def partial_update_instance(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.PartialUpdateInstanceRequest], operations_pb2.Operation
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._PartialUpdateInstance(self._session, self._host, self._interceptor) # type: ignore
+        return self._PartialUpdateInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def set_iam_policy(self) -> Callable[
-            [iam_policy_pb2.SetIamPolicyRequest],
-            policy_pb2.Policy]:
+    def set_iam_policy(
+        self,
+    ) -> Callable[[iam_policy_pb2.SetIamPolicyRequest], policy_pb2.Policy]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._SetIamPolicy(self._session, self._host, self._interceptor) # type: ignore
+        return self._SetIamPolicy(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def test_iam_permissions(self) -> Callable[
-            [iam_policy_pb2.TestIamPermissionsRequest],
-            iam_policy_pb2.TestIamPermissionsResponse]:
+    def test_iam_permissions(
+        self,
+    ) -> Callable[
+        [iam_policy_pb2.TestIamPermissionsRequest],
+        iam_policy_pb2.TestIamPermissionsResponse,
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._TestIamPermissions(self._session, self._host, self._interceptor) # type: ignore
+        return self._TestIamPermissions(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def update_app_profile(self) -> Callable[
-            [bigtable_instance_admin.UpdateAppProfileRequest],
-            operations_pb2.Operation]:
+    def update_app_profile(
+        self,
+    ) -> Callable[
+        [bigtable_instance_admin.UpdateAppProfileRequest], operations_pb2.Operation
+    ]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._UpdateAppProfile(self._session, self._host, self._interceptor) # type: ignore
+        return self._UpdateAppProfile(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def update_cluster(self) -> Callable[
-            [instance.Cluster],
-            operations_pb2.Operation]:
+    def update_cluster(self) -> Callable[[instance.Cluster], operations_pb2.Operation]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._UpdateCluster(self._session, self._host, self._interceptor) # type: ignore
+        return self._UpdateCluster(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
-    def update_instance(self) -> Callable[
-            [instance.Instance],
-            instance.Instance]:
+    def update_instance(self) -> Callable[[instance.Instance], instance.Instance]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
-        return self._UpdateInstance(self._session, self._host, self._interceptor) # type: ignore
+        return self._UpdateInstance(self._session, self._host, self._interceptor)  # type: ignore
 
     @property
     def kind(self) -> str:
@@ -2763,6 +3132,4 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         self._session.close()
 
 
-__all__=(
-    'BigtableInstanceAdminRestTransport',
-)
+__all__ = ("BigtableInstanceAdminRestTransport",)
