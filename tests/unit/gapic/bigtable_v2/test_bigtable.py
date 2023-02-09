@@ -51,6 +51,8 @@ from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
 from google.cloud.bigtable_v2.types import request_stats
 from google.oauth2 import service_account
+from google.protobuf import duration_pb2  # type: ignore
+from google.protobuf import timestamp_pb2  # type: ignore
 import google.auth
 
 
@@ -2461,6 +2463,523 @@ async def test_read_modify_write_row_flattened_error_async():
 @pytest.mark.parametrize(
     "request_type",
     [
+        bigtable.GenerateInitialChangeStreamPartitionsRequest,
+        dict,
+    ],
+)
+def test_generate_initial_change_stream_partitions(
+    request_type, transport: str = "grpc"
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter(
+            [bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        response = client.generate_initial_change_stream_partitions(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+    # Establish that the response is the type that we expect.
+    for message in response:
+        assert isinstance(
+            message, bigtable.GenerateInitialChangeStreamPartitionsResponse
+        )
+
+
+def test_generate_initial_change_stream_partitions_empty_call():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        client.generate_initial_change_stream_partitions()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_async(
+    transport: str = "grpc_asyncio",
+    request_type=bigtable.GenerateInitialChangeStreamPartitionsRequest,
+):
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        response = await client.generate_initial_change_stream_partitions(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+    # Establish that the response is the type that we expect.
+    message = await response.read()
+    assert isinstance(message, bigtable.GenerateInitialChangeStreamPartitionsResponse)
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_async_from_dict():
+    await test_generate_initial_change_stream_partitions_async(request_type=dict)
+
+
+def test_generate_initial_change_stream_partitions_field_headers():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+    request.table_name = "table_name_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        call.return_value = iter(
+            [bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        client.generate_initial_change_stream_partitions(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "table_name=table_name_value",
+    ) in kw["metadata"]
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_field_headers_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+    request.table_name = "table_name_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        await client.generate_initial_change_stream_partitions(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "table_name=table_name_value",
+    ) in kw["metadata"]
+
+
+def test_generate_initial_change_stream_partitions_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter(
+            [bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        client.generate_initial_change_stream_partitions(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].table_name
+        mock_val = "table_name_value"
+        assert arg == mock_val
+        arg = args[0].app_profile_id
+        mock_val = "app_profile_id_value"
+        assert arg == mock_val
+
+
+def test_generate_initial_change_stream_partitions_flattened_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.generate_initial_change_stream_partitions(
+            bigtable.GenerateInitialChangeStreamPartitionsRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_flattened_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter(
+            [bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        response = await client.generate_initial_change_stream_partitions(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].table_name
+        mock_val = "table_name_value"
+        assert arg == mock_val
+        arg = args[0].app_profile_id
+        mock_val = "app_profile_id_value"
+        assert arg == mock_val
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_flattened_error_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        await client.generate_initial_change_stream_partitions(
+            bigtable.GenerateInitialChangeStreamPartitionsRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.ReadChangeStreamRequest,
+        dict,
+    ],
+)
+def test_read_change_stream(request_type, transport: str = "grpc"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter([bigtable.ReadChangeStreamResponse()])
+        response = client.read_change_stream(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadChangeStreamRequest()
+
+    # Establish that the response is the type that we expect.
+    for message in response:
+        assert isinstance(message, bigtable.ReadChangeStreamResponse)
+
+
+def test_read_change_stream_empty_call():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        client.read_change_stream()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadChangeStreamRequest()
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_async(
+    transport: str = "grpc_asyncio", request_type=bigtable.ReadChangeStreamRequest
+):
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.ReadChangeStreamResponse()]
+        )
+        response = await client.read_change_stream(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadChangeStreamRequest()
+
+    # Establish that the response is the type that we expect.
+    message = await response.read()
+    assert isinstance(message, bigtable.ReadChangeStreamResponse)
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_async_from_dict():
+    await test_read_change_stream_async(request_type=dict)
+
+
+def test_read_change_stream_field_headers():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.ReadChangeStreamRequest()
+
+    request.table_name = "table_name_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        call.return_value = iter([bigtable.ReadChangeStreamResponse()])
+        client.read_change_stream(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "table_name=table_name_value",
+    ) in kw["metadata"]
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_field_headers_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.ReadChangeStreamRequest()
+
+    request.table_name = "table_name_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.ReadChangeStreamResponse()]
+        )
+        await client.read_change_stream(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "table_name=table_name_value",
+    ) in kw["metadata"]
+
+
+def test_read_change_stream_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter([bigtable.ReadChangeStreamResponse()])
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        client.read_change_stream(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].table_name
+        mock_val = "table_name_value"
+        assert arg == mock_val
+        arg = args[0].app_profile_id
+        mock_val = "app_profile_id_value"
+        assert arg == mock_val
+
+
+def test_read_change_stream_flattened_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.read_change_stream(
+            bigtable.ReadChangeStreamRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_flattened_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = iter([bigtable.ReadChangeStreamResponse()])
+
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        response = await client.read_change_stream(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].table_name
+        mock_val = "table_name_value"
+        assert arg == mock_val
+        arg = args[0].app_profile_id
+        mock_val = "app_profile_id_value"
+        assert arg == mock_val
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_flattened_error_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        await client.read_change_stream(
+            bigtable.ReadChangeStreamRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
         bigtable.ReadRowsRequest,
         dict,
     ],
@@ -4474,6 +4993,595 @@ def test_read_modify_write_row_rest_error():
     )
 
 
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.GenerateInitialChangeStreamPartitionsRequest,
+        dict,
+    ],
+)
+def test_generate_initial_change_stream_partitions_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse()
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse.pb(
+            return_value
+        )
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        json_return_value = "[{}]".format(json_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            response = client.generate_initial_change_stream_partitions(request)
+
+    assert isinstance(response, Iterable)
+    response = next(response)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.GenerateInitialChangeStreamPartitionsResponse)
+
+
+def test_generate_initial_change_stream_partitions_rest_required_fields(
+    request_type=bigtable.GenerateInitialChangeStreamPartitionsRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).generate_initial_change_stream_partitions._get_unset_required_fields(
+        jsonified_request
+    )
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).generate_initial_change_stream_partitions._get_unset_required_fields(
+        jsonified_request
+    )
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse.pb(
+                return_value
+            )
+            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = "[{}]".format(json_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            with mock.patch.object(response_value, "iter_content") as iter_content:
+                iter_content.return_value = iter(json_return_value)
+                response = client.generate_initial_change_stream_partitions(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_generate_initial_change_stream_partitions_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = (
+        transport.generate_initial_change_stream_partitions._get_unset_required_fields(
+            {}
+        )
+    )
+    assert set(unset_fields) == (set(()) & set(("tableName",)))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_generate_initial_change_stream_partitions_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor,
+        "post_generate_initial_change_stream_partitions",
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor,
+        "pre_generate_initial_change_stream_partitions",
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.GenerateInitialChangeStreamPartitionsRequest.pb(
+            bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        )
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = (
+            bigtable.GenerateInitialChangeStreamPartitionsResponse.to_json(
+                bigtable.GenerateInitialChangeStreamPartitionsResponse()
+            )
+        )
+        req.return_value._content = "[{}]".format(req.return_value._content)
+
+        request = bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse()
+
+        client.generate_initial_change_stream_partitions(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_generate_initial_change_stream_partitions_rest_bad_request(
+    transport: str = "rest",
+    request_type=bigtable.GenerateInitialChangeStreamPartitionsRequest,
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.generate_initial_change_stream_partitions(request)
+
+
+def test_generate_initial_change_stream_partitions_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.GenerateInitialChangeStreamPartitionsResponse.pb(
+            return_value
+        )
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = "[{}]".format(json_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            client.generate_initial_change_stream_partitions(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:generateInitialChangeStreamPartitions"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_generate_initial_change_stream_partitions_rest_flattened_error(
+    transport: str = "rest",
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.generate_initial_change_stream_partitions(
+            bigtable.GenerateInitialChangeStreamPartitionsRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_generate_initial_change_stream_partitions_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable.ReadChangeStreamRequest,
+        dict,
+    ],
+)
+def test_read_change_stream_rest(request_type):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadChangeStreamResponse(
+            data_change=bigtable.ReadChangeStreamResponse.DataChange(
+                type_=bigtable.ReadChangeStreamResponse.DataChange.Type.USER
+            ),
+        )
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadChangeStreamResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+
+        json_return_value = "[{}]".format(json_return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            response = client.read_change_stream(request)
+
+    assert isinstance(response, Iterable)
+    response = next(response)
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, bigtable.ReadChangeStreamResponse)
+
+
+def test_read_change_stream_rest_required_fields(
+    request_type=bigtable.ReadChangeStreamRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_change_stream._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["tableName"] = "table_name_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).read_change_stream._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "tableName" in jsonified_request
+    assert jsonified_request["tableName"] == "table_name_value"
+
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = bigtable.ReadChangeStreamResponse()
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+
+            pb_return_value = bigtable.ReadChangeStreamResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = "[{}]".format(json_return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            with mock.patch.object(response_value, "iter_content") as iter_content:
+                iter_content.return_value = iter(json_return_value)
+                response = client.read_change_stream(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_read_change_stream_rest_unset_required_fields():
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.read_change_stream._get_unset_required_fields({})
+    assert set(unset_fields) == (set(()) & set(("tableName",)))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_read_change_stream_rest_interceptors(null_interceptor):
+    transport = transports.BigtableRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.BigtableRestInterceptor(),
+    )
+    client = BigtableClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        transports.BigtableRestInterceptor, "post_read_change_stream"
+    ) as post, mock.patch.object(
+        transports.BigtableRestInterceptor, "pre_read_change_stream"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable.ReadChangeStreamRequest.pb(
+            bigtable.ReadChangeStreamRequest()
+        )
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = bigtable.ReadChangeStreamResponse.to_json(
+            bigtable.ReadChangeStreamResponse()
+        )
+        req.return_value._content = "[{}]".format(req.return_value._content)
+
+        request = bigtable.ReadChangeStreamRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = bigtable.ReadChangeStreamResponse()
+
+        client.read_change_stream(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_read_change_stream_rest_bad_request(
+    transport: str = "rest", request_type=bigtable.ReadChangeStreamRequest
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"table_name": "projects/sample1/instances/sample2/tables/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.read_change_stream(request)
+
+
+def test_read_change_stream_rest_flattened():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = bigtable.ReadChangeStreamResponse()
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "table_name": "projects/sample1/instances/sample2/tables/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        pb_return_value = bigtable.ReadChangeStreamResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = "[{}]".format(json_return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        with mock.patch.object(response_value, "iter_content") as iter_content:
+            iter_content.return_value = iter(json_return_value)
+            client.read_change_stream(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{table_name=projects/*/instances/*/tables/*}:readChangeStream"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_read_change_stream_rest_flattened_error(transport: str = "rest"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.read_change_stream(
+            bigtable.ReadChangeStreamRequest(),
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+def test_read_change_stream_rest_error():
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
 def test_credentials_transport_error():
     # It is an error to provide credentials and a transport instance.
     transport = transports.BigtableGrpcTransport(
@@ -4620,6 +5728,8 @@ def test_bigtable_base_transport():
         "check_and_mutate_row",
         "ping_and_warm",
         "read_modify_write_row",
+        "generate_initial_change_stream_partitions",
+        "read_change_stream",
     )
     for method in methods:
         with pytest.raises(NotImplementedError):
@@ -4923,6 +6033,12 @@ def test_bigtable_client_transport_session_collision(transport_name):
     assert session1 != session2
     session1 = client1.transport.read_modify_write_row._session
     session2 = client2.transport.read_modify_write_row._session
+    assert session1 != session2
+    session1 = client1.transport.generate_initial_change_stream_partitions._session
+    session2 = client2.transport.generate_initial_change_stream_partitions._session
+    assert session1 != session2
+    session1 = client1.transport.read_change_stream._session
+    session2 = client2.transport.read_change_stream._session
     assert session1 != session2
 
 
