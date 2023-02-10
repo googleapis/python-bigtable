@@ -18,10 +18,19 @@ import queue
 import concurrent.futures
 import atexit
 
+from google.api_core.exceptions import from_grpc_status
 
+
+# Max number of items in the queue. Queue will be flushed if this number is reached
 FLUSH_COUNT = 100
+
+# Max number of mutations for a single row at one time
 MAX_MUTATIONS = 100000
+
+# Max size (in bytes) for a single mutation
 MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB
+
+# Max size (in bytes) for a single request
 MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB
 
 
@@ -29,7 +38,11 @@ class MutationsBatchError(Exception):
     """Error in the batch request"""
 
     def __init__(self, status_codes):
-        self.status_codes = status_codes
+        self.errors = [
+            from_grpc_status(status_code.code, status_code.message)
+            for status_code in status_codes
+            if status_code.code != 0
+        ]
         self.message = "Errors in batch mutations."
         super().__init__(self.message)
 
@@ -129,8 +142,7 @@ class MutationsBatcher(object):
     memory will not necessarily be sent to the service, even after the
     completion of the mutate() method.
 
-    TODO: Performance would dramatically improve if this class had the
-    capability of asynchronous, parallel RPCs.
+    Note on thread safety: The same MutationBatcher cannot be shared by multiple end-user threads.
 
     :type table: class
     :param table: class:`~google.cloud.bigtable.table.Table`.
@@ -276,7 +288,7 @@ class MutationsBatcher(object):
         # catch the exceptions in the mutation
         exc = future.exception()
         if exc:
-            raise exc
+            raise exc from exc
         else:
             result = future.result()
         return result
@@ -288,11 +300,11 @@ class MutationsBatcher(object):
             * :exc:`.batcherMutationsBatchError` if there's any error in the
                 mutations.
         """
-        response = []
+        responses = []
         if len(rows_to_flush) > 0:
             # returns a list of status codes
             response = self.table.mutate_rows(rows_to_flush)
-            responses = []
+
             has_error = False
             for result in response:
                 if result.code != 0:
@@ -300,8 +312,9 @@ class MutationsBatcher(object):
                 responses.append(result)
 
             if has_error:
-                raise MutationsBatchError(status_codes=response)
-        return response
+                raise MutationsBatchError(status_codes=responses)
+
+        return responses
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """Clean up resources. Flush and shutdown the ThreadPoolExecutor."""
