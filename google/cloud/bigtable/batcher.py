@@ -37,13 +37,9 @@ MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB
 class MutationsBatchError(Exception):
     """Error in the batch request"""
 
-    def __init__(self, status_codes):
-        self.errors = [
-            from_grpc_status(status_code.code, status_code.message)
-            for status_code in status_codes
-            if status_code.code != 0
-        ]
-        self.message = "Errors in batch mutations."
+    def __init__(self, message, exc):
+        self.exc = exc
+        self.message = message
         super().__init__(self.message)
 
 
@@ -312,7 +308,12 @@ class MutationsBatcher(object):
                 responses.append(result)
 
             if has_error:
-                raise MutationsBatchError(status_codes=responses)
+                exc = [
+                    from_grpc_status(status_code.code, status_code.message)
+                    for status_code in responses
+                    if status_code.code != 0
+                ]
+                raise MutationsBatchError(message="Errors in batch mutations.", exc=exc)
 
         return responses
 

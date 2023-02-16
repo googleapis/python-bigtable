@@ -243,10 +243,10 @@ def test_mutations_batcher_response_with_error_codes():
         with pytest.raises(MutationsBatchError) as exc:
             mutation_batcher.flush()
         assert exc.value.message == "Errors in batch mutations."
-        assert len(exc.value.errors) == 2
+        assert len(exc.value.exc) == 2
 
-        assert exc.value.errors[0].message == mocked_response[0].message
-        assert exc.value.errors[1].message == mocked_response[1].message
+        assert exc.value.exc[0].message == mocked_response[0].message
+        assert exc.value.exc[1].message == mocked_response[1].message
 
 
 def test_mutations_batcher_flush_async_raises_exception():
@@ -266,10 +266,10 @@ def test_mutations_batcher_flush_async_raises_exception():
         with pytest.raises(MutationsBatchError) as exc:
             mutation_batcher.flush_async()
         assert exc.value.message == "Errors in batch mutations."
-        assert len(exc.value.errors) == 2
+        assert len(exc.value.exc) == 2
 
-        assert exc.value.errors[0].message == mocked_response[0].message
-        assert exc.value.errors[1].message == mocked_response[1].message
+        assert exc.value.exc[0].message == mocked_response[0].message
+        assert exc.value.exc[1].message == mocked_response[1].message
 
 
 class _Instance(object):
