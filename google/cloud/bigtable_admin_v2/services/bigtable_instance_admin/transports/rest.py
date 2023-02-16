@@ -801,7 +801,32 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         """
         # Only create a new client if we do not already have one.
         if self._operations_client is None:
-            http_options: Dict[str, List[Dict[str, str]]] = {}
+            http_options: Dict[str, List[Dict[str, str]]] = {
+                "google.longrunning.Operations.CancelOperation": [
+                    {
+                        "method": "post",
+                        "uri": "/v2/{name=operations/**}:cancel",
+                    },
+                ],
+                "google.longrunning.Operations.DeleteOperation": [
+                    {
+                        "method": "delete",
+                        "uri": "/v2/{name=operations/**}",
+                    },
+                ],
+                "google.longrunning.Operations.GetOperation": [
+                    {
+                        "method": "get",
+                        "uri": "/v2/{name=operations/**}",
+                    },
+                ],
+                "google.longrunning.Operations.ListOperations": [
+                    {
+                        "method": "get",
+                        "uri": "/v2/{name=operations/projects/**}/operations",
+                    },
+                ],
+            }
 
             rest_transport = operations_v1.OperationsRestTransport(
                 host=self._host,
