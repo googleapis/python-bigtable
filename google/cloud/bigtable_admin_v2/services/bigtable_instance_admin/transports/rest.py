@@ -31,7 +31,7 @@ from google.api_core import operations_v1
 from requests import __version__ as requests_version
 import dataclasses
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 try:
@@ -848,7 +848,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "appProfileId": "",
         }
 
@@ -952,7 +952,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "clusterId": "",
         }
 
@@ -1052,7 +1052,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("CreateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1150,7 +1150,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "ignoreWarnings": False,
         }
 
@@ -1230,7 +1230,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1306,7 +1306,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("DeleteInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1382,7 +1382,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1473,7 +1473,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1565,7 +1565,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1734,7 +1734,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("GetInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1828,7 +1828,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListAppProfiles")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1920,7 +1920,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListClusters")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2010,7 +2010,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListHotTablets")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2102,7 +2102,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("ListInstances")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2192,7 +2192,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("PartialUpdateCluster")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "updateMask": {},
         }
 
@@ -2294,7 +2294,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("PartialUpdateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "updateMask": {},
         }
 
@@ -2398,7 +2398,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("SetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2567,7 +2567,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("TestIamPermissions")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2664,7 +2664,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("UpdateAppProfile")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "updateMask": {},
         }
 
@@ -2855,7 +2855,7 @@ class BigtableInstanceAdminRestTransport(BigtableInstanceAdminTransport):
         def __hash__(self):
             return hash("UpdateInstance")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):

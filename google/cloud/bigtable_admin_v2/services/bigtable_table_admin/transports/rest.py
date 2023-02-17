@@ -31,7 +31,7 @@ from google.api_core import operations_v1
 from requests import __version__ as requests_version
 import dataclasses
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 try:
@@ -914,7 +914,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("CheckConsistency")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1015,7 +1015,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("CreateBackup")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "backupId": "",
         }
 
@@ -1115,7 +1115,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("CreateTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1216,7 +1216,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("CreateTableFromSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1324,7 +1324,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("DeleteBackup")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1400,7 +1400,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("DeleteSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1483,7 +1483,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("DeleteTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1559,7 +1559,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("DropRowRange")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1644,7 +1644,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("GenerateConsistencyToken")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1748,7 +1748,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("GetBackup")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -1836,7 +1836,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("GetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2010,7 +2010,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("GetSnapshot")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2117,7 +2117,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("GetTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2209,7 +2209,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("ListBackups")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2299,7 +2299,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("ListSnapshots")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2403,7 +2403,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("ListTables")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2493,7 +2493,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("ModifyColumnFamilies")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2596,7 +2596,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("RestoreTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2694,7 +2694,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("SetIamPolicy")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2868,7 +2868,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("SnapshotTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -2973,7 +2973,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("TestIamPermissions")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -3075,7 +3075,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("UndeleteTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {}
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {}
 
         @classmethod
         def _get_unset_required_fields(cls, message_dict):
@@ -3173,7 +3173,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("UpdateBackup")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "updateMask": {},
         }
 
@@ -3272,7 +3272,7 @@ class BigtableTableAdminRestTransport(BigtableTableAdminTransport):
         def __hash__(self):
             return hash("UpdateTable")
 
-        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, str] = {
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] = {
             "updateMask": {},
         }
 

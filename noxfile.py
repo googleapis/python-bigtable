@@ -122,11 +122,13 @@ def format(session):
     )
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python="DEFAULT_PYTHON_VERSION")
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
-    session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
+    session.install(
+        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
+    )
     session.install("google-cloud-testutils")
     # TODO: also verify types on tests, all of google package
     session.run("mypy", "google/", "tests/")
