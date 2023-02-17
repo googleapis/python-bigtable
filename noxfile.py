@@ -122,7 +122,7 @@ def format(session):
     )
 
 
-@nox.session(python="DEFAULT_PYTHON_VERSION")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
