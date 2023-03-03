@@ -50,11 +50,11 @@ NON_RETRYABLE = StatusCode.CANCELLED.value[0]
 STATUS_INTERNAL = StatusCode.INTERNAL.value[0]
 
 
-@mock.patch("google.cloud.bigtable.table._MAX_BULK_MUTATIONS", new=3)
+@mock.patch("google.cloud.bigtable.deprecated.table._MAX_BULK_MUTATIONS", new=3)
 def test__compile_mutation_entries_w_too_many_mutations():
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import TooManyMutationsError
-    from google.cloud.bigtable.table import _compile_mutation_entries
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import TooManyMutationsError
+    from google.cloud.bigtable.deprecated.table import _compile_mutation_entries
 
     table = mock.Mock(name="table", spec=["name"])
     table.name = "table"
@@ -72,8 +72,8 @@ def test__compile_mutation_entries_w_too_many_mutations():
 
 
 def test__compile_mutation_entries_normal():
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import _compile_mutation_entries
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import _compile_mutation_entries
     from google.cloud.bigtable_v2.types import MutateRowsRequest
     from google.cloud.bigtable_v2.types import data
 
@@ -109,9 +109,9 @@ def test__compile_mutation_entries_normal():
 
 
 def test__check_row_table_name_w_wrong_table_name():
-    from google.cloud.bigtable.table import _check_row_table_name
-    from google.cloud.bigtable.table import TableMismatchError
-    from google.cloud.bigtable.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import _check_row_table_name
+    from google.cloud.bigtable.deprecated.table import TableMismatchError
+    from google.cloud.bigtable.deprecated.row import DirectRow
 
     table = mock.Mock(name="table", spec=["name"])
     table.name = "table"
@@ -122,8 +122,8 @@ def test__check_row_table_name_w_wrong_table_name():
 
 
 def test__check_row_table_name_w_right_table_name():
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import _check_row_table_name
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import _check_row_table_name
 
     table = mock.Mock(name="table", spec=["name"])
     table.name = "table"
@@ -133,8 +133,8 @@ def test__check_row_table_name_w_right_table_name():
 
 
 def test__check_row_type_w_wrong_row_type():
-    from google.cloud.bigtable.row import ConditionalRow
-    from google.cloud.bigtable.table import _check_row_type
+    from google.cloud.bigtable.deprecated.row import ConditionalRow
+    from google.cloud.bigtable.deprecated.table import _check_row_type
 
     row = ConditionalRow(row_key=b"row_key", table="table", filter_=None)
     with pytest.raises(TypeError):
@@ -142,21 +142,21 @@ def test__check_row_type_w_wrong_row_type():
 
 
 def test__check_row_type_w_right_row_type():
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import _check_row_type
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import _check_row_type
 
     row = DirectRow(row_key=b"row_key", table="table")
     assert not _check_row_type(row)
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
 
     return Client(*args, **kwargs)
 
 
 def _make_table(*args, **kwargs):
-    from google.cloud.bigtable.table import Table
+    from google.cloud.bigtable.deprecated.table import Table
 
     return Table(*args, **kwargs)
 
@@ -219,7 +219,7 @@ def _table_row_methods_helper():
 
 
 def test_table_row_factory_direct():
-    from google.cloud.bigtable.row import DirectRow
+    from google.cloud.bigtable.deprecated.row import DirectRow
 
     table, row_key = _table_row_methods_helper()
     with warnings.catch_warnings(record=True) as warned:
@@ -234,7 +234,7 @@ def test_table_row_factory_direct():
 
 
 def test_table_row_factory_conditional():
-    from google.cloud.bigtable.row import ConditionalRow
+    from google.cloud.bigtable.deprecated.row import ConditionalRow
 
     table, row_key = _table_row_methods_helper()
     filter_ = object()
@@ -251,7 +251,7 @@ def test_table_row_factory_conditional():
 
 
 def test_table_row_factory_append():
-    from google.cloud.bigtable.row import AppendRow
+    from google.cloud.bigtable.deprecated.row import AppendRow
 
     table, row_key = _table_row_methods_helper()
 
@@ -278,7 +278,7 @@ def test_table_row_factory_failure():
 
 
 def test_table_direct_row():
-    from google.cloud.bigtable.row import DirectRow
+    from google.cloud.bigtable.deprecated.row import DirectRow
 
     table, row_key = _table_row_methods_helper()
     row = table.direct_row(row_key)
@@ -289,7 +289,7 @@ def test_table_direct_row():
 
 
 def test_table_conditional_row():
-    from google.cloud.bigtable.row import ConditionalRow
+    from google.cloud.bigtable.deprecated.row import ConditionalRow
 
     table, row_key = _table_row_methods_helper()
     filter_ = object()
@@ -301,7 +301,7 @@ def test_table_conditional_row():
 
 
 def test_table_append_row():
-    from google.cloud.bigtable.row import AppendRow
+    from google.cloud.bigtable.deprecated.row import AppendRow
 
     table, row_key = _table_row_methods_helper()
     row = table.append_row(row_key)
@@ -357,7 +357,7 @@ def _create_table_helper(split_keys=[], column_families={}):
     from google.cloud.bigtable_admin_v2.types import (
         bigtable_table_admin as table_admin_messages_v2_pb2,
     )
-    from google.cloud.bigtable.column_family import ColumnFamily
+    from google.cloud.bigtable.deprecated.column_family import ColumnFamily
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -391,7 +391,7 @@ def test_table_create():
 
 
 def test_table_create_with_families():
-    from google.cloud.bigtable.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
 
     families = {"family": MaxVersionsGCRule(5)}
     _create_table_helper(column_families=families)
@@ -404,7 +404,7 @@ def test_table_create_with_split_keys():
 def test_table_exists_hit():
     from google.cloud.bigtable_admin_v2.types import ListTablesResponse
     from google.cloud.bigtable_admin_v2.types import Table
-    from google.cloud.bigtable import enums
+    from google.cloud.bigtable.deprecated import enums
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -426,7 +426,7 @@ def test_table_exists_hit():
 
 def test_table_exists_miss():
     from google.api_core.exceptions import NotFound
-    from google.cloud.bigtable import enums
+    from google.cloud.bigtable.deprecated import enums
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -447,7 +447,7 @@ def test_table_exists_miss():
 
 def test_table_exists_error():
     from google.api_core.exceptions import BadRequest
-    from google.cloud.bigtable import enums
+    from google.cloud.bigtable.deprecated import enums
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -512,8 +512,8 @@ def test_table_list_column_families():
 
 
 def test_table_get_cluster_states():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     INITIALIZING = enum_table.ReplicationState.INITIALIZING
     PLANNED_MAINTENANCE = enum_table.ReplicationState.PLANNED_MAINTENANCE
@@ -557,10 +557,10 @@ def test_table_get_cluster_states():
 
 def test_table_get_encryption_info():
     from google.rpc.code_pb2 import Code
-    from google.cloud.bigtable.encryption_info import EncryptionInfo
-    from google.cloud.bigtable.enums import EncryptionInfo as enum_crypto
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.error import Status
+    from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
+    from google.cloud.bigtable.deprecated.enums import EncryptionInfo as enum_crypto
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.error import Status
 
     ENCRYPTION_TYPE_UNSPECIFIED = enum_crypto.EncryptionType.ENCRYPTION_TYPE_UNSPECIFIED
     GOOGLE_DEFAULT_ENCRYPTION = enum_crypto.EncryptionType.GOOGLE_DEFAULT_ENCRYPTION
@@ -640,9 +640,9 @@ def _make_data_api():
 
 def _table_read_row_helper(chunks, expected_result, app_profile_id=None):
     from google.cloud._testing import _Monkey
-    from google.cloud.bigtable import table as MUT
-    from google.cloud.bigtable.row_set import RowSet
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated import table as MUT
+    from google.cloud.bigtable.deprecated.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -704,8 +704,8 @@ def test_table_read_row_miss_no_chunks_in_response():
 
 
 def test_table_read_row_complete():
-    from google.cloud.bigtable.row_data import Cell
-    from google.cloud.bigtable.row_data import PartialRowData
+    from google.cloud.bigtable.deprecated.row_data import Cell
+    from google.cloud.bigtable.deprecated.row_data import PartialRowData
 
     app_profile_id = "app-profile-id"
     chunk = _ReadRowsResponseCellChunkPB(
@@ -768,7 +768,7 @@ def _table_mutate_rows_helper(
     mutation_timeout=None, app_profile_id=None, retry=None, timeout=None
 ):
     from google.rpc.status_pb2 import Status
-    from google.cloud.bigtable.table import DEFAULT_RETRY
+    from google.cloud.bigtable.deprecated.table import DEFAULT_RETRY
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -787,7 +787,7 @@ def _table_mutate_rows_helper(
     response = [Status(code=0), Status(code=1)]
     instance_mock = mock.Mock(return_value=response)
     klass_mock = mock.patch(
-        "google.cloud.bigtable.table._RetryableMutateRowsWorker",
+        "google.cloud.bigtable.deprecated.table._RetryableMutateRowsWorker",
         new=mock.MagicMock(return_value=instance_mock),
     )
 
@@ -854,9 +854,9 @@ def test_table_mutate_rows_w_mutation_timeout_and_timeout_arg():
 
 def test_table_read_rows():
     from google.cloud._testing import _Monkey
-    from google.cloud.bigtable.row_data import PartialRowsData
-    from google.cloud.bigtable import table as MUT
-    from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
+    from google.cloud.bigtable.deprecated.row_data import PartialRowsData
+    from google.cloud.bigtable.deprecated import table as MUT
+    from google.cloud.bigtable.deprecated.row_data import DEFAULT_RETRY_READ_ROWS
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -1017,7 +1017,7 @@ def test_table_read_retry_rows_no_full_table_scan():
 
 
 def test_table_yield_retry_rows():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -1079,9 +1079,9 @@ def test_table_yield_retry_rows():
 
 
 def test_table_yield_rows_with_row_set():
-    from google.cloud.bigtable.row_set import RowSet
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -1174,7 +1174,7 @@ def test_table_truncate():
     table = _make_table(TABLE_ID, instance)
     table_api = client._table_admin_client = _make_table_api()
 
-    with mock.patch("google.cloud.bigtable.table.Table.name", new=TABLE_NAME):
+    with mock.patch("google.cloud.bigtable.deprecated.table.Table.name", new=TABLE_NAME):
         result = table.truncate()
 
     assert result is None
@@ -1255,7 +1255,7 @@ def test_table_mutations_batcher_factory():
 
 def test_table_get_iam_policy():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -1286,8 +1286,8 @@ def test_table_get_iam_policy():
 
 def test_table_set_iam_policy():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.policy import Policy
-    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
 
     credentials = _make_credentials()
     client = _make_client(project="project-id", credentials=credentials, admin=True)
@@ -1349,7 +1349,7 @@ def test_table_test_iam_permissions():
 
 
 def test_table_backup_factory_defaults():
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     instance = _make_table(INSTANCE_ID, None)
     table = _make_table(TABLE_ID, instance)
@@ -1373,8 +1373,8 @@ def test_table_backup_factory_defaults():
 def test_table_backup_factory_non_defaults():
     import datetime
     from google.cloud._helpers import UTC
-    from google.cloud.bigtable.backup import Backup
-    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable.deprecated.backup import Backup
+    from google.cloud.bigtable.deprecated.instance import Instance
 
     instance = Instance(INSTANCE_ID, None)
     table = _make_table(TABLE_ID, instance)
@@ -1404,7 +1404,7 @@ def _table_list_backups_helper(cluster_id=None, filter_=None, **kwargs):
         Backup as backup_pb,
         bigtable_table_admin,
     )
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     client = _make_client(
         project=PROJECT_ID, credentials=_make_credentials(), admin=True
@@ -1466,7 +1466,7 @@ def test_table_list_backups_w_options():
 
 
 def _table_restore_helper(backup_name=None):
-    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable.deprecated.instance import Instance
 
     op_future = object()
     credentials = _make_credentials()
@@ -1502,7 +1502,7 @@ def test_table_restore_table_w_backup_name():
 
 
 def _make_worker(*args, **kwargs):
-    from google.cloud.bigtable.table import _RetryableMutateRowsWorker
+    from google.cloud.bigtable.deprecated.table import _RetryableMutateRowsWorker
 
     return _RetryableMutateRowsWorker(*args, **kwargs)
 
@@ -1543,7 +1543,7 @@ def test_rmrw_callable_empty_rows():
 
 
 def test_rmrw_callable_no_retry_strategy():
-    from google.cloud.bigtable.row import DirectRow
+    from google.cloud.bigtable.deprecated.row import DirectRow
 
     # Setup:
     #   - Mutate 3 rows.
@@ -1585,8 +1585,8 @@ def test_rmrw_callable_no_retry_strategy():
 
 
 def test_rmrw_callable_retry():
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import DEFAULT_RETRY
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import DEFAULT_RETRY
 
     # Setup:
     #   - Mutate 3 rows.
@@ -1640,8 +1640,8 @@ def _do_mutate_retryable_rows_helper(
     mutate_rows_side_effect=None,
 ):
     from google.api_core.exceptions import ServiceUnavailable
-    from google.cloud.bigtable.row import DirectRow
-    from google.cloud.bigtable.table import _BigtableRetryableError
+    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.deprecated.table import _BigtableRetryableError
     from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 
     # Setup:
@@ -1797,7 +1797,7 @@ def test_rmrw_do_mutate_retryable_rows_w_retryable_error_internal_rst_stream_err
     # Raise internal server error with RST STREAM error messages
     # There should be no error raised and that the request is retried
     from google.api_core.exceptions import InternalServerError
-    from google.cloud.bigtable.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
+    from google.cloud.bigtable.deprecated.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
 
     row_cells = [
         (b"row_key_1", ("cf", b"col", b"value1")),
@@ -2003,7 +2003,7 @@ def test_rmrw_do_mutate_retryable_rows_mismatch_num_responses():
 
 
 def test__create_row_request_table_name_only():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     table_name = "table_name"
     result = _create_row_request(table_name)
@@ -2012,14 +2012,14 @@ def test__create_row_request_table_name_only():
 
 
 def test__create_row_request_row_range_row_set_conflict():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     with pytest.raises(ValueError):
         _create_row_request(None, end_key=object(), row_set=object())
 
 
 def test__create_row_request_row_range_start_key():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
     from google.cloud.bigtable_v2.types import RowRange
 
     table_name = "table_name"
@@ -2032,7 +2032,7 @@ def test__create_row_request_row_range_start_key():
 
 
 def test__create_row_request_row_range_end_key():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
     from google.cloud.bigtable_v2.types import RowRange
 
     table_name = "table_name"
@@ -2045,7 +2045,7 @@ def test__create_row_request_row_range_end_key():
 
 
 def test__create_row_request_row_range_both_keys():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
     from google.cloud.bigtable_v2.types import RowRange
 
     table_name = "table_name"
@@ -2059,7 +2059,7 @@ def test__create_row_request_row_range_both_keys():
 
 
 def test__create_row_request_row_range_both_keys_inclusive():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
     from google.cloud.bigtable_v2.types import RowRange
 
     table_name = "table_name"
@@ -2075,8 +2075,8 @@ def test__create_row_request_row_range_both_keys_inclusive():
 
 
 def test__create_row_request_with_filter():
-    from google.cloud.bigtable.table import _create_row_request
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.table import _create_row_request
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     table_name = "table_name"
     row_filter = RowSampleFilter(0.33)
@@ -2088,7 +2088,7 @@ def test__create_row_request_with_filter():
 
 
 def test__create_row_request_with_limit():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     table_name = "table_name"
     limit = 1337
@@ -2098,8 +2098,8 @@ def test__create_row_request_with_limit():
 
 
 def test__create_row_request_with_row_set():
-    from google.cloud.bigtable.table import _create_row_request
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.table import _create_row_request
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     table_name = "table_name"
     row_set = RowSet()
@@ -2109,7 +2109,7 @@ def test__create_row_request_with_row_set():
 
 
 def test__create_row_request_with_app_profile_id():
-    from google.cloud.bigtable.table import _create_row_request
+    from google.cloud.bigtable.deprecated.table import _create_row_request
 
     table_name = "table_name"
     limit = 1337
@@ -2128,8 +2128,8 @@ def _ReadRowsRequestPB(*args, **kw):
 
 
 def test_cluster_state___eq__():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     READY = enum_table.ReplicationState.READY
     state1 = ClusterState(READY)
@@ -2138,8 +2138,8 @@ def test_cluster_state___eq__():
 
 
 def test_cluster_state___eq__type_differ():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     READY = enum_table.ReplicationState.READY
     state1 = ClusterState(READY)
@@ -2148,8 +2148,8 @@ def test_cluster_state___eq__type_differ():
 
 
 def test_cluster_state___ne__same_value():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     READY = enum_table.ReplicationState.READY
     state1 = ClusterState(READY)
@@ -2158,8 +2158,8 @@ def test_cluster_state___ne__same_value():
 
 
 def test_cluster_state___ne__():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     READY = enum_table.ReplicationState.READY
     INITIALIZING = enum_table.ReplicationState.INITIALIZING
@@ -2169,8 +2169,8 @@ def test_cluster_state___ne__():
 
 
 def test_cluster_state__repr__():
-    from google.cloud.bigtable.enums import Table as enum_table
-    from google.cloud.bigtable.table import ClusterState
+    from google.cloud.bigtable.deprecated.enums import Table as enum_table
+    from google.cloud.bigtable.deprecated.table import ClusterState
 
     STATE_NOT_KNOWN = enum_table.ReplicationState.STATE_NOT_KNOWN
     INITIALIZING = enum_table.ReplicationState.INITIALIZING

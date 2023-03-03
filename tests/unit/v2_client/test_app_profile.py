@@ -32,19 +32,19 @@ OP_NAME = "operations/projects/{}/instances/{}/appProfiles/{}/operations/{}".for
 
 
 def _make_app_profile(*args, **kwargs):
-    from google.cloud.bigtable.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
 
     return AppProfile(*args, **kwargs)
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
 
     return Client(*args, **kwargs)
 
 
 def test_app_profile_constructor_defaults():
-    from google.cloud.bigtable.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
 
     client = _Client(PROJECT)
     instance = _Instance(INSTANCE_ID, client)
@@ -60,7 +60,7 @@ def test_app_profile_constructor_defaults():
 
 
 def test_app_profile_constructor_explicit():
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     ANY = RoutingPolicyType.ANY
     DESCRIPTION_1 = "routing policy any"
@@ -99,7 +99,7 @@ def test_app_profile_constructor_explicit():
 
 
 def test_app_profile_constructor_multi_cluster_ids():
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     ANY = RoutingPolicyType.ANY
     DESCRIPTION_1 = "routing policy any"
@@ -166,8 +166,8 @@ def test_app_profile___ne__():
 
 def test_app_profile_from_pb_success_w_routing_any():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     client = _Client(PROJECT)
     instance = _Instance(INSTANCE_ID, client)
@@ -195,8 +195,8 @@ def test_app_profile_from_pb_success_w_routing_any():
 
 def test_app_profile_from_pb_success_w_routing_any_multi_cluster_ids():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     client = _Client(PROJECT)
     instance = _Instance(INSTANCE_ID, client)
@@ -226,8 +226,8 @@ def test_app_profile_from_pb_success_w_routing_any_multi_cluster_ids():
 
 def test_app_profile_from_pb_success_w_routing_single():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     client = _Client(PROJECT)
     instance = _Instance(INSTANCE_ID, client)
@@ -259,7 +259,7 @@ def test_app_profile_from_pb_success_w_routing_single():
 
 def test_app_profile_from_pb_w_bad_app_profile_name():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
 
     bad_app_profile_name = "BAD_NAME"
 
@@ -271,7 +271,7 @@ def test_app_profile_from_pb_w_bad_app_profile_name():
 
 def test_app_profile_from_pb_w_instance_id_mistmatch():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
 
     ALT_INSTANCE_ID = "ALT_INSTANCE_ID"
     client = _Client(PROJECT)
@@ -286,7 +286,7 @@ def test_app_profile_from_pb_w_instance_id_mistmatch():
 
 def test_app_profile_from_pb_w_project_mistmatch():
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
 
     ALT_PROJECT = "ALT_PROJECT"
     client = _Client(project=ALT_PROJECT)
@@ -304,7 +304,7 @@ def test_app_profile_reload_w_routing_any():
         BigtableInstanceAdminClient,
     )
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     api = mock.create_autospec(BigtableInstanceAdminClient)
     credentials = _make_credentials()
@@ -400,8 +400,8 @@ def test_app_profile_create_w_routing_any():
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable.app_profile import AppProfile
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -461,8 +461,8 @@ def test_app_profile_create_w_routing_single():
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable.app_profile import AppProfile
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.app_profile import AppProfile
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials, admin=True)
@@ -533,7 +533,7 @@ def test_app_profile_update_w_routing_any():
     from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -608,7 +608,7 @@ def test_app_profile_update_w_routing_any_multi_cluster_ids():
     from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -684,7 +684,7 @@ def test_app_profile_update_w_routing_single():
     from google.cloud.bigtable_admin_v2.types import (
         bigtable_instance_admin as messages_v2_pb2,
     )
-    from google.cloud.bigtable.enums import RoutingPolicyType
+    from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )

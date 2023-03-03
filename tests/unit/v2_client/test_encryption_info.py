@@ -14,7 +14,7 @@
 
 import mock
 
-from google.cloud.bigtable import enums
+from google.cloud.bigtable.deprecated import enums
 
 
 EncryptionType = enums.EncryptionInfo.EncryptionType
@@ -30,7 +30,7 @@ def _make_status_pb(code=_STATUS_CODE, message=_STATUS_MESSAGE):
 
 
 def _make_status(code=_STATUS_CODE, message=_STATUS_MESSAGE):
-    from google.cloud.bigtable.error import Status
+    from google.cloud.bigtable.deprecated.error import Status
 
     status_pb = _make_status_pb(code=code, message=message)
     return Status(status_pb)
@@ -54,7 +54,7 @@ def _make_info_pb(
 
 
 def _make_encryption_info(*args, **kwargs):
-    from google.cloud.bigtable.encryption_info import EncryptionInfo
+    from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
 
     return EncryptionInfo(*args, **kwargs)
 
@@ -70,7 +70,7 @@ def _make_encryption_info_defaults(
 
 
 def test_encryption_info__from_pb():
-    from google.cloud.bigtable.encryption_info import EncryptionInfo
+    from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
 
     info_pb = _make_info_pb()
 

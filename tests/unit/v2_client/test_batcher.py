@@ -16,14 +16,14 @@
 import mock
 import pytest
 
-from google.cloud.bigtable.row import DirectRow
+from google.cloud.bigtable.deprecated.row import DirectRow
 
 TABLE_ID = "table-id"
 TABLE_NAME = "/tables/" + TABLE_ID
 
 
 def _make_mutation_batcher(table, **kw):
-    from google.cloud.bigtable.batcher import MutationsBatcher
+    from google.cloud.bigtable.deprecated.batcher import MutationsBatcher
 
     return MutationsBatcher(table, **kw)
 
@@ -92,9 +92,9 @@ def test_mutation_batcher_mutate_w_max_flush_count():
     assert table.mutation_calls == 1
 
 
-@mock.patch("google.cloud.bigtable.batcher.MAX_MUTATIONS", new=3)
+@mock.patch("google.cloud.bigtable.deprecated.batcher.MAX_MUTATIONS", new=3)
 def test_mutation_batcher_mutate_with_max_mutations_failure():
-    from google.cloud.bigtable.batcher import MaxMutationsError
+    from google.cloud.bigtable.deprecated.batcher import MaxMutationsError
 
     table = _Table(TABLE_NAME)
     mutation_batcher = _make_mutation_batcher(table=table)
@@ -109,7 +109,7 @@ def test_mutation_batcher_mutate_with_max_mutations_failure():
         mutation_batcher.mutate(row)
 
 
-@mock.patch("google.cloud.bigtable.batcher.MAX_MUTATIONS", new=3)
+@mock.patch("google.cloud.bigtable.deprecated.batcher.MAX_MUTATIONS", new=3)
 def test_mutation_batcher_mutate_w_max_mutations():
     table = _Table(TABLE_NAME)
     mutation_batcher = _make_mutation_batcher(table=table)

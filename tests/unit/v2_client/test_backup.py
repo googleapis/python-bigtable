@@ -48,7 +48,7 @@ def _make_table_admin_client():
 
 
 def _make_backup(*args, **kwargs):
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     return Backup(*args, **kwargs)
 
@@ -102,7 +102,7 @@ def test_backup_constructor_explicit():
 
 def test_backup_from_pb_w_project_mismatch():
     from google.cloud.bigtable_admin_v2.types import table
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     alt_project_id = "alt-project-id"
     client = _Client(project=alt_project_id)
@@ -115,7 +115,7 @@ def test_backup_from_pb_w_project_mismatch():
 
 def test_backup_from_pb_w_instance_mismatch():
     from google.cloud.bigtable_admin_v2.types import table
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     alt_instance = "/projects/%s/instances/alt-instance" % PROJECT_ID
     client = _Client()
@@ -128,7 +128,7 @@ def test_backup_from_pb_w_instance_mismatch():
 
 def test_backup_from_pb_w_bad_name():
     from google.cloud.bigtable_admin_v2.types import table
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
 
     client = _Client()
     instance = _Instance(INSTANCE_NAME, client)
@@ -139,10 +139,10 @@ def test_backup_from_pb_w_bad_name():
 
 
 def test_backup_from_pb_success():
-    from google.cloud.bigtable.encryption_info import EncryptionInfo
-    from google.cloud.bigtable.error import Status
+    from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
+    from google.cloud.bigtable.deprecated.error import Status
     from google.cloud.bigtable_admin_v2.types import table
-    from google.cloud.bigtable.backup import Backup
+    from google.cloud.bigtable.deprecated.backup import Backup
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.rpc.code_pb2 import Code
 
@@ -190,7 +190,7 @@ def test_backup_from_pb_success():
 
 
 def test_backup_name():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -225,7 +225,7 @@ def test_backup_parent_none():
 
 
 def test_backup_parent_w_cluster():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -242,7 +242,7 @@ def test_backup_parent_w_cluster():
 
 
 def test_backup_source_table_none():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -258,7 +258,7 @@ def test_backup_source_table_none():
 
 
 def test_backup_source_table_valid():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
@@ -473,7 +473,7 @@ def test_backup_create_w_expire_time_not_set():
 def test_backup_create_success():
     from google.cloud._helpers import _datetime_to_pb_timestamp
     from google.cloud.bigtable_admin_v2.types import table
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     op_future = object()
     credentials = _make_credentials()
@@ -806,12 +806,12 @@ def test_backup_restore_to_another_instance():
 
 
 def test_backup_get_iam_policy():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BigtableTableAdminClient,
     )
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
 
     credentials = _make_credentials()
     client = Client(project=PROJECT_ID, credentials=credentials, admin=True)
@@ -842,13 +842,13 @@ def test_backup_get_iam_policy():
 
 
 def test_backup_set_iam_policy():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BigtableTableAdminClient,
     )
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.policy import Policy
-    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
 
     credentials = _make_credentials()
     client = Client(project=PROJECT_ID, credentials=credentials, admin=True)
@@ -887,7 +887,7 @@ def test_backup_set_iam_policy():
 
 
 def test_backup_test_iam_permissions():
-    from google.cloud.bigtable.client import Client
+    from google.cloud.bigtable.deprecated.client import Client
     from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import (
         BigtableTableAdminClient,
     )

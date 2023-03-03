@@ -14,7 +14,7 @@
 
 
 def test_row_set_constructor():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     assert [] == row_set.row_keys
@@ -22,8 +22,8 @@ def test_row_set_constructor():
 
 
 def test_row_set__eq__():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_key1 = b"row_key1"
     row_key2 = b"row_key1"
@@ -42,7 +42,7 @@ def test_row_set__eq__():
 
 
 def test_row_set__eq__type_differ():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set1 = RowSet()
     row_set2 = object()
@@ -50,7 +50,7 @@ def test_row_set__eq__type_differ():
 
 
 def test_row_set__eq__len_row_keys_differ():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_key1 = b"row_key1"
     row_key2 = b"row_key1"
@@ -66,8 +66,8 @@ def test_row_set__eq__len_row_keys_differ():
 
 
 def test_row_set__eq__len_row_ranges_differ():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_range1 = RowRange(b"row_key4", b"row_key9")
     row_range2 = RowRange(b"row_key4", b"row_key9")
@@ -83,7 +83,7 @@ def test_row_set__eq__len_row_ranges_differ():
 
 
 def test_row_set__eq__row_keys_differ():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set1 = RowSet()
     row_set2 = RowSet()
@@ -99,8 +99,8 @@ def test_row_set__eq__row_keys_differ():
 
 
 def test_row_set__eq__row_ranges_differ():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_range1 = RowRange(b"row_key4", b"row_key9")
     row_range2 = RowRange(b"row_key14", b"row_key19")
@@ -119,8 +119,8 @@ def test_row_set__eq__row_ranges_differ():
 
 
 def test_row_set__ne__():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_key1 = b"row_key1"
     row_key2 = b"row_key1"
@@ -139,8 +139,8 @@ def test_row_set__ne__():
 
 
 def test_row_set__ne__same_value():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_key1 = b"row_key1"
     row_key2 = b"row_key1"
@@ -159,7 +159,7 @@ def test_row_set__ne__same_value():
 
 
 def test_row_set_add_row_key():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     row_set.add_row_key("row_key1")
@@ -168,8 +168,8 @@ def test_row_set_add_row_key():
 
 
 def test_row_set_add_row_range():
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     row_range1 = RowRange(b"row_key1", b"row_key9")
@@ -181,7 +181,7 @@ def test_row_set_add_row_range():
 
 
 def test_row_set_add_row_range_from_keys():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     row_set.add_row_range_from_keys(
@@ -194,7 +194,7 @@ def test_row_set_add_row_range_from_keys():
 
 
 def test_row_set_add_row_range_with_prefix():
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     row_set.add_row_range_with_prefix("row")
@@ -203,8 +203,8 @@ def test_row_set_add_row_range_with_prefix():
 
 def test_row_set__update_message_request():
     from google.cloud._helpers import _to_bytes
-    from google.cloud.bigtable.row_set import RowRange
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     row_set = RowSet()
     table_name = "table_name"
@@ -224,7 +224,7 @@ def test_row_set__update_message_request():
 
 
 def test_row_range_constructor():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = "row_key1"
     end_key = "row_key9"
@@ -236,7 +236,7 @@ def test_row_range_constructor():
 
 
 def test_row_range___hash__set_equality():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     row_range1 = RowRange("row_key1", "row_key9")
     row_range2 = RowRange("row_key1", "row_key9")
@@ -246,7 +246,7 @@ def test_row_range___hash__set_equality():
 
 
 def test_row_range___hash__not_equals():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     row_range1 = RowRange("row_key1", "row_key9")
     row_range2 = RowRange("row_key1", "row_key19")
@@ -256,7 +256,7 @@ def test_row_range___hash__not_equals():
 
 
 def test_row_range__eq__():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"
@@ -266,7 +266,7 @@ def test_row_range__eq__():
 
 
 def test_row_range___eq__type_differ():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"
@@ -276,7 +276,7 @@ def test_row_range___eq__type_differ():
 
 
 def test_row_range__ne__():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"
@@ -286,7 +286,7 @@ def test_row_range__ne__():
 
 
 def test_row_range__ne__same_value():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"
@@ -296,7 +296,7 @@ def test_row_range__ne__same_value():
 
 
 def test_row_range_get_range_kwargs_closed_open():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"
@@ -307,7 +307,7 @@ def test_row_range_get_range_kwargs_closed_open():
 
 
 def test_row_range_get_range_kwargs_open_closed():
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     start_key = b"row_key1"
     end_key = b"row_key9"

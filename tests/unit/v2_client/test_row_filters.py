@@ -17,7 +17,7 @@ import pytest
 
 
 def test_bool_filter_constructor():
-    from google.cloud.bigtable.row_filters import _BoolFilter
+    from google.cloud.bigtable.deprecated.row_filters import _BoolFilter
 
     flag = object()
     row_filter = _BoolFilter(flag)
@@ -25,7 +25,7 @@ def test_bool_filter_constructor():
 
 
 def test_bool_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _BoolFilter
+    from google.cloud.bigtable.deprecated.row_filters import _BoolFilter
 
     flag = object()
     row_filter1 = _BoolFilter(flag)
@@ -34,7 +34,7 @@ def test_bool_filter___eq__type_differ():
 
 
 def test_bool_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
+    from google.cloud.bigtable.deprecated.row_filters import _BoolFilter
 
     flag = object()
     row_filter1 = _BoolFilter(flag)
@@ -43,7 +43,7 @@ def test_bool_filter___eq__same_value():
 
 
 def test_bool_filter___ne__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
+    from google.cloud.bigtable.deprecated.row_filters import _BoolFilter
 
     flag = object()
     row_filter1 = _BoolFilter(flag)
@@ -52,7 +52,7 @@ def test_bool_filter___ne__same_value():
 
 
 def test_sink_filter_to_pb():
-    from google.cloud.bigtable.row_filters import SinkFilter
+    from google.cloud.bigtable.deprecated.row_filters import SinkFilter
 
     flag = True
     row_filter = SinkFilter(flag)
@@ -62,7 +62,7 @@ def test_sink_filter_to_pb():
 
 
 def test_pass_all_filter_to_pb():
-    from google.cloud.bigtable.row_filters import PassAllFilter
+    from google.cloud.bigtable.deprecated.row_filters import PassAllFilter
 
     flag = True
     row_filter = PassAllFilter(flag)
@@ -72,7 +72,7 @@ def test_pass_all_filter_to_pb():
 
 
 def test_block_all_filter_to_pb():
-    from google.cloud.bigtable.row_filters import BlockAllFilter
+    from google.cloud.bigtable.deprecated.row_filters import BlockAllFilter
 
     flag = True
     row_filter = BlockAllFilter(flag)
@@ -82,7 +82,7 @@ def test_block_all_filter_to_pb():
 
 
 def test_regex_filterconstructor():
-    from google.cloud.bigtable.row_filters import _RegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import _RegexFilter
 
     regex = b"abc"
     row_filter = _RegexFilter(regex)
@@ -90,7 +90,7 @@ def test_regex_filterconstructor():
 
 
 def test_regex_filterconstructor_non_bytes():
-    from google.cloud.bigtable.row_filters import _RegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import _RegexFilter
 
     regex = "abc"
     row_filter = _RegexFilter(regex)
@@ -98,7 +98,7 @@ def test_regex_filterconstructor_non_bytes():
 
 
 def test_regex_filter__eq__type_differ():
-    from google.cloud.bigtable.row_filters import _RegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import _RegexFilter
 
     regex = b"def-rgx"
     row_filter1 = _RegexFilter(regex)
@@ -107,7 +107,7 @@ def test_regex_filter__eq__type_differ():
 
 
 def test_regex_filter__eq__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import _RegexFilter
 
     regex = b"trex-regex"
     row_filter1 = _RegexFilter(regex)
@@ -116,7 +116,7 @@ def test_regex_filter__eq__same_value():
 
 
 def test_regex_filter__ne__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import _RegexFilter
 
     regex = b"abc"
     row_filter1 = _RegexFilter(regex)
@@ -125,7 +125,7 @@ def test_regex_filter__ne__same_value():
 
 
 def test_row_key_regex_filter_to_pb():
-    from google.cloud.bigtable.row_filters import RowKeyRegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowKeyRegexFilter
 
     regex = b"row-key-regex"
     row_filter = RowKeyRegexFilter(regex)
@@ -135,7 +135,7 @@ def test_row_key_regex_filter_to_pb():
 
 
 def test_row_sample_filter_constructor():
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     sample = object()
     row_filter = RowSampleFilter(sample)
@@ -143,7 +143,7 @@ def test_row_sample_filter_constructor():
 
 
 def test_row_sample_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     sample = object()
     row_filter1 = RowSampleFilter(sample)
@@ -152,7 +152,7 @@ def test_row_sample_filter___eq__type_differ():
 
 
 def test_row_sample_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     sample = object()
     row_filter1 = RowSampleFilter(sample)
@@ -161,7 +161,7 @@ def test_row_sample_filter___eq__same_value():
 
 
 def test_row_sample_filter___ne__():
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     sample = object()
     other_sample = object()
@@ -171,7 +171,7 @@ def test_row_sample_filter___ne__():
 
 
 def test_row_sample_filter_to_pb():
-    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
 
     sample = 0.25
     row_filter = RowSampleFilter(sample)
@@ -181,7 +181,7 @@ def test_row_sample_filter_to_pb():
 
 
 def test_family_name_regex_filter_to_pb():
-    from google.cloud.bigtable.row_filters import FamilyNameRegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import FamilyNameRegexFilter
 
     regex = "family-regex"
     row_filter = FamilyNameRegexFilter(regex)
@@ -191,7 +191,7 @@ def test_family_name_regex_filter_to_pb():
 
 
 def test_column_qualifier_regext_filter_to_pb():
-    from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnQualifierRegexFilter
 
     regex = b"column-regex"
     row_filter = ColumnQualifierRegexFilter(regex)
@@ -201,7 +201,7 @@ def test_column_qualifier_regext_filter_to_pb():
 
 
 def test_timestamp_range_constructor():
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     start = object()
     end = object()
@@ -211,7 +211,7 @@ def test_timestamp_range_constructor():
 
 
 def test_timestamp_range___eq__():
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     start = object()
     end = object()
@@ -221,7 +221,7 @@ def test_timestamp_range___eq__():
 
 
 def test_timestamp_range___eq__type_differ():
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     start = object()
     end = object()
@@ -231,7 +231,7 @@ def test_timestamp_range___eq__type_differ():
 
 
 def test_timestamp_range___ne__same_value():
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     start = object()
     end = object()
@@ -243,7 +243,7 @@ def test_timestamp_range___ne__same_value():
 def _timestamp_range_to_pb_helper(pb_kwargs, start=None, end=None):
     import datetime
     from google.cloud._helpers import _EPOCH
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     if start is not None:
         start = _EPOCH + datetime.timedelta(microseconds=start)
@@ -291,7 +291,7 @@ def test_timestamp_range_to_pb_end_only():
 
 
 def test_timestamp_range_filter_constructor():
-    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRangeFilter
 
     range_ = object()
     row_filter = TimestampRangeFilter(range_)
@@ -299,7 +299,7 @@ def test_timestamp_range_filter_constructor():
 
 
 def test_timestamp_range_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRangeFilter
 
     range_ = object()
     row_filter1 = TimestampRangeFilter(range_)
@@ -308,7 +308,7 @@ def test_timestamp_range_filter___eq__type_differ():
 
 
 def test_timestamp_range_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRangeFilter
 
     range_ = object()
     row_filter1 = TimestampRangeFilter(range_)
@@ -317,7 +317,7 @@ def test_timestamp_range_filter___eq__same_value():
 
 
 def test_timestamp_range_filter___ne__():
-    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRangeFilter
 
     range_ = object()
     other_range_ = object()
@@ -327,8 +327,8 @@ def test_timestamp_range_filter___ne__():
 
 
 def test_timestamp_range_filter_to_pb():
-    from google.cloud.bigtable.row_filters import TimestampRangeFilter
-    from google.cloud.bigtable.row_filters import TimestampRange
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
 
     range_ = TimestampRange()
     row_filter = TimestampRangeFilter(range_)
@@ -338,7 +338,7 @@ def test_timestamp_range_filter_to_pb():
 
 
 def test_column_range_filter_constructor_defaults():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     row_filter = ColumnRangeFilter(column_family_id)
@@ -350,7 +350,7 @@ def test_column_range_filter_constructor_defaults():
 
 
 def test_column_range_filter_constructor_explicit():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     start_column = object()
@@ -372,7 +372,7 @@ def test_column_range_filter_constructor_explicit():
 
 
 def test_column_range_filter_constructor_bad_start():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     with pytest.raises(ValueError):
@@ -380,7 +380,7 @@ def test_column_range_filter_constructor_bad_start():
 
 
 def test_column_range_filter_constructor_bad_end():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     with pytest.raises(ValueError):
@@ -388,7 +388,7 @@ def test_column_range_filter_constructor_bad_end():
 
 
 def test_column_range_filter___eq__():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     start_column = object()
@@ -413,7 +413,7 @@ def test_column_range_filter___eq__():
 
 
 def test_column_range_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     row_filter1 = ColumnRangeFilter(column_family_id)
@@ -422,7 +422,7 @@ def test_column_range_filter___eq__type_differ():
 
 
 def test_column_range_filter___ne__():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = object()
     other_column_family_id = object()
@@ -448,7 +448,7 @@ def test_column_range_filter___ne__():
 
 
 def test_column_range_filter_to_pb():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = "column-family-id"
     row_filter = ColumnRangeFilter(column_family_id)
@@ -458,7 +458,7 @@ def test_column_range_filter_to_pb():
 
 
 def test_column_range_filter_to_pb_inclusive_start():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = "column-family-id"
     column = b"column"
@@ -471,7 +471,7 @@ def test_column_range_filter_to_pb_inclusive_start():
 
 
 def test_column_range_filter_to_pb_exclusive_start():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = "column-family-id"
     column = b"column"
@@ -486,7 +486,7 @@ def test_column_range_filter_to_pb_exclusive_start():
 
 
 def test_column_range_filter_to_pb_inclusive_end():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = "column-family-id"
     column = b"column"
@@ -499,7 +499,7 @@ def test_column_range_filter_to_pb_inclusive_end():
 
 
 def test_column_range_filter_to_pb_exclusive_end():
-    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ColumnRangeFilter
 
     column_family_id = "column-family-id"
     column = b"column"
@@ -514,7 +514,7 @@ def test_column_range_filter_to_pb_exclusive_end():
 
 
 def test_value_regex_filter_to_pb_w_bytes():
-    from google.cloud.bigtable.row_filters import ValueRegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRegexFilter
 
     value = regex = b"value-regex"
     row_filter = ValueRegexFilter(value)
@@ -524,7 +524,7 @@ def test_value_regex_filter_to_pb_w_bytes():
 
 
 def test_value_regex_filter_to_pb_w_str():
-    from google.cloud.bigtable.row_filters import ValueRegexFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRegexFilter
 
     value = "value-regex"
     regex = value.encode("ascii")
@@ -535,7 +535,7 @@ def test_value_regex_filter_to_pb_w_str():
 
 
 def test_exact_value_filter_to_pb_w_bytes():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.deprecated.row_filters import ExactValueFilter
 
     value = regex = b"value-regex"
     row_filter = ExactValueFilter(value)
@@ -545,7 +545,7 @@ def test_exact_value_filter_to_pb_w_bytes():
 
 
 def test_exact_value_filter_to_pb_w_str():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.deprecated.row_filters import ExactValueFilter
 
     value = "value-regex"
     regex = value.encode("ascii")
@@ -557,7 +557,7 @@ def test_exact_value_filter_to_pb_w_str():
 
 def test_exact_value_filter_to_pb_w_int():
     import struct
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.deprecated.row_filters import ExactValueFilter
 
     value = 1
     regex = struct.Struct(">q").pack(value)
@@ -568,7 +568,7 @@ def test_exact_value_filter_to_pb_w_int():
 
 
 def test_value_range_filter_constructor_defaults():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     row_filter = ValueRangeFilter()
 
@@ -579,7 +579,7 @@ def test_value_range_filter_constructor_defaults():
 
 
 def test_value_range_filter_constructor_explicit():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     start_value = object()
     end_value = object()
@@ -600,7 +600,7 @@ def test_value_range_filter_constructor_explicit():
 
 
 def test_value_range_filter_constructor_w_int_values():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
     import struct
 
     start_value = 1
@@ -618,21 +618,21 @@ def test_value_range_filter_constructor_w_int_values():
 
 
 def test_value_range_filter_constructor_bad_start():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     with pytest.raises(ValueError):
         ValueRangeFilter(inclusive_start=True)
 
 
 def test_value_range_filter_constructor_bad_end():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     with pytest.raises(ValueError):
         ValueRangeFilter(inclusive_end=True)
 
 
 def test_value_range_filter___eq__():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     start_value = object()
     end_value = object()
@@ -654,7 +654,7 @@ def test_value_range_filter___eq__():
 
 
 def test_value_range_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     row_filter1 = ValueRangeFilter()
     row_filter2 = object()
@@ -662,7 +662,7 @@ def test_value_range_filter___eq__type_differ():
 
 
 def test_value_range_filter___ne__():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     start_value = object()
     other_start_value = object()
@@ -685,7 +685,7 @@ def test_value_range_filter___ne__():
 
 
 def test_value_range_filter_to_pb():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     row_filter = ValueRangeFilter()
     expected_pb = _RowFilterPB(value_range_filter=_ValueRangePB())
@@ -693,7 +693,7 @@ def test_value_range_filter_to_pb():
 
 
 def test_value_range_filter_to_pb_inclusive_start():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     value = b"some-value"
     row_filter = ValueRangeFilter(start_value=value)
@@ -703,7 +703,7 @@ def test_value_range_filter_to_pb_inclusive_start():
 
 
 def test_value_range_filter_to_pb_exclusive_start():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     value = b"some-value"
     row_filter = ValueRangeFilter(start_value=value, inclusive_start=False)
@@ -713,7 +713,7 @@ def test_value_range_filter_to_pb_exclusive_start():
 
 
 def test_value_range_filter_to_pb_inclusive_end():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     value = b"some-value"
     row_filter = ValueRangeFilter(end_value=value)
@@ -723,7 +723,7 @@ def test_value_range_filter_to_pb_inclusive_end():
 
 
 def test_value_range_filter_to_pb_exclusive_end():
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.deprecated.row_filters import ValueRangeFilter
 
     value = b"some-value"
     row_filter = ValueRangeFilter(end_value=value, inclusive_end=False)
@@ -733,7 +733,7 @@ def test_value_range_filter_to_pb_exclusive_end():
 
 
 def test_cell_count_constructor():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
+    from google.cloud.bigtable.deprecated.row_filters import _CellCountFilter
 
     num_cells = object()
     row_filter = _CellCountFilter(num_cells)
@@ -741,7 +741,7 @@ def test_cell_count_constructor():
 
 
 def test_cell_count___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
+    from google.cloud.bigtable.deprecated.row_filters import _CellCountFilter
 
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
@@ -750,7 +750,7 @@ def test_cell_count___eq__type_differ():
 
 
 def test_cell_count___eq__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
+    from google.cloud.bigtable.deprecated.row_filters import _CellCountFilter
 
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
@@ -759,7 +759,7 @@ def test_cell_count___eq__same_value():
 
 
 def test_cell_count___ne__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
+    from google.cloud.bigtable.deprecated.row_filters import _CellCountFilter
 
     num_cells = object()
     row_filter1 = _CellCountFilter(num_cells)
@@ -768,7 +768,7 @@ def test_cell_count___ne__same_value():
 
 
 def test_cells_row_offset_filter_to_pb():
-    from google.cloud.bigtable.row_filters import CellsRowOffsetFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsRowOffsetFilter
 
     num_cells = 76
     row_filter = CellsRowOffsetFilter(num_cells)
@@ -778,7 +778,7 @@ def test_cells_row_offset_filter_to_pb():
 
 
 def test_cells_row_limit_filter_to_pb():
-    from google.cloud.bigtable.row_filters import CellsRowLimitFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsRowLimitFilter
 
     num_cells = 189
     row_filter = CellsRowLimitFilter(num_cells)
@@ -788,7 +788,7 @@ def test_cells_row_limit_filter_to_pb():
 
 
 def test_cells_column_limit_filter_to_pb():
-    from google.cloud.bigtable.row_filters import CellsColumnLimitFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsColumnLimitFilter
 
     num_cells = 10
     row_filter = CellsColumnLimitFilter(num_cells)
@@ -798,7 +798,7 @@ def test_cells_column_limit_filter_to_pb():
 
 
 def test_strip_value_transformer_filter_to_pb():
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     flag = True
     row_filter = StripValueTransformerFilter(flag)
@@ -808,7 +808,7 @@ def test_strip_value_transformer_filter_to_pb():
 
 
 def test_apply_label_filter_constructor():
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
 
     label = object()
     row_filter = ApplyLabelFilter(label)
@@ -816,7 +816,7 @@ def test_apply_label_filter_constructor():
 
 
 def test_apply_label_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
 
     label = object()
     row_filter1 = ApplyLabelFilter(label)
@@ -825,7 +825,7 @@ def test_apply_label_filter___eq__type_differ():
 
 
 def test_apply_label_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
 
     label = object()
     row_filter1 = ApplyLabelFilter(label)
@@ -834,7 +834,7 @@ def test_apply_label_filter___eq__same_value():
 
 
 def test_apply_label_filter___ne__():
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
 
     label = object()
     other_label = object()
@@ -844,7 +844,7 @@ def test_apply_label_filter___ne__():
 
 
 def test_apply_label_filter_to_pb():
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
 
     label = "label"
     row_filter = ApplyLabelFilter(label)
@@ -854,14 +854,14 @@ def test_apply_label_filter_to_pb():
 
 
 def test_filter_combination_constructor_defaults():
-    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.deprecated.row_filters import _FilterCombination
 
     row_filter = _FilterCombination()
     assert row_filter.filters == []
 
 
 def test_filter_combination_constructor_explicit():
-    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.deprecated.row_filters import _FilterCombination
 
     filters = object()
     row_filter = _FilterCombination(filters=filters)
@@ -869,7 +869,7 @@ def test_filter_combination_constructor_explicit():
 
 
 def test_filter_combination___eq__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.deprecated.row_filters import _FilterCombination
 
     filters = object()
     row_filter1 = _FilterCombination(filters=filters)
@@ -878,7 +878,7 @@ def test_filter_combination___eq__():
 
 
 def test_filter_combination___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.deprecated.row_filters import _FilterCombination
 
     filters = object()
     row_filter1 = _FilterCombination(filters=filters)
@@ -887,7 +887,7 @@ def test_filter_combination___eq__type_differ():
 
 
 def test_filter_combination___ne__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.deprecated.row_filters import _FilterCombination
 
     filters = object()
     other_filters = object()
@@ -897,9 +897,9 @@ def test_filter_combination___ne__():
 
 
 def test_row_filter_chain_to_pb():
-    from google.cloud.bigtable.row_filters import RowFilterChain
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowFilterChain
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter1_pb = row_filter1.to_pb()
@@ -917,10 +917,10 @@ def test_row_filter_chain_to_pb():
 
 
 def test_row_filter_chain_to_pb_nested():
-    from google.cloud.bigtable.row_filters import CellsRowLimitFilter
-    from google.cloud.bigtable.row_filters import RowFilterChain
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsRowLimitFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowFilterChain
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter2 = RowSampleFilter(0.25)
@@ -941,9 +941,9 @@ def test_row_filter_chain_to_pb_nested():
 
 
 def test_row_filter_union_to_pb():
-    from google.cloud.bigtable.row_filters import RowFilterUnion
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowFilterUnion
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter1_pb = row_filter1.to_pb()
@@ -961,10 +961,10 @@ def test_row_filter_union_to_pb():
 
 
 def test_row_filter_union_to_pb_nested():
-    from google.cloud.bigtable.row_filters import CellsRowLimitFilter
-    from google.cloud.bigtable.row_filters import RowFilterUnion
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsRowLimitFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowFilterUnion
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter2 = RowSampleFilter(0.25)
@@ -985,7 +985,7 @@ def test_row_filter_union_to_pb_nested():
 
 
 def test_conditional_row_filter_constructor():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
 
     base_filter = object()
     true_filter = object()
@@ -999,7 +999,7 @@ def test_conditional_row_filter_constructor():
 
 
 def test_conditional_row_filter___eq__():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
 
     base_filter = object()
     true_filter = object()
@@ -1014,7 +1014,7 @@ def test_conditional_row_filter___eq__():
 
 
 def test_conditional_row_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
 
     base_filter = object()
     true_filter = object()
@@ -1027,7 +1027,7 @@ def test_conditional_row_filter___eq__type_differ():
 
 
 def test_conditional_row_filter___ne__():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
 
     base_filter = object()
     other_base_filter = object()
@@ -1043,10 +1043,10 @@ def test_conditional_row_filter___ne__():
 
 
 def test_conditional_row_filter_to_pb():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
-    from google.cloud.bigtable.row_filters import CellsRowOffsetFilter
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import CellsRowOffsetFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter1_pb = row_filter1.to_pb()
@@ -1073,9 +1073,9 @@ def test_conditional_row_filter_to_pb():
 
 
 def test_conditional_row_filter_to_pb_true_only():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter1_pb = row_filter1.to_pb()
@@ -1095,9 +1095,9 @@ def test_conditional_row_filter_to_pb_true_only():
 
 
 def test_conditional_row_filter_to_pb_false_only():
-    from google.cloud.bigtable.row_filters import ConditionalRowFilter
-    from google.cloud.bigtable.row_filters import RowSampleFilter
-    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+    from google.cloud.bigtable.deprecated.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.deprecated.row_filters import StripValueTransformerFilter
 
     row_filter1 = StripValueTransformerFilter(True)
     row_filter1_pb = row_filter1.to_pb()
