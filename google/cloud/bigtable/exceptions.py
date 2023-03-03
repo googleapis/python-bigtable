@@ -46,10 +46,5 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         if is_311_plus:
             super().__init__(message, excs)
         else:
+            super().__init__(message)
             self.exceptions = excs
-            revised_message = f"{message} ({len(excs)} sub-exceptions)"
-            for i in range(len(excs)):
-                revised_message += f"\n+------------- {i} --------------\n"
-                revised_message += f"| {type(excs[i]).__name__}: {str(excs[i])}"
-            revised_message += f"\n+-------------------------------"
-            super().__init__(revised_message)
