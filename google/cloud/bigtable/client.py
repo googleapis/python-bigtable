@@ -74,7 +74,7 @@ class Table:
 
     async def read_rows_stream(
         self,
-        query: ReadRowsQuery | dict[str,Any],
+        query: ReadRowsQuery | dict[str, Any],
         *,
         shard: bool = False,
         limit: int | None,
@@ -378,7 +378,10 @@ class Table:
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
-        rules: ReadModifyWriteRule | list[ReadModifyWriteRule] | dict[str,Any] | list[dict[str,Any]],
+        rules: ReadModifyWriteRule
+        | list[ReadModifyWriteRule]
+        | dict[str, Any]
+        | list[dict[str, Any]],
         *,
         operation_timeout: int | float | None = 60,
         metadata: list[tuple[str, str]] | None = None,

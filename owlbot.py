@@ -168,13 +168,19 @@ def mypy(session):
     session.install("-e", ".")
     session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
     session.install("google-cloud-testutils")
-    session.run("mypy", "google/cloud/bigtable", "tests/",
+    session.run(
+        "mypy",
+        "google/cloud/bigtable",
+        "tests/",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
-        "--exclude", "google/cloud/bigtable/deprecated",
-        "--exclude", "tests/system/v2_client",
-        "--exclude", "tests/unit/v2_client",
+        "--exclude",
+        "google/cloud/bigtable/deprecated",
+        "--exclude",
+        "tests/system/v2_client",
+        "--exclude",
+        "tests/unit/v2_client",
     )
 
 
