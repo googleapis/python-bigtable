@@ -16,6 +16,7 @@ from __future__ import annotations
 from google.cloud.bigtable.row_filters import RowFilter
 from google.cloud.bigtable import RowKeySamples
 
+
 class ReadRowsQuery:
     """
     Class to encapsulate details of a read row request

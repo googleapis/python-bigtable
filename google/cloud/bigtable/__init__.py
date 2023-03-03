@@ -18,6 +18,18 @@ from google.cloud.bigtable import gapic_version as package_version
 from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
 
+from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.row_response import RowResponse
+from google.cloud.bigtable.row_response import CellResponse
+
+from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.mutations import Mutation
+from google.cloud.bigtable.mutations import BulkMutationsEntry
+from google.cloud.bigtable.mutations import SetCell
+from google.cloud.bigtable.mutations import DeleteRangeFromColumn
+from google.cloud.bigtable.mutations import DeleteAllFromFamily
+from google.cloud.bigtable.mutations import DeleteAllFromRow
+
 from typing_extensions import TypeAlias
 from typing import List, Tuple
 
@@ -26,4 +38,18 @@ __version__: str = package_version.__version__
 # Type alias for the output of sample_keys
 RowKeySamples: TypeAlias = List[Tuple[bytes, int]]
 
-__all__ = ("BigtableDataClient", "Table", "RowKeySamples")
+__all__ = (
+    "BigtableDataClient",
+    "Table",
+    "RowKeySamples",
+    "ReadRowsQuery",
+    "MutationsBatcher",
+    "Mutation",
+    "BulkMutationsEntry",
+    "SetCell",
+    "DeleteRangeFromColumn",
+    "DeleteAllFromFamily",
+    "DeleteAllFromRow",
+    "RowResponse",
+    "CellResponse",
+)

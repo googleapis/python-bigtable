@@ -37,10 +37,11 @@ class RowResponse(Sequence):
     cells = row["family", "qualifier"]
     """
 
-
-    def __init__(self, key:row_key, cells: list[CellResponse]):
+    def __init__(self, key: row_key, cells: list[CellResponse]):
         self.row_key = key
-        self.cells: OrderedDict[family_id, OrderedDict[qualifier, list[CellResponse]]] = OrderedDict()
+        self.cells: OrderedDict[
+            family_id, OrderedDict[qualifier, list[CellResponse]]
+        ] = OrderedDict()
         """Expected to be used internally only"""
         pass
 

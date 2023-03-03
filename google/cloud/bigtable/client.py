@@ -29,6 +29,7 @@ from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 import google.auth.credentials.Credentials
 import google.auth.credentials.ClientOptions
 
+
 class BigtableDataClient(ClientWithProject):
     def __init__(
         self,
@@ -406,4 +407,3 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
-
