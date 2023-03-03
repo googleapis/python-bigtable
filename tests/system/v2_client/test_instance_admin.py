@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud.bigtable import enums
-from google.cloud.bigtable.table import ClusterState
+from google.cloud.bigtable.deprecated import enums
+from google.cloud.bigtable.deprecated.table import ClusterState
 
 from . import _helpers
 
@@ -149,7 +149,7 @@ def test_instance_create_prod(
     instances_to_delete,
     skip_on_emulator,
 ):
-    from google.cloud.bigtable import enums
+    from google.cloud.bigtable.deprecated import enums
 
     alt_instance_id = f"ndef{unique_suffix}"
     instance = admin_client.instance(alt_instance_id, labels=instance_labels)
