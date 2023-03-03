@@ -14,7 +14,7 @@
 
 """Google Cloud Bigtable API package."""
 
-from google.cloud.bigtable.client import Client
+from google.cloud.bigtable.deprecated.client import Client
 
 from google.cloud.bigtable import gapic_version as package_version
 

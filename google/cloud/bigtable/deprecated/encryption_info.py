@@ -14,7 +14,7 @@
 
 """Class for encryption info for tables and backups."""
 
-from google.cloud.bigtable.error import Status
+from google.cloud.bigtable.deprecated.error import Status
 
 
 class EncryptionInfo:
@@ -27,7 +27,7 @@ class EncryptionInfo:
     :type encryption_type: int
     :param encryption_type: See :class:`enums.EncryptionInfo.EncryptionType`
 
-    :type encryption_status: google.cloud.bigtable.encryption.Status
+    :type encryption_status: google.cloud.bigtable.deprecated.encryption.Status
     :param encryption_status: The encryption status.
 
     :type kms_key_version: str

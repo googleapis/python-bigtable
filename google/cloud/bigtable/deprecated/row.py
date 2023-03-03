@@ -51,7 +51,7 @@ class Row(object):
     :type row_key: bytes
     :param row_key: The key for the current row.
 
-    :type table: :class:`Table <google.cloud.bigtable.table.Table>`
+    :type table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
     :param table: (Optional) The table that owns the row.
     """
 
@@ -86,7 +86,7 @@ class Row(object):
             :end-before: [END bigtable_api_row_table]
             :dedent: 4
 
-        :rtype: table: :class:`Table <google.cloud.bigtable.table.Table>`
+        :rtype: table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
         :returns: table: The table that owns the row.
         """
         return self._table
@@ -105,7 +105,7 @@ class _SetDeleteRow(Row):
     :type row_key: bytes
     :param row_key: The key for the current row.
 
-    :type table: :class:`Table <google.cloud.bigtable.table.Table>`
+    :type table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
     :param table: The table that owns the row.
     """
 
@@ -275,11 +275,11 @@ class DirectRow(_SetDeleteRow):
     :type row_key: bytes
     :param row_key: The key for the current row.
 
-    :type table: :class:`Table <google.cloud.bigtable.table.Table>`
+    :type table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
     :param table: (Optional) The table that owns the row. This is
                   used for the :meth: `commit` only.  Alternatively,
                   DirectRows can be persisted via
-                  :meth:`~google.cloud.bigtable.table.Table.mutate_rows`.
+                  :meth:`~google.cloud.bigtable.deprecated.table.Table.mutate_rows`.
     """
 
     def __init__(self, row_key, table=None):
@@ -519,7 +519,7 @@ class ConditionalRow(_SetDeleteRow):
     :type row_key: bytes
     :param row_key: The key for the current row.
 
-    :type table: :class:`Table <google.cloud.bigtable.table.Table>`
+    :type table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
     :param table: The table that owns the row.
 
     :type filter_: :class:`.RowFilter`
@@ -791,7 +791,7 @@ class AppendRow(Row):
     :type row_key: bytes
     :param row_key: The key for the current row.
 
-    :type table: :class:`Table <google.cloud.bigtable.table.Table>`
+    :type table: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
     :param table: The table that owns the row.
     """
 
@@ -1107,7 +1107,7 @@ class PartialRowData(object):
                 are located.
 
         Returns:
-            List[~google.cloud.bigtable.row_data.Cell]: The cells stored in the
+            List[~google.cloud.bigtable.deprecated.row_data.Cell]: The cells stored in the
             specified column.
 
         Raises:
@@ -1147,7 +1147,7 @@ class PartialRowData(object):
                 not specified, will return the first cell.
 
         Returns:
-            ~google.cloud.bigtable.row_data.Cell value: The cell value stored
+            ~google.cloud.bigtable.deprecated.row_data.Cell value: The cell value stored
             in the specified column and specified index.
 
         Raises:

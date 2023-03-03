@@ -15,9 +15,9 @@
 #
 from google.cloud.bigtable import gapic_version as package_version
 
-__version__ = package_version.__version__
-
 from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
+
+__version__: str = package_version.__version__
 
 __all__ = ("BigtableDataClient", "Table")

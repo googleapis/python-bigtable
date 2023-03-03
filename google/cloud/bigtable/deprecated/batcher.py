@@ -42,7 +42,7 @@ class MutationsBatcher(object):
     capability of asynchronous, parallel RPCs.
 
     :type table: class
-    :param table: class:`~google.cloud.bigtable.table.Table`.
+    :param table: class:`~google.cloud.bigtable.deprecated.table.Table`.
 
     :type flush_count: int
     :param flush_count: (Optional) Max number of rows to flush. If it
@@ -76,7 +76,7 @@ class MutationsBatcher(object):
             :dedent: 4
 
         :type row: class
-        :param row: class:`~google.cloud.bigtable.row.DirectRow`.
+        :param row: class:`~google.cloud.bigtable.deprecated.row.DirectRow`.
 
         :raises: One of the following:
                  * :exc:`~.table._BigtableRetryableError` if any
@@ -115,8 +115,8 @@ class MutationsBatcher(object):
             :end-before: [END bigtable_api_batcher_mutate_rows]
             :dedent: 4
 
-        :type rows: list:[`~google.cloud.bigtable.row.DirectRow`]
-        :param rows: list:[`~google.cloud.bigtable.row.DirectRow`].
+        :type rows: list:[`~google.cloud.bigtable.deprecated.row.DirectRow`]
+        :param rows: list:[`~google.cloud.bigtable.deprecated.row.DirectRow`].
 
         :raises: One of the following:
                  * :exc:`~.table._BigtableRetryableError` if any

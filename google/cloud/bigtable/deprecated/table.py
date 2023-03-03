@@ -28,24 +28,24 @@ from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes  # type: ignore
-from google.cloud.bigtable.backup import Backup
-from google.cloud.bigtable.column_family import _gc_rule_from_pb
-from google.cloud.bigtable.column_family import ColumnFamily
-from google.cloud.bigtable.batcher import MutationsBatcher
-from google.cloud.bigtable.batcher import FLUSH_COUNT, MAX_ROW_BYTES
-from google.cloud.bigtable.encryption_info import EncryptionInfo
-from google.cloud.bigtable.policy import Policy
-from google.cloud.bigtable.row import AppendRow
-from google.cloud.bigtable.row import ConditionalRow
-from google.cloud.bigtable.row import DirectRow
-from google.cloud.bigtable.row_data import (
+from google.cloud.bigtable.deprecated.backup import Backup
+from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
+from google.cloud.bigtable.deprecated.column_family import ColumnFamily
+from google.cloud.bigtable.deprecated.batcher import MutationsBatcher
+from google.cloud.bigtable.deprecated.batcher import FLUSH_COUNT, MAX_ROW_BYTES
+from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
+from google.cloud.bigtable.deprecated.policy import Policy
+from google.cloud.bigtable.deprecated.row import AppendRow
+from google.cloud.bigtable.deprecated.row import ConditionalRow
+from google.cloud.bigtable.deprecated.row import DirectRow
+from google.cloud.bigtable.deprecated.row_data import (
     PartialRowsData,
     _retriable_internal_server_error,
 )
-from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
-from google.cloud.bigtable.row_set import RowSet
-from google.cloud.bigtable.row_set import RowRange
-from google.cloud.bigtable import enums
+from google.cloud.bigtable.deprecated.row_data import DEFAULT_RETRY_READ_ROWS
+from google.cloud.bigtable.deprecated.row_set import RowSet
+from google.cloud.bigtable.deprecated.row_set import RowRange
+from google.cloud.bigtable.deprecated import enums
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.types import table as admin_messages_v2_pb2
@@ -88,7 +88,7 @@ DEFAULT_RETRY = Retry(
 )
 """The default retry strategy to be used on retry-able errors.
 
-Used by :meth:`~google.cloud.bigtable.table.Table.mutate_rows`.
+Used by :meth:`~google.cloud.bigtable.deprecated.table.Table.mutate_rows`.
 """
 
 
@@ -119,7 +119,7 @@ class Table(object):
     :type table_id: str
     :param table_id: The ID of the table.
 
-    :type instance: :class:`~google.cloud.bigtable.instance.Instance`
+    :type instance: :class:`~google.cloud.bigtable.deprecated.instance.Instance`
     :param instance: The instance that owns the table.
 
     :type app_profile_id: str
@@ -172,7 +172,7 @@ class Table(object):
             :end-before: [END bigtable_api_table_get_iam_policy]
             :dedent: 4
 
-        :rtype: :class:`google.cloud.bigtable.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
         :returns: The current IAM policy of this table.
         """
         table_client = self._instance._client.table_admin_client
@@ -184,7 +184,7 @@ class Table(object):
         existing policy.
 
         For more information about policy, please see documentation of
-        class `google.cloud.bigtable.policy.Policy`
+        class `google.cloud.bigtable.deprecated.policy.Policy`
 
         For example:
 
@@ -193,11 +193,11 @@ class Table(object):
             :end-before: [END bigtable_api_table_set_iam_policy]
             :dedent: 4
 
-        :type policy: :class:`google.cloud.bigtable.policy.Policy`
+        :type policy: :class:`google.cloud.bigtable.deprecated.policy.Policy`
         :param policy: A new IAM policy to replace the current IAM policy
                        of this table.
 
-        :rtype: :class:`google.cloud.bigtable.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
         :returns: The current IAM policy of this table.
         """
         table_client = self._instance._client.table_admin_client
@@ -271,7 +271,7 @@ class Table(object):
         .. warning::
 
            At most one of ``filter_`` and ``append`` can be used in a
-           :class:`~google.cloud.bigtable.row.Row`.
+           :class:`~google.cloud.bigtable.deprecated.row.Row`.
 
         :type row_key: bytes
         :param row_key: The key for the row being created.
@@ -284,7 +284,7 @@ class Table(object):
         :param append: (Optional) Flag to determine if the row should be used
                        for append mutations.
 
-        :rtype: :class:`~google.cloud.bigtable.row.Row`
+        :rtype: :class:`~google.cloud.bigtable.deprecated.row.Row`
         :returns: A row owned by this table.
         :raises: :class:`ValueError <exceptions.ValueError>` if both
                  ``filter_`` and ``append`` are used.
@@ -307,7 +307,7 @@ class Table(object):
             return DirectRow(row_key, self)
 
     def append_row(self, row_key):
-        """Create a :class:`~google.cloud.bigtable.row.AppendRow` associated with this table.
+        """Create a :class:`~google.cloud.bigtable.deprecated.row.AppendRow` associated with this table.
 
         For example:
 
@@ -325,7 +325,7 @@ class Table(object):
         return AppendRow(row_key, self)
 
     def direct_row(self, row_key):
-        """Create a :class:`~google.cloud.bigtable.row.DirectRow` associated with this table.
+        """Create a :class:`~google.cloud.bigtable.deprecated.row.DirectRow` associated with this table.
 
         For example:
 
@@ -343,7 +343,7 @@ class Table(object):
         return DirectRow(row_key, self)
 
     def conditional_row(self, row_key, filter_):
-        """Create a :class:`~google.cloud.bigtable.row.ConditionalRow` associated with this table.
+        """Create a :class:`~google.cloud.bigtable.deprecated.row.ConditionalRow` associated with this table.
 
         For example:
 
@@ -515,7 +515,7 @@ class Table(object):
 
         :rtype: dict
         :returns: Dictionary of encryption info for this table. Keys are cluster ids and
-                  values are tuples of :class:`google.cloud.bigtable.encryption.EncryptionInfo` instances.
+                  values are tuples of :class:`google.cloud.bigtable.deprecated.encryption.EncryptionInfo` instances.
         """
         ENCRYPTION_VIEW = enums.Table.View.ENCRYPTION_VIEW
         table_client = self._instance._client.table_admin_client
@@ -967,7 +967,7 @@ class Table(object):
                           number of resources in a page.
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
-        :returns: Iterator of :class:`~google.cloud.bigtable.backup.Backup`
+        :returns: Iterator of :class:`~google.cloud.bigtable.deprecated.backup.Backup`
                   resources within the current Instance.
         :raises: :class:`ValueError <exceptions.ValueError>` if one of the
                  returned Backups' name is not of the expected format.
@@ -1367,8 +1367,8 @@ def _check_row_table_name(table_name, row):
     :type table_name: str
     :param table_name: The name of the table.
 
-    :type row: :class:`~google.cloud.bigtable.row.Row`
-    :param row: An instance of :class:`~google.cloud.bigtable.row.Row`
+    :type row: :class:`~google.cloud.bigtable.deprecated.row.Row`
+    :param row: An instance of :class:`~google.cloud.bigtable.deprecated.row.Row`
                 subclasses.
 
     :raises: :exc:`~.table.TableMismatchError` if the row does not belong to
@@ -1384,8 +1384,8 @@ def _check_row_table_name(table_name, row):
 def _check_row_type(row):
     """Checks that a row is an instance of :class:`.DirectRow`.
 
-    :type row: :class:`~google.cloud.bigtable.row.Row`
-    :param row: An instance of :class:`~google.cloud.bigtable.row.Row`
+    :type row: :class:`~google.cloud.bigtable.deprecated.row.Row`
+    :param row: An instance of :class:`~google.cloud.bigtable.deprecated.row.Row`
                 subclasses.
 
     :raises: :class:`TypeError <exceptions.TypeError>` if the row is not an
