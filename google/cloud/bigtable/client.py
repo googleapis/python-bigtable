@@ -15,16 +15,21 @@
 
 from __future__ import annotations
 
+from typing import Any, AsyncIterable
+
 from google.cloud.client import ClientWithProject
+
 
 class BigtableDataClient(ClientWithProject):
     def __init__(
         self,
         *,
-        project: str|None = None,
-        credentials: google.auth.credentials.Credentials|None = None,
-        client_options: dict[str, Any] | "google.api_core.client_options.ClientOptions" | None = None,
-        metadata: list[tuple[str, str]]|None = None,
+        project: str | None = None,
+        credentials: google.auth.credentials.Credentials | None = None,
+        client_options: dict[str, Any]
+        | "google.api_core.client_options.ClientOptions"
+        | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Create a client instance
@@ -34,47 +39,49 @@ class BigtableDataClient(ClientWithProject):
         """
         pass
 
-
-    def get_table(self, instance_id:str, table_id:str, app_profile_id:str|None=None) -> Table:
+    def get_table(
+        self, instance_id: str, table_id: str, app_profile_id: str | None = None
+    ) -> Table:
         return Table(self, instance_id, table_id, app_profile_id)
 
-class Table():
+
+class Table:
     """
     Main Data API surface
 
-    Table object maintains instance_id, table_id, and app_profile_id context, and passes them with 
+    Table object maintains instance_id, table_id, and app_profile_id context, and passes them with
     each call
     """
 
     def __init__(
         self,
-        client:BigtableDataClient,
-        instance_id:str,
+        client: BigtableDataClient,
+        instance_id: str,
         table_id: str,
-        app_profile_id:str|None=None
+        app_profile_id: str | None = None,
     ):
         pass
 
     async def read_rows_stream(
         self,
-        query: ReadRowsQuery|dict,
+        query: ReadRowsQuery | dict,
         *,
-        shard:bool=False,
-        limit:int|None,
-        cache_size_limit:int|None=None,
-        operation_timeout:int|float|None=60,
-        per_row_timeout:int|float|None=10,
-        idle_timeout:int|float|None=300,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        shard: bool = False,
+        limit: int | None,
+        cache_size_limit: int | None = None,
+        operation_timeout: int | float | None = 60,
+        per_row_timeout: int | float | None = 10,
+        idle_timeout: int | float | None = 300,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterable[RowResponse]:
         """
         Returns a generator to asynchronously stream back row data.
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully cached in memory 
-        in the generator, which can be consumed as needed. The size of the generator cache can 
+        By default, row data is streamed eagerly over the network, and fully cached in memory
+        in the generator, which can be consumed as needed. The size of the generator cache can
         be configured with cache_size_limit. When the cache is full, the read_rows_stream will pause
         the network stream until space is available
 
@@ -82,33 +89,33 @@ class Table():
             - query: contains details about which rows to return
             - shard: if True, will attempt to split up and distribute query to multiple
                  backend nodes in parallel
-            - limit: a limit on the number of rows to return. Actual limit will be 
+            - limit: a limit on the number of rows to return. Actual limit will be
                  min(limit, query.limit)
-            - cache_size: the number of rows to cache in memory. If None, no limits. 
+            - cache_size: the number of rows to cache in memory. If None, no limits.
                  Defaults to None
-            - operation_timeout: the time budget for the entire operation, in seconds. 
+            - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
-                 time is only counted while actively waiting on the network. 
+                 time is only counted while actively waiting on the network.
                  Completed and cached results can still be accessed after the deadline is complete,
                  with a DeadlineExceeded exception only raised after cached results are exhausted
             - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
-                longer than per_row_timeout to complete, the ongoing network request will be with a 
+                longer than per_row_timeout to complete, the ongoing network request will be with a
                 DeadlineExceeded exception, and a retry may be attempted
                 Applies only to the underlying network call.
-            - idle_timeout: the number of idle seconds before an active generator is marked as 
-                stale and the cache is drained. The idle count is reset each time the generator 
+            - idle_timeout: the number of idle seconds before an active generator is marked as
+                stale and the cache is drained. The idle count is reset each time the generator
                 is yielded from
                 raises DeadlineExceeded on future yields
-            - per_request_timeout: the time budget for an individual network request, in seconds. 
-                If it takes longer than this time to complete, the request will be cancelled with 
+            - per_request_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted
             - metadata: Strings which should be sent along with the request as metadata headers.
- 
+
         Returns:
             - an asynchronous generator that yields rows returned by the query
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions 
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - IdleTimeout: if generator was abandoned
         """
@@ -116,14 +123,14 @@ class Table():
 
     async def read_rows(
         self,
-        query: ReadRowsQuery|dict,
+        query: ReadRowsQuery | dict,
         *,
-        shard:bool=False,
-        limit:int|None,
-        operation_timeout:int|float|None=60,
-        per_row_timeout:int|float|None=10,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        shard: bool = False,
+        limit: int | None,
+        operation_timeout: int | float | None = 60,
+        per_row_timeout: int | float | None = 10,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> List[RowResponse]:
         """
         Helper function that returns a full list instead of a generator
@@ -137,11 +144,11 @@ class Table():
 
     async def read_row(
         self,
-        row_key:str|bytes,
+        row_key: str | bytes,
         *,
-        operation_timeout:int|float|None=60,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> RowResponse:
         """
         Helper function to return a single row
@@ -155,15 +162,15 @@ class Table():
 
     async def read_rows_sharded(
         self,
-        query_list: list[ReadRowsQuery]|list[dict],
+        query_list: list[ReadRowsQuery] | list[dict],
         *,
-        limit:int|None,
-        cache_size_limit:int|None=None,
-        operation_timeout:int|float|None=60,
-        per_row_timeout:int|float|None=10,
-        idle_timeout:int|float|None=300,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        limit: int | None,
+        cache_size_limit: int | None = None,
+        operation_timeout: int | float | None = 60,
+        per_row_timeout: int | float | None = 10,
+        idle_timeout: int | float | None = 300,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterable[RowResponse]:
         """
         Runs a sharded query in parallel
@@ -178,11 +185,11 @@ class Table():
 
     async def row_exists(
         self,
-        row_key:str|bytes,
+        row_key: str | bytes,
         *,
-        operation_timeout:int|float|None=60,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Helper function to determine if a row exists
@@ -194,15 +201,13 @@ class Table():
         """
         pass
 
-
-
     async def sample_keys(
         self,
         *,
-        operation_timeout:int|float|None=60,
-        per_sample_timeout:int|float|None=10,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        per_sample_timeout: int | float | None = 10,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -219,16 +224,16 @@ class Table():
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing all GoogleAPIError 
+                will be chained with a RetryExceptionGroup containing all GoogleAPIError
                 exceptions from any retries that failed
         """
         pass
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
         """
-        Returns a new mutations batcher instance. 
+        Returns a new mutations batcher instance.
 
-        Can be used to iteratively add mutations that are flushed as a group, 
+        Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
         Returns:
@@ -238,41 +243,41 @@ class Table():
 
     async def mutate_row(
         self,
-        row_key: str|bytes,
-        mutations: List[Mutation]|Mutation,
+        row_key: str | bytes,
+        mutations: List[Mutation] | Mutation,
         *,
-        operation_timeout:int|float|None=60,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ):
         """
-        Mutates a row atomically.
+         Mutates a row atomically.
 
-        Cells already present in the row are left unchanged unless explicitly changed
-        by ``mutation``.
+         Cells already present in the row are left unchanged unless explicitly changed
+         by ``mutation``.
 
-        Idempotent operations (i.e, all mutations have an explicit timestamp) will be
-        retried on server failure. Non-idempotent operations will not.
+         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
+         retried on server failure. Non-idempotent operations will not.
 
-        Args:
-            - row_key: the row to apply mutations to
-            - mutations: the set of mutations to apply to the row
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will be retried within the budget.
-                time is only counted while actively waiting on the network.
-                DeadlineExceeded exception raised after timeout
-            - per_request_timeout: the time budget for an individual network request,
-              in seconds. If it takes longer than this time to complete, the request
-              will be cancelled with a DeadlineExceeded exception, and a retry will be
-              attempted if within operation_timeout budget
-            - metadata: Strings which should be sent along with the request as metadata headers.
+         Args:
+             - row_key: the row to apply mutations to
+             - mutations: the set of mutations to apply to the row
+             - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 time is only counted while actively waiting on the network.
+                 DeadlineExceeded exception raised after timeout
+             - per_request_timeout: the time budget for an individual network request,
+               in seconds. If it takes longer than this time to complete, the request
+               will be cancelled with a DeadlineExceeded exception, and a retry will be
+               attempted if within operation_timeout budget
+             - metadata: Strings which should be sent along with the request as metadata headers.
 
-       Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing all 
-                GoogleAPIError exceptions from any retries that failed
-            - GoogleAPIError: raised on non-idempotent operations that cannot be
-                safely retried.
+        Raises:
+             - DeadlineExceeded: raised after operation timeout
+                 will be chained with a RetryExceptionGroup containing all
+                 GoogleAPIError exceptions from any retries that failed
+             - GoogleAPIError: raised on non-idempotent operations that cannot be
+                 safely retried.
         """
         pass
 
@@ -280,9 +285,9 @@ class Table():
         self,
         mutation_entries: list[BulkMutationsEntry],
         *,
-        operation_timeout:int|float|None=60,
-        per_request_timeout:int|float|None=None,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        per_request_timeout: int | float | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -292,13 +297,13 @@ class Table():
         In total, the row_mutations can contain at most 100000 individual mutations
         across all entries
 
-        Idempotent entries (i.e., entries with mutations with explicit timestamps) 
-        will be retried on failure. Non-idempotent will not, and will reported in a 
+        Idempotent entries (i.e., entries with mutations with explicit timestamps)
+        will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
         Args:
             - mutation_entries: the batches of mutations to apply
-                Each entry will be applied atomically, but entries will be applied 
+                Each entry will be applied atomically, but entries will be applied
                 in arbitrary order
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will be retried within the budget.
@@ -318,12 +323,12 @@ class Table():
 
     async def check_and_mutate_row(
         self,
-        row_key: str|bytes,
-        predicate: RowFilter|None,
-        true_case_mutations:  Mutation | list[Mutation] | None = None,
+        row_key: str | bytes,
+        predicate: RowFilter | None,
+        true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout:int|float|None=60,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -332,9 +337,9 @@ class Table():
 
         Args:
             - row_key: the key of the row to mutate
-            - predicate: the filter to be applied to the contents of the specified row. 
-                Depending on whether or not any results  are yielded, 
-                either true_case_mutations or false_case_mutations will be executed. 
+            - predicate: the filter to be applied to the contents of the specified row.
+                Depending on whether or not any results  are yielded,
+                either true_case_mutations or false_case_mutations will be executed.
                 If None, checks that the row contains any values at all.
             - true_case_mutations:
                 Changes to be atomically applied to the specified row if
@@ -362,17 +367,17 @@ class Table():
 
     async def read_modify_write_row(
         self,
-        row_key: str|bytes,
-        rules: ReadModifyWriteRule|list[ReadModifyWriteRule]|dict|list[dict],
+        row_key: str | bytes,
+        rules: ReadModifyWriteRule | list[ReadModifyWriteRule] | dict | list[dict],
         *,
-        operation_timeout:int|float|None=60,
-        metadata: list[tuple[str, str]]|None = None,
+        operation_timeout: int | float | None = 60,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> RowResponse:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
         and returns the contents of all modified cells
 
-        The new value for the timestamp is the greater of the existing timestamp or 
+        The new value for the timestamp is the greater of the existing timestamp or
         the current server time.
 
         Non-idempotent operation: will not be retried
@@ -392,6 +397,7 @@ class Table():
             - GoogleAPIError exceptions from grpc call
         """
         pass
+
 
 if __name__ == "__main__":
     client = BigtableDataClient()

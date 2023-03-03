@@ -171,7 +171,9 @@ def test_client_constructor_w_both_admin_and_read_only():
 
 def test_client_constructor_w_emulator_host():
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    from google.cloud.bigtable.deprecated.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+    from google.cloud.bigtable.deprecated.client import (
+        _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
+    )
     from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
 
     emulator_host = "localhost:8081"
@@ -216,7 +218,9 @@ def test_client_constructor_w_emulator_host_w_project():
 
 def test_client_constructor_w_emulator_host_w_credentials():
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    from google.cloud.bigtable.deprecated.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+    from google.cloud.bigtable.deprecated.client import (
+        _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
+    )
     from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
 
     emulator_host = "localhost:8081"

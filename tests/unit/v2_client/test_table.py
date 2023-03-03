@@ -1174,7 +1174,9 @@ def test_table_truncate():
     table = _make_table(TABLE_ID, instance)
     table_api = client._table_admin_client = _make_table_api()
 
-    with mock.patch("google.cloud.bigtable.deprecated.table.Table.name", new=TABLE_NAME):
+    with mock.patch(
+        "google.cloud.bigtable.deprecated.table.Table.name", new=TABLE_NAME
+    ):
         result = table.truncate()
 
     assert result is None
@@ -1797,7 +1799,9 @@ def test_rmrw_do_mutate_retryable_rows_w_retryable_error_internal_rst_stream_err
     # Raise internal server error with RST STREAM error messages
     # There should be no error raised and that the request is retried
     from google.api_core.exceptions import InternalServerError
-    from google.cloud.bigtable.deprecated.row_data import RETRYABLE_INTERNAL_ERROR_MESSAGES
+    from google.cloud.bigtable.deprecated.row_data import (
+        RETRYABLE_INTERNAL_ERROR_MESSAGES,
+    )
 
     row_cells = [
         (b"row_key_1", ("cf", b"col", b"value1")),
