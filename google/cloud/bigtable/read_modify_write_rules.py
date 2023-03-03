@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from google.cloud.bigtable import gapic_version as package_version
+from __future__ import annotations
 
-from google.cloud.bigtable.client import BigtableDataClient
-from google.cloud.bigtable.client import Table
+from dataclasses import dataclass
 
-from typing_extensions import TypeAlias
-from typing import List, Tuple
+from google.cloud.bigtable.row_response import family_id, qualifier
 
-__version__: str = package_version.__version__
+class ReadModifyWriteRule():
+    pass
 
-# Type alias for the output of sample_keys
-RowKeySamples: TypeAlias = List[Tuple[bytes, int]]
+@dataclass
+class IncrementRule(ReadModifyWriteRule):
+    increment_amount: int
+    family: family_id
+    qualifier: qualifier
 
-__all__ = ("BigtableDataClient", "Table", "RowKeySamples")
+
+@dataclass
+class AppendValueRule(ReadModifyWriteRule):
+    append_value: bytes | str
+    family: family_id
+    qualifier: qualifier

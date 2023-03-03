@@ -18,7 +18,16 @@ from __future__ import annotations
 from typing import Any, AsyncIterable
 
 from google.cloud.client import ClientWithProject
+from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.row_response import RowResponse
+from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable import RowKeySamples
+from google.cloud.bigtable.row_filters import RowFilter
+from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
+import google.auth.credentials.Credentials
+import google.auth.credentials.ClientOptions
 
 class BigtableDataClient(ClientWithProject):
     def __init__(
@@ -60,7 +69,7 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
     ):
-        pass
+        raise NotImplementedError
 
     async def read_rows_stream(
         self,
@@ -119,7 +128,7 @@ class Table:
                 from any retries that failed
             - IdleTimeout: if generator was abandoned
         """
-        pass
+        raise NotImplementedError
 
     async def read_rows(
         self,
@@ -131,7 +140,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> List[RowResponse]:
+    ) -> list[RowResponse]:
         """
         Helper function that returns a full list instead of a generator
 
@@ -140,7 +149,7 @@ class Table:
         Returns:
             - a list of the rows returned by the query
         """
-        pass
+        raise NotImplementedError
 
     async def read_row(
         self,
@@ -158,7 +167,7 @@ class Table:
         Returns:
             - the individual row requested
         """
-        pass
+        raise NotImplementedError
 
     async def read_rows_sharded(
         self,
@@ -181,7 +190,7 @@ class Table:
         Args:
             - query_list: a list of queries to run in parallel
         """
-        pass
+        raise NotImplementedError
 
     async def row_exists(
         self,
@@ -199,7 +208,7 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
-        pass
+        raise NotImplementedError
 
     async def sample_keys(
         self,
@@ -227,7 +236,7 @@ class Table:
                 will be chained with a RetryExceptionGroup containing all GoogleAPIError
                 exceptions from any retries that failed
         """
-        pass
+        raise NotImplementedError
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
         """
@@ -244,7 +253,7 @@ class Table:
     async def mutate_row(
         self,
         row_key: str | bytes,
-        mutations: List[Mutation] | Mutation,
+        mutations: list[Mutation] | Mutation,
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
@@ -279,7 +288,7 @@ class Table:
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
         """
-        pass
+        raise NotImplementedError
 
     async def bulk_mutate_rows(
         self,
@@ -319,7 +328,7 @@ class Table:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
         """
-        pass
+        raise NotImplementedError
 
     async def check_and_mutate_row(
         self,
@@ -363,7 +372,7 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        pass
+        raise NotImplementedError
 
     async def read_modify_write_row(
         self,
@@ -396,9 +405,5 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        pass
+        raise NotImplementedError
 
-
-if __name__ == "__main__":
-    client = BigtableDataClient()
-    client.get_table("instance_id", "table_id")
