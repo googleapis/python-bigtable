@@ -26,8 +26,7 @@ from google.cloud.bigtable import RowKeySamples
 from google.cloud.bigtable.row_filters import RowFilter
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
-import google.auth.credentials.Credentials
-import google.auth.credentials.ClientOptions
+import google.auth.credentials
 
 
 class BigtableDataClient(ClientWithProject):

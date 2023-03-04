@@ -13,6 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from typing_extensions import TypeAlias
+from typing import List, Tuple
+
+# Type alias for the output of sample_keys
+RowKeySamples: TypeAlias = List[Tuple[bytes, int]]
+
 from google.cloud.bigtable import gapic_version as package_version
 
 from google.cloud.bigtable.client import BigtableDataClient
@@ -30,13 +37,7 @@ from google.cloud.bigtable.mutations import DeleteRangeFromColumn
 from google.cloud.bigtable.mutations import DeleteAllFromFamily
 from google.cloud.bigtable.mutations import DeleteAllFromRow
 
-from typing_extensions import TypeAlias
-from typing import List, Tuple
-
 __version__: str = package_version.__version__
-
-# Type alias for the output of sample_keys
-RowKeySamples: TypeAlias = List[Tuple[bytes, int]]
 
 __all__ = (
     "BigtableDataClient",

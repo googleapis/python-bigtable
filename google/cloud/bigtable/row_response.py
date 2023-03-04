@@ -25,7 +25,7 @@ qualifier: TypeAlias = bytes
 row_value: TypeAlias = bytes
 
 
-class RowResponse(Sequence[CellResponse]):
+class RowResponse(Sequence["CellResponse"]):
     """
     Model class for row data returned from server
 

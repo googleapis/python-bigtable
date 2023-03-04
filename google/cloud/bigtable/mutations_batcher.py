@@ -15,12 +15,14 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.row_response import row_key
 from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable import Table
 
+if TYPE_CHECKING:
+    from google.cloud.bigtable.client import Table
 
 class MutationsBatcher:
     """
@@ -48,7 +50,7 @@ class MutationsBatcher:
 
     def __init__(
         self,
-        table: Table,
+        table: "Table",
         flush_count: int = 100,
         flush_size_bytes: int = 100 * MB_SIZE,
         max_mutation_bytes: int = 20 * MB_SIZE,
