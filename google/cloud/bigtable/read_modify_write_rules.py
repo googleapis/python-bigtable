@@ -27,11 +27,11 @@ class ReadModifyWriteRule:
 class IncrementRule(ReadModifyWriteRule):
     increment_amount: int
     family: family_id
-    qualifier: qualifier
+    column_qualifier: qualifier
 
 
 @dataclass
 class AppendValueRule(ReadModifyWriteRule):
     append_value: bytes | str
     family: family_id
-    qualifier: qualifier
+    column_qualifier: qualifier

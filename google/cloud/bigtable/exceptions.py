@@ -16,24 +16,10 @@
 import sys
 
 
-class MutationsExceptionGroup(BigtableExceptionGroup):
-    """
-    Represents one or more exceptions that occur during a bulk mutation operation
-    """
-
-    pass
-
-
-class RetryExceptionGroup(BigtableExceptionGroup):
-    """Represents one or more exceptions that occur during a retryable operation"""
-
-    pass
-
-
 is_311_plus = sys.version_info >= (3, 11)
 
 
-class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore
+class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
     """
     Represents one or more exceptions that occur during a bulk Bigtable operation
 
@@ -48,3 +34,17 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         else:
             super().__init__(message)
             self.exceptions = excs
+
+
+class MutationsExceptionGroup(BigtableExceptionGroup):
+    """
+    Represents one or more exceptions that occur during a bulk mutation operation
+    """
+
+    pass
+
+
+class RetryExceptionGroup(BigtableExceptionGroup):
+    """Represents one or more exceptions that occur during a retryable operation"""
+
+    pass

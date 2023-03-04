@@ -24,6 +24,7 @@ from google.cloud.bigtable.row_filters import RowFilter
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table
 
+
 class MutationsBatcher:
     """
     Allows users to send batches using context manager API:

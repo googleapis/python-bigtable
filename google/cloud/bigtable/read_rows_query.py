@@ -13,8 +13,11 @@
 # limitations under the License.
 #
 from __future__ import annotations
-from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable import RowKeySamples
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.row_filters import RowFilter
+    from google.cloud.bigtable import RowKeySamples
 
 
 class ReadRowsQuery:
@@ -30,7 +33,7 @@ class ReadRowsQuery:
     def set_limit(self, limit: int) -> ReadRowsQuery:
         raise NotImplementedError
 
-    def set_filter(self, filter: RowFilter) -> ReadRowsQuery:
+    def set_filter(self, filter: "RowFilter") -> ReadRowsQuery:
         raise NotImplementedError
 
     def add_rows(self, row_id_list: list[str]) -> ReadRowsQuery:
@@ -41,7 +44,7 @@ class ReadRowsQuery:
     ) -> ReadRowsQuery:
         raise NotImplementedError
 
-    def shard(self, shard_keys: RowKeySamples | None = None) -> list[ReadRowsQuery]:
+    def shard(self, shard_keys: "RowKeySamples" | None = None) -> list[ReadRowsQuery]:
         """
         Split this query into multiple queries that can be evenly distributed
         across nodes and be run in parallel

@@ -15,18 +15,21 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterable
+from typing import Any, AsyncIterable, TYPE_CHECKING
 
 from google.cloud.client import ClientWithProject
-from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
-from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.row_response import RowResponse
-from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable import RowKeySamples
-from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+
 
 import google.auth.credentials
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable.row_response import RowResponse
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable import RowKeySamples
+    from google.cloud.bigtable.row_filters import RowFilter
+    from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
 class BigtableDataClient(ClientWithProject):

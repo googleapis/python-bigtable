@@ -25,7 +25,7 @@ class Mutation:
 @dataclass
 class SetCell(Mutation):
     family: family_id
-    qualifier: qualifier
+    column_qualifier: qualifier
     new_value: bytes | str | int
     timestamp_ms: int | None = None
 
@@ -33,7 +33,7 @@ class SetCell(Mutation):
 @dataclass
 class DeleteRangeFromColumn(Mutation):
     family: family_id
-    qualifier: qualifier
+    column_qualifier: qualifier
     start_timestamp_ms: int
     end_timestamp_ms: int
 
@@ -50,5 +50,5 @@ class DeleteAllFromRow(Mutation):
 
 @dataclass
 class BulkMutationsEntry:
-    row_key: row_key
+    row: row_key
     mutations: list[Mutation] | Mutation
