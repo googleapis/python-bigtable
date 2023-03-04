@@ -91,6 +91,8 @@ def _create_gapic_client(client_class, client_options=None, transport=None):
 class Client(ClientWithProject):
     """Client for interacting with Google Cloud Bigtable API.
 
+    DEPRECATED:  This class is deprecated.  Please use `google.cloud.bigtable.BigtableDataClient` instead.
+
     .. note::
 
         Since the Cloud Bigtable API requires the gRPC transport, no
@@ -159,6 +161,11 @@ class Client(ClientWithProject):
         admin_client_options=None,
         channel=None,
     ):
+        warnings.warn(
+            "'Client'. Please use 'google.cloud.bigtable.BigtableDataClient' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if client_info is None:
             client_info = client_info_lib.ClientInfo(
                 client_library_version=bigtable.__version__,
