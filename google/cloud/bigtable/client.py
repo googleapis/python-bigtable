@@ -15,10 +15,10 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterable, TYPE_CHECKING
+from typing import cast, Any, AsyncIterable, Optional, TYPE_CHECKING
 
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.client import ClientWithProject
-
 
 import google.auth.credentials
 
@@ -49,7 +49,21 @@ class BigtableDataClient(ClientWithProject):
         Args:
             metadata: a list of metadata headers to be attached to all calls with this client
         """
-        pass
+        super(BigtableDataClient, self).__init__(
+            project=project,
+            credentials=credentials,
+            client_options=client_options,
+        )
+        if type(client_options) is dict:
+            client_options = google.api_core.client_options.from_dict(client_options)
+        client_options = cast(
+            Optional["google.api_core.client_options.ClientOptions"], client_options
+        )
+        self._gapic_client = BigtableAsyncClient(
+            credentials=credentials,
+            transport="pooled_grpc_asyncio",
+            client_options=client_options,
+        )
 
     def get_table(
         self, instance_id: str, table_id: str, app_profile_id: str | None = None
