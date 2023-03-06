@@ -1,0 +1,3 @@
+[submodule "gapic-generator-fork"]
+	path = gapic-generator-fork
+	url = git@github.com:daniel-sanche/gapic-generator-python.git
