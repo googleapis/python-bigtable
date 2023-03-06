@@ -17,7 +17,13 @@ from __future__ import annotations
 
 from typing import cast, Any, AsyncIterable, Optional, TYPE_CHECKING
 
+import asyncio
+import grpc
+
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledBigtableGrpcAsyncIOTransport,
+)
 from google.cloud.client import ClientWithProject
 
 import google.auth.credentials
@@ -64,11 +70,25 @@ class BigtableDataClient(ClientWithProject):
             transport="pooled_grpc_asyncio",
             client_options=client_options,
         )
+        self.transport: PooledBigtableGrpcAsyncIOTransport = cast(
+            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+        )
 
-    def get_table(
-        self, instance_id: str, table_id: str, app_profile_id: str | None = None
+    async def get_table(
+        self,
+        instance_id: str,
+        table_id: str,
+        app_profile_id: str | None = None,
+        manage_channels: bool = True,
     ) -> Table:
-        return Table(self, instance_id, table_id, app_profile_id)
+        table = Table(self, instance_id, table_id, app_profile_id)
+        if manage_channels:
+            for channel_idx in range(self.transport.pool_size):
+                channel = self.transport.get_channel(channel_idx)
+                await table._ping_and_warm_channel(channel)
+                refresh_task = asyncio.create_task(table._manage_channel(channel_idx))
+                table._channel_refresh_tasks.append(refresh_task)
+        return table
 
 
 class Table:
@@ -86,7 +106,35 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
     ):
-        raise NotImplementedError
+        self.client = client
+        self.instance_id = instance_id
+        self.table_id = table_id
+        self.app_profile_id = app_profile_id
+        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+
+    async def _manage_channel(
+        self, channel_idx: int, refresh_interval: int | float = 60 * 45
+    ) -> None:
+        MAX_REFRESH_TIME = 60 * 60
+        while True:
+            await asyncio.sleep(refresh_interval)
+            new_channel = await self.client.transport.replace_channel(
+                channel_idx, MAX_REFRESH_TIME - refresh_interval
+            )
+            # warm caches on new client
+            await self._ping_and_warm_channel(new_channel)
+
+    async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
+        ping_rpc = channel.unary_unary(
+            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+        )
+        await ping_rpc(
+            {
+                "name": self.client._gapic_client.instance_path(
+                    self.client.project, self.instance_id
+                )
+            }
+        )
 
     async def read_rows_stream(
         self,
