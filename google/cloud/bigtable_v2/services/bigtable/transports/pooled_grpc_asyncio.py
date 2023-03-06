@@ -197,6 +197,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             always_use_jwt_access=always_use_jwt_access,
             api_audience=api_audience,
         )
+        self._quota_project_id = quota_project_id
         self._channel_pool = []
         for i in range(pool_size):
             new_channel = type(self).create_channel(
@@ -208,7 +209,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                 credentials_file=None,
                 scopes=self._scopes,
                 ssl_credentials=self._ssl_channel_credentials,
-                quota_project_id=quota_project_id,
+                quota_project_id=self._quota_project_id,
                 options=[
                     ("grpc.max_send_message_length", -1),
                     ("grpc.max_receive_message_length", -1),
@@ -225,6 +226,52 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         channel = self._channel_pool[self._next_idx]
         self._next_idx = (self._next_idx + 1) % len(self._channel_pool)
         return channel
+
+    def get_channel(self, channel_idx) -> aio.Channel:
+        """Returns the a specified channel from the pool.
+
+        Args:
+          channel_idx(int): the requested channel index
+        """
+        # Return the channel from cache.
+        return self._channel_pool[self._next_idx]
+
+    async def replace_channel(
+        self, channel_idx, grace=None, new_channel=None
+    ) -> aio.Channel:
+        """
+        Immediately closes a channel in the pool, and replaces it with a new one.
+        Returns the newly created channel
+
+        Args:
+          channel_idx(int): the channel index in the pool to replace
+          grace(Optional[float]): The time to wait until all active RPCs are
+            finished. If a grace period is not specified (by passing None for
+            grace), all existing RPCs are cancelled immediately.
+          new_channel(asyncio.Channel): a new channel to insert into the pool
+            at `channel_idx`. If `None`, a new channel will be created.
+        """
+        if new_channel is None:
+            new_channel = self.create_channel(
+                self._host,
+                credentials=self._credentials,
+                credentials_file=None,
+                scopes=self._scopes,
+                ssl_credentials=self._ssl_channel_credentials,
+                quota_project_id=self._quota_project_id,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ],
+            )
+        old_channel = self._channel_pool[channel_idx]
+        self._channel_pool[channel_idx] = new_channel
+        await old_channel.close(grace=grace)
+        # invalidate stubs
+        for stub_channel, stub_func in self._stubs.keys():
+            if stub_channel == old_channel:
+                del self._stubs[(stub_channel, stub_func)]
+        return new_channel
 
     @property
     def read_rows(
