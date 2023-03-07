@@ -19,6 +19,7 @@ from typing import cast, Any, AsyncIterable, Optional, TYPE_CHECKING
 
 import asyncio
 import grpc
+import time
 
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
@@ -84,8 +85,6 @@ class BigtableDataClient(ClientWithProject):
         table = Table(self, instance_id, table_id, app_profile_id)
         if manage_channels:
             for channel_idx in range(self.transport.pool_size):
-                channel = self.transport.get_channel(channel_idx)
-                await table._ping_and_warm_channel(channel)
                 refresh_task = asyncio.create_task(table._manage_channel(channel_idx))
                 table._channel_refresh_tasks.append(refresh_task)
         return table
@@ -113,16 +112,24 @@ class Table:
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
 
     async def _manage_channel(
-        self, channel_idx: int, refresh_interval: int | float = 60 * 45
+        self,
+        channel_idx: int,
+        refresh_interval: float = 60 * 45,
+        grace_period: float = 60 * 15,
     ) -> None:
-        MAX_REFRESH_TIME = 60 * 60
+        channel = self.client.transport.get_channel(channel_idx)
+        start_timestamp = time.time()
         while True:
-            await asyncio.sleep(refresh_interval)
-            new_channel = await self.client.transport.replace_channel(
-                channel_idx, MAX_REFRESH_TIME - refresh_interval
+            # warm caches on new channel
+            await self._ping_and_warm_channel(channel)
+            # let channel serve rpcs until expirary
+            next_sleep = refresh_interval - (time.time() - start_timestamp)
+            await asyncio.sleep(next_sleep)
+            start_timestamp = time.time()
+            # cycle channel out of use, with long grace window
+            channel = await self.client.transport.replace_channel(
+                channel_idx, grace_period
             )
-            # warm caches on new client
-            await self._ping_and_warm_channel(new_channel)
 
     async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
         ping_rpc = channel.unary_unary(
