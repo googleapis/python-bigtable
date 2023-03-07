@@ -117,21 +117,54 @@ class Table:
         refresh_interval: float = 60 * 45,
         grace_period: float = 60 * 15,
     ) -> None:
+        """
+        Warms and periodically refreshes an internal grpc channel used for requests
+
+        The backend will automatically close channels after 60 minutes, so
+        `refresh_interval` + `grace_period` should be < 60 minutes
+
+        Args:
+            channel_idx: index of the channel in the transport's channel pool
+            refresh_interval: interval before initiating refresh process in seconds
+            grace_period: time to allow previous channel to serve existing
+                requests before closing, in seconds
+        """
+        # warm the current channel immidiately
         channel = self.client.transport.get_channel(channel_idx)
-        start_timestamp = time.time()
+        await self._ping_and_warm_channel(channel)
+        next_sleep = refresh_interval
+        # continuously refrech the channel every `refresh_interval` seconds
         while True:
-            # warm caches on new channel
-            await self._ping_and_warm_channel(channel)
-            # let channel serve rpcs until expirary
-            next_sleep = refresh_interval - (time.time() - start_timestamp)
             await asyncio.sleep(next_sleep)
-            start_timestamp = time.time()
-            # cycle channel out of use, with long grace window
-            channel = await self.client.transport.replace_channel(
-                channel_idx, grace_period
+            # prepare new channel for use
+            new_channel = self.client.transport.create_channel(
+                self.client.transport._host,
+                credentials=self.client.transport._credentials,
+                credentials_file=None,
+                scopes=self.client.transport._scopes,
+                ssl_credentials=self.client.transport._ssl_channel_credentials,
+                quota_project_id=self.client.transport._quota_project_id,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ],
             )
+            await self._ping_and_warm_channel(channel)
+            # cycle channel out of use, with long grace window before closure
+            start_timestamp = time.time()
+            await self.client.transport.replace_channel(
+                channel_idx, grace_period, new_channel
+            )
+            # subtract the time spent waiting for the channel to be replaced
+            next_sleep = refresh_interval - (time.time() - start_timestamp)
 
     async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
+        """
+        Prepares the backend for requests on a channel
+
+        Args:
+            channel: grpc channel to ping
+        """
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
         )
