@@ -84,7 +84,7 @@ class BigtableDataClient(ClientWithProject):
     ) -> Table:
         table = Table(self, instance_id, table_id, app_profile_id)
         if manage_channels:
-            for channel_idx in range(self.transport.pool_size):
+            for channel_idx in range(len(self.transport.channel_pool)):
                 refresh_task = asyncio.create_task(table._manage_channel(channel_idx))
                 table._channel_refresh_tasks.append(refresh_task)
         return table
@@ -130,7 +130,7 @@ class Table:
                 requests before closing, in seconds
         """
         # warm the current channel immidiately
-        channel = self.client.transport.get_channel(channel_idx)
+        channel = self.client.transport.channel_pool[channel_idx]
         await self._ping_and_warm_channel(channel)
         next_sleep = refresh_interval
         # continuously refrech the channel every `refresh_interval` seconds
