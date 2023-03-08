@@ -116,11 +116,11 @@ class BigtableDataClient(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        # warm the current channel immidiately
+        # warm the current channel immediately
         channel = self.transport.channel_pool[channel_idx]
         await self._ping_and_warm_channel(channel)
         next_sleep = refresh_interval
-        # continuously refrech the channel every `refresh_interval` seconds
+        # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
             # prepare new channel for use
