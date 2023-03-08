@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections import Sequence
+from typing import Sequence
 
 # Type aliases used internally for readability.
 row_key = bytes
