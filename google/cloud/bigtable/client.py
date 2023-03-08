@@ -145,7 +145,8 @@ class BigtableDataClient(ClientWithProject):
 
     async def register_instance(self, instance_id: str):
         """
-        Registers an instance with the client
+        Registers an instance with the client, and warms the channel pool
+        for the instance
 
         The client will periodically refresh grpc channel pool used to make
         requests, and new channels will be warmed for each registered instance
@@ -154,8 +155,13 @@ class BigtableDataClient(ClientWithProject):
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         self._active_instances.add(instance_name)
-        # if refresh tasks aren't active, start them as background tasks
-        if not self._channel_refresh_tasks:
+        if self._channel_refresh_tasks:
+            # refresh tasks already running
+            # call ping and warm on all existing channels
+            for channel in self.transport.channel_pool:
+                await self._ping_and_warm_channel(channel)
+        else:
+            # refresh tasks aren't active. start them as background tasks
             for channel_idx in range(len(self.transport.channel_pool)):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 self._channel_refresh_tasks.append(refresh_task)
