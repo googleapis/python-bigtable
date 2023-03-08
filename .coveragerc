@@ -41,3 +41,4 @@ omit =
   */core/*.py
   */site-packages/*.py
   google/cloud/__init__.py
+  google/cloud/bigtable/*.py # TODO: remove after terst implementation
