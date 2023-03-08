@@ -37,6 +37,7 @@ class BigtableDataClient(ClientWithProject):
         self,
         *,
         project: str | None = None,
+        pool_size: int = 3,
         credentials: google.auth.credentials.Credentials | None = None,
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
@@ -44,9 +45,22 @@ class BigtableDataClient(ClientWithProject):
         metadata: list[tuple[str, str]] | None = None,
     ):
         """
-        Create a client instance
+        Create a client instance for the Bigtable Data API
 
         Args:
+            project: the project which the client acts on behalf of.
+                If not passed, falls back to the default inferred
+                from the environment.
+            pool_size: The number of grpc channels to maintain
+                in the internal channel pool.
+            credentials:
+                Thehe OAuth2 Credentials to use for this
+                client. If not passed (and if no ``_http`` object is
+                passed), falls back to the default inferred from the
+                environment.
+            client_options (Optional[Union[dict, google.api_core.client_options.ClientOptions]]):
+                Client options used to set user options
+                on the client. API Endpoint should be set through client_options.
             metadata: a list of metadata headers to be attached to all calls with this client
         """
         pass
@@ -54,6 +68,15 @@ class BigtableDataClient(ClientWithProject):
     def get_table(
         self, instance_id: str, table_id: str, app_profile_id: str | None = None
     ) -> Table:
+        """
+        Return a Table instance to make API requests for a specific table.
+
+        Args:
+            instance_id: The ID of the instance that owns the table.
+            table_id: The ID of the table.
+            app_profile_id: (Optional) The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+        """
         return Table(self, instance_id, table_id, app_profile_id)
 
 
