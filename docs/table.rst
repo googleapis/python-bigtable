@@ -1,6 +1,6 @@
 Table
 ~~~~~
 
-.. automodule:: google.cloud.bigtable.table
+.. automodule:: google.cloud.bigtable.deprecated.table
   :members:
   :show-inheritance:

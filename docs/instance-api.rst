@@ -1,7 +1,7 @@
 Instance Admin API
 ==================
 
-After creating a :class:`Client <google.cloud.bigtable.client.Client>`, you can
+After creating a :class:`Client <google.cloud.bigtable.deprecated.client.Client>`, you can
 interact with individual instances for a project.
 
 List Instances
@@ -9,7 +9,7 @@ List Instances
 
 If you want a comprehensive list of all existing instances, make a
 `ListInstances`_ API request with
-:meth:`Client.list_instances() <google.cloud.bigtable.client.Client.list_instances>`:
+:meth:`Client.list_instances() <google.cloud.bigtable.deprecated.client.Client.list_instances>`:
 
 .. code:: python
 
@@ -18,7 +18,7 @@ If you want a comprehensive list of all existing instances, make a
 Instance Factory
 ----------------
 
-To create an :class:`Instance <google.cloud.bigtable.instance.Instance>` object:
+To create an :class:`Instance <google.cloud.bigtable.deprecated.instance.Instance>` object:
 
 .. code:: python
 
@@ -40,7 +40,7 @@ Create a new Instance
 ---------------------
 
 After creating the instance object, make a `CreateInstance`_ API request
-with :meth:`create() <google.cloud.bigtable.instance.Instance.create>`:
+with :meth:`create() <google.cloud.bigtable.deprecated.instance.Instance.create>`:
 
 .. code:: python
 
@@ -54,14 +54,14 @@ Check on Current Operation
 
     When modifying an instance (via a `CreateInstance`_ request), the Bigtable
     API will return a `long-running operation`_ and a corresponding
-    :class:`Operation <google.cloud.bigtable.instance.Operation>` object
+    :class:`Operation <google.cloud.bigtable.deprecated.instance.Operation>` object
     will be returned by
-    :meth:`create() <google.cloud.bigtable.instance.Instance.create>`.
+    :meth:`create() <google.cloud.bigtable.deprecated.instance.Instance.create>`.
 
 You can check if a long-running operation (for a
-:meth:`create() <google.cloud.bigtable.instance.Instance.create>` has finished
+:meth:`create() <google.cloud.bigtable.deprecated.instance.Instance.create>` has finished
 by making a `GetOperation`_ request with
-:meth:`Operation.finished() <google.cloud.bigtable.instance.Operation.finished>`:
+:meth:`Operation.finished() <google.cloud.bigtable.deprecated.instance.Operation.finished>`:
 
 .. code:: python
 
@@ -71,18 +71,18 @@ by making a `GetOperation`_ request with
 
 .. note::
 
-    Once an :class:`Operation <google.cloud.bigtable.instance.Operation>` object
+    Once an :class:`Operation <google.cloud.bigtable.deprecated.instance.Operation>` object
     has returned :data:`True` from
-    :meth:`finished() <google.cloud.bigtable.instance.Operation.finished>`, the
+    :meth:`finished() <google.cloud.bigtable.deprecated.instance.Operation.finished>`, the
     object should not be re-used. Subsequent calls to
-    :meth:`finished() <google.cloud.bigtable.instance.Operation.finished>`
+    :meth:`finished() <google.cloud.bigtable.deprecated.instance.Operation.finished>`
     will result in a :class:`ValueError <exceptions.ValueError>`.
 
 Get metadata for an existing Instance
 -------------------------------------
 
 After creating the instance object, make a `GetInstance`_ API request
-with :meth:`reload() <google.cloud.bigtable.instance.Instance.reload>`:
+with :meth:`reload() <google.cloud.bigtable.deprecated.instance.Instance.reload>`:
 
 .. code:: python
 
@@ -94,7 +94,7 @@ Update an existing Instance
 ---------------------------
 
 After creating the instance object, make an `UpdateInstance`_ API request
-with :meth:`update() <google.cloud.bigtable.instance.Instance.update>`:
+with :meth:`update() <google.cloud.bigtable.deprecated.instance.Instance.update>`:
 
 .. code:: python
 
@@ -105,7 +105,7 @@ Delete an existing Instance
 ---------------------------
 
 Make a `DeleteInstance`_ API request with
-:meth:`delete() <google.cloud.bigtable.instance.Instance.delete>`:
+:meth:`delete() <google.cloud.bigtable.deprecated.instance.Instance.delete>`:
 
 .. code:: python
 
@@ -115,8 +115,8 @@ Next Step
 ---------
 
 Now we go down the hierarchy from
-:class:`Instance <google.cloud.bigtable.instance.Instance>` to a
-:class:`Table <google.cloud.bigtable.table.Table>`.
+:class:`Instance <google.cloud.bigtable.deprecated.instance.Instance>` to a
+:class:`Table <google.cloud.bigtable.deprecated.table.Table>`.
 
 Head next to learn about the :doc:`table-api`.
 
