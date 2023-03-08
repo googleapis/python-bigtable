@@ -16,7 +16,7 @@
 """Testable usage examples for Google Cloud Bigtable API wrapper
 
 Each example function takes a ``client`` argument (which must be an instance
-of :class:`google.cloud.bigtable.client.Client`) and uses it to perform a task
+of :class:`google.cloud.bigtable.deprecated.client.Client`) and uses it to perform a task
 with the API.
 
 To facilitate running the examples as system tests, each example is also passed
@@ -38,9 +38,9 @@ from test_utils.system import unique_resource_id
 from test_utils.retry import RetryErrors
 
 from google.cloud._helpers import UTC
-from google.cloud.bigtable import Client
-from google.cloud.bigtable import enums
-from google.cloud.bigtable import column_family
+from google.cloud.bigtable.deprecated import Client
+from google.cloud.bigtable.deprecated import enums
+from google.cloud.bigtable.deprecated import column_family
 
 
 INSTANCE_ID = "snippet" + unique_resource_id("-")
@@ -113,8 +113,8 @@ def teardown_module():
 
 def test_bigtable_create_table():
     # [START bigtable_api_create_table]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -143,7 +143,7 @@ def test_bigtable_sample_row_keys():
     assert table_sample.exists()
 
     # [START bigtable_api_sample_row_keys]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -159,7 +159,7 @@ def test_bigtable_sample_row_keys():
 
 def test_bigtable_write_read_drop_truncate():
     # [START bigtable_api_mutate_rows]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -190,7 +190,7 @@ def test_bigtable_write_read_drop_truncate():
     # [END bigtable_api_mutate_rows]
     assert len(response) == len(rows)
     # [START bigtable_api_read_row]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -200,7 +200,7 @@ def test_bigtable_write_read_drop_truncate():
     # [END bigtable_api_read_row]
     assert row.row_key.decode("utf-8") == row_key
     # [START bigtable_api_read_rows]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -218,7 +218,7 @@ def test_bigtable_write_read_drop_truncate():
     # [END bigtable_api_read_rows]
     assert len(total_rows) == len(rows)
     # [START bigtable_api_drop_by_prefix]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -231,7 +231,7 @@ def test_bigtable_write_read_drop_truncate():
         assert row.row_key.decode("utf-8") not in dropped_row_keys
 
     # [START bigtable_api_truncate_table]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -246,7 +246,7 @@ def test_bigtable_write_read_drop_truncate():
 
 def test_bigtable_mutations_batcher():
     # [START bigtable_api_mutations_batcher]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -297,7 +297,7 @@ def test_bigtable_mutations_batcher():
 
 def test_bigtable_table_column_family():
     # [START bigtable_api_table_column_family]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -311,7 +311,7 @@ def test_bigtable_table_column_family():
 
 def test_bigtable_list_tables():
     # [START bigtable_api_list_tables]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -324,7 +324,7 @@ def test_bigtable_table_name():
     import re
 
     # [START bigtable_api_table_name]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -342,7 +342,7 @@ def test_bigtable_table_name():
 
 def test_bigtable_list_column_families():
     # [START bigtable_api_list_column_families]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -356,7 +356,7 @@ def test_bigtable_list_column_families():
 
 def test_bigtable_get_cluster_states():
     # [START bigtable_api_get_cluster_states]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -374,7 +374,7 @@ def test_bigtable_table_test_iam_permissions():
     assert table_policy.exists
 
     # [START bigtable_api_table_test_iam_permissions]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -392,9 +392,9 @@ def test_bigtable_table_set_iam_policy_then_get_iam_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_table_set_iam_policy]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.policy import Policy
-    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -407,7 +407,7 @@ def test_bigtable_table_set_iam_policy_then_get_iam_policy():
     assert len(policy_latest.bigtable_admins) > 0
 
     # [START bigtable_api_table_get_iam_policy]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -419,7 +419,7 @@ def test_bigtable_table_set_iam_policy_then_get_iam_policy():
 
 def test_bigtable_table_exists():
     # [START bigtable_api_check_table_exists]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -435,7 +435,7 @@ def test_bigtable_delete_table():
     assert table_del.exists()
 
     # [START bigtable_api_delete_table]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -448,7 +448,7 @@ def test_bigtable_delete_table():
 
 def test_bigtable_table_row():
     # [START bigtable_api_table_row]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -475,7 +475,7 @@ def test_bigtable_table_row():
 
 def test_bigtable_table_append_row():
     # [START bigtable_api_table_append_row]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -502,7 +502,7 @@ def test_bigtable_table_append_row():
 
 def test_bigtable_table_direct_row():
     # [START bigtable_api_table_direct_row]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -529,8 +529,8 @@ def test_bigtable_table_direct_row():
 
 def test_bigtable_table_conditional_row():
     # [START bigtable_api_table_conditional_row]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.row_filters import PassAllFilter
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.row_filters import PassAllFilter
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -558,7 +558,7 @@ def test_bigtable_table_conditional_row():
 
 def test_bigtable_column_family_name():
     # [START bigtable_api_column_family_name]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -581,8 +581,8 @@ def test_bigtable_column_family_name():
 
 def test_bigtable_create_update_delete_column_family():
     # [START bigtable_api_create_column_family]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -598,8 +598,8 @@ def test_bigtable_create_update_delete_column_family():
     assert column_families[column_family_id].gc_rule == gc_rule
 
     # [START bigtable_api_update_column_family]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -617,8 +617,8 @@ def test_bigtable_create_update_delete_column_family():
     assert updated_families[column_family_id].gc_rule == max_age_rule
 
     # [START bigtable_api_delete_column_family]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -653,8 +653,8 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
     Config.TABLE.mutate_rows(rows)
 
     # [START bigtable_api_add_row_key]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -670,9 +670,9 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
     assert found_row_keys == expected_row_keys
 
     # [START bigtable_api_add_row_range]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.row_set import RowSet
-    from google.cloud.bigtable.row_set import RowRange
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.row_set import RowSet
+    from google.cloud.bigtable.deprecated.row_set import RowRange
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -688,8 +688,8 @@ def test_bigtable_add_row_add_row_range_add_row_range_from_keys():
     assert found_row_keys == expected_row_keys
 
     # [START bigtable_api_row_range_from_keys]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -723,8 +723,8 @@ def test_bigtable_add_row_range_with_prefix():
     Config.TABLE.mutate_rows(rows)
 
     # [START bigtable_api_add_row_range_with_prefix]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated.row_set import RowSet
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -747,7 +747,7 @@ def test_bigtable_add_row_range_with_prefix():
 
 def test_bigtable_batcher_mutate_flush_mutate_rows():
     # [START bigtable_api_batcher_mutate]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -769,7 +769,7 @@ def test_bigtable_batcher_mutate_flush_mutate_rows():
     # [END bigtable_api_batcher_mutate]
 
     # [START bigtable_api_batcher_flush]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -795,7 +795,7 @@ def test_bigtable_batcher_mutate_flush_mutate_rows():
     table.truncate(timeout=200)
 
     # [START bigtable_api_batcher_mutate_rows]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -829,8 +829,8 @@ def test_bigtable_batcher_mutate_flush_mutate_rows():
 
 def test_bigtable_create_family_gc_max_age():
     # [START bigtable_api_create_family_gc_max_age]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -851,8 +851,8 @@ def test_bigtable_create_family_gc_max_age():
 
 def test_bigtable_create_family_gc_max_versions():
     # [START bigtable_api_create_family_gc_max_versions]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -872,8 +872,8 @@ def test_bigtable_create_family_gc_max_versions():
 
 def test_bigtable_create_family_gc_union():
     # [START bigtable_api_create_family_gc_union]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -898,8 +898,8 @@ def test_bigtable_create_family_gc_union():
 
 def test_bigtable_create_family_gc_intersection():
     # [START bigtable_api_create_family_gc_intersection]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -927,8 +927,8 @@ def test_bigtable_create_family_gc_intersection():
 
 def test_bigtable_create_family_gc_nested():
     # [START bigtable_api_create_family_gc_nested]
-    from google.cloud.bigtable import Client
-    from google.cloud.bigtable import column_family
+    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable.deprecated import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -978,7 +978,7 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
     row.commit()
 
     # [START bigtable_api_row_data_cells]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -993,7 +993,7 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
     assert actual_cell_value == value
 
     # [START bigtable_api_row_cell_value]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1006,7 +1006,7 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
     assert cell_value == value
 
     # [START bigtable_api_row_cell_values]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1025,7 +1025,7 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
     row.commit()
 
     # [START bigtable_api_row_find_cells]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1042,7 +1042,7 @@ def test_bigtable_row_data_cells_cell_value_cell_values():
 
 def test_bigtable_row_setcell_rowkey():
     # [START bigtable_api_row_set_cell]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1061,7 +1061,7 @@ def test_bigtable_row_setcell_rowkey():
         assert status.code == 0
 
     # [START bigtable_api_row_row_key]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1073,7 +1073,7 @@ def test_bigtable_row_setcell_rowkey():
     assert row_key == ROW_KEY1
 
     # [START bigtable_api_row_table]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1098,7 +1098,7 @@ def test_bigtable_row_delete():
     assert written_row_keys == [b"row_key_1"]
 
     # [START bigtable_api_row_delete]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1130,7 +1130,7 @@ def test_bigtable_row_delete_cell():
     assert written_row_keys == [row_key1]
 
     # [START bigtable_api_row_delete_cell]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1163,7 +1163,7 @@ def test_bigtable_row_delete_cells():
     assert written_row_keys == [row_key1]
 
     # [START bigtable_api_row_delete_cells]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1189,7 +1189,7 @@ def test_bigtable_row_clear():
     assert mutation_size > 0
 
     # [START bigtable_api_row_clear]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1208,7 +1208,7 @@ def test_bigtable_row_clear():
 
 def test_bigtable_row_clear_get_mutations_size():
     # [START bigtable_api_row_get_mutations_size]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1230,7 +1230,7 @@ def test_bigtable_row_clear_get_mutations_size():
 
 def test_bigtable_row_setcell_commit_rowkey():
     # [START bigtable_api_row_set_cell]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1244,7 +1244,7 @@ def test_bigtable_row_setcell_commit_rowkey():
     row_obj.commit()
 
     # [START bigtable_api_row_commit]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1264,7 +1264,7 @@ def test_bigtable_row_setcell_commit_rowkey():
     assert written_row_keys == [b"row_key_1", b"row_key_2"]
 
     # [START bigtable_api_row_row_key]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1286,7 +1286,7 @@ def test_bigtable_row_append_cell_value():
     row.commit()
 
     # [START bigtable_api_row_append_cell_value]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1303,7 +1303,7 @@ def test_bigtable_row_append_cell_value():
     assert actual_value == cell_val1 + cell_val2
 
     # [START bigtable_api_row_commit]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -1315,7 +1315,7 @@ def test_bigtable_row_append_cell_value():
     # [END bigtable_api_row_commit]
 
     # [START bigtable_api_row_increment_cell_value]
-    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.deprecated import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
