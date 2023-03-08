@@ -79,7 +79,7 @@ class BigtableDataClient(ClientWithProject):
         # with the client in `get_table`
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
 
-    async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
+    async def _ping_and_warm_instances(self, channel: grpc.aio.Channel) -> None:
         """
         Prepares the backend for requests on a channel
 
@@ -118,7 +118,7 @@ class BigtableDataClient(ClientWithProject):
         """
         # warm the current channel immediately
         channel = self.transport.channel_pool[channel_idx]
-        await self._ping_and_warm_channel(channel)
+        await self._ping_and_warm_instances(channel)
         next_sleep = refresh_interval
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
@@ -136,7 +136,7 @@ class BigtableDataClient(ClientWithProject):
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-            await self._ping_and_warm_channel(channel)
+            await self._ping_and_warm_instances(channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
             await self.transport.replace_channel(channel_idx, grace_period, new_channel)
@@ -159,7 +159,7 @@ class BigtableDataClient(ClientWithProject):
             # refresh tasks already running
             # call ping and warm on all existing channels
             for channel in self.transport.channel_pool:
-                await self._ping_and_warm_channel(channel)
+                await self._ping_and_warm_instances(channel)
         else:
             # refresh tasks aren't active. start them as background tasks
             for channel_idx in range(len(self.transport.channel_pool)):
