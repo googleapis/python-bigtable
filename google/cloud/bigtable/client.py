@@ -74,20 +74,119 @@ class BigtableDataClient(ClientWithProject):
         self.transport: PooledBigtableGrpcAsyncIOTransport = cast(
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
+        self._active_instances: set[str] = set()
+        # background tasks will be started when an instance is registered
+        # with the client in `get_table`
+        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+
+    async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
+        """
+        Prepares the backend for requests on a channel
+
+        Pings each Bigtable instance registered in `_active_instances` on the client
+
+        Args:
+            channel: grpc channel to ping
+        Returns:
+            - squence of results or exceptions from the ping requests
+        """
+        ping_rpc = channel.unary_unary(
+            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+        )
+        tasks = [ping_rpc({"name": n}) for n in self._active_instances]
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _manage_channel(
+        self,
+        channel_idx: int,
+        refresh_interval: float = 60 * 45,
+        grace_period: float = 60 * 15,
+    ) -> None:
+        """
+        Background coroutine that periodically refreshes and warms a grpc channel
+
+        The backend will automatically close channels after 60 minutes, so
+        `refresh_interval` + `grace_period` should be < 60 minutes
+
+        Runs continuously until the client is closed
+
+        Args:
+            channel_idx: index of the channel in the transport's channel pool
+            refresh_interval: interval before initiating refresh process in seconds
+            grace_period: time to allow previous channel to serve existing
+                requests before closing, in seconds
+        """
+        # warm the current channel immidiately
+        channel = self.transport.channel_pool[channel_idx]
+        await self._ping_and_warm_channel(channel)
+        next_sleep = refresh_interval
+        # continuously refrech the channel every `refresh_interval` seconds
+        while True:
+            await asyncio.sleep(next_sleep)
+            # prepare new channel for use
+            new_channel = self.transport.create_channel(
+                self.transport._host,
+                credentials=self.transport._credentials,
+                credentials_file=None,
+                scopes=self.transport._scopes,
+                ssl_credentials=self.transport._ssl_channel_credentials,
+                quota_project_id=self.transport._quota_project_id,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ],
+            )
+            await self._ping_and_warm_channel(channel)
+            # cycle channel out of use, with long grace window before closure
+            start_timestamp = time.time()
+            await self.transport.replace_channel(channel_idx, grace_period, new_channel)
+            # subtract the time spent waiting for the channel to be replaced
+            next_sleep = refresh_interval - (time.time() - start_timestamp)
+
+    async def register_instance(self, instance_id: str):
+        """
+        Registers an instance with the client
+
+        The client will periodically refresh grpc channel pool used to make
+        requests, and new channels will be warmed for each registered instance
+
+        Channels will not be refreshed unless at least one instance is registered
+        """
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        self._active_instances.add(instance_name)
+        # if refresh tasks aren't active, start them as background tasks
+        if not self._channel_refresh_tasks:
+            for channel_idx in range(len(self.transport.channel_pool)):
+                refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
+                self._channel_refresh_tasks.append(refresh_task)
+
+    async def remove_instance_registration(self, instance_id: str):
+        """
+        Removes an instance from the client's registered instances, to prevent
+        warming new channels for the instance
+        """
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        self._active_instances.remove(instance_name)
 
     async def get_table(
         self,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        manage_channels: bool = True,
+        *,
+        register_instance: bool = True,
     ) -> Table:
-        table = Table(self, instance_id, table_id, app_profile_id)
-        if manage_channels:
-            for channel_idx in range(len(self.transport.channel_pool)):
-                refresh_task = asyncio.create_task(table._manage_channel(channel_idx))
-                table._channel_refresh_tasks.append(refresh_task)
-        return table
+        """
+        Returns a table instance for making data API requests
+
+        Args:
+            register_instance: if True, the client will call `register_instance` on
+                the `instance_id`, to periodically warm and refresh the channel
+                pool for the specified instance
+        """
+        if register_instance:
+            await self.register_instance(instance_id)
+        return Table(self, instance_id, table_id, app_profile_id)
 
 
 class Table:
@@ -109,72 +208,6 @@ class Table:
         self.instance_id = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
-        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-
-    async def _manage_channel(
-        self,
-        channel_idx: int,
-        refresh_interval: float = 60 * 45,
-        grace_period: float = 60 * 15,
-    ) -> None:
-        """
-        Warms and periodically refreshes an internal grpc channel used for requests
-
-        The backend will automatically close channels after 60 minutes, so
-        `refresh_interval` + `grace_period` should be < 60 minutes
-
-        Args:
-            channel_idx: index of the channel in the transport's channel pool
-            refresh_interval: interval before initiating refresh process in seconds
-            grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
-        # warm the current channel immidiately
-        channel = self.client.transport.channel_pool[channel_idx]
-        await self._ping_and_warm_channel(channel)
-        next_sleep = refresh_interval
-        # continuously refrech the channel every `refresh_interval` seconds
-        while True:
-            await asyncio.sleep(next_sleep)
-            # prepare new channel for use
-            new_channel = self.client.transport.create_channel(
-                self.client.transport._host,
-                credentials=self.client.transport._credentials,
-                credentials_file=None,
-                scopes=self.client.transport._scopes,
-                ssl_credentials=self.client.transport._ssl_channel_credentials,
-                quota_project_id=self.client.transport._quota_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ],
-            )
-            await self._ping_and_warm_channel(channel)
-            # cycle channel out of use, with long grace window before closure
-            start_timestamp = time.time()
-            await self.client.transport.replace_channel(
-                channel_idx, grace_period, new_channel
-            )
-            # subtract the time spent waiting for the channel to be replaced
-            next_sleep = refresh_interval - (time.time() - start_timestamp)
-
-    async def _ping_and_warm_channel(self, channel: grpc.aio.Channel) -> None:
-        """
-        Prepares the backend for requests on a channel
-
-        Args:
-            channel: grpc channel to ping
-        """
-        ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
-        )
-        await ping_rpc(
-            {
-                "name": self.client._gapic_client.instance_path(
-                    self.client.project, self.instance_id
-                )
-            }
-        )
 
     async def read_rows_stream(
         self,
