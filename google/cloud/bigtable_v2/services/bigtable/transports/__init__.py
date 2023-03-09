@@ -19,15 +19,18 @@ from typing import Dict, Type
 from .base import BigtableTransport
 from .grpc import BigtableGrpcTransport
 from .grpc_asyncio import BigtableGrpcAsyncIOTransport
+from .pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 
 
 # Compile a registry of transports.
 _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
 _transport_registry["grpc"] = BigtableGrpcTransport
 _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
+_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
 
 __all__ = (
     "BigtableTransport",
     "BigtableGrpcTransport",
     "BigtableGrpcAsyncIOTransport",
+    "PooledBigtableGrpcAsyncIOTransport",
 )

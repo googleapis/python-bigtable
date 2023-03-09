@@ -93,7 +93,7 @@ def test__get_default_mtls_endpoint():
     [
         (BigtableClient, "grpc"),
         (BigtableAsyncClient, "grpc_asyncio"),
-        (PooledBigtableAsyncClient, "pooled_grpc_asyncio"),
+        (BigtableAsyncClient, "pooled_grpc_asyncio"),
     ],
 )
 def test_bigtable_client_from_service_account_info(client_class, transport_name):
@@ -115,7 +115,7 @@ def test_bigtable_client_from_service_account_info(client_class, transport_name)
     [
         (transports.BigtableGrpcTransport, "grpc"),
         (transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
-        (PooledBigtableAsyncClient, "pooled_grpc_asyncio"),
+        (transports.PooledBigtableGrpcAsyncIOTransport, "pooled_grpc_asyncio"),
     ],
 )
 def test_bigtable_client_service_account_always_use_jwt(
@@ -141,7 +141,7 @@ def test_bigtable_client_service_account_always_use_jwt(
     [
         (BigtableClient, "grpc"),
         (BigtableAsyncClient, "grpc_asyncio"),
-        (PooledBigtableAsyncClient, "pooled_grpc_asyncio"),
+        (BigtableAsyncClient, "pooled_grpc_asyncio"),
     ],
 )
 def test_bigtable_client_from_service_account_file(client_class, transport_name):
@@ -182,7 +182,7 @@ def test_bigtable_client_get_transport_class():
         (BigtableClient, transports.BigtableGrpcTransport, "grpc"),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
         (
-            PooledBigtableAsyncClient,
+            BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
             "pooled_grpc_asyncio",
         ),
@@ -321,7 +321,7 @@ def test_bigtable_client_client_options(client_class, transport_class, transport
             "true",
         ),
         (
-            PooledBigtableAsyncClient,
+            BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
             "pooled_grpc_asyncio",
             "true",
@@ -334,7 +334,7 @@ def test_bigtable_client_client_options(client_class, transport_class, transport
             "false",
         ),
         (
-            PooledBigtableAsyncClient,
+            BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
             "pooled_grpc_asyncio",
             "false",
@@ -446,9 +446,7 @@ def test_bigtable_client_mtls_env_auto(
                 )
 
 
-@pytest.mark.parametrize(
-    "client_class", [BigtableClient, BigtableAsyncClient, PooledBigtableAsyncClient]
-)
+@pytest.mark.parametrize("client_class", [BigtableClient, BigtableAsyncClient])
 @mock.patch.object(
     BigtableClient, "DEFAULT_ENDPOINT", modify_default_endpoint(BigtableClient)
 )
@@ -531,7 +529,7 @@ def test_bigtable_client_get_mtls_endpoint_and_cert_source(client_class):
         (BigtableClient, transports.BigtableGrpcTransport, "grpc"),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport, "grpc_asyncio"),
         (
-            PooledBigtableAsyncClient,
+            BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
             "pooled_grpc_asyncio",
         ),
@@ -571,7 +569,7 @@ def test_bigtable_client_client_options_scopes(
             grpc_helpers_async,
         ),
         (
-            PooledBigtableAsyncClient,
+            BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
             "grpc_asyncio",
             grpc_helpers_async,
@@ -3725,7 +3723,7 @@ def test_client_ctx():
     [
         (BigtableClient, transports.BigtableGrpcTransport),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport),
-        (PooledBigtableAsyncClient, transports.PooledBigtableGrpcAsyncIOTransport),
+        (BigtableAsyncClient, transports.PooledBigtableGrpcAsyncIOTransport),
     ],
 )
 def test_api_key_credentials(client_class, transport_class):
