@@ -18,20 +18,18 @@ import queue
 import concurrent.futures
 import atexit
 
+
 from google.api_core.exceptions import from_grpc_status
+from dataclasses import dataclass
 
 
-# Max number of items in the queue. Queue will be flushed if this number is reached
-FLUSH_COUNT = 100
+FLUSH_COUNT = 100  # after this many elements, send out the batch
 
-# Max number of mutations for a single row at one time
-MAX_MUTATIONS = 100000
+MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the batch
 
-# Max size (in bytes) for a single mutation
-MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB
+MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB # max inflight byte size.
 
-# Max size (in bytes) for a single request
-MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB
+MAX_OUTSTANDING_ELEMENTS = 100000  # max inflight requests.
 
 
 class MutationsBatchError(Exception):
@@ -47,35 +45,32 @@ class MaxMutationsError(ValueError):
     """The number of mutations for bulk request is too big."""
 
 
-class BatcherIsClosedError(ValueError):
-    """Batcher is already closed and not accepting any mutation."""
-
-
 class _MutationsBatchQueue(object):
     """Private Threadsafe Queue to hold rows for batching."""
 
     def __init__(self, max_row_bytes=MAX_ROW_BYTES, flush_count=FLUSH_COUNT):
         """Specify the queue constraints"""
-        self._queue = queue.Queue(maxsize=flush_count)
+        self._queue = queue.Queue()
         self.total_mutation_count = 0
         self.total_size = 0
         self.max_row_bytes = max_row_bytes
+        self.flush_count = flush_count
 
-    def get(self, block=True, timeout=None):
+    def get(self):
         """Retrieve an item from the queue. Recalculate queue size."""
-        row = self._queue.get(block=block, timeout=timeout)
+        row = self._queue.get()
         mutation_size = row.get_mutations_size()
         self.total_mutation_count -= len(row._get_mutations())
         self.total_size -= mutation_size
         return row
 
-    def put(self, item, block=True, timeout=None):
+    def put(self, item):
         """Insert an item to the queue. Recalculate queue size."""
 
         mutation_count = len(item._get_mutations())
         mutation_size = item.get_mutations_size()
 
-        if mutation_count > MAX_MUTATIONS:
+        if mutation_count > MAX_OUTSTANDING_ELEMENTS:
             raise MaxMutationsError(
                 "The row key {} exceeds the number of mutations {}.".format(
                     item.row_key, mutation_count
@@ -89,7 +84,7 @@ class _MutationsBatchQueue(object):
                 )
             )
 
-        self._queue.put(item, block=block, timeout=timeout)
+        self._queue.put(item)
 
         self.total_size += item.get_mutations_size()
         self.total_mutation_count += mutation_count
@@ -97,7 +92,7 @@ class _MutationsBatchQueue(object):
     def full(self):
         """Check if the queue is full."""
         if (
-            self.total_mutation_count >= MAX_MUTATIONS
+            self.total_mutation_count >= self.flush_count
             or self.total_size >= self.max_row_bytes
             or self._queue.full()
         ):
@@ -108,20 +103,80 @@ class _MutationsBatchQueue(object):
         return self._queue.empty()
 
 
-def _batcher_is_open(func):
-    """Decorator to check if the batcher is open or closed.
-    :raises:
-     * :exc:`.batcher.BatcherIsClosedError` if batcher is already
-       closed
+@dataclass
+class BatchInfo:
+    """Keeping track of size of a batch"""
 
-    """
+    mutations_count: int = 0
+    rows_count: int = 0
+    mutations_size: int = 0
 
-    def wrapper(self, *args, **kwargs):
-        if not self._is_open:
-            raise BatcherIsClosedError()
-        func(self, *args, **kwargs)
 
-    return wrapper
+class FlowControl(object):
+    def __init__(self, max_mutations=MAX_MUTATIONS_SIZE, max_row_bytes=MAX_ROW_BYTES):
+        """Control the inflight requests. Keep track of the mutations, row bytes and row counts.
+        As requests to backend are being made, adjust the number of mutations being processed.
+
+        If threshold is reached, block the flow.
+        Reopen the flow as requests are finished.
+        """
+        self.max_mutations = max_mutations
+        self.max_row_bytes = max_row_bytes
+        self.inflight_mutations = 0
+        self.inflight_size = 0
+        self.inflight_rows_count = 0
+        self.event = threading.Event()
+        self.event.set()
+
+    def is_blocked(self):
+        """Returns True if:
+        - inflight mutations >= max_mutations, or
+        - inflight bytes size >= max_row_bytes, or
+        """
+
+        return (
+            self.inflight_mutations >= self.max_mutations
+            or self.inflight_size >= self.max_row_bytes
+        )
+
+    def control_flow(self, batch_info):
+        """
+        Calculate the resources used by this batch
+        """
+
+        self.inflight_mutations += batch_info.mutations_count
+        self.inflight_size += batch_info.mutations_size
+        self.inflight_rows_count += batch_info.rows_count
+
+        self.set_flow_control_status()
+        self.wait()
+
+    def wait(self):
+        """
+        Wait until flow control pushback has been released.
+        It awakens as soon as `event` is set.
+        """
+        self.event.wait()
+
+    def set_flow_control_status(self):
+        """Check the inflight mutations and size.
+
+        If values exceed the allowed threshold, block the event.
+        """
+        if self.is_blocked():
+            self.event.clear()  # sleep
+        else:
+            self.event.set()  # awaken the threads
+
+    def release(self, batch_info):
+        """
+        Release the resources.
+        Decrement the row size to allow enqueued mutations to be run.
+        """
+        self.inflight_mutations -= batch_info.mutations_count
+        self.inflight_size -= batch_info.mutations_size
+        self.inflight_rows_count -= batch_info.rows_count
+        self.set_flow_control_status()
 
 
 class MutationsBatcher(object):
@@ -171,14 +226,19 @@ class MutationsBatcher(object):
         )
         self.table = table
         self._executor = concurrent.futures.ThreadPoolExecutor()
-        self._is_open = True
         atexit.register(self.close)
         self._timer = threading.Timer(flush_interval, self.flush)
         self._timer.start()
+        self.flow_control = FlowControl(
+            max_mutations=MAX_OUTSTANDING_ELEMENTS,
+            max_row_bytes=MAX_MUTATIONS_SIZE,
+        )
+        self.futures_mapping = {}
+        self.exceptions = queue.Queue()
 
     @property
     def flush_count(self):
-        return self._rows._queue.maxsize
+        return self._rows.flush_count
 
     @property
     def max_row_bytes(self):
@@ -188,14 +248,9 @@ class MutationsBatcher(object):
         """Starting the MutationsBatcher as a context manager"""
         return self
 
-    @_batcher_is_open
     def mutate(self, row):
         """Add a row to the batch. If the current batch meets one of the size
         limits, the batch is sent asynchronously.
-
-        :raises:
-         * :exc:`.batcher.BatcherIsClosedError` if batcher is already
-           closed
 
         For example:
 
@@ -222,7 +277,6 @@ class MutationsBatcher(object):
         if self._rows.full():
             self.flush_async()
 
-    @_batcher_is_open
     def mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
         limits, the batch is sent asynchronously.
@@ -278,16 +332,49 @@ class MutationsBatcher(object):
         """
 
         rows_to_flush = []
+        mutations_count = 0
+        mutations_size = 0
+        rows_count = 0
+        batch_info = BatchInfo()
+
         while not self._rows.empty():
-            rows_to_flush.append(self._rows.get())
-        future = self._executor.submit(self.flush_rows, rows_to_flush)
-        # catch the exceptions in the mutation
-        exc = future.exception()
-        if exc:
-            raise exc from exc
-        else:
-            result = future.result()
-        return result
+            row = self._rows.get()
+            mutations_count += len(row._get_mutations())
+            mutations_size += row.get_mutations_size()
+            rows_count += 1
+            rows_to_flush.append(row)
+            batch_info.mutations_count = mutations_count
+            batch_info.rows_count = rows_count
+            batch_info.mutations_size = mutations_size
+
+            if (
+                rows_count >= self.flush_count
+                or mutations_size >= self.max_row_bytes
+                or mutations_count >= self.flow_control.max_mutations
+                or mutations_size >= self.flow_control.max_row_bytes
+            ):
+                self.flow_control.control_flow(batch_info)
+                future = self._executor.submit(self.flush_rows, rows_to_flush)
+                self.futures_mapping[future] = batch_info
+                future.add_done_callback(self.batch_completed_callback)
+
+                # reset and start a new batch
+                rows_to_flush = []
+                mutations_size = 0
+                rows_count = 0
+                mutations_count = 0
+                batch_info = BatchInfo()
+
+    def batch_completed_callback(self, future):
+        """Callback for when the mutation has finished.
+
+        Raise exceptions if there's any.
+        Release the resources locked by the flow control and allow enqueued tasks to be run.
+        """
+
+        processed_rows = self.futures_mapping[future]
+        self.flow_control.release(processed_rows)
+        del self.futures_mapping[future]
 
     def flush_rows(self, rows_to_flush=None):
         """Mutate the specified rows.
@@ -298,22 +385,13 @@ class MutationsBatcher(object):
         """
         responses = []
         if len(rows_to_flush) > 0:
-            # returns a list of status codes
             response = self.table.mutate_rows(rows_to_flush)
 
-            has_error = False
             for result in response:
                 if result.code != 0:
-                    has_error = True
+                    exc = from_grpc_status(result.code, result.message)
+                    self.exceptions.put(exc)
                 responses.append(result)
-
-            if has_error:
-                exc = [
-                    from_grpc_status(status_code.code, status_code.message)
-                    for status_code in responses
-                    if status_code.code != 0
-                ]
-                raise MutationsBatchError(message="Errors in batch mutations.", exc=exc)
 
         return responses
 
@@ -333,3 +411,6 @@ class MutationsBatcher(object):
         self._is_open = False
         self.flush()
         self._executor.shutdown(wait=True)
+        if self.exceptions.qsize() > 0:
+            exc = list(self.exceptions.queue)
+            raise MutationsBatchError("Errors in batch mutations.", exc=exc)

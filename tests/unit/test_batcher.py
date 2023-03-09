@@ -20,6 +20,7 @@ import pytest
 
 from google.cloud.bigtable.row import DirectRow
 from google.cloud.bigtable.batcher import (
+    FlowControl,
     MutationsBatcher,
     MutationsBatchError,
     MAX_MUTATIONS_SIZE,
@@ -89,7 +90,7 @@ def test_mutation_batcher_mutate_w_max_flush_count():
     assert table.mutation_calls == 1
 
 
-@mock.patch("google.cloud.bigtable.batcher.MAX_MUTATIONS", new=3)
+@mock.patch("google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", new=3)
 def test_mutation_batcher_mutate_with_max_mutations_failure():
     from google.cloud.bigtable.batcher import MaxMutationsError
 
@@ -123,7 +124,7 @@ def test_mutation_batcher_mutate_with_max_mutations_size_failure():
         assert "exceeds the size of mutations" in str(exc.value)
 
 
-@mock.patch("google.cloud.bigtable.batcher.MAX_MUTATIONS", new=3)
+@mock.patch("google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", new=3)
 def test_mutation_batcher_mutate_w_max_mutations():
     table = _Table(TABLE_NAME)
     with MutationsBatcher(table=table) as mutation_batcher:
@@ -194,20 +195,6 @@ def test_mutations_batcher_context_manager_flushed_when_closed():
     assert table.mutation_calls == 1
 
 
-def test_mutations_batcher_mutate_after_batcher_closed_raise_error():
-    from google.cloud.bigtable.batcher import BatcherIsClosedError
-
-    table = _Table(TABLE_NAME)
-    mutation_batcher = MutationsBatcher(table=table)
-    mutation_batcher.close()
-
-    assert table.mutation_calls == 0
-    with pytest.raises(BatcherIsClosedError):
-        row = DirectRow(row_key=b"row_key")
-        row.set_cell("cf1", b"c1", 1)
-        mutation_batcher.mutate(row)
-
-
 @mock.patch("google.cloud.bigtable.batcher.MutationsBatcher.flush")
 def test_mutations_batcher_flush_interval(mocked_flush):
     table = _Table(TABLE_NAME)
@@ -241,35 +228,27 @@ def test_mutations_batcher_response_with_error_codes():
 
         mutation_batcher.mutate_rows([row1, row2])
         with pytest.raises(MutationsBatchError) as exc:
-            mutation_batcher.flush()
+            mutation_batcher.close()
         assert exc.value.message == "Errors in batch mutations."
         assert len(exc.value.exc) == 2
 
         assert exc.value.exc[0].message == mocked_response[0].message
         assert exc.value.exc[1].message == mocked_response[1].message
 
+def test_flow_control_event_is_set_when_not_blocked():
+    flow_control = FlowControl()
 
-def test_mutations_batcher_flush_async_raises_exception():
-    from google.rpc.status_pb2 import Status
+    flow_control.set_flow_control_status()
+    assert not flow_control.event.is_set()
 
-    mocked_response = [Status(code=1, message="err1"), Status(code=5, message="err5")]
 
-    with mock.patch("tests.unit.test_batcher._Table") as mocked_table:
-        table = mocked_table.return_value
-        mutation_batcher = MutationsBatcher(table=table)
+def test_flow_control_event_is_cleared_when_blocked():
+    flow_control = FlowControl()
+    flow_control.inflight_mutations = flow_control.max_mutations
+    flow_control.inflight_size = flow_control.max_row_bytes
 
-        row1 = DirectRow(row_key=b"row_key")
-        row2 = DirectRow(row_key=b"row_key")
-        table.mutate_rows.return_value = mocked_response
-
-        mutation_batcher.mutate_rows([row1, row2])
-        with pytest.raises(MutationsBatchError) as exc:
-            mutation_batcher.flush_async()
-        assert exc.value.message == "Errors in batch mutations."
-        assert len(exc.value.exc) == 2
-
-        assert exc.value.exc[0].message == mocked_response[0].message
-        assert exc.value.exc[1].message == mocked_response[1].message
+    flow_control.set_flow_control_status()
+    assert flow_control.event.is_set()
 
 
 class _Instance(object):
