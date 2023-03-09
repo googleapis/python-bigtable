@@ -63,7 +63,7 @@ class BigtableDataClient(ClientWithProject):
                 on the client. API Endpoint should be set through client_options.
             metadata: a list of metadata headers to be attached to all calls with this client
         """
-        pass
+        raise NotImplementedError
 
     def get_table(
         self, instance_id: str, table_id: str, app_profile_id: str | None = None
@@ -77,7 +77,7 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(self, instance_id, table_id, app_profile_id)
+        raise NotImplementedError
 
 
 class Table:

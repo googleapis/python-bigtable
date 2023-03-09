@@ -29,18 +29,14 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
     """
 
     def __init__(self, message, excs):
-        if is_311_plus:
-            super().__init__(message, excs)
-        else:
-            super().__init__(message)
-            self.exceptions = excs
+        raise NotImplementedError()
+
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation
     """
-
     pass
 
 

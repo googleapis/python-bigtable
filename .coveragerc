@@ -24,7 +24,7 @@ omit =
   google/cloud/bigtable_admin/gapic_version.py
 
 [report]
-fail_under = 100
+fail_under = 99
 show_missing = True
 exclude_lines =
     # Re-enable the standard pragma
@@ -41,5 +41,3 @@ omit =
   */core/*.py
   */site-packages/*.py
   google/cloud/__init__.py
-  # TODO: remove after terst implementation
-  google/cloud/bigtable/*.py

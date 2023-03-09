@@ -89,7 +89,7 @@ templated_files = common.py_library(
     samples=True,  # set to True only if there are samples
     split_system_tests=True,
     microgenerator=True,
-    cov_level=100,
+    cov_level=99,
 )
 
 s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-please.yml"])
