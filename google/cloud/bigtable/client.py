@@ -44,6 +44,7 @@ class BigtableDataClient(ClientWithProject):
         self,
         *,
         project: str | None = None,
+        pool_size: int = 3,
         credentials: google.auth.credentials.Credentials | None = None,
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
@@ -51,9 +52,22 @@ class BigtableDataClient(ClientWithProject):
         metadata: list[tuple[str, str]] | None = None,
     ):
         """
-        Create a client instance
+        Create a client instance for the Bigtable Data API
 
         Args:
+            project: the project which the client acts on behalf of.
+                If not passed, falls back to the default inferred
+                from the environment.
+            pool_size: The number of grpc channels to maintain
+                in the internal channel pool.
+            credentials:
+                Thehe OAuth2 Credentials to use for this
+                client. If not passed (and if no ``_http`` object is
+                passed), falls back to the default inferred from the
+                environment.
+            client_options (Optional[Union[dict, google.api_core.client_options.ClientOptions]]):
+                Client options used to set user options
+                on the client. API Endpoint should be set through client_options.
             metadata: a list of metadata headers to be attached to all calls with this client
         """
         super(BigtableDataClient, self).__init__(
@@ -186,6 +200,10 @@ class BigtableDataClient(ClientWithProject):
         Returns a table instance for making data API requests
 
         Args:
+            instance_id: The ID of the instance that owns the table.
+            table_id: The ID of the table.
+            app_profile_id: (Optional) The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
             register_instance: if True, the client will call `register_instance` on
                 the `instance_id`, to periodically warm and refresh the channel
                 pool for the specified instance

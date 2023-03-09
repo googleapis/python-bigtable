@@ -108,16 +108,20 @@ def _make_client(*args, **kwargs):
 
 @mock.patch("os.environ", {})
 def test_client_constructor_defaults():
+    import warnings
     from google.api_core import client_info
     from google.cloud.bigtable.deprecated import __version__
     from google.cloud.bigtable.deprecated.client import DATA_SCOPE
 
     credentials = _make_credentials()
 
-    with mock.patch("google.auth.default") as mocked:
-        mocked.return_value = credentials, PROJECT
-        client = _make_client()
+    with warnings.catch_warnings(record=True) as warned:
+        with mock.patch("google.auth.default") as mocked:
+            mocked.return_value = credentials, PROJECT
+            client = _make_client()
 
+    # warn about client deprecation
+    assert len(warned) == 1
     assert client.project == PROJECT
     assert client._credentials is credentials.with_scopes.return_value
     assert not client._read_only
@@ -147,7 +151,8 @@ def test_client_constructor_explicit():
             channel=mock.sentinel.channel,
         )
 
-    assert len(warned) == 1
+    # deprecationw arnning for channel and Client deprecation
+    assert len(warned) == 2
 
     assert client.project == PROJECT
     assert client._credentials is credentials.with_scopes.return_value

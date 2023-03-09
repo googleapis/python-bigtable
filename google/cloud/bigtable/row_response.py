@@ -15,14 +15,13 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections import Sequence
-from typing_extensions import TypeAlias
+from typing import Sequence
 
 # Type aliases used internally for readability.
-row_key: TypeAlias = bytes
-family_id: TypeAlias = str
-qualifier: TypeAlias = bytes
-row_value: TypeAlias = bytes
+row_key = bytes
+family_id = str
+qualifier = bytes
+row_value = bytes
 
 
 class RowResponse(Sequence["CellResponse"]):

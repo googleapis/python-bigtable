@@ -22,7 +22,7 @@ from google.cloud.bigtable.row_response import row_key
 from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.client import Table
+    from google.cloud.bigtable.client import Table  # pragma: no cover
 
 
 class MutationsBatcher:
@@ -58,13 +58,13 @@ class MutationsBatcher:
         flush_interval: int = 5,
         metadata: list[tuple[str, str]] | None = None,
     ):
-        pass
+        raise NotImplementedError
 
     async def append(self, row_key: str | bytes, mutation: Mutation | list[Mutation]):
         """
         Add a new mutation to the internal queue
         """
-        pass
+        raise NotImplementedError
 
     async def append_conditional(
         self,
@@ -78,7 +78,7 @@ class MutationsBatcher:
 
         Calls check_and_mutate_row internally on flush
         """
-        pass
+        raise NotImplementedError
 
     async def flush(self):
         """
@@ -87,18 +87,18 @@ class MutationsBatcher:
         Raises:
         - MutationsExceptionGroup if any mutation in the batch fails
         """
-        pass
+        raise NotImplementedError
 
     async def __aenter__(self):
         """For context manager API"""
-        pass
+        raise NotImplementedError
 
     async def __aexit__(self, exc_type, exc, tb):
         """For context manager API"""
-        pass
+        raise NotImplementedError
 
     async def close(self):
         """
         Flush queue and clean up resources
         """
-        pass
+        raise NotImplementedError
