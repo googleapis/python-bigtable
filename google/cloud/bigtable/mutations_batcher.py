@@ -22,7 +22,7 @@ from google.cloud.bigtable.row_response import row_key
 from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.client import Table # pragma: no cover
+    from google.cloud.bigtable.client import Table  # pragma: no cover
 
 
 class MutationsBatcher:
