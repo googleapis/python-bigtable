@@ -571,7 +571,7 @@ def test_bigtable_client_client_options_scopes(
         (
             BigtableAsyncClient,
             transports.PooledBigtableGrpcAsyncIOTransport,
-            "grpc_asyncio",
+            "pooled_grpc_asyncio",
             grpc_helpers_async,
         ),
     ],
@@ -3301,11 +3301,7 @@ def test_bigtable_transport_create_channel(transport_class, grpc_helpers):
 
 @pytest.mark.parametrize(
     "transport_class",
-    [
-        transports.BigtableGrpcTransport,
-        transports.BigtableGrpcAsyncIOTransport,
-        transports.PooledBigtableGrpcAsyncIOTransport,
-    ],
+    [transports.BigtableGrpcTransport, transports.BigtableGrpcAsyncIOTransport],
 )
 def test_bigtable_grpc_transport_client_cert_source_for_mtls(transport_class):
     cred = ga_credentials.AnonymousCredentials()
@@ -3330,6 +3326,60 @@ def test_bigtable_grpc_transport_client_cert_source_for_mtls(transport_class):
                 ("grpc.max_receive_message_length", -1),
             ],
         )
+
+    # Check if ssl_channel_credentials is not provided, then client_cert_source_for_mtls
+    # is used.
+    with mock.patch.object(transport_class, "create_channel", return_value=mock.Mock()):
+        with mock.patch("grpc.ssl_channel_credentials") as mock_ssl_cred:
+            transport_class(
+                credentials=cred,
+                client_cert_source_for_mtls=client_cert_source_callback,
+            )
+            expected_cert, expected_key = client_cert_source_callback()
+            mock_ssl_cred.assert_called_once_with(
+                certificate_chain=expected_cert, private_key=expected_key
+            )
+
+
+@pytest.mark.parametrize(
+    "transport_class", [transports.PooledBigtableGrpcAsyncIOTransport]
+)
+def test_bigtable_pooled_grpc_transport_client_cert_source_for_mtls(transport_class):
+    cred = ga_credentials.AnonymousCredentials()
+
+    # test with invalid pool size
+    with pytest.raises(ValueError):
+        transport_class(
+            host="squid.clam.whelk",
+            credentials=cred,
+            pool_size=0,
+        )
+
+    # Check ssl_channel_credentials is used if provided.
+    for pool_num in range(1, 5):
+        with mock.patch.object(
+            transport_class, "create_channel"
+        ) as mock_create_channel:
+            mock_ssl_channel_creds = mock.Mock()
+            transport_class(
+                host="squid.clam.whelk",
+                credentials=cred,
+                ssl_channel_credentials=mock_ssl_channel_creds,
+                pool_size=pool_num,
+            )
+            mock_create_channel.assert_called_with(
+                "squid.clam.whelk:443",
+                credentials=cred,
+                credentials_file=None,
+                scopes=None,
+                ssl_credentials=mock_ssl_channel_creds,
+                quota_project_id=None,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ],
+            )
+            assert mock_create_channel.call_count == pool_num
 
     # Check if ssl_channel_credentials is not provided, then client_cert_source_for_mtls
     # is used.
@@ -3723,7 +3773,6 @@ def test_client_ctx():
     [
         (BigtableClient, transports.BigtableGrpcTransport),
         (BigtableAsyncClient, transports.BigtableGrpcAsyncIOTransport),
-        (BigtableAsyncClient, transports.PooledBigtableGrpcAsyncIOTransport),
     ],
 )
 def test_api_key_credentials(client_class, transport_class):
