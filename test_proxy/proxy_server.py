@@ -69,6 +69,7 @@ def grpc_server_process(request_q, queue_pool):
             Decorator that transparently passes a request to the client
             handler process, and then attaches the resonse to the wrapped call
             """
+
             def wrapper(self, request, context, **kwargs):
                 deadline = time.time() + timeout_seconds
                 json_dict = json_format.MessageToDict(request)
@@ -85,8 +86,15 @@ def grpc_server_process(request_q, queue_pool):
                         if isinstance(response, Exception):
                             raise response
                         else:
-                            return func(self, request, context, client_response=response, **kwargs)
+                            return func(
+                                self,
+                                request,
+                                context,
+                                client_response=response,
+                                **kwargs,
+                            )
                     time.sleep(1e-4)
+
             return wrapper
 
         @delegate_to_client_handler
@@ -104,16 +112,16 @@ def grpc_server_process(request_q, queue_pool):
 
         @delegate_to_client_handler
         def ReadRows(self, request, context, client_response=None):
-            print(f"read rows: num chunks: {len(client_response)}" )
+            print(f"read rows: num chunks: {len(client_response)}")
             return test_proxy_pb2.RowsResult()
 
     # Start gRPC server
-    port = '50055'
+    port = "50055"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     test_proxy_pb2_grpc.add_CloudBigtableV2TestProxyServicer_to_server(
         TestProxyGrpcServer(queue_pool), server
     )
-    server.add_insecure_port('[::]:' + port)
+    server.add_insecure_port("[::]:" + port)
     server.start()
     print("grpc_server_process started, listening on " + port)
     server.wait_for_termination()
@@ -125,15 +133,17 @@ def client_handler_process(request_q, queue_pool):
     and runs the request using a client library instance
     """
     import google.cloud.bigtable_v2 as bigtable_v2
-    from google.cloud.bigtable_v2.services.bigtable.transports.grpc import BigtableGrpcTransport
+    from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
+        BigtableGrpcTransport,
+    )
     import grpc
     from google.api_core import client_options as client_options_lib
     import re
 
     def camel_to_snake(str):
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', str).lower()
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
 
-    class TestProxyClientHandler():
+    class TestProxyClientHandler:
         """
         Implements the same methods as the grpc server, but handles the client
         library side of the request.
@@ -142,7 +152,16 @@ def client_handler_process(request_q, queue_pool):
         and supplied to the TestProxyClientHandler methods as kwargs.
         The client response is then returned back to the TestProxyGrpcServer
         """
-        def __init__(self, data_target=None, project_id=None, instance_id=None, app_profile_id=None, per_operation_timeout=None, **kwargs):
+
+        def __init__(
+            self,
+            data_target=None,
+            project_id=None,
+            instance_id=None,
+            app_profile_id=None,
+            per_operation_timeout=None,
+            **kwargs,
+        ):
             self.closed = False
             transport = BigtableGrpcTransport(
                 channel=grpc.insecure_channel(data_target),
@@ -158,6 +177,7 @@ def client_handler_process(request_q, queue_pool):
             Catch and pass errors back to the grpc_server_process
             Also check if client is closed before processing requests
             """
+
             def wrapper(self, *args, **kwargs):
                 try:
                     if self.closed:
@@ -166,6 +186,7 @@ def client_handler_process(request_q, queue_pool):
                 except Exception as e:
                     # exceptions should be raised in grpc_server_process
                     return e
+
             return wrapper
 
         def close(self):
@@ -185,7 +206,9 @@ def client_handler_process(request_q, queue_pool):
             json_data = request_q.get()
             json_data = {camel_to_snake(k): v for k, v in json_data.items()}
             if "request" in json_data:
-                json_data["request"] = {camel_to_snake(k): v for k, v in json_data["request"].items()}
+                json_data["request"] = {
+                    camel_to_snake(k): v for k, v in json_data["request"].items()
+                }
             # print(json_data)
             fn_name = json_data.pop("proxy_request")
             out_q = queue_pool[json_data.pop("response_queue_idx")]
@@ -211,14 +234,29 @@ def client_handler_process(request_q, queue_pool):
                 out_q.put(result)
         time.sleep(1e-4)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # start and run both processes
-    response_queue_pool = [multiprocessing.Queue() for _ in range(100)] # larger pools support more concurrent requests
+    response_queue_pool = [
+        multiprocessing.Queue() for _ in range(100)
+    ]  # larger pools support more concurrent requests
     request_q = multiprocessing.Queue()
     logging.basicConfig()
-    proxy = Process(target=grpc_server_process, args=(request_q, response_queue_pool,))
+    proxy = Process(
+        target=grpc_server_process,
+        args=(
+            request_q,
+            response_queue_pool,
+        ),
+    )
     proxy.start()
-    client = Process(target=client_handler_process, args=(request_q, response_queue_pool,))
+    client = Process(
+        target=client_handler_process,
+        args=(
+            request_q,
+            response_queue_pool,
+        ),
+    )
     client.start()
     proxy.join()
     client.join()
