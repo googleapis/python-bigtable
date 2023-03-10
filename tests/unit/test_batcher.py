@@ -235,20 +235,38 @@ def test_mutations_batcher_response_with_error_codes():
         assert exc.value.exc[0].message == mocked_response[0].message
         assert exc.value.exc[1].message == mocked_response[1].message
 
+
 def test_flow_control_event_is_set_when_not_blocked():
     flow_control = FlowControl()
 
     flow_control.set_flow_control_status()
-    assert not flow_control.event.is_set()
+    assert flow_control.event.is_set()
 
 
-def test_flow_control_event_is_cleared_when_blocked():
+def test_flow_control_event_is_not_set_when_blocked():
     flow_control = FlowControl()
     flow_control.inflight_mutations = flow_control.max_mutations
     flow_control.inflight_size = flow_control.max_row_bytes
 
     flow_control.set_flow_control_status()
-    assert flow_control.event.is_set()
+    assert not flow_control.event.is_set()
+
+
+@mock.patch("concurrent.futures.ThreadPoolExecutor.submit")
+def test_flush_async_batch_count(mocked_executor_submit):
+    table = _Table(TABLE_NAME)
+    mutation_batcher = MutationsBatcher(table=table, flush_count=2)
+
+    number_of_bytes = 1 * 1024 * 1024
+    max_value = b"1" * number_of_bytes
+    for index in range(5):
+        row = DirectRow(row_key=f"row_key_{index}")
+        row.set_cell("cf1", b"c1", max_value)
+        mutation_batcher.mutate(row)
+    mutation_batcher.flush_async()
+
+    # 3 batches submitted. 2 batches of 2 items, and the last one a single item batch.
+    assert mocked_executor_submit.call_count == 3
 
 
 class _Instance(object):
