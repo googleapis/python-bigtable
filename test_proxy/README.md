@@ -50,7 +50,15 @@ You can trigger the tests directly using `nox`, which will clone the test repo l
 
 ```
 cd python-bigtable/test_proxy
-nox -s run_proxy
+nox -s conformance_tests
+```
+
+The port can be configured using the `PROXY_SERVER_PORT` environment variable
+
+```
+cd python-bigtable/test_proxy
+PROXY_SERVER_PORT=8080
+nox -s conformance_tests
 ```
 
 #### running the test cases manually
