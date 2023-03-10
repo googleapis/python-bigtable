@@ -40,8 +40,11 @@ class ReadRowsQuery:
         raise NotImplementedError
 
     def add_range(
-        self, start_key: str | bytes | None = None, end_key: str | bytes | None = None,
-        start_is_open: bool = False, end_is_open: bool = False
+        self,
+        start_key: str | bytes | None = None,
+        end_key: str | bytes | None = None,
+        start_is_open: bool = False,
+        end_is_open: bool = False,
     ) -> ReadRowsQuery:
         raise NotImplementedError
 
