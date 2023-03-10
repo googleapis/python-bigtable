@@ -26,6 +26,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
     PooledBigtableGrpcAsyncIOTransport,
 )
 from google.cloud.client import ClientWithProject
+from google.api_core.exceptions import GoogleAPICallError
 
 import google.auth.credentials
 
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
 class BigtableDataClient(ClientWithProject):
     def __init__(
         self,
+        instance_id: str,
         *,
         project: str | None = None,
         pool_size: int = 3,
@@ -55,6 +57,7 @@ class BigtableDataClient(ClientWithProject):
         Create a client instance for the Bigtable Data API
 
         Args:
+            instance_id: The Bigram instance ID to associate with this client
             project: the project which the client acts on behalf of.
                 If not passed, falls back to the default inferred
                 from the environment.
@@ -88,12 +91,13 @@ class BigtableDataClient(ClientWithProject):
         self.transport: PooledBigtableGrpcAsyncIOTransport = cast(
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
-        self._active_instances: set[str] = set()
+        self.instance_id = instance_id
         # background tasks will be started when an instance is registered
         # with the client in `get_table`
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._channel_init_time = time.time()
 
-    async def _ping_and_warm_instances(self, channel: grpc.aio.Channel) -> None:
+    async def _ping_and_warm_instance(self, channel: grpc.aio.Channel) -> None:
         """
         Prepares the backend for requests on a channel
 
@@ -107,8 +111,10 @@ class BigtableDataClient(ClientWithProject):
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
         )
-        tasks = [ping_rpc({"name": n}) for n in self._active_instances]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            return await ping_rpc({"name": f"projects/{self.project}/instances/{instance_id}"})
+        except GoogleAPICallError as e:
+            return e
 
     async def _manage_channel(
         self,
@@ -130,10 +136,12 @@ class BigtableDataClient(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        # warm the current channel immediately
-        channel = self.transport.channel_pool[channel_idx]
-        await self._ping_and_warm_instances(channel)
-        next_sleep = refresh_interval
+        first_refresh = self._channel_init_time + refresh_interval
+        next_sleep = first_refresh - time.time()
+        if next_sleep > 0:
+            # warm the current channel immediately
+            channel = self.transport.channel_pool[channel_idx]
+            await self._ping_and_warm_instance(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
@@ -150,86 +158,57 @@ class BigtableDataClient(ClientWithProject):
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-            await self._ping_and_warm_instances(channel)
+            await self._ping_and_warm_instance(channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
             await self.transport.replace_channel(channel_idx, grace_period, new_channel)
             # subtract the time spent waiting for the channel to be replaced
             next_sleep = refresh_interval - (time.time() - start_timestamp)
 
-    async def register_instance(self, instance_id: str):
+    async def start_channel_refresh_tasks(self) -> None:
         """
-        Registers an instance with the client, and warms the channel pool
-        for the instance
+        Starts background tasks to periodically refresh and warm grpc channels
 
-        The client will periodically refresh grpc channel pool used to make
-        requests, and new channels will be warmed for each registered instance
-
-        Channels will not be refreshed unless at least one instance is registered
+        Runs continuously until the client is closed
         """
-        instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._active_instances.add(instance_name)
-        if self._channel_refresh_tasks:
-            # refresh tasks already running
-            # call ping and warm on all existing channels
-            for channel in self.transport.channel_pool:
-                await self._ping_and_warm_instances(channel)
-        else:
-            # refresh tasks aren't active. start them as background tasks
+        if not self._channel_refresh_tasks:
             for channel_idx in range(len(self.transport.channel_pool)):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 self._channel_refresh_tasks.append(refresh_task)
 
-    async def remove_instance_registration(self, instance_id: str):
-        """
-        Removes an instance from the client's registered instances, to prevent
-        warming new channels for the instance
-        """
-        instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._active_instances.remove(instance_name)
-
     async def get_table(
         self,
-        instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        *,
-        register_instance: bool = True,
     ) -> Table:
         """
         Returns a table instance for making data API requests
 
         Args:
-            instance_id: The ID of the instance that owns the table.
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
-            register_instance: if True, the client will call `register_instance` on
-                the `instance_id`, to periodically warm and refresh the channel
-                pool for the specified instance
         """
-        if register_instance:
-            await self.register_instance(instance_id)
-        return Table(self, instance_id, table_id, app_profile_id)
+        # ensure channel refresh tasks have started
+        await start_channel_refresh_tasks()
+        return Table(self, table_id, app_profile_id)
 
 
 class Table:
     """
     Main Data API surface
 
-    Table object maintains instance_id, table_id, and app_profile_id context, and passes them with
+    Table object maintains table_id, and app_profile_id context, and passes them with
     each call
     """
 
     def __init__(
         self,
         client: BigtableDataClient,
-        instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
     ):
         self.client = client
-        self.instance_id = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
 
