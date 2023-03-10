@@ -4,7 +4,7 @@ The CBT test proxy is intended for running confromance tests for Cloug Bigtable 
 
 ## Start test proxy
 
-### running the proxy with nox
+#### running the proxy with nox
 
 You can launch the test proxy directly using `nox`, which will handle dependency management
 
@@ -21,7 +21,7 @@ PROXY_SERVER_PORT=8080
 nox -s run_proxy
 ```
 
-### running the proxy script manually
+#### running the proxy script manually
 
 You can also run the `proxy_server.py` file directly
 
