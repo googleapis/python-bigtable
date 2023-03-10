@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence
+from typing import Any, Sequence
 
 # Type aliases used internally for readability.
 row_key = bytes
@@ -76,6 +76,13 @@ class RowResponse(Sequence["CellResponse"]):
         """
         raise NotImplementedError
 
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Returns a dictionary representation of the row, folling the
+        `google.cloud.bigtable_v2.types.Row` protobuf message format.
+        """
+        raise NotImplementedError
+
 
 class CellResponse:
     """
@@ -127,4 +134,11 @@ class CellResponse:
         raise NotImplementedError
 
     def __eq__(self, other) -> bool:
+        raise NotImplementedError
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Returns a dictionary representation of the cell, folling the
+        `google.cloud.bigtable_v2.types.Cell` protobuf message format.
+        """
         raise NotImplementedError
