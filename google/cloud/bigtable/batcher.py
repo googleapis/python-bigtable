@@ -352,6 +352,7 @@ class MutationsBatcher(object):
                 or mutations_size >= self.max_row_bytes
                 or mutations_count >= self.flow_control.max_mutations
                 or mutations_size >= self.flow_control.max_row_bytes
+                or self._rows.empty()  # submit when it reached the end of the queue
             ):
                 self.flow_control.control_flow(batch_info)
                 future = self._executor.submit(self.flush_rows, rows_to_flush)
