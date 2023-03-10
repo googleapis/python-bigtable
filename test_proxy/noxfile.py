@@ -29,7 +29,10 @@ PROXY_CLIENT_VERSION=os.environ.get("PROXY_CLIENT_VERSION", None)
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
 REPO_ROOT_DIRECTORY = CURRENT_DIRECTORY.parent
 
-nox.options.sessions = ["run_proxy"]
+nox.options.sessions = ["run_proxy", "conformance_tests"]
+
+TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
+CLONE_REPO_DIR = "cloud-bigtable-clients-test"
 
 # Error if a python version is missing
 nox.options.error_on_missing_interpreters = True
@@ -38,6 +41,20 @@ nox.options.error_on_missing_interpreters = True
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def run_proxy(session):
     default(session)
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def conformance_tests(session):
+    import subprocess
+    import time
+    # download the conformance test suite
+    clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
+    if not os.path.exists(clone_dir):
+        print("downloading copy of test repo")
+        session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR)
+    # subprocess.Popen(["nox", "-s", "run_proxy"])
+    # time.sleep(10)
+    with session.chdir(f"{clone_dir}/tests"):
+        session.run("go", "test", "-v", f"-proxy_addr=:{PROXY_SERVER_PORT}")
 
 def default(session):
     """Run the performance test suite."""

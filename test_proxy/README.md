@@ -39,17 +39,34 @@ python proxy_server.py 8080
 
 ## Run the test cases
 
-If you have not already done so, [install golang](https://go.dev/doc/install), then clone the go test library:
+Prerequisites:
+- If you have not already done so, [install golang](https://go.dev/doc/install).
+- Before running tests, [launch an instance of the test proxy](#start-test-proxy) 
+in a separate shell session, and make note of the port
+
+#### running the test cases with nox
+
+You can trigger the tests directly using `nox`, which will clone the test repo locally if it doesn't exist
+
+```
+cd python-bigtable/test_proxy
+nox -s run_proxy
+```
+
+#### running the test cases manually
+
+Clone and navigate to the go test library:
 
 ```
 git clone https://github.com/googleapis/cloud-bigtable-clients-test.git
-```
-
-Navigate to the test directory in `cloud-bigtable-clients-test`, and launch the tests
-
-```
 cd cloud-bigtable-clients-test/tests
-go test -v -proxy_addr=:9999
+```
+
+
+Launch the tests
+
+```
+go test -v -proxy_addr=:50055
 ```
 
 ## Test a released client
