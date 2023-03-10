@@ -32,9 +32,10 @@ import time
 import inspect
 from collections import namedtuple
 import random
+import sys
 
 
-def grpc_server_process(request_q, queue_pool):
+def grpc_server_process(request_q, queue_pool, port=50055):
     """
     Defines a process that hosts a grpc server
     proxies requests to a client_handler_process
@@ -116,7 +117,6 @@ def grpc_server_process(request_q, queue_pool):
             return test_proxy_pb2.RowsResult()
 
     # Start gRPC server
-    port = "50055"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     test_proxy_pb2_grpc.add_CloudBigtableV2TestProxyServicer_to_server(
         TestProxyGrpcServer(queue_pool), server
@@ -236,10 +236,12 @@ def client_handler_process(request_q, queue_pool):
 
 
 if __name__ == "__main__":
+    port = "50055"
+    if len(sys.argv) > 1:
+        port = sys.argv[1]
     # start and run both processes
-    response_queue_pool = [
-        multiprocessing.Queue() for _ in range(100)
-    ]  # larger pools support more concurrent requests
+    # larger pools support more concurrent requests
+    response_queue_pool = [multiprocessing.Queue() for _ in range(100)]
     request_q = multiprocessing.Queue()
     logging.basicConfig()
     proxy = Process(
@@ -247,6 +249,7 @@ if __name__ == "__main__":
         args=(
             request_q,
             response_queue_pool,
+            port
         ),
     )
     proxy.start()

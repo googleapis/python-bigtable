@@ -23,7 +23,7 @@ import nox
 
 DEFAULT_PYTHON_VERSION = "3.10"
 
-SERVER_PORT=50055
+SERVER_PORT=os.environ.get("PROXY_SERVER_PORT", "50055")
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
 REPO_ROOT_DIRECTORY = CURRENT_DIRECTORY.parent
@@ -36,6 +36,9 @@ nox.options.error_on_missing_interpreters = True
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def run_proxy(session):
+    default(session)
+
+def default(session):
     """Run the performance test suite."""
     # Install all dependencies, then install this package into the
     # virtualenv's dist-packages.
@@ -46,3 +49,4 @@ def run_proxy(session):
     session.install("-e", str(REPO_ROOT_DIRECTORY))
 
     session.run("python", "proxy_server.py", SERVER_PORT, *session.posargs,)
+
