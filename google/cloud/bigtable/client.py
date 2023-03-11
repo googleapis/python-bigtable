@@ -59,6 +59,7 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
             instance_id: The Bigram instance ID to associate with this client
+                instance_id is combined with project to fully specify the instance
             project: the project which the client acts on behalf of.
                 If not passed, falls back to the default inferred
                 from the environment.
