@@ -2,11 +2,11 @@ Bigtable Row Filters
 ====================
 
 It is possible to use a
-:class:`RowFilter <google.cloud.bigtable.row_filters.RowFilter>`
+:class:`RowFilter <google.cloud.bigtable.deprecated.row_filters.RowFilter>`
 when adding mutations to a
-:class:`ConditionalRow <google.cloud.bigtable.row.ConditionalRow>` and when
-reading row data with :meth:`read_row() <google.cloud.bigtable.table.Table.read_row>`
-or :meth:`read_rows() <google.cloud.bigtable.table.Table.read_rows>`.
+:class:`ConditionalRow <google.cloud.bigtable.deprecated.row.ConditionalRow>` and when
+reading row data with :meth:`read_row() <google.cloud.bigtable.deprecated.table.Table.read_row>`
+or :meth:`read_rows() <google.cloud.bigtable.deprecated.table.Table.read_rows>`.
 
 As laid out in the `RowFilter definition`_, the following basic filters
 are provided:
@@ -60,8 +60,8 @@ level. For example:
 
 ----
 
-.. automodule:: google.cloud.bigtable.row_filters
+.. automodule:: google.cloud.bigtable.deprecated.row_filters
   :members:
   :show-inheritance:
 
-.. _RowFilter definition: https://googleapis.dev/python/bigtable/latest/row-filters.html?highlight=rowfilter#google.cloud.bigtable.row_filters.RowFilter
+.. _RowFilter definition: https://googleapis.dev/python/bigtable/latest/row-filters.html?highlight=rowfilter#google.cloud.bigtable.deprecated.row_filters.RowFilter

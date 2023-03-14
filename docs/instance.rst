@@ -1,6 +1,6 @@
 Instance
 ~~~~~~~~
 
-.. automodule:: google.cloud.bigtable.instance
+.. automodule:: google.cloud.bigtable.deprecated.instance
   :members:
   :show-inheritance:

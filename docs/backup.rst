@@ -1,6 +1,6 @@
 Backup
 ~~~~~~~~
 
-.. automodule:: google.cloud.bigtable.backup
+.. automodule:: google.cloud.bigtable.deprecated.backup
   :members:
   :show-inheritance:

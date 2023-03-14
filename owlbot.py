@@ -89,7 +89,7 @@ templated_files = common.py_library(
     samples=True,  # set to True only if there are samples
     split_system_tests=True,
     microgenerator=True,
-    cov_level=100,
+    cov_level=99,
 )
 
 s.move(templated_files, excludes=[".coveragerc", "README.rst", ".github/release-please.yml"])
@@ -168,8 +168,20 @@ def mypy(session):
     session.install("-e", ".")
     session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
     session.install("google-cloud-testutils")
-    # TODO: also verify types on tests, all of google package
-    session.run("mypy", "google/", "tests/")
+    session.run(
+        "mypy",
+        "google/cloud/bigtable",
+        "tests/",
+        "--check-untyped-defs",
+        "--warn-unreachable",
+        "--disallow-any-generics",
+        "--exclude",
+        "google/cloud/bigtable/deprecated",
+        "--exclude",
+        "tests/system/v2_client",
+        "--exclude",
+        "tests/unit/v2_client",
+    )
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)

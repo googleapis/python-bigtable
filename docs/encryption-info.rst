@@ -1,6 +1,6 @@
 Encryption Info
 ~~~~~~~~~~~~~~~
 
-.. automodule:: google.cloud.bigtable.encryption_info
+.. automodule:: google.cloud.bigtable.deprecated.encryption_info
   :members:
   :show-inheritance:
