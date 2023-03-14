@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Any, Sequence
 
+
 # Type aliases used internally for readability.
 row_key = bytes
 family_id = str
