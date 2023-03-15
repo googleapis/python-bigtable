@@ -54,6 +54,7 @@ from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
 from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
+from .transports.rest import BigtableRestTransport
 
 
 class BigtableClientMeta(type):
@@ -68,6 +69,7 @@ class BigtableClientMeta(type):
     _transport_registry["grpc"] = BigtableGrpcTransport
     _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
     _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
+    _transport_registry["rest"] = BigtableRestTransport
 
     def get_transport_class(
         cls,
@@ -1517,33 +1519,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         change stream. The union of partitions will cover the entire
         keyspace. Partitions can be read with ``ReadChangeStream``.
 
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_generate_initial_change_stream_partitions():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.GenerateInitialChangeStreamPartitionsRequest(
-                    table_name="table_name_value",
-                )
-
-                # Make the request
-                stream = client.generate_initial_change_stream_partitions(request=request)
-
-                # Handle the response
-                for response in stream:
-                    print(response)
-
         Args:
             request (Union[google.cloud.bigtable_v2.types.GenerateInitialChangeStreamPartitionsRequest, dict]):
                 The request object. NOTE: This API is intended to be
@@ -1646,33 +1621,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         BigtableIO. Reads changes from a table's change stream.
         Changes will reflect both user-initiated mutations and
         mutations that are caused by garbage collection.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_read_change_stream():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.ReadChangeStreamRequest(
-                    table_name="table_name_value",
-                )
-
-                # Make the request
-                stream = client.read_change_stream(request=request)
-
-                # Handle the response
-                for response in stream:
-                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadChangeStreamRequest, dict]):
