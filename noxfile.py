@@ -126,7 +126,9 @@ def format(session):
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
-    session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
+    session.install(
+        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
+    )
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
