@@ -41,7 +41,7 @@ class RowFilter(object):
         This class is a do-nothing base class for all row filters.
     """
 
-    def to_pb(self) -> data_v2_pb2.RowFilter:
+    def _to_pb(self) -> data_v2_pb2.RowFilter:
         """Converts the row filter to a protobuf.
 
         :rtype: :class:`.data_v2_pb2.RowFilter`
@@ -277,7 +277,7 @@ class TimestampRange(object):
     def __ne__(self, other):
         return not self == other
 
-    def to_pb(self) -> data_v2_pb2.TimestampRange:
+    def _to_pb(self) -> data_v2_pb2.TimestampRange:
         """Converts the :class:`TimestampRange` to a protobuf.
 
         :rtype: :class:`.data_v2_pb2.TimestampRange`
@@ -321,7 +321,7 @@ class TimestampRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts the ``range_`` on the current object to a protobuf and
@@ -330,7 +330,7 @@ class TimestampRangeFilter(RowFilter):
         :rtype: :class:`.data_v2_pb2.RowFilter`
         :returns: The converted current object.
         """
-        return data_v2_pb2.RowFilter(timestamp_range_filter=self.range_.to_pb())
+        return data_v2_pb2.RowFilter(timestamp_range_filter=self.range_._to_pb())
 
     def to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
@@ -420,7 +420,7 @@ class ColumnRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts to a :class:`.data_v2_pb2.ColumnRange` and then uses it
@@ -579,7 +579,7 @@ class ValueRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts to a :class:`.data_v2_pb2.ValueRange` and then uses
@@ -799,14 +799,14 @@ class RowFilterChain(_FilterCombination):
     :param filters: List of :class:`RowFilter`
     """
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         :rtype: :class:`.data_v2_pb2.RowFilter`
         :returns: The converted current object.
         """
         chain = data_v2_pb2.RowFilter.Chain(
-            filters=[row_filter.to_pb() for row_filter in self.filters]
+            filters=[row_filter._to_pb() for row_filter in self.filters]
         )
         return data_v2_pb2.RowFilter(chain=chain)
 
@@ -828,14 +828,14 @@ class RowFilterUnion(_FilterCombination):
     :param filters: List of :class:`RowFilter`
     """
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         :rtype: :class:`.data_v2_pb2.RowFilter`
         :returns: The converted current object.
         """
         interleave = data_v2_pb2.RowFilter.Interleave(
-            filters=[row_filter.to_pb() for row_filter in self.filters]
+            filters=[row_filter._to_pb() for row_filter in self.filters]
         )
         return data_v2_pb2.RowFilter(interleave=interleave)
 
@@ -896,17 +896,17 @@ class ConditionalRowFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_pb(self):
+    def _to_pb(self):
         """Converts the row filter to a protobuf.
 
         :rtype: :class:`.data_v2_pb2.RowFilter`
         :returns: The converted current object.
         """
-        condition_kwargs = {"predicate_filter": self.predicate_filter.to_pb()}
+        condition_kwargs = {"predicate_filter": self.predicate_filter._to_pb()}
         if self.true_filter is not None:
-            condition_kwargs["true_filter"] = self.true_filter.to_pb()
+            condition_kwargs["true_filter"] = self.true_filter._to_pb()
         if self.false_filter is not None:
-            condition_kwargs["false_filter"] = self.false_filter.to_pb()
+            condition_kwargs["false_filter"] = self.false_filter._to_pb()
         condition = data_v2_pb2.RowFilter.Condition(**condition_kwargs)
         return data_v2_pb2.RowFilter(condition=condition)
 
