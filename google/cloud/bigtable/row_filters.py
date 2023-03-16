@@ -54,6 +54,9 @@ class RowFilter(object):
         # unimplemented on base class
         raise NotImplementedError
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
 
 class _BoolFilter(RowFilter):
     """Row filter that uses a boolean flag.
@@ -72,6 +75,9 @@ class _BoolFilter(RowFilter):
 
     def __ne__(self, other):
         return not self == other
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(flag={self.flag})"
 
 
 class SinkFilter(_BoolFilter):
@@ -142,6 +148,9 @@ class _RegexFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(regex={self.regex!r})"
+
 
 class RowKeyRegexFilter(_RegexFilter):
     """Row filter for a row key regular expression.
@@ -194,6 +203,8 @@ class RowSampleFilter(RowFilter):
         """Converts the row filter to a dict representation."""
         return {"row_sample_filter": self.sample}
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(sample={self.sample})"
 
 class FamilyNameRegexFilter(_RegexFilter):
     """Row filter for a family name regular expression.
@@ -287,6 +298,8 @@ class TimestampRange(object):
             timestamp_range_kwargs["end_timestamp_micros"] = end_time
         return timestamp_range_kwargs
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(start={self.start}, end={self.end})"
 
 class TimestampRangeFilter(RowFilter):
     """Row filter that limits cells to a range of time.
@@ -320,6 +333,9 @@ class TimestampRangeFilter(RowFilter):
     def to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"timestamp_range_filter": self.range_.to_dict()}
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(start={self.range_.start}, end={self.range_.end})"
 
 
 class ColumnRangeFilter(RowFilter):
@@ -434,6 +450,8 @@ class ColumnRangeFilter(RowFilter):
         """Converts the row filter to a dict representation."""
         return {"column_range_filter": self.range_to_dict()}
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(column_family_id={self.column_family_id}, start_column={self.start_column}, end_column={self.end_column}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 class ValueRegexFilter(_RegexFilter):
     """Row filter for a value regular expression.
@@ -475,6 +493,9 @@ class ExactValueFilter(ValueRegexFilter):
         if isinstance(value, int):
             value = _PACK_I64(value)
         super(ExactValueFilter, self).__init__(value)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(value={self.regex})"
 
 
 class ValueRangeFilter(RowFilter):
@@ -584,6 +605,9 @@ class ValueRangeFilter(RowFilter):
         """Converts the row filter to a dict representation."""
         return {"value_range_filter": self.range_to_dict()}
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(start_value={self.start_value}, end_value={self.end_value}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+
 
 class _CellCountFilter(RowFilter):
     """Row filter that uses an integer count of cells.
@@ -605,6 +629,9 @@ class _CellCountFilter(RowFilter):
 
     def __ne__(self, other):
         return not self == other
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(num_cells={self.num_cells})"
 
 
 class CellsRowOffsetFilter(_CellCountFilter):
@@ -693,6 +720,8 @@ class ApplyLabelFilter(RowFilter):
         """Converts the row filter to a dict representation."""
         return {"apply_label_transformer": self.label}
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(label={self.label})"
 
 class _FilterCombination(RowFilter):
     """Chain of row filters.
@@ -718,6 +747,16 @@ class _FilterCombination(RowFilter):
     def __ne__(self, other):
         return not self == other
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(filters={[repr(f) for f in self.filters]})"
+
+    def __str__(self) -> str:
+        output = [f"{self.__class__.__name__}(["]
+        for filter_ in self.filters:
+            filter_lines = f"{filter_},".splitlines()
+            output.extend([f"  {line}" for line in filter_lines])
+        output.append("])")
+        return "\n".join(output)
 
 class RowFilterChain(_FilterCombination):
     """Chain of row filters.
@@ -853,3 +892,18 @@ class ConditionalRowFilter(RowFilter):
     def to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"condition": self.condition_to_dict()}
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(base_filter={self.base_filter!r}, true_filter={self.true_filter!r}, false_filter={self.false_filter!r})"
+
+    def __str__(self) -> str:
+        output = [f"{self.__class__.__name__}("]
+        for filter_type in ("base_filter", "true_filter", "false_filter"):
+            filter_ = getattr(self, filter_type)
+            if filter_ is None:
+                continue
+            # add the new filter set, adding indentations for readability
+            output.append(f"  {filter_type}={filter_!r},")
+        output.append(")")
+        return "\n".join(output)
+
