@@ -453,7 +453,7 @@ class ColumnRangeFilter(RowFilter):
         return {"column_range_filter": self.range_to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(column_family_id={self.column_family_id}, start_column={self.start_column}, end_column={self.end_column}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        return f"{self.__class__.__name__}(column_family_id={self.column_family_id}, start_column={self.start_column!r}, end_column={self.end_column!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 
 class ValueRegexFilter(_RegexFilter):
@@ -498,7 +498,7 @@ class ExactValueFilter(ValueRegexFilter):
         super(ExactValueFilter, self).__init__(value)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(value={self.regex})"
+        return f"{self.__class__.__name__}(value={self.regex!r})"
 
 
 class ValueRangeFilter(RowFilter):
@@ -609,7 +609,7 @@ class ValueRangeFilter(RowFilter):
         return {"value_range_filter": self.range_to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(start_value={self.start_value}, end_value={self.end_value}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        return f"{self.__class__.__name__}(start_value={self.start_value!r}, end_value={self.end_value!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 
 class _CellCountFilter(RowFilter):
