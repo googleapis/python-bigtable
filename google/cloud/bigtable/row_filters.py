@@ -731,7 +731,7 @@ class ApplyLabelFilter(RowFilter):
         return f"{self.__class__.__name__}(label={self.label})"
 
 
-class _FilterCombination(RowFilter):
+class _FilterCombination(RowFilter, Sequence[RowFilter]):
     """Chain of row filters.
 
     Sends rows through several filters in sequence. The filters are "chained"
@@ -755,10 +755,21 @@ class _FilterCombination(RowFilter):
     def __ne__(self, other):
         return not self == other
 
+    def __len__(self) -> int:
+        return len(self.filters)
+
+    def __getitem__(self, index: int) -> RowFilter:
+        return self.filters[index]
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(filters={[repr(f) for f in self.filters]})"
 
     def __str__(self) -> str:
+        """
+        Returns a string representation of the filter chain.
+
+        Adds line breaks between each sub-filter for readability.
+        """
         output = [f"{self.__class__.__name__}(["]
         for filter_ in self.filters:
             filter_lines = f"{filter_},".splitlines()
