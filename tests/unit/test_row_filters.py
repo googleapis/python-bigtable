@@ -473,11 +473,11 @@ def test_timestamp_range_filter_empty_to_dict():
 def test_column_range_filter_constructor_defaults():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
-    row_filter = ColumnRangeFilter(column_family_id)
-    assert row_filter.column_family_id is column_family_id
-    assert row_filter.start_column is None
-    assert row_filter.end_column is None
+    family_id = object()
+    row_filter = ColumnRangeFilter(family_id)
+    assert row_filter.family_id is family_id
+    assert row_filter.start_qualifier is None
+    assert row_filter.end_qualifier is None
     assert row_filter.inclusive_start
     assert row_filter.inclusive_end
 
@@ -485,21 +485,21 @@ def test_column_range_filter_constructor_defaults():
 def test_column_range_filter_constructor_explicit():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
-    start_column = object()
-    end_column = object()
+    family_id = object()
+    start_qualifier = object()
+    end_qualifier = object()
     inclusive_start = object()
     inclusive_end = object()
     row_filter = ColumnRangeFilter(
-        column_family_id,
-        start_column=start_column,
-        end_column=end_column,
+        family_id,
+        start_qualifier=start_qualifier,
+        end_qualifier=end_qualifier,
         inclusive_start=inclusive_start,
         inclusive_end=inclusive_end,
     )
-    assert row_filter.column_family_id is column_family_id
-    assert row_filter.start_column is start_column
-    assert row_filter.end_column is end_column
+    assert row_filter.family_id is family_id
+    assert row_filter.start_qualifier is start_qualifier
+    assert row_filter.end_qualifier is end_qualifier
     assert row_filter.inclusive_start is inclusive_start
     assert row_filter.inclusive_end is inclusive_end
 
@@ -507,38 +507,38 @@ def test_column_range_filter_constructor_explicit():
 def test_column_range_filter_constructor_():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
+    family_id = object()
     with pytest.raises(ValueError):
-        ColumnRangeFilter(column_family_id, inclusive_start=True)
+        ColumnRangeFilter(family_id, inclusive_start=True)
 
 
 def test_column_range_filter_constructor_bad_end():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
+    family_id = object()
     with pytest.raises(ValueError):
-        ColumnRangeFilter(column_family_id, inclusive_end=True)
+        ColumnRangeFilter(family_id, inclusive_end=True)
 
 
 def test_column_range_filter___eq__():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
-    start_column = object()
-    end_column = object()
+    family_id = object()
+    start_qualifier = object()
+    end_qualifier = object()
     inclusive_start = object()
     inclusive_end = object()
     row_filter1 = ColumnRangeFilter(
-        column_family_id,
-        start_column=start_column,
-        end_column=end_column,
+        family_id,
+        start_qualifier=start_qualifier,
+        end_qualifier=end_qualifier,
         inclusive_start=inclusive_start,
         inclusive_end=inclusive_end,
     )
     row_filter2 = ColumnRangeFilter(
-        column_family_id,
-        start_column=start_column,
-        end_column=end_column,
+        family_id,
+        start_qualifier=start_qualifier,
+        end_qualifier=end_qualifier,
         inclusive_start=inclusive_start,
         inclusive_end=inclusive_end,
     )
@@ -548,8 +548,8 @@ def test_column_range_filter___eq__():
 def test_column_range_filter___eq__type_differ():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
-    row_filter1 = ColumnRangeFilter(column_family_id)
+    family_id = object()
+    row_filter1 = ColumnRangeFilter(family_id)
     row_filter2 = object()
     assert not (row_filter1 == row_filter2)
 
@@ -557,23 +557,23 @@ def test_column_range_filter___eq__type_differ():
 def test_column_range_filter___ne__():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = object()
-    other_column_family_id = object()
-    start_column = object()
-    end_column = object()
+    family_id = object()
+    other_family_id = object()
+    start_qualifier = object()
+    end_qualifier = object()
     inclusive_start = object()
     inclusive_end = object()
     row_filter1 = ColumnRangeFilter(
-        column_family_id,
-        start_column=start_column,
-        end_column=end_column,
+        family_id,
+        start_qualifier=start_qualifier,
+        end_qualifier=end_qualifier,
         inclusive_start=inclusive_start,
         inclusive_end=inclusive_end,
     )
     row_filter2 = ColumnRangeFilter(
-        other_column_family_id,
-        start_column=start_column,
-        end_column=end_column,
+        other_family_id,
+        start_qualifier=start_qualifier,
+        end_qualifier=end_qualifier,
         inclusive_start=inclusive_start,
         inclusive_end=inclusive_end,
     )
@@ -583,9 +583,9 @@ def test_column_range_filter___ne__():
 def test_column_range_filter_to_pb():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = "column-family-id"
-    row_filter = ColumnRangeFilter(column_family_id)
-    col_range_pb = _ColumnRangePB(family_name=column_family_id)
+    family_id = "column-family-id"
+    row_filter = ColumnRangeFilter(family_id)
+    col_range_pb = _ColumnRangePB(family_name=family_id)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
     assert row_filter.to_pb() == expected_pb
 
@@ -594,9 +594,9 @@ def test_column_range_filter_to_dict():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    column_family_id = "column-family-id"
-    row_filter = ColumnRangeFilter(column_family_id)
-    expected_dict = {"column_range_filter": {"family_name": column_family_id}}
+    family_id = "column-family-id"
+    row_filter = ColumnRangeFilter(family_id)
+    expected_dict = {"column_range_filter": {"family_name": family_id}}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter.to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
@@ -605,12 +605,10 @@ def test_column_range_filter_to_dict():
 def test_column_range_filter_to_pb_inclusive_start():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = "column-family-id"
+    family_id = "column-family-id"
     column = b"column"
-    row_filter = ColumnRangeFilter(column_family_id, start_column=column)
-    col_range_pb = _ColumnRangePB(
-        family_name=column_family_id, start_qualifier_closed=column
-    )
+    row_filter = ColumnRangeFilter(family_id, start_qualifier=column)
+    col_range_pb = _ColumnRangePB(family_name=family_id, start_qualifier_closed=column)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
     assert row_filter.to_pb() == expected_pb
 
@@ -618,14 +616,12 @@ def test_column_range_filter_to_pb_inclusive_start():
 def test_column_range_filter_to_pb_exclusive_start():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = "column-family-id"
+    family_id = "column-family-id"
     column = b"column"
     row_filter = ColumnRangeFilter(
-        column_family_id, start_column=column, inclusive_start=False
+        family_id, start_qualifier=column, inclusive_start=False
     )
-    col_range_pb = _ColumnRangePB(
-        family_name=column_family_id, start_qualifier_open=column
-    )
+    col_range_pb = _ColumnRangePB(family_name=family_id, start_qualifier_open=column)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
     assert row_filter.to_pb() == expected_pb
 
@@ -633,12 +629,10 @@ def test_column_range_filter_to_pb_exclusive_start():
 def test_column_range_filter_to_pb_inclusive_end():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = "column-family-id"
+    family_id = "column-family-id"
     column = b"column"
-    row_filter = ColumnRangeFilter(column_family_id, end_column=column)
-    col_range_pb = _ColumnRangePB(
-        family_name=column_family_id, end_qualifier_closed=column
-    )
+    row_filter = ColumnRangeFilter(family_id, end_qualifier=column)
+    col_range_pb = _ColumnRangePB(family_name=family_id, end_qualifier_closed=column)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
     assert row_filter.to_pb() == expected_pb
 
@@ -646,14 +640,10 @@ def test_column_range_filter_to_pb_inclusive_end():
 def test_column_range_filter_to_pb_exclusive_end():
     from google.cloud.bigtable.row_filters import ColumnRangeFilter
 
-    column_family_id = "column-family-id"
+    family_id = "column-family-id"
     column = b"column"
-    row_filter = ColumnRangeFilter(
-        column_family_id, end_column=column, inclusive_end=False
-    )
-    col_range_pb = _ColumnRangePB(
-        family_name=column_family_id, end_qualifier_open=column
-    )
+    row_filter = ColumnRangeFilter(family_id, end_qualifier=column, inclusive_end=False)
+    col_range_pb = _ColumnRangePB(family_name=family_id, end_qualifier_open=column)
     expected_pb = _RowFilterPB(column_range_filter=col_range_pb)
     assert row_filter.to_pb() == expected_pb
 

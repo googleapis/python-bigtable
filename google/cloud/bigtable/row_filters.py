@@ -347,70 +347,72 @@ class ColumnRangeFilter(RowFilter):
     By default, we include them both, but this can be changed with optional
     flags.
 
-    :type column_family_id: str
-    :param column_family_id: The column family that contains the columns. Must
+    :type family_id: str
+    :param family_id: The column family that contains the columns. Must
                              be of the form ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
 
-    :type start_column: bytes
-    :param start_column: The start of the range of columns. If no value is
+    :type start_qualifier: bytes
+    :param start_qualifier: The start of the range of columns. If no value is
                          used, the backend applies no upper bound to the
                          values.
 
-    :type end_column: bytes
-    :param end_column: The end of the range of columns. If no value is used,
+    :type end_qualifier: bytes
+    :param end_qualifier: The end of the range of columns. If no value is used,
                        the backend applies no upper bound to the values.
 
     :type inclusive_start: bool
     :param inclusive_start: Boolean indicating if the start column should be
                             included in the range (or excluded). Defaults
-                            to :data:`True` if ``start_column`` is passed and
+                            to :data:`True` if ``start_qualifier`` is passed and
                             no ``inclusive_start`` was given.
 
     :type inclusive_end: bool
     :param inclusive_end: Boolean indicating if the end column should be
                           included in the range (or excluded). Defaults
-                          to :data:`True` if ``end_column`` is passed and
+                          to :data:`True` if ``end_qualifier`` is passed and
                           no ``inclusive_end`` was given.
 
     :raises: :class:`ValueError <exceptions.ValueError>` if ``inclusive_start``
-             is set but no ``start_column`` is given or if ``inclusive_end``
-             is set but no ``end_column`` is given
+             is set but no ``start_qualifier`` is given or if ``inclusive_end``
+             is set but no ``end_qualifier`` is given
     """
 
     def __init__(
         self,
-        column_family_id: str,
-        start_column: bytes | None = None,
-        end_column: bytes | None = None,
+        family_id: str,
+        start_qualifier: bytes | None = None,
+        end_qualifier: bytes | None = None,
         inclusive_start: bool | None = None,
         inclusive_end: bool | None = None,
     ):
         if inclusive_start is None:
             inclusive_start = True
-        elif start_column is None:
+        elif start_qualifier is None:
             raise ValueError(
-                "inclusive_start was specified but no start_column was given."
+                "inclusive_start was specified but no start_qualifier was given."
             )
         if inclusive_end is None:
             inclusive_end = True
-        elif end_column is None:
-            raise ValueError("inclusive_end was specified but no end_column was given.")
+        elif end_qualifier is None:
+            raise ValueError(
+                "inclusive_end was specified but no end_qualifier was given."
+            )
 
-        self.column_family_id = column_family_id
+        self.family_id = family_id
 
-        self.start_column = start_column
+        self.start_qualifier = start_qualifier
         self.inclusive_start = inclusive_start
 
-        self.end_column = end_column
+        self.end_qualifier = end_qualifier
         self.inclusive_end = inclusive_end
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
-            other.column_family_id == self.column_family_id
-            and other.start_column == self.start_column
-            and other.end_column == self.end_column
+            other.family_id == self.family_id
+            and other.start_qualifier == self.start_qualifier
+            and other.end_qualifier == self.end_qualifier
             and other.inclusive_start == self.inclusive_start
             and other.inclusive_end == self.inclusive_end
         )
@@ -433,19 +435,19 @@ class ColumnRangeFilter(RowFilter):
     def range_to_dict(self) -> dict[str, str | bytes]:
         """Converts the column range range to a dict representation."""
         column_range_kwargs: dict[str, str | bytes] = {}
-        column_range_kwargs["family_name"] = self.column_family_id
-        if self.start_column is not None:
+        column_range_kwargs["family_name"] = self.family_id
+        if self.start_qualifier is not None:
             if self.inclusive_start:
                 key = "start_qualifier_closed"
             else:
                 key = "start_qualifier_open"
-            column_range_kwargs[key] = _to_bytes(self.start_column)
-        if self.end_column is not None:
+            column_range_kwargs[key] = _to_bytes(self.start_qualifier)
+        if self.end_qualifier is not None:
             if self.inclusive_end:
                 key = "end_qualifier_closed"
             else:
                 key = "end_qualifier_open"
-            column_range_kwargs[key] = _to_bytes(self.end_column)
+            column_range_kwargs[key] = _to_bytes(self.end_qualifier)
         return column_range_kwargs
 
     def to_dict(self) -> dict[str, Any]:
@@ -453,7 +455,7 @@ class ColumnRangeFilter(RowFilter):
         return {"column_range_filter": self.range_to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(column_family_id={self.column_family_id}, start_column={self.start_column!r}, end_column={self.end_column!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        return f"{self.__class__.__name__}(family_id={self.family_id}, start_qualifier={self.start_qualifier!r}, end_qualifier={self.end_qualifier!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 
 class ValueRegexFilter(_RegexFilter):
@@ -551,7 +553,9 @@ class ValueRangeFilter(RowFilter):
         if inclusive_end is None:
             inclusive_end = True
         elif end_value is None:
-            raise ValueError("inclusive_end was specified but no end_column was given.")
+            raise ValueError(
+                "inclusive_end was specified but no end_qualifier was given."
+            )
         if isinstance(start_value, int):
             start_value = _PACK_I64(start_value)
         self.start_value = start_value
