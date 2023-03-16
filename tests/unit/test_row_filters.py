@@ -1361,13 +1361,13 @@ def test_row_filter_union_to_dict_nested():
 def test_conditional_row_filter_constructor():
     from google.cloud.bigtable.row_filters import ConditionalRowFilter
 
-    base_filter = object()
+    predicate_filter = object()
     true_filter = object()
     false_filter = object()
     cond_filter = ConditionalRowFilter(
-        base_filter, true_filter=true_filter, false_filter=false_filter
+        predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
-    assert cond_filter.base_filter is base_filter
+    assert cond_filter.predicate_filter is predicate_filter
     assert cond_filter.true_filter is true_filter
     assert cond_filter.false_filter is false_filter
 
@@ -1375,14 +1375,14 @@ def test_conditional_row_filter_constructor():
 def test_conditional_row_filter___eq__():
     from google.cloud.bigtable.row_filters import ConditionalRowFilter
 
-    base_filter = object()
+    predicate_filter = object()
     true_filter = object()
     false_filter = object()
     cond_filter1 = ConditionalRowFilter(
-        base_filter, true_filter=true_filter, false_filter=false_filter
+        predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
     cond_filter2 = ConditionalRowFilter(
-        base_filter, true_filter=true_filter, false_filter=false_filter
+        predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
     assert cond_filter1 == cond_filter2
 
@@ -1390,11 +1390,11 @@ def test_conditional_row_filter___eq__():
 def test_conditional_row_filter___eq__type_differ():
     from google.cloud.bigtable.row_filters import ConditionalRowFilter
 
-    base_filter = object()
+    predicate_filter = object()
     true_filter = object()
     false_filter = object()
     cond_filter1 = ConditionalRowFilter(
-        base_filter, true_filter=true_filter, false_filter=false_filter
+        predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
     cond_filter2 = object()
     assert not (cond_filter1 == cond_filter2)
@@ -1403,15 +1403,15 @@ def test_conditional_row_filter___eq__type_differ():
 def test_conditional_row_filter___ne__():
     from google.cloud.bigtable.row_filters import ConditionalRowFilter
 
-    base_filter = object()
-    other_base_filter = object()
+    predicate_filter = object()
+    other_predicate_filter = object()
     true_filter = object()
     false_filter = object()
     cond_filter1 = ConditionalRowFilter(
-        base_filter, true_filter=true_filter, false_filter=false_filter
+        predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
     cond_filter2 = ConditionalRowFilter(
-        other_base_filter, true_filter=true_filter, false_filter=false_filter
+        other_predicate_filter, true_filter=true_filter, false_filter=false_filter
     )
     assert cond_filter1 != cond_filter2
 

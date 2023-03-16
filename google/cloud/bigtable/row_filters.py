@@ -206,6 +206,7 @@ class RowSampleFilter(RowFilter):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(sample={self.sample})"
 
+
 class FamilyNameRegexFilter(_RegexFilter):
     """Row filter for a family name regular expression.
 
@@ -300,6 +301,7 @@ class TimestampRange(object):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(start={self.start}, end={self.end})"
+
 
 class TimestampRangeFilter(RowFilter):
     """Row filter that limits cells to a range of time.
@@ -452,6 +454,7 @@ class ColumnRangeFilter(RowFilter):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(column_family_id={self.column_family_id}, start_column={self.start_column}, end_column={self.end_column}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+
 
 class ValueRegexFilter(_RegexFilter):
     """Row filter for a value regular expression.
@@ -723,6 +726,7 @@ class ApplyLabelFilter(RowFilter):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(label={self.label})"
 
+
 class _FilterCombination(RowFilter):
     """Chain of row filters.
 
@@ -757,6 +761,7 @@ class _FilterCombination(RowFilter):
             output.extend([f"  {line}" for line in filter_lines])
         output.append("])")
         return "\n".join(output)
+
 
 class RowFilterChain(_FilterCombination):
     """Chain of row filters.
@@ -817,40 +822,40 @@ class RowFilterUnion(_FilterCombination):
 class ConditionalRowFilter(RowFilter):
     """Conditional row filter which exhibits ternary behavior.
 
-    Executes one of two filters based on another filter. If the ``base_filter``
+    Executes one of two filters based on another filter. If the ``predicate_filter``
     returns any cells in the row, then ``true_filter`` is executed. If not,
     then ``false_filter`` is executed.
 
     .. note::
 
-        The ``base_filter`` does not execute atomically with the true and false
+        The ``predicate_filter`` does not execute atomically with the true and false
         filters, which may lead to inconsistent or unexpected results.
 
         Additionally, executing a :class:`ConditionalRowFilter` has poor
         performance on the server, especially when ``false_filter`` is set.
 
-    :type base_filter: :class:`RowFilter`
-    :param base_filter: The filter to condition on before executing the
+    :type predicate_filter: :class:`RowFilter`
+    :param predicate_filter: The filter to condition on before executing the
                         true/false filters.
 
     :type true_filter: :class:`RowFilter`
     :param true_filter: (Optional) The filter to execute if there are any cells
-                        matching ``base_filter``. If not provided, no results
+                        matching ``predicate_filter``. If not provided, no results
                         will be returned in the true case.
 
     :type false_filter: :class:`RowFilter`
     :param false_filter: (Optional) The filter to execute if there are no cells
-                         matching ``base_filter``. If not provided, no results
+                         matching ``predicate_filter``. If not provided, no results
                          will be returned in the false case.
     """
 
     def __init__(
         self,
-        base_filter: RowFilter,
+        predicate_filter: RowFilter,
         true_filter: RowFilter | None = None,
         false_filter: RowFilter | None = None,
     ):
-        self.base_filter = base_filter
+        self.predicate_filter = predicate_filter
         self.true_filter = true_filter
         self.false_filter = false_filter
 
@@ -858,7 +863,7 @@ class ConditionalRowFilter(RowFilter):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
-            other.base_filter == self.base_filter
+            other.predicate_filter == self.predicate_filter
             and other.true_filter == self.true_filter
             and other.false_filter == self.false_filter
         )
@@ -872,7 +877,7 @@ class ConditionalRowFilter(RowFilter):
         :rtype: :class:`.data_v2_pb2.RowFilter`
         :returns: The converted current object.
         """
-        condition_kwargs = {"predicate_filter": self.base_filter.to_pb()}
+        condition_kwargs = {"predicate_filter": self.predicate_filter.to_pb()}
         if self.true_filter is not None:
             condition_kwargs["true_filter"] = self.true_filter.to_pb()
         if self.false_filter is not None:
@@ -882,7 +887,7 @@ class ConditionalRowFilter(RowFilter):
 
     def condition_to_dict(self) -> dict[str, Any]:
         """Converts the condition to a dict representation."""
-        condition_kwargs = {"predicate_filter": self.base_filter.to_dict()}
+        condition_kwargs = {"predicate_filter": self.predicate_filter.to_dict()}
         if self.true_filter is not None:
             condition_kwargs["true_filter"] = self.true_filter.to_dict()
         if self.false_filter is not None:
@@ -894,11 +899,11 @@ class ConditionalRowFilter(RowFilter):
         return {"condition": self.condition_to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(base_filter={self.base_filter!r}, true_filter={self.true_filter!r}, false_filter={self.false_filter!r})"
+        return f"{self.__class__.__name__}(predicate_filter={self.predicate_filter!r}, true_filter={self.true_filter!r}, false_filter={self.false_filter!r})"
 
     def __str__(self) -> str:
         output = [f"{self.__class__.__name__}("]
-        for filter_type in ("base_filter", "true_filter", "false_filter"):
+        for filter_type in ("predicate_filter", "true_filter", "false_filter"):
             filter_ = getattr(self, filter_type)
             if filter_ is None:
                 continue
@@ -906,4 +911,3 @@ class ConditionalRowFilter(RowFilter):
             output.append(f"  {filter_type}={filter_!r},")
         output.append(")")
         return "\n".join(output)
-
