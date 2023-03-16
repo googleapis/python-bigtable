@@ -269,9 +269,13 @@ class RowResponse(Sequence["CellResponse"]):
 
     def values(self):
         """
-        Returns the list of cells in the row
+        Returns the the cells in the row, broken into lists
+        corresponding to the family and qualifier
         """
-        return self._cells_list
+        result = []
+        for key in self.keys():
+            result.append(self[key])
+        return result
 
     def items(self):
         """

@@ -490,13 +490,20 @@ class TestRowResponse(unittest.TestCase):
         self.assertEqual(row_response.keys(), [(TEST_FAMILY_ID, TEST_QUALIFIER)])
 
     def test_values(self):
-        # values should return the list of all cells
-        cell_list = [self._make_cell(qualifier=str(i).encode()) for i in range(10)]
+        # values should return the all cells, divided into lists
+        # according to (family,qualifier) pairs
+        cell_list = [self._make_cell(qualifier=str(i % 5).encode()) for i in range(10)]
         row_response = self._make_one(TEST_ROW_KEY, cell_list)
         sorted(cell_list)
 
-        self.assertEqual(len(row_response.values()), 10)
-        self.assertEqual(row_response.values(), cell_list)
+        values = list(row_response.values())
+        self.assertEqual(len(values), 5)
+        self.assertEqual(len(values[0]), 2)
+
+        keys = list(row_response.keys())
+        values = list(row_response.values())
+        for i in range(len(keys)):
+            self.assertEqual(row_response[keys[i]], values[i])
 
     def test_items(self):
         cell_list = [self._make_cell() for i in range(10)]
