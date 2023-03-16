@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence, Generator, Mapping, overload, Union, List, Tuple, Any
+from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
 # Type aliases used internally for readability.
@@ -25,12 +25,7 @@ qualifier = bytes
 row_value = bytes
 
 
-class RowResponse(
-    Sequence["CellResponse"],
-    Mapping[
-        Union[family_id, Tuple[family_id, Union[qualifier, str]]], List["CellResponse"]
-    ],
-):
+class RowResponse(Sequence["CellResponse"]):
     """
     Model class for row data returned from server
 
@@ -203,7 +198,7 @@ class RowResponse(
     def __getitem__(
         self,
         index: family_id | tuple[family_id, qualifier | str],
-    ) -> List[CellResponse]:
+    ) -> list[CellResponse]:
         # overload signature for type checking
         pass
 
