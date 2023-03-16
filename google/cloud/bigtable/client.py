@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, AsyncIterable, Optional, TYPE_CHECKING
+from typing import cast, Any, AsyncIterable, Optional, Set, TYPE_CHECKING
 
 import asyncio
 import grpc
@@ -92,7 +92,7 @@ class BigtableDataClient(ClientWithProject):
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
         # keep track of active instances to for warmup on channel refresh
-        self._active_instances = set()
+        self._active_instances: Set[str] = set()
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
@@ -120,7 +120,7 @@ class BigtableDataClient(ClientWithProject):
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel
-    ) -> list[Exception | None]:
+    ) -> list[GoogleAPICallError | None]:
         """
         Prepares the backend for requests on a channel
 
@@ -179,7 +179,7 @@ class BigtableDataClient(ClientWithProject):
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-            await self._ping_and_warm_instance(channel)
+            await self._ping_and_warm_instances(channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
             await self.transport.replace_channel(channel_idx, grace_period, new_channel)
@@ -204,7 +204,6 @@ class BigtableDataClient(ClientWithProject):
         else:
             # refresh tasks aren't active. start them as background tasks
             self.start_background_channel_refresh()
-
 
     async def remove_instance_registration(self, instance_id: str):
         """
@@ -232,7 +231,7 @@ class BigtableDataClient(ClientWithProject):
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
         await self.register_instance(instance_id)
-        return Table(self, table_id, app_profile_id)
+        return Table(self, instance_id, table_id, app_profile_id)
 
 
 class Table:
