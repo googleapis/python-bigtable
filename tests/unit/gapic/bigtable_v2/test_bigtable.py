@@ -2639,6 +2639,7 @@ def test_generate_initial_change_stream_partitions_field_headers():
         with pytest.raises(NotImplementedError):
             getattr(transport, method)(request=object())
 
+
 @pytest.mark.asyncio
 async def test_generate_initial_change_stream_partitions_field_headers_async():
     client = BigtableAsyncClient(
