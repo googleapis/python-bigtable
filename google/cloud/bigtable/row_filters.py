@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import struct
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Sequence, TYPE_CHECKING, overload
 
 from google.cloud._helpers import _microseconds_from_datetime  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
@@ -758,7 +758,17 @@ class _FilterCombination(RowFilter, Sequence[RowFilter]):
     def __len__(self) -> int:
         return len(self.filters)
 
+    @overload
     def __getitem__(self, index: int) -> RowFilter:
+        # overload signature for type checking
+        pass
+
+    @overload
+    def __getitem__(self, index: slice) -> list[RowFilter]:
+        # overload signature for type checking
+        pass
+
+    def __getitem__(self, index):
         return self.filters[index]
 
     def __repr__(self) -> str:
