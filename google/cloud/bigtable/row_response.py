@@ -43,7 +43,12 @@ class RowResponse(Sequence["CellResponse"]):
         cells: list[CellResponse]
         | dict[tuple[family_id, qualifier], list[dict[str, Any]]],
     ):
-        """Expected to be used internally only"""
+        """
+        Initializes a RowResponse object
+
+        RowResponse objects are not intended to be created by users.
+        They are returned by the Bigtable backend.
+        """
         self.row_key = key
         self._cells_map: dict[
             family_id, dict[qualifier, list[CellResponse]]
@@ -175,11 +180,20 @@ class RowResponse(Sequence["CellResponse"]):
 
     # Sequence and Mapping methods
     def __iter__(self):
+        """
+        Allow iterating over all cells in the row
+        """
         # iterate as a sequence; yield all cells
         for cell in self._cells_list:
             yield cell
 
     def __contains__(self, item):
+        """
+        Implements `in` operator
+
+        Works for both cells in the internal list, and `family` or
+        `(family, qualifier)` pairs associated with the cells
+        """
         if isinstance(item, family_id):
             # check if family key is in RowResponse
             return item in self._cells_map
@@ -213,6 +227,12 @@ class RowResponse(Sequence["CellResponse"]):
         pass
 
     def __getitem__(self, index):
+        """
+        Implements [] indexing
+
+        Supports indexing by family, (family, qualifier) pair,
+        numerical index, and index slicing
+        """
         if isinstance(index, family_id):
             return self.get_cells(family=index)
         elif (
@@ -230,9 +250,17 @@ class RowResponse(Sequence["CellResponse"]):
             )
 
     def __len__(self):
+        """
+        Implements `len()` operator
+        """
         return len(self._cells_list)
 
     def keys(self):
+        """
+        Returns a list of (family, qualifier) pairs associated with the cells
+
+        Pairs can be used for indexing
+        """
         key_list = []
         for family in self._cells_map:
             for qualifier in self._cells_map[family]:
@@ -240,13 +268,22 @@ class RowResponse(Sequence["CellResponse"]):
         return key_list
 
     def values(self):
+        """
+        Returns the list of cells in the row
+        """
         return self._cells_list
 
     def items(self):
+        """
+        Iterates over (family, qualifier) pairs and the list of associated cells
+        """
         for key in self.keys():
             yield key, self[key]
 
     def __eq__(self, other):
+        """
+        Implements `==` operator
+        """
         # for performance reasons, check row metadata
         # before checking individual cells
         if not isinstance(other, RowResponse):
@@ -265,6 +302,12 @@ class RowResponse(Sequence["CellResponse"]):
         if self._cells_list != other._cells_list:
             return False
         return True
+
+    def __ne__(self, other) -> bool:
+        """
+        Implements `!=` operator
+        """
+        return not self == other
 
 
 @total_ordering
@@ -362,11 +405,17 @@ class CellResponse:
         return str(self.value)
 
     def __repr__(self):
+        """
+        Returns a string representation of the cell
+        """
         return f"CellResponse(value={self.value!r}, row={self.row_key!r}, family='{self.family}', column_qualifier={self.column_qualifier!r}, timestamp_ns={self.timestamp_ns}, labels={self.labels})"
 
     """For Bigtable native ordering"""
 
     def __lt__(self, other) -> bool:
+        """
+        Implements `<` operator
+        """
         if not isinstance(other, CellResponse):
             return NotImplemented
         this_ordering = (
@@ -386,6 +435,9 @@ class CellResponse:
         return this_ordering < other_ordering
 
     def __eq__(self, other) -> bool:
+        """
+        Implements `==` operator
+        """
         if not isinstance(other, CellResponse):
             return NotImplemented
         return (
@@ -399,9 +451,15 @@ class CellResponse:
         )
 
     def __ne__(self, other) -> bool:
+        """
+        Implements `!=` operator
+        """
         return not self == other
 
     def __hash__(self):
+        """
+        Implements `hash()` function to fingerprint cell
+        """
         return hash(
             (
                 self.row_key,
