@@ -51,6 +51,16 @@ def test_bool_filter___ne__same_value():
     assert not (row_filter1 != row_filter2)
 
 
+def test_bool_filter___repr__():
+    from google.cloud.bigtable.row_filters import _BoolFilter
+
+    flag = True
+    row_filter = _BoolFilter(flag)
+    assert repr(row_filter) == "_BoolFilter(flag={})".format(flag)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_sink_filter_to_pb():
     from google.cloud.bigtable.row_filters import SinkFilter
 
@@ -71,6 +81,16 @@ def test_sink_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_sink_filter___repr__():
+    from google.cloud.bigtable.row_filters import SinkFilter
+
+    flag = True
+    row_filter = SinkFilter(flag)
+    assert repr(row_filter) == "SinkFilter(flag={})".format(flag)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_pass_all_filter_to_pb():
@@ -95,6 +115,16 @@ def test_pass_all_filter_to_dict():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_pass_all_filter___repr__():
+    from google.cloud.bigtable.row_filters import PassAllFilter
+
+    flag = True
+    row_filter = PassAllFilter(flag)
+    assert repr(row_filter) == "PassAllFilter(flag={})".format(flag)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_block_all_filter_to_pb():
     from google.cloud.bigtable.row_filters import BlockAllFilter
 
@@ -115,6 +145,16 @@ def test_block_all_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_block_all_filter___repr__():
+    from google.cloud.bigtable.row_filters import BlockAllFilter
+
+    flag = True
+    row_filter = BlockAllFilter(flag)
+    assert repr(row_filter) == "BlockAllFilter(flag={})".format(flag)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_regex_filterconstructor():
@@ -160,6 +200,16 @@ def test_regex_filter__ne__same_value():
     assert not (row_filter1 != row_filter2)
 
 
+def test_regex_filter___repr__():
+    from google.cloud.bigtable.row_filters import _RegexFilter
+
+    regex = b"abc"
+    row_filter = _RegexFilter(regex)
+    assert repr(row_filter) == "_RegexFilter(regex={})".format(regex)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_row_key_regex_filter_to_pb():
     from google.cloud.bigtable.row_filters import RowKeyRegexFilter
 
@@ -180,6 +230,16 @@ def test_row_key_regex_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_row_key_regex_filter___repr__():
+    from google.cloud.bigtable.row_filters import RowKeyRegexFilter
+
+    regex = b"row-key-regex"
+    row_filter = RowKeyRegexFilter(regex)
+    assert repr(row_filter) == "RowKeyRegexFilter(regex={})".format(regex)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_row_sample_filter_constructor():
@@ -228,6 +288,16 @@ def test_row_sample_filter_to_pb():
     assert pb_val == expected_pb
 
 
+def test_row_sample_filter___repr__():
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+
+    sample = 0.25
+    row_filter = RowSampleFilter(sample)
+    assert repr(row_filter) == "RowSampleFilter(sample={})".format(sample)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_family_name_regex_filter_to_pb():
     from google.cloud.bigtable.row_filters import FamilyNameRegexFilter
 
@@ -250,6 +320,17 @@ def test_family_name_regex_filter_to_dict():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_family_name_regex_filter___repr__():
+    from google.cloud.bigtable.row_filters import FamilyNameRegexFilter
+
+    regex = "family-regex"
+    row_filter = FamilyNameRegexFilter(regex)
+    expected = "FamilyNameRegexFilter(regex=b'family-regex')"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_column_qualifier_regex_filter_to_pb():
     from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
 
@@ -270,6 +351,16 @@ def test_column_qualifier_regex_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_column_qualifier_regex_filter___repr__():
+    from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
+
+    regex = b"column-regex"
+    row_filter = ColumnQualifierRegexFilter(regex)
+    assert repr(row_filter) == "ColumnQualifierRegexFilter(regex={})".format(regex)
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_timestamp_range_constructor():
@@ -403,6 +494,17 @@ def test_timestamp_range_to_dict_end_only():
     assert data_v2_pb2.TimestampRange(**expected_dict) == expected_pb_value
 
 
+def timestamp_range___repr__():
+    from google.cloud.bigtable.row_filters import TimestampRange
+
+    start = object()
+    end = object()
+    time_range = TimestampRange(start=start, end=end)
+    assert repr(time_range) == "TimestampRange(start={}, end={})".format(start, end)
+    assert repr(time_range) == str(time_range)
+    assert eval(repr(time_range)) == time_range
+
+
 def test_timestamp_range_filter___eq__type_differ():
     from google.cloud.bigtable.row_filters import TimestampRangeFilter
 
@@ -468,6 +570,21 @@ def test_timestamp_range_filter_empty_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_timestamp_range_filter___repr__():
+    from google.cloud.bigtable.row_filters import TimestampRangeFilter
+    import datetime
+
+    start = datetime.datetime(2019, 1, 1)
+    end = datetime.datetime(2019, 1, 2)
+    row_filter = TimestampRangeFilter(start, end)
+    assert (
+        repr(row_filter)
+        == f"TimestampRangeFilter(start={repr(start)}, end={repr(end)})"
+    )
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_column_range_filter_constructor_defaults():
@@ -648,6 +765,19 @@ def test_column_range_filter_to_pb_exclusive_end():
     assert row_filter._to_pb() == expected_pb
 
 
+def test_column_range_filter___repr__():
+    from google.cloud.bigtable.row_filters import ColumnRangeFilter
+
+    family_id = "column-family-id"
+    start_qualifier = b"column"
+    end_qualifier = b"column2"
+    row_filter = ColumnRangeFilter(family_id, start_qualifier, end_qualifier)
+    expected = "ColumnRangeFilter(family_id='column-family-id', start_qualifier=b'column', end_qualifier=b'column2', inclusive_start=True, inclusive_end=True)"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_value_regex_filter_to_pb_w_bytes():
     from google.cloud.bigtable.row_filters import ValueRegexFilter
 
@@ -692,6 +822,17 @@ def test_value_regex_filter_to_dict_w_str():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_value_regex_filter___repr__():
+    from google.cloud.bigtable.row_filters import ValueRegexFilter
+
+    value = "value-regex"
+    row_filter = ValueRegexFilter(value)
+    expected = "ValueRegexFilter(regex=b'value-regex')"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_exact_value_filter_to_pb_w_bytes():
@@ -764,6 +905,17 @@ def test_exact_value_filter_to_dict_w_int():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_exact_value_filter___repr__():
+    from google.cloud.bigtable.row_filters import ExactValueFilter
+
+    value = "value-regex"
+    row_filter = ExactValueFilter(value)
+    expected = "ExactValueFilter(value=b'value-regex')"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_value_range_filter_constructor_defaults():
@@ -942,6 +1094,20 @@ def test_value_range_filter_to_pb_exclusive_end():
     assert row_filter._to_pb() == expected_pb
 
 
+def test_value_range_filter___repr__():
+    from google.cloud.bigtable.row_filters import ValueRangeFilter
+
+    start_value = b"some-value"
+    end_value = b"some-other-value"
+    row_filter = ValueRangeFilter(
+        start_value=start_value, end_value=end_value, inclusive_end=False
+    )
+    expected = "ValueRangeFilter(start_value=b'some-value', end_value=b'some-other-value', inclusive_start=True, inclusive_end=False)"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_cell_count_constructor():
     from google.cloud.bigtable.row_filters import _CellCountFilter
 
@@ -977,6 +1143,16 @@ def test_cell_count___ne__same_value():
     assert not (row_filter1 != row_filter2)
 
 
+def test_cell_count___repr__():
+    from google.cloud.bigtable.row_filters import _CellCountFilter
+
+    row_filter = _CellCountFilter(10)
+    expected = "_CellCountFilter(num_cells=10)"
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_cells_row_offset_filter_to_pb():
     from google.cloud.bigtable.row_filters import CellsRowOffsetFilter
 
@@ -997,6 +1173,17 @@ def test_cells_row_offset_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_cells_row_offset_filter___repr__():
+    from google.cloud.bigtable.row_filters import CellsRowOffsetFilter
+
+    num_cells = 76
+    row_filter = CellsRowOffsetFilter(num_cells)
+    expected = "CellsRowOffsetFilter(num_cells={})".format(num_cells)
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_cells_row_limit_filter_to_pb():
@@ -1021,6 +1208,17 @@ def test_cells_row_limit_filter_to_dict():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_cells_row_limit_filter___repr__():
+    from google.cloud.bigtable.row_filters import CellsRowLimitFilter
+
+    num_cells = 189
+    row_filter = CellsRowLimitFilter(num_cells)
+    expected = "CellsRowLimitFilter(num_cells={})".format(num_cells)
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_cells_column_limit_filter_to_pb():
     from google.cloud.bigtable.row_filters import CellsColumnLimitFilter
 
@@ -1043,6 +1241,17 @@ def test_cells_column_limit_filter_to_dict():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_cells_column_limit_filter___repr__():
+    from google.cloud.bigtable.row_filters import CellsColumnLimitFilter
+
+    num_cells = 10
+    row_filter = CellsColumnLimitFilter(num_cells)
+    expected = "CellsColumnLimitFilter(num_cells={})".format(num_cells)
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_strip_value_transformer_filter_to_pb():
     from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 
@@ -1063,6 +1272,17 @@ def test_strip_value_transformer_filter_to_dict():
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_strip_value_transformer_filter___repr__():
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    flag = True
+    row_filter = StripValueTransformerFilter(flag)
+    expected = "StripValueTransformerFilter(flag={})".format(flag)
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
 
 
 def test_apply_label_filter_constructor():
@@ -1123,6 +1343,17 @@ def test_apply_label_filter_to_dict():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_apply_label_filter___repr__():
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    label = "label"
+    row_filter = ApplyLabelFilter(label)
+    expected = "ApplyLabelFilter(label={})".format(label)
+    assert repr(row_filter) == expected
+    assert repr(row_filter) == str(row_filter)
+    assert eval(repr(row_filter)) == row_filter
+
+
 def test_filter_combination_constructor_defaults():
     from google.cloud.bigtable.row_filters import _FilterCombination
 
@@ -1164,6 +1395,64 @@ def test_filter_combination___ne__():
     row_filter1 = _FilterCombination(filters=filters)
     row_filter2 = _FilterCombination(filters=other_filters)
     assert row_filter1 != row_filter2
+
+
+def test_filter_combination_len():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+
+    filters = [object(), object()]
+    row_filter = _FilterCombination(filters=filters)
+    assert len(row_filter) == len(filters)
+
+
+def test_filter_combination_iter():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+
+    filters = [object(), object()]
+    row_filter = _FilterCombination(filters=filters)
+    assert list(iter(row_filter)) == filters
+    for filter_, expected in zip(row_filter, filters):
+        assert filter_ is expected
+
+
+def test_filter_combination___getitem__():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+
+    filters = [object(), object()]
+    row_filter = _FilterCombination(filters=filters)
+    row_filter[0] is filters[0]
+    row_filter[1] is filters[1]
+    with pytest.raises(IndexError):
+        row_filter[2]
+    row_filter[:] is filters[:]
+
+
+def test_filter_combination___repr__():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.row_filters import BlockAllFilter
+
+    filters = [BlockAllFilter(False), BlockAllFilter(True)]
+    row_filter = _FilterCombination(filters=filters)
+    expected = "_FilterCombination(filters={})".format(filters)
+    assert repr(row_filter) == expected
+    assert eval(repr(row_filter)) == row_filter
+
+
+def test_filter_combination___str__():
+    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.row_filters import PassAllFilter
+    from google.cloud.bigtable.row_filters import RowKeyRegexFilter
+
+    filters = [PassAllFilter(True), PassAllFilter(False)]
+    row_filter = _FilterCombination(filters=filters)
+    expected = "_FilterCombination([\n    PassAllFilter(flag=True),\n    PassAllFilter(flag=False),\n])"
+    assert str(row_filter) == expected
+    # test with nesting
+    filters = [PassAllFilter(True), _FilterCombination(filters=filters)]
+    filters = [RowKeyRegexFilter("foo"), _FilterCombination(filters=filters)]
+    row_filter = _FilterCombination(filters=filters)
+    expected = "_FilterCombination([\n    RowKeyRegexFilter(regex=b'foo'),\n    _FilterCombination([\n        PassAllFilter(flag=True),\n        _FilterCombination([\n            PassAllFilter(flag=True),\n            PassAllFilter(flag=False),\n        ]),\n    ]),\n])"
+    assert str(row_filter) == expected
 
 
 def test_row_filter_chain_to_pb():
@@ -1257,6 +1546,37 @@ def test_row_filter_chain_to_dict_nested():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
+def test_row_filter_chain___repr__():
+    from google.cloud.bigtable.row_filters import RowFilterChain
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+
+    row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
+    expected = f"RowFilterChain(filters={[row_filter1, row_filter2]})"
+    assert repr(row_filter3) == expected
+    assert eval(repr(row_filter3)) == row_filter3
+
+
+def test_row_filter_chain___str__():
+    from google.cloud.bigtable.row_filters import RowFilterChain
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+
+    row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
+    expected = "RowFilterChain([\n    StripValueTransformerFilter(flag=True),\n    RowSampleFilter(sample=0.25),\n])"
+    assert str(row_filter3) == expected
+    # test nested
+    row_filter4 = RowFilterChain(filters=[row_filter3])
+    expected = "RowFilterChain([\n    RowFilterChain([\n        StripValueTransformerFilter(flag=True),\n        RowSampleFilter(sample=0.25),\n    ]),\n])"
+    assert str(row_filter4) == expected
+
+
 def test_row_filter_union_to_pb():
     from google.cloud.bigtable.row_filters import RowFilterUnion
     from google.cloud.bigtable.row_filters import RowSampleFilter
@@ -1346,6 +1666,37 @@ def test_row_filter_union_to_dict_nested():
     assert filter_dict == expected_dict
     expected_pb_value = row_filter5._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_row_filter_union___repr__():
+    from google.cloud.bigtable.row_filters import RowFilterUnion
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+
+    row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
+    expected = "RowFilterUnion(filters=[StripValueTransformerFilter(flag=True), RowSampleFilter(sample=0.25)])"
+    assert repr(row_filter3) == expected
+    assert eval(repr(row_filter3)) == row_filter3
+
+
+def test_row_filter_union___str__():
+    from google.cloud.bigtable.row_filters import RowFilterUnion
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+
+    row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
+    expected = "RowFilterUnion([\n    StripValueTransformerFilter(flag=True),\n    RowSampleFilter(sample=0.25),\n])"
+    assert str(row_filter3) == expected
+    # test nested
+    row_filter4 = RowFilterUnion(filters=[row_filter3])
+    expected = "RowFilterUnion([\n    RowFilterUnion([\n        StripValueTransformerFilter(flag=True),\n        RowSampleFilter(sample=0.25),\n    ]),\n])"
+    assert str(row_filter4) == expected
 
 
 def test_conditional_row_filter_constructor():
@@ -1563,6 +1914,48 @@ def test_conditional_row_filter_to_dict_false_only():
     assert filter_dict == expected_dict
     expected_pb_value = row_filter3._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+
+
+def test_conditional_row_filter___repr__():
+    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+    row_filter3 = ConditionalRowFilter(row_filter1, true_filter=row_filter2)
+    expected = (
+        "ConditionalRowFilter(predicate_filter=StripValueTransformerFilter("
+        "flag=True), true_filter=RowSampleFilter(sample=0.25), false_filter=None)"
+    )
+    assert repr(row_filter3) == expected
+    assert eval(repr(row_filter3)) == row_filter3
+    # test nested
+    row_filter4 = ConditionalRowFilter(row_filter3, true_filter=row_filter2)
+    expected = "ConditionalRowFilter(predicate_filter=ConditionalRowFilter(predicate_filter=StripValueTransformerFilter(flag=True), true_filter=RowSampleFilter(sample=0.25), false_filter=None), true_filter=RowSampleFilter(sample=0.25), false_filter=None)"
+    assert repr(row_filter4) == expected
+    assert eval(repr(row_filter4)) == row_filter4
+
+
+def test_conditional_row_filter___str__():
+    from google.cloud.bigtable.row_filters import ConditionalRowFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowFilterUnion
+    from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+
+    row_filter1 = StripValueTransformerFilter(True)
+    row_filter2 = RowSampleFilter(0.25)
+    row_filter3 = ConditionalRowFilter(row_filter1, true_filter=row_filter2)
+    expected = "ConditionalRowFilter(\n    predicate_filter=StripValueTransformerFilter(flag=True),\n    true_filter=RowSampleFilter(sample=0.25),\n)"
+    assert str(row_filter3) == expected
+    # test nested
+    row_filter4 = ConditionalRowFilter(
+        row_filter3,
+        true_filter=row_filter2,
+        false_filter=RowFilterUnion([row_filter1, row_filter2]),
+    )
+    expected = "ConditionalRowFilter(\n    predicate_filter=ConditionalRowFilter(\n        predicate_filter=StripValueTransformerFilter(flag=True),\n        true_filter=RowSampleFilter(sample=0.25),\n    ),\n    true_filter=RowSampleFilter(sample=0.25),\n    false_filter=RowFilterUnion([\n        StripValueTransformerFilter(flag=True),\n        RowSampleFilter(sample=0.25),\n    ]),\n)"
+    assert str(row_filter4) == expected
 
 
 def _ColumnRangePB(*args, **kw):

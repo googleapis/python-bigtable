@@ -334,7 +334,7 @@ class TimestampRangeFilter(RowFilter):
         return {"timestamp_range_filter": self.range_.to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(start={self.range_.start}, end={self.range_.end})"
+        return f"{self.__class__.__name__}(start={self.range_.start!r}, end={self.range_.end!r})"
 
 
 class ColumnRangeFilter(RowFilter):
@@ -451,7 +451,7 @@ class ColumnRangeFilter(RowFilter):
         return {"column_range_filter": self.range_to_dict()}
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(family_id={self.family_id}, start_qualifier={self.start_qualifier!r}, end_qualifier={self.end_qualifier!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        return f"{self.__class__.__name__}(family_id='{self.family_id}', start_qualifier={self.start_qualifier!r}, end_qualifier={self.end_qualifier!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 
 class ValueRegexFilter(_RegexFilter):
@@ -767,7 +767,7 @@ class _FilterCombination(RowFilter, Sequence[RowFilter]):
         return self.filters[index]
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(filters={[repr(f) for f in self.filters]})"
+        return f"{self.__class__.__name__}(filters={self.filters})"
 
     def __str__(self) -> str:
         """
@@ -778,7 +778,7 @@ class _FilterCombination(RowFilter, Sequence[RowFilter]):
         output = [f"{self.__class__.__name__}(["]
         for filter_ in self.filters:
             filter_lines = f"{filter_},".splitlines()
-            output.extend([f"  {line}" for line in filter_lines])
+            output.extend([f"    {line}" for line in filter_lines])
         output.append("])")
         return "\n".join(output)
 
@@ -925,6 +925,7 @@ class ConditionalRowFilter(RowFilter):
             if filter_ is None:
                 continue
             # add the new filter set, adding indentations for readability
-            output.append(f"  {filter_type}={filter_!r},")
+            filter_lines = f"{filter_type}={filter_},".splitlines()
+            output.extend(f"    {line}" for line in filter_lines)
         output.append(")")
         return "\n".join(output)
