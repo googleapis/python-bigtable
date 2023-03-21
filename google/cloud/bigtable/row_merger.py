@@ -14,7 +14,7 @@
 #
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable.row import Row, DirectRow, InvalidChunk, PartialRowData, Cell
+from google.cloud.bigtable.row_response import RowResponse, CellResponse
 from google.protobuf.wrappers_pb2 import StringValue, BytesValue
 from collections import deque, namedtuple
 from datetime import datetime
@@ -22,10 +22,13 @@ import asyncio
 
 from typing import cast, Deque, Optional, List, Dict, Set, Any, AsyncIterable, AsyncGenerator, Awaitable
 
+class InvalidChunk(RuntimeError):
+    """Exception raised to invalid chunk data from back-end."""
+
 class RowMerger:
     def __init__(self):
         self.state_machine: StateMachine = StateMachine()
-        self.cache: asyncio.Queue[PartialRowData] = asyncio.Queue()
+        self.cache: asyncio.Queue[RowResponse] = asyncio.Queue()
 
     def push(self, new_data: ReadRowsResponse):
         if not isinstance(new_data, ReadRowsResponse):
@@ -55,7 +58,7 @@ class RowMerger:
         """
         return self.state_machine.is_row_in_progress()
 
-    def pop(self) -> PartialRowData:
+    def pop(self) -> RowResponse:
         """
         Return a row out of the cache of waiting rows
         """
@@ -120,7 +123,7 @@ class StateMachine:
         self.last_seen_row_key: Optional[bytes] = None
         # self.expected_cell_size:int = 0
         # self.remaining_cell_bytes:int = 0
-        self.complete_row: Optional[PartialRowData] = None
+        self.complete_row: Optional[RowResponse] = None
         # self.num_cells_in_row:int = 0
         self.adapter.reset()
 
@@ -145,7 +148,7 @@ class StateMachine:
             and self.complete_row is not None
         )
 
-    def consume_row(self) -> PartialRowData:
+    def consume_row(self) -> RowResponse:
         """
         Returns the last completed row and transitions to a new row
         """
@@ -359,11 +362,11 @@ class RowBuilder:
         """called when the current in progress row should be dropped"""
         self.current_key: Optional[bytes] = None
         self.working_cell: Optional[CellData] = None
-        self.previous_cells: List[CellData] = []
+        self.completed_cells: List[CellResponse] = []
 
-    def create_scan_marker_row(self, key: bytes) -> PartialRowData:
+    def create_scan_marker_row(self, key: bytes) -> RowResponse:
         """creates a special row to mark server progress before any data is received"""
-        return PartialRowData(key)
+        return RowResponse(key, [])
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
@@ -392,22 +395,13 @@ class RowBuilder:
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
         assert isinstance(self.working_cell, CellData)
-        self.previous_cells.append(self.working_cell)
+        self.completed_cells.append(CellResponse(*self.working_cell))
         self.working_cell = None
 
-    def finish_row(self) -> PartialRowData:
+    def finish_row(self) -> RowResponse:
         """called once per row to signal that all cells have been processed (unless reset)"""
         cell_data:Dict[Any,Any] = {}
-        for cell in self.previous_cells:
-            # TODO: handle timezones?
-            # should probably make a new row class
-            # timestamp = datetime.fromtimestamp(cell.timestamp / 1e6)
-            family_dict = cell_data.get(cell.family, {})
-            qualifier_arr = family_dict.get(cell.qualifier, [])
-            qualifier_arr.append(Cell(bytes(cell.value), cell.timestamp, cell.labels))
-            family_dict[cell.qualifier] = qualifier_arr
-            cell_data[cell.family] = family_dict
-        new_row = PartialRowData(self.current_key)
+        new_row = RowResponse(self.current_key, self.completed_cells)
         new_row._cells = cell_data
         self.reset()
         return new_row
