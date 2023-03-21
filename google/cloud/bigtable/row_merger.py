@@ -25,7 +25,7 @@ from typing import (
     Set,
     Any,
     AsyncIterable,
-    Awaitable,
+    AsyncGenerator,
     Tuple,
 )
 
@@ -73,51 +73,36 @@ class RowMerger:
         """
         return self.cache.get_nowait()
 
+    async def merge_row_stream(
+        self, request_generator: AsyncIterable[ReadRowsResponse]
+    ) -> AsyncGenerator[RowResponse, None]:
+        """
+        Consume chunks from a ReadRowsResponse stream into a set of Rows
+        """
+        # read from stream and push into state machine
+        async def _consume_stream(self, request_gen: AsyncIterable[ReadRowsResponse]):
+            async for request in request_gen:
+                self.push(request)
+            if self.has_partial_frame():
+                # read rows is complete, but there's still data in the merger
+                raise RuntimeError("read_rows completed with partial state remaining")
 
-class RowMergerIterator(RowMerger):
-    def __init__(self, request_generator: Awaitable[AsyncIterable[ReadRowsResponse]]):
-        super().__init__()
-        self.task = asyncio.create_task(self._consume_stream(request_generator))
-
-    def __aiter__(self):
-        # mark self as async iterator
-        return self
-
-    async def __anext__(self):
-        # if there are waiting items, return one
-        if not self.cache.empty():
-            return self.cache.get_nowait()
-        # no waiting tasks
-        # wait for either the task to finish, or a new item to enter the cache
-        get_from_cache = asyncio.create_task(self.cache.get())
-        await asyncio.wait(
-            [self.task, get_from_cache], return_when=asyncio.FIRST_COMPLETED
-        )
-        # if a new item was put in the cache, return that
-        if get_from_cache.done():
-            return get_from_cache.result()
-        # if the task was complete with an exception, raise the exception
-        elif self.task.done():
-            if self.task.exception():
-                raise cast(Exception, self.task.exception())
+        stream_task = asyncio.create_task(_consume_stream(self, request_generator))
+        # read from state machine and push into cache
+        while not stream_task.done() or not self.cache.empty():
+            if not self.cache.empty():
+                yield self.cache.get_nowait()
             else:
-                # task completed successfully
-                raise StopAsyncIteration
-        else:
-            raise RuntimeError("expected either new item or stream completion")
-
-    async def _consume_stream(self, request_gen: AsyncIterable[ReadRowsResponse]):
-        """
-        Coroutine to consume ReadRowsResponses from the backend,
-        run them through the state machine, and push them into the queue for later
-        consumption
-        """
-        async for request in request_gen:
-            self.push(request)
-        if self.has_partial_frame():
-            # read rows is complete, but there's still data in the merger
-            # TODO: change type
-            raise RuntimeError("read_rows completed with partial state remaining")
+                # wait for either the stream to finish, or a new item to enter the cache
+                get_from_cache = asyncio.create_task(self.cache.get())
+                await asyncio.wait(
+                    [stream_task, get_from_cache], return_when=asyncio.FIRST_COMPLETED
+                )
+                if get_from_cache.done():
+                    yield get_from_cache.result()
+        # stream and cache are complete. if there's an exception, raise it
+        if stream_task.exception():
+            raise cast(Exception, stream_task.exception())
 
 
 class StateMachine:
