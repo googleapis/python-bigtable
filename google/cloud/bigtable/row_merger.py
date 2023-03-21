@@ -12,23 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable.row_response import RowResponse, CellResponse
-from google.protobuf.wrappers_pb2 import StringValue, BytesValue
-from collections import deque, namedtuple
-from datetime import datetime
 import asyncio
 
 from typing import (
     cast,
-    Deque,
     List,
     Dict,
     Set,
     Any,
     AsyncIterable,
-    AsyncGenerator,
     Awaitable,
     Tuple,
 )
@@ -284,7 +280,6 @@ class AWAITING_NEW_CELL(State):
 
         self._owner.adapter.start_cell(
             **self._owner.last_cell_data,
-            row_key=self._owner.adapter.current_key,
             size=expected_cell_size,
         )
         self._owner.adapter.cell_value(chunk.value)
@@ -372,7 +367,7 @@ class RowBuilder:
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
         self.current_key: bytes | None = None
-        self.working_cell: Tuple(CellResponse, bytearray) | None = None
+        self.working_cell: Tuple[CellResponse, bytearray] | None = None
         self.completed_cells: List[CellResponse] = []
 
     def create_scan_marker_row(self, key: bytes) -> RowResponse:
@@ -385,7 +380,6 @@ class RowBuilder:
 
     def start_cell(
         self,
-        row_key: bytes,
         family: str,
         qualifier: bytes,
         timestamp: int,
@@ -397,9 +391,11 @@ class RowBuilder:
             raise InvalidChunk("missing family for a new cell")
         if qualifier is None:
             raise InvalidChunk("missing qualifier for a new cell")
+        if self.current_key is None:
+            raise InvalidChunk("no row in progress")
         working_value = bytearray(size)
         self.working_cell = (
-            CellResponse(b"", row_key, family, qualifier, labels, timestamp),
+            CellResponse(b"", self.current_key, family, qualifier, labels, timestamp),
             working_value,
         )
 
@@ -411,15 +407,19 @@ class RowBuilder:
 
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
-        if self.working_cell.value is None:
-            raise InvalidChunk("cell value was never set")
+        if self.working_cell is None:
+            raise InvalidChunk("cell value received before start_cell")
         complete_cell, complete_value = self.working_cell
+        if not complete_value:
+            raise InvalidChunk("cell value was never set")
         complete_cell.value = bytes(complete_value)
         self.completed_cells.append(complete_cell)
         self.working_cell = None
 
     def finish_row(self) -> RowResponse:
         """called once per row to signal that all cells have been processed (unless reset)"""
+        if self.current_key is None:
+            raise InvalidChunk("no row in progress")
         new_row = RowResponse(self.current_key, self.completed_cells)
         self.reset()
         return new_row
