@@ -19,6 +19,7 @@ from typing import Any, AsyncIterable, TYPE_CHECKING
 
 from google.cloud.client import ClientWithProject
 
+from google.cloud.bigtable.row_merger import RowMerger
 
 import google.auth.credentials
 
@@ -154,7 +155,16 @@ class Table:
                 from any retries that failed
             - IdleTimeout: if generator was abandoned
         """
-        raise NotImplementedError
+        request = query.to_dict() if isinstance(query, ReadRowsQuery) else query
+        request["table_name"] = self._gapic_client.table_name(self.table_id)
+        gapic_stream_handler = await self._gapic_client.read_rows(
+            request=request,
+            app_profile_id=self.app_profile_id,
+            timeout=operation_timeout,
+        )
+        merger = RowMerger()
+        async for row in merger.merge_row_stream(gapic_stream_handler):
+            yield row
 
     async def read_rows(
         self,

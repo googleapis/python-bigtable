@@ -1,6 +1,5 @@
 import os
 from itertools import zip_longest
-from typing import List
 
 import proto
 import pytest
@@ -9,6 +8,7 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 
 from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk
 from google.cloud.bigtable.row_response import RowResponse
+
 
 # TODO: autogenerate protos from
 #  https://github.com/googleapis/conformance-tests/blob/main/bigtable/v2/proto/google/cloud/conformance/bigtable/v2/tests.proto
@@ -75,7 +75,7 @@ def test_scenario(test_case: ReadRowsTest):
                 results.extend(extract_results_from_row(row))
         if merger.has_partial_frame():
             raise InvalidChunk("merger has partial frame after reading")
-    except InvalidChunk as e:
+    except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
     for expected, actual in zip_longest(test_case.results, results):
         assert actual == expected
