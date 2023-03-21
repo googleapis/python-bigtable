@@ -20,10 +20,23 @@ from collections import deque, namedtuple
 from datetime import datetime
 import asyncio
 
-from typing import cast, Deque, Optional, List, Dict, Set, Any, AsyncIterable, AsyncGenerator, Awaitable
+from typing import (
+    cast,
+    Deque,
+    Optional,
+    List,
+    Dict,
+    Set,
+    Any,
+    AsyncIterable,
+    AsyncGenerator,
+    Awaitable,
+)
+
 
 class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
+
 
 class RowMerger:
     def __init__(self):
@@ -32,7 +45,7 @@ class RowMerger:
 
     def push(self, new_data: ReadRowsResponse):
         if not isinstance(new_data, ReadRowsResponse):
-            new_data = ReadRowsResponse(new_data)  #type: ignore
+            new_data = ReadRowsResponse(new_data)  # type: ignore
         last_scanned = new_data.last_scanned_row_key
         # if the server sends a scan heartbeat, notify the state machine.
         if last_scanned:
@@ -64,8 +77,9 @@ class RowMerger:
         """
         return self.cache.get_nowait()
 
+
 class RowMergerIterator(RowMerger):
-    def __init__(self, request_generator:Awaitable[AsyncIterable[ReadRowsResponse]]):
+    def __init__(self, request_generator: Awaitable[AsyncIterable[ReadRowsResponse]]):
         super().__init__()
         self.task = asyncio.create_task(self._consume_stream(request_generator))
 
@@ -81,8 +95,8 @@ class RowMergerIterator(RowMerger):
         # wait for either the task to finish, or a new item to enter the cache
         get_from_cache = asyncio.create_task(self.cache.get())
         await asyncio.wait(
-            [self.task, get_from_cache],
-            return_when=asyncio.FIRST_COMPLETED)
+            [self.task, get_from_cache], return_when=asyncio.FIRST_COMPLETED
+        )
         # if a new item was put in the cache, return that
         if get_from_cache.done():
             return get_from_cache.result()
@@ -96,9 +110,9 @@ class RowMergerIterator(RowMerger):
         else:
             raise RuntimeError("expected either new item or stream completion")
 
-    async def _consume_stream(self, request_gen:AsyncIterable[ReadRowsResponse]):
+    async def _consume_stream(self, request_gen: AsyncIterable[ReadRowsResponse]):
         """
-        Coroutine to consume ReadRowsResponses from the backend, 
+        Coroutine to consume ReadRowsResponses from the backend,
         run them through the state machine, and push them into the queue for later
         consumption
         """
@@ -108,6 +122,7 @@ class RowMergerIterator(RowMerger):
             # read rows is complete, but there's still data in the merger
             # TODO: change type
             raise RuntimeError("read_rows completed with partial state remaining")
+
 
 class StateMachine:
     def __init__(self):
@@ -269,7 +284,9 @@ class AWAITING_NEW_CELL(State):
             raise InvalidChunk("row key changed mid row")
 
         self._owner.adapter.start_cell(
-            **self._owner.last_cell_data, size=expected_cell_size
+            **self._owner.last_cell_data,
+            row_key=self._owner.adapter.current_key,
+            size=expected_cell_size,
         )
         self._owner.adapter.cell_value(chunk.value)
         # transition to new state
@@ -333,11 +350,6 @@ class AWAITING_ROW_CONSUME(State):
         raise RuntimeError("Skipping completed row")
 
 
-CellData = namedtuple(
-    "CellData", ["family", "qualifier", "timestamp", "labels", "value"]
-)
-
-
 class RowBuilder:
     """
     called by state machine to build rows
@@ -361,7 +373,7 @@ class RowBuilder:
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
         self.current_key: Optional[bytes] = None
-        self.working_cell: Optional[CellData] = None
+        self.working_cell: Optional[Tuple(CellResponse, bytearray)] = None
         self.completed_cells: List[CellResponse] = []
 
     def create_scan_marker_row(self, key: bytes) -> RowResponse:
@@ -374,6 +386,7 @@ class RowBuilder:
 
     def start_cell(
         self,
+        row_key: bytes,
         family: str,
         qualifier: bytes,
         timestamp: int,
@@ -385,23 +398,29 @@ class RowBuilder:
             raise InvalidChunk("missing family for a new cell")
         if qualifier is None:
             raise InvalidChunk("missing qualifier for a new cell")
-        self.working_cell = CellData(family, qualifier, timestamp, labels, bytearray())
+        working_value = bytearray(size)
+        self.working_cell = (
+            CellResponse(b"", row_key, family, qualifier, labels, timestamp),
+            working_value,
+        )
 
     def cell_value(self, value: bytes) -> None:
         """called multiple times per cell to concatenate the cell value"""
-        assert isinstance(self.working_cell, CellData)
-        self.working_cell.value.extend(value)
+        if self.working_cell is None:
+            raise InvalidChunk("cell value received before start_cell")
+        self.working_cell[1].extend(value)
 
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
-        assert isinstance(self.working_cell, CellData)
-        self.completed_cells.append(CellResponse(*self.working_cell))
+        if self.working_cell.value is None:
+            raise InvalidChunk("cell value was never set")
+        complete_cell, complete_value = self.working_cell
+        complete_cell.value = bytes(complete_value)
+        self.completed_cells.append(complete_cell)
         self.working_cell = None
 
     def finish_row(self) -> RowResponse:
         """called once per row to signal that all cells have been processed (unless reset)"""
-        cell_data:Dict[Any,Any] = {}
         new_row = RowResponse(self.current_key, self.completed_cells)
-        new_row._cells = cell_data
         self.reset()
         return new_row
