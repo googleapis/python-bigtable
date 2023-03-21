@@ -23,7 +23,6 @@ import asyncio
 from typing import (
     cast,
     Deque,
-    Optional,
     List,
     Dict,
     Set,
@@ -31,6 +30,7 @@ from typing import (
     AsyncIterable,
     AsyncGenerator,
     Awaitable,
+    Tuple,
 )
 
 
@@ -130,29 +130,27 @@ class StateMachine:
         self.adapter: "RowBuilder" = RowBuilder()
         self.reset()
 
-    def reset(self):
-        self.current_state: Optional[State] = AWAITING_NEW_ROW(self)
+    def reset(self) -> None:
+        self.current_state: State = AWAITING_NEW_ROW(self)
         self.last_cell_data: Dict[str, Any] = {}
         # represents either the last row emitted, or the last_scanned_key sent from backend
         # all future rows should have keys > last_seen_row_key
-        self.last_seen_row_key: Optional[bytes] = None
+        self.last_seen_row_key: bytes | None = None
         # self.expected_cell_size:int = 0
         # self.remaining_cell_bytes:int = 0
-        self.complete_row: Optional[RowResponse] = None
+        self.complete_row: RowResponse | None = None
         # self.num_cells_in_row:int = 0
         self.adapter.reset()
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes):
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> None:
         if self.last_seen_row_key and self.last_seen_row_key >= last_scanned_row_key:
             raise InvalidChunk("Last scanned row key is out of order")
         self.last_scanned_row_key = last_scanned_row_key
-        assert isinstance(self.current_state, State)
         self.current_state = self.current_state.handle_last_scanned_row(
             last_scanned_row_key
         )
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk):
-        assert isinstance(self.current_state, State)
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> None:
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
         self.current_state = self.current_state.handle_chunk(chunk)
@@ -208,7 +206,8 @@ class StateMachine:
         if chunk.value:
             raise InvalidChunk("Reset chunk has a value")
         self.reset()
-        assert isinstance(self.current_state, AWAITING_NEW_ROW)
+        if not isinstance(self.current_state, AWAITING_NEW_ROW):
+            raise RuntimeError("Failed to reset state machine")
         return self.current_state
 
 
@@ -372,8 +371,8 @@ class RowBuilder:
 
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
-        self.current_key: Optional[bytes] = None
-        self.working_cell: Optional[Tuple(CellResponse, bytearray)] = None
+        self.current_key: bytes | None = None
+        self.working_cell: Tuple(CellResponse, bytearray) | None = None
         self.completed_cells: List[CellResponse] = []
 
     def create_scan_marker_row(self, key: bytes) -> RowResponse:
