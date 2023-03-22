@@ -35,6 +35,14 @@ class RowFilter(object):
         This class is a do-nothing base class for all row filters.
     """
 
+    def to_dict(self):
+        """Convert the filter to a dictionary.
+
+        :rtype: dict
+        :returns: The dictionary representation of this filter.
+        """
+        raise NotImplementedError
+
 
 class _BoolFilter(RowFilter):
     """Row filter that uses a boolean flag.
