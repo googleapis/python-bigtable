@@ -16,6 +16,22 @@
 import pytest
 
 
+def test_abstract_class_constructors():
+    from google.cloud.bigtable.row_filters import RowFilter
+    from google.cloud.bigtable.row_filters import _BoolFilter
+    from google.cloud.bigtable.row_filters import _FilterCombination
+    from google.cloud.bigtable.row_filters import _CellCountFilter
+
+    with pytest.raises(TypeError):
+        RowFilter()
+    with pytest.raises(TypeError):
+        _BoolFilter(False)
+    with pytest.raises(TypeError):
+        _FilterCombination([])
+    with pytest.raises(TypeError):
+        _CellCountFilter(0)
+
+
 def test_bool_filter_constructor():
     for FilterType in _get_bool_filters():
         flag = True
