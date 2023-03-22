@@ -54,14 +54,14 @@ class RowMerger:
             # if the server sends a scan heartbeat, notify the state machine.
             if last_scanned:
                 self.state_machine.handle_last_scanned_row(last_scanned)
-                if self.state_machine.has_complete_row():
+                if self.state_machine.row_ready():
                     yield self.state_machine.consume_row()
             # process new chunks through the state machine.
             for chunk in row_response.chunks:
                 self.state_machine.handle_chunk(chunk)
-                if self.state_machine.has_complete_row():
+                if self.state_machine.row_ready():
                     yield self.state_machine.consume_row()
-        if self.state_machine.is_row_in_progress():
+        if not self.state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise RuntimeError("read_rows completed with partial state remaining")
 
@@ -111,6 +111,36 @@ class StateMachine:
         # self.num_cells_in_row:int = 0
         self.adapter.reset()
 
+    def row_ready(self) -> bool:
+        """
+        Returns True if the state machine has a complete row ready to consume
+        """
+        return (
+            isinstance(self.current_state, AWAITING_ROW_CONSUME)
+            and self.complete_row is not None
+        )
+
+    def consume_row(self) -> RowResponse:
+        """
+        Returns the last completed row and transitions to a new row
+        """
+        if not self.row_ready() or self.complete_row is None:
+            raise RuntimeError("No row to consume")
+        row = self.complete_row
+        self.reset()
+        self.completed_row_keys.add(row.row_key)
+        return row
+
+    def is_terminal_state(self) -> bool:
+        """
+        Returns true if the state machine is in a terminal state (AWAITING_NEW_ROW)
+
+        At the end of the read_rows stream, if the state machine is not in a terminal
+        state, an exception should be raised
+        """
+        return isinstance(self.current_state, AWAITING_NEW_ROW)
+
+
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> None:
         """
         Called by RowMerger to notify the state machine of a scan heartbeat
@@ -134,34 +164,6 @@ class StateMachine:
             self.current_state = self.current_state.handle_chunk(chunk)
         if chunk.commit_row:
             self._handle_commit_row(chunk)
-
-    def has_complete_row(self) -> bool:
-        """
-        Returns True if the state machine has a complete row ready to consume
-        """
-        return (
-            isinstance(self.current_state, AWAITING_ROW_CONSUME)
-            and self.complete_row is not None
-        )
-
-    def consume_row(self) -> RowResponse:
-        """
-        Returns the last completed row and transitions to a new row
-        """
-        if not self.has_complete_row() or self.complete_row is None:
-            raise RuntimeError("No row to consume")
-        row = self.complete_row
-        self.reset()
-        self.completed_row_keys.add(row.row_key)
-        return row
-
-    def is_row_in_progress(self) -> bool:
-        """
-        Returns true if the state machine is in the middle of processing a row
-
-        At the end of the read_rows stream, is_row_in_progress() should return false
-        """
-        return not isinstance(self.current_state, AWAITING_NEW_ROW)
 
     def _handle_commit_row(self) -> "State":
         """
@@ -215,6 +217,7 @@ class State(ABC):
     @abstractmethod
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         pass
+
 
 class AWAITING_NEW_ROW(State):
     """
@@ -308,7 +311,7 @@ class AWAITING_CELL_VALUE(State):
             raise InvalidChunk("In progress cell had a timestamp")
         if chunk.labels:
             raise InvalidChunk("In progress cell had labels")
-        is_last = chunk.value_size == 0
+        is_last = (chunk.value_size == 0)
         self._owner.adapter.cell_value(chunk.value)
         # transition to new state
         if not is_last:
