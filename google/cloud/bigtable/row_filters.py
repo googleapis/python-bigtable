@@ -612,7 +612,7 @@ class ValueRangeFilter(RowFilter):
         return f"{self.__class__.__name__}(start_value={self.start_value!r}, end_value={self.end_value!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
 
 
-class _CellCountFilter(RowFilter):
+class _CellCountFilter(RowFilter, ABC):
     """Row filter that uses an integer count of cells.
 
     The cell count is used as an offset or a limit for the number
