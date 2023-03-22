@@ -112,6 +112,9 @@ class StateMachine:
         self.adapter.reset()
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> None:
+        """
+        Called by RowMerger to notify the state machine of a scan heartbeat
+        """
         if self.last_seen_row_key and self.last_seen_row_key >= last_scanned_row_key:
             raise InvalidChunk("Last scanned row key is out of order")
         self.last_scanned_row_key = last_scanned_row_key
@@ -120,6 +123,9 @@ class StateMachine:
         )
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> None:
+        """
+        Called by RowMerger to process a new chunk
+        """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
         self.current_state = self.current_state.handle_chunk(chunk)
