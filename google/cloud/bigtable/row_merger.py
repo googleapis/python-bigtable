@@ -54,25 +54,6 @@ class RowMerger:
             if self.state_machine.has_complete_row():
                 self.cache.put_nowait(self.state_machine.consume_row())
 
-    def has_full_frame(self) -> bool:
-        """
-        Indicates whether there is a row ready to consume
-        """
-        return not self.cache.empty()
-
-    def has_partial_frame(self) -> bool:
-        """
-        Returns true if the merger still has ongoing state
-        By the end of the process, there should be no partial state
-        """
-        return self.state_machine.is_row_in_progress()
-
-    def pop(self) -> RowResponse:
-        """
-        Return a row out of the cache of waiting rows
-        """
-        return self.cache.get_nowait()
-
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
     ) -> AsyncGenerator[RowResponse, None]:
@@ -83,7 +64,7 @@ class RowMerger:
         async def _consume_stream(self, request_gen: AsyncIterable[ReadRowsResponse]):
             async for request in request_gen:
                 self.push(request)
-            if self.has_partial_frame():
+            if self.state_machine.is_row_in_progress():
                 # read rows is complete, but there's still data in the merger
                 raise RuntimeError("read_rows completed with partial state remaining")
 
