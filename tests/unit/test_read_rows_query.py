@@ -50,8 +50,9 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertEqual(query.limit, 10)
 
     def test_ctor_invalid_limit(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as exc:
             self._make_one(limit=-1)
+        self.assertEqual(exc.exception.args, ("limit must be >= 0",))
 
     def test_set_filter(self):
         from google.cloud.bigtable.row_filters import RowFilterChain
@@ -70,8 +71,11 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertEqual(result, query)
         query.filter = RowFilterChain()
         self.assertEqual(query.filter, RowFilterChain())
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as exc:
             query.filter = 1
+        self.assertEqual(
+            exc.exception.args, ("row_filter must be a RowFilter or dict",)
+        )
 
     def test_set_filter_dict(self):
         from google.cloud.bigtable.row_filters import RowSampleFilter
@@ -103,10 +107,12 @@ class TestReadRowsQuery(unittest.TestCase):
         result = query.set_limit(0)
         self.assertEqual(query.limit, 0)
         self.assertEqual(result, query)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as exc:
             query.set_limit(-1)
-        with self.assertRaises(ValueError):
+        self.assertEqual(exc.exception.args, ("limit must be >= 0",))
+        with self.assertRaises(ValueError) as exc:
             query.limit = -100
+        self.assertEqual(exc.exception.args, ("limit must be >= 0",))
 
     def test_add_rows_str(self):
         query = self._make_one()
@@ -159,10 +165,12 @@ class TestReadRowsQuery(unittest.TestCase):
 
     def test_add_rows_invalid(self):
         query = self._make_one()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as exc:
             query.add_rows(1)
-        with self.assertRaises(ValueError):
+        self.assertEqual(exc.exception.args, ("row_keys must be strings or bytes",))
+        with self.assertRaises(ValueError) as exc:
             query.add_rows(["s", 0])
+        self.assertEqual(exc.exception.args, ("row_keys must be strings or bytes",))
 
     def test_duplicate_rows(self):
         # should only hold one of each input key
@@ -212,14 +220,36 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertEqual(query.row_ranges[4][0], None)
         self.assertEqual(query.row_ranges[4][1], None)
         # test with inclusive flags only
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as exc:
             query.add_range(start_is_inclusive=True, end_is_inclusive=True)
-        with self.assertRaises(ValueError):
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must not be set without start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
             query.add_range(start_is_inclusive=False, end_is_inclusive=False)
-        with self.assertRaises(ValueError):
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must not be set without start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
             query.add_range(start_is_inclusive=False)
-        with self.assertRaises(ValueError):
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must not be set without start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
             query.add_range(end_is_inclusive=True)
+        self.assertEqual(
+            exc.exception.args, ("end_is_inclusive must not be set without end_key",)
+        )
+        # test with invalid keys
+        with self.assertRaises(ValueError) as exc:
+            query.add_range(1, "2")
+        self.assertEqual(exc.exception.args, ("start_key must be a string or bytes",))
+        with self.assertRaises(ValueError) as exc:
+            query.add_range("1", 2)
+        self.assertEqual(exc.exception.args, ("end_key must be a string or bytes",))
 
     def test_to_dict_rows_default(self):
         # dictionary should be in rowset proto format

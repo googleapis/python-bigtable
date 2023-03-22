@@ -91,9 +91,7 @@ class ReadRowsQuery:
             or isinstance(row_filter, RowFilter)
             or row_filter is None
         ):
-            raise ValueError(
-                "row_filter must be a RowFilter or corresponding dict representation"
-            )
+            raise ValueError("row_filter must be a RowFilter or dict")
         self._filter = row_filter
         return self
 
@@ -144,13 +142,11 @@ class ReadRowsQuery:
         if start_is_inclusive is None:
             start_is_inclusive = True
         elif start_key is None:
-            raise ValueError(
-                "start_is_inclusive must not be included if start_key is None"
-            )
+            raise ValueError("start_is_inclusive must not be set without start_key")
         if end_is_inclusive is None:
             end_is_inclusive = False
         elif end_key is None:
-            raise ValueError("end_is_inclusive must not be included if end_key is None")
+            raise ValueError("end_is_inclusive must not be set without end_key")
         # ensure that start_key and end_key are bytes
         if isinstance(start_key, str):
             start_key = start_key.encode()
