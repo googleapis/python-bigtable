@@ -217,7 +217,7 @@ class RowResponse(Sequence["CellResponse"]):
         pass
 
     @overload
-    def __getitem__(self, index: int, /) -> CellResponse:
+    def __getitem__(self, index: int) -> CellResponse:
         # overload signature for type checking
         pass
 
