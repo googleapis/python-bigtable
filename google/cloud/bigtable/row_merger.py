@@ -41,40 +41,41 @@ class RowMerger:
         self.state_machine: StateMachine = StateMachine()
         self.cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_queue_size)
 
-    def push(self, new_data: ReadRowsResponse):
-        if not isinstance(new_data, ReadRowsResponse):
-            new_data = ReadRowsResponse(new_data)  # type: ignore
-        last_scanned = new_data.last_scanned_row_key
-        # if the server sends a scan heartbeat, notify the state machine.
-        if last_scanned:
-            self.state_machine.handle_last_scanned_row(last_scanned)
-            if self.state_machine.has_complete_row():
-                self.cache.put_nowait(self.state_machine.consume_row())
-        # process new chunks through the state machine.
-        for chunk in new_data.chunks:
-            self.state_machine.handle_chunk(chunk)
-            if self.state_machine.has_complete_row():
-                self.cache.put_nowait(self.state_machine.consume_row())
-
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
     ) -> AsyncGenerator[RowResponse, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
         """
-        # read from stream and push into state machine
-        async def _consume_stream(self, request_gen: AsyncIterable[ReadRowsResponse]):
-            async for request in request_gen:
-                self.push(request)
-            if self.state_machine.is_row_in_progress():
-                # read rows is complete, but there's still data in the merger
-                raise RuntimeError("read_rows completed with partial state remaining")
+        async for row_response in request_generator:
+            # ensure that the response is a ReadRowsResponse
+            if not isinstance(row_response, ReadRowsResponse):
+                row_response = ReadRowsResponse(row_response)
+            last_scanned = row_response.last_scanned_row_key
+            # if the server sends a scan heartbeat, notify the state machine.
+            if last_scanned:
+                self.state_machine.handle_last_scanned_row(last_scanned)
+                if self.state_machine.has_complete_row():
+                    yield self.state_machine.consume_row()
+            # process new chunks through the state machine.
+            for chunk in row_response.chunks:
+                self.state_machine.handle_chunk(chunk)
+                if self.state_machine.has_complete_row():
+                    yield self.state_machine.consume_row()
+        if self.state_machine.is_row_in_progress():
+            # read rows is complete, but there's still data in the merger
+            raise RuntimeError("read_rows completed with partial state remaining")
 
-        stream_task = asyncio.create_task(_consume_stream(self, request_generator))
-        # read from state machine and push into cache
+    async def _generator_to_cache(self, input_generator: AsyncIterable[Any]) -> None:
+        async for item in input_generator:
+            await self.cache.put(item)
+
+    async def merge_row_stream_with_cache(self, request_generator: AsyncIterable[ReadRowsResponse]) -> None:
+        stream_task = asyncio.create_task(self._generator_to_cache(self.merge_row_stream(request_generator)))
+         # read from state machine and push into cache
         while not stream_task.done() or not self.cache.empty():
             if not self.cache.empty():
-                yield self.cache.get_nowait()
+                yield await self.cache.get()
             else:
                 # wait for either the stream to finish, or a new item to enter the cache
                 get_from_cache = asyncio.create_task(self.cache.get())
@@ -86,6 +87,7 @@ class RowMerger:
         # stream and cache are complete. if there's an exception, raise it
         if stream_task.exception():
             raise cast(Exception, stream_task.exception())
+
 
 
 class StateMachine:
