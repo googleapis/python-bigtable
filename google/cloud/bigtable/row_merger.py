@@ -223,7 +223,9 @@ class AWAITING_NEW_ROW(State):
     """
     Default state
     Awaiting a chunk to start a new row
-    Exit states: any (depending on chunk)
+    Exit states:
+      - AWAITING_ROW_CONSUME: when last_scanned_row_key heartbeat is received
+      - AWAITING_NEW_CELL: when a chunk with a row_key is received
     """
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
@@ -249,7 +251,10 @@ class AWAITING_NEW_ROW(State):
 class AWAITING_NEW_CELL(State):
     """
     Represents a cell boundary witin a row
-    Exit states: any (depending on chunk)
+
+    Exit states:
+    - AWAITING_NEW_CELL: when the incoming cell is complete and ready for another
+    - AWAITING_CELL_VALUE: when the value is split across multiple chunks
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
@@ -296,7 +301,10 @@ class AWAITING_NEW_CELL(State):
 class AWAITING_CELL_VALUE(State):
     """
     State that represents a split cell's continuation
-    Exit states: any (depending on chunk)
+
+    Exit states:
+    - AWAITING_NEW_CELL: when the cell is complete
+    - AWAITING_CELL_VALUE: when additional value chunks are required
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
@@ -327,7 +335,8 @@ class AWAITING_CELL_VALUE(State):
 class AWAITING_ROW_CONSUME(State):
     """
     Represents a completed row. Prevents new rows being read until it is consumed
-    Exit states: AWAITING_NEW_ROW
+    Exit states:
+    - AWAITING_NEW_ROW: after the row is consumed
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
