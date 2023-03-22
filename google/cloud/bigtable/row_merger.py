@@ -18,6 +18,8 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable.row_response import RowResponse, CellResponse
 import asyncio
 
+from abc import ABC, abstractmethod
+
 from typing import (
     cast,
     List,
@@ -123,6 +125,9 @@ class StateMachine:
         self.current_state = self.current_state.handle_chunk(chunk)
 
     def has_complete_row(self) -> bool:
+        """
+        Returns True if the state machine has a complete row ready to consume
+        """
         return (
             isinstance(self.current_state, AWAITING_ROW_CONSUME)
             and self.complete_row is not None
@@ -140,6 +145,11 @@ class StateMachine:
         return row
 
     def is_row_in_progress(self) -> bool:
+        """
+        Returns true if the state machine is in the middle of processing a row
+
+        At the end of the read_rows stream, is_row_in_progress() should return false
+        """
         return not isinstance(self.current_state, AWAITING_NEW_ROW)
 
     def handle_commit_row(self) -> "State":
@@ -178,16 +188,17 @@ class StateMachine:
         return self.current_state
 
 
-class State:
-    def __init__(self, owner: "StateMachine"):
-        self._owner = owner
+class State(ABC):
+    def __init__(self, owner: StateMachine):
+        self.owner = owner
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        raise NotImplementedError
-
+    @abstractmethod
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
+        pass
 
 class AWAITING_NEW_ROW(State):
     """
@@ -267,6 +278,8 @@ class AWAITING_NEW_CELL(State):
                 # wait for more cells for this row
                 return AWAITING_NEW_CELL(self._owner)
 
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
+        raise InvalidChunk("Last scanned row key received in invalid state")
 
 class AWAITING_CELL_VALUE(State):
     """
@@ -304,6 +317,8 @@ class AWAITING_CELL_VALUE(State):
                 # wait for more cells for this row
                 return AWAITING_NEW_CELL(self._owner)
 
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
+        raise InvalidChunk("Last scanned row key received in invalid state")
 
 class AWAITING_ROW_CONSUME(State):
     """
@@ -312,7 +327,10 @@ class AWAITING_ROW_CONSUME(State):
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
-        raise RuntimeError("Skipping completed row")
+        raise InvalidChunk("Row is complete. Must consume row before reading more")
+
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
+        raise InvalidChunk("Row is complete. Must consume row before reading more")
 
 
 class RowBuilder:
