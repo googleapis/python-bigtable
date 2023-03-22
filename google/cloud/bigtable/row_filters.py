@@ -18,6 +18,7 @@ from __future__ import annotations
 import struct
 
 from typing import Any, Sequence, TYPE_CHECKING, overload
+from abc import ABC, abstractmethod
 
 from google.cloud._helpers import _microseconds_from_datetime  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 _PACK_I64 = struct.Struct(">q").pack
 
 
-class RowFilter(object):
+class RowFilter(ABC):
     """Basic filter to apply to cells in a row.
 
     These values can be combined via :class:`RowFilterChain`,
@@ -48,16 +49,16 @@ class RowFilter(object):
         """
         return data_v2_pb2.RowFilter(**self.to_dict())
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        # unimplemented on base class
-        raise NotImplementedError
+        pass
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
 
-class _BoolFilter(RowFilter):
+class _BoolFilter(RowFilter, ABC):
     """Row filter that uses a boolean flag.
 
     :type flag: bool
@@ -122,7 +123,7 @@ class BlockAllFilter(_BoolFilter):
         return {"block_all_filter": self.flag}
 
 
-class _RegexFilter(RowFilter):
+class _RegexFilter(RowFilter, ABC):
     """Row filter that uses a regular expression.
 
     The ``regex`` must be valid RE2 patterns. See Google's
@@ -726,7 +727,7 @@ class ApplyLabelFilter(RowFilter):
         return f"{self.__class__.__name__}(label={self.label})"
 
 
-class _FilterCombination(RowFilter, Sequence[RowFilter]):
+class _FilterCombination(RowFilter, Sequence[RowFilter], ABC):
     """Chain of row filters.
 
     Sends rows through several filters in sequence. The filters are "chained"

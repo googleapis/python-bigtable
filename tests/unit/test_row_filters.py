@@ -17,48 +17,34 @@ import pytest
 
 
 def test_bool_filter_constructor():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
-    flag = object()
-    row_filter = _BoolFilter(flag)
-    assert row_filter.flag is flag
+    for FilterType in _get_bool_filters():
+        flag = True
+        row_filter = FilterType(flag)
+        assert row_filter.flag is flag
 
 
 def test_bool_filter___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
-    flag = object()
-    row_filter1 = _BoolFilter(flag)
-    row_filter2 = object()
-    assert not (row_filter1 == row_filter2)
+    for FilterType in _get_bool_filters():
+        flag = object()
+        row_filter1 = FilterType(flag)
+        row_filter2 = object()
+        assert not (row_filter1 == row_filter2)
 
 
 def test_bool_filter___eq__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
-    flag = object()
-    row_filter1 = _BoolFilter(flag)
-    row_filter2 = _BoolFilter(flag)
-    assert row_filter1 == row_filter2
+    for FilterType in _get_bool_filters():
+        flag = object()
+        row_filter1 = FilterType(flag)
+        row_filter2 = FilterType(flag)
+        assert row_filter1 == row_filter2
 
 
 def test_bool_filter___ne__same_value():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
-    flag = object()
-    row_filter1 = _BoolFilter(flag)
-    row_filter2 = _BoolFilter(flag)
-    assert not (row_filter1 != row_filter2)
-
-
-def test_bool_filter___repr__():
-    from google.cloud.bigtable.row_filters import _BoolFilter
-
-    flag = True
-    row_filter = _BoolFilter(flag)
-    assert repr(row_filter) == "_BoolFilter(flag={})".format(flag)
-    assert repr(row_filter) == str(row_filter)
-    assert eval(repr(row_filter)) == row_filter
+    for FilterType in _get_bool_filters():
+        flag = object()
+        row_filter1 = FilterType(flag)
+        row_filter2 = FilterType(flag)
+        assert not (row_filter1 != row_filter2)
 
 
 def test_sink_filter_to_pb():
@@ -158,56 +144,41 @@ def test_block_all_filter___repr__():
 
 
 def test_regex_filterconstructor():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = b"abc"
-    row_filter = _RegexFilter(regex)
-    assert row_filter.regex is regex
+    for FilterType in _get_regex_filters():
+        regex = b"abc"
+        row_filter = FilterType(regex)
+        assert row_filter.regex == regex
 
 
 def test_regex_filterconstructor_non_bytes():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = "abc"
-    row_filter = _RegexFilter(regex)
-    assert row_filter.regex == b"abc"
+    for FilterType in _get_regex_filters():
+        regex = "abc"
+        row_filter = FilterType(regex)
+        assert row_filter.regex == b"abc"
 
 
 def test_regex_filter__eq__type_differ():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = b"def-rgx"
-    row_filter1 = _RegexFilter(regex)
-    row_filter2 = object()
-    assert not (row_filter1 == row_filter2)
+    for FilterType in _get_regex_filters():
+        regex = b"def-rgx"
+        row_filter1 = FilterType(regex)
+        row_filter2 = object()
+        assert not (row_filter1 == row_filter2)
 
 
 def test_regex_filter__eq__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = b"trex-regex"
-    row_filter1 = _RegexFilter(regex)
-    row_filter2 = _RegexFilter(regex)
-    assert row_filter1 == row_filter2
+    for FilterType in _get_regex_filters():
+        regex = b"trex-regex"
+        row_filter1 = FilterType(regex)
+        row_filter2 = FilterType(regex)
+        assert row_filter1 == row_filter2
 
 
 def test_regex_filter__ne__same_value():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = b"abc"
-    row_filter1 = _RegexFilter(regex)
-    row_filter2 = _RegexFilter(regex)
-    assert not (row_filter1 != row_filter2)
-
-
-def test_regex_filter___repr__():
-    from google.cloud.bigtable.row_filters import _RegexFilter
-
-    regex = b"abc"
-    row_filter = _RegexFilter(regex)
-    assert repr(row_filter) == "_RegexFilter(regex={})".format(regex)
-    assert repr(row_filter) == str(row_filter)
-    assert eval(repr(row_filter)) == row_filter
+    for FilterType in _get_regex_filters():
+        regex = b"abc"
+        row_filter1 = FilterType(regex)
+        row_filter2 = FilterType(regex)
+        assert not (row_filter1 != row_filter2)
 
 
 def test_row_key_regex_filter_to_pb():
@@ -1109,48 +1080,34 @@ def test_value_range_filter___repr__():
 
 
 def test_cell_count_constructor():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
-    num_cells = object()
-    row_filter = _CellCountFilter(num_cells)
-    assert row_filter.num_cells is num_cells
+    for FilerType in _get_cell_count_filters():
+        num_cells = object()
+        row_filter = FilerType(num_cells)
+        assert row_filter.num_cells is num_cells
 
 
 def test_cell_count___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
-    num_cells = object()
-    row_filter1 = _CellCountFilter(num_cells)
-    row_filter2 = object()
-    assert not (row_filter1 == row_filter2)
+    for FilerType in _get_cell_count_filters():
+        num_cells = object()
+        row_filter1 = FilerType(num_cells)
+        row_filter2 = object()
+        assert not (row_filter1 == row_filter2)
 
 
 def test_cell_count___eq__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
-    num_cells = object()
-    row_filter1 = _CellCountFilter(num_cells)
-    row_filter2 = _CellCountFilter(num_cells)
-    assert row_filter1 == row_filter2
+    for FilerType in _get_cell_count_filters():
+        num_cells = object()
+        row_filter1 = FilerType(num_cells)
+        row_filter2 = FilerType(num_cells)
+        assert row_filter1 == row_filter2
 
 
 def test_cell_count___ne__same_value():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
-    num_cells = object()
-    row_filter1 = _CellCountFilter(num_cells)
-    row_filter2 = _CellCountFilter(num_cells)
-    assert not (row_filter1 != row_filter2)
-
-
-def test_cell_count___repr__():
-    from google.cloud.bigtable.row_filters import _CellCountFilter
-
-    row_filter = _CellCountFilter(10)
-    expected = "_CellCountFilter(num_cells=10)"
-    assert repr(row_filter) == expected
-    assert repr(row_filter) == str(row_filter)
-    assert eval(repr(row_filter)) == row_filter
+    for FilerType in _get_cell_count_filters():
+        num_cells = object()
+        row_filter1 = FilerType(num_cells)
+        row_filter2 = FilerType(num_cells)
+        assert not (row_filter1 != row_filter2)
 
 
 def test_cells_row_offset_filter_to_pb():
@@ -1355,104 +1312,80 @@ def test_apply_label_filter___repr__():
 
 
 def test_filter_combination_constructor_defaults():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    row_filter = _FilterCombination()
-    assert row_filter.filters == []
+    for FilterType in _get_filter_combination_filters():
+        row_filter = FilterType()
+        assert row_filter.filters == []
 
 
 def test_filter_combination_constructor_explicit():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = object()
-    row_filter = _FilterCombination(filters=filters)
-    assert row_filter.filters is filters
+    for FilterType in _get_filter_combination_filters():
+        filters = object()
+        row_filter = FilterType(filters=filters)
+        assert row_filter.filters is filters
 
 
 def test_filter_combination___eq__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = object()
-    row_filter1 = _FilterCombination(filters=filters)
-    row_filter2 = _FilterCombination(filters=filters)
-    assert row_filter1 == row_filter2
+    for FilterType in _get_filter_combination_filters():
+        filters = object()
+        row_filter1 = FilterType(filters=filters)
+        row_filter2 = FilterType(filters=filters)
+        assert row_filter1 == row_filter2
 
 
 def test_filter_combination___eq__type_differ():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = object()
-    row_filter1 = _FilterCombination(filters=filters)
-    row_filter2 = object()
-    assert not (row_filter1 == row_filter2)
+    for FilterType in _get_filter_combination_filters():
+        filters = object()
+        row_filter1 = FilterType(filters=filters)
+        row_filter2 = object()
+        assert not (row_filter1 == row_filter2)
 
 
 def test_filter_combination___ne__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = object()
-    other_filters = object()
-    row_filter1 = _FilterCombination(filters=filters)
-    row_filter2 = _FilterCombination(filters=other_filters)
-    assert row_filter1 != row_filter2
+    for FilterType in _get_filter_combination_filters():
+        filters = object()
+        other_filters = object()
+        row_filter1 = FilterType(filters=filters)
+        row_filter2 = FilterType(filters=other_filters)
+        assert row_filter1 != row_filter2
 
 
 def test_filter_combination_len():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = [object(), object()]
-    row_filter = _FilterCombination(filters=filters)
-    assert len(row_filter) == len(filters)
+    for FilterType in _get_filter_combination_filters():
+        filters = [object(), object()]
+        row_filter = FilterType(filters=filters)
+        assert len(row_filter) == len(filters)
 
 
 def test_filter_combination_iter():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = [object(), object()]
-    row_filter = _FilterCombination(filters=filters)
-    assert list(iter(row_filter)) == filters
-    for filter_, expected in zip(row_filter, filters):
-        assert filter_ is expected
+    for FilterType in _get_filter_combination_filters():
+        filters = [object(), object()]
+        row_filter = FilterType(filters=filters)
+        assert list(iter(row_filter)) == filters
+        for filter_, expected in zip(row_filter, filters):
+            assert filter_ is expected
 
 
 def test_filter_combination___getitem__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-
-    filters = [object(), object()]
-    row_filter = _FilterCombination(filters=filters)
-    row_filter[0] is filters[0]
-    row_filter[1] is filters[1]
-    with pytest.raises(IndexError):
-        row_filter[2]
-    row_filter[:] is filters[:]
-
-
-def test_filter_combination___repr__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
-    from google.cloud.bigtable.row_filters import BlockAllFilter
-
-    filters = [BlockAllFilter(False), BlockAllFilter(True)]
-    row_filter = _FilterCombination(filters=filters)
-    expected = "_FilterCombination(filters={})".format(filters)
-    assert repr(row_filter) == expected
-    assert eval(repr(row_filter)) == row_filter
+    for FilterType in _get_filter_combination_filters():
+        filters = [object(), object()]
+        row_filter = FilterType(filters=filters)
+        row_filter[0] is filters[0]
+        row_filter[1] is filters[1]
+        with pytest.raises(IndexError):
+            row_filter[2]
+        row_filter[:] is filters[:]
 
 
 def test_filter_combination___str__():
-    from google.cloud.bigtable.row_filters import _FilterCombination
     from google.cloud.bigtable.row_filters import PassAllFilter
-    from google.cloud.bigtable.row_filters import RowKeyRegexFilter
 
-    filters = [PassAllFilter(True), PassAllFilter(False)]
-    row_filter = _FilterCombination(filters=filters)
-    expected = "_FilterCombination([\n    PassAllFilter(flag=True),\n    PassAllFilter(flag=False),\n])"
-    assert str(row_filter) == expected
-    # test with nesting
-    filters = [PassAllFilter(True), _FilterCombination(filters=filters)]
-    filters = [RowKeyRegexFilter("foo"), _FilterCombination(filters=filters)]
-    row_filter = _FilterCombination(filters=filters)
-    expected = "_FilterCombination([\n    RowKeyRegexFilter(regex=b'foo'),\n    _FilterCombination([\n        PassAllFilter(flag=True),\n        _FilterCombination([\n            PassAllFilter(flag=True),\n            PassAllFilter(flag=False),\n        ]),\n    ]),\n])"
-    assert str(row_filter) == expected
+    for FilterType in _get_filter_combination_filters():
+        filters = [PassAllFilter(True), PassAllFilter(False)]
+        row_filter = FilterType(filters=filters)
+        expected = (
+            "([\n    PassAllFilter(flag=True),\n    PassAllFilter(flag=False),\n])"
+        )
+        assert expected in str(row_filter)
 
 
 def test_row_filter_chain_to_pb():
@@ -1998,3 +1931,63 @@ def _ValueRangePB(*args, **kw):
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     return data_v2_pb2.ValueRange(*args, **kw)
+
+
+def _get_regex_filters():
+    from google.cloud.bigtable.row_filters import (
+        RowKeyRegexFilter,
+        FamilyNameRegexFilter,
+        ColumnQualifierRegexFilter,
+        ValueRegexFilter,
+        ExactValueFilter,
+    )
+
+    return [
+        RowKeyRegexFilter,
+        FamilyNameRegexFilter,
+        ColumnQualifierRegexFilter,
+        ValueRegexFilter,
+        ExactValueFilter,
+    ]
+
+
+def _get_bool_filters():
+    from google.cloud.bigtable.row_filters import (
+        SinkFilter,
+        PassAllFilter,
+        BlockAllFilter,
+        StripValueTransformerFilter,
+    )
+
+    return [
+        SinkFilter,
+        PassAllFilter,
+        BlockAllFilter,
+        StripValueTransformerFilter,
+    ]
+
+
+def _get_cell_count_filters():
+    from google.cloud.bigtable.row_filters import (
+        CellsRowLimitFilter,
+        CellsRowOffsetFilter,
+        CellsColumnLimitFilter,
+    )
+
+    return [
+        CellsRowLimitFilter,
+        CellsRowOffsetFilter,
+        CellsColumnLimitFilter,
+    ]
+
+
+def _get_filter_combination_filters():
+    from google.cloud.bigtable.row_filters import (
+        RowFilterChain,
+        RowFilterUnion,
+    )
+
+    return [
+        RowFilterChain,
+        RowFilterUnion,
+    ]
