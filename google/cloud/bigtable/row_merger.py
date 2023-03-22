@@ -35,9 +35,11 @@ class InvalidChunk(RuntimeError):
 
 
 class RowMerger:
-    def __init__(self):
+    def __init__(self, max_queue_size: int|None = None):
+        if max_queue_size is None:
+            max_queue_size = -1
         self.state_machine: StateMachine = StateMachine()
-        self.cache: asyncio.Queue[RowResponse] = asyncio.Queue()
+        self.cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_queue_size)
 
     def push(self, new_data: ReadRowsResponse):
         if not isinstance(new_data, ReadRowsResponse):
