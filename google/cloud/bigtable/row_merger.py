@@ -128,7 +128,12 @@ class StateMachine:
         """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
-        self.current_state = self.current_state.handle_chunk(chunk)
+        if chunk.reset_row:
+            self._handle_reset_row(chunk)
+        else:
+            self.current_state = self.current_state.handle_chunk(chunk)
+        if chunk.commit_row:
+            self._handle_commit_row(chunk)
 
     def has_complete_row(self) -> bool:
         """
@@ -158,23 +163,29 @@ class StateMachine:
         """
         return not isinstance(self.current_state, AWAITING_NEW_ROW)
 
-    def handle_commit_row(self) -> "State":
+    def _handle_commit_row(self) -> "State":
         """
-        Called when a row is complete.
-        Wait in AWAITING_ROW_CONSUME state for the RowMerger to consume it
+        Complete row and move into AWAITING_ROW_CONSUME state
+
+        Called by StateMachine when a commit_row flag is set on a chunk
         """
+        if not isinstance(self.current_state, AWAITING_NEW_CELL):
+            raise InvalidChunk("commit row attempted without finishing cell")
         self.complete_row = self.adapter.finish_row()
         self.last_seen_row_key = self.complete_row.row_key
         return AWAITING_ROW_CONSUME(self)
 
-    def handle_reset_chunk(
-        self, chunk: ReadRowsResponse.CellChunk
-    ) -> "AWAITING_NEW_ROW":
+    def _handle_reset_chunk(self, chunk: ReadRowsResponse.CellChunk):
         """
-        When a reset chunk comes in, drop all buffers and reset to AWAITING_NEW_ROW state
+        Drop all buffers and reset the row in progress
+
+        Called by StateMachine when a reset_row flag is set on a chunk
         """
         # ensure reset chunk matches expectations
-        if isinstance(self.current_state, AWAITING_NEW_ROW):
+        if isinstance(self.current_state, AWAITING_NEW_ROW) or \
+            isinstance(self.current_state, AWAITING_ROW_CONSUME
+        ):
+            raise InvalidChunk("reset chunk received when not processing row")
             raise InvalidChunk("Bare reset")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
@@ -191,7 +202,6 @@ class StateMachine:
         self.reset()
         if not isinstance(self.current_state, AWAITING_NEW_ROW):
             raise RuntimeError("Failed to reset state machine")
-        return self.current_state
 
 
 class State(ABC):
@@ -240,8 +250,6 @@ class AWAITING_NEW_CELL(State):
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
-        if chunk.reset_row:
-            return self._owner.handle_reset_chunk(chunk)
         chunk_size = len(chunk.value)
         is_split = chunk.value_size > 0
         expected_cell_size = chunk.value_size if is_split else chunk_size
@@ -277,12 +285,7 @@ class AWAITING_NEW_CELL(State):
         else:
             # cell is complete
             self._owner.adapter.finish_cell()
-            if chunk.commit_row:
-                # row is also complete
-                return self._owner.handle_commit_row()
-            else:
-                # wait for more cells for this row
-                return AWAITING_NEW_CELL(self._owner)
+            return AWAITING_NEW_CELL(self._owner)
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         raise InvalidChunk("Last scanned row key received in invalid state")
@@ -305,9 +308,6 @@ class AWAITING_CELL_VALUE(State):
             raise InvalidChunk("In progress cell had a timestamp")
         if chunk.labels:
             raise InvalidChunk("In progress cell had labels")
-        # check for reset row
-        if chunk.reset_row:
-            return self._owner.handle_reset_chunk(chunk)
         is_last = chunk.value_size == 0
         self._owner.adapter.cell_value(chunk.value)
         # transition to new state
@@ -316,12 +316,7 @@ class AWAITING_CELL_VALUE(State):
         else:
             # cell is complete
             self._owner.adapter.finish_cell()
-            if chunk.commit_row:
-                # row is also complete
-                return self._owner.handle_commit_row()
-            else:
-                # wait for more cells for this row
-                return AWAITING_NEW_CELL(self._owner)
+            return AWAITING_NEW_CELL(self._owner)
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         raise InvalidChunk("Last scanned row key received in invalid state")
