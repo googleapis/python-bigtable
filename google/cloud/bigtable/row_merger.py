@@ -35,11 +35,8 @@ class InvalidChunk(RuntimeError):
 
 
 class RowMerger:
-    def __init__(self, max_queue_size: int|None = None):
-        if max_queue_size is None:
-            max_queue_size = -1
+    def __init__(self):
         self.state_machine: StateMachine = StateMachine()
-        self.cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_queue_size)
 
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
@@ -66,19 +63,23 @@ class RowMerger:
             # read rows is complete, but there's still data in the merger
             raise RuntimeError("read_rows completed with partial state remaining")
 
-    async def _generator_to_cache(self, input_generator: AsyncIterable[Any]) -> None:
+    async def _generator_to_cache(self, cache:asyncio.Queue[Any], input_generator: AsyncIterable[Any]) -> None:
         async for item in input_generator:
-            await self.cache.put(item)
+            await cache.put(item)
 
-    async def merge_row_stream_with_cache(self, request_generator: AsyncIterable[ReadRowsResponse]) -> None:
-        stream_task = asyncio.create_task(self._generator_to_cache(self.merge_row_stream(request_generator)))
+    async def merge_row_stream_with_cache(self, request_generator: AsyncIterable[ReadRowsResponse], max_cache_size:int|None=None) -> None:
+        if max_cache_size is None:
+            max_cache_size = -1
+        cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_cache_size)
+
+        stream_task = asyncio.create_task(self._generator_to_cache(cache, self.merge_row_stream(request_generator)))
          # read from state machine and push into cache
-        while not stream_task.done() or not self.cache.empty():
-            if not self.cache.empty():
-                yield await self.cache.get()
+        while not stream_task.done() or not cache.empty():
+            if not cache.empty():
+                yield await cache.get()
             else:
                 # wait for either the stream to finish, or a new item to enter the cache
-                get_from_cache = asyncio.create_task(self.cache.get())
+                get_from_cache = asyncio.create_task(cache.get())
                 await asyncio.wait(
                     [stream_task, get_from_cache], return_when=asyncio.FIRST_COMPLETED
                 )
