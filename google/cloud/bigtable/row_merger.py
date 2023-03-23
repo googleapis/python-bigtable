@@ -65,17 +65,25 @@ class RowMerger:
             # read rows is complete, but there's still data in the merger
             raise RuntimeError("read_rows completed with partial state remaining")
 
-    async def _generator_to_cache(self, cache:asyncio.Queue[Any], input_generator: AsyncIterable[Any]) -> None:
+    async def _generator_to_cache(
+        self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
+    ) -> None:
         async for item in input_generator:
             await cache.put(item)
 
-    async def merge_row_stream_with_cache(self, request_generator: AsyncIterable[ReadRowsResponse], max_cache_size:int|None=None) -> None:
+    async def merge_row_stream_with_cache(
+        self,
+        request_generator: AsyncIterable[ReadRowsResponse],
+        max_cache_size: int | None = None,
+    ) -> None:
         if max_cache_size is None:
             max_cache_size = -1
         cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_cache_size)
 
-        stream_task = asyncio.create_task(self._generator_to_cache(cache, self.merge_row_stream(request_generator)))
-         # read from state machine and push into cache
+        stream_task = asyncio.create_task(
+            self._generator_to_cache(cache, self.merge_row_stream(request_generator))
+        )
+        # read from state machine and push into cache
         while not stream_task.done() or not cache.empty():
             if not cache.empty():
                 yield await cache.get()
@@ -90,7 +98,6 @@ class RowMerger:
         # stream and cache are complete. if there's an exception, raise it
         if stream_task.exception():
             raise cast(Exception, stream_task.exception())
-
 
 
 class StateMachine:
@@ -140,7 +147,6 @@ class StateMachine:
         """
         return isinstance(self.current_state, AWAITING_NEW_ROW)
 
-
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> None:
         """
         Called by RowMerger to notify the state machine of a scan heartbeat
@@ -184,8 +190,8 @@ class StateMachine:
         Called by StateMachine when a reset_row flag is set on a chunk
         """
         # ensure reset chunk matches expectations
-        if isinstance(self.current_state, AWAITING_NEW_ROW) or \
-            isinstance(self.current_state, AWAITING_ROW_CONSUME
+        if isinstance(self.current_state, AWAITING_NEW_ROW) or isinstance(
+            self.current_state, AWAITING_ROW_CONSUME
         ):
             raise InvalidChunk("reset chunk received when not processing row")
             raise InvalidChunk("Bare reset")
@@ -296,6 +302,7 @@ class AWAITING_NEW_CELL(State):
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         raise InvalidChunk("Last scanned row key received in invalid state")
 
+
 class AWAITING_CELL_VALUE(State):
     """
     State that represents a split cell's continuation
@@ -317,7 +324,7 @@ class AWAITING_CELL_VALUE(State):
             raise InvalidChunk("In progress cell had a timestamp")
         if chunk.labels:
             raise InvalidChunk("In progress cell had labels")
-        is_last = (chunk.value_size == 0)
+        is_last = chunk.value_size == 0
         self._owner.adapter.cell_value(chunk.value)
         # transition to new state
         if not is_last:
@@ -329,6 +336,7 @@ class AWAITING_CELL_VALUE(State):
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         raise InvalidChunk("Last scanned row key received in invalid state")
+
 
 class AWAITING_ROW_CONSUME(State):
     """
@@ -368,10 +376,14 @@ class RowBuilder:
         self.working_value: bytearray | None = None
         self.completed_cells: List[CellResponse] = []
 
-
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
-        if self.current_key is not None or self.working_cell is not None or self.working_value is not None or self.completed_cells:
+        if (
+            self.current_key is not None
+            or self.working_cell is not None
+            or self.working_value is not None
+            or self.completed_cells
+        ):
             raise InvalidChunk("start_row called without finishing previous row")
         self.current_key = key
 
@@ -391,7 +403,9 @@ class RowBuilder:
         if self.current_key is None:
             raise InvalidChunk("no row in progress")
         self.working_value = bytearray(size)
-        self.working_cell = CellResponse(b"", self.current_key, family, qualifier, labels, timestamp)
+        self.working_cell = CellResponse(
+            b"", self.current_key, family, qualifier, labels, timestamp
+        )
 
     def cell_value(self, value: bytes) -> None:
         """called multiple times per cell to concatenate the cell value"""
