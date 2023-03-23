@@ -29,7 +29,7 @@ MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the b
 
 MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB # max inflight byte size.
 
-MAX_OUTSTANDING_ELEMENTS = 100000  # max inflight requests.
+MAX_OUTSTANDING_ELEMENTS = 100000  # max inflight mutations.
 
 
 class MutationsBatchError(Exception):
