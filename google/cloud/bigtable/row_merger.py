@@ -47,6 +47,7 @@ class RowMerger:
     RowMerger uses a StateMachine instance to handle the chunk parsing
     logic
     """
+
     def __init__(self):
         self.state_machine: StateMachine = StateMachine()
 
@@ -121,6 +122,7 @@ class StateMachine:
     If an unexpected chunk is received for the current state,
     the state machine will raise an InvalidChunk exception
     """
+
     def __init__(self):
         self.completed_row_keys: Set[bytes] = set({})
         # represents either the last row emitted, or the last_scanned_key sent from backend
@@ -134,8 +136,8 @@ class StateMachine:
         Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
         """
         self.current_state: State = AWAITING_NEW_ROW(self)
-        self.current_family : bytes | None = None
-        self.current_qualifier : bytes | None = None
+        self.current_family: str | None = None
+        self.current_qualifier: bytes | None = None
         # self.expected_cell_size:int = 0
         # self.remaining_cell_bytes:int = 0
         # self.num_cells_in_row:int = 0
@@ -191,7 +193,7 @@ class StateMachine:
             # row is not complete, return None
             return None
 
-    def _handle_complete_row(self, complete_row:RowResponse) -> None:
+    def _handle_complete_row(self, complete_row: RowResponse) -> None:
         """
         Complete row, update seen keys, and move back to AWAITING_NEW_ROW
 
@@ -235,6 +237,7 @@ class State(ABC):
     Each state is responsible for handling the next chunk, and then
     transitioning to the next state
     """
+
     def __init__(self, owner: StateMachine):
         self.owner = owner
 
@@ -295,7 +298,7 @@ class AWAITING_NEW_CELL(State):
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
             labels=chunk.labels,
-            timestamp=chunk.timestamp_micros, 
+            timestamp_micros=chunk.timestamp_micros,
             size=expected_cell_size,
         )
         self._owner.adapter.cell_value(chunk.value)
