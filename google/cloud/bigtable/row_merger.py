@@ -220,10 +220,8 @@ class State(ABC):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
         pass
 
-    @abstractmethod
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        pass
-
+        raise InvalidChunk("Last scanned row key received in invalid state")
 
 class AWAITING_NEW_ROW(State):
     """
@@ -299,9 +297,6 @@ class AWAITING_NEW_CELL(State):
             self._owner.adapter.finish_cell()
             return AWAITING_NEW_CELL(self._owner)
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        raise InvalidChunk("Last scanned row key received in invalid state")
-
 
 class AWAITING_CELL_VALUE(State):
     """
@@ -334,9 +329,6 @@ class AWAITING_CELL_VALUE(State):
             self._owner.adapter.finish_cell()
             return AWAITING_NEW_CELL(self._owner)
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        raise InvalidChunk("Last scanned row key received in invalid state")
-
 
 class AWAITING_ROW_CONSUME(State):
     """
@@ -346,9 +338,6 @@ class AWAITING_ROW_CONSUME(State):
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
-        raise InvalidChunk("Row is complete. Must consume row before reading more")
-
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
         raise InvalidChunk("Row is complete. Must consume row before reading more")
 
 
