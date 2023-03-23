@@ -23,12 +23,10 @@ from abc import ABC, abstractmethod
 from typing import (
     cast,
     List,
-    Dict,
     Set,
     Any,
     AsyncIterable,
     AsyncGenerator,
-    Tuple,
 )
 
 
@@ -380,8 +378,8 @@ class RowBuilder:
 
     def start_cell(
         self,
-        family: str|None,
-        qualifier: bytes|None,
+        family: str | None,
+        qualifier: bytes | None,
         timestamp_micros: int,
         labels: List[str],
         size: int,

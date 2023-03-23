@@ -63,17 +63,18 @@ def extract_results_from_row(row: RowResponse):
 @pytest.mark.parametrize(
     "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
 )
-def test_scenario(test_case: ReadRowsTest):
-    results = []
+@pytest.mark.asyncio
+async def test_scenario(test_case: ReadRowsTest):
+    async def _scenerio_stream():
+        for chunk in test_case.chunks:
+            yield ReadRowsResponse(chunks=[chunk])
+
     try:
         merger = RowMerger()
-        for chunk in test_case.chunks:
-            req = ReadRowsResponse.pb(ReadRowsResponse(chunks=[chunk]))
-            merger.push(req)
-            if merger.has_full_frame():
-                row = merger.pop()
-                results.extend(extract_results_from_row(row))
-        if merger.has_partial_frame():
+        results = []
+        async for row in merger.merge_row_stream(_scenerio_stream()):
+            results.append(row)
+        if not merger.state_machine.is_terminal_state():
             raise InvalidChunk("merger has partial frame after reading")
     except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
@@ -90,57 +91,62 @@ def test_scenario(test_case: ReadRowsTest):
     # breakpoint()
 
 
-def test_out_of_order_rows():
+@pytest.mark.asyncio
+async def test_out_of_order_rows():
+    async def _row_stream():
+        yield ReadRowsResponse(last_scanned_row_key=b"a")
+
     merger = RowMerger()
     merger.state_machine.last_seen_row_key = b"a"
-    req = ReadRowsResponse(last_scanned_row_key=b"a")
     with pytest.raises(InvalidChunk):
-        merger.push(req)
+        async for _ in merger.merge_row_stream(_row_stream()):
+            pass
 
 
-def test_bare_reset():
+@pytest.mark.asyncio
+async def test_bare_reset():
     first_chunk = ReadRowsResponse.CellChunk(
         ReadRowsResponse.CellChunk(
             row_key=b"a", family_name="f", qualifier=b"q", value=b"v"
         )
     )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, row_key=b"a")
             ),
         )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, family_name="f")
             ),
         )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, qualifier=b"q")
             ),
         )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, timestamp_micros=1000)
             ),
         )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, labels=["a"])
             ),
         )
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             first_chunk,
             ReadRowsResponse.CellChunk(
                 ReadRowsResponse.CellChunk(reset_row=True, value=b"v")
@@ -148,9 +154,10 @@ def test_bare_reset():
         )
 
 
-def test_missing_family():
+@pytest.mark.asyncio
+async def test_missing_family():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 qualifier=b"q",
@@ -161,9 +168,10 @@ def test_missing_family():
         )
 
 
-def test_mid_cell_row_key_change():
+@pytest.mark.asyncio
+async def test_mid_cell_row_key_change():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 family_name="f",
@@ -176,9 +184,10 @@ def test_mid_cell_row_key_change():
         )
 
 
-def test_mid_cell_family_change():
+@pytest.mark.asyncio
+async def test_mid_cell_family_change():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 family_name="f",
@@ -191,9 +200,10 @@ def test_mid_cell_family_change():
         )
 
 
-def test_mid_cell_qualifier_change():
+@pytest.mark.asyncio
+async def test_mid_cell_qualifier_change():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 family_name="f",
@@ -206,9 +216,10 @@ def test_mid_cell_qualifier_change():
         )
 
 
-def test_mid_cell_timestamp_change():
+@pytest.mark.asyncio
+async def test_mid_cell_timestamp_change():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 family_name="f",
@@ -223,9 +234,10 @@ def test_mid_cell_timestamp_change():
         )
 
 
-def test_mid_cell_labels_change():
+@pytest.mark.asyncio
+async def test_mid_cell_labels_change():
     with pytest.raises(InvalidChunk):
-        _process_chunks(
+        await _process_chunks(
             ReadRowsResponse.CellChunk(
                 row_key=b"a",
                 family_name="f",
@@ -238,7 +250,12 @@ def test_mid_cell_labels_change():
         )
 
 
-def _process_chunks(*chunks):
-    req = ReadRowsResponse.pb(ReadRowsResponse(chunks=chunks))
+async def _process_chunks(*chunks):
+    async def _row_stream():
+        yield ReadRowsResponse(chunks=chunks)
+
     merger = RowMerger()
-    merger.push(req)
+    results = []
+    async for row in merger.merge_row_stream(_row_stream()):
+        results.append(row)
+    return results
