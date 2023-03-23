@@ -84,7 +84,7 @@ class RowMerger:
         self,
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
-    ) -> None:
+    ) -> AsyncGenerator[RowResponse, None]:
         if max_cache_size is None:
             max_cache_size = -1
         cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_cache_size)
@@ -178,7 +178,7 @@ class StateMachine:
             raise InvalidChunk("Out of order row keys")
         if chunk.reset_row:
             # reset row if requested
-            self._handle_reset_row(chunk)
+            self._handle_reset_chunk(chunk)
         else:
             # otherwise, process the chunk and update the state
             self.current_state = self.current_state.handle_chunk(chunk)
@@ -239,7 +239,7 @@ class State(ABC):
     """
 
     def __init__(self, owner: StateMachine):
-        self.owner = owner
+        self._owner = owner
 
     @abstractmethod
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
@@ -297,7 +297,7 @@ class AWAITING_NEW_CELL(State):
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
-            labels=chunk.labels,
+            labels=list(chunk.labels),
             timestamp_micros=chunk.timestamp_micros,
             size=expected_cell_size,
         )
@@ -380,8 +380,8 @@ class RowBuilder:
 
     def start_cell(
         self,
-        family: str,
-        qualifier: bytes,
+        family: str|None,
+        qualifier: bytes|None,
         timestamp_micros: int,
         labels: List[str],
         size: int,
