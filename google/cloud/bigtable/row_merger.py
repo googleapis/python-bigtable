@@ -174,16 +174,20 @@ class StateMachine:
         if self.last_seen_row_key and self.last_seen_row_key >= chunk.row_key:
             raise InvalidChunk("Out of order row keys")
         if chunk.reset_row:
+            # reset row if requested
             self._handle_reset_row(chunk)
         else:
+            # otherwise, process the chunk and update the state
             self.current_state = self.current_state.handle_chunk(chunk)
         if chunk.commit_row:
+            # check if row is complete, and return it if so
             if not isinstance(self.current_state, AWAITING_NEW_CELL):
                 raise InvalidChunk("commit row attempted without finishing cell")
             complete_row = self.adapter.finish_row()
             self._handle_complete_row(complete_row)
             return complete_row
         else:
+            # row is not complete, return None
             return None
 
     def _handle_complete_row(self, complete_row:RowResponse) -> None:
