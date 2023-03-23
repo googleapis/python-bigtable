@@ -175,16 +175,6 @@ class BigtableTransport(abc.ABC):
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.generate_initial_change_stream_partitions: gapic_v1.method.wrap_method(
-                self.generate_initial_change_stream_partitions,
-                default_timeout=60.0,
-                client_info=client_info,
-            ),
-            self.read_change_stream: gapic_v1.method.wrap_method(
-                self.read_change_stream,
-                default_timeout=43200.0,
-                client_info=client_info,
-            ),
         }
 
     def close(self):

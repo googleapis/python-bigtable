@@ -382,6 +382,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
             transport (Union[str, BigtableTransport]): The
                 transport to use. If set to None, a transport is chosen
                 automatically.
+                NOTE: "rest" transport functionality is currently in a
+                beta state (preview). We welcome your feedback via an
+                issue in this library's source repository.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
@@ -479,33 +482,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         broken up across multiple responses, but atomicity of
         each row will still be preserved. See the
         ReadRowsResponse documentation for details.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_read_rows():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.ReadRowsRequest(
-                    table_name="table_name_value",
-                )
-
-                # Make the request
-                stream = client.read_rows(request=request)
-
-                # Handle the response
-                for response in stream:
-                    print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadRowsRequest, dict]):
@@ -609,33 +585,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         to break up the data for distributed tasks like
         mapreduces.
 
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_sample_row_keys():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.SampleRowKeysRequest(
-                    table_name="table_name_value",
-                )
-
-                # Make the request
-                stream = client.sample_row_keys(request=request)
-
-                # Handle the response
-                for response in stream:
-                    print(response)
-
         Args:
             request (Union[google.cloud.bigtable_v2.types.SampleRowKeysRequest, dict]):
                 The request object. Request message for
@@ -738,33 +687,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
     ) -> bigtable.MutateRowResponse:
         r"""Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_mutate_row():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.MutateRowRequest(
-                    table_name="table_name_value",
-                    row_key=b'row_key_blob',
-                )
-
-                # Make the request
-                response = client.mutate_row(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.MutateRowRequest, dict]):
@@ -891,33 +813,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
 
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_mutate_rows():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.MutateRowsRequest(
-                    table_name="table_name_value",
-                )
-
-                # Make the request
-                stream = client.mutate_rows(request=request)
-
-                # Handle the response
-                for response in stream:
-                    print(response)
-
         Args:
             request (Union[google.cloud.bigtable_v2.types.MutateRowsRequest, dict]):
                 The request object. Request message for
@@ -1038,33 +933,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
     ) -> bigtable.CheckAndMutateRowResponse:
         r"""Mutates a row atomically based on the output of a
         predicate Reader filter.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_check_and_mutate_row():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.CheckAndMutateRowRequest(
-                    table_name="table_name_value",
-                    row_key=b'row_key_blob',
-                )
-
-                # Make the request
-                response = client.check_and_mutate_row(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.CheckAndMutateRowRequest, dict]):
@@ -1226,32 +1094,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         connection. This call is not required but may be useful
         for connection keep-alive.
 
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_ping_and_warm():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                request = bigtable_v2.PingAndWarmRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.ping_and_warm(request=request)
-
-                # Handle the response
-                print(response)
-
         Args:
             request (Union[google.cloud.bigtable_v2.types.PingAndWarmRequest, dict]):
                 The request object. Request message for client
@@ -1358,37 +1200,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
         the timestamp is the greater of the existing timestamp
         or the current server time. The method returns the new
         contents of all modified cells.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from google import bigtable_v2
-
-            def sample_read_modify_write_row():
-                # Create a client
-                client = bigtable_v2.BigtableClient()
-
-                # Initialize request argument(s)
-                rules = bigtable_v2.ReadModifyWriteRule()
-                rules.append_value = b'append_value_blob'
-
-                request = bigtable_v2.ReadModifyWriteRowRequest(
-                    table_name="table_name_value",
-                    row_key=b'row_key_blob',
-                    rules=rules,
-                )
-
-                # Make the request
-                response = client.read_modify_write_row(request=request)
-
-                # Handle the response
-                print(response)
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadModifyWriteRowRequest, dict]):

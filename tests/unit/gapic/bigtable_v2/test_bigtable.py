@@ -2622,23 +2622,6 @@ def test_generate_initial_change_stream_partitions_field_headers():
         "table_name=table_name_value",
     ) in kw["metadata"]
 
-    # Every method on the transport should just blindly
-    # raise NotImplementedError.
-    methods = (
-        "read_rows",
-        "sample_row_keys",
-        "mutate_row",
-        "mutate_rows",
-        "check_and_mutate_row",
-        "ping_and_warm",
-        "read_modify_write_row",
-        "generate_initial_change_stream_partitions",
-        "read_change_stream",
-    )
-    for method in methods:
-        with pytest.raises(NotImplementedError):
-            getattr(transport, method)(request=object())
-
 
 @pytest.mark.asyncio
 async def test_generate_initial_change_stream_partitions_field_headers_async():
@@ -3145,7 +3128,7 @@ def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_rows(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3431,7 +3414,7 @@ def test_sample_row_keys_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.sample_row_keys(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3703,7 +3686,7 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
 
             response = client.mutate_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3998,7 +3981,7 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
                 iter_content.return_value = iter(json_return_value)
                 response = client.mutate_rows(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4285,7 +4268,7 @@ def test_check_and_mutate_row_rest_required_fields(
 
             response = client.check_and_mutate_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4603,7 +4586,7 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
 
             response = client.ping_and_warm(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4869,7 +4852,7 @@ def test_read_modify_write_row_rest_required_fields(
 
             response = client.read_modify_write_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5168,7 +5151,7 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.generate_initial_change_stream_partitions(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5467,7 +5450,7 @@ def test_read_change_stream_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_change_stream(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5711,6 +5694,7 @@ def test_transport_get_channel():
     [
         transports.BigtableGrpcTransport,
         transports.BigtableGrpcAsyncIOTransport,
+        transports.PooledBigtableGrpcAsyncIOTransport,
         transports.BigtableRestTransport,
     ],
 )
@@ -5974,6 +5958,60 @@ def test_bigtable_grpc_transport_client_cert_source_for_mtls(transport_class):
                 ("grpc.max_receive_message_length", -1),
             ],
         )
+
+    # Check if ssl_channel_credentials is not provided, then client_cert_source_for_mtls
+    # is used.
+    with mock.patch.object(transport_class, "create_channel", return_value=mock.Mock()):
+        with mock.patch("grpc.ssl_channel_credentials") as mock_ssl_cred:
+            transport_class(
+                credentials=cred,
+                client_cert_source_for_mtls=client_cert_source_callback,
+            )
+            expected_cert, expected_key = client_cert_source_callback()
+            mock_ssl_cred.assert_called_once_with(
+                certificate_chain=expected_cert, private_key=expected_key
+            )
+
+
+@pytest.mark.parametrize(
+    "transport_class", [transports.PooledBigtableGrpcAsyncIOTransport]
+)
+def test_bigtable_pooled_grpc_transport_client_cert_source_for_mtls(transport_class):
+    cred = ga_credentials.AnonymousCredentials()
+
+    # test with invalid pool size
+    with pytest.raises(ValueError):
+        transport_class(
+            host="squid.clam.whelk",
+            credentials=cred,
+            pool_size=0,
+        )
+
+    # Check ssl_channel_credentials is used if provided.
+    for pool_num in range(1, 5):
+        with mock.patch.object(
+            transport_class, "create_channel"
+        ) as mock_create_channel:
+            mock_ssl_channel_creds = mock.Mock()
+            transport_class(
+                host="squid.clam.whelk",
+                credentials=cred,
+                ssl_channel_credentials=mock_ssl_channel_creds,
+                pool_size=pool_num,
+            )
+            mock_create_channel.assert_called_with(
+                "squid.clam.whelk:443",
+                credentials=cred,
+                credentials_file=None,
+                scopes=None,
+                ssl_credentials=mock_ssl_channel_creds,
+                quota_project_id=None,
+                options=[
+                    ("grpc.max_send_message_length", -1),
+                    ("grpc.max_receive_message_length", -1),
+                ],
+            )
+            assert mock_create_channel.call_count == pool_num
 
     # Check if ssl_channel_credentials is not provided, then client_cert_source_for_mtls
     # is used.
