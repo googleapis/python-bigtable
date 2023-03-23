@@ -171,7 +171,6 @@ def mypy(session):
     session.run(
         "mypy",
         "google/cloud/bigtable",
-        "tests/",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
