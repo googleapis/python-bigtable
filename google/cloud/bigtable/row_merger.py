@@ -123,6 +123,9 @@ class StateMachine:
     """
     def __init__(self):
         self.completed_row_keys: Set[bytes] = set({})
+        # represents either the last row emitted, or the last_scanned_key sent from backend
+        # all future rows should have keys > last_seen_row_key
+        self.last_seen_row_key: bytes | None = None
         self.adapter: "RowBuilder" = RowBuilder()
         self._reset_row()
 
@@ -132,9 +135,6 @@ class StateMachine:
         """
         self.current_state: State = AWAITING_NEW_ROW(self)
         self.last_cell_data: Dict[str, Any] = {}
-        # represents either the last row emitted, or the last_scanned_key sent from backend
-        # all future rows should have keys > last_seen_row_key
-        self.last_seen_row_key: bytes | None = None
         # self.expected_cell_size:int = 0
         # self.remaining_cell_bytes:int = 0
         # self.num_cells_in_row:int = 0
@@ -171,6 +171,8 @@ class StateMachine:
         """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
+        if self.last_seen_row_key and self.last_seen_row_key >= chunk.row_key:
+            raise InvalidChunk("Out of order row keys")
         if chunk.reset_row:
             self._handle_reset_row(chunk)
         else:
@@ -247,11 +249,6 @@ class AWAITING_NEW_ROW(State):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
         if not chunk.row_key:
             raise InvalidChunk("New row is missing a row key")
-        if (
-            self._owner.last_seen_row_key
-            and self._owner.last_seen_row_key >= chunk.row_key
-        ):
-            raise InvalidChunk("Out of order row keys")
         self._owner.adapter.start_row(chunk.row_key)
         # the first chunk signals both the start of a new row and the start of a new cell, so
         # force the chunk processing in the AWAITING_CELL_VALUE.
