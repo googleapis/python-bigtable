@@ -104,9 +104,12 @@ class StateMachine:
     def __init__(self):
         self.completed_row_keys: Set[bytes] = set({})
         self.adapter: "RowBuilder" = RowBuilder()
-        self.reset()
+        self._reset_row()
 
-    def reset(self) -> None:
+    def _reset_row(self) -> None:
+        """
+        Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
+        """
         self.current_state: State = AWAITING_NEW_ROW(self)
         self.last_cell_data: Dict[str, Any] = {}
         # represents either the last row emitted, or the last_scanned_key sent from backend
@@ -134,7 +137,7 @@ class StateMachine:
         if not self.row_ready() or self.complete_row is None:
             raise RuntimeError("No row to consume")
         row = self.complete_row
-        self.reset()
+        self._reset_row()
         self.completed_row_keys.add(row.row_key)
         return row
 
@@ -209,7 +212,7 @@ class StateMachine:
             raise InvalidChunk("Reset chunk has labels")
         if chunk.value:
             raise InvalidChunk("Reset chunk has a value")
-        self.reset()
+        self._reset_row()
         if not isinstance(self.current_state, AWAITING_NEW_ROW):
             raise RuntimeError("Failed to reset state machine")
 
