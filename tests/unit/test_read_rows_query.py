@@ -91,7 +91,7 @@ class TestReadRowsQuery(unittest.TestCase):
         output = query.to_dict()
         self.assertEqual(output["filter"], filter1_dict)
         proto_output = ReadRowsRequest(**output)
-        self.assertEqual(proto_output.filter, filter1.to_pb())
+        self.assertEqual(proto_output.filter, filter1._to_pb())
 
         query.filter = None
         self.assertEqual(query.filter, None)
@@ -308,7 +308,7 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertEqual(request_proto.rows_limit, 100)
         # check filter
         filter_proto = request_proto.filter
-        self.assertEqual(filter_proto, row_filter.to_pb())
+        self.assertEqual(filter_proto, row_filter._to_pb())
 
     def test_shard(self):
         pass
