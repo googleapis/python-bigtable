@@ -153,10 +153,12 @@ class StateMachine:
         """
         if self.last_seen_row_key and self.last_seen_row_key >= last_scanned_row_key:
             raise InvalidChunk("Last scanned row key is out of order")
+        if not isinstance(self.current_state, AWAITING_NEW_ROW):
+            raise InvalidChunk("Last scanned row key received in invalid state")
         self.last_scanned_row_key = last_scanned_row_key
-        self.current_state = self.current_state.handle_last_scanned_row(
-            last_scanned_row_key
-        )
+        scan_marker = RowResponse(last_scanned_row_key, [])
+        self.complete_row = scan_marker
+        self.current_state = AWAITING_ROW_CONSUME(self)
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> None:
         """
@@ -220,8 +222,6 @@ class State(ABC):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
         pass
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        raise InvalidChunk("Last scanned row key received in invalid state")
 
 class AWAITING_NEW_ROW(State):
     """
@@ -231,11 +231,6 @@ class AWAITING_NEW_ROW(State):
       - AWAITING_ROW_CONSUME: when last_scanned_row_key heartbeat is received
       - AWAITING_NEW_CELL: when a chunk with a row_key is received
     """
-
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        scan_marker = RowResponse(last_scanned_row_key, [])
-        self._owner.complete_row = scan_marker
-        return AWAITING_ROW_CONSUME(self._owner)
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
         if not chunk.row_key:
