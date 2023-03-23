@@ -379,7 +379,7 @@ class RowBuilder:
         self,
         family: str,
         qualifier: bytes,
-        timestamp: int,
+        timestamp_micros: int,
         labels: List[str],
         size: int,
     ) -> None:
@@ -391,8 +391,9 @@ class RowBuilder:
         if self.current_key is None:
             raise InvalidChunk("no row in progress")
         self.working_value = bytearray(size)
+        timestamp_nanos = timestamp_micros * 1000
         self.working_cell = CellResponse(
-            b"", self.current_key, family, qualifier, labels, timestamp
+            b"", self.current_key, family, qualifier, labels, timestamp_nanos
         )
 
     def cell_value(self, value: bytes) -> None:
