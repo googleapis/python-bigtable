@@ -364,12 +364,15 @@ class RowBuilder:
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
         self.current_key: bytes | None = None
-        self.working_cell: Tuple[CellResponse, bytearray] | None = None
+        self.working_cell: CellResponse | None = None
+        self.working_value: bytearray | None = None
         self.completed_cells: List[CellResponse] = []
 
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
+        if self.current_key is not None or self.working_cell is not None or self.working_value is not None or self.completed_cells:
+            raise InvalidChunk("start_row called without finishing previous row")
         self.current_key = key
 
     def start_cell(
@@ -387,28 +390,23 @@ class RowBuilder:
             raise InvalidChunk("missing qualifier for a new cell")
         if self.current_key is None:
             raise InvalidChunk("no row in progress")
-        working_value = bytearray(size)
-        self.working_cell = (
-            CellResponse(b"", self.current_key, family, qualifier, labels, timestamp),
-            working_value,
-        )
+        self.working_value = bytearray(size)
+        self.working_cell = CellResponse(b"", self.current_key, family, qualifier, labels, timestamp)
 
     def cell_value(self, value: bytes) -> None:
         """called multiple times per cell to concatenate the cell value"""
-        if self.working_cell is None:
+        if self.working_value is None:
             raise InvalidChunk("cell value received before start_cell")
-        self.working_cell[1].extend(value)
+        self.working_value.extend(value)
 
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
-        if self.working_cell is None:
+        if self.working_cell is None or self.working_value is None:
             raise InvalidChunk("cell value received before start_cell")
-        complete_cell, complete_value = self.working_cell
-        if not complete_value:
-            raise InvalidChunk("cell value was never set")
-        complete_cell.value = bytes(complete_value)
-        self.completed_cells.append(complete_cell)
+        self.working_cell.value = bytes(self.working_value)
+        self.completed_cells.append(self.working_cell)
         self.working_cell = None
+        self.working_value = None
 
     def finish_row(self) -> RowResponse:
         """called once per row to signal that all cells have been processed (unless reset)"""
