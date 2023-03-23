@@ -229,9 +229,8 @@ class AWAITING_NEW_ROW(State):
     """
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> "State":
-        self._owner.complete_row = self._owner.adapter.create_scan_marker_row(
-            last_scanned_row_key
-        )
+        scan_marker = RowResponse(last_scanned_row_key, [])
+        self._owner.complete_row = scan_marker
         return AWAITING_ROW_CONSUME(self._owner)
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
@@ -273,11 +272,10 @@ class AWAITING_NEW_CELL(State):
         self._owner.last_cell_data["labels"] = chunk.labels
         self._owner.last_cell_data["timestamp"] = chunk.timestamp_micros
 
-        # ensure that all chunks after the first one either are missing a row
+        # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
         if (
-            self._owner.adapter.row_in_progress()
-            and chunk.row_key
+            chunk.row_key is not None
             and chunk.row_key != self._owner.adapter.current_key
         ):
             raise InvalidChunk("row key changed mid row")
@@ -355,16 +353,13 @@ class RowBuilder:
         At least 1 `cell_value` for each cell.
         Exactly 1 `finish_cell` for each cell.
         Exactly 1 `finish_row` for each row.
-    `create_scan_marker_row` can be called one or more times between `finish_row` and
-    `start_row`. `reset` can be called at any point and can be invoked multiple times in
+    `reset` can be called at any point and can be invoked multiple times in
     a row.
     """
 
     def __init__(self):
+        # initialize state
         self.reset()
-
-    def row_in_progress(self) -> bool:
-        return self.current_key is not None
 
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
@@ -372,9 +367,6 @@ class RowBuilder:
         self.working_cell: Tuple[CellResponse, bytearray] | None = None
         self.completed_cells: List[CellResponse] = []
 
-    def create_scan_marker_row(self, key: bytes) -> RowResponse:
-        """creates a special row to mark server progress before any data is received"""
-        return RowResponse(key, [])
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
