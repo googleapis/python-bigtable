@@ -134,7 +134,8 @@ class StateMachine:
         Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
         """
         self.current_state: State = AWAITING_NEW_ROW(self)
-        self.last_cell_data: Dict[str, Any] = {}
+        self.current_family : bytes | None = None
+        self.current_qualifier : bytes | None = None
         # self.expected_cell_size:int = 0
         # self.remaining_cell_bytes:int = 0
         # self.num_cells_in_row:int = 0
@@ -274,15 +275,13 @@ class AWAITING_NEW_CELL(State):
         expected_cell_size = chunk.value_size if is_split else chunk_size
         # track latest cell data. New chunks won't send repeated data
         if chunk.family_name:
-            self._owner.last_cell_data["family"] = chunk.family_name
+            self._owner.current_family = chunk.family_name
             if not chunk.qualifier:
                 raise InvalidChunk("new column family must specify qualifier")
         if chunk.qualifier:
-            self._owner.last_cell_data["qualifier"] = chunk.qualifier
-            if not self._owner.last_cell_data.get("family", False):
+            self._owner.current_qualifier = chunk.qualifier
+            if self._owner.current_family is None:
                 raise InvalidChunk("family not found")
-        self._owner.last_cell_data["labels"] = chunk.labels
-        self._owner.last_cell_data["timestamp"] = chunk.timestamp_micros
 
         # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
@@ -293,7 +292,10 @@ class AWAITING_NEW_CELL(State):
             raise InvalidChunk("row key changed mid row")
 
         self._owner.adapter.start_cell(
-            **self._owner.last_cell_data,
+            family=self._owner.current_family,
+            qualifier=self._owner.current_qualifier,
+            labels=chunk.labels,
+            timestamp=chunk.timestamp_micros, 
             size=expected_cell_size,
         )
         self._owner.adapter.cell_value(chunk.value)
