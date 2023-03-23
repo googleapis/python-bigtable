@@ -37,6 +37,16 @@ class InvalidChunk(RuntimeError):
 
 
 class RowMerger:
+    """
+    RowMerger takes in a stream of ReadRows chunks
+    and processes them into a stream of RowResponses.
+
+    RowMerger can wrap the stream directly, or use a cache to decouple
+    the producer from the consumer
+
+    RowMerger uses a StateMachine instance to handle the chunk parsing
+    logic
+    """
     def __init__(self):
         self.state_machine: StateMachine = StateMachine()
 
@@ -101,6 +111,19 @@ class RowMerger:
 
 
 class StateMachine:
+    """
+    State Machine converts chunks into RowResponses
+
+    Chunks are added to the state machine via handle_chunk, which
+    transitions the state machine through the various states.
+
+    When a row is complete, the state machine will transition to 
+    AWAITING_ROW_CONSUME, and wait there until consume_row is called,
+    at which point it will transition back to AWAITING_NEW_ROW
+
+    If an unexpected chunk is received for the current state,
+    the state machine will raise an InvalidChunk exception
+    """
     def __init__(self):
         self.completed_row_keys: Set[bytes] = set({})
         self.adapter: "RowBuilder" = RowBuilder()
@@ -218,6 +241,12 @@ class StateMachine:
 
 
 class State(ABC):
+    """
+    Represents a state the state machine can be in
+
+    Each state is responsible for handling the next chunk, and then
+    transitioning to the next state
+    """
     def __init__(self, owner: StateMachine):
         self.owner = owner
 
