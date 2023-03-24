@@ -382,9 +382,6 @@ class BigtableClient(metaclass=BigtableClientMeta):
             transport (Union[str, BigtableTransport]): The
                 transport to use. If set to None, a transport is chosen
                 automatically.
-                NOTE: "rest" transport functionality is currently in a
-                beta state (preview). We welcome your feedback via an
-                issue in this library's source repository.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
@@ -1096,8 +1093,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.PingAndWarmRequest, dict]):
-                The request object. Request message for client
-                connection keep-alive and warming.
+                The request object. Request message for client connection
+                keep-alive and warming.
             name (str):
                 Required. The unique name of the instance to check
                 permissions for as well as respond. Values are of the
@@ -1332,8 +1329,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.GenerateInitialChangeStreamPartitionsRequest, dict]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for
                 Bigtable.GenerateInitialChangeStreamPartitions.
             table_name (str):
                 Required. The unique name of the table from which to get
@@ -1435,9 +1433,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         Args:
             request (Union[google.cloud.bigtable_v2.types.ReadChangeStreamRequest, dict]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
-                Bigtable.ReadChangeStream.
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for Bigtable.ReadChangeStream.
             table_name (str):
                 Required. The unique name of the table from which to
                 read a change stream. Values are of the form

@@ -283,7 +283,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_rows,
-            default_timeout=None,
+            default_timeout=43200.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -378,7 +378,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.sample_row_keys,
-            default_timeout=None,
+            default_timeout=60.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -494,7 +494,17 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.mutate_row,
-            default_timeout=None,
+            default_retry=retries.Retry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -604,7 +614,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.mutate_rows,
-            default_timeout=None,
+            default_timeout=600.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -758,7 +768,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.check_and_mutate_row,
-            default_timeout=None,
+            default_timeout=20.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -797,8 +807,8 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.PingAndWarmRequest, dict]]):
-                The request object. Request message for client
-                connection keep-alive and warming.
+                The request object. Request message for client connection
+                keep-alive and warming.
             name (:class:`str`):
                 Required. The unique name of the instance to check
                 permissions for as well as respond. Values are of the
@@ -973,7 +983,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_modify_write_row,
-            default_timeout=None,
+            default_timeout=20.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -1017,8 +1027,9 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.GenerateInitialChangeStreamPartitionsRequest, dict]]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for
                 Bigtable.GenerateInitialChangeStreamPartitions.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to get
@@ -1076,7 +1087,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.generate_initial_change_stream_partitions,
-            default_timeout=None,
+            default_timeout=60.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -1116,9 +1127,9 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.ReadChangeStreamRequest, dict]]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
-                Bigtable.ReadChangeStream.
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for Bigtable.ReadChangeStream.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
                 read a change stream. Values are of the form
@@ -1174,7 +1185,7 @@ class BigtableAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.read_change_stream,
-            default_timeout=None,
+            default_timeout=43200.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
