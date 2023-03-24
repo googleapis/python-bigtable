@@ -743,6 +743,34 @@ def test_read_rows(request_type, transport: str = "grpc"):
         assert isinstance(message, bigtable.ReadRowsResponse)
 
 
+def test_read_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.read_rows(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "read_rows")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.read_rows(request)
+            assert next_channel.call_count == i
+
+
 def test_read_rows_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
@@ -962,6 +990,34 @@ def test_sample_row_keys(request_type, transport: str = "grpc"):
         assert isinstance(message, bigtable.SampleRowKeysResponse)
 
 
+def test_sample_row_keys_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.sample_row_keys(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "sample_row_keys")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.sample_row_keys(request)
+            assert next_channel.call_count == i
+
+
 def test_sample_row_keys_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
@@ -1178,6 +1234,34 @@ def test_mutate_row(request_type, transport: str = "grpc"):
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.MutateRowResponse)
+
+
+def test_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.mutate_row(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "mutate_row")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.mutate_row(request)
+            assert next_channel.call_count == i
 
 
 def test_mutate_row_empty_call():
@@ -1443,6 +1527,34 @@ def test_mutate_rows(request_type, transport: str = "grpc"):
         assert isinstance(message, bigtable.MutateRowsResponse)
 
 
+def test_mutate_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.mutate_rows(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "mutate_rows")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.mutate_rows(request)
+            assert next_channel.call_count == i
+
+
 def test_mutate_rows_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
@@ -1674,6 +1786,34 @@ def test_check_and_mutate_row(request_type, transport: str = "grpc"):
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.CheckAndMutateRowResponse)
     assert response.predicate_matched is True
+
+
+def test_check_and_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.check_and_mutate_row(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "check_and_mutate_row")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.check_and_mutate_row(request)
+            assert next_channel.call_count == i
 
 
 def test_check_and_mutate_row_empty_call():
@@ -2053,6 +2193,34 @@ def test_ping_and_warm(request_type, transport: str = "grpc"):
     assert isinstance(response, bigtable.PingAndWarmResponse)
 
 
+def test_ping_and_warm_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.ping_and_warm(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "ping_and_warm")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.ping_and_warm(request)
+            assert next_channel.call_count == i
+
+
 def test_ping_and_warm_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
@@ -2271,6 +2439,34 @@ def test_read_modify_write_row(request_type, transport: str = "grpc"):
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.ReadModifyWriteRowResponse)
+
+
+def test_read_modify_write_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.read_modify_write_row(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "read_modify_write_row")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.read_modify_write_row(request)
+            assert next_channel.call_count == i
 
 
 def test_read_modify_write_row_empty_call():
@@ -2532,6 +2728,36 @@ def test_generate_initial_change_stream_partitions(
         )
 
 
+def test_generate_initial_change_stream_partitions_pooled_rotation(
+    transport: str = "pooled_grpc_asyncio",
+):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.generate_initial_change_stream_partitions(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "generate_initial_change_stream_partitions")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.generate_initial_change_stream_partitions(request)
+            assert next_channel.call_count == i
+
+
 def test_generate_initial_change_stream_partitions_empty_call():
     # This test is a coverage failsafe to make sure that totally empty calls,
     # i.e. request == None and no flattened fields passed, work.
@@ -2789,6 +3015,34 @@ def test_read_change_stream(request_type, transport: str = "grpc"):
     # Establish that the response is the type that we expect.
     for message in response:
         assert isinstance(message, bigtable.ReadChangeStreamResponse)
+
+
+def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = {}
+
+    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
+        channel = client.transport.channel_pool[client.transport._next_idx]
+        next_channel.return_value = channel
+
+        response = client.read_change_stream(request)
+
+        # Establish that next_channel was called
+        next_channel.assert_called_once()
+        # Establish that stubs has been populated for the channel
+        stub_key = (channel, "read_change_stream")
+        assert client.transport._stubs[stub_key] is not None
+        # Establish that subsequent calls all call next_channel
+        starting_idx = client.transport._next_idx
+        for i in range(2, 10):
+            response = client.read_change_stream(request)
+            assert next_channel.call_count == i
 
 
 def test_read_change_stream_empty_call():
@@ -6519,3 +6773,128 @@ def test_api_key_credentials(client_class, transport_class):
                 always_use_jwt_access=True,
                 api_audience=None,
             )
+
+
+@pytest.mark.asyncio
+async def test_pooled_transport_replace_default():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="pooled_grpc_asyncio",
+    )
+    num_channels = len(client.transport.channel_pool)
+    for replace_idx in range(num_channels):
+        prev_pool = [channel for channel in client.transport.channel_pool]
+        grace_period = 4
+        with mock.patch.object(
+            type(client.transport.channel_pool[0]), "close"
+        ) as close:
+            await client.transport.replace_channel(replace_idx, grace=grace_period)
+            close.assert_called_once()
+            close.assert_awaited()
+            close.assert_called_with(grace=grace_period)
+        assert isinstance(client.transport.channel_pool[replace_idx], grpc.aio.Channel)
+        # only the specified channel should be replaced
+        for i in range(num_channels):
+            if i == replace_idx:
+                assert client.transport.channel_pool[i] != prev_pool[i]
+            else:
+                assert client.transport.channel_pool[i] == prev_pool[i]
+    with pytest.raises(ValueError):
+        await client.transport.replace_channel(num_channels + 1)
+    with pytest.raises(ValueError):
+        await client.transport.replace_channel(-1)
+
+
+@pytest.mark.asyncio
+async def test_pooled_transport_replace_explicit():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="pooled_grpc_asyncio",
+    )
+    num_channels = len(client.transport.channel_pool)
+    for replace_idx in range(num_channels):
+        prev_pool = [channel for channel in client.transport.channel_pool]
+        grace_period = 0
+        with mock.patch.object(
+            type(client.transport.channel_pool[0]), "close"
+        ) as close:
+            new_channel = grpc.aio.insecure_channel("localhost:8080")
+            await client.transport.replace_channel(
+                replace_idx, grace=grace_period, new_channel=new_channel
+            )
+            close.assert_called_once()
+            close.assert_awaited()
+            close.assert_called_with(grace=grace_period)
+        assert client.transport.channel_pool[replace_idx] == new_channel
+        # only the specified channel should be replaced
+        for i in range(num_channels):
+            if i == replace_idx:
+                assert client.transport.channel_pool[i] != prev_pool[i]
+            else:
+                assert client.transport.channel_pool[i] == prev_pool[i]
+
+
+def test_pooled_transport_next_channel():
+    num_channels = 10
+    transport = transports.PooledBigtableGrpcAsyncIOTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        pool_size=num_channels,
+    )
+    assert len(transport.channel_pool) == num_channels
+    transport._next_idx = 0
+    # rotate through all channels multiple times
+    num_cycles = 4
+    for _ in range(num_cycles):
+        for i in range(num_channels - 1):
+            assert transport._next_idx == i
+            got_channel = transport.next_channel()
+            assert got_channel == transport.channel_pool[i]
+            assert transport._next_idx == (i + 1)
+        # test wrap around
+        assert transport._next_idx == num_channels - 1
+        got_channel = transport.next_channel()
+        assert got_channel == transport.channel_pool[num_channels - 1]
+        assert transport._next_idx == 0
+
+
+def test_pooled_transport_pool_unique_channels():
+    num_channels = 50
+
+    transport = transports.PooledBigtableGrpcAsyncIOTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        pool_size=num_channels,
+    )
+    channel_list = [channel for channel in transport.channel_pool]
+    channel_set = set(channel_list)
+    assert len(channel_list) == num_channels
+    assert len(channel_set) == num_channels
+    for channel in channel_list:
+        assert isinstance(channel, grpc.aio.Channel)
+
+
+def test_pooled_transport_pool_creation():
+    # channels should be created with the specified options
+    num_channels = 50
+    creds = ga_credentials.AnonymousCredentials()
+    scopes = ["test1", "test2"]
+    quota_project_id = "test3"
+    host = "testhost:8080"
+
+    with mock.patch.object(
+        transports.PooledBigtableGrpcAsyncIOTransport, "create_channel"
+    ) as create_channel:
+        transport = transports.PooledBigtableGrpcAsyncIOTransport(
+            credentials=creds,
+            pool_size=num_channels,
+            scopes=scopes,
+            quota_project_id=quota_project_id,
+            host=host,
+        )
+        assert create_channel.call_count == num_channels
+        for i in range(num_channels):
+            args = create_channel.call_args_list[i][0]
+            assert args[0] == host
+            kwargs = create_channel.call_args_list[i][1]
+            assert kwargs["credentials"] == creds
+            assert kwargs["scopes"] == scopes
+            assert kwargs["quota_project_id"] == quota_project_id
