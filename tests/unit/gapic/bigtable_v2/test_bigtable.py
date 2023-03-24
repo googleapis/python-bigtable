@@ -6437,6 +6437,22 @@ async def test_transport_close_async():
         async with client:
             close.assert_not_called()
         close.assert_called_once()
+        close.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_pooled_transport_close_async():
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="pooled_grpc_asyncio",
+    )
+    num_channels = len(client.transport.channel_pool)
+    with mock.patch.object(type(client.transport.channel_pool[0]), "close") as close:
+        async with client:
+            close.assert_not_called()
+        close.assert_called()
+        assert close.call_count == num_channels
+        close.assert_awaited()
 
 
 def test_transport_close():

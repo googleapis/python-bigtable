@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import asyncio
 import warnings
 from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union, List
 
@@ -571,8 +572,8 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         return self._stubs[stub_key]
 
     def close(self):
-        for channel in self._channel_pool:
-            channel.close()
+        close_fns = [channel.close() for channel in self.channel_pool]
+        return asyncio.gather(*close_fns)
 
 
 __all__ = ("PooledBigtableGrpcAsyncIOTransport",)
