@@ -117,7 +117,7 @@ def test_bigtable_client_from_service_account_info(client_class, transport_name)
 
         assert client.transport._host == (
             "bigtable.googleapis.com:443"
-            if transport_name in ["grpc", "grpc_asyncio"]
+            if transport_name in ["grpc", "grpc_asyncio", "pooled_grpc_asyncio"]
             else "https://bigtable.googleapis.com"
         )
 
@@ -178,7 +178,7 @@ def test_bigtable_client_from_service_account_file(client_class, transport_name)
 
         assert client.transport._host == (
             "bigtable.googleapis.com:443"
-            if transport_name in ["grpc", "grpc_asyncio"]
+            if transport_name in ["grpc", "grpc_asyncio", "pooled_grpc_asyncio"]
             else "https://bigtable.googleapis.com"
         )
 
@@ -6311,7 +6311,7 @@ def test_bigtable_host_no_port(transport_name):
     )
     assert client.transport._host == (
         "bigtable.googleapis.com:443"
-        if transport_name in ["grpc", "grpc_asyncio"]
+        if transport_name in ["grpc", "grpc_asyncio", "pooled_grpc_asyncio"]
         else "https://bigtable.googleapis.com"
     )
 
@@ -6335,7 +6335,7 @@ def test_bigtable_host_with_port(transport_name):
     )
     assert client.transport._host == (
         "bigtable.googleapis.com:8000"
-        if transport_name in ["grpc", "grpc_asyncio"]
+        if transport_name in ["grpc", "grpc_asyncio", "pooled_grpc_asyncio"]
         else "https://bigtable.googleapis.com:8000"
     )
 
