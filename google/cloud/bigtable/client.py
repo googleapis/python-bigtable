@@ -23,6 +23,7 @@ import time
 import warnings
 
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
@@ -31,6 +32,9 @@ from google.api_core.exceptions import GoogleAPICallError
 
 
 import google.auth.credentials
+import google.auth._default
+from google.api_core import client_options as client_options_lib
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -80,16 +84,38 @@ class BigtableDataClient(ClientWithProject):
         )
         if type(client_options) is dict:
             client_options = google.api_core.client_options.from_dict(client_options)
-        client_options = cast(
-            Optional["google.api_core.client_options.ClientOptions"], client_options
+        if client_options is None:
+            client_options = client_options_lib.ClientOptions()
+        client_options = cast(client_options_lib.ClientOptions, client_options)
+
+        api_endpoint, client_cert_source_func = BigtableAsyncClient.get_mtls_endpoint_and_cert_source(
+            client_options
         )
+
+        api_key_value = getattr(client_options, "api_key", None)
+        if api_key_value and credentials:
+            raise ValueError(
+                "client_options.api_key and credentials are mutually exclusive"
+            )
+        if api_key_value and hasattr(google.auth._default, "get_api_key_credentials"):
+            credentials = google.auth._default.get_api_key_credentials(api_key_value)
+
+        self.transport = PooledBigtableGrpcAsyncIOTransport(
+                pool_size=pool_size,
+                credentials=credentials,
+                credentials_file=client_options.credentials_file,
+                host=api_endpoint,
+                scopes=client_options.scopes,
+                client_cert_source_for_mtls=client_cert_source_func,
+                quota_project_id=client_options.quota_project_id,
+                client_info=DEFAULT_CLIENT_INFO,
+                always_use_jwt_access=True,
+                api_audience=client_options.api_audience,
+            )
         self._gapic_client = BigtableAsyncClient(
             credentials=credentials,
-            transport="pooled_grpc_asyncio",
+            transport=self.transport,
             client_options=client_options,
-        )
-        self.transport: PooledBigtableGrpcAsyncIOTransport = cast(
-            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
