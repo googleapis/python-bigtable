@@ -221,23 +221,35 @@ class BigtableDataClient(ClientWithProject):
         Channels will not be refreshed unless at least one instance is registered
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._active_instances.add(instance_name)
-        if self._channel_refresh_tasks:
-            # refresh tasks already running
-            # call ping and warm on all existing channels
-            for channel in self.transport.channel_pool:
-                await self._ping_and_warm_instances(channel)
-        else:
-            # refresh tasks aren't active. start them as background tasks
-            self.start_background_channel_refresh()
+        if instance_name not in self._active_instances:
+            self._active_instances.add(instance_name)
+            if self._channel_refresh_tasks:
+                # refresh tasks already running
+                # call ping and warm on all existing channels
+                for channel in self.transport.channel_pool:
+                    await self._ping_and_warm_instances(channel)
+            else:
+                # refresh tasks aren't active. start them as background tasks
+                self.start_background_channel_refresh()
 
-    async def remove_instance_registration(self, instance_id: str):
+    async def remove_instance_registration(self, instance_id: str) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
+
+        If instance_id is not registered, returns False
+
+        Args:
+            instance_id: id of the instance to remove
+        Returns:
+            - True if instance was removed
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._active_instances.remove(instance_name)
+        try:
+            self._active_instances.remove(instance_name)
+            return True
+        except KeyError:
+            return False
 
     async def get_table(
         self,
