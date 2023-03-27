@@ -142,7 +142,7 @@ class ReadRowsQuery:
         if start_is_inclusive is None:
             start_is_inclusive = True
         elif start_key is None:
-            raise ValueError("start_is_inclusive must not be set without start_key")
+            raise ValueError("start_is_inclusive must be set with start_key")
         if end_is_inclusive is None:
             end_is_inclusive = False
         elif end_key is None:
