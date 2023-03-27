@@ -117,7 +117,7 @@ class RowResponse(Sequence["CellResponse"]):
         self, family: family_id
     ) -> Generator[CellResponse, None, None]:
         """
-        Returns all cells in the row
+        Returns all cells in the row for the family_id
         """
         if family not in self._cells_map:
             raise ValueError(f"Family '{family}' not found in row '{self.row_key!r}'")
