@@ -146,7 +146,7 @@ class ReadRowsQuery:
         if end_is_inclusive is None:
             end_is_inclusive = False
         elif end_key is None:
-            raise ValueError("end_is_inclusive must not be set without end_key")
+            raise ValueError("end_is_inclusive must be set with end_key")
         # ensure that start_key and end_key are bytes
         if isinstance(start_key, str):
             start_key = start_key.encode()
