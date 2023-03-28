@@ -48,8 +48,8 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
-class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
 
+class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
     def __init__(
         self,
         *,
@@ -111,7 +111,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         for channel_idx in range(len(self.transport.channel_pool)):
             refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
             self._channel_refresh_tasks.append(refresh_task)
-
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel
@@ -274,7 +273,9 @@ class Table:
         self.app_profile_id = app_profile_id
         self.metadata = metadata
         # raises RuntimeError if called outside of an async run loop context
-        self._register_instance_task = asyncio.create_task(self.client.register_instance(instance_id))
+        self._register_instance_task = asyncio.create_task(
+            self.client.register_instance(instance_id)
+        )
 
     async def read_rows_stream(
         self,

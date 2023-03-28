@@ -21,6 +21,7 @@ import re
 
 from google.api_core.client_options import ClientOptions
 from google.auth.credentials import AnonymousCredentials
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -31,6 +32,7 @@ except ImportError:  # pragma: NO COVER
 VENEER_HEADER_REGEX = re.compile(
     r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
 )
+
 
 class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
     @staticmethod
@@ -48,8 +50,10 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         expected_metadata = [("a", "b")]
         expected_credentials = AnonymousCredentials()
         client = self._make_one(
-            project="project-id", pool_size=expected_pool_size, metadata=expected_metadata,
-            credentials=expected_credentials
+            project="project-id",
+            pool_size=expected_pool_size,
+            metadata=expected_metadata,
+            credentials=expected_credentials,
         )
         await asyncio.sleep(0.1)
         self.assertEqual(client.project, expected_project)
@@ -60,7 +64,9 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.transport._credentials, expected_credentials)
 
     async def test_ctor_super_inits(self):
-        from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+        from google.cloud.bigtable_v2.services.bigtable.async_client import (
+            BigtableAsyncClient,
+        )
         from google.cloud.client import _ClientProjectMixin
 
         project = "project-id"
@@ -70,9 +76,17 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         metadata = [("a", "b")]
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
-            with mock.patch.object(_ClientProjectMixin, "__init__") as client_project_mixin_init:
+            with mock.patch.object(
+                _ClientProjectMixin, "__init__"
+            ) as client_project_mixin_init:
                 try:
-                    self._make_one(project=project, pool_size=pool_size, credentials=credentials, client_options=client_options, metadata=metadata)
+                    self._make_one(
+                        project=project,
+                        pool_size=pool_size,
+                        credentials=credentials,
+                        client_options=client_options,
+                        metadata=metadata,
+                    )
                 except AttributeError:
                     pass
                 # test gapic superclass init was called
@@ -102,14 +116,20 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                 wrapped_user_agent_sorted = " ".join(
                     sorted(client_info.to_user_agent().split(" "))
                 )
-                self.assertTrue(VENEER_HEADER_REGEX.match(wrapped_user_agent_sorted), 
-                                f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}")
-
+                self.assertTrue(
+                    VENEER_HEADER_REGEX.match(wrapped_user_agent_sorted),
+                    f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}",
+                )
 
     async def test_channel_pool_creation(self):
-        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+            PooledBigtableGrpcAsyncIOTransport,
+        )
+
         pool_size = 14
-        with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
+        with mock.patch.object(
+            PooledBigtableGrpcAsyncIOTransport, "create_channel"
+        ) as create_channel:
             client = self._make_one(project="project-id", pool_size=pool_size)
             self.assertEqual(create_channel.call_count, pool_size)
         # channels should be unique
@@ -124,15 +144,18 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client.transport.channel_pool), pool_size)
 
         with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-            with mock.patch.object(type(client.transport.channel_pool[0]), "unary_unary") as unary_unary:
+            with mock.patch.object(
+                type(client.transport.channel_pool[0]), "unary_unary"
+            ) as unary_unary:
                 # calling an rpc `pool_size` times should use a different channel each time
                 for i in range(pool_size):
-                    channel_1 = client.transport.channel_pool[client.transport._next_idx]
+                    channel_1 = client.transport.channel_pool[
+                        client.transport._next_idx
+                    ]
                     next_channel.return_value = channel_1
                     client.transport.ping_and_warm()
                     self.assertEqual(next_channel.call_count, i + 1)
                     channel_1.unary_unary.assert_called_once()
-
 
     async def test_channel_pool_replace(self):
         pool_size = 7
@@ -140,9 +163,13 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         for replace_idx in range(pool_size):
             start_pool = [channel for channel in client.transport.channel_pool]
             grace_period = 9
-            with mock.patch.object(type(client.transport.channel_pool[0]), "close") as close:
+            with mock.patch.object(
+                type(client.transport.channel_pool[0]), "close"
+            ) as close:
                 new_channel = grpc.aio.insecure_channel("localhost:8080")
-                await client.transport.replace_channel(replace_idx, grace=grace_period, new_channel=new_channel)
+                await client.transport.replace_channel(
+                    replace_idx, grace=grace_period, new_channel=new_channel
+                )
                 close.assert_called_once_with(grace=grace_period)
                 close.assert_awaited_once()
             self.assertEqual(client.transport.channel_pool[replace_idx], new_channel)
@@ -178,7 +205,12 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(gather.call_args.args)
         self.assertEqual(gather.call_args.kwargs, {"return_exceptions": True})
         # test with instances
-        client._active_instances = ["instance-1", "instance-2", "instance-3", "instance-4"]
+        client._active_instances = [
+            "instance-1",
+            "instance-2",
+            "instance-3",
+            "instance-4",
+        ]
         gather = AsyncMock()
         asyncio.gather = gather
         await client._ping_and_warm_instances(channel)
@@ -194,7 +226,10 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         # first sleep time should be `refresh_interval` seconds after client init
         import time
         from collections import namedtuple
-        params = namedtuple('params', ['refresh_interval', 'wait_time', 'expected_sleep'])
+
+        params = namedtuple(
+            "params", ["refresh_interval", "wait_time", "expected_sleep"]
+        )
         test_params = [
             params(refresh_interval=0, wait_time=0, expected_sleep=0),
             params(refresh_interval=0, wait_time=1, expected_sleep=0),
@@ -216,21 +251,31 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                         pass
                     sleep.assert_called_once()
                     call_time = sleep.call_args[0][0]
-                    self.assertAlmostEqual(call_time, expected_sleep, delta=0.1, 
-                        msg=f"params={params}")
+                    self.assertAlmostEqual(
+                        call_time, expected_sleep, delta=0.1, msg=f"params={params}"
+                    )
 
     async def test__manage_channel_ping_and_warm(self):
-        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+            PooledBigtableGrpcAsyncIOTransport,
+        )
+
         # should ping an warm all new channels, and old channels if sleeping
         client = self._make_one(project="project-id")
         new_channel = grpc.aio.insecure_channel("localhost:8080")
         with mock.patch.object(asyncio, "sleep") as sleep:
-            with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
+            with mock.patch.object(
+                PooledBigtableGrpcAsyncIOTransport, "create_channel"
+            ) as create_channel:
                 create_channel.return_value = new_channel
-                with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "replace_channel") as replace_channel:
+                with mock.patch.object(
+                    PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+                ) as replace_channel:
                     replace_channel.side_effect = asyncio.CancelledError
                     # should ping and warm old channel then new if sleep > 0
-                    with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_and_warm:
+                    with mock.patch.object(
+                        type(self._make_one()), "_ping_and_warm_instances"
+                    ) as ping_and_warm:
                         try:
                             channel_idx = 2
                             old_channel = client.transport.channel_pool[channel_idx]
@@ -239,13 +284,17 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                             pass
                         self.assertEqual(ping_and_warm.call_count, 2)
                         self.assertNotEqual(old_channel, new_channel)
-                        called_with = [call[0][0] for call in ping_and_warm.call_args_list]
+                        called_with = [
+                            call[0][0] for call in ping_and_warm.call_args_list
+                        ]
                         self.assertIn(old_channel, called_with)
                         self.assertIn(new_channel, called_with)
                     # should ping and warm instantly new channel only if not sleeping
-                    with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_and_warm:
+                    with mock.patch.object(
+                        type(self._make_one()), "_ping_and_warm_instances"
+                    ) as ping_and_warm:
                         try:
-                            await client._manage_channel(0,  0)
+                            await client._manage_channel(0, 0)
                         except asyncio.CancelledError:
                             pass
                         ping_and_warm.assert_called_once_with(new_channel)
@@ -254,9 +303,12 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         # make sure that sleeps work as expected
         from collections import namedtuple
         import time
-        params = namedtuple('params', ['refresh_interval',  'num_cycles', 'expected_sleep'])
+
+        params = namedtuple(
+            "params", ["refresh_interval", "num_cycles", "expected_sleep"]
+        )
         test_params = [
-            params(refresh_interval=None, num_cycles=1, expected_sleep=60*45),
+            params(refresh_interval=None, num_cycles=1, expected_sleep=60 * 45),
             params(refresh_interval=10, num_cycles=10, expected_sleep=100),
             params(refresh_interval=10, num_cycles=1, expected_sleep=10),
         ]
@@ -265,7 +317,9 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
             time.return_value = 0
             for refresh_interval, num_cycles, expected_sleep in test_params:
                 with mock.patch.object(asyncio, "sleep") as sleep:
-                    sleep.side_effect = [None for i in range(num_cycles-1)] + [asyncio.CancelledError]
+                    sleep.side_effect = [None for i in range(num_cycles - 1)] + [
+                        asyncio.CancelledError
+                    ]
                     try:
                         client = self._make_one(project="project-id")
                         if refresh_interval is not None:
@@ -276,31 +330,48 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                         pass
                     self.assertEqual(sleep.call_count, num_cycles)
                     total_sleep = sum([call[0][0] for call in sleep.call_args_list])
-                    self.assertAlmostEqual(total_sleep, expected_sleep, delta=0.1, 
-                        msg=f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}")
+                    self.assertAlmostEqual(
+                        total_sleep,
+                        expected_sleep,
+                        delta=0.1,
+                        msg=f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}",
+                    )
 
     async def test__manage_channel_refresh(self):
         # make sure that channels are properly refreshed
         from collections import namedtuple
         import time
-        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+            PooledBigtableGrpcAsyncIOTransport,
+        )
+
         expected_grace = 9
         expected_refresh = 0.5
         channel_idx = 1
         new_channel = grpc.aio.insecure_channel("localhost:8080")
 
         for num_cycles in [0, 1, 10, 100]:
-            with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "replace_channel") as replace_channel:
+            with mock.patch.object(
+                PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+            ) as replace_channel:
                 with mock.patch.object(asyncio, "sleep") as sleep:
-                    sleep.side_effect = [None for i in range(num_cycles)] + [asyncio.CancelledError]
+                    sleep.side_effect = [None for i in range(num_cycles)] + [
+                        asyncio.CancelledError
+                    ]
                     client = self._make_one(project="project-id")
-                    with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
+                    with mock.patch.object(
+                        PooledBigtableGrpcAsyncIOTransport, "create_channel"
+                    ) as create_channel:
                         create_channel.return_value = new_channel
                         try:
-                            await client._manage_channel(channel_idx, refresh_interval=expected_refresh, grace_period=expected_grace)
+                            await client._manage_channel(
+                                channel_idx,
+                                refresh_interval=expected_refresh,
+                                grace_period=expected_grace,
+                            )
                         except asyncio.CancelledError:
                             pass
-                        self.assertEqual(sleep.call_count, num_cycles+1)
+                        self.assertEqual(sleep.call_count, num_cycles + 1)
                         self.assertEqual(create_channel.call_count, num_cycles)
                         self.assertEqual(replace_channel.call_count, num_cycles)
                         for call in replace_channel.call_args_list:
@@ -315,7 +386,9 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client._channel_refresh_tasks), pool_size)
         self.assertFalse(client._active_instances)
         # next calls should trigger ping and warm
-        with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_mock:
+        with mock.patch.object(
+            type(self._make_one()), "_ping_and_warm_instances"
+        ) as ping_mock:
             # new instance should trigger ping and warm
             await client.register_instance("instance-1")
             self.assertEqual(ping_mock.call_count, pool_size)
@@ -333,20 +406,28 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         success = await client.remove_instance_registration("instance-1")
         self.assertTrue(success)
         self.assertEqual(len(client._active_instances), 1)
-        self.assertEqual(client._active_instances, {"projects/project-id/instances/instance-2"})
+        self.assertEqual(
+            client._active_instances, {"projects/project-id/instances/instance-2"}
+        )
         success = await client.remove_instance_registration("nonexistant")
         self.assertFalse(success)
         self.assertEqual(len(client._active_instances), 1)
 
     async def test_get_table(self):
         from google.cloud.bigtable.client import Table
+
         client = self._make_one(project="project-id")
         self.assertFalse(client._active_instances)
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
-        expected_metadata = [('a', 'b')]
-        table = client.get_table(expected_instance_id, expected_table_id, expected_app_profile_id, expected_metadata)
+        expected_metadata = [("a", "b")]
+        table = client.get_table(
+            expected_instance_id,
+            expected_table_id,
+            expected_app_profile_id,
+            expected_metadata,
+        )
         await asyncio.sleep(0)
         self.assertIsInstance(table, Table)
         self.assertEqual(table.table_id, expected_table_id)
@@ -369,25 +450,25 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
 
 
 class TestSyncInitialization(unittest.TestCase):
-
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         from google.cloud.bigtable.client import BigtableDataClient
+
         with self.assertRaises(RuntimeError) as err:
             BigtableDataClient(project="project-id")
         self.assertIn("no current event loop", str(err.exception))
 
-
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         from google.cloud.bigtable.client import Table
+
         client = mock.Mock()
         with self.assertRaises(RuntimeError) as err:
             Table(client, "instance-id", "table-id")
         self.assertEqual(str(err.exception), "no running event loop")
 
-class TestTable(unittest.IsolatedAsyncioTestCase):
 
+class TestTable(unittest.IsolatedAsyncioTestCase):
     def _make_one(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient
 
@@ -396,14 +477,21 @@ class TestTable(unittest.IsolatedAsyncioTestCase):
     async def test_ctor(self):
         from google.cloud.bigtable.client import BigtableDataClient
         from google.cloud.bigtable.client import Table
+
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
-        expected_metadata = [('a', 'b')]
+        expected_metadata = [("a", "b")]
         client = BigtableDataClient()
         self.assertFalse(client._active_instances)
 
-        table = Table(client, expected_instance_id, expected_table_id, expected_app_profile_id, expected_metadata)
+        table = Table(
+            client,
+            expected_instance_id,
+            expected_table_id,
+            expected_app_profile_id,
+            expected_metadata,
+        )
         await asyncio.sleep(0)
         self.assertEqual(table.table_id, expected_table_id)
         self.assertEqual(table.instance, expected_instance_id)
@@ -417,4 +505,3 @@ class TestTable(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(table._register_instance_task.done())
         self.assertFalse(table._register_instance_task.cancelled())
         self.assertIsNone(table._register_instance_task.exception())
-
