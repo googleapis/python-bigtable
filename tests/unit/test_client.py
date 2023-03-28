@@ -17,6 +17,8 @@ import pytest
 import unittest
 import grpc
 import asyncio
+import re
+
 from google.api_core.client_options import ClientOptions
 from google.auth.credentials import AnonymousCredentials
 # try/except added for compatibility with python < 3.8
@@ -25,6 +27,10 @@ try:
     from unittest.mock import AsyncMock  # pragma: NO COVER
 except ImportError:  # pragma: NO COVER
     import mock
+
+VENEER_HEADER_REGEX = re.compile(
+    r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
+)
 
 class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
     @staticmethod
@@ -53,11 +59,26 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client._channel_refresh_tasks), expected_pool_size)
         self.assertEqual(client.transport._credentials, expected_credentials)
 
-    async def test_ctor_client_options(self):
+    async def test_ctor_super_inits(self):
         pass
 
-    async def test_ctor_client_options_dict(self):
-        pass
+    async def test_veneer_grpc_headers(self):
+        # client_info should be populated with headers to
+        # detect as a veneer client
+        patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
+        with patch as gapic_mock:
+            self._make_one(project="project-id")
+            wrapped_call_list = gapic_mock.call_args_list
+            self.assertGreater(len(wrapped_call_list), 0)
+            # each wrapped call should have veneer headers
+            for call in wrapped_call_list:
+                client_info = call.kwargs["client_info"]
+                self.assertIsNotNone(client_info, f"{call} has no client_info")
+                wrapped_user_agent_sorted = " ".join(
+                    sorted(client_info.to_user_agent().split(" "))
+                )
+                self.assertTrue(VENEER_HEADER_REGEX.match(wrapped_user_agent_sorted), 
+                                f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}")
 
 
     async def test_channel_pool_creation(self):

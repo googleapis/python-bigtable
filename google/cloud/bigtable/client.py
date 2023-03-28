@@ -98,6 +98,9 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         PartialTransport = create_partial_transport(pool_size)
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         BigtableClientMeta._transport_registry[transport_str] = PartialTransport
+        # set up client info headers for veneer library
+        client_info = DEFAULT_CLIENT_INFO
+        client_info.client_library_version = client_info.gapic_version
         # initialize client
         _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
         BigtableAsyncClient.__init__(
@@ -105,6 +108,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
+            client_info=client_info,
         )
         self.metadata = metadata
         # keep track of active instances to for warmup on channel refresh
