@@ -60,7 +60,32 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.transport._credentials, expected_credentials)
 
     async def test_ctor_super_inits(self):
-        pass
+        from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+        from google.cloud.client import _ClientProjectMixin
+
+        project = "project-id"
+        pool_size = 11
+        credentials = AnonymousCredentials()
+        client_options = {"api_endpoint": "foo.bar:1234"}
+        metadata = [("a", "b")]
+        transport_str = f"pooled_grpc_asyncio_{pool_size}"
+        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+            with mock.patch.object(_ClientProjectMixin, "__init__") as client_project_mixin_init:
+                try:
+                    self._make_one(project=project, pool_size=pool_size, credentials=credentials, client_options=client_options, metadata=metadata)
+                except AttributeError:
+                    pass
+                # test gapic superclass init was called
+                self.assertEqual(bigtable_client_init.call_count, 1)
+                kwargs = bigtable_client_init.call_args[1]
+                self.assertEqual(kwargs["transport"], transport_str)
+                self.assertEqual(kwargs["credentials"], credentials)
+                self.assertEqual(kwargs["client_options"], client_options)
+                # test mixin superclass init was called
+                self.assertEqual(client_project_mixin_init.call_count, 1)
+                kwargs = client_project_mixin_init.call_args[1]
+                self.assertEqual(kwargs["project"], project)
+                self.assertEqual(kwargs["credentials"], credentials)
 
     async def test_veneer_grpc_headers(self):
         # client_info should be populated with headers to
