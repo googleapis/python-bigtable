@@ -85,11 +85,62 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                 else:
                     self.assertNotEqual(client.transport.channel_pool[i], start_pool[i])
 
-    def test_start_background_channel_refresh(self):
-        pass
+    def test_start_background_channel_refresh_sync(self):
+        # should raise RuntimeError if called in a sync context
+        client = self._make_one(project="project-id")
+        with self.assertRaises(RuntimeError):
+            client.start_background_channel_refresh()
 
-    def test__ping_and_warm_instances(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_start_background_channel_refresh_tasks_exist(self):
+        # if tasks exist, should do nothing
+        client = self._make_one(project="project-id")
+        client._channel_refresh_tasks = [object()]
+        with mock.patch.object(asyncio, "create_task") as create_task:
+            client.start_background_channel_refresh()
+            create_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_start_background_channel_refresh(self):
+        # should create background tasks for each channel
+        for pool_size in [1, 3, 7]:
+            client = self._make_one(project="project-id", pool_size=pool_size)
+            ping_and_warm = AsyncMock()
+            client._ping_and_warm_instances = ping_and_warm
+            client.start_background_channel_refresh()
+            self.assertEqual(len(client._channel_refresh_tasks), pool_size)
+            for task in client._channel_refresh_tasks:
+                self.assertIsInstance(task, asyncio.Task)
+            await asyncio.gather(*client._channel_refresh_tasks)
+            await asyncio.sleep(0.1)
+            self.assertEqual(ping_and_warm.call_count, pool_size)
+            for channel in client.transport.channel_pool:
+                ping_and_warm.assert_any_call(channel)
+
+    @pytest.mark.asyncio
+    async def test__ping_and_warm_instances(self):
+        # test with no instances
+        gather = AsyncMock()
+        asyncio.gather = gather
+        client = self._make_one(project="project-id", pool_size=1)
+        channel = client.transport.channel_pool[0]
+        await client._ping_and_warm_instances(channel)
+        gather.assert_called_once()
+        gather.assert_awaited_once()
+        self.assertFalse(gather.call_args.args)
+        self.assertEqual(gather.call_args.kwargs, {"return_exceptions": True})
+        # test with instances
+        client._active_instances = ["instance-1", "instance-2", "instance-3", "instance-4"]
+        gather = AsyncMock()
+        asyncio.gather = gather
+        await client._ping_and_warm_instances(channel)
+        gather.assert_called_once()
+        gather.assert_awaited_once()
+        self.assertEqual(len(gather.call_args.args), 4)
+        self.assertEqual(gather.call_args.kwargs, {"return_exceptions": True})
+        for idx, call in enumerate(gather.call_args.args):
+            self.assertIsInstance(call, grpc.aio.UnaryUnaryCall)
+            call._request["name"] = client._active_instances[idx]
 
     @pytest.mark.asyncio
     async def test__manage_channel_first_sleep(self):
