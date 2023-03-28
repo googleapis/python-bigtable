@@ -24,8 +24,7 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock
 
-
-class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
+class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.client import BigtableDataClient
@@ -35,10 +34,23 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_ctor(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_ctor(self):
+        expected_project = "project-id"
+        expected_pool_size = 11
+        expected_metadata = [("a", "b")]
+        client = self._make_one(
+            project="project-id", pool_size=expected_pool_size, metadata=expected_metadata,
+        )
+        await asyncio.sleep(0.1)
+        self.assertEqual(client.project, expected_project)
+        self.assertEqual(len(client.transport.channel_pool), expected_pool_size)
+        self.assertEqual(client.metadata, expected_metadata)
+        self.assertFalse(client._active_instances)
+        self.assertEqual(len(client._channel_refresh_tasks), expected_pool_size)
 
-    def test_channel_pool_creation(self):
+
+    async def test_channel_pool_creation(self):
         pool_size = 14
         with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
             client = self._make_one(project="project-id", pool_size=pool_size)
@@ -49,8 +61,7 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
         pool_set = set(client.transport.channel_pool)
         self.assertEqual(len(pool_list), len(pool_set))
 
-
-    def test_channel_pool_rotation(self):
+    async def test_channel_pool_rotation(self):
         pool_size = 7
         client = self._make_one(project="project-id", pool_size=pool_size)
         self.assertEqual(len(client.transport.channel_pool), pool_size)
@@ -66,7 +77,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                     channel_1.unary_unary.assert_called_once()
 
 
-    @pytest.mark.asyncio
     async def test_channel_pool_replace(self):
         pool_size = 7
         client = self._make_one(project="project-id", pool_size=pool_size)
@@ -85,39 +95,20 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                 else:
                     self.assertNotEqual(client.transport.channel_pool[i], start_pool[i])
 
-    def test_start_background_channel_refresh_sync(self):
-        # should raise RuntimeError if called in a sync context
-        client = self._make_one(project="project-id")
-        with self.assertRaises(RuntimeError):
-            client.start_background_channel_refresh()
-
-    @pytest.mark.asyncio
-    async def test_start_background_channel_refresh_tasks_exist(self):
-        # if tasks exist, should do nothing
-        client = self._make_one(project="project-id")
-        client._channel_refresh_tasks = [object()]
-        with mock.patch.object(asyncio, "create_task") as create_task:
-            client.start_background_channel_refresh()
-            create_task.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_start_background_channel_refresh(self):
+    async def test_ctor_background_channel_refresh(self):
         # should create background tasks for each channel
         for pool_size in [1, 3, 7]:
             client = self._make_one(project="project-id", pool_size=pool_size)
             ping_and_warm = AsyncMock()
             client._ping_and_warm_instances = ping_and_warm
-            client.start_background_channel_refresh()
             self.assertEqual(len(client._channel_refresh_tasks), pool_size)
             for task in client._channel_refresh_tasks:
                 self.assertIsInstance(task, asyncio.Task)
-            await asyncio.gather(*client._channel_refresh_tasks)
             await asyncio.sleep(0.1)
             self.assertEqual(ping_and_warm.call_count, pool_size)
             for channel in client.transport.channel_pool:
                 ping_and_warm.assert_any_call(channel)
 
-    @pytest.mark.asyncio
     async def test__ping_and_warm_instances(self):
         # test with no instances
         gather = AsyncMock()
@@ -142,7 +133,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(call, grpc.aio.UnaryUnaryCall)
             call._request["name"] = client._active_instances[idx]
 
-    @pytest.mark.asyncio
     async def test__manage_channel_first_sleep(self):
         # first sleep time should be `refresh_interval` seconds after client init
         import time
@@ -172,7 +162,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                     self.assertAlmostEqual(call_time, expected_sleep, delta=0.1, 
                         msg=f"params={params}")
 
-    @pytest.mark.asyncio
     async def test__manage_channel_ping_and_warm(self):
         # should ping an warm all new channels, and old channels if sleeping
         client = self._make_one(project="project-id")
@@ -203,7 +192,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                             pass
                         ping_and_warm.assert_called_once_with(new_channel)
 
-    @pytest.mark.asyncio
     async def test__manage_channel_sleeps(self):
         # make sure that sleeps work as expected
         from collections import namedtuple
@@ -233,7 +221,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                     self.assertAlmostEqual(total_sleep, expected_sleep, delta=0.1, 
                         msg=f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}")
 
-    @pytest.mark.asyncio
     async def test__manage_channel_refresh(self):
         # make sure that channels are properly refreshed
         from collections import namedtuple
@@ -262,48 +249,23 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(call[0][1], expected_grace)
                             self.assertEqual(call[0][2], new_channel)
 
-    @pytest.mark.asyncio
-    async def test_register_instance(self):
-        # create the client without calling start_background_channel_refresh
-        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
-            get_event_loop.side_effect = RuntimeError("no event loop")
-            client = self._make_one(project="project-id")
-        self.assertFalse(client._channel_refresh_tasks)
-        # first call should start background refresh
-        self.assertEqual(client._active_instances, set())
-        await client.register_instance("instance-1")
-        self.assertEqual(len(client._active_instances), 1)
-        self.assertEqual(client._active_instances, {"projects/project-id/instances/instance-1"})
-        self.assertTrue(client._channel_refresh_tasks)
-        # next call should not
-        with mock.patch.object(type(self._make_one()), "start_background_channel_refresh") as refresh_mock:
-            await client.register_instance("instance-2")
-            self.assertEqual(len(client._active_instances), 2)
-            self.assertEqual(client._active_instances, {"projects/project-id/instances/instance-1", "projects/project-id/instances/instance-2"})
-            refresh_mock.assert_not_called()
-
-    @pytest.mark.asyncio
     async def test_register_instance_ping_and_warm(self):
         # should ping and warm each new instance
         pool_size = 7
-        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
-            get_event_loop.side_effect = RuntimeError("no event loop")
-            client = self._make_one(project="project-id", pool_size=pool_size)
-        # first call should start background refresh
-        self.assertFalse(client._channel_refresh_tasks)
-        await client.register_instance("instance-1")
+        client = self._make_one(project="project-id", pool_size=pool_size)
         self.assertEqual(len(client._channel_refresh_tasks), pool_size)
+        self.assertFalse(client._active_instances)
         # next calls should trigger ping and warm
         with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_mock:
-            await client.register_instance("instance-2")
+            # new instance should trigger ping and warm
+            await client.register_instance("instance-1")
             self.assertEqual(ping_mock.call_count, pool_size)
-            await client.register_instance("instance-3")
+            await client.register_instance("instance-2")
             self.assertEqual(ping_mock.call_count, pool_size * 2)
             # duplcate instances should not trigger ping and warm
-            await client.register_instance("instance-3")
+            await client.register_instance("instance-2")
             self.assertEqual(ping_mock.call_count, pool_size * 2)
 
-    @pytest.mark.asyncio
     async def test_remove_instance_registration(self):
         client = self._make_one(project="project-id")
         await client.register_instance("instance-1")
@@ -317,7 +279,6 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(success)
         self.assertEqual(len(client._active_instances), 1)
 
-    @pytest.mark.asyncio
     async def test_get_table(self):
         from google.cloud.bigtable.client import Table
         client = self._make_one(project="project-id")
@@ -333,15 +294,22 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(table.app_profile_id, expected_app_profile_id)
         self.assertIs(table.client, client)
 
-    def test_get_table_no_loop(self):
-        client = self._make_one(project="project-id")
-        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
-            get_event_loop.side_effect = RuntimeError("no event loop")
-            client.get_table("instance-id", "table-id")
-            with self.assertWarns(Warning) as cm:
-                client.get_table("instance-id", "table-id")
-            self.assertIn("Table should be created in an asyncio event loop", str(cm.warning))
 
+class TestBigtableDataClientSync(unittest.TestCase):
+    @staticmethod
+    def _get_target_class():
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient
+
+    def _make_one(self, *args, **kwargs):
+        return self._get_target_class()(*args, **kwargs)
+
+    def test_ctor_sync(self):
+        # initializing client in a sync context should raise RuntimeError
+        with self.assertRaises(RuntimeError) as err:
+            self._make_one(project="project-id")
+        self.assertEqual(str(err.exception), "BigtableDataClient must be created within an async context")
 
 class TestTable(unittest.TestCase):
 
