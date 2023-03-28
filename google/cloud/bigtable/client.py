@@ -184,7 +184,7 @@ class BigtableDataClient(ClientWithProject):
                 requests before closing, in seconds
         """
         first_refresh = self._channel_init_time + refresh_interval
-        next_sleep = first_refresh - time.time()
+        next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
             channel = self.transport.channel_pool[channel_idx]
@@ -196,7 +196,6 @@ class BigtableDataClient(ClientWithProject):
             new_channel = self.transport.create_channel(
                 self.transport._host,
                 credentials=self.transport._credentials,
-                credentials_file=None,
                 scopes=self.transport._scopes,
                 ssl_credentials=self.transport._ssl_channel_credentials,
                 quota_project_id=self.transport._quota_project_id,
@@ -205,7 +204,7 @@ class BigtableDataClient(ClientWithProject):
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-            await self._ping_and_warm_instances(channel)
+            await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
             await self.transport.replace_channel(channel_idx, grace_period, new_channel)

@@ -91,8 +91,125 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
     def test__ping_and_warm_instances(self):
         pass
 
-    def test__manage_channel(self):
-        pass
+    @pytest.mark.asyncio
+    async def test__manage_channel_first_sleep(self):
+        # first sleep time should be `refresh_interval` seconds after client init
+        import time
+        from collections import namedtuple
+        params = namedtuple('params', ['refresh_interval', 'wait_time', 'expected_sleep'])
+        test_params = [
+            params(refresh_interval=0, wait_time=0, expected_sleep=0),
+            params(refresh_interval=0, wait_time=1, expected_sleep=0),
+            params(refresh_interval=10, wait_time=0, expected_sleep=10),
+            params(refresh_interval=10, wait_time=5, expected_sleep=5),
+            params(refresh_interval=10, wait_time=10, expected_sleep=0),
+            params(refresh_interval=10, wait_time=15, expected_sleep=0),
+        ]
+        with mock.patch.object(time, "time") as time:
+            time.return_value = 0
+            for refresh_interval, wait_time, expected_sleep in test_params:
+                with mock.patch.object(asyncio, "sleep") as sleep:
+                    sleep.side_effect = asyncio.CancelledError
+                    try:
+                        client = self._make_one(project="project-id")
+                        client._channel_init_time = -wait_time
+                        await client._manage_channel(0, refresh_interval)
+                    except asyncio.CancelledError:
+                        pass
+                    sleep.assert_called_once()
+                    call_time = sleep.call_args[0][0]
+                    self.assertAlmostEqual(call_time, expected_sleep, delta=0.1, 
+                        msg=f"params={params}")
+
+    @pytest.mark.asyncio
+    async def test__manage_channel_ping_and_warm(self):
+        # should ping an warm all new channels, and old channels if sleeping
+        client = self._make_one(project="project-id")
+        new_channel = grpc.aio.insecure_channel("localhost:8080")
+        with mock.patch.object(asyncio, "sleep") as sleep:
+            with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
+                create_channel.return_value = new_channel
+                with mock.patch.object(type(self._make_one().transport), "replace_channel") as replace_channel:
+                    replace_channel.side_effect = asyncio.CancelledError
+                    # should ping and warm old channel then new if sleep > 0
+                    with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_and_warm:
+                        try:
+                            channel_idx = 2
+                            old_channel = client.transport.channel_pool[channel_idx]
+                            await client._manage_channel(channel_idx, 10)
+                        except asyncio.CancelledError:
+                            pass
+                        self.assertEqual(ping_and_warm.call_count, 2)
+                        self.assertNotEqual(old_channel, new_channel)
+                        called_with = [call[0][0] for call in ping_and_warm.call_args_list]
+                        self.assertIn(old_channel, called_with)
+                        self.assertIn(new_channel, called_with)
+                    # should ping and warm instantly new channel only if not sleeping
+                    with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_and_warm:
+                        try:
+                            await client._manage_channel(0,  0)
+                        except asyncio.CancelledError:
+                            pass
+                        ping_and_warm.assert_called_once_with(new_channel)
+
+    @pytest.mark.asyncio
+    async def test__manage_channel_sleeps(self):
+        # make sure that sleeps work as expected
+        from collections import namedtuple
+        import time
+        params = namedtuple('params', ['refresh_interval',  'num_cycles', 'expected_sleep'])
+        test_params = [
+            params(refresh_interval=None, num_cycles=1, expected_sleep=60*45),
+            params(refresh_interval=10, num_cycles=10, expected_sleep=100),
+            params(refresh_interval=10, num_cycles=1, expected_sleep=10),
+        ]
+        channel_idx = 1
+        with mock.patch.object(time, "time") as time:
+            time.return_value = 0
+            for refresh_interval, num_cycles, expected_sleep in test_params:
+                with mock.patch.object(asyncio, "sleep") as sleep:
+                    sleep.side_effect = [None for i in range(num_cycles-1)] + [asyncio.CancelledError]
+                    try:
+                        client = self._make_one(project="project-id")
+                        if refresh_interval is not None:
+                            await client._manage_channel(channel_idx, refresh_interval)
+                        else:
+                            await client._manage_channel(channel_idx)
+                    except asyncio.CancelledError:
+                        pass
+                    self.assertEqual(sleep.call_count, num_cycles)
+                    total_sleep = sum([call[0][0] for call in sleep.call_args_list])
+                    self.assertAlmostEqual(total_sleep, expected_sleep, delta=0.1, 
+                        msg=f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}")
+
+    @pytest.mark.asyncio
+    async def test__manage_channel_refresh(self):
+        # make sure that channels are properly refreshed
+        from collections import namedtuple
+        import time
+        expected_grace = 9
+        expected_refresh = 0.5
+        channel_idx = 1
+        new_channel = grpc.aio.insecure_channel("localhost:8080")
+
+        for num_cycles in [0, 1, 10, 100]:
+            with mock.patch.object(type(self._make_one().transport), "replace_channel") as replace_channel:
+                with mock.patch.object(asyncio, "sleep") as sleep:
+                    sleep.side_effect = [None for i in range(num_cycles)] + [asyncio.CancelledError]
+                    client = self._make_one(project="project-id")
+                    with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
+                        create_channel.return_value = new_channel
+                        try:
+                            await client._manage_channel(channel_idx, refresh_interval=expected_refresh, grace_period=expected_grace)
+                        except asyncio.CancelledError:
+                            pass
+                        self.assertEqual(sleep.call_count, num_cycles+1)
+                        self.assertEqual(create_channel.call_count, num_cycles)
+                        self.assertEqual(replace_channel.call_count, num_cycles)
+                        for call in replace_channel.call_args_list:
+                            self.assertEqual(call[0][0], channel_idx)
+                            self.assertEqual(call[0][1], expected_grace)
+                            self.assertEqual(call[0][2], new_channel)
 
     @pytest.mark.asyncio
     async def test_register_instance(self):
@@ -157,14 +274,22 @@ class TestBigtableDataClient(unittest.IsolatedAsyncioTestCase):
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
         with mock.patch.object(type(self._make_one()), "register_instance") as register_instance:
-            table = await client.get_table(expected_instance_id, expected_table_id, expected_app_profile_id)
+            table = client.get_table(expected_instance_id, expected_table_id, expected_app_profile_id)
             register_instance.assert_called_once_with(expected_instance_id)
-            register_instance.assert_awaited_once()
         self.assertIsInstance(table, Table)
         self.assertEqual(table.table_id, expected_table_id)
         self.assertEqual(table.instance, expected_instance_id)
         self.assertEqual(table.app_profile_id, expected_app_profile_id)
         self.assertIs(table.client, client)
+
+    def test_get_table_no_loop(self):
+        client = self._make_one(project="project-id")
+        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
+            get_event_loop.side_effect = RuntimeError("no event loop")
+            client.get_table("instance-id", "table-id")
+            with self.assertWarns(Warning) as cm:
+                client.get_table("instance-id", "table-id")
+            self.assertIn("Table should be created in an asyncio event loop", str(cm.warning))
 
 
 class TestTable(unittest.TestCase):
