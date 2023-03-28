@@ -17,6 +17,8 @@ import pytest
 import unittest
 import grpc
 import asyncio
+from google.api_core.client_options import ClientOptions
+from google.auth.credentials import AnonymousCredentials
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -34,13 +36,14 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    @pytest.mark.asyncio
     async def test_ctor(self):
         expected_project = "project-id"
         expected_pool_size = 11
         expected_metadata = [("a", "b")]
+        expected_credentials = AnonymousCredentials()
         client = self._make_one(
             project="project-id", pool_size=expected_pool_size, metadata=expected_metadata,
+            credentials=expected_credentials
         )
         await asyncio.sleep(0.1)
         self.assertEqual(client.project, expected_project)
@@ -48,6 +51,13 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.metadata, expected_metadata)
         self.assertFalse(client._active_instances)
         self.assertEqual(len(client._channel_refresh_tasks), expected_pool_size)
+        self.assertEqual(client.transport._credentials, expected_credentials)
+
+    async def test_ctor_client_options(self):
+        pass
+
+    async def test_ctor_client_options_dict(self):
+        pass
 
 
     async def test_channel_pool_creation(self):

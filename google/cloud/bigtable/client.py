@@ -86,11 +86,7 @@ class BigtableDataClient(ClientWithProject):
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async context"
             ) from e
-        super(BigtableDataClient, self).__init__(
-            project=project,
-            credentials=credentials,
-            client_options=client_options,
-        )
+        # parse inputs
         if type(client_options) is dict:
             client_options = google.api_core.client_options.from_dict(client_options)
         if client_options is None:
@@ -108,21 +104,25 @@ class BigtableDataClient(ClientWithProject):
             )
         if api_key_value and hasattr(google.auth._default, "get_api_key_credentials"):
             credentials = google.auth._default.get_api_key_credentials(api_key_value)
-
-        self.transport = PooledBigtableGrpcAsyncIOTransport(
-                pool_size=pool_size,
-                credentials=credentials,
-                credentials_file=client_options.credentials_file,
-                host=api_endpoint,
-                scopes=client_options.scopes,
-                client_cert_source_for_mtls=client_cert_source_func,
-                quota_project_id=client_options.quota_project_id,
-                client_info=DEFAULT_CLIENT_INFO,
-                always_use_jwt_access=True,
-                api_audience=client_options.api_audience,
-            )
-        self._gapic_client = BigtableAsyncClient(
+        # create client and transport objects
+        super(BigtableDataClient, self).__init__(
+            project=project,
             credentials=credentials,
+            client_options=client_options,
+        )
+        self.transport = PooledBigtableGrpcAsyncIOTransport(
+            pool_size=pool_size,
+            credentials=credentials,
+            credentials_file=client_options.credentials_file,
+            host=api_endpoint,
+            scopes=client_options.scopes,
+            client_cert_source_for_mtls=client_cert_source_func,
+            quota_project_id=client_options.quota_project_id,
+            client_info=DEFAULT_CLIENT_INFO,
+            always_use_jwt_access=True,
+            api_audience=client_options.api_audience,
+        )
+        self._gapic_client = BigtableAsyncClient(
             transport=self.transport,
             client_options=client_options,
         )
