@@ -341,42 +341,80 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
     async def test_get_table(self):
         from google.cloud.bigtable.client import Table
         client = self._make_one(project="project-id")
+        self.assertFalse(client._active_instances)
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
-        with mock.patch.object(type(self._make_one()), "register_instance") as register_instance:
-            table = client.get_table(expected_instance_id, expected_table_id, expected_app_profile_id)
-            register_instance.assert_called_once_with(expected_instance_id)
+        expected_metadata = [('a', 'b')]
+        table = client.get_table(expected_instance_id, expected_table_id, expected_app_profile_id, expected_metadata)
+        await asyncio.sleep(0)
         self.assertIsInstance(table, Table)
         self.assertEqual(table.table_id, expected_table_id)
         self.assertEqual(table.instance, expected_instance_id)
         self.assertEqual(table.app_profile_id, expected_app_profile_id)
+        self.assertEqual(table.metadata, expected_metadata)
         self.assertIs(table.client, client)
+        full_instance_name = client.instance_path(client.project, expected_instance_id)
+        self.assertIn(full_instance_name, client._active_instances)
+
+    async def test_multiple_pool_sizes(self):
+        # should be able to create multiple clients with different pool sizes without issue
+        pool_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        for pool_size in pool_sizes:
+            client = self._make_one(project="project-id", pool_size=pool_size)
+            self.assertEqual(len(client._channel_refresh_tasks), pool_size)
+            client_duplicate = self._make_one(project="project-id", pool_size=pool_size)
+            self.assertEqual(len(client_duplicate._channel_refresh_tasks), pool_size)
+            self.assertIn(str(pool_size), str(client.transport))
 
 
-class TestBigtableDataClientSync(unittest.TestCase):
-    @staticmethod
-    def _get_target_class():
-        from google.cloud.bigtable.client import BigtableDataClient
+class TestSyncInitialization(unittest.TestCase):
 
-        return BigtableDataClient
-
-    def _make_one(self, *args, **kwargs):
-        return self._get_target_class()(*args, **kwargs)
-
-    def test_ctor_sync(self):
+    def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
+        from google.cloud.bigtable.client import BigtableDataClient
         with self.assertRaises(RuntimeError) as err:
-            self._make_one(project="project-id")
-        self.assertEqual(str(err.exception), "BigtableDataClient must be created within an async context")
+            BigtableDataClient(project="project-id")
+        self.assertIn("no current event loop", str(err.exception))
 
-class TestTable(unittest.TestCase):
 
+    def test_table_ctor_sync(self):
+        # initializing client in a sync context should raise RuntimeError
+        from google.cloud.bigtable.client import Table
+        client = mock.Mock()
+        with self.assertRaises(RuntimeError) as err:
+            Table(client, "instance-id", "table-id")
+        self.assertEqual(str(err.exception), "no running event loop")
+
+class TestTable(unittest.IsolatedAsyncioTestCase):
 
     def _make_one(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient
 
         return BigtableDataClient().get_table(*args, **kwargs)
 
-    def test_ctor(self):
-        pass
+    async def test_ctor(self):
+        from google.cloud.bigtable.client import BigtableDataClient
+        from google.cloud.bigtable.client import Table
+        expected_table_id = "table-id"
+        expected_instance_id = "instance-id"
+        expected_app_profile_id = "app-profile-id"
+        expected_metadata = [('a', 'b')]
+        client = BigtableDataClient()
+        self.assertFalse(client._active_instances)
+
+        table = Table(client, expected_instance_id, expected_table_id, expected_app_profile_id, expected_metadata)
+        await asyncio.sleep(0)
+        self.assertEqual(table.table_id, expected_table_id)
+        self.assertEqual(table.instance, expected_instance_id)
+        self.assertEqual(table.app_profile_id, expected_app_profile_id)
+        self.assertEqual(table.metadata, expected_metadata)
+        self.assertIs(table.client, client)
+        full_instance_name = client.instance_path(client.project, expected_instance_id)
+        self.assertIn(full_instance_name, client._active_instances)
+        # ensure task reaches completion
+        await table._register_instance_task
+        self.assertTrue(table._register_instance_task.done())
+        self.assertFalse(table._register_instance_task.cancelled())
+        self.assertIsNone(table._register_instance_task.exception())
+

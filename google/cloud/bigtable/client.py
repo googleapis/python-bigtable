@@ -81,14 +81,10 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
             metadata: a list of metadata headers to be attached to all calls with this client
+        Raises:
+          - RuntimeError if called outside of an async run loop context
+          - ValueError if pool_size is less than 1
         """
-        # check for active run loop
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"{self.__class__.__name__} must be created within an async context"
-            ) from e
         # set up transport in registry
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
@@ -98,6 +94,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         client_info.client_library_version = client_info.gapic_version
         # initialize client
         _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
+        # raises RuntimeError if called outside of an async run loop context
         BigtableAsyncClient.__init__(
             self,
             transport=transport_str,
@@ -222,6 +219,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ) -> Table:
         """
         Returns a table instance for making data API requests
@@ -233,8 +231,9 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
+            metadata: a list of metadata headers to be attached to all calls with this client
         """
-        return Table(self, instance_id, table_id, app_profile_id)
+        return Table(self, instance_id, table_id, app_profile_id, metadata)
 
 
 class Table:
@@ -251,17 +250,31 @@ class Table:
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Initialize a Table instance
 
-        Tables are not meant to be instantiated directly, but are returned by
-        `BigtableDataClient.get_table`
+        Must be created within an async run loop context
+
+        Args:
+            instance_id: The Bigtable instance ID to associate with this client
+                instance_id is combined with the client's project to fully
+                specify the instance
+            table_id: The ID of the table.
+            app_profile_id: (Optional) The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            metadata: a list of metadata headers to be attached to all calls with this client
+        Raises:
+          - RuntimeError if called outside of an async run loop context
         """
         self.client = client
         self.instance = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
+        self.metadata = metadata
+        # raises RuntimeError if called outside of an async run loop context
+        self._register_instance_task = asyncio.create_task(self.client.register_instance(instance_id))
 
     async def read_rows_stream(
         self,
