@@ -16,7 +16,17 @@
 import asyncio
 import warnings
 from functools import partialmethod
-from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union, List
+from typing import (
+    Awaitable,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    List,
+    Type,
+)
 
 from google.api_core import gapic_v1
 from google.api_core import grpc_helpers_async
@@ -49,7 +59,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     """
 
     @classmethod
-    def with_fixed_size(cls, pool_size) -> "PooledBigtableGrpcAsyncIOTransport":
+    def with_fixed_size(cls, pool_size) -> Type["PooledBigtableGrpcAsyncIOTransport"]:
         """
         Creates a new class with a fixed channel pool size.
 
