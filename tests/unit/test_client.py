@@ -61,8 +61,9 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_channel_pool_creation(self):
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
         pool_size = 14
-        with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
+        with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
             client = self._make_one(project="project-id", pool_size=pool_size)
             self.assertEqual(create_channel.call_count, pool_size)
         # channels should be unique
@@ -173,13 +174,14 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                         msg=f"params={params}")
 
     async def test__manage_channel_ping_and_warm(self):
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
         # should ping an warm all new channels, and old channels if sleeping
         client = self._make_one(project="project-id")
         new_channel = grpc.aio.insecure_channel("localhost:8080")
         with mock.patch.object(asyncio, "sleep") as sleep:
-            with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
+            with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
                 create_channel.return_value = new_channel
-                with mock.patch.object(type(self._make_one().transport), "replace_channel") as replace_channel:
+                with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "replace_channel") as replace_channel:
                     replace_channel.side_effect = asyncio.CancelledError
                     # should ping and warm old channel then new if sleep > 0
                     with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_and_warm:
@@ -235,17 +237,18 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         # make sure that channels are properly refreshed
         from collections import namedtuple
         import time
+        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
         expected_grace = 9
         expected_refresh = 0.5
         channel_idx = 1
         new_channel = grpc.aio.insecure_channel("localhost:8080")
 
         for num_cycles in [0, 1, 10, 100]:
-            with mock.patch.object(type(self._make_one().transport), "replace_channel") as replace_channel:
+            with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "replace_channel") as replace_channel:
                 with mock.patch.object(asyncio, "sleep") as sleep:
                     sleep.side_effect = [None for i in range(num_cycles)] + [asyncio.CancelledError]
                     client = self._make_one(project="project-id")
-                    with mock.patch.object(type(self._make_one().transport), "create_channel") as create_channel:
+                    with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "create_channel") as create_channel:
                         create_channel.return_value = new_channel
                         try:
                             await client._manage_channel(channel_idx, refresh_interval=expected_refresh, grace_period=expected_grace)

@@ -21,13 +21,16 @@ import asyncio
 import grpc
 import time
 import warnings
+import functools
 
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
 from google.cloud.client import ClientWithProject
+from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
 
 
@@ -45,8 +48,13 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
+def create_partial_transport(pool_size=3):
+    class PartialTransport(PooledBigtableGrpcAsyncIOTransport):
+        __init__ = functools.partialmethod(PooledBigtableGrpcAsyncIOTransport.__init__, pool_size=pool_size)
+    return PartialTransport
 
-class BigtableDataClient(ClientWithProject):
+class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
+
     def __init__(
         self,
         *,
@@ -86,44 +94,16 @@ class BigtableDataClient(ClientWithProject):
             raise RuntimeError(
                 f"{self.__class__.__name__} must be created within an async context"
             ) from e
-        # parse inputs
-        if type(client_options) is dict:
-            client_options = google.api_core.client_options.from_dict(client_options)
-        if client_options is None:
-            client_options = client_options_lib.ClientOptions()
-        client_options = cast(client_options_lib.ClientOptions, client_options)
-
-        api_endpoint, client_cert_source_func = BigtableAsyncClient.get_mtls_endpoint_and_cert_source(
-            client_options
-        )
-
-        api_key_value = getattr(client_options, "api_key", None)
-        if api_key_value and credentials:
-            raise ValueError(
-                "client_options.api_key and credentials are mutually exclusive"
-            )
-        if api_key_value and hasattr(google.auth._default, "get_api_key_credentials"):
-            credentials = google.auth._default.get_api_key_credentials(api_key_value)
-        # create client and transport objects
-        super(BigtableDataClient, self).__init__(
-            project=project,
+        # set up transport in registry
+        PartialTransport = create_partial_transport(pool_size)
+        transport_str = f"pooled_grpc_asyncio_{pool_size}"
+        BigtableClientMeta._transport_registry[transport_str] = PartialTransport
+        # initialize client
+        _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
+        BigtableAsyncClient.__init__(
+            self,
+            transport=transport_str,
             credentials=credentials,
-            client_options=client_options,
-        )
-        self.transport = PooledBigtableGrpcAsyncIOTransport(
-            pool_size=pool_size,
-            credentials=credentials,
-            credentials_file=client_options.credentials_file,
-            host=api_endpoint,
-            scopes=client_options.scopes,
-            client_cert_source_for_mtls=client_cert_source_func,
-            quota_project_id=client_options.quota_project_id,
-            client_info=DEFAULT_CLIENT_INFO,
-            always_use_jwt_access=True,
-            api_audience=client_options.api_audience,
-        )
-        self._gapic_client = BigtableAsyncClient(
-            transport=self.transport,
             client_options=client_options,
         )
         self.metadata = metadata
@@ -212,7 +192,7 @@ class BigtableDataClient(ClientWithProject):
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
         """
-        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        instance_name = self.instance_path(self.project, instance_id)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             # call ping and warm on all existing channels
@@ -231,14 +211,14 @@ class BigtableDataClient(ClientWithProject):
         Returns:
             - True if instance was removed
         """
-        instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        instance_name = self.instance_path(self.project, instance_id)
         try:
             self._active_instances.remove(instance_name)
             return True
         except KeyError:
             return False
 
-    async def get_table(
+    def get_table(
         self,
         instance_id: str,
         table_id: str,
@@ -255,7 +235,6 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        await self.register_instance(instance_id)
         return Table(self, instance_id, table_id, app_profile_id)
 
 
