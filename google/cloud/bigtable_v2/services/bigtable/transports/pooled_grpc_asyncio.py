@@ -15,6 +15,7 @@
 #
 import asyncio
 import warnings
+from functools import partialmethod
 from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union, List
 
 from google.api_core import gapic_v1
@@ -46,6 +47,22 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     This class allows channel pooling, so multiple channels can be used concurrently
     when making requests. Channels are rotated in a round-robin fashion.
     """
+
+    @classmethod
+    def with_fixed_size(cls, pool_size) -> "PooledBigtableGrpcAsyncIOTransport":
+        """
+        Creates a new class with a fixed channel pool size.
+
+        A fixed channel pool makes compatibility with other transports easier,
+        as the initializer signature is the same.
+        """
+
+        class PooledTransportFixed(cls):
+            __init__ = partialmethod(cls.__init__, pool_size=pool_size)
+
+        PooledTransportFixed.__name__ = f"{cls.__name__}_{pool_size}"
+        PooledTransportFixed.__qualname__ = PooledTransportFixed.__name__
+        return PooledTransportFixed
 
     @classmethod
     def create_channel(

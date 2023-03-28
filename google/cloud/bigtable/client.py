@@ -48,11 +48,6 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
-def create_partial_transport(pool_size=3):
-    class PartialTransport(PooledBigtableGrpcAsyncIOTransport):
-        __init__ = functools.partialmethod(PooledBigtableGrpcAsyncIOTransport.__init__, pool_size=pool_size)
-    return PartialTransport
-
 class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
 
     def __init__(
@@ -95,9 +90,9 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
                 f"{self.__class__.__name__} must be created within an async context"
             ) from e
         # set up transport in registry
-        PartialTransport = create_partial_transport(pool_size)
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        BigtableClientMeta._transport_registry[transport_str] = PartialTransport
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
