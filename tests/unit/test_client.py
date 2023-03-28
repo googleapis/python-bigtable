@@ -13,13 +13,11 @@
 # limitations under the License.
 
 
-import pytest
 import unittest
 import grpc
 import asyncio
 import re
 
-from google.api_core.client_options import ClientOptions
 from google.auth.credentials import AnonymousCredentials
 
 # try/except added for compatibility with python < 3.8
@@ -68,11 +66,13 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
             BigtableAsyncClient,
         )
         from google.cloud.client import _ClientProjectMixin
+        from google.api_core import client_options as client_options_lib
 
         project = "project-id"
         pool_size = 11
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
+        options_parsed = client_options_lib.from_dict(client_options)
         metadata = [("a", "b")]
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
@@ -84,7 +84,7 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                         project=project,
                         pool_size=pool_size,
                         credentials=credentials,
-                        client_options=client_options,
+                        client_options=options_parsed,
                         metadata=metadata,
                     )
                 except AttributeError:
@@ -94,12 +94,28 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
                 kwargs = bigtable_client_init.call_args[1]
                 self.assertEqual(kwargs["transport"], transport_str)
                 self.assertEqual(kwargs["credentials"], credentials)
-                self.assertEqual(kwargs["client_options"], client_options)
+                self.assertEqual(kwargs["client_options"], options_parsed)
                 # test mixin superclass init was called
                 self.assertEqual(client_project_mixin_init.call_count, 1)
                 kwargs = client_project_mixin_init.call_args[1]
                 self.assertEqual(kwargs["project"], project)
                 self.assertEqual(kwargs["credentials"], credentials)
+
+    async def test_ctor_dict_options(self):
+        from google.cloud.bigtable_v2.services.bigtable.async_client import (
+            BigtableAsyncClient,
+        )
+        from google.api_core.client_options import ClientOptions
+
+        client_options = {"api_endpoint": "foo.bar:1234"}
+        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+            self._make_one(client_options=client_options)
+            bigtable_client_init.assert_called_once()
+            kwargs = bigtable_client_init.call_args[1]
+            called_options = kwargs["client_options"]
+            self.assertEqual(called_options.api_endpoint, "foo.bar:1234")
+            self.assertIsInstance(called_options, ClientOptions)
+
 
     async def test_veneer_grpc_headers(self):
         # client_info should be populated with headers to
@@ -146,7 +162,7 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(type(client.transport), "next_channel") as next_channel:
             with mock.patch.object(
                 type(client.transport.channel_pool[0]), "unary_unary"
-            ) as unary_unary:
+            ):
                 # calling an rpc `pool_size` times should use a different channel each time
                 for i in range(pool_size):
                     channel_1 = client.transport.channel_pool[
@@ -263,7 +279,7 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
         # should ping an warm all new channels, and old channels if sleeping
         client = self._make_one(project="project-id")
         new_channel = grpc.aio.insecure_channel("localhost:8080")
-        with mock.patch.object(asyncio, "sleep") as sleep:
+        with mock.patch.object(asyncio, "sleep"):
             with mock.patch.object(
                 PooledBigtableGrpcAsyncIOTransport, "create_channel"
             ) as create_channel:
@@ -339,8 +355,6 @@ class TestBigtableDataClientAsync(unittest.IsolatedAsyncioTestCase):
 
     async def test__manage_channel_refresh(self):
         # make sure that channels are properly refreshed
-        from collections import namedtuple
-        import time
         from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
             PooledBigtableGrpcAsyncIOTransport,
         )

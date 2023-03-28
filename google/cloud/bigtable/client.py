@@ -15,13 +15,11 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, AsyncIterable, Optional, Set, TYPE_CHECKING
+from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
 
 import asyncio
 import grpc
 import time
-import warnings
-import functools
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -29,7 +27,6 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
-from google.cloud.client import ClientWithProject
 from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
 
@@ -92,6 +89,12 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
+        # parse client options
+        if type(client_options) is dict:
+            client_options = client_options_lib.from_dict(client_options)
+        client_options = cast(
+            Optional[client_options_lib.ClientOptions], client_options
+        )
         # initialize client
         _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
         # raises RuntimeError if called outside of an async run loop context
@@ -108,7 +111,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        for channel_idx in range(len(self.transport.channel_pool)):
+        for channel_idx in range(pool_size):
             refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
             self._channel_refresh_tasks.append(refresh_task)
 
@@ -151,22 +154,23 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        transport = cast(PooledBigtableGrpcAsyncIOTransport, self.transport)
         first_refresh = self._channel_init_time + refresh_interval
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            channel = self.transport.channel_pool[channel_idx]
+            channel = transport.channel_pool[channel_idx]
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
             # prepare new channel for use
-            new_channel = self.transport.create_channel(
+            new_channel = transport.create_channel(
                 self.transport._host,
-                credentials=self.transport._credentials,
-                scopes=self.transport._scopes,
-                ssl_credentials=self.transport._ssl_channel_credentials,
-                quota_project_id=self.transport._quota_project_id,
+                credentials=transport._credentials,
+                scopes=transport._scopes,
+                ssl_credentials=transport._ssl_channel_credentials,
+                quota_project_id=transport._quota_project_id,
                 options=[
                     ("grpc.max_send_message_length", -1),
                     ("grpc.max_receive_message_length", -1),
@@ -175,7 +179,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
-            await self.transport.replace_channel(channel_idx, grace_period, new_channel)
+            await transport.replace_channel(channel_idx, grace_period, new_channel)
             # subtract the time spent waiting for the channel to be replaced
             next_sleep = refresh_interval - (time.time() - start_timestamp)
 
@@ -187,11 +191,12 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
         """
+        transport = cast(PooledBigtableGrpcAsyncIOTransport, self.transport)
         instance_name = self.instance_path(self.project, instance_id)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             # call ping and warm on all existing channels
-            for channel in self.transport.channel_pool:
+            for channel in transport.channel_pool:
                 await self._ping_and_warm_instances(channel)
 
     async def remove_instance_registration(self, instance_id: str) -> bool:
