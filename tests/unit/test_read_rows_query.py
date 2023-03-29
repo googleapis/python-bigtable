@@ -224,24 +224,24 @@ class TestReadRowsQuery(unittest.TestCase):
             query.add_range(start_is_inclusive=True, end_is_inclusive=True)
         self.assertEqual(
             exc.exception.args,
-            ("start_is_inclusive must not be set without start_key",),
+            ("start_is_inclusive must be set with start_key",),
         )
         with self.assertRaises(ValueError) as exc:
             query.add_range(start_is_inclusive=False, end_is_inclusive=False)
         self.assertEqual(
             exc.exception.args,
-            ("start_is_inclusive must not be set without start_key",),
+            ("start_is_inclusive must be set with start_key",),
         )
         with self.assertRaises(ValueError) as exc:
             query.add_range(start_is_inclusive=False)
         self.assertEqual(
             exc.exception.args,
-            ("start_is_inclusive must not be set without start_key",),
+            ("start_is_inclusive must be set with start_key",),
         )
         with self.assertRaises(ValueError) as exc:
             query.add_range(end_is_inclusive=True)
         self.assertEqual(
-            exc.exception.args, ("end_is_inclusive must not be set without end_key",)
+            exc.exception.args, ("end_is_inclusive must be set with end_key",)
         )
         # test with invalid keys
         with self.assertRaises(ValueError) as exc:
