@@ -21,6 +21,7 @@ import asyncio
 import grpc
 import time
 import warnings
+import sys
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -116,7 +117,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             self.start_background_channel_refresh()
         except RuntimeError:
             warnings.warn(
-                "BigtableDataClient should be started in an "
+                f"{self.__class__.__name__} should be started in an "
                 "asyncio event loop. Channel refresh will not be started",
                 RuntimeWarning,
             )
@@ -132,9 +133,10 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             asyncio.get_running_loop()
             for channel_idx in range(len(self.transport.channel_pool)):
                 refresh_task = asyncio.create_task(
-                    self._manage_channel(channel_idx),
-                    name=f"BigtableDataClient channel refresh {channel_idx}",
+                    self._manage_channel(channel_idx)
                 )
+                if sys.version_info >= (3, 8):
+                    refresh_task.set_name(f"{self.__class__.__name__} channel refresh {channel_idx}")
                 self._channel_refresh_tasks.append(refresh_task)
 
     @property

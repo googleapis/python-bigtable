@@ -13,10 +13,10 @@
 # limitations under the License.
 
 
-import unittest
 import grpc
 import asyncio
 import re
+import sys
 
 from google.auth.credentials import AnonymousCredentials
 import pytest
@@ -249,6 +249,21 @@ async def test_start_background_channel_refresh(pool_size):
     assert ping_and_warm.call_count == pool_size
     for channel in client.transport.channel_pool:
         ping_and_warm.assert_any_call(channel)
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
+)
+async def test_start_background_channel_refresh_tasks_names():
+    # if tasks exist, should do nothing
+    pool_size = 3
+    client = _make_one(project="project-id", pool_size=pool_size)
+    for i in range(pool_size):
+        name = client._channel_refresh_tasks[i].get_name()
+        assert str(i) in name
+        assert "BigtableDataClient channel refresh " in name
     await client.close()
 
 
@@ -616,7 +631,9 @@ def test_client_ctor_sync():
 
     with pytest.warns(RuntimeWarning) as warnings:
         client = BigtableDataClient(project="project-id")
-    assert "event loop" in str(warnings[0].message)
+    assert "BigtableDataClient should be started in an asyncio event loop." in str(
+        warnings[0].message
+    )
     assert client.project == "project-id"
     assert client._channel_refresh_tasks == []
 
