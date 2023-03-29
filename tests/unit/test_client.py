@@ -212,6 +212,7 @@ async def test_channel_pool_replace():
                 assert client.transport.channel_pool[i] != start_pool[i]
     await client.close()
 
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_start_background_channel_refresh_sync():
     # should raise RuntimeError if called in a sync context
     client = _make_one(project="project-id")
@@ -388,7 +389,8 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
 
 
 @pytest.mark.asyncio
-async def test__manage_channel_refresh():
+@pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])
+async def test__manage_channel_refresh(num_cycles):
     # make sure that channels are properly refreshed
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledBigtableGrpcAsyncIOTransport,
@@ -399,37 +401,37 @@ async def test__manage_channel_refresh():
     channel_idx = 1
     new_channel = grpc.aio.insecure_channel("localhost:8080")
 
-    for num_cycles in [0, 1, 10, 100]:
-        with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "replace_channel"
-        ) as replace_channel:
-            with mock.patch.object(asyncio, "sleep") as sleep:
-                sleep.side_effect = [None for i in range(num_cycles)] + [
-                    asyncio.CancelledError
-                ]
-                client = _make_one(project="project-id")
-                with mock.patch.object(
-                    PooledBigtableGrpcAsyncIOTransport, "create_channel"
-                ) as create_channel:
-                    create_channel.return_value = new_channel
-                    try:
-                        await client._manage_channel(
-                            channel_idx,
-                            refresh_interval=expected_refresh,
-                            grace_period=expected_grace,
-                        )
-                    except asyncio.CancelledError:
-                        pass
-                    assert sleep.call_count == num_cycles + 1
-                    assert create_channel.call_count == num_cycles
-                    assert replace_channel.call_count == num_cycles
-                    for call in replace_channel.call_args_list:
-                        assert call[0][0] == channel_idx
-                        assert call[0][1] == expected_grace
-                        assert call[0][2] == new_channel
-                await client.close()
+    with mock.patch.object(
+        PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+    ) as replace_channel:
+        with mock.patch.object(asyncio, "sleep") as sleep:
+            sleep.side_effect = [None for i in range(num_cycles)] + [
+                asyncio.CancelledError
+            ]
+            client = _make_one(project="project-id")
+            with mock.patch.object(
+                PooledBigtableGrpcAsyncIOTransport, "create_channel"
+            ) as create_channel:
+                create_channel.return_value = new_channel
+                try:
+                    await client._manage_channel(
+                        channel_idx,
+                        refresh_interval=expected_refresh,
+                        grace_period=expected_grace,
+                    )
+                except asyncio.CancelledError:
+                    pass
+                assert sleep.call_count == num_cycles + 1
+                assert create_channel.call_count == num_cycles
+                assert replace_channel.call_count == num_cycles
+                for call in replace_channel.call_args_list:
+                    assert call[0][0] == channel_idx
+                    assert call[0][1] == expected_grace
+                    assert call[0][2] == new_channel
+            await client.close()
 
 @pytest.mark.asyncio
+@pytest.mark.filterwarnings("ignore::UserWarning")
 async def test_register_instance():
     # create the client without calling start_background_channel_refresh
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
@@ -450,6 +452,7 @@ async def test_register_instance():
         refresh_mock.assert_not_called()
 
 @pytest.mark.asyncio
+@pytest.mark.filterwarnings("ignore::UserWarning")
 async def test_register_instance_ping_and_warm():
     # should ping and warm each new instance
     pool_size = 7
@@ -569,32 +572,6 @@ async def test_close_with_timeout():
         wait_for_mock.assert_awaited()
         assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
     client._channel_refresh_tasks = tasks
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test___del__(recwarn):
-    # no warnings on __del__ after close
-    pool_size = 7
-    client = _make_one(project="project-id", pool_size=pool_size)
-    assert len(recwarn) == 0
-    await client.close()
-    assert len(recwarn) == 0
-
-
-@pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore::UserWarning")
-async def test___del____no_close():
-    import warnings
-
-    # if client is garbage collected before being closed, it should raise a warning
-    pool_size = 7
-    client = _make_one(project="project-id", pool_size=pool_size)
-    assert len(client._channel_refresh_tasks) == pool_size
-    with pytest.warns(UserWarning) as warnings:
-        client.__del__()
-        assert len(warnings) == 1
-        assert "Please call the close() method" in str(warnings[0].message)
     await client.close()
 
 

@@ -141,19 +141,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         """
         return cast(PooledBigtableGrpcAsyncIOTransport, self._client.transport)
 
-    def __del__(self):
-        """
-        Call close on garbage collection
-
-        Raise warming if background tasks are still running
-        """
-        if hasattr(self, "_channel_refresh_tasks") and self._channel_refresh_tasks:
-            warnings.warn(
-                "BigtableDataClient instance is being garbage collected without "
-                "being closed. Please call the close() method to ensure all "
-                "background tasks are cancelled."
-            )
-
     async def close(self, timeout: float = 2.0):
         """
         Cancel all background tasks
