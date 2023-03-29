@@ -60,6 +60,7 @@ async def test_ctor():
     assert not client._active_instances
     assert len(client._channel_refresh_tasks) == expected_pool_size
     assert client.transport._credentials == expected_credentials
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_ctor_super_inits():
@@ -125,7 +126,7 @@ async def test_veneer_grpc_headers():
     # detect as a veneer client
     patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
     with patch as gapic_mock:
-        _make_one(project="project-id")
+        client = _make_one(project="project-id")
         wrapped_call_list = gapic_mock.call_args_list
         assert len(wrapped_call_list) > 0
         # each wrapped call should have veneer headers
@@ -137,6 +138,7 @@ async def test_veneer_grpc_headers():
             )
             assert VENEER_HEADER_REGEX.match(wrapped_user_agent_sorted), \
                 f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}"
+        await client.close()
 
 @pytest.mark.asyncio
 async def test_channel_pool_creation():
@@ -155,6 +157,7 @@ async def test_channel_pool_creation():
     pool_list = list(client.transport.channel_pool)
     pool_set = set(client.transport.channel_pool)
     assert len(pool_list) == len(pool_set)
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_channel_pool_rotation():
@@ -175,6 +178,7 @@ async def test_channel_pool_rotation():
                 client.transport.ping_and_warm()
                 assert next_channel.call_count == i + 1
                 channel_1.unary_unary.assert_called_once()
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_channel_pool_replace():
@@ -198,6 +202,7 @@ async def test_channel_pool_replace():
                 assert client.transport.channel_pool[i] == start_pool[i]
             else:
                 assert client.transport.channel_pool[i] != start_pool[i]
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_ctor_background_channel_refresh():
@@ -213,6 +218,7 @@ async def test_ctor_background_channel_refresh():
         assert ping_and_warm.call_count == pool_size
         for channel in client.transport.channel_pool:
             ping_and_warm.assert_any_call(channel)
+        await client.close()
 
 @pytest.mark.asyncio
 async def test__ping_and_warm_instances():
@@ -243,6 +249,7 @@ async def test__ping_and_warm_instances():
     for idx, call in enumerate(gather.call_args.args):
         assert isinstance(call, grpc.aio.UnaryUnaryCall)
         call._request["name"] = client._active_instances[idx]
+    await client.close()
 
 @pytest.mark.asyncio
 async def test__manage_channel_first_sleep():
@@ -275,6 +282,7 @@ async def test__manage_channel_first_sleep():
                 sleep.assert_called_once()
                 call_time = sleep.call_args[0][0]
                 assert abs(call_time-expected_sleep) < 0.1, f"params={params}"
+                await client.close()
 
 @pytest.mark.asyncio
 async def test__manage_channel_ping_and_warm():
@@ -320,6 +328,7 @@ async def test__manage_channel_ping_and_warm():
                     except asyncio.CancelledError:
                         pass
                     ping_and_warm.assert_called_once_with(new_channel)
+    await client.close()
 
 @pytest.mark.asyncio
 async def test__manage_channel_sleeps():
@@ -356,6 +365,7 @@ async def test__manage_channel_sleeps():
                 assert abs(total_sleep-expected_sleep) < \
                     0.1, \
                     f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
+                await client.close()
 
 @pytest.mark.asyncio
 async def test__manage_channel_refresh():
@@ -397,6 +407,7 @@ async def test__manage_channel_refresh():
                         assert call[0][0] == channel_idx
                         assert call[0][1] == expected_grace
                         assert call[0][2] == new_channel
+                await client.close()
 
 @pytest.mark.asyncio
 async def test_register_instance_ping_and_warm():
@@ -417,6 +428,7 @@ async def test_register_instance_ping_and_warm():
         # duplcate instances should not trigger ping and warm
         await client.register_instance("instance-2")
         assert ping_mock.call_count == pool_size * 2
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_remove_instance_registration():
@@ -431,6 +443,7 @@ async def test_remove_instance_registration():
     success = await client.remove_instance_registration("nonexistant")
     assert not success
     assert len(client._active_instances) == 1
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_get_table():
@@ -457,6 +470,7 @@ async def test_get_table():
     assert table.client is client
     full_instance_name = client.instance_path(client.project, expected_instance_id)
     assert full_instance_name in client._active_instances
+    await client.close()
 
 @pytest.mark.asyncio
 async def test_multiple_pool_sizes():
@@ -468,6 +482,80 @@ async def test_multiple_pool_sizes():
         client_duplicate = _make_one(project="project-id", pool_size=pool_size)
         assert len(client_duplicate._channel_refresh_tasks) == pool_size
         assert str(pool_size) in str(client.transport)
+        await client.close()
+        await client_duplicate.close()
+
+@pytest.mark.asyncio
+async def test_close():
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
+    pool_size = 7
+    client = _make_one(project="project-id", pool_size=pool_size)
+    assert len(client._channel_refresh_tasks) == pool_size
+    tasks_list = list(client._channel_refresh_tasks)
+    for task in client._channel_refresh_tasks:
+        assert not task.done()
+    with mock.patch.object(PooledBigtableGrpcAsyncIOTransport, "close", AsyncMock()) as close_mock:
+        await client.close()
+        close_mock.assert_called_once()
+        close_mock.assert_awaited()
+    for task in tasks_list:
+        assert task.done()
+        assert task.cancelled()
+    assert client._channel_refresh_tasks == []
+
+@pytest.mark.asyncio
+async def test_close_with_timeout():
+    pool_size = 7
+    expected_timeout = 19
+    client = _make_one(project="project-id", pool_size=pool_size)
+    with mock.patch.object(asyncio, "wait_for") as wait_for_mock:
+        await client.close(timeout=expected_timeout)
+        wait_for_mock.assert_called_once()
+        wait_for_mock.assert_awaited()
+        assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
+
+@pytest.mark.asyncio
+async def test___del__():
+    # no warnings on __del__ after close
+    pool_size = 7
+    client = _make_one(project="project-id", pool_size=pool_size)
+    await client.close()
+
+@pytest.mark.asyncio
+@pytest.mark.filterwarnings("ignore::UserWarning")
+async def test___del____no_close():
+    import warnings
+    # if client is garbage collected before being closed, it should raise a warning
+    pool_size = 7
+    client = _make_one(project="project-id", pool_size=pool_size)
+    # replace tasks with mocks
+    await client.close()
+    client._channel_refresh_tasks = [mock.Mock() for i in range(pool_size)]
+    assert len(client._channel_refresh_tasks) == pool_size
+    with pytest.warns(UserWarning) as warnings:
+        client.__del__()
+        assert len(warnings) == 1
+        assert "Please call the close() method" in str(warnings[0].message)
+        for i in range(pool_size):
+            assert client._channel_refresh_tasks[i].cancel.call_count == 1
+
+@pytest.mark.asyncio
+async def test_context_manager():
+    # context manager should close the client cleanly
+    close_mock = AsyncMock()
+    true_close = None
+    async with _make_one(project="project-id") as client:
+        true_close = client.close()
+        client.close = close_mock
+        for task in client._channel_refresh_tasks:
+            assert not task.done()
+        assert client.project == "project-id"
+        assert client._active_instances == set()
+        close_mock.assert_not_called()
+    close_mock.assert_called_once()
+    close_mock.assert_awaited()
+    # actually close the client
+    await true_close
 
 def test_client_ctor_sync():
     # initializing client in a sync context should raise RuntimeError
@@ -514,6 +602,7 @@ async def test_table_ctor():
     assert table._register_instance_task.done()
     assert not table._register_instance_task.cancelled()
     assert table._register_instance_task.exception() is None
+    await client.close()
 
 def test_table_ctor_sync():
     # initializing client in a sync context should raise RuntimeError

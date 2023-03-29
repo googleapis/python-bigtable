@@ -20,6 +20,7 @@ from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
 import asyncio
 import grpc
 import time
+import warnings
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -82,6 +83,11 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
           - RuntimeError if called outside of an async run loop context
           - ValueError if pool_size is less than 1
         """
+        # check if in async run loop context
+        if not asyncio.get_running_loop():
+            raise RuntimeError(
+                "BigtableDataClient must be created within an async run loop context"
+            )
         # set up transport in registry
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
@@ -112,8 +118,38 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         for channel_idx in range(pool_size):
-            refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
+            refresh_task = asyncio.create_task(self._manage_channel(channel_idx), name=f"channel_refresh_{channel_idx}")
             self._channel_refresh_tasks.append(refresh_task)
+
+    def __del__(self):
+        """
+        Clean up background tasks
+        """
+        if hasattr(self, "_channel_refresh_tasks") and self._channel_refresh_tasks:
+            warnings.warn(
+                "BigtableDataClient instance is being garbage collected without "
+                "being closed. Please call the close() method to ensure all "
+                "background tasks are cancelled."
+            )
+            for task in self._channel_refresh_tasks:
+                task.cancel()
+
+    async def close(self, timeout: float = 2.0):
+        """
+        Cancel all background tasks
+        """
+        for task in self._channel_refresh_tasks:
+            task.cancel()
+        group = asyncio.gather(*self._channel_refresh_tasks, return_exceptions=True)
+        await asyncio.wait_for(group, timeout=timeout)
+        await self.transport.close()
+        self._channel_refresh_tasks = []
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Cleanly close context manager on exit
+        """
+        await self.close()
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel
