@@ -156,8 +156,10 @@ async def test_channel_pool_creation():
     with mock.patch.object(
         PooledBigtableGrpcAsyncIOTransport, "create_channel"
     ) as create_channel:
+        create_channel.return_value = AsyncMock()
         client = _make_one(project="project-id", pool_size=pool_size)
         assert create_channel.call_count == pool_size
+        await client.close()
     # channels should be unique
     client = _make_one(project="project-id", pool_size=pool_size)
     pool_list = list(client.transport.channel_pool)
@@ -229,32 +231,30 @@ async def test_ctor_background_channel_refresh():
 @pytest.mark.asyncio
 async def test__ping_and_warm_instances():
     # test with no instances
-    gather = AsyncMock()
-    asyncio.gather = gather
-    client = _make_one(project="project-id", pool_size=1)
-    channel = client.transport.channel_pool[0]
-    await client._ping_and_warm_instances(channel)
-    gather.assert_called_once()
-    gather.assert_awaited_once()
-    assert not gather.call_args.args
-    assert gather.call_args.kwargs == {"return_exceptions": True}
-    # test with instances
-    client._active_instances = [
-        "instance-1",
-        "instance-2",
-        "instance-3",
-        "instance-4",
-    ]
-    gather = AsyncMock()
-    asyncio.gather = gather
-    await client._ping_and_warm_instances(channel)
-    gather.assert_called_once()
-    gather.assert_awaited_once()
-    assert len(gather.call_args.args) == 4
-    assert gather.call_args.kwargs == {"return_exceptions": True}
-    for idx, call in enumerate(gather.call_args.args):
-        assert isinstance(call, grpc.aio.UnaryUnaryCall)
-        call._request["name"] = client._active_instances[idx]
+    with mock.patch.object(asyncio, "gather", AsyncMock()) as gather:
+        client = _make_one(project="project-id", pool_size=1)
+        channel = client.transport.channel_pool[0]
+        await client._ping_and_warm_instances(channel)
+        gather.assert_called_once()
+        gather.assert_awaited_once()
+        assert not gather.call_args.args
+        assert gather.call_args.kwargs == {"return_exceptions": True}
+        # test with instances
+        client._active_instances = [
+            "instance-1",
+            "instance-2",
+            "instance-3",
+            "instance-4",
+        ]
+    with mock.patch.object(asyncio, "gather", AsyncMock()) as gather:
+        await client._ping_and_warm_instances(channel)
+        gather.assert_called_once()
+        gather.assert_awaited_once()
+        assert len(gather.call_args.args) == 4
+        assert gather.call_args.kwargs == {"return_exceptions": True}
+        for idx, call in enumerate(gather.call_args.args):
+            assert isinstance(call, grpc.aio.UnaryUnaryCall)
+            call._request["name"] = client._active_instances[idx]
     await client.close()
 
 
@@ -367,7 +367,9 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
             assert (
                 abs(total_sleep - expected_sleep) < 0.1
             ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
-            await client.close()
+    print(client._channel_refresh_tasks)
+    breakpoint()
+    await client.close()
 
 
 @pytest.mark.asyncio
@@ -520,11 +522,14 @@ async def test_close_with_timeout():
     pool_size = 7
     expected_timeout = 19
     client = _make_one(project="project-id", pool_size=pool_size)
-    with mock.patch.object(asyncio, "wait_for") as wait_for_mock:
+    tasks = list(client._channel_refresh_tasks)
+    with mock.patch.object(asyncio, "wait_for", AsyncMock()) as wait_for_mock:
         await client.close(timeout=expected_timeout)
         wait_for_mock.assert_called_once()
         wait_for_mock.assert_awaited()
         assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
+    client._channel_refresh_tasks = tasks
+    await client.close()
 
 
 @pytest.mark.asyncio
@@ -543,16 +548,12 @@ async def test___del____no_close():
     # if client is garbage collected before being closed, it should raise a warning
     pool_size = 7
     client = _make_one(project="project-id", pool_size=pool_size)
-    # replace tasks with mocks
-    await client.close()
-    client._channel_refresh_tasks = [mock.Mock() for i in range(pool_size)]
     assert len(client._channel_refresh_tasks) == pool_size
     with pytest.warns(UserWarning) as warnings:
         client.__del__()
         assert len(warnings) == 1
         assert "Please call the close() method" in str(warnings[0].message)
-        for i in range(pool_size):
-            assert client._channel_refresh_tasks[i].cancel.call_count == 1
+    await client.close()
 
 
 @pytest.mark.asyncio

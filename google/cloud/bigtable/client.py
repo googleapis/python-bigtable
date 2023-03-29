@@ -123,9 +123,19 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             )
             self._channel_refresh_tasks.append(refresh_task)
 
+    @property
+    def transport(self) -> PooledBigtableGrpcAsyncIOTransport:
+        """Returns the transport used by the client instance.
+        Returns:
+            BigtableTransport: The transport used by the client instance.
+        """
+        return cast(PooledBigtableGrpcAsyncIOTransport, self._client.transport)
+
     def __del__(self):
         """
-        Clean up background tasks
+        Call close on garbage collection
+
+        Raise warming if background tasks are still running
         """
         if hasattr(self, "_channel_refresh_tasks") and self._channel_refresh_tasks:
             warnings.warn(
@@ -133,8 +143,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
                 "being closed. Please call the close() method to ensure all "
                 "background tasks are cancelled."
             )
-            for task in self._channel_refresh_tasks:
-                task.cancel()
 
     async def close(self, timeout: float = 2.0):
         """
@@ -192,23 +200,22 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        transport = cast(PooledBigtableGrpcAsyncIOTransport, self.transport)
         first_refresh = self._channel_init_time + refresh_interval
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            channel = transport.channel_pool[channel_idx]
+            channel = self.transport.channel_pool[channel_idx]
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
             # prepare new channel for use
-            new_channel = transport.create_channel(
+            new_channel = self.transport.create_channel(
                 self.transport._host,
-                credentials=transport._credentials,
-                scopes=transport._scopes,
-                ssl_credentials=transport._ssl_channel_credentials,
-                quota_project_id=transport._quota_project_id,
+                credentials=self.transport._credentials,
+                scopes=self.transport._scopes,
+                ssl_credentials=self.transport._ssl_channel_credentials,
+                quota_project_id=self.transport._quota_project_id,
                 options=[
                     ("grpc.max_send_message_length", -1),
                     ("grpc.max_receive_message_length", -1),
@@ -217,7 +224,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
-            await transport.replace_channel(channel_idx, grace_period, new_channel)
+            await self.transport.replace_channel(channel_idx, grace_period, new_channel)
             # subtract the time spent waiting for the channel to be replaced
             next_sleep = refresh_interval - (time.time() - start_timestamp)
 
@@ -229,12 +236,11 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
         """
-        transport = cast(PooledBigtableGrpcAsyncIOTransport, self.transport)
         instance_name = self.instance_path(self.project, instance_id)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             # call ping and warm on all existing channels
-            for channel in transport.channel_pool:
+            for channel in self.transport.channel_pool:
                 await self._ping_and_warm_instances(channel)
 
     async def remove_instance_registration(self, instance_id: str) -> bool:
