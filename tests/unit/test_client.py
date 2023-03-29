@@ -116,7 +116,9 @@ async def test_ctor_dict_options():
     from google.cloud.bigtable.client import BigtableDataClient
 
     client_options = {"api_endpoint": "foo.bar:1234"}
-    with mock.patch.object(BigtableDataClient, "start_background_channel_refresh") as start_background_refresh:
+    with mock.patch.object(
+        BigtableDataClient, "start_background_channel_refresh"
+    ) as start_background_refresh:
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
             _make_one(client_options=client_options)
             bigtable_client_init.assert_called_once()
@@ -125,6 +127,7 @@ async def test_ctor_dict_options():
             assert called_options.api_endpoint == "foo.bar:1234"
             assert isinstance(called_options, ClientOptions)
             start_background_refresh.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_veneer_grpc_headers():
@@ -212,12 +215,14 @@ async def test_channel_pool_replace():
                 assert client.transport.channel_pool[i] != start_pool[i]
     await client.close()
 
+
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_start_background_channel_refresh_sync():
     # should raise RuntimeError if called in a sync context
     client = _make_one(project="project-id")
     with pytest.raises(RuntimeError):
         client.start_background_channel_refresh()
+
 
 @pytest.mark.asyncio
 async def test_start_background_channel_refresh_tasks_exist():
@@ -227,6 +232,7 @@ async def test_start_background_channel_refresh_tasks_exist():
         client.start_background_channel_refresh()
         create_task.assert_not_called()
     await client.close()
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("pool_size", [1, 3, 7])
@@ -278,19 +284,20 @@ async def test__ping_and_warm_instances():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-        "refresh_interval, wait_time, expected_sleep",
-        [
-            (0,0,0),
-            (0,1,0),
-            (10,0,10),
-            (10,5,5),
-            (10,10,0),
-            (10,15,0),
-        ]
+    "refresh_interval, wait_time, expected_sleep",
+    [
+        (0, 0, 0),
+        (0, 1, 0),
+        (10, 0, 10),
+        (10, 5, 5),
+        (10, 10, 0),
+        (10, 15, 0),
+    ],
 )
 async def test__manage_channel_first_sleep(refresh_interval, wait_time, expected_sleep):
     # first sleep time should be `refresh_interval` seconds after client init
     import time
+
     with mock.patch.object(time, "time") as time:
         time.return_value = 0
         with mock.patch.object(asyncio, "sleep") as sleep:
@@ -303,9 +310,11 @@ async def test__manage_channel_first_sleep(refresh_interval, wait_time, expected
                 pass
             sleep.assert_called_once()
             call_time = sleep.call_args[0][0]
-            assert abs(call_time - expected_sleep) < 0.1, \
-                f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
+            assert (
+                abs(call_time - expected_sleep) < 0.1
+            ), f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
             await client.close()
+
 
 @pytest.mark.asyncio
 async def test__manage_channel_ping_and_warm():
@@ -354,12 +363,12 @@ async def test__manage_channel_ping_and_warm():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-        "refresh_interval, num_cycles, expected_sleep",
-        [
-            (None, 1, 60*45),
-            (10, 10, 100),
-            (10, 1, 10),
-        ]
+    "refresh_interval, num_cycles, expected_sleep",
+    [
+        (None, 1, 60 * 45),
+        (10, 10, 100),
+        (10, 1, 10),
+    ],
 )
 async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sleep):
     # make sure that sleeps work as expected
@@ -430,6 +439,7 @@ async def test__manage_channel_refresh(num_cycles):
                     assert call[0][2] == new_channel
             await client.close()
 
+
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 async def test_register_instance():
@@ -445,11 +455,17 @@ async def test_register_instance():
     assert client._active_instances == {"projects/project-id/instances/instance-1"}
     assert client._channel_refresh_tasks
     # next call should not
-    with mock.patch.object(type(_make_one()), "start_background_channel_refresh") as refresh_mock:
+    with mock.patch.object(
+        type(_make_one()), "start_background_channel_refresh"
+    ) as refresh_mock:
         await client.register_instance("instance-2")
         assert len(client._active_instances) == 2
-        assert client._active_instances == {"projects/project-id/instances/instance-1", "projects/project-id/instances/instance-2"}
+        assert client._active_instances == {
+            "projects/project-id/instances/instance-1",
+            "projects/project-id/instances/instance-2",
+        }
         refresh_mock.assert_not_called()
+
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -603,6 +619,7 @@ def test_client_ctor_sync():
     assert "event loop" in str(warnings[0].message)
     assert client.project == "project-id"
     assert client._channel_refresh_tasks == []
+
 
 ######################################################################
 # Table Tests
