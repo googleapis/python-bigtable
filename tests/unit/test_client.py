@@ -259,36 +259,35 @@ async def test__ping_and_warm_instances():
 
 
 @pytest.mark.asyncio
-async def test__manage_channel_first_sleep():
+@pytest.mark.parametrize(
+        "refresh_interval, wait_time, expected_sleep",
+        [
+            (0,0,0),
+            (0,1,0),
+            (10,0,10),
+            (10,5,5),
+            (10,10,0),
+            (10,15,0),
+        ]
+)
+async def test__manage_channel_first_sleep(refresh_interval, wait_time, expected_sleep):
     # first sleep time should be `refresh_interval` seconds after client init
     import time
-    from collections import namedtuple
-
-    params = namedtuple("params", ["refresh_interval", "wait_time", "expected_sleep"])
-    test_params = [
-        params(refresh_interval=0, wait_time=0, expected_sleep=0),
-        params(refresh_interval=0, wait_time=1, expected_sleep=0),
-        params(refresh_interval=10, wait_time=0, expected_sleep=10),
-        params(refresh_interval=10, wait_time=5, expected_sleep=5),
-        params(refresh_interval=10, wait_time=10, expected_sleep=0),
-        params(refresh_interval=10, wait_time=15, expected_sleep=0),
-    ]
     with mock.patch.object(time, "time") as time:
         time.return_value = 0
-        for refresh_interval, wait_time, expected_sleep in test_params:
-            with mock.patch.object(asyncio, "sleep") as sleep:
-                sleep.side_effect = asyncio.CancelledError
-                try:
-                    client = _make_one(project="project-id")
-                    client._channel_init_time = -wait_time
-                    await client._manage_channel(0, refresh_interval)
-                except asyncio.CancelledError:
-                    pass
-                sleep.assert_called_once()
-                call_time = sleep.call_args[0][0]
-                assert abs(call_time - expected_sleep) < 0.1, f"params={params}"
-                await client.close()
-
+        with mock.patch.object(asyncio, "sleep") as sleep:
+            sleep.side_effect = asyncio.CancelledError
+            try:
+                client = _make_one(project="project-id")
+                client._channel_init_time = -wait_time
+                await client._manage_channel(0, refresh_interval)
+            except asyncio.CancelledError:
+                pass
+            sleep.assert_called_once()
+            call_time = sleep.call_args[0][0]
+            assert abs(call_time - expected_sleep) < 0.1, \
+                f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
+            await client.close()
 
 @pytest.mark.asyncio
 async def test__manage_channel_ping_and_warm():
@@ -336,39 +335,39 @@ async def test__manage_channel_ping_and_warm():
 
 
 @pytest.mark.asyncio
-async def test__manage_channel_sleeps():
+@pytest.mark.parametrize(
+        "refresh_interval, num_cycles, expected_sleep",
+        [
+            (None, 1, 60*45),
+            (10, 10, 100),
+            (10, 1, 10),
+        ]
+)
+async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sleep):
     # make sure that sleeps work as expected
-    from collections import namedtuple
     import time
 
-    params = namedtuple("params", ["refresh_interval", "num_cycles", "expected_sleep"])
-    test_params = [
-        params(refresh_interval=None, num_cycles=1, expected_sleep=60 * 45),
-        params(refresh_interval=10, num_cycles=10, expected_sleep=100),
-        params(refresh_interval=10, num_cycles=1, expected_sleep=10),
-    ]
     channel_idx = 1
     with mock.patch.object(time, "time") as time:
         time.return_value = 0
-        for refresh_interval, num_cycles, expected_sleep in test_params:
-            with mock.patch.object(asyncio, "sleep") as sleep:
-                sleep.side_effect = [None for i in range(num_cycles - 1)] + [
-                    asyncio.CancelledError
-                ]
-                try:
-                    client = _make_one(project="project-id")
-                    if refresh_interval is not None:
-                        await client._manage_channel(channel_idx, refresh_interval)
-                    else:
-                        await client._manage_channel(channel_idx)
-                except asyncio.CancelledError:
-                    pass
-                assert sleep.call_count == num_cycles
-                total_sleep = sum([call[0][0] for call in sleep.call_args_list])
-                assert (
-                    abs(total_sleep - expected_sleep) < 0.1
-                ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
-                await client.close()
+        with mock.patch.object(asyncio, "sleep") as sleep:
+            sleep.side_effect = [None for i in range(num_cycles - 1)] + [
+                asyncio.CancelledError
+            ]
+            try:
+                client = _make_one(project="project-id")
+                if refresh_interval is not None:
+                    await client._manage_channel(channel_idx, refresh_interval)
+                else:
+                    await client._manage_channel(channel_idx)
+            except asyncio.CancelledError:
+                pass
+            assert sleep.call_count == num_cycles
+            total_sleep = sum([call[0][0] for call in sleep.call_args_list])
+            assert (
+                abs(total_sleep - expected_sleep) < 0.1
+            ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
+            await client.close()
 
 
 @pytest.mark.asyncio
