@@ -117,7 +117,8 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         except RuntimeError:
             warnings.warn(
                 "BigtableDataClient should be started in an "
-                "asyncio event loop. Channel refresh will not be started"
+                "asyncio event loop. Channel refresh will not be started",
+                RuntimeWarning
             )
 
     def start_background_channel_refresh(self) -> None:
@@ -331,7 +332,8 @@ class Table:
         except RuntimeError:
             warnings.warn(
                 "Table should be created in an asyncio event loop."
-                " Instance will not be registered with client for refresh"
+                " Instance will not be registered with client for refresh",
+                RuntimeWarning,
             )
 
     async def read_rows_stream(

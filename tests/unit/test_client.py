@@ -212,7 +212,7 @@ async def test_channel_pool_replace():
                 assert client.transport.channel_pool[i] != start_pool[i]
     await client.close()
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_start_background_channel_refresh_sync():
     # should raise RuntimeError if called in a sync context
     client = _make_one(project="project-id")
@@ -431,7 +431,7 @@ async def test__manage_channel_refresh(num_cycles):
             await client.close()
 
 @pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 async def test_register_instance():
     # create the client without calling start_background_channel_refresh
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
@@ -452,7 +452,7 @@ async def test_register_instance():
         refresh_mock.assert_not_called()
 
 @pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 async def test_register_instance_ping_and_warm():
     # should ping and warm each new instance
     pool_size = 7
@@ -598,7 +598,7 @@ def test_client_ctor_sync():
     # initializing client in a sync context should raise RuntimeError
     from google.cloud.bigtable.client import BigtableDataClient
 
-    with pytest.warns(UserWarning) as warnings:
+    with pytest.warns(RuntimeWarning) as warnings:
         client = BigtableDataClient(project="project-id")
     assert "event loop" in str(warnings[0].message)
     assert client.project == "project-id"
@@ -649,7 +649,7 @@ def test_table_ctor_sync():
     from google.cloud.bigtable.client import Table
 
     client = mock.Mock()
-    with pytest.warns(UserWarning) as warnings:
+    with pytest.warns(RuntimeWarning) as warnings:
         table = Table(client, "instance-id", "table-id")
     assert "event loop" in str(warnings[0].message)
     assert table.table_id == "table-id"
