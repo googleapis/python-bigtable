@@ -113,16 +113,18 @@ async def test_ctor_dict_options():
         BigtableAsyncClient,
     )
     from google.api_core.client_options import ClientOptions
+    from google.cloud.bigtable.client import BigtableDataClient
 
     client_options = {"api_endpoint": "foo.bar:1234"}
-    with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
-        _make_one(client_options=client_options)
-        bigtable_client_init.assert_called_once()
-        kwargs = bigtable_client_init.call_args[1]
-        called_options = kwargs["client_options"]
-        assert called_options.api_endpoint == "foo.bar:1234"
-        assert isinstance(called_options, ClientOptions)
-
+    with mock.patch.object(BigtableDataClient, "start_background_channel_refresh") as start_background_refresh:
+        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+            _make_one(client_options=client_options)
+            bigtable_client_init.assert_called_once()
+            kwargs = bigtable_client_init.call_args[1]
+            called_options = kwargs["client_options"]
+            assert called_options.api_endpoint == "foo.bar:1234"
+            assert isinstance(called_options, ClientOptions)
+            start_background_refresh.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_veneer_grpc_headers():
@@ -210,22 +212,37 @@ async def test_channel_pool_replace():
                 assert client.transport.channel_pool[i] != start_pool[i]
     await client.close()
 
+def test_start_background_channel_refresh_sync():
+    # should raise RuntimeError if called in a sync context
+    client = _make_one(project="project-id")
+    with pytest.raises(RuntimeError):
+        client.start_background_channel_refresh()
 
 @pytest.mark.asyncio
-async def test_ctor_background_channel_refresh():
+async def test_start_background_channel_refresh_tasks_exist():
+    # if tasks exist, should do nothing
+    client = _make_one(project="project-id")
+    with mock.patch.object(asyncio, "create_task") as create_task:
+        client.start_background_channel_refresh()
+        create_task.assert_not_called()
+    await client.close()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pool_size", [1, 3, 7])
+async def test_start_background_channel_refresh(pool_size):
     # should create background tasks for each channel
-    for pool_size in [1, 3, 7]:
-        client = _make_one(project="project-id", pool_size=pool_size)
-        ping_and_warm = AsyncMock()
-        client._ping_and_warm_instances = ping_and_warm
-        assert len(client._channel_refresh_tasks) == pool_size
-        for task in client._channel_refresh_tasks:
-            assert isinstance(task, asyncio.Task)
-        await asyncio.sleep(0.1)
-        assert ping_and_warm.call_count == pool_size
-        for channel in client.transport.channel_pool:
-            ping_and_warm.assert_any_call(channel)
-        await client.close()
+    client = _make_one(project="project-id", pool_size=pool_size)
+    ping_and_warm = AsyncMock()
+    client._ping_and_warm_instances = ping_and_warm
+    client.start_background_channel_refresh()
+    assert len(client._channel_refresh_tasks) == pool_size
+    for task in client._channel_refresh_tasks:
+        assert isinstance(task, asyncio.Task)
+    await asyncio.sleep(0.1)
+    assert ping_and_warm.call_count == pool_size
+    for channel in client.transport.channel_pool:
+        ping_and_warm.assert_any_call(channel)
+    await client.close()
 
 
 @pytest.mark.asyncio
@@ -367,8 +384,6 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
             assert (
                 abs(total_sleep - expected_sleep) < 0.1
             ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
-    print(client._channel_refresh_tasks)
-    breakpoint()
     await client.close()
 
 
@@ -414,23 +429,48 @@ async def test__manage_channel_refresh():
                         assert call[0][2] == new_channel
                 await client.close()
 
+@pytest.mark.asyncio
+async def test_register_instance():
+    # create the client without calling start_background_channel_refresh
+    with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
+        get_event_loop.side_effect = RuntimeError("no event loop")
+        client = _make_one(project="project-id")
+    assert not client._channel_refresh_tasks
+    # first call should start background refresh
+    assert client._active_instances == set()
+    await client.register_instance("instance-1")
+    assert len(client._active_instances) == 1
+    assert client._active_instances == {"projects/project-id/instances/instance-1"}
+    assert client._channel_refresh_tasks
+    # next call should not
+    with mock.patch.object(type(_make_one()), "start_background_channel_refresh") as refresh_mock:
+        await client.register_instance("instance-2")
+        assert len(client._active_instances) == 2
+        assert client._active_instances == {"projects/project-id/instances/instance-1", "projects/project-id/instances/instance-2"}
+        refresh_mock.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_register_instance_ping_and_warm():
     # should ping and warm each new instance
     pool_size = 7
+    with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
+        get_event_loop.side_effect = RuntimeError("no event loop")
+        client = _make_one(project="project-id", pool_size=pool_size)
+    # first call should start background refresh
+    assert not client._channel_refresh_tasks
+    await client.register_instance("instance-1")
     client = _make_one(project="project-id", pool_size=pool_size)
     assert len(client._channel_refresh_tasks) == pool_size
     assert not client._active_instances
     # next calls should trigger ping and warm
     with mock.patch.object(type(_make_one()), "_ping_and_warm_instances") as ping_mock:
         # new instance should trigger ping and warm
-        await client.register_instance("instance-1")
-        assert ping_mock.call_count == pool_size
         await client.register_instance("instance-2")
+        assert ping_mock.call_count == pool_size
+        await client.register_instance("instance-3")
         assert ping_mock.call_count == pool_size * 2
         # duplcate instances should not trigger ping and warm
-        await client.register_instance("instance-2")
+        await client.register_instance("instance-3")
         assert ping_mock.call_count == pool_size * 2
     await client.close()
 
@@ -533,11 +573,13 @@ async def test_close_with_timeout():
 
 
 @pytest.mark.asyncio
-async def test___del__():
+async def test___del__(recwarn):
     # no warnings on __del__ after close
     pool_size = 7
     client = _make_one(project="project-id", pool_size=pool_size)
+    assert len(recwarn) == 0
     await client.close()
+    assert len(recwarn) == 0
 
 
 @pytest.mark.asyncio
@@ -579,10 +621,11 @@ def test_client_ctor_sync():
     # initializing client in a sync context should raise RuntimeError
     from google.cloud.bigtable.client import BigtableDataClient
 
-    with pytest.raises(RuntimeError) as err:
-        BigtableDataClient(project="project-id")
-    assert "event loop" in str(err.value)
-
+    with pytest.warns(UserWarning) as warnings:
+        client = BigtableDataClient(project="project-id")
+    assert "event loop" in str(warnings[0].message)
+    assert client.project == "project-id"
+    assert client._channel_refresh_tasks == []
 
 ######################################################################
 # Table Tests
@@ -629,6 +672,11 @@ def test_table_ctor_sync():
     from google.cloud.bigtable.client import Table
 
     client = mock.Mock()
-    with pytest.raises(RuntimeError) as err:
-        Table(client, "instance-id", "table-id")
-    assert "event loop" in str(err.value)
+    with pytest.warns(UserWarning) as warnings:
+        table = Table(client, "instance-id", "table-id")
+    assert "event loop" in str(warnings[0].message)
+    assert table.table_id == "table-id"
+    assert table.instance == "instance-id"
+    assert table.app_profile_id is None
+    assert table.metadata == []
+    assert table.client is client

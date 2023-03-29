@@ -83,11 +83,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
           - RuntimeError if called outside of an async run loop context
           - ValueError if pool_size is less than 1
         """
-        # check if in async run loop context
-        if not asyncio.get_running_loop():
-            raise RuntimeError(
-                "BigtableDataClient must be created within an async run loop context"
-            )
         # set up transport in registry
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
@@ -111,17 +106,32 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             client_options=client_options,
             client_info=client_info,
         )
-        self.metadata = metadata
+        self.metadata = metadata or []
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        for channel_idx in range(pool_size):
-            refresh_task = asyncio.create_task(
-                self._manage_channel(channel_idx), name=f"channel_refresh_{channel_idx}"
+        try:
+            self.start_background_channel_refresh()
+        except RuntimeError:
+            warnings.warn(
+                "BigtableDataClient should be started in an "
+                "asyncio event loop. Channel refresh will not be started"
             )
-            self._channel_refresh_tasks.append(refresh_task)
+
+    def start_background_channel_refresh(self) -> None:
+        """
+        Starts a background task to ping and warm each channel in the pool
+        Raises:
+          - RuntimeError if not called in an asyncio event loop
+        """
+        if not self._channel_refresh_tasks:
+            # raise RuntimeError if there is no event loop
+            asyncio.get_running_loop()
+            for channel_idx in range(len(self.transport.channel_pool)):
+                refresh_task = asyncio.create_task(self._manage_channel(channel_idx), name=f"BigtableDataClient channel refresh {channel_idx}")
+                self._channel_refresh_tasks.append(refresh_task)
 
     @property
     def transport(self) -> PooledBigtableGrpcAsyncIOTransport:
@@ -239,9 +249,14 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         instance_name = self.instance_path(self.project, instance_id)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
-            # call ping and warm on all existing channels
-            for channel in self.transport.channel_pool:
-                await self._ping_and_warm_instances(channel)
+            if self._channel_refresh_tasks:
+                # refresh tasks already running
+                # call ping and warm on all existing channels
+                for channel in self.transport.channel_pool:
+                    await self._ping_and_warm_instances(channel)
+            else:
+                # refresh tasks aren't active. start them as background tasks
+                self.start_background_channel_refresh()
 
     async def remove_instance_registration(self, instance_id: str) -> bool:
         """
@@ -320,11 +335,17 @@ class Table:
         self.instance = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
-        self.metadata = metadata
+        self.metadata = metadata or []
         # raises RuntimeError if called outside of an async run loop context
-        self._register_instance_task = asyncio.create_task(
-            self.client.register_instance(instance_id)
-        )
+        try:
+            self._register_instance_task = asyncio.create_task(
+                self.client.register_instance(instance_id)
+            )
+        except RuntimeError:
+            warnings.warn(
+                "Table should be created in an asyncio event loop."
+                " Instance will not be registered with client for refresh"
+            )
 
     async def read_rows_stream(
         self,
