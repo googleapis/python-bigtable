@@ -118,7 +118,9 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         for channel_idx in range(pool_size):
-            refresh_task = asyncio.create_task(self._manage_channel(channel_idx), name=f"channel_refresh_{channel_idx}")
+            refresh_task = asyncio.create_task(
+                self._manage_channel(channel_idx), name=f"channel_refresh_{channel_idx}"
+            )
             self._channel_refresh_tasks.append(refresh_task)
 
     def __del__(self):
