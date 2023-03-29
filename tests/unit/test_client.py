@@ -24,9 +24,9 @@ import pytest
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # pragma: NO COVER
+    from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
-    import mock
+    import mock  # type: ignore
 
 VENEER_HEADER_REGEX = re.compile(
     r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"

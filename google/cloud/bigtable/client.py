@@ -132,11 +132,11 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
             for channel_idx in range(len(self.transport.channel_pool)):
-                refresh_task = asyncio.create_task(
-                    self._manage_channel(channel_idx)
-                )
+                refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 if sys.version_info >= (3, 8):
-                    refresh_task.set_name(f"{self.__class__.__name__} channel refresh {channel_idx}")
+                    refresh_task.set_name(
+                        f"{self.__class__.__name__} channel refresh {channel_idx}"
+                    )
                 self._channel_refresh_tasks.append(refresh_task)
 
     @property
