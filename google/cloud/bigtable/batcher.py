@@ -25,9 +25,9 @@ from dataclasses import dataclass
 
 FLUSH_COUNT = 100  # after this many elements, send out the batch
 
-MAX_ROW_BYTES = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the batch
+MAX_MUTATION_SIZE = 20 * 1024 * 1024  # 20MB # after this many bytes, send out the batch
 
-MAX_MUTATIONS_SIZE = 100 * 1024 * 1024  # 100MB # max inflight byte size.
+MAX_OUTSTANDING_BYTES = 100 * 1024 * 1024  # 100MB # max inflight byte size.
 
 MAX_OUTSTANDING_ELEMENTS = 100000  # max inflight mutations.
 
@@ -41,14 +41,10 @@ class MutationsBatchError(Exception):
         super().__init__(self.message)
 
 
-class MaxMutationsError(ValueError):
-    """The number of mutations for bulk request is too big."""
-
-
 class _MutationsBatchQueue(object):
     """Private Threadsafe Queue to hold rows for batching."""
 
-    def __init__(self, max_row_bytes=MAX_ROW_BYTES, flush_count=FLUSH_COUNT):
+    def __init__(self, max_row_bytes=MAX_MUTATION_SIZE, flush_count=FLUSH_COUNT):
         """Specify the queue constraints"""
         self._queue = queue.Queue()
         self.total_mutation_count = 0
@@ -68,21 +64,6 @@ class _MutationsBatchQueue(object):
         """Insert an item to the queue. Recalculate queue size."""
 
         mutation_count = len(item._get_mutations())
-        mutation_size = item.get_mutations_size()
-
-        if mutation_count > MAX_OUTSTANDING_ELEMENTS:
-            raise MaxMutationsError(
-                "The row key {} exceeds the number of mutations {}.".format(
-                    item.row_key, mutation_count
-                )
-            )
-
-        if mutation_size > MAX_MUTATIONS_SIZE:
-            raise MaxMutationsError(
-                "The row key {} exceeds the size of mutations {}.".format(
-                    item.row_key, mutation_size
-                )
-            )
 
         self._queue.put(item)
 
@@ -94,7 +75,6 @@ class _MutationsBatchQueue(object):
         if (
             self.total_mutation_count >= self.flush_count
             or self.total_size >= self.max_row_bytes
-            or self._queue.full()
         ):
             return True
         return False
@@ -113,7 +93,9 @@ class BatchInfo:
 
 
 class FlowControl(object):
-    def __init__(self, max_mutations=MAX_MUTATIONS_SIZE, max_row_bytes=MAX_ROW_BYTES):
+    def __init__(
+        self, max_mutations=MAX_OUTSTANDING_BYTES, max_row_bytes=MAX_MUTATION_SIZE
+    ):
         """Control the inflight requests. Keep track of the mutations, row bytes and row counts.
         As requests to backend are being made, adjust the number of mutations being processed.
 
@@ -124,7 +106,7 @@ class FlowControl(object):
         self.max_row_bytes = max_row_bytes
         self.inflight_mutations = 0
         self.inflight_size = 0
-        self.inflight_rows_count = 0
+        self.inflight_rows_count = 0  # TODO: FOR DEBUG, DELETE before merging
         self.event = threading.Event()
         self.event.set()
 
@@ -218,7 +200,7 @@ class MutationsBatcher(object):
         self,
         table,
         flush_count=FLUSH_COUNT,
-        max_row_bytes=MAX_ROW_BYTES,
+        max_row_bytes=MAX_MUTATION_SIZE,
         flush_interval=1,
     ):
         self._rows = _MutationsBatchQueue(
@@ -231,7 +213,7 @@ class MutationsBatcher(object):
         self._timer.start()
         self.flow_control = FlowControl(
             max_mutations=MAX_OUTSTANDING_ELEMENTS,
-            max_row_bytes=MAX_MUTATIONS_SIZE,
+            max_row_bytes=MAX_OUTSTANDING_BYTES,
         )
         self.futures_mapping = {}
         self.exceptions = queue.Queue()
@@ -267,10 +249,6 @@ class MutationsBatcher(object):
                    row returned a transient error.
                  * :exc:`RuntimeError` if the number of responses doesn't
                    match the number of rows that were retried
-                 * :exc:`.batcher.MaxMutationsError` if any row exceeds max
-                   mutations count.
-                 * :exc:`.batcherMutationsBatchError` if there's any error in the
-                   mutations.
         """
         self._rows.put(row)
 
@@ -296,10 +274,6 @@ class MutationsBatcher(object):
                    row returned a transient error.
                  * :exc:`RuntimeError` if the number of responses doesn't
                    match the number of rows that were retried
-                 * :exc:`.batcher.MaxMutationsError` if any row exceeds max
-                   mutations count.
-                 * :exc:`.batcherMutationsBatchError` if there's any error in the
-                   mutations.
         """
         for row in rows:
             self.mutate(row)
@@ -320,7 +294,7 @@ class MutationsBatcher(object):
         rows_to_flush = []
         while not self._rows.empty():
             rows_to_flush.append(self._rows.get())
-        response = self.flush_rows(rows_to_flush)
+        response = self._flush_rows(rows_to_flush)
         return response
 
     def flush_async(self):
@@ -355,9 +329,9 @@ class MutationsBatcher(object):
                 or self._rows.empty()  # submit when it reached the end of the queue
             ):
                 self.flow_control.control_flow(batch_info)
-                future = self._executor.submit(self.flush_rows, rows_to_flush)
+                future = self._executor.submit(self._flush_rows, rows_to_flush)
                 self.futures_mapping[future] = batch_info
-                future.add_done_callback(self.batch_completed_callback)
+                future.add_done_callback(self._batch_completed_callback)
 
                 # reset and start a new batch
                 rows_to_flush = []
@@ -366,7 +340,7 @@ class MutationsBatcher(object):
                 mutations_count = 0
                 batch_info = BatchInfo()
 
-    def batch_completed_callback(self, future):
+    def _batch_completed_callback(self, future):
         """Callback for when the mutation has finished.
 
         Raise exceptions if there's any.
@@ -377,7 +351,7 @@ class MutationsBatcher(object):
         self.flow_control.release(processed_rows)
         del self.futures_mapping[future]
 
-    def flush_rows(self, rows_to_flush=None):
+    def _flush_rows(self, rows_to_flush):
         """Mutate the specified rows.
 
         raises:
@@ -412,6 +386,7 @@ class MutationsBatcher(object):
         self._is_open = False
         self.flush()
         self._executor.shutdown(wait=True)
+        atexit.unregister(self.close)
         if self.exceptions.qsize() > 0:
             exc = list(self.exceptions.queue)
             raise MutationsBatchError("Errors in batch mutations.", exc=exc)

@@ -23,7 +23,6 @@ from google.cloud.bigtable.batcher import (
     FlowControl,
     MutationsBatcher,
     MutationsBatchError,
-    MAX_MUTATIONS_SIZE,
 )
 
 TABLE_ID = "table-id"
@@ -88,40 +87,6 @@ def test_mutation_batcher_mutate_w_max_flush_count():
         mutation_batcher.mutate(row_3)
 
     assert table.mutation_calls == 1
-
-
-@mock.patch("google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", new=3)
-def test_mutation_batcher_mutate_with_max_mutations_failure():
-    from google.cloud.bigtable.batcher import MaxMutationsError
-
-    table = _Table(TABLE_NAME)
-    with MutationsBatcher(table=table) as mutation_batcher:
-
-        row = DirectRow(row_key=b"row_key")
-        row.set_cell("cf1", b"c1", 1)
-        row.set_cell("cf1", b"c2", 2)
-        row.set_cell("cf1", b"c3", 3)
-        row.set_cell("cf1", b"c4", 4)
-
-        with pytest.raises(MaxMutationsError) as exc:
-            mutation_batcher.mutate(row)
-        assert "exceeds the number of mutations" in str(exc.value)
-
-
-def test_mutation_batcher_mutate_with_max_mutations_size_failure():
-    from google.cloud.bigtable.batcher import MaxMutationsError
-
-    table = _Table(TABLE_NAME)
-    with MutationsBatcher(table=table) as mutation_batcher, mock.patch(
-        "google.cloud.bigtable.row.DirectRow"
-    ) as mocked:
-
-        row = mocked.return_value
-        row.get_mutations_size.return_value = MAX_MUTATIONS_SIZE + 1
-
-        with pytest.raises(MaxMutationsError) as exc:
-            mutation_batcher.mutate(row)
-        assert "exceeds the size of mutations" in str(exc.value)
 
 
 @mock.patch("google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", new=3)
