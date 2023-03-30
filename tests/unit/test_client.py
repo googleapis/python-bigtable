@@ -27,6 +27,7 @@ try:
     from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore
 
 VENEER_HEADER_REGEX = re.compile(
     r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
@@ -631,8 +632,10 @@ def test_client_ctor_sync():
 
     with pytest.warns(RuntimeWarning) as warnings:
         client = BigtableDataClient(project="project-id")
+    expected_warning = [w for w in warnings if "client.py" in w.filename]
+    assert len(expected_warning) == 1
     assert "BigtableDataClient should be started in an asyncio event loop." in str(
-        warnings[0].message
+        expected_warning[0].message
     )
     assert client.project == "project-id"
     assert client._channel_refresh_tasks == []

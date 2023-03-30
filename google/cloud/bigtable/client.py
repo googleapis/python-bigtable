@@ -97,8 +97,12 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
+        mixin_args = {"project": project, "credentials": credentials}
+        # support google-api-core <=1.5.0, which does not have credentials
+        if "credentials" not in  _ClientProjectMixin.__init__.__code__.co_varnames:
+            mixin_args.pop("credentials")
         # initialize client
-        _ClientProjectMixin.__init__(self, project=project, credentials=credentials)
+        _ClientProjectMixin.__init__(self, **mixin_args)
         # raises RuntimeError if called outside of an async run loop context
         BigtableAsyncClient.__init__(
             self,
