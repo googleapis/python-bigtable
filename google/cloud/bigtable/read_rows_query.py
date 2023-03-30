@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class _RangePoint:
-    # model class for a point in a row range
+    """Model class for a point in a row range"""
     key: row_key
     is_inclusive: bool
 
