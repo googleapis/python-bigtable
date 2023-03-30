@@ -136,7 +136,7 @@ class RowResponse(Sequence["CellResponse"]):
         }
         """
         output = ["{"]
-        for family,qualifier in self.get_column_components():
+        for family, qualifier in self.get_column_components():
             cell_list = self[family, qualifier]
             line = [f"  (family={family!r}, qualifier={qualifier!r}): "]
             if len(cell_list) == 0:
@@ -144,16 +144,14 @@ class RowResponse(Sequence["CellResponse"]):
             elif len(cell_list) == 1:
                 line.append(f"[{cell_list[0]}],")
             else:
-                line.append(
-                    f"[{cell_list[0]}, (+{len(cell_list)-1} more)],"
-                )
+                line.append(f"[{cell_list[0]}, (+{len(cell_list)-1} more)],")
             output.append("".join(line))
         output.append("}")
         return "\n".join(output)
 
     def __repr__(self):
         cell_str_buffer = ["{"]
-        for family,qualifier in self.get_column_components():
+        for family, qualifier in self.get_column_components():
             cell_list = self[family, qualifier]
             repr_list = [cell.to_dict() for cell in cell_list]
             cell_str_buffer.append(f"  ('{family}', {qualifier}): {repr_list},")
@@ -269,8 +267,6 @@ class RowResponse(Sequence["CellResponse"]):
                 key_list.append((family, qualifier))
         return key_list
 
-
-
     def __eq__(self, other):
         """
         Implements `==` operator
@@ -289,8 +285,8 @@ class RowResponse(Sequence["CellResponse"]):
             return False
         if components != other_components:
             return False
-        for family,qualifier in components:
-            if len(self[family, qualifier]) != len(other[family,qualifier]):
+        for family, qualifier in components:
+            if len(self[family, qualifier]) != len(other[family, qualifier]):
                 return False
         # compare individual cell lists
         if self._cells_list != other._cells_list:

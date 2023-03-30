@@ -486,8 +486,9 @@ class TestRowResponse(unittest.TestCase):
 
         row_response = self._make_one(TEST_ROW_KEY, [cell])
         self.assertEqual(len(row_response.get_column_components()), 1)
-        self.assertEqual(row_response.get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)])
-
+        self.assertEqual(
+            row_response.get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)]
+        )
 
     def test_index_of(self):
         # given a cell, should find index in underlying list
