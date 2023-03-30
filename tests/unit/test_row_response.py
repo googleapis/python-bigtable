@@ -445,7 +445,7 @@ class TestRowResponse(unittest.TestCase):
         with self.assertRaises(TypeError):
             row_response[b"new_family_id", b"new_qualifier"]
 
-    def test_keys(self):
+    def test_get_column_components(self):
         # should be able to retrieve (family,qualifier) tuples as keys
         new_family_id = "new_family_id"
         new_qualifier = b"new_qualifier"
@@ -475,60 +475,20 @@ class TestRowResponse(unittest.TestCase):
         )
         row_response = self._make_one(TEST_ROW_KEY, [cell, cell2, cell3])
 
-        self.assertEqual(len(row_response.keys()), 2)
+        self.assertEqual(len(row_response.get_column_components()), 2)
         self.assertEqual(
-            row_response.keys(),
+            row_response.get_column_components(),
             [(TEST_FAMILY_ID, TEST_QUALIFIER), (new_family_id, new_qualifier)],
         )
 
         row_response = self._make_one(TEST_ROW_KEY, [])
-        self.assertEqual(len(row_response.keys()), 0)
-        self.assertEqual(row_response.keys(), [])
+        self.assertEqual(len(row_response.get_column_components()), 0)
+        self.assertEqual(row_response.get_column_components(), [])
 
         row_response = self._make_one(TEST_ROW_KEY, [cell])
-        self.assertEqual(len(row_response.keys()), 1)
-        self.assertEqual(row_response.keys(), [(TEST_FAMILY_ID, TEST_QUALIFIER)])
+        self.assertEqual(len(row_response.get_column_components()), 1)
+        self.assertEqual(row_response.get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)])
 
-    def test_values(self):
-        # values should return the all cells, divided into lists
-        # according to (family,qualifier) pairs
-        cell_list = [self._make_cell(qualifier=str(i % 5).encode()) for i in range(10)]
-        row_response = self._make_one(TEST_ROW_KEY, cell_list)
-        sorted(cell_list)
-
-        values = list(row_response.values())
-        self.assertEqual(len(values), 5)
-        self.assertEqual(len(values[0]), 2)
-
-        keys = list(row_response.keys())
-        values = list(row_response.values())
-        for i in range(len(keys)):
-            self.assertEqual(row_response[keys[i]], values[i])
-
-    def test_items(self):
-        cell_list = [self._make_cell() for i in range(10)]
-        sorted(cell_list)
-        row_response = self._make_one(TEST_ROW_KEY, cell_list)
-
-        self.assertEqual(len(list(row_response.items())), 1)
-        self.assertEqual(
-            list(row_response.items())[0][0], (TEST_FAMILY_ID, TEST_QUALIFIER)
-        )
-        self.assertEqual(list(row_response.items())[0][1], cell_list)
-
-        row_response = self._make_one(TEST_ROW_KEY, [])
-        self.assertEqual(len(list(row_response.items())), 0)
-
-        cell_list = [self._make_cell(qualifier=str(i).encode()) for i in range(10)]
-        row_response = self._make_one(TEST_ROW_KEY, cell_list)
-        sorted(cell_list)
-        self.assertEqual(len(list(row_response.items())), 10)
-        keys = [t[0] for t in row_response.items()]
-        cells = [t[1] for t in row_response.items()]
-        for i in range(10):
-            self.assertEqual(keys[i], (TEST_FAMILY_ID, str(i).encode()))
-            self.assertEqual(len(cells[i]), 1)
-            self.assertEqual(cells[i][0], cell_list[i])
 
     def test_index_of(self):
         # given a cell, should find index in underlying list

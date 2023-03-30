@@ -136,25 +136,27 @@ class RowResponse(Sequence["CellResponse"]):
         }
         """
         output = ["{"]
-        for key in self.keys():
-            if len(self[key]) == 0:
-                output.append(f"  {key}: []")
-            elif len(self[key]) == 1:
-                output.append(
-                    f"  (family='{key[0]}', qualifier={key[1]}): [{self[key][0]}],"
-                )
+        for family,qualifier in self.get_column_components():
+            cell_list = self[family, qualifier]
+            line = [f"  (family={family!r}, qualifier={qualifier!r}): "]
+            if len(cell_list) == 0:
+                line.append("[],")
+            elif len(cell_list) == 1:
+                line.append(f"[{cell_list[0]}],")
             else:
-                output.append(
-                    f"  (family='{key[0]}', qualifier={key[1]}): [{self[key][0]}, (+{len(self[key])-1} more)],"
+                line.append(
+                    f"[{cell_list[0]}, (+{len(cell_list)-1} more)],"
                 )
+            output.append("".join(line))
         output.append("}")
         return "\n".join(output)
 
     def __repr__(self):
         cell_str_buffer = ["{"]
-        for key, cell_list in self.items():
+        for family,qualifier in self.get_column_components():
+            cell_list = self[family, qualifier]
             repr_list = [cell.to_dict(use_nanoseconds=True) for cell in cell_list]
-            cell_str_buffer.append(f"  ('{key[0]}', {key[1]}): {repr_list},")
+            cell_str_buffer.append(f"  ('{family}', {qualifier}): {repr_list},")
         cell_str_buffer.append("}")
         cell_str = "\n".join(cell_str_buffer)
         output = f"RowResponse(key={self.row_key!r}, cells={cell_str})"
@@ -255,7 +257,7 @@ class RowResponse(Sequence["CellResponse"]):
         """
         return len(self._cells_list)
 
-    def keys(self):
+    def get_column_components(self):
         """
         Returns a list of (family, qualifier) pairs associated with the cells
 
@@ -267,22 +269,7 @@ class RowResponse(Sequence["CellResponse"]):
                 key_list.append((family, qualifier))
         return key_list
 
-    def values(self):
-        """
-        Returns the the cells in the row, broken into lists
-        corresponding to the family and qualifier
-        """
-        result = []
-        for key in self.keys():
-            result.append(self[key])
-        return result
 
-    def items(self):
-        """
-        Iterates over (family, qualifier) pairs and the list of associated cells
-        """
-        for key in self.keys():
-            yield key, self[key]
 
     def __eq__(self, other):
         """
@@ -296,11 +283,14 @@ class RowResponse(Sequence["CellResponse"]):
             return False
         if len(self._cells_list) != len(other._cells_list):
             return False
-        keys, other_keys = self.keys(), other.keys()
-        if keys != other_keys:
+        components = self.get_column_components()
+        other_components = other.get_column_components()
+        if len(components) != len(other_components):
             return False
-        for key in keys:
-            if len(self[key]) != len(other[key]):
+        if components != other_components:
+            return False
+        for family,qualifier in components:
+            if len(self[family, qualifier]) != len(other[family,qualifier]):
                 return False
         # compare individual cell lists
         if self._cells_list != other._cells_list:
