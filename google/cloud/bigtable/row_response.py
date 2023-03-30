@@ -59,8 +59,8 @@ class RowResponse(Sequence["CellResponse"]):
             tmp_list = []
             for (family, qualifier), cell_list in cells.items():
                 for cell_dict in cell_list:
-                    cell_obj = CellResponse._from_dict(
-                        key, family, qualifier, cell_dict
+                    cell_obj = CellResponse(
+                        row=key, family=family, column_qualifier=qualifier, **cell_dict
                     )
                     tmp_list.append(cell_obj)
             cells = tmp_list
@@ -333,26 +333,6 @@ class CellResponse:
         self.column_qualifier = column_qualifier
         self.timestamp_micros = timestamp_micros
         self.labels = labels if labels is not None else []
-
-    @staticmethod
-    def _from_dict(
-        row_key: bytes, family: str, qualifier: bytes, cell_dict: dict[str, Any]
-    ) -> CellResponse:
-        """
-        Helper function to create CellResponse from a dictionary
-
-        CellResponse objects are not intended to be constructed by users.
-        They are returned by the Bigtable backend.
-        """
-        cell_obj = CellResponse(
-            cell_dict["value"],
-            row_key,
-            family,
-            qualifier,
-            cell_dict.get("timestamp_micros"),
-            cell_dict.get("labels", None),
-        )
-        return cell_obj
 
     def __int__(self) -> int:
         """
