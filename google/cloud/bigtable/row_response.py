@@ -155,7 +155,7 @@ class RowResponse(Sequence["CellResponse"]):
         cell_str_buffer = ["{"]
         for family,qualifier in self.get_column_components():
             cell_list = self[family, qualifier]
-            repr_list = [cell.to_dict(use_nanoseconds=True) for cell in cell_list]
+            repr_list = [cell.to_dict() for cell in cell_list]
             cell_str_buffer.append(f"  ('{family}', {qualifier}): {repr_list},")
         cell_str_buffer.append("}")
         cell_str = "\n".join(cell_str_buffer)
@@ -320,7 +320,7 @@ class CellResponse:
         row: row_key,
         family: family_id,
         column_qualifier: qualifier | str,
-        timestamp_ns: int,
+        timestamp_micros: int,
         labels: list[str] | None = None,
     ):
         """
@@ -335,7 +335,7 @@ class CellResponse:
         if isinstance(column_qualifier, str):
             column_qualifier = column_qualifier.encode()
         self.column_qualifier = column_qualifier
-        self.timestamp_ns = timestamp_ns
+        self.timestamp_micros = timestamp_micros
         self.labels = labels if labels is not None else []
 
     @staticmethod
@@ -348,19 +348,12 @@ class CellResponse:
         CellResponse objects are not intended to be constructed by users.
         They are returned by the Bigtable backend.
         """
-        # Bigtable backend will use microseconds for timestamps,
-        # but the Python library prefers nanoseconds where possible
-        timestamp = cell_dict.get(
-            "timestamp_ns", cell_dict.get("timestamp_micros", -1) * 1000
-        )
-        if timestamp < 0:
-            raise ValueError("invalid timestamp")
         cell_obj = CellResponse(
             cell_dict["value"],
             row_key,
             family,
             qualifier,
-            timestamp,
+            cell_dict.get("timestamp_micros"),
             cell_dict.get("labels", None),
         )
         return cell_obj
@@ -373,7 +366,7 @@ class CellResponse:
         """
         return int.from_bytes(self.value, byteorder="big", signed=True)
 
-    def to_dict(self, use_nanoseconds=False) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation of the cell in the Bigtable Cell
         proto format
@@ -383,10 +376,7 @@ class CellResponse:
         cell_dict: dict[str, Any] = {
             "value": self.value,
         }
-        if use_nanoseconds:
-            cell_dict["timestamp_ns"] = self.timestamp_ns
-        else:
-            cell_dict["timestamp_micros"] = self.timestamp_ns // 1000
+        cell_dict["timestamp_micros"] = self.timestamp_micros
         if self.labels:
             cell_dict["labels"] = self.labels
         return cell_dict
@@ -402,7 +392,7 @@ class CellResponse:
         """
         Returns a string representation of the cell
         """
-        return f"CellResponse(value={self.value!r}, row={self.row_key!r}, family='{self.family}', column_qualifier={self.column_qualifier!r}, timestamp_ns={self.timestamp_ns}, labels={self.labels})"
+        return f"CellResponse(value={self.value!r}, row={self.row_key!r}, family='{self.family}', column_qualifier={self.column_qualifier!r}, timestamp_micros={self.timestamp_micros}, labels={self.labels})"
 
     """For Bigtable native ordering"""
 
@@ -415,14 +405,14 @@ class CellResponse:
         this_ordering = (
             self.family,
             self.column_qualifier,
-            -self.timestamp_ns,
+            -self.timestamp_micros,
             self.value,
             self.labels,
         )
         other_ordering = (
             other.family,
             other.column_qualifier,
-            -other.timestamp_ns,
+            -other.timestamp_micros,
             other.value,
             other.labels,
         )
@@ -439,7 +429,7 @@ class CellResponse:
             and self.family == other.family
             and self.column_qualifier == other.column_qualifier
             and self.value == other.value
-            and self.timestamp_ns == other.timestamp_ns
+            and self.timestamp_micros == other.timestamp_micros
             and len(self.labels) == len(other.labels)
             and all([label in other.labels for label in self.labels])
         )
@@ -460,7 +450,7 @@ class CellResponse:
                 self.family,
                 self.column_qualifier,
                 self.value,
-                self.timestamp_ns,
+                self.timestamp_micros,
                 tuple(self.labels),
             )
         )

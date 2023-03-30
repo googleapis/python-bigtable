@@ -20,7 +20,7 @@ TEST_VALUE = b"1234"
 TEST_ROW_KEY = b"row"
 TEST_FAMILY_ID = "cf1"
 TEST_QUALIFIER = b"col"
-TEST_TIMESTAMP = time.time_ns()
+TEST_TIMESTAMP = time.time_ns() // 1000
 TEST_LABELS = ["label1", "label2"]
 
 
@@ -59,7 +59,7 @@ class TestRowResponse(unittest.TestCase):
         cells = {
             (TEST_FAMILY_ID, TEST_QUALIFIER): [
                 self._make_cell().to_dict(),
-                self._make_cell().to_dict(use_nanoseconds=True),
+                self._make_cell().to_dict(),
             ]
         }
         row_response = self._make_one(TEST_ROW_KEY, cells)
@@ -71,9 +71,8 @@ class TestRowResponse(unittest.TestCase):
             self.assertEqual(row_response[i].family, TEST_FAMILY_ID)
             self.assertEqual(row_response[i].column_qualifier, TEST_QUALIFIER)
             self.assertEqual(row_response[i].labels, TEST_LABELS)
-        self.assertEqual(row_response[0].timestamp_ns, TEST_TIMESTAMP)
-        # second cell was initialized with use_nanoseconds=False, so it doesn't have full precision
-        self.assertEqual(row_response[1].timestamp_ns, TEST_TIMESTAMP // 1000 * 1000)
+        self.assertEqual(row_response[0].timestamp_micros, TEST_TIMESTAMP)
+        self.assertEqual(row_response[1].timestamp_micros, TEST_TIMESTAMP)
 
     def test_ctor_bad_cell(self):
         cells = [self._make_cell(), self._make_cell()]
@@ -128,7 +127,7 @@ class TestRowResponse(unittest.TestCase):
         from google.cloud.bigtable.row_response import RowResponse
 
         cell_str = (
-            "{'value': b'1234', 'timestamp_ns': %d, 'labels': ['label1', 'label2']}"
+            "{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}"
             % (TEST_TIMESTAMP)
         )
         expected_prefix = "RowResponse(key=b'row', cells="
@@ -136,7 +135,7 @@ class TestRowResponse(unittest.TestCase):
         self.assertIn(expected_prefix, repr(row))
         self.assertIn(cell_str, repr(row))
         expected_full = (
-            "RowResponse(key=b'row', cells={\n  ('cf1', b'col'): [{'value': b'1234', 'timestamp_ns': %d, 'labels': ['label1', 'label2']}],\n})"
+            "RowResponse(key=b'row', cells={\n  ('cf1', b'col'): [{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}],\n})"
             % (TEST_TIMESTAMP)
         )
         self.assertEqual(expected_full, repr(row))
@@ -195,12 +194,12 @@ class TestRowResponse(unittest.TestCase):
                             "cells": [
                                 {
                                     "value": TEST_VALUE,
-                                    "timestamp_micros": TEST_TIMESTAMP // 1000,
+                                    "timestamp_micros": TEST_TIMESTAMP,
                                     "labels": TEST_LABELS,
                                 },
                                 {
                                     "value": b"other",
-                                    "timestamp_micros": TEST_TIMESTAMP // 1000,
+                                    "timestamp_micros": TEST_TIMESTAMP,
                                     "labels": TEST_LABELS,
                                 },
                             ],
@@ -223,10 +222,10 @@ class TestRowResponse(unittest.TestCase):
         self.assertEqual(column.qualifier, TEST_QUALIFIER)
         self.assertEqual(len(column.cells), 2)
         self.assertEqual(column.cells[0].value, TEST_VALUE)
-        self.assertEqual(column.cells[0].timestamp_micros, TEST_TIMESTAMP // 1000)
+        self.assertEqual(column.cells[0].timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(column.cells[0].labels, TEST_LABELS)
         self.assertEqual(column.cells[1].value, cell2.value)
-        self.assertEqual(column.cells[1].timestamp_micros, TEST_TIMESTAMP // 1000)
+        self.assertEqual(column.cells[1].timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(column.cells[1].labels, TEST_LABELS)
 
     def test_iteration(self):
@@ -537,7 +536,7 @@ class TestCellResponse(unittest.TestCase):
         self.assertEqual(cell.row_key, TEST_ROW_KEY)
         self.assertEqual(cell.family, TEST_FAMILY_ID)
         self.assertEqual(cell.column_qualifier, TEST_QUALIFIER)
-        self.assertEqual(cell.timestamp_ns, TEST_TIMESTAMP)
+        self.assertEqual(cell.timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(cell.labels, TEST_LABELS)
 
     def test_to_dict(self):
@@ -547,7 +546,7 @@ class TestCellResponse(unittest.TestCase):
         cell_dict = cell.to_dict()
         expected_dict = {
             "value": TEST_VALUE,
-            "timestamp_micros": TEST_TIMESTAMP // 1000,
+            "timestamp_micros": TEST_TIMESTAMP,
             "labels": TEST_LABELS,
         }
         self.assertEqual(len(cell_dict), len(expected_dict))
@@ -556,20 +555,8 @@ class TestCellResponse(unittest.TestCase):
         # should be able to construct a Cell proto from the dict
         cell_proto = Cell(**cell_dict)
         self.assertEqual(cell_proto.value, TEST_VALUE)
-        self.assertEqual(cell_proto.timestamp_micros, TEST_TIMESTAMP // 1000)
+        self.assertEqual(cell_proto.timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(cell_proto.labels, TEST_LABELS)
-
-    def test_to_dict_nanos_timestamp(self):
-        cell = self._make_one()
-        cell_dict = cell.to_dict(use_nanoseconds=True)
-        expected_dict = {
-            "value": TEST_VALUE,
-            "timestamp_ns": TEST_TIMESTAMP,
-            "labels": TEST_LABELS,
-        }
-        self.assertEqual(len(cell_dict), len(expected_dict))
-        for key, value in expected_dict.items():
-            self.assertEqual(cell_dict[key], value)
 
     def test_to_dict_no_labels(self):
         from google.cloud.bigtable_v2.types import Cell
@@ -585,7 +572,7 @@ class TestCellResponse(unittest.TestCase):
         cell_dict = cell_no_labels.to_dict()
         expected_dict = {
             "value": TEST_VALUE,
-            "timestamp_micros": TEST_TIMESTAMP // 1000,
+            "timestamp_micros": TEST_TIMESTAMP,
         }
         self.assertEqual(len(cell_dict), len(expected_dict))
         for key, value in expected_dict.items():
@@ -593,7 +580,7 @@ class TestCellResponse(unittest.TestCase):
         # should be able to construct a Cell proto from the dict
         cell_proto = Cell(**cell_dict)
         self.assertEqual(cell_proto.value, TEST_VALUE)
-        self.assertEqual(cell_proto.timestamp_micros, TEST_TIMESTAMP // 1000)
+        self.assertEqual(cell_proto.timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(cell_proto.labels, [])
 
     def test_int_value(self):
@@ -650,7 +637,7 @@ class TestCellResponse(unittest.TestCase):
         expected = (
             "CellResponse(value=b'1234', row=b'row', "
             + "family='cf1', column_qualifier=b'col', "
-            + f"timestamp_ns={TEST_TIMESTAMP}, labels=['label1', 'label2'])"
+            + f"timestamp_micros={TEST_TIMESTAMP}, labels=['label1', 'label2'])"
         )
         self.assertEqual(repr(cell), expected)
         # should be able to construct instance from __repr__
@@ -671,7 +658,7 @@ class TestCellResponse(unittest.TestCase):
         expected = (
             "CellResponse(value=b'1234', row=b'row', "
             + "family='cf1', column_qualifier=b'col', "
-            + f"timestamp_ns={TEST_TIMESTAMP}, labels=[])"
+            + f"timestamp_micros={TEST_TIMESTAMP}, labels=[])"
         )
         self.assertEqual(repr(cell_no_labels), expected)
         # should be able to construct instance from __repr__
