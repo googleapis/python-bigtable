@@ -99,7 +99,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         )
         mixin_args = {"project": project, "credentials": credentials}
         # support google-api-core <=1.5.0, which does not have credentials
-        if "credentials" not in  _ClientProjectMixin.__init__.__code__.co_varnames:
+        if "credentials" not in _ClientProjectMixin.__init__.__code__.co_varnames:
             mixin_args.pop("credentials")
         # initialize client
         _ClientProjectMixin.__init__(self, **mixin_args)
