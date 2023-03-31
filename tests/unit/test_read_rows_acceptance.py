@@ -1,7 +1,6 @@
 import os
 from itertools import zip_longest
 
-import proto
 import pytest
 
 from google.cloud.bigtable_v2 import ReadRowsResponse

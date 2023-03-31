@@ -56,12 +56,14 @@ class RowMerger:
         Consume chunks from a ReadRowsResponse stream into a set of Rows
         """
         async for row_response in request_generator:
-            last_scanned = row_response.last_scanned_row_key
+            # unwrap protoplus object for increased performance
+            response_pb = row_response._pb
+            last_scanned = response_pb.last_scanned_row_key
             # if the server sends a scan heartbeat, notify the state machine.
             if last_scanned:
                 yield self.state_machine.handle_last_scanned_row(last_scanned)
             # process new chunks through the state machine.
-            for chunk in row_response.chunks:
+            for chunk in response_pb.chunks:
                 complete_row = self.state_machine.handle_chunk(chunk)
                 if complete_row is not None:
                     yield complete_row
@@ -214,9 +216,9 @@ class StateMachine:
             raise InvalidChunk("reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
-        if "family_name" in chunk:
+        if chunk.family_name.value:
             raise InvalidChunk("Reset chunk has family_name")
-        if "qualifier" in chunk:
+        if chunk.qualifier.value:
             raise InvalidChunk("Reset chunk has qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("Reset chunk has a timestamp")
@@ -276,12 +278,12 @@ class AWAITING_NEW_CELL(State):
         is_split = chunk.value_size > 0
         expected_cell_size = chunk.value_size if is_split else chunk_size
         # track latest cell data. New chunks won't send repeated data
-        if chunk.family_name:
-            self._owner.current_family = chunk.family_name
-            if not chunk.qualifier:
+        if chunk.family_name.value:
+            self._owner.current_family = chunk.family_name.value
+            if not chunk.qualifier.value:
                 raise InvalidChunk("new column family must specify qualifier")
-        if chunk.qualifier:
-            self._owner.current_qualifier = chunk.qualifier
+        if chunk.qualifier.value:
+            self._owner.current_qualifier = chunk.qualifier.value
             if self._owner.current_family is None:
                 raise InvalidChunk("family not found")
 
@@ -289,7 +291,6 @@ class AWAITING_NEW_CELL(State):
         # key or the row is the same
         if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
             raise InvalidChunk("row key changed mid row")
-
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
@@ -320,9 +321,9 @@ class AWAITING_CELL_VALUE(State):
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("found row key mid cell")
-        if "family_name" in chunk:
+        if chunk.family_name.value:
             raise InvalidChunk("In progress cell had a family name")
-        if "qualifier" in chunk:
+        if chunk.qualifier.value:
             raise InvalidChunk("In progress cell had a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("In progress cell had a timestamp")
