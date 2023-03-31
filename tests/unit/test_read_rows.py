@@ -9,30 +9,7 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk
 from google.cloud.bigtable.row_response import RowResponse
 
-
-# TODO: autogenerate protos from
-#  https://github.com/googleapis/conformance-tests/blob/main/bigtable/v2/proto/google/cloud/conformance/bigtable/v2/tests.proto
-class ReadRowsTest(proto.Message):
-    class Result(proto.Message):
-        row_key = proto.Field(proto.STRING, number=1)
-        family_name = proto.Field(proto.STRING, number=2)
-        qualifier = proto.Field(proto.STRING, number=3)
-        timestamp_micros = proto.Field(proto.INT64, number=4)
-        value = proto.Field(proto.STRING, number=5)
-        label = proto.Field(proto.STRING, number=6)
-        error = proto.Field(proto.BOOL, number=7)
-
-    description = proto.Field(proto.STRING, number=1)
-    chunks = proto.RepeatedField(
-        proto.MESSAGE, number=2, message=ReadRowsResponse.CellChunk
-    )
-    results = proto.RepeatedField(proto.MESSAGE, number=3, message=Result)
-
-
-class TestFile(proto.Message):
-    __test__ = False
-    read_rows_tests = proto.RepeatedField(proto.MESSAGE, number=1, message=ReadRowsTest)
-
+from .v2_client.test_row_merger import ReadRowsTest, TestFile
 
 def parse_readrows_acceptance_tests():
     dirname = os.path.dirname(__file__)
@@ -73,22 +50,22 @@ async def test_scenario(test_case: ReadRowsTest):
         merger = RowMerger()
         results = []
         async for row in merger.merge_row_stream(_scenerio_stream()):
-            results.append(row)
+            for cell in row:
+                cell_result = ReadRowsTest.Result(
+                    row_key=cell.row_key,
+                    family_name=cell.family,
+                    qualifier=cell.column_qualifier,
+                    timestamp_micros=cell.timestamp_micros,
+                    value=cell.value,
+                    label=cell.labels[0] if cell.labels else "",
+                )
+                results.append(cell_result)
         if not merger.state_machine.is_terminal_state():
             raise InvalidChunk("merger has partial frame after reading")
     except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
     for expected, actual in zip_longest(test_case.results, results):
         assert actual == expected
-    # def fake_read(*args, **kwargs):
-    #     return iter([ReadRowsResponse(chunks=test_case.chunks)])
-    # actual_results: List[ReadRowsTest.Result] = []
-    # try:
-    #     for row in PartialRowsData(fake_read, request=None):
-    #         actual_results.extend(extract_results_from_row(row))
-    # except (InvalidChunk, ValueError):
-    #     actual_results.append(ReadRowsTest.Result(error=True))
-    # breakpoint()
 
 
 @pytest.mark.asyncio

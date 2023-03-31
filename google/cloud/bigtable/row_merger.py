@@ -70,7 +70,7 @@ class RowMerger:
                     yield complete_row
         if not self.state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
-            raise RuntimeError("read_rows completed with partial state remaining")
+            raise InvalidChunk("read_rows completed with partial state remaining")
 
     async def _generator_to_cache(
         self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
@@ -172,7 +172,7 @@ class StateMachine:
         """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
-        if self.last_seen_row_key and self.last_seen_row_key >= chunk.row_key:
+        if self.last_seen_row_key and chunk.row_key and self.last_seen_row_key >= chunk.row_key:
             raise InvalidChunk("Out of order row keys")
         if chunk.reset_row:
             # reset row if requested
@@ -225,7 +225,7 @@ class StateMachine:
             raise InvalidChunk("Reset chunk has a value")
         self._reset_row()
         if not isinstance(self.current_state, AWAITING_NEW_ROW):
-            raise RuntimeError("Failed to reset state machine")
+            raise InvalidChunk("Failed to reset state machine")
 
 
 class State(ABC):
@@ -287,7 +287,7 @@ class AWAITING_NEW_CELL(State):
         # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
         if (
-            chunk.row_key is not None
+            chunk.row_key
             and chunk.row_key != self._owner.adapter.current_key
         ):
             raise InvalidChunk("row key changed mid row")
@@ -391,10 +391,9 @@ class RowBuilder:
             raise InvalidChunk("missing qualifier for a new cell")
         if self.current_key is None:
             raise InvalidChunk("no row in progress")
-        self.working_value = bytearray(size)
-        timestamp_nanos = timestamp_micros * 1000
+        self.working_value = bytearray()
         self.working_cell = CellResponse(
-            b"", self.current_key, family, qualifier, labels, timestamp_nanos
+            b"", self.current_key, family, qualifier, timestamp_micros, labels
         )
 
     def cell_value(self, value: bytes) -> None:
