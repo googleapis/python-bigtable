@@ -169,7 +169,11 @@ class StateMachine:
         """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
-        if self.last_seen_row_key and chunk.row_key and self.last_seen_row_key >= chunk.row_key:
+        if (
+            self.last_seen_row_key
+            and chunk.row_key
+            and self.last_seen_row_key >= chunk.row_key
+        ):
             raise InvalidChunk("Out of order row keys")
         if chunk.reset_row:
             # reset row if requested
@@ -283,10 +287,7 @@ class AWAITING_NEW_CELL(State):
 
         # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
-        if (
-            chunk.row_key
-            and chunk.row_key != self._owner.adapter.current_key
-        ):
+        if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
             raise InvalidChunk("row key changed mid row")
 
         self._owner.adapter.start_cell(

@@ -11,6 +11,7 @@ from google.cloud.bigtable.row_response import RowResponse
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
 
+
 def parse_readrows_acceptance_tests():
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, "./read-rows-acceptance-test.json")
