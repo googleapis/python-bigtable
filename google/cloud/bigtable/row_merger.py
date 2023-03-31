@@ -213,7 +213,7 @@ class StateMachine:
         """
         # ensure reset chunk matches expectations
         if isinstance(self.current_state, AWAITING_NEW_ROW):
-            raise InvalidChunk("reset chunk received when not processing row")
+            raise InvalidChunk("Reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
         if chunk.family_name.value:
@@ -274,29 +274,27 @@ class AWAITING_NEW_CELL(State):
     """
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
-        chunk_size = len(chunk.value)
         is_split = chunk.value_size > 0
-        expected_cell_size = chunk.value_size if is_split else chunk_size
+        # expected_cell_size = chunk.value_size if is_split else len(chunk.value)
         # track latest cell data. New chunks won't send repeated data
         if chunk.family_name.value:
             self._owner.current_family = chunk.family_name.value
             if not chunk.qualifier.value:
-                raise InvalidChunk("new column family must specify qualifier")
+                raise InvalidChunk("New column family must specify qualifier")
         if chunk.qualifier.value:
             self._owner.current_qualifier = chunk.qualifier.value
             if self._owner.current_family is None:
-                raise InvalidChunk("family not found")
+                raise InvalidChunk("Family not found")
 
         # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
         if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
-            raise InvalidChunk("row key changed mid row")
+            raise InvalidChunk("Row key changed mid row")
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
             labels=list(chunk.labels),
             timestamp_micros=chunk.timestamp_micros,
-            size=expected_cell_size,
         )
         self._owner.adapter.cell_value(chunk.value)
         # transition to new state
@@ -320,7 +318,7 @@ class AWAITING_CELL_VALUE(State):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
         # ensure reset chunk matches expectations
         if chunk.row_key:
-            raise InvalidChunk("found row key mid cell")
+            raise InvalidChunk("Found row key mid cell")
         if chunk.family_name.value:
             raise InvalidChunk("In progress cell had a family name")
         if chunk.qualifier.value:
@@ -381,15 +379,14 @@ class RowBuilder:
         qualifier: bytes | None,
         timestamp_micros: int,
         labels: List[str],
-        size: int,
     ) -> None:
         """called to start a new cell in a row."""
         if not family:
-            raise InvalidChunk("missing family for a new cell")
+            raise InvalidChunk("Missing family for a new cell")
         if qualifier is None:
-            raise InvalidChunk("missing qualifier for a new cell")
+            raise InvalidChunk("Missing qualifier for a new cell")
         if self.current_key is None:
-            raise InvalidChunk("no row in progress")
+            raise InvalidChunk("start_cell called without a row")
         self.working_value = bytearray()
         self.working_cell = CellResponse(
             b"", self.current_key, family, qualifier, timestamp_micros, labels
@@ -398,13 +395,13 @@ class RowBuilder:
     def cell_value(self, value: bytes) -> None:
         """called multiple times per cell to concatenate the cell value"""
         if self.working_value is None:
-            raise InvalidChunk("cell value received before start_cell")
+            raise InvalidChunk("Cell value received before start_cell")
         self.working_value.extend(value)
 
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
         if self.working_cell is None or self.working_value is None:
-            raise InvalidChunk("cell value received before start_cell")
+            raise InvalidChunk("Cell value received before start_cell")
         self.working_cell.value = bytes(self.working_value)
         self.completed_cells.append(self.working_cell)
         self.working_cell = None
@@ -413,7 +410,7 @@ class RowBuilder:
     def finish_row(self) -> RowResponse:
         """called once per row to signal that all cells have been processed (unless reset)"""
         if self.current_key is None:
-            raise InvalidChunk("no row in progress")
+            raise InvalidChunk("No row in progress")
         new_row = RowResponse(self.current_key, self.completed_cells)
         self.reset()
         return new_row
