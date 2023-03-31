@@ -56,9 +56,6 @@ class RowMerger:
         Consume chunks from a ReadRowsResponse stream into a set of Rows
         """
         async for row_response in request_generator:
-            # ensure that the response is a ReadRowsResponse
-            if not isinstance(row_response, ReadRowsResponse):
-                row_response = ReadRowsResponse(row_response)
             last_scanned = row_response.last_scanned_row_key
             # if the server sends a scan heartbeat, notify the state machine.
             if last_scanned:
