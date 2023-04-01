@@ -753,8 +753,8 @@ def test_read_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.read_rows(request)
@@ -1000,8 +1000,8 @@ def test_sample_row_keys_pooled_rotation(transport: str = "pooled_grpc_asyncio")
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.sample_row_keys(request)
@@ -1246,8 +1246,8 @@ def test_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.mutate_row(request)
@@ -1537,8 +1537,8 @@ def test_mutate_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.mutate_rows(request)
@@ -1798,8 +1798,8 @@ def test_check_and_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyn
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.check_and_mutate_row(request)
@@ -2203,8 +2203,8 @@ def test_ping_and_warm_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.ping_and_warm(request)
@@ -2451,8 +2451,8 @@ def test_read_modify_write_row_pooled_rotation(transport: str = "pooled_grpc_asy
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.read_modify_write_row(request)
@@ -2740,8 +2740,8 @@ def test_generate_initial_change_stream_partitions_pooled_rotation(
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.generate_initial_change_stream_partitions(request)
@@ -3027,8 +3027,8 @@ def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asynci
     # and we are mocking out the actual API, so just send an empty request.
     request = {}
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        channel = client.transport.channel_pool[client.transport._next_idx]
+    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
+        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
         next_channel.return_value = channel
 
         response = client.read_change_stream(request)
@@ -6700,8 +6700,8 @@ async def test_pooled_transport_close_async():
         credentials=ga_credentials.AnonymousCredentials(),
         transport="pooled_grpc_asyncio",
     )
-    num_channels = len(client.transport.channel_pool)
-    with mock.patch.object(type(client.transport.channel_pool[0]), "close") as close:
+    num_channels = len(client.transport._grpc_channel._pool)
+    with mock.patch.object(type(client.transport._grpc_channel._pool[0]), "close") as close:
         async with client:
             close.assert_not_called()
         close.assert_called()
@@ -6781,24 +6781,24 @@ async def test_pooled_transport_replace_default():
         credentials=ga_credentials.AnonymousCredentials(),
         transport="pooled_grpc_asyncio",
     )
-    num_channels = len(client.transport.channel_pool)
+    num_channels = len(client.transport._grpc_channel._pool)
     for replace_idx in range(num_channels):
-        prev_pool = [channel for channel in client.transport.channel_pool]
+        prev_pool = [channel for channel in client.transport._grpc_channel._pool]
         grace_period = 4
         with mock.patch.object(
-            type(client.transport.channel_pool[0]), "close"
+            type(client.transport._grpc_channel._pool[0]), "close"
         ) as close:
             await client.transport.replace_channel(replace_idx, grace=grace_period)
             close.assert_called_once()
             close.assert_awaited()
             close.assert_called_with(grace=grace_period)
-        assert isinstance(client.transport.channel_pool[replace_idx], grpc.aio.Channel)
+        assert isinstance(client.transport._grpc_channel._pool[replace_idx], grpc.aio.Channel)
         # only the specified channel should be replaced
         for i in range(num_channels):
             if i == replace_idx:
-                assert client.transport.channel_pool[i] != prev_pool[i]
+                assert client.transport._grpc_channel._pool[i] != prev_pool[i]
             else:
-                assert client.transport.channel_pool[i] == prev_pool[i]
+                assert client.transport._grpc_channel._pool[i] == prev_pool[i]
     with pytest.raises(ValueError):
         await client.transport.replace_channel(num_channels + 1)
     with pytest.raises(ValueError):
@@ -6811,12 +6811,12 @@ async def test_pooled_transport_replace_explicit():
         credentials=ga_credentials.AnonymousCredentials(),
         transport="pooled_grpc_asyncio",
     )
-    num_channels = len(client.transport.channel_pool)
+    num_channels = len(client.transport._grpc_channel._pool)
     for replace_idx in range(num_channels):
-        prev_pool = [channel for channel in client.transport.channel_pool]
+        prev_pool = [channel for channel in client.transport._grpc_channel._pool]
         grace_period = 0
         with mock.patch.object(
-            type(client.transport.channel_pool[0]), "close"
+            type(client.transport._grpc_channel._pool[0]), "close"
         ) as close:
             new_channel = grpc.aio.insecure_channel("localhost:8080")
             await client.transport.replace_channel(
@@ -6825,13 +6825,13 @@ async def test_pooled_transport_replace_explicit():
             close.assert_called_once()
             close.assert_awaited()
             close.assert_called_with(grace=grace_period)
-        assert client.transport.channel_pool[replace_idx] == new_channel
+        assert client.transport._grpc_channel._pool[replace_idx] == new_channel
         # only the specified channel should be replaced
         for i in range(num_channels):
             if i == replace_idx:
-                assert client.transport.channel_pool[i] != prev_pool[i]
+                assert client.transport._grpc_channel._pool[i] != prev_pool[i]
             else:
-                assert client.transport.channel_pool[i] == prev_pool[i]
+                assert client.transport._grpc_channel._pool[i] == prev_pool[i]
 
 
 def test_pooled_transport_next_channel():
@@ -6840,7 +6840,7 @@ def test_pooled_transport_next_channel():
         credentials=ga_credentials.AnonymousCredentials(),
         pool_size=num_channels,
     )
-    assert len(transport.channel_pool) == num_channels
+    assert len(transport._grpc_channel._pool) == num_channels
     transport._next_idx = 0
     # rotate through all channels multiple times
     num_cycles = 4
@@ -6848,12 +6848,12 @@ def test_pooled_transport_next_channel():
         for i in range(num_channels - 1):
             assert transport._next_idx == i
             got_channel = transport.next_channel()
-            assert got_channel == transport.channel_pool[i]
+            assert got_channel == transport._grpc_channel._pool[i]
             assert transport._next_idx == (i + 1)
         # test wrap around
         assert transport._next_idx == num_channels - 1
         got_channel = transport.next_channel()
-        assert got_channel == transport.channel_pool[num_channels - 1]
+        assert got_channel == transport._grpc_channel._pool[num_channels - 1]
         assert transport._next_idx == 0
 
 
@@ -6864,7 +6864,7 @@ def test_pooled_transport_pool_unique_channels():
         credentials=ga_credentials.AnonymousCredentials(),
         pool_size=num_channels,
     )
-    channel_list = [channel for channel in transport.channel_pool]
+    channel_list = [channel for channel in transport._grpc_channel._pool]
     channel_set = set(channel_list)
     assert len(channel_list) == num_channels
     assert len(channel_set) == num_channels

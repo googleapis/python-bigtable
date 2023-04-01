@@ -44,34 +44,25 @@ from .grpc import BigtableGrpcTransport
 class PooledMultiCallable():
 
     def __init__(self, channel_pool:"PooledChannel", *args, **kwargs):
-        self._next_idx = 0
-        self._channel_pool = channel_pool
         self._init_args = args
         self._init_kwargs = kwargs
+        self.next_channel_fn = channel_pool.next_channel
 
 class PooledUnaryUnaryMultiCallable(PooledMultiCallable, aio.UnaryUnaryMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.UnaryUnaryCall:
-        next_channel = self._channel_pool._pool[self._next_idx]
-        self._next_idx = (self._next_idx + 1) % len(self._callable_pool._pool)
-        return next_channel.unary_unary(*self._init_args, **self._init_args)(*args, **kwargs)
+        return self.next_channel_fn().unary_unary(*self._init_args, **self._init_kwargs)(*args, **kwargs)
 
 class PooledUnaryStreamMultiCallable(PooledMultiCallable, aio.UnaryStreamMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.UnaryStreamCall:
-        next_channel = self._channel_pool._pool[self._next_idx]
-        self._next_idx = (self._next_idx + 1) % len(self._callable_pool._pool)
-        return next_channel.unary_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().unary_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
 
 class PooledStreamUnaryMultiCallable(PooledMultiCallable, aio.StreamUnaryMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.StreamUnaryCall:
-        next_channel = self._channel_pool._pool[self._next_idx]
-        self._next_idx = (self._next_idx + 1) % len(self._callable_pool._pool)
-        return next_channel.stream_unary(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().stream_unary(*self._init_args, **self._init_kwargs)(*args, **kwargs)
 
 class PooledStreamStreamMultiCallable(PooledMultiCallable, aio.StreamStreamMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.StreamStreamCall:
-        next_channel = self._channel_pool._pool[self._next_idx]
-        self._next_idx = (self._next_idx + 1) % len(self._callable_pool._pool)
-        return next_channel.stream_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().stream_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
 
 class PooledChannel(aio.Channel):
 
@@ -86,9 +77,15 @@ class PooledChannel(aio.Channel):
         **kwargs,
     ):
         self._pool : List[aio.Channel] = []
+        self._next_idx = 0
         self._create_channel = partial(grpc_helpers_async.create_channel, target=host, credentials=credentials, credentials_file=credentials_file, scopes=scopes, quota_project_id=quota_project_id, **kwargs)
         for i in range(pool_size):
             self._pool.append(self._create_channel())
+
+    def next_channel(self) -> aio.Channel:
+        channel = self._pool[self._next_idx]
+        self._next_idx = (self._next_idx + 1) % len(self._pool)
+        return channel
 
     def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
         return PooledUnaryUnaryMultiCallable(self, *args, **kwargs)
@@ -103,11 +100,11 @@ class PooledChannel(aio.Channel):
         return PooledStreamStreamMultiCallable(self, *args, **kwargs)
 
     async def close(self, grace=None):
-        close_fns = [channel.close(grace=grace) for channel in self.channel_pool]
+        close_fns = [channel.close(grace=grace) for channel in self._pool]
         return asyncio.gather(*close_fns)
 
     async def channel_ready(self):
-        ready_fns = [channel.channel_ready() for channel in self.channel_pool]
+        ready_fns = [channel.channel_ready() for channel in self._pool]
         return asyncio.gather(*ready_fns)
 
     async def __aenter__(self):
@@ -139,9 +136,9 @@ class PooledChannel(aio.Channel):
           new_channel(grpc.aio.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
         """
-        if channel_idx >= len(self.channel_pool) or channel_idx < 0:
+        if channel_idx >= len(self._pool) or channel_idx < 0:
             raise ValueError(
-                f"invalid channel_idx {channel_idx} for pool size {len(self.channel_pool)}"
+                f"invalid channel_idx {channel_idx} for pool size {len(self._pool)}"
             )
         if new_channel is None:
             new_channel = self._create_channel()
@@ -186,6 +183,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     @classmethod
     def create_channel(
         cls,
+        pool_size: int = 3,
         host: str = "bigtable.googleapis.com",
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
@@ -216,7 +214,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         """
 
         return PooledChannel(
-            3,
+            pool_size,
             host,
             credentials=credentials,
             credentials_file=credentials_file,
@@ -335,6 +333,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         )
         self._quota_project_id = quota_project_id
         self._grpc_channel = type(self).create_channel(
+                pool_size,
                 self._host,
                 # use the credentials which are saved
                 credentials=self._credentials,
@@ -349,7 +348,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-        # Wrap messages. This must be done after self.channel_pool is populated
+        # Wrap messages. This must be done after pool is populated
         self._prep_wrapped_messages(client_info)
 
     @property
@@ -409,17 +408,19 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             )
         return self._stubs["read_rows"]
 
-    def sample_row_keys(
-        self, *args, **kwargs
-    ) -> Awaitable[bigtable.SampleRowKeysResponse]:
-        r"""Function for calling the sample row keys method over gRPC.
 
+    @property
+    def sample_row_keys(
+        self,
+    ) -> Callable[
+        [bigtable.SampleRowKeysRequest], Awaitable[bigtable.SampleRowKeysResponse]
+    ]:
+        """Return a callable for the sample row keys method over gRPC.
         Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
         to break up the data for distributed tasks like
         mapreduces.
-
         Returns:
             Callable[[~.SampleRowKeysRequest],
                     Awaitable[~.SampleRowKeysResponse]]:
@@ -430,25 +431,21 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "sample_row_keys")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_stream(
+        if "sample_row_keys" not in self._stubs:
+            self._stubs["sample_row_keys"] = self.grpc_channel.unary_stream(
                 "/google.bigtable.v2.Bigtable/SampleRowKeys",
                 request_serializer=bigtable.SampleRowKeysRequest.serialize,
                 response_deserializer=bigtable.SampleRowKeysResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["sample_row_keys"]
 
-    def mutate_row(self, *args, **kwargs) -> Awaitable[bigtable.MutateRowResponse]:
-        r"""Function for calling the mutate row method over gRPC.
-
+    @property
+    def mutate_row(
+        self,
+    ) -> Callable[[bigtable.MutateRowRequest], Awaitable[bigtable.MutateRowResponse]]:
+        r"""Return a callable for the mutate row method over gRPC.
         Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
-
         Returns:
             Callable[[~.MutateRowRequest],
                     Awaitable[~.MutateRowResponse]]:
@@ -459,26 +456,22 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "mutate_row")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_unary(
+        if "mutate_row" not in self._stubs:
+            self._stubs["mutate_row"] = self.grpc_channel.unary_unary(
                 "/google.bigtable.v2.Bigtable/MutateRow",
                 request_serializer=bigtable.MutateRowRequest.serialize,
                 response_deserializer=bigtable.MutateRowResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["mutate_row"]
 
-    def mutate_rows(self, *args, **kwargs) -> Awaitable[bigtable.MutateRowsResponse]:
-        r"""Function for calling the mutate rows method over gRPC.
-
+    @property
+    def mutate_rows(
+        self,
+    ) -> Callable[[bigtable.MutateRowsRequest], Awaitable[bigtable.MutateRowsResponse]]:
+        """Return a callable for the mutate rows method over gRPC.
         Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
-
         Returns:
             Callable[[~.MutateRowsRequest],
                     Awaitable[~.MutateRowsResponse]]:
@@ -489,27 +482,24 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "mutate_rows")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_stream(
+        if "mutate_rows" not in self._stubs:
+            self._stubs["mutate_rows"] = self.grpc_channel.unary_stream(
                 "/google.bigtable.v2.Bigtable/MutateRows",
                 request_serializer=bigtable.MutateRowsRequest.serialize,
                 response_deserializer=bigtable.MutateRowsResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["mutate_rows"]
 
+    @property
     def check_and_mutate_row(
-        self, *args, **kwargs
-    ) -> Awaitable[bigtable.CheckAndMutateRowResponse]:
-        r"""Function for calling the check and mutate row method over gRPC.
-
+        self,
+    ) -> Callable[
+        [bigtable.CheckAndMutateRowRequest],
+        Awaitable[bigtable.CheckAndMutateRowResponse],
+    ]:
+        """Return a callable for the check and mutate row method over gRPC.
         Mutates a row atomically based on the output of a
         predicate Reader filter.
-
         Returns:
             Callable[[~.CheckAndMutateRowRequest],
                     Awaitable[~.CheckAndMutateRowResponse]]:
@@ -520,26 +510,24 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "check_and_mutate_row")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_unary(
+        if "check_and_mutate_row" not in self._stubs:
+            self._stubs["check_and_mutate_row"] = self.grpc_channel.unary_unary(
                 "/google.bigtable.v2.Bigtable/CheckAndMutateRow",
                 request_serializer=bigtable.CheckAndMutateRowRequest.serialize,
                 response_deserializer=bigtable.CheckAndMutateRowResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["check_and_mutate_row"]
 
-    def ping_and_warm(self, *args, **kwargs) -> Awaitable[bigtable.PingAndWarmResponse]:
-        r"""Function for calling the ping and warm method over gRPC.
-
+    @property
+    def ping_and_warm(
+        self,
+    ) -> Callable[
+        [bigtable.PingAndWarmRequest], Awaitable[bigtable.PingAndWarmResponse]
+    ]:
+        """Return a callable for the ping and warm method over gRPC.
         Warm up associated instance metadata for this
         connection. This call is not required but may be useful
         for connection keep-alive.
-
         Returns:
             Callable[[~.PingAndWarmRequest],
                     Awaitable[~.PingAndWarmResponse]]:
@@ -550,24 +538,22 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "ping_and_warm")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_unary(
+        if "ping_and_warm" not in self._stubs:
+            self._stubs["ping_and_warm"] = self.grpc_channel.unary_unary(
                 "/google.bigtable.v2.Bigtable/PingAndWarm",
                 request_serializer=bigtable.PingAndWarmRequest.serialize,
                 response_deserializer=bigtable.PingAndWarmResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["ping_and_warm"]
 
+    @property
     def read_modify_write_row(
-        self, *args, **kwargs
-    ) -> Awaitable[bigtable.ReadModifyWriteRowResponse]:
-        r"""Function for calling the read modify write row method over gRPC.
-
+        self,
+    ) -> Callable[
+        [bigtable.ReadModifyWriteRowRequest],
+        Awaitable[bigtable.ReadModifyWriteRowResponse],
+    ]:
+        """Return a callable for the read modify write row method over gRPC.
         Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the
         specified columns and writes a new entry based on
@@ -575,7 +561,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         the timestamp is the greater of the existing timestamp
         or the current server time. The method returns the new
         contents of all modified cells.
-
         Returns:
             Callable[[~.ReadModifyWriteRowRequest],
                     Awaitable[~.ReadModifyWriteRowResponse]]:
@@ -586,30 +571,28 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "read_modify_write_row")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_unary(
+        if "read_modify_write_row" not in self._stubs:
+            self._stubs["read_modify_write_row"] = self.grpc_channel.unary_unary(
                 "/google.bigtable.v2.Bigtable/ReadModifyWriteRow",
                 request_serializer=bigtable.ReadModifyWriteRowRequest.serialize,
                 response_deserializer=bigtable.ReadModifyWriteRowResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["read_modify_write_row"]
 
+
+    @property
     def generate_initial_change_stream_partitions(
-        self, *args, **kwargs
-    ) -> Awaitable[bigtable.GenerateInitialChangeStreamPartitionsResponse]:
-        r"""Function for calling the generate initial change stream
+        self,
+    ) -> Callable[
+        [bigtable.GenerateInitialChangeStreamPartitionsRequest],
+        Awaitable[bigtable.GenerateInitialChangeStreamPartitionsResponse],
+    ]:
+        r"""Return a callable for the generate initial change stream
         partitions method over gRPC.
-
         NOTE: This API is intended to be used by Apache Beam BigtableIO.
         Returns the current list of partitions that make up the table's
         change stream. The union of partitions will cover the entire
         keyspace. Partitions can be read with ``ReadChangeStream``.
-
         Returns:
             Callable[[~.GenerateInitialChangeStreamPartitionsRequest],
                     Awaitable[~.GenerateInitialChangeStreamPartitionsResponse]]:
@@ -620,29 +603,27 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "generate_initial_change_stream_partitions")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_stream(
+        if "generate_initial_change_stream_partitions" not in self._stubs:
+            self._stubs[
+                "generate_initial_change_stream_partitions"
+            ] = self.grpc_channel.unary_stream(
                 "/google.bigtable.v2.Bigtable/GenerateInitialChangeStreamPartitions",
                 request_serializer=bigtable.GenerateInitialChangeStreamPartitionsRequest.serialize,
                 response_deserializer=bigtable.GenerateInitialChangeStreamPartitionsResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["generate_initial_change_stream_partitions"]
 
+    @property
     def read_change_stream(
-        self, *args, **kwargs
-    ) -> Awaitable[bigtable.ReadChangeStreamResponse]:
-        r"""Function for calling the read change stream method over gRPC.
-
+        self,
+    ) -> Callable[
+        [bigtable.ReadChangeStreamRequest], Awaitable[bigtable.ReadChangeStreamResponse]
+    ]:
+        r"""Return a callable for the read change stream method over gRPC.
         NOTE: This API is intended to be used by Apache Beam
         BigtableIO. Reads changes from a table's change stream.
         Changes will reflect both user-initiated mutations and
         mutations that are caused by garbage collection.
-
         Returns:
             Callable[[~.ReadChangeStreamRequest],
                     Awaitable[~.ReadChangeStreamResponse]]:
@@ -653,22 +634,18 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        next_channel = self.next_channel()
-        stub_key = (next_channel, "read_change_stream")
-        stub_func = self._stubs.get(stub_key, None)
-        if stub_func is None:
-            stub_func = next_channel.unary_stream(
+        if "read_change_stream" not in self._stubs:
+            self._stubs["read_change_stream"] = self.grpc_channel.unary_stream(
                 "/google.bigtable.v2.Bigtable/ReadChangeStream",
                 request_serializer=bigtable.ReadChangeStreamRequest.serialize,
                 response_deserializer=bigtable.ReadChangeStreamResponse.deserialize,
             )
-            self._stubs[stub_key] = stub_func
-        # call stub
-        return stub_func(*args, **kwargs)
+        return self._stubs["read_change_stream"]
+
+
 
     def close(self):
-        close_fns = [channel.close() for channel in self.channel_pool]
-        return asyncio.gather(*close_fns)
+        return self.grpc_channel.close()
 
 
 __all__ = ("PooledBigtableGrpcAsyncIOTransport",)
