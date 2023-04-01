@@ -754,7 +754,7 @@ def test_read_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.read_rows(request)
@@ -765,7 +765,7 @@ def test_read_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
         stub_key = (channel, "read_rows")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.read_rows(request)
             assert next_channel.call_count == i
@@ -1001,7 +1001,7 @@ def test_sample_row_keys_pooled_rotation(transport: str = "pooled_grpc_asyncio")
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.sample_row_keys(request)
@@ -1012,7 +1012,7 @@ def test_sample_row_keys_pooled_rotation(transport: str = "pooled_grpc_asyncio")
         stub_key = (channel, "sample_row_keys")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.sample_row_keys(request)
             assert next_channel.call_count == i
@@ -1247,7 +1247,7 @@ def test_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.mutate_row(request)
@@ -1258,7 +1258,7 @@ def test_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
         stub_key = (channel, "mutate_row")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.mutate_row(request)
             assert next_channel.call_count == i
@@ -1538,7 +1538,7 @@ def test_mutate_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.mutate_rows(request)
@@ -1549,7 +1549,7 @@ def test_mutate_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
         stub_key = (channel, "mutate_rows")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.mutate_rows(request)
             assert next_channel.call_count == i
@@ -1799,7 +1799,7 @@ def test_check_and_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyn
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.check_and_mutate_row(request)
@@ -1810,7 +1810,7 @@ def test_check_and_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyn
         stub_key = (channel, "check_and_mutate_row")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.check_and_mutate_row(request)
             assert next_channel.call_count == i
@@ -2204,7 +2204,7 @@ def test_ping_and_warm_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.ping_and_warm(request)
@@ -2215,7 +2215,7 @@ def test_ping_and_warm_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
         stub_key = (channel, "ping_and_warm")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.ping_and_warm(request)
             assert next_channel.call_count == i
@@ -2452,7 +2452,7 @@ def test_read_modify_write_row_pooled_rotation(transport: str = "pooled_grpc_asy
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.read_modify_write_row(request)
@@ -2463,7 +2463,7 @@ def test_read_modify_write_row_pooled_rotation(transport: str = "pooled_grpc_asy
         stub_key = (channel, "read_modify_write_row")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.read_modify_write_row(request)
             assert next_channel.call_count == i
@@ -2741,7 +2741,7 @@ def test_generate_initial_change_stream_partitions_pooled_rotation(
     request = {}
 
     with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
 
         response = client.generate_initial_change_stream_partitions(request)
@@ -2752,7 +2752,7 @@ def test_generate_initial_change_stream_partitions_pooled_rotation(
         stub_key = (channel, "generate_initial_change_stream_partitions")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.generate_initial_change_stream_partitions(request)
             assert next_channel.call_count == i
@@ -3018,19 +3018,18 @@ def test_read_change_stream(request_type, transport: str = "grpc"):
 
 
 def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(transports.pooled_grpc_asyncio.PooledChannel, "next_channel") as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._next_idx]
+        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
         next_channel.return_value = channel
-
         response = client.read_change_stream(request)
 
         # Establish that next_channel was called
@@ -3039,7 +3038,7 @@ def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asynci
         stub_key = (channel, "read_change_stream")
         assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
-        starting_idx = client.transport._next_idx
+        starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
             response = client.read_change_stream(request)
             assert next_channel.call_count == i
@@ -6841,20 +6840,20 @@ def test_pooled_transport_next_channel():
         pool_size=num_channels,
     )
     assert len(transport._grpc_channel._pool) == num_channels
-    transport._next_idx = 0
+    transport._grpc_channel._next_idx = 0
     # rotate through all channels multiple times
     num_cycles = 4
     for _ in range(num_cycles):
         for i in range(num_channels - 1):
-            assert transport._next_idx == i
-            got_channel = transport.next_channel()
+            assert transport._grpc_channel._next_idx == i
+            got_channel = transport._grpc_channel.next_channel()
             assert got_channel == transport._grpc_channel._pool[i]
-            assert transport._next_idx == (i + 1)
+            assert transport._grpc_channel._next_idx == (i + 1)
         # test wrap around
-        assert transport._next_idx == num_channels - 1
-        got_channel = transport.next_channel()
+        assert transport._grpc_channel._next_idx == num_channels - 1
+        got_channel = transport._grpc_channel.next_channel()
         assert got_channel == transport._grpc_channel._pool[num_channels - 1]
-        assert transport._next_idx == 0
+        assert transport._grpc_channel._next_idx == 0
 
 
 def test_pooled_transport_pool_unique_channels():
@@ -6879,10 +6878,7 @@ def test_pooled_transport_pool_creation():
     scopes = ["test1", "test2"]
     quota_project_id = "test3"
     host = "testhost:8080"
-
-    with mock.patch.object(
-        transports.PooledBigtableGrpcAsyncIOTransport, "create_channel"
-    ) as create_channel:
+    with mock.patch("google.api_core.grpc_helpers_async.create_channel") as create_channel:
         transport = transports.PooledBigtableGrpcAsyncIOTransport(
             credentials=creds,
             pool_size=num_channels,
@@ -6892,9 +6888,8 @@ def test_pooled_transport_pool_creation():
         )
         assert create_channel.call_count == num_channels
         for i in range(num_channels):
-            args = create_channel.call_args_list[i][0]
-            assert args[0] == host
             kwargs = create_channel.call_args_list[i][1]
+            assert kwargs["target"] == host
             assert kwargs["credentials"] == creds
             assert kwargs["scopes"] == scopes
             assert kwargs["quota_project_id"] == quota_project_id

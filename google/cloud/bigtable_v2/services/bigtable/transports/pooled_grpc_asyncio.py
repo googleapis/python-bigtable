@@ -101,7 +101,7 @@ class PooledChannel(aio.Channel):
 
     async def close(self, grace=None):
         close_fns = [channel.close(grace=grace) for channel in self._pool]
-        return asyncio.gather(*close_fns)
+        return await asyncio.gather(*close_fns)
 
     async def channel_ready(self):
         ready_fns = [channel.channel_ready() for channel in self._pool]
@@ -293,7 +293,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             raise ValueError(f"invalid pool_size: {pool_size}")
         self._ssl_channel_credentials = ssl_channel_credentials
         self._stubs: Dict[Tuple[aio.Channel, str], Callable] = {}
-        self._next_idx = 0
 
         if api_mtls_endpoint:
             warnings.warn("api_mtls_endpoint is deprecated", DeprecationWarning)

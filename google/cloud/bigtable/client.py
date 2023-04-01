@@ -135,7 +135,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         if not self._channel_refresh_tasks:
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
-            for channel_idx in range(len(self.transport.channel_pool)):
+            for channel_idx in range(len(self.transport._grpc_channel._pool)):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 if sys.version_info >= (3, 8):
                     refresh_task.set_name(
@@ -211,7 +211,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            channel = self.transport.channel_pool[channel_idx]
+            channel = self.transport._grpc_channel._pool[channel_idx]
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
@@ -249,7 +249,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             if self._channel_refresh_tasks:
                 # refresh tasks already running
                 # call ping and warm on all existing channels
-                for channel in self.transport.channel_pool:
+                for channel in self.transport._grpc_channel._pool:
                     await self._ping_and_warm_instances(channel)
             else:
                 # refresh tasks aren't active. start them as background tasks
