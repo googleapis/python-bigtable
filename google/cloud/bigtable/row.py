@@ -40,7 +40,7 @@ class Row(Sequence["Cell"]):
     def __init__(
         self,
         key: row_key,
-        cells: list[Cell] | dict[tuple[family_id, qualifier], list[dict[str, Any]]],
+        cells: list[Cell],
     ):
         """
         Initializes a Row object
@@ -51,22 +51,8 @@ class Row(Sequence["Cell"]):
         self.row_key = key
         self._cells_map: dict[family_id, dict[qualifier, list[Cell]]] = OrderedDict()
         self._cells_list: list[Cell] = []
-        if isinstance(cells, dict):
-            # handle dict input
-            tmp_list = []
-            for (family, qualifier), cell_list in cells.items():
-                for cell_dict in cell_list:
-                    cell_obj = Cell(
-                        row=key, family=family, column_qualifier=qualifier, **cell_dict
-                    )
-                    tmp_list.append(cell_obj)
-            cells = tmp_list
         # add cells to internal stores using Bigtable native ordering
-        for cell in sorted(cells):
-            if cell.row_key != self.row_key:
-                raise ValueError(
-                    f"Cell row_key ({cell.row_key!r}) does not match Row key ({self.row_key!r})"
-                )
+        for cell in cells:
             if cell.family not in self._cells_map:
                 self._cells_map[cell.family] = OrderedDict()
             if cell.column_qualifier not in self._cells_map[cell.family]:

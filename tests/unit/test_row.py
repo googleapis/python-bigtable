@@ -55,39 +55,6 @@ class TestRow(unittest.TestCase):
         self.assertEqual(list(row_response), cells)
         self.assertEqual(row_response.row_key, TEST_ROW_KEY)
 
-    def test_ctor_dict(self):
-        cells = {
-            (TEST_FAMILY_ID, TEST_QUALIFIER): [
-                self._make_cell().to_dict(),
-                self._make_cell().to_dict(),
-            ]
-        }
-        row_response = self._make_one(TEST_ROW_KEY, cells)
-        self.assertEqual(row_response.row_key, TEST_ROW_KEY)
-        self.assertEqual(len(row_response), 2)
-        for i in range(2):
-            self.assertEqual(row_response[i].value, TEST_VALUE)
-            self.assertEqual(row_response[i].row_key, TEST_ROW_KEY)
-            self.assertEqual(row_response[i].family, TEST_FAMILY_ID)
-            self.assertEqual(row_response[i].column_qualifier, TEST_QUALIFIER)
-            self.assertEqual(row_response[i].labels, TEST_LABELS)
-        self.assertEqual(row_response[0].timestamp_micros, TEST_TIMESTAMP)
-        self.assertEqual(row_response[1].timestamp_micros, TEST_TIMESTAMP)
-
-    def test_ctor_bad_cell(self):
-        cells = [self._make_cell(), self._make_cell()]
-        cells[1].row_key = b"other"
-        with self.assertRaises(ValueError):
-            self._make_one(TEST_ROW_KEY, cells)
-
-    def test_cell_order(self):
-        # cells should be ordered on init
-        cell1 = self._make_cell(value=b"1")
-        cell2 = self._make_cell(value=b"2")
-        resp = self._make_one(TEST_ROW_KEY, [cell2, cell1])
-        output = list(resp)
-        self.assertEqual(output, [cell1, cell2])
-
     def test_get_cells(self):
         cell_list = []
         for family_id in ["1", "2"]:
@@ -122,7 +89,7 @@ class TestRow(unittest.TestCase):
         with self.assertRaises(ValueError):
             row_response.get_cells(family="1", qualifier=b"c")
 
-    def test__repr__(self):
+    def test___repr__(self):
         from google.cloud.bigtable.row import Cell
         from google.cloud.bigtable.row import Row
 
@@ -139,38 +106,24 @@ class TestRow(unittest.TestCase):
             % (TEST_TIMESTAMP)
         )
         self.assertEqual(expected_full, repr(row))
-        # should be able to construct instance from __repr__
-        result = eval(repr(row))
-        self.assertEqual(result, row)
-        self.assertIsInstance(result, Row)
-        self.assertIsInstance(result[0], Cell)
         # try with multiple cells
         row = self._make_one(TEST_ROW_KEY, [self._make_cell(), self._make_cell()])
         self.assertIn(expected_prefix, repr(row))
         self.assertIn(cell_str, repr(row))
-        # should be able to construct instance from __repr__
-        result = eval(repr(row))
-        self.assertEqual(result, row)
-        self.assertIsInstance(result, Row)
-        self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], Cell)
-        self.assertIsInstance(result[1], Cell)
 
     def test___str__(self):
-        cells = {
-            ("3", TEST_QUALIFIER): [
-                self._make_cell().to_dict(),
-                self._make_cell().to_dict(),
-                self._make_cell().to_dict(),
-            ]
-        }
-        cells[("1", TEST_QUALIFIER)] = [self._make_cell().to_dict()]
+        cells = [
+            self._make_cell(value=b"1234", family_id="1", qualifier=b"col"),
+            self._make_cell(value=b"5678", family_id="3", qualifier=b"col"),
+            self._make_cell(value=b"1", family_id="3", qualifier=b"col"),
+            self._make_cell(value=b"2", family_id="3", qualifier=b"col"),
+        ]
 
         row_response = self._make_one(TEST_ROW_KEY, cells)
         expected = (
             "{\n"
             + "  (family='1', qualifier=b'col'): [b'1234'],\n"
-            + "  (family='3', qualifier=b'col'): [b'1234', (+2 more)],\n"
+            + "  (family='3', qualifier=b'col'): [b'5678', (+2 more)],\n"
             + "}"
         )
         self.assertEqual(expected, str(row_response))
@@ -233,10 +186,10 @@ class TestRow(unittest.TestCase):
         from google.cloud.bigtable.row import Cell
 
         # should be able to iterate over the Row as a list
-        cell3 = self._make_cell(value=b"3")
         cell1 = self._make_cell(value=b"1")
         cell2 = self._make_cell(value=b"2")
-        row_response = self._make_one(TEST_ROW_KEY, [cell3, cell1, cell2])
+        cell3 = self._make_cell(value=b"3")
+        row_response = self._make_one(TEST_ROW_KEY, [cell1, cell2, cell3])
         self.assertEqual(len(row_response), 3)
         # should create generator object
         self.assertIsInstance(iter(row_response), GeneratorType)
