@@ -25,7 +25,7 @@ qualifier = bytes
 row_value = bytes
 
 
-class RowResponse(Sequence["CellResponse"]):
+class Row(Sequence["Cell"]):
     """
     Model class for row data returned from server
 
@@ -40,26 +40,23 @@ class RowResponse(Sequence["CellResponse"]):
     def __init__(
         self,
         key: row_key,
-        cells: list[CellResponse]
-        | dict[tuple[family_id, qualifier], list[dict[str, Any]]],
+        cells: list[Cell] | dict[tuple[family_id, qualifier], list[dict[str, Any]]],
     ):
         """
-        Initializes a RowResponse object
+        Initializes a Row object
 
-        RowResponse objects are not intended to be created by users.
+        Row objects are not intended to be created by users.
         They are returned by the Bigtable backend.
         """
         self.row_key = key
-        self._cells_map: dict[
-            family_id, dict[qualifier, list[CellResponse]]
-        ] = OrderedDict()
-        self._cells_list: list[CellResponse] = []
+        self._cells_map: dict[family_id, dict[qualifier, list[Cell]]] = OrderedDict()
+        self._cells_list: list[Cell] = []
         if isinstance(cells, dict):
             # handle dict input
             tmp_list = []
             for (family, qualifier), cell_list in cells.items():
                 for cell_dict in cell_list:
-                    cell_obj = CellResponse(
+                    cell_obj = Cell(
                         row=key, family=family, column_qualifier=qualifier, **cell_dict
                     )
                     tmp_list.append(cell_obj)
@@ -68,7 +65,7 @@ class RowResponse(Sequence["CellResponse"]):
         for cell in sorted(cells):
             if cell.row_key != self.row_key:
                 raise ValueError(
-                    f"CellResponse row_key ({cell.row_key!r}) does not match RowResponse key ({self.row_key!r})"
+                    f"Cell row_key ({cell.row_key!r}) does not match Row key ({self.row_key!r})"
                 )
             if cell.family not in self._cells_map:
                 self._cells_map[cell.family] = OrderedDict()
@@ -79,7 +76,7 @@ class RowResponse(Sequence["CellResponse"]):
 
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
-    ) -> list[CellResponse]:
+    ) -> list[Cell]:
         """
         Returns cells sorted in Bigtable native order:
             - Family lexicographically ascending
@@ -113,9 +110,7 @@ class RowResponse(Sequence["CellResponse"]):
             )
         return self._cells_map[family][qualifier]
 
-    def _get_all_from_family(
-        self, family: family_id
-    ) -> Generator[CellResponse, None, None]:
+    def _get_all_from_family(self, family: family_id) -> Generator[Cell, None, None]:
         """
         Returns all cells in the row for the family_id
         """
@@ -157,7 +152,7 @@ class RowResponse(Sequence["CellResponse"]):
             cell_str_buffer.append(f"  ('{family}', {qualifier}): {repr_list},")
         cell_str_buffer.append("}")
         cell_str = "\n".join(cell_str_buffer)
-        output = f"RowResponse(key={self.row_key!r}, cells={cell_str})"
+        output = f"Row(key={self.row_key!r}, cells={cell_str})"
         return output
 
     def to_dict(self) -> dict[str, Any]:
@@ -195,34 +190,34 @@ class RowResponse(Sequence["CellResponse"]):
         `(family, qualifier)` pairs associated with the cells
         """
         if isinstance(item, family_id):
-            # check if family key is in RowResponse
+            # check if family key is in Row
             return item in self._cells_map
         elif (
             isinstance(item, tuple)
             and isinstance(item[0], family_id)
             and isinstance(item[1], (qualifier, str))
         ):
-            # check if (family, qualifier) pair is in RowResponse
+            # check if (family, qualifier) pair is in Row
             qualifer = item[1] if isinstance(item[1], bytes) else item[1].encode()
             return item[0] in self._cells_map and qualifer in self._cells_map[item[0]]
-        # check if CellResponse is in RowResponse
+        # check if Cell is in Row
         return item in self._cells_list
 
     @overload
     def __getitem__(
         self,
         index: family_id | tuple[family_id, qualifier | str],
-    ) -> list[CellResponse]:
+    ) -> list[Cell]:
         # overload signature for type checking
         pass
 
     @overload
-    def __getitem__(self, index: int) -> CellResponse:
+    def __getitem__(self, index: int) -> Cell:
         # overload signature for type checking
         pass
 
     @overload
-    def __getitem__(self, index: slice) -> list[CellResponse]:
+    def __getitem__(self, index: slice) -> list[Cell]:
         # overload signature for type checking
         pass
 
@@ -273,7 +268,7 @@ class RowResponse(Sequence["CellResponse"]):
         """
         # for performance reasons, check row metadata
         # before checking individual cells
-        if not isinstance(other, RowResponse):
+        if not isinstance(other, Row):
             return False
         if self.row_key != other.row_key:
             return False
@@ -301,7 +296,7 @@ class RowResponse(Sequence["CellResponse"]):
 
 
 @total_ordering
-class CellResponse:
+class Cell:
     """
     Model class for cell data
 
@@ -320,9 +315,9 @@ class CellResponse:
         labels: list[str] | None = None,
     ):
         """
-        CellResponse constructor
+        Cell constructor
 
-        CellResponse objects are not intended to be constructed by users.
+        Cell objects are not intended to be constructed by users.
         They are returned by the Bigtable backend.
         """
         self.value = value
@@ -368,7 +363,7 @@ class CellResponse:
         """
         Returns a string representation of the cell
         """
-        return f"CellResponse(value={self.value!r}, row={self.row_key!r}, family='{self.family}', column_qualifier={self.column_qualifier!r}, timestamp_micros={self.timestamp_micros}, labels={self.labels})"
+        return f"Cell(value={self.value!r}, row={self.row_key!r}, family='{self.family}', column_qualifier={self.column_qualifier!r}, timestamp_micros={self.timestamp_micros}, labels={self.labels})"
 
     """For Bigtable native ordering"""
 
@@ -376,7 +371,7 @@ class CellResponse:
         """
         Implements `<` operator
         """
-        if not isinstance(other, CellResponse):
+        if not isinstance(other, Cell):
             return NotImplemented
         this_ordering = (
             self.family,
@@ -398,7 +393,7 @@ class CellResponse:
         """
         Implements `==` operator
         """
-        if not isinstance(other, CellResponse):
+        if not isinstance(other, Cell):
             return NotImplemented
         return (
             self.row_key == other.row_key

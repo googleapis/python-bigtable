@@ -24,12 +24,12 @@ TEST_TIMESTAMP = time.time_ns() // 1000
 TEST_LABELS = ["label1", "label2"]
 
 
-class TestRowResponse(unittest.TestCase):
+class TestRow(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_response import RowResponse
+        from google.cloud.bigtable.row_response import Row
 
-        return RowResponse
+        return Row
 
     def _make_one(self, *args, **kwargs):
         if len(args) == 0:
@@ -45,9 +45,9 @@ class TestRowResponse(unittest.TestCase):
         timestamp=TEST_TIMESTAMP,
         labels=TEST_LABELS,
     ):
-        from google.cloud.bigtable.row_response import CellResponse
+        from google.cloud.bigtable.row_response import Cell
 
-        return CellResponse(value, row_key, family_id, qualifier, timestamp, labels)
+        return Cell(value, row_key, family_id, qualifier, timestamp, labels)
 
     def test_ctor(self):
         cells = [self._make_cell(), self._make_cell()]
@@ -123,27 +123,27 @@ class TestRowResponse(unittest.TestCase):
             row_response.get_cells(family="1", qualifier=b"c")
 
     def test__repr__(self):
-        from google.cloud.bigtable.row_response import CellResponse
-        from google.cloud.bigtable.row_response import RowResponse
+        from google.cloud.bigtable.row_response import Cell
+        from google.cloud.bigtable.row_response import Row
 
         cell_str = (
             "{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}"
             % (TEST_TIMESTAMP)
         )
-        expected_prefix = "RowResponse(key=b'row', cells="
+        expected_prefix = "Row(key=b'row', cells="
         row = self._make_one(TEST_ROW_KEY, [self._make_cell()])
         self.assertIn(expected_prefix, repr(row))
         self.assertIn(cell_str, repr(row))
         expected_full = (
-            "RowResponse(key=b'row', cells={\n  ('cf1', b'col'): [{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}],\n})"
+            "Row(key=b'row', cells={\n  ('cf1', b'col'): [{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}],\n})"
             % (TEST_TIMESTAMP)
         )
         self.assertEqual(expected_full, repr(row))
         # should be able to construct instance from __repr__
         result = eval(repr(row))
         self.assertEqual(result, row)
-        self.assertIsInstance(result, RowResponse)
-        self.assertIsInstance(result[0], CellResponse)
+        self.assertIsInstance(result, Row)
+        self.assertIsInstance(result[0], Cell)
         # try with multiple cells
         row = self._make_one(TEST_ROW_KEY, [self._make_cell(), self._make_cell()])
         self.assertIn(expected_prefix, repr(row))
@@ -151,10 +151,10 @@ class TestRowResponse(unittest.TestCase):
         # should be able to construct instance from __repr__
         result = eval(repr(row))
         self.assertEqual(result, row)
-        self.assertIsInstance(result, RowResponse)
+        self.assertIsInstance(result, Row)
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], CellResponse)
-        self.assertIsInstance(result[1], CellResponse)
+        self.assertIsInstance(result[0], Cell)
+        self.assertIsInstance(result[1], Cell)
 
     def test___str__(self):
         cells = {
@@ -230,9 +230,9 @@ class TestRowResponse(unittest.TestCase):
 
     def test_iteration(self):
         from types import GeneratorType
-        from google.cloud.bigtable.row_response import CellResponse
+        from google.cloud.bigtable.row_response import Cell
 
-        # should be able to iterate over the RowResponse as a list
+        # should be able to iterate over the Row as a list
         cell3 = self._make_cell(value=b"3")
         cell1 = self._make_cell(value=b"1")
         cell2 = self._make_cell(value=b"2")
@@ -245,7 +245,7 @@ class TestRowResponse(unittest.TestCase):
         # should be able to iterate over all cells
         idx = 0
         for cell in row_response:
-            self.assertIsInstance(cell, CellResponse)
+            self.assertIsInstance(cell, Cell)
             self.assertEqual(cell.value, result_list[idx].value)
             self.assertEqual(cell.value, str(idx + 1).encode())
             idx += 1
@@ -505,12 +505,12 @@ class TestRowResponse(unittest.TestCase):
             row_response.index(None)
 
 
-class TestCellResponse(unittest.TestCase):
+class TestCell(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_response import CellResponse
+        from google.cloud.bigtable.row_response import Cell
 
-        return CellResponse
+        return Cell
 
     def _make_one(self, *args, **kwargs):
         if len(args) == 0:
@@ -632,11 +632,11 @@ class TestCellResponse(unittest.TestCase):
         self.assertEqual(str(cell), str(test_value))
 
     def test___repr__(self):
-        from google.cloud.bigtable.row_response import CellResponse  # type: ignore # noqa: F401
+        from google.cloud.bigtable.row_response import Cell  # type: ignore # noqa: F401
 
         cell = self._make_one()
         expected = (
-            "CellResponse(value=b'1234', row=b'row', "
+            "Cell(value=b'1234', row=b'row', "
             + "family='cf1', column_qualifier=b'col', "
             + f"timestamp_micros={TEST_TIMESTAMP}, labels=['label1', 'label2'])"
         )
@@ -646,7 +646,7 @@ class TestCellResponse(unittest.TestCase):
         self.assertEqual(result, cell)
 
     def test___repr___no_labels(self):
-        from google.cloud.bigtable.row_response import CellResponse  # type: ignore # noqa: F401
+        from google.cloud.bigtable.row_response import Cell  # type: ignore # noqa: F401
 
         cell_no_labels = self._make_one(
             TEST_VALUE,
@@ -657,7 +657,7 @@ class TestCellResponse(unittest.TestCase):
             None,
         )
         expected = (
-            "CellResponse(value=b'1234', row=b'row', "
+            "Cell(value=b'1234', row=b'row', "
             + "family='cf1', column_qualifier=b'col', "
             + f"timestamp_micros={TEST_TIMESTAMP}, labels=[])"
         )

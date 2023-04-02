@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from google.cloud.bigtable.row_response import family_id, qualifier, row_key
+from google.cloud.bigtable.row import family_id, qualifier, row_key
 
 
 class Mutation:
