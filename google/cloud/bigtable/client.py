@@ -22,6 +22,7 @@ from google.cloud.client import ClientWithProject
 from google.cloud.bigtable.row_merger import RowMerger
 
 import google.auth.credentials
+from google.api_core import retry_async as retries
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -157,6 +158,40 @@ class Table:
         """
         request = query.to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self._gapic_client.table_name(self.table_id)
+
+        def on_error(exc):
+            print(f"RETRYING: {exc}")
+            return exc
+        retry = retries.AsyncRetry(
+            predicate=retries.if_exception_type(
+                RuntimeError,
+                core_exceptions.DeadlineExceeded,
+                core_exceptions.ServiceUnavailable
+            ),
+            timeout=timeout,
+            on_error=on_error,
+            initial=0.1,
+            multiplier=2,
+            maximum=1,
+            is_generator=True
+        )
+        retryable_fn = retry(self._read_rows_retryable)
+         emitted_rows:Set[bytes] = set({})
+        async for result in retryable_fn(requestm emmited_rows, operation_timeout):
+            if isinstance(result, Row):
+                yield result
+            elif isinstance(result, Exception):
+                print(f"Exception: {result}")
+
+
+    async def _read_rows_retryable(
+        self, request:dict[str, Any], emitted_rows: set[bytes], operation_timeout=60.0, revise_on_retry=True
+    ) -> AsyncGenerator[Row, None]:
+        if revise_request_on_retry and len(emitted_rows) > 0:
+            # if this is a retry, try to trim down the request to avoid ones we've already processed
+            request["rows"] = self._revise_rowset(
+                request.get("rows", None), emitted_rows
+            )
         gapic_stream_handler = await self._gapic_client.read_rows(
             request=request,
             app_profile_id=self.app_profile_id,
@@ -164,7 +199,34 @@ class Table:
         )
         merger = RowMerger()
         async for row in merger.merge_row_stream(gapic_stream_handler):
-            yield row
+            if row.row_key not in emitted_rows:
+                yield row
+                emitted_rows.add(row.row_key)
+
+    def _revise_rowset(
+        self, row_set: dict[str, Any]|None, emitted_rows: set[bytes]
+    ) -> dict[str, Any]:
+        # if user is doing a whole table scan, start a new one with the last seen key
+        if row_set is None:
+            last_seen = max(emitted_rows)
+            return {
+                "row_keys": [],
+                "row_ranges": [{"start_key_open": last_seen}],
+            }
+        else:
+            # remove seen keys from user-specific key list
+            row_keys: List[bytes] = row_set.get("row_keys", [])
+            adjusted_keys = []
+            for key in row_keys:
+                if key not in emitted_rows:
+                    adjusted_keys.append(key)
+            # if user specified only a single range, set start to the last seen key
+            row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
+            if len(row_keys) == 0 and len(row_ranges) == 1:
+                row_ranges[0]["start_key_open"] = max(emitted_rows)
+                if "start_key_closed" in row_ranges[0]:
+                    row_ranges[0].pop("start_key_closed")
+            return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
 
     async def read_rows(
         self,
