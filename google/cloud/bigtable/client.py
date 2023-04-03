@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.row import Row
+    from google.cloud.bigtable.row import _LastScannedRow
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
@@ -200,7 +201,9 @@ class Table:
         merger = RowMerger()
         async for row in merger.merge_row_stream(gapic_stream_handler):
             if row.row_key not in emitted_rows:
-                yield row
+                if not isinstance(row, _LastScannedRow):
+                    # last scanned rows are not emitted
+                    yield row
                 emitted_rows.add(row.row_key)
 
     def _revise_rowset(
