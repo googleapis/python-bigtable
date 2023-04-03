@@ -28,6 +28,46 @@ class _RangePoint:
     key: row_key
     is_inclusive: bool
 
+@dataclass
+class RowRange
+    start: _RangePoint | None
+    end: _RangePoint | None
+
+    def __init__(self,
+        start_key: str | bytes | None = None, 
+        end_key: str | bytes | None = None,
+        start_is_inclusive: bool | None = None,
+        end_is_inclusive: bool | None = None,
+    ):
+        # check for invalid combinations of arguments
+        if start_is_inclusive is None:
+            start_is_inclusive = True
+        elif start_key is None:
+            raise ValueError("start_is_inclusive must be set with start_key")
+        if end_is_inclusive is None:
+            end_is_inclusive = False
+        elif end_key is None:
+            raise ValueError("end_is_inclusive must be set with end_key")
+        # ensure that start_key and end_key are bytes
+        if isinstance(start_key, str):
+            start_key = start_key.encode()
+        elif start_key is not None and not isinstance(start_key, bytes):
+            raise ValueError("start_key must be a string or bytes")
+        if isinstance(end_key, str):
+            end_key = end_key.encode()
+        elif end_key is not None and not isinstance(end_key, bytes):
+            raise ValueError("end_key must be a string or bytes")
+
+        self.start = (
+            _RangePoint(start_key, start_is_inclusive)
+            if start_key is not None
+            else None
+        )
+        self.end = (
+            _RangePoint(end_key, end_is_inclusive)
+            if end_key is not None
+            else None
+        )
 
 class ReadRowsQuery:
     """
@@ -37,6 +77,7 @@ class ReadRowsQuery:
     def __init__(
         self,
         row_keys: list[str | bytes] | str | bytes | None = None,
+        row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
         row_filter: RowFilter | dict[str, Any] | None = None,
     ):
@@ -50,7 +91,9 @@ class ReadRowsQuery:
           - row_filter: a RowFilter to apply to the query
         """
         self.row_keys: set[bytes] = set()
-        self.row_ranges: list[tuple[_RangePoint | None, _RangePoint | None]] = []
+        self.row_ranges: list[RowRange] = []
+        for range in row_ranges:
+            self.row_ranges.append(range)
         if row_keys:
             self.add_rows(row_keys)
         self.limit: int | None = limit
@@ -138,32 +181,10 @@ class ReadRowsQuery:
           - end_is_inclusive: if True, the end key is included in the range
               defaults to False if None. Must not be included if end_key is None
         """
-        # check for invalid combinations of arguments
-        if start_is_inclusive is None:
-            start_is_inclusive = True
-        elif start_key is None:
-            raise ValueError("start_is_inclusive must be set with start_key")
-        if end_is_inclusive is None:
-            end_is_inclusive = False
-        elif end_key is None:
-            raise ValueError("end_is_inclusive must be set with end_key")
-        # ensure that start_key and end_key are bytes
-        if isinstance(start_key, str):
-            start_key = start_key.encode()
-        elif start_key is not None and not isinstance(start_key, bytes):
-            raise ValueError("start_key must be a string or bytes")
-        if isinstance(end_key, str):
-            end_key = end_key.encode()
-        elif end_key is not None and not isinstance(end_key, bytes):
-            raise ValueError("end_key must be a string or bytes")
-
-        start_pt = (
-            _RangePoint(start_key, start_is_inclusive)
-            if start_key is not None
-            else None
+        new_range = RowRange(
+            start_key, end_key, start_is_inclusive, end_is_inclusive
         )
-        end_pt = _RangePoint(end_key, end_is_inclusive) if end_key is not None else None
-        self.row_ranges.append((start_pt, end_pt))
+        self.row_ranges.append(new_range)
         return self
 
     def shard(self, shard_keys: "RowKeySamples" | None = None) -> list[ReadRowsQuery]:
@@ -226,7 +247,7 @@ class ReadRowsQuery:
     @property
     def filter(self):
         """
-        Getter implemntation for filter property
+        Getter implementation for filter property
         """
         return self._filter
 
