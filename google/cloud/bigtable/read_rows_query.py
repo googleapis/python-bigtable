@@ -29,12 +29,13 @@ class _RangePoint:
     is_inclusive: bool
 
 @dataclass
-class RowRange
+class RowRange:
     start: _RangePoint | None
     end: _RangePoint | None
 
-    def __init__(self,
-        start_key: str | bytes | None = None, 
+    def __init__(
+        self,
+        start_key: str | bytes | None = None,
         end_key: str | bytes | None = None,
         start_is_inclusive: bool | None = None,
         end_is_inclusive: bool | None = None,
@@ -102,7 +103,8 @@ class ReadRowsQuery:
         self.limit: int | None = limit
         self.filter: RowFilter | dict[str, Any] = row_filter
 
-    def set_limit(self, new_limit: int | None):
+    @property
+    def limit(self, new_limit: int | None):
         """
         Set the maximum number of rows to return by this query.
 
@@ -118,11 +120,11 @@ class ReadRowsQuery:
         if new_limit is not None and new_limit < 0:
             raise ValueError("limit must be >= 0")
         self._limit = new_limit
-        return self
 
-    def set_filter(
+    @property
+    def filter(
         self, row_filter: RowFilter | dict[str, Any] | None
-    ) -> ReadRowsQuery:
+    ):
         """
         Set a RowFilter to apply to this query
 
@@ -139,9 +141,8 @@ class ReadRowsQuery:
         ):
             raise ValueError("row_filter must be a RowFilter or dict")
         self._filter = row_filter
-        return self
 
-    def add_key(self, row_key: str | bytes) -> ReadRowsQuery:
+    def add_key(self, row_key: str | bytes):
         """
         Add a row key to this query
 
@@ -159,7 +160,6 @@ class ReadRowsQuery:
         elif not isinstance(row_key, bytes):
             raise ValueError("row_key must be string or bytes")
         self.row_keys.add(row_key)
-        return self
 
     def add_range(
         self,
@@ -167,7 +167,7 @@ class ReadRowsQuery:
         end_key: str | bytes | None = None,
         start_is_inclusive: bool | None = None,
         end_is_inclusive: bool | None = None,
-    ) -> ReadRowsQuery:
+    ):
         """
         Add a range of row keys to this query.
 
@@ -185,7 +185,6 @@ class ReadRowsQuery:
             start_key, end_key, start_is_inclusive, end_is_inclusive
         )
         self.row_ranges.append(new_range)
-        return self
 
     def shard(self, shard_keys: "RowKeySamples" | None = None) -> list[ReadRowsQuery]:
         """
@@ -227,33 +226,3 @@ class ReadRowsQuery:
         if self.limit is not None:
             final_dict["rows_limit"] = self.limit
         return final_dict
-
-    # Support limit and filter as properties
-
-    @property
-    def limit(self) -> int | None:
-        """
-        Getter implementation for limit property
-        """
-        return self._limit
-
-    @limit.setter
-    def limit(self, new_limit: int | None):
-        """
-        Setter implementation for limit property
-        """
-        self.set_limit(new_limit)
-
-    @property
-    def filter(self):
-        """
-        Getter implementation for filter property
-        """
-        return self._filter
-
-    @filter.setter
-    def filter(self, row_filter: RowFilter | dict[str, Any] | None):
-        """
-        Setter implementation for filter property
-        """
-        self.set_filter(row_filter)
