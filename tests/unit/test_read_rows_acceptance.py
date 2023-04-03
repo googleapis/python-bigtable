@@ -6,7 +6,7 @@ import pytest
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
 from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk
-from google.cloud.bigtable.row_response import RowResponse
+from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
 
@@ -20,7 +20,7 @@ def parse_readrows_acceptance_tests():
         return test_json.read_rows_tests
 
 
-def extract_results_from_row(row: RowResponse):
+def extract_results_from_row(row: Row):
     results = []
     for family, col, cells in row.items():
         for cell in cells:

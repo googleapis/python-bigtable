@@ -56,13 +56,14 @@ class TestRowBuilder(unittest.TestCase):
 
     def test_start_cell(self):
         # test with no family
-        with self.assertRaises(InvalidChunk):
-            self._make_one().start_cell('', 
+        with self.assertRaises(InvalidChunk) as e:
+            self._make_one().start_cell('', TEST_QUALIFIER, TEST_TIMESTAMP, TEST_LABELS)
+            self.assertEqual(str(e.exception), 'Missing family for a new cell')
         # test with no row
         with self.assertRaises(InvalidChunk) as e:
             row_builder = self._make_one()
             row_builder.start_cell(TEST_FAMILY, TEST_QUALIFIER, TEST_TIMESTAMP, TEST_LABELS)
-        self.assertEqual(e.exception.message, 'start_cell called without a row')
+            self.assertEqual(str(e.exception), 'start_cell called without a row')
 
     def test_cell_value_no_cell(self):
         pass
