@@ -115,6 +115,10 @@ class ReadRowsQuery:
         self.filter: RowFilter | dict[str, Any] = row_filter
 
     @property
+    def limit(self) -> int | None:
+        return self._limit
+
+    @property.setter
     def limit(self, new_limit: int | None):
         """
         Set the maximum number of rows to return by this query.
@@ -133,6 +137,10 @@ class ReadRowsQuery:
         self._limit = new_limit
 
     @property
+    def filter(self) -> RowFilter | dict[str, Any]:
+        return self._filter
+
+    @property.setter
     def filter(
         self, row_filter: RowFilter | dict[str, Any] | None
     ):
