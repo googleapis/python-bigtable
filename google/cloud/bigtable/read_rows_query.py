@@ -174,28 +174,17 @@ class ReadRowsQuery:
 
     def add_range(
         self,
-        start_key: str | bytes | None = None,
-        end_key: str | bytes | None = None,
-        start_is_inclusive: bool | None = None,
-        end_is_inclusive: bool | None = None,
+        row_range: RowRange | dict[str, bytes],
     ):
         """
         Add a range of row keys to this query.
 
         Args:
-          - start_key: the start of the range
-              if None, start_key is interpreted as the empty string, inclusive
-          - end_key: the end of the range
-              if None, end_key is interpreted as the infinite row key, exclusive
-          - start_is_inclusive: if True, the start key is included in the range
-              defaults to True if None. Must not be included if start_key is None
-          - end_is_inclusive: if True, the end key is included in the range
-              defaults to False if None. Must not be included if end_key is None
+          - row_range: a range of row keys to add to this query
+              Can be a RowRange object or a dict representation in
+              RowRange proto format
         """
-        new_range = RowRange(
-            start_key, end_key, start_is_inclusive, end_is_inclusive
-        )
-        self.row_ranges.append(new_range)
+        self.row_ranges.append(row_range)
 
     def shard(self, shard_keys: "RowKeySamples" | None = None) -> list[ReadRowsQuery]:
         """
@@ -213,10 +202,13 @@ class ReadRowsQuery:
         Convert this query into a dictionary that can be used to construct a
         ReadRowsRequest protobuf
         """
-        ranges = [r._to_dict() for r in self.row_ranges]
+        row_ranges = []
+        for r in self.row_ranges:
+            dict_range = r._to_dict() if isinstance(r, RowRange) else r
+            row_ranges.append(dict_range)
         row_keys = list(self.row_keys)
         row_keys.sort()
-        row_set = {"row_keys": row_keys, "row_ranges": ranges}
+        row_set = {"row_keys": row_keys, "row_ranges": row_ranges}
         final_dict: dict[str, Any] = {
             "rows": row_set,
         }
