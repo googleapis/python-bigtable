@@ -15,12 +15,13 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterable, TYPE_CHECKING
+from typing import Any, AsyncIterable, AsyncIterator, TYPE_CHECKING
+
+import time
 
 from google.cloud.client import ClientWithProject
-
 from google.cloud.bigtable.row_merger import RowMerger
-
+from google.cloud.bigtable_v2.types import RequestStats
 import google.auth.credentials
 
 if TYPE_CHECKING:
@@ -110,7 +111,7 @@ class Table:
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> AsyncIterable[Row]:
+    ) -> AsyncIterator[Row]:
         """
         Returns a generator to asynchronously stream back row data.
 
@@ -162,10 +163,7 @@ class Table:
             app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
         )
-        merger = RowMerger()
-        async for row in merger.merge_row_stream(gapic_stream_handler):
-            if isinstance(row, Row):
-                yield row
+        return ReadRowsGenerator(gapic_stream_handler)
 
     async def read_rows(
         self,
@@ -446,3 +444,28 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
+
+
+class ReadRowsGenerator():
+    """
+    User-facing async generator for streaming read_rows responses
+    """
+
+    def __init__(self, gapic_stream:AsyncIterable["ReadRowsResponse"]):
+        merger = RowMerger()
+        self._inner_gen = merger.merge_row_stream(gapic_stream)
+        self.request_stats = None
+        self.last_interaction_time = time.time()
+
+    async def __aiter__(self) -> AsyncIterator[Row]:
+        return self
+
+    async def __anext__(self) -> Row:
+        self.last_interaction_time = time.time()
+        next_item = await self._inner_gen.__anext__()
+        while not isinstance(next_item, Row):
+            if isinstance(next_item, RequestStats):
+                self.request_stats = next_item
+            next_item = await self._inner_gen.__anext__()
+        return next_item
+
