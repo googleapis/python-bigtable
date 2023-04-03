@@ -1,0 +1,3 @@
+[submodule "python-api-core"]
+	path = python-api-core
+	url = git@github.com:googleapis/python-api-core.git
