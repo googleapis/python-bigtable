@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable.row import Row, Cell
+from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 import asyncio
 
 from abc import ABC, abstractmethod
@@ -184,7 +184,7 @@ class StateMachine:
             raise InvalidChunk("Last scanned row key is out of order")
         if not isinstance(self.current_state, AWAITING_NEW_ROW):
             raise InvalidChunk("Last scanned row key received in invalid state")
-        scan_marker = Row(last_scanned_row_key, [])
+        scan_marker = _LastScannedRow(last_scanned_row_key)
         self._handle_complete_row(scan_marker)
         return scan_marker
 
