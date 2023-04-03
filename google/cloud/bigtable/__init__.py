@@ -22,6 +22,7 @@ from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
 
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.read_rows_query import RowRange
 from google.cloud.bigtable.row_response import RowResponse
 from google.cloud.bigtable.row_response import CellResponse
 
@@ -43,6 +44,7 @@ __all__ = (
     "Table",
     "RowKeySamples",
     "ReadRowsQuery",
+    "RowRange",
     "MutationsBatcher",
     "Mutation",
     "BulkMutationsEntry",
