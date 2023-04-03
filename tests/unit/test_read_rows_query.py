@@ -19,10 +19,12 @@ TEST_ROWS = [
     b"row_key_2",
 ]
 
+
 class TestRowRange(unittest.TestCase):
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.read_rows_query import RowRange
+
         return RowRange
 
     def _make_one(self, *args, **kwargs):
@@ -108,6 +110,7 @@ class TestRowRange(unittest.TestCase):
             "end_key_closed": b"test_row2",
         }
         self.assertEqual(row_range._to_dict(), expected)
+
 
 class TestReadRowsQuery(unittest.TestCase):
     @staticmethod
@@ -235,7 +238,7 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertIn(b"test_row2", query.row_keys)
         self.assertIn(b"test_row3", query.row_keys)
         # test adding another batch
-        for k in ['test_row4', b"test_row5"]:
+        for k in ["test_row4", b"test_row5"]:
             query.add_key(k)
         self.assertEqual(len(query.row_keys), 5)
         self.assertIn(input_batch[0].encode(), query.row_keys)
@@ -268,6 +271,7 @@ class TestReadRowsQuery(unittest.TestCase):
 
     def test_add_range(self):
         from google.cloud.bigtable.read_rows_query import RowRange
+
         query = self._make_one()
         self.assertEqual(query.row_ranges, [])
         input_range = RowRange(start_key=b"test_row")

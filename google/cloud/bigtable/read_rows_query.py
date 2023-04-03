@@ -25,8 +25,10 @@ if TYPE_CHECKING:
 @dataclass
 class _RangePoint:
     """Model class for a point in a row range"""
+
     key: row_key
     is_inclusive: bool
+
 
 @dataclass
 class RowRange:
@@ -65,9 +67,7 @@ class RowRange:
             else None
         )
         self.end = (
-            _RangePoint(end_key, end_is_inclusive)
-            if end_key is not None
-            else None
+            _RangePoint(end_key, end_is_inclusive) if end_key is not None else None
         )
 
     def _to_dict(self) -> dict[str, bytes]:
@@ -80,6 +80,7 @@ class RowRange:
             key = "end_key_closed" if self.end.is_inclusive else "end_key_open"
             output[key] = self.end.key
         return output
+
 
 class ReadRowsQuery:
     """
@@ -117,7 +118,7 @@ class ReadRowsQuery:
             for k in row_keys:
                 self.add_key(k)
         self.limit: int | None = limit
-        self.filter: RowFilter | dict[str, Any] = row_filter
+        self.filter: RowFilter | dict[str, Any] | None = row_filter
 
     @property
     def limit(self) -> int | None:
@@ -142,13 +143,11 @@ class ReadRowsQuery:
         self._limit = new_limit
 
     @property
-    def filter(self) -> RowFilter | dict[str, Any]:
+    def filter(self) -> RowFilter | dict[str, Any] | None:
         return self._filter
 
     @filter.setter
-    def filter(
-        self, row_filter: RowFilter | dict[str, Any] | None
-    ):
+    def filter(self, row_filter: RowFilter | dict[str, Any] | None):
         """
         Set a RowFilter to apply to this query
 
@@ -200,7 +199,6 @@ class ReadRowsQuery:
         if not (
             isinstance(row_range, dict)
             or isinstance(row_range, RowRange)
-            or row_range is None
         ):
             raise ValueError("row_range must be a RowRange or dict")
         self.row_ranges.append(row_range)
