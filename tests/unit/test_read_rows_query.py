@@ -19,6 +19,95 @@ TEST_ROWS = [
     b"row_key_2",
 ]
 
+class TestRowRange(unittest.TestCase):
+    @staticmethod
+    def _get_target_class():
+        from google.cloud.bigtable.read_rows_query import RowRange
+        return RowRange
+
+    def _make_one(self, *args, **kwargs):
+        return self._get_target_class()(*args, **kwargs)
+
+    def test_ctor_start_end(self):
+        row_range = self._make_one("test_row", "test_row2")
+        self.assertEqual(row_range.start.key, "test_row".encode())
+        self.assertEqual(row_range.end.key, "test_row2".encode())
+        self.assertEqual(row_range.start.is_inclusive, True)
+        self.assertEqual(row_range.end.is_inclusive, False)
+
+    def test_ctor_start_only(self):
+        row_range = self._make_one("test_row3")
+        self.assertEqual(row_range.start.key, "test_row3".encode())
+        self.assertEqual(row_range.start.is_inclusive, True)
+        self.assertEqual(row_range.end, None)
+
+    def test_ctor_end_only(self):
+        row_range = self._make_one(end_key="test_row4")
+        self.assertEqual(row_range.end.key, "test_row4".encode())
+        self.assertEqual(row_range.end.is_inclusive, False)
+        self.assertEqual(row_range.start, None)
+
+    def test_ctor_inclusive_flags(self):
+        row_range = self._make_one("test_row5", "test_row6", False, True)
+        self.assertEqual(row_range.start.key, "test_row5".encode())
+        self.assertEqual(row_range.end.key, "test_row6".encode())
+        self.assertEqual(row_range.start.is_inclusive, False)
+        self.assertEqual(row_range.end.is_inclusive, True)
+
+    def test_ctor_defaults(self):
+        row_range = self._make_one()
+        self.assertEqual(row_range.start, None)
+        self.assertEqual(row_range.end, None)
+
+    def test_ctor_flags_only(self):
+        with self.assertRaises(ValueError) as exc:
+            self._make_one(start_is_inclusive=True, end_is_inclusive=True)
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must be set with start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
+            self._make_one(start_is_inclusive=False, end_is_inclusive=False)
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must be set with start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
+            self._make_one(start_is_inclusive=False)
+        self.assertEqual(
+            exc.exception.args,
+            ("start_is_inclusive must be set with start_key",),
+        )
+        with self.assertRaises(ValueError) as exc:
+            self._make_one(end_is_inclusive=True)
+        self.assertEqual(
+            exc.exception.args, ("end_is_inclusive must be set with end_key",)
+        )
+
+    def test_ctor_invalid_keys(self):
+        # test with invalid keys
+        with self.assertRaises(ValueError) as exc:
+            self._make_one(1, "2")
+        self.assertEqual(exc.exception.args, ("start_key must be a string or bytes",))
+        with self.assertRaises(ValueError) as exc:
+            self._make_one("1", 2)
+        self.assertEqual(exc.exception.args, ("end_key must be a string or bytes",))
+
+    def test__to_dict_defaults(self):
+        row_range = self._make_one("test_row", "test_row2")
+        expected = {
+            "start_key_closed": b"test_row",
+            "end_key_open": b"test_row2",
+        }
+        self.assertEqual(row_range._to_dict(), expected)
+
+    def test__to_dict_inclusive_flags(self):
+        row_range = self._make_one("test_row", "test_row2", False, True)
+        expected = {
+            "start_key_open": b"test_row",
+            "end_key_closed": b"test_row2",
+        }
+        self.assertEqual(row_range._to_dict(), expected)
 
 class TestReadRowsQuery(unittest.TestCase):
     @staticmethod
@@ -60,15 +149,13 @@ class TestReadRowsQuery(unittest.TestCase):
         filter1 = RowFilterChain()
         query = self._make_one()
         self.assertEqual(query.filter, None)
-        result = query.set_filter(filter1)
+        query.filter = filter1
         self.assertEqual(query.filter, filter1)
-        self.assertEqual(result, query)
         filter2 = RowFilterChain()
-        result = query.set_filter(filter2)
+        query.filter = filter2
         self.assertEqual(query.filter, filter2)
-        result = query.set_filter(None)
+        query.filter = None
         self.assertEqual(query.filter, None)
-        self.assertEqual(result, query)
         query.filter = RowFilterChain()
         self.assertEqual(query.filter, RowFilterChain())
         with self.assertRaises(ValueError) as exc:
@@ -85,10 +172,9 @@ class TestReadRowsQuery(unittest.TestCase):
         filter1_dict = filter1.to_dict()
         query = self._make_one()
         self.assertEqual(query.filter, None)
-        result = query.set_filter(filter1_dict)
+        query.filter = filter1_dict
         self.assertEqual(query.filter, filter1_dict)
-        self.assertEqual(result, query)
-        output = query.to_dict()
+        output = query._to_dict()
         self.assertEqual(output["filter"], filter1_dict)
         proto_output = ReadRowsRequest(**output)
         self.assertEqual(proto_output.filter, filter1._to_pb())
@@ -99,63 +185,58 @@ class TestReadRowsQuery(unittest.TestCase):
     def test_set_limit(self):
         query = self._make_one()
         self.assertEqual(query.limit, None)
-        result = query.set_limit(10)
+        query.limit = 10
         self.assertEqual(query.limit, 10)
-        self.assertEqual(result, query)
         query.limit = 9
         self.assertEqual(query.limit, 9)
-        result = query.set_limit(0)
+        query.limit = 0
         self.assertEqual(query.limit, 0)
-        self.assertEqual(result, query)
         with self.assertRaises(ValueError) as exc:
-            query.set_limit(-1)
+            query.limit = -1
         self.assertEqual(exc.exception.args, ("limit must be >= 0",))
         with self.assertRaises(ValueError) as exc:
             query.limit = -100
         self.assertEqual(exc.exception.args, ("limit must be >= 0",))
 
-    def test_add_rows_str(self):
+    def test_add_key_str(self):
         query = self._make_one()
         self.assertEqual(query.row_keys, set())
         input_str = "test_row"
-        result = query.add_rows(input_str)
+        query.add_key(input_str)
         self.assertEqual(len(query.row_keys), 1)
         self.assertIn(input_str.encode(), query.row_keys)
-        self.assertEqual(result, query)
         input_str2 = "test_row2"
-        result = query.add_rows(input_str2)
+        query.add_key(input_str2)
         self.assertEqual(len(query.row_keys), 2)
         self.assertIn(input_str.encode(), query.row_keys)
         self.assertIn(input_str2.encode(), query.row_keys)
-        self.assertEqual(result, query)
 
-    def test_add_rows_bytes(self):
+    def test_add_key_bytes(self):
         query = self._make_one()
         self.assertEqual(query.row_keys, set())
         input_bytes = b"test_row"
-        result = query.add_rows(input_bytes)
+        query.add_key(input_bytes)
         self.assertEqual(len(query.row_keys), 1)
         self.assertIn(input_bytes, query.row_keys)
-        self.assertEqual(result, query)
         input_bytes2 = b"test_row2"
-        result = query.add_rows(input_bytes2)
+        query.add_key(input_bytes2)
         self.assertEqual(len(query.row_keys), 2)
         self.assertIn(input_bytes, query.row_keys)
         self.assertIn(input_bytes2, query.row_keys)
-        self.assertEqual(result, query)
 
     def test_add_rows_batch(self):
         query = self._make_one()
         self.assertEqual(query.row_keys, set())
         input_batch = ["test_row", b"test_row2", "test_row3"]
-        result = query.add_rows(input_batch)
+        for k in input_batch:
+            query.add_key(k)
         self.assertEqual(len(query.row_keys), 3)
         self.assertIn(b"test_row", query.row_keys)
         self.assertIn(b"test_row2", query.row_keys)
         self.assertIn(b"test_row3", query.row_keys)
-        self.assertEqual(result, query)
         # test adding another batch
-        query.add_rows(["test_row4", b"test_row5"])
+        for k in ['test_row4', b"test_row5"]:
+            query.add_key(k)
         self.assertEqual(len(query.row_keys), 5)
         self.assertIn(input_batch[0].encode(), query.row_keys)
         self.assertIn(input_batch[1], query.row_keys)
@@ -163,14 +244,14 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertIn(b"test_row4", query.row_keys)
         self.assertIn(b"test_row5", query.row_keys)
 
-    def test_add_rows_invalid(self):
+    def test_add_key_invalid(self):
         query = self._make_one()
         with self.assertRaises(ValueError) as exc:
-            query.add_rows(1)
-        self.assertEqual(exc.exception.args, ("row_keys must be strings or bytes",))
+            query.add_key(1)
+        self.assertEqual(exc.exception.args, ("row_key must be string or bytes",))
         with self.assertRaises(ValueError) as exc:
-            query.add_rows(["s", 0])
-        self.assertEqual(exc.exception.args, ("row_keys must be strings or bytes",))
+            query.add_key(["s"])
+        self.assertEqual(exc.exception.args, ("row_key must be string or bytes",))
 
     def test_duplicate_rows(self):
         # should only hold one of each input key
@@ -181,82 +262,38 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertIn(key_1, query.row_keys)
         self.assertIn(key_2, query.row_keys)
         key_3 = "test_row3"
-        query.add_rows([key_3 for _ in range(10)])
+        for i in range(10):
+            query.add_key(key_3)
         self.assertEqual(len(query.row_keys), 3)
 
     def test_add_range(self):
-        # test with start and end keys
+        from google.cloud.bigtable.read_rows_query import RowRange
         query = self._make_one()
         self.assertEqual(query.row_ranges, [])
-        result = query.add_range("test_row", "test_row2")
+        input_range = RowRange(start_key=b"test_row")
+        query.add_range(input_range)
         self.assertEqual(len(query.row_ranges), 1)
-        self.assertEqual(query.row_ranges[0][0].key, "test_row".encode())
-        self.assertEqual(query.row_ranges[0][1].key, "test_row2".encode())
-        self.assertEqual(query.row_ranges[0][0].is_inclusive, True)
-        self.assertEqual(query.row_ranges[0][1].is_inclusive, False)
-        self.assertEqual(result, query)
-        # test with start key only
-        result = query.add_range("test_row3")
+        self.assertEqual(query.row_ranges[0], input_range)
+        input_range2 = RowRange(start_key=b"test_row2")
+        query.add_range(input_range2)
         self.assertEqual(len(query.row_ranges), 2)
-        self.assertEqual(query.row_ranges[1][0].key, "test_row3".encode())
-        self.assertEqual(query.row_ranges[1][1], None)
-        self.assertEqual(result, query)
-        # test with end key only
-        result = query.add_range(start_key=None, end_key="test_row5")
-        self.assertEqual(len(query.row_ranges), 3)
-        self.assertEqual(query.row_ranges[2][0], None)
-        self.assertEqual(query.row_ranges[2][1].key, "test_row5".encode())
-        self.assertEqual(query.row_ranges[2][1].is_inclusive, False)
-        # test with start and end keys and inclusive flags
-        result = query.add_range(b"test_row6", b"test_row7", False, True)
-        self.assertEqual(len(query.row_ranges), 4)
-        self.assertEqual(query.row_ranges[3][0].key, b"test_row6")
-        self.assertEqual(query.row_ranges[3][1].key, b"test_row7")
-        self.assertEqual(query.row_ranges[3][0].is_inclusive, False)
-        self.assertEqual(query.row_ranges[3][1].is_inclusive, True)
-        # test with nothing passed
-        result = query.add_range()
-        self.assertEqual(len(query.row_ranges), 5)
-        self.assertEqual(query.row_ranges[4][0], None)
-        self.assertEqual(query.row_ranges[4][1], None)
-        # test with inclusive flags only
-        with self.assertRaises(ValueError) as exc:
-            query.add_range(start_is_inclusive=True, end_is_inclusive=True)
-        self.assertEqual(
-            exc.exception.args,
-            ("start_is_inclusive must be set with start_key",),
-        )
-        with self.assertRaises(ValueError) as exc:
-            query.add_range(start_is_inclusive=False, end_is_inclusive=False)
-        self.assertEqual(
-            exc.exception.args,
-            ("start_is_inclusive must be set with start_key",),
-        )
-        with self.assertRaises(ValueError) as exc:
-            query.add_range(start_is_inclusive=False)
-        self.assertEqual(
-            exc.exception.args,
-            ("start_is_inclusive must be set with start_key",),
-        )
-        with self.assertRaises(ValueError) as exc:
-            query.add_range(end_is_inclusive=True)
-        self.assertEqual(
-            exc.exception.args, ("end_is_inclusive must be set with end_key",)
-        )
-        # test with invalid keys
-        with self.assertRaises(ValueError) as exc:
-            query.add_range(1, "2")
-        self.assertEqual(exc.exception.args, ("start_key must be a string or bytes",))
-        with self.assertRaises(ValueError) as exc:
-            query.add_range("1", 2)
-        self.assertEqual(exc.exception.args, ("end_key must be a string or bytes",))
+        self.assertEqual(query.row_ranges[0], input_range)
+        self.assertEqual(query.row_ranges[1], input_range2)
+
+    def test_add_range_dict(self):
+        query = self._make_one()
+        self.assertEqual(query.row_ranges, [])
+        input_range = {"start_key_closed": b"test_row"}
+        query.add_range(input_range)
+        self.assertEqual(len(query.row_ranges), 1)
+        self.assertEqual(query.row_ranges[0], input_range)
 
     def test_to_dict_rows_default(self):
         # dictionary should be in rowset proto format
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
 
         query = self._make_one()
-        output = query.to_dict()
+        output = query._to_dict()
         self.assertTrue(isinstance(output, dict))
         self.assertEqual(len(output.keys()), 1)
         expected = {"rows": {"row_keys": [], "row_ranges": []}}
@@ -272,17 +309,21 @@ class TestReadRowsQuery(unittest.TestCase):
         # dictionary should be in rowset proto format
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
         from google.cloud.bigtable.row_filters import PassAllFilter
+        from google.cloud.bigtable.read_rows_query import RowRange
 
         row_filter = PassAllFilter(False)
         query = self._make_one(limit=100, row_filter=row_filter)
-        query.add_range("test_row", "test_row2")
-        query.add_range("test_row3")
-        query.add_range(start_key=None, end_key="test_row5")
-        query.add_range(b"test_row6", b"test_row7", False, True)
-        query.add_range()
-        query.add_rows(["test_row", b"test_row2", "test_row3"])
-        query.add_rows(["test_row3", b"test_row4"])
-        output = query.to_dict()
+        query.add_range(RowRange("test_row", "test_row2"))
+        query.add_range(RowRange("test_row3"))
+        query.add_range(RowRange(start_key=None, end_key="test_row5"))
+        query.add_range(RowRange(b"test_row6", b"test_row7", False, True))
+        query.add_range(RowRange())
+        query.add_key("test_row")
+        query.add_key(b"test_row2")
+        query.add_key("test_row3")
+        query.add_key(b"test_row3")
+        query.add_key(b"test_row4")
+        output = query._to_dict()
         self.assertTrue(isinstance(output, dict))
         request_proto = ReadRowsRequest(**output)
         rowset_proto = request_proto.rows

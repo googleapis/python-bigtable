@@ -91,7 +91,7 @@ class ReadRowsQuery:
         row_keys: list[str | bytes] | str | bytes | None = None,
         row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
-        row_filter: RowFilter | dict[str, Any] | None = None,
+        row_filter: RowFilter | None = None,
     ):
         """
         Create a new ReadRowsQuery
@@ -105,10 +105,15 @@ class ReadRowsQuery:
           - row_filter: a RowFilter to apply to the query
         """
         self.row_keys: set[bytes] = set()
-        self.row_ranges: list[RowRange] = []
-        for range in row_ranges:
-            self.row_ranges.append(range)
+        self.row_ranges: list[RowRange | dict[str, bytes]] = []
+        if row_ranges:
+            if isinstance(row_ranges, RowRange):
+                row_ranges = [row_ranges]
+            for r in row_ranges:
+                self.add_range(r)
         if row_keys:
+            if not isinstance(row_keys, list):
+                row_keys = [row_keys]
             for k in row_keys:
                 self.add_key(k)
         self.limit: int | None = limit
@@ -118,7 +123,7 @@ class ReadRowsQuery:
     def limit(self) -> int | None:
         return self._limit
 
-    @property.setter
+    @limit.setter
     def limit(self, new_limit: int | None):
         """
         Set the maximum number of rows to return by this query.
@@ -140,7 +145,7 @@ class ReadRowsQuery:
     def filter(self) -> RowFilter | dict[str, Any]:
         return self._filter
 
-    @property.setter
+    @filter.setter
     def filter(
         self, row_filter: RowFilter | dict[str, Any] | None
     ):
