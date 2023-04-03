@@ -36,6 +36,7 @@ from google.cloud.bigtable.row_merger import RowMerger
 
 import google.auth.credentials
 from google.api_core import retry_async as retries
+from google.api_core import exceptions as core_exceptions
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 
@@ -351,8 +352,6 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        shard: bool = False,
-        limit: int | None,
         cache_size_limit: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
@@ -372,10 +371,6 @@ class Table:
 
         Args:
             - query: contains details about which rows to return
-            - shard: if True, will attempt to split up and distribute query to multiple
-                 backend nodes in parallel
-            - limit: a limit on the number of rows to return. Actual limit will be
-                 min(limit, query.limit)
             - cache_size: the number of rows to cache in memory. If None, no limits.
                  Defaults to None
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -416,7 +411,7 @@ class Table:
                 core_exceptions.DeadlineExceeded,
                 core_exceptions.ServiceUnavailable
             ),
-            timeout=timeout,
+            timeout=operation_timeout,
             on_error=on_error,
             initial=0.1,
             multiplier=2,
@@ -424,8 +419,8 @@ class Table:
             is_generator=True
         )
         retryable_fn = retry(self._read_rows_retryable)
-         emitted_rows:Set[bytes] = set({})
-        async for result in retryable_fn(requestm emmited_rows, operation_timeout):
+        emitted_rows:set[bytes] = set({})
+        async for result in retryable_fn(request, emitted_rows, per_request_timeout):
             if isinstance(result, Row):
                 yield result
             elif isinstance(result, Exception):
@@ -433,9 +428,9 @@ class Table:
 
 
     async def _read_rows_retryable(
-        self, request:dict[str, Any], emitted_rows: set[bytes], operation_timeout=60.0, revise_on_retry=True
-    ) -> AsyncGenerator[Row, None]:
-        if revise_request_on_retry and len(emitted_rows) > 0:
+        self, request:dict[str, Any], emitted_rows: set[bytes], per_request_timeout=None, revise_on_retry=True, cache_size_limit=None,
+    ) -> AsyncIterable[Row, None]:
+        if revise_on_retry and len(emitted_rows) > 0:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             request["rows"] = self._revise_rowset(
                 request.get("rows", None), emitted_rows
@@ -443,10 +438,10 @@ class Table:
         gapic_stream_handler = await self._gapic_client.read_rows(
             request=request,
             app_profile_id=self.app_profile_id,
-            timeout=operation_timeout,
+            timeout=per_request_timeout,
         )
         merger = RowMerger()
-        async for row in merger.merge_row_stream(gapic_stream_handler):
+        async for row in merger.merge_row_stream_with_cache(gapic_stream_handler, cache_size_limit):
             if row.row_key not in emitted_rows:
                 if not isinstance(row, _LastScannedRow):
                     # last scanned rows are not emitted
