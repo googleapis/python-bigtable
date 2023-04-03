@@ -41,31 +41,45 @@ from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .grpc import BigtableGrpcTransport
 
-class PooledMultiCallable():
 
-    def __init__(self, channel_pool:"PooledChannel", *args, **kwargs):
+class PooledMultiCallable:
+    def __init__(self, channel_pool: "PooledChannel", *args, **kwargs):
         self._init_args = args
         self._init_kwargs = kwargs
         self.next_channel_fn = channel_pool.next_channel
 
+
 class PooledUnaryUnaryMultiCallable(PooledMultiCallable, aio.UnaryUnaryMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.UnaryUnaryCall:
-        return self.next_channel_fn().unary_unary(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().unary_unary(
+            *self._init_args, **self._init_kwargs
+        )(*args, **kwargs)
+
 
 class PooledUnaryStreamMultiCallable(PooledMultiCallable, aio.UnaryStreamMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.UnaryStreamCall:
-        return self.next_channel_fn().unary_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().unary_stream(
+            *self._init_args, **self._init_kwargs
+        )(*args, **kwargs)
+
 
 class PooledStreamUnaryMultiCallable(PooledMultiCallable, aio.StreamUnaryMultiCallable):
     def __call__(self, *args, **kwargs) -> aio.StreamUnaryCall:
-        return self.next_channel_fn().stream_unary(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().stream_unary(
+            *self._init_args, **self._init_kwargs
+        )(*args, **kwargs)
 
-class PooledStreamStreamMultiCallable(PooledMultiCallable, aio.StreamStreamMultiCallable):
+
+class PooledStreamStreamMultiCallable(
+    PooledMultiCallable, aio.StreamStreamMultiCallable
+):
     def __call__(self, *args, **kwargs) -> aio.StreamStreamCall:
-        return self.next_channel_fn().stream_stream(*self._init_args, **self._init_kwargs)(*args, **kwargs)
+        return self.next_channel_fn().stream_stream(
+            *self._init_args, **self._init_kwargs
+        )(*args, **kwargs)
+
 
 class PooledChannel(aio.Channel):
-
     def __init__(
         self,
         pool_size: int = 3,
@@ -76,9 +90,17 @@ class PooledChannel(aio.Channel):
         quota_project_id: Optional[str] = None,
         **kwargs,
     ):
-        self._pool : List[aio.Channel] = []
+        self._pool: List[aio.Channel] = []
         self._next_idx = 0
-        self._create_channel = partial(grpc_helpers_async.create_channel, target=host, credentials=credentials, credentials_file=credentials_file, scopes=scopes, quota_project_id=quota_project_id, **kwargs)
+        self._create_channel = partial(
+            grpc_helpers_async.create_channel,
+            target=host,
+            credentials=credentials,
+            credentials_file=credentials_file,
+            scopes=scopes,
+            quota_project_id=quota_project_id,
+            **kwargs,
+        )
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
@@ -146,6 +168,7 @@ class PooledChannel(aio.Channel):
         self._pool[channel_idx] = new_channel
         await old_channel.close(grace=grace)
         return new_channel
+
 
 class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     """Pooled gRPC AsyncIO backend transport for Bigtable.
@@ -332,21 +355,21 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         )
         self._quota_project_id = quota_project_id
         self._grpc_channel = type(self).create_channel(
-                pool_size,
-                self._host,
-                # use the credentials which are saved
-                credentials=self._credentials,
-                # Set ``credentials_file`` to ``None`` here as
-                # the credentials that we saved earlier should be used.
-                credentials_file=None,
-                scopes=self._scopes,
-                ssl_credentials=self._ssl_channel_credentials,
-                quota_project_id=self._quota_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ],
-            )
+            pool_size,
+            self._host,
+            # use the credentials which are saved
+            credentials=self._credentials,
+            # Set ``credentials_file`` to ``None`` here as
+            # the credentials that we saved earlier should be used.
+            credentials_file=None,
+            scopes=self._scopes,
+            ssl_credentials=self._ssl_channel_credentials,
+            quota_project_id=self._quota_project_id,
+            options=[
+                ("grpc.max_send_message_length", -1),
+                ("grpc.max_receive_message_length", -1),
+            ],
+        )
         # Wrap messages. This must be done after pool is populated
         self._prep_wrapped_messages(client_info)
 
@@ -406,7 +429,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                 response_deserializer=bigtable.ReadRowsResponse.deserialize,
             )
         return self._stubs["read_rows"]
-
 
     @property
     def sample_row_keys(
@@ -578,7 +600,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             )
         return self._stubs["read_modify_write_row"]
 
-
     @property
     def generate_initial_change_stream_partitions(
         self,
@@ -640,8 +661,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                 response_deserializer=bigtable.ReadChangeStreamResponse.deserialize,
             )
         return self._stubs["read_change_stream"]
-
-
 
     def close(self):
         return self.grpc_channel.close()
