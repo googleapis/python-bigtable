@@ -70,6 +70,17 @@ class RowRange:
             else None
         )
 
+    def _to_dict(self) -> dict[str, bytes]:
+        """Converts this object to a dictionary"""
+        output = {}
+        if self.start is not None:
+            key = "start_key_closed" if self.start.is_inclusive else "start_key_open"
+            output[key] = self.start.key
+        if self.end is not None:
+            key = "end_key_closed" if self.end.is_inclusive else "end_key_open"
+            output[key] = self.end.key
+        return output
+
 class ReadRowsQuery:
     """
     Class to encapsulate details of a read row request
@@ -77,7 +88,7 @@ class ReadRowsQuery:
 
     def __init__(
         self,
-        row_key: list[str | bytes] | str | bytes | None = None,
+        row_keys: list[str | bytes] | str | bytes | None = None,
         row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
         row_filter: RowFilter | dict[str, Any] | None = None,
@@ -197,21 +208,12 @@ class ReadRowsQuery:
         """
         raise NotImplementedError
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """
         Convert this query into a dictionary that can be used to construct a
         ReadRowsRequest protobuf
         """
-        ranges = []
-        for start, end in self.row_ranges:
-            new_range = {}
-            if start is not None:
-                key = "start_key_closed" if start.is_inclusive else "start_key_open"
-                new_range[key] = start.key
-            if end is not None:
-                key = "end_key_closed" if end.is_inclusive else "end_key_open"
-                new_range[key] = end.key
-            ranges.append(new_range)
+        ranges = [r._to_dict() for r in self.row_ranges]
         row_keys = list(self.row_keys)
         row_keys.sort()
         row_set = {"row_keys": row_keys, "row_ranges": ranges}
