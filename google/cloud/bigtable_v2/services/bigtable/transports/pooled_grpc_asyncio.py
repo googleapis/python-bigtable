@@ -214,8 +214,9 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         quota_project_id: Optional[str] = None,
         **kwargs,
     ) -> aio.Channel:
-        """Create and return a gRPC AsyncIO channel object.
+        """Create and return a PooledChannel object, representing a pool of gRPC AsyncIO channels
         Args:
+            pool_size (int): the number of channels in the pool
             host (Optional[str]): The host for the channel to use.
             credentials (Optional[~.Credentials]): The
                 authorization credentials to attach to requests. These
@@ -233,7 +234,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             kwargs (Optional[dict]): Keyword arguments, which are passed to the
                 channel creation.
         Returns:
-            aio.Channel: A gRPC AsyncIO channel object.
+            PooledChannel: a channel pool object
         """
 
         return PooledChannel(
@@ -315,7 +316,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         if pool_size <= 0:
             raise ValueError(f"invalid pool_size: {pool_size}")
         self._ssl_channel_credentials = ssl_channel_credentials
-        self._stubs: Dict[Tuple[aio.Channel, str], Callable] = {}
+        self._stubs: Dict[str, Callable] = {}
 
         if api_mtls_endpoint:
             warnings.warn("api_mtls_endpoint is deprecated", DeprecationWarning)
@@ -370,12 +371,14 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                 ("grpc.max_receive_message_length", -1),
             ],
         )
-        # Wrap messages. This must be done after pool is populated
+
+        # Wrap messages. This must be done after self._grpc_channel exists
         self._prep_wrapped_messages(client_info)
 
     @property
     def grpc_channel(self) -> aio.Channel:
         """Create the channel designed to connect to this service.
+
         This property caches on the instance; repeated calls return
         the same channel.
         """
@@ -406,12 +409,14 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         self,
     ) -> Callable[[bigtable.ReadRowsRequest], Awaitable[bigtable.ReadRowsResponse]]:
         r"""Return a callable for the read rows method over gRPC.
+
         Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
         each. Depending on their size, rows and cells may be
         broken up across multiple responses, but atomicity of
         each row will still be preserved. See the
         ReadRowsResponse documentation for details.
+
         Returns:
             Callable[[~.ReadRowsRequest],
                     Awaitable[~.ReadRowsResponse]]:
@@ -436,12 +441,14 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     ) -> Callable[
         [bigtable.SampleRowKeysRequest], Awaitable[bigtable.SampleRowKeysResponse]
     ]:
-        """Return a callable for the sample row keys method over gRPC.
+        r"""Return a callable for the sample row keys method over gRPC.
+
         Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
         to break up the data for distributed tasks like
         mapreduces.
+
         Returns:
             Callable[[~.SampleRowKeysRequest],
                     Awaitable[~.SampleRowKeysResponse]]:
@@ -465,8 +472,10 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         self,
     ) -> Callable[[bigtable.MutateRowRequest], Awaitable[bigtable.MutateRowResponse]]:
         r"""Return a callable for the mutate row method over gRPC.
+
         Mutates a row atomically. Cells already present in the row are
         left unchanged unless explicitly changed by ``mutation``.
+
         Returns:
             Callable[[~.MutateRowRequest],
                     Awaitable[~.MutateRowResponse]]:
@@ -489,10 +498,12 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     def mutate_rows(
         self,
     ) -> Callable[[bigtable.MutateRowsRequest], Awaitable[bigtable.MutateRowsResponse]]:
-        """Return a callable for the mutate rows method over gRPC.
+        r"""Return a callable for the mutate rows method over gRPC.
+
         Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
+
         Returns:
             Callable[[~.MutateRowsRequest],
                     Awaitable[~.MutateRowsResponse]]:
@@ -518,9 +529,11 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         [bigtable.CheckAndMutateRowRequest],
         Awaitable[bigtable.CheckAndMutateRowResponse],
     ]:
-        """Return a callable for the check and mutate row method over gRPC.
+        r"""Return a callable for the check and mutate row method over gRPC.
+
         Mutates a row atomically based on the output of a
         predicate Reader filter.
+
         Returns:
             Callable[[~.CheckAndMutateRowRequest],
                     Awaitable[~.CheckAndMutateRowResponse]]:
@@ -545,10 +558,12 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     ) -> Callable[
         [bigtable.PingAndWarmRequest], Awaitable[bigtable.PingAndWarmResponse]
     ]:
-        """Return a callable for the ping and warm method over gRPC.
+        r"""Return a callable for the ping and warm method over gRPC.
+
         Warm up associated instance metadata for this
         connection. This call is not required but may be useful
         for connection keep-alive.
+
         Returns:
             Callable[[~.PingAndWarmRequest],
                     Awaitable[~.PingAndWarmResponse]]:
@@ -574,7 +589,8 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         [bigtable.ReadModifyWriteRowRequest],
         Awaitable[bigtable.ReadModifyWriteRowResponse],
     ]:
-        """Return a callable for the read modify write row method over gRPC.
+        r"""Return a callable for the read modify write row method over gRPC.
+
         Modifies a row atomically on the server. The method
         reads the latest existing timestamp and value from the
         specified columns and writes a new entry based on
@@ -582,6 +598,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         the timestamp is the greater of the existing timestamp
         or the current server time. The method returns the new
         contents of all modified cells.
+
         Returns:
             Callable[[~.ReadModifyWriteRowRequest],
                     Awaitable[~.ReadModifyWriteRowResponse]]:
@@ -609,10 +626,12 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     ]:
         r"""Return a callable for the generate initial change stream
         partitions method over gRPC.
+
         NOTE: This API is intended to be used by Apache Beam BigtableIO.
         Returns the current list of partitions that make up the table's
         change stream. The union of partitions will cover the entire
         keyspace. Partitions can be read with ``ReadChangeStream``.
+
         Returns:
             Callable[[~.GenerateInitialChangeStreamPartitionsRequest],
                     Awaitable[~.GenerateInitialChangeStreamPartitionsResponse]]:
@@ -640,10 +659,12 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         [bigtable.ReadChangeStreamRequest], Awaitable[bigtable.ReadChangeStreamResponse]
     ]:
         r"""Return a callable for the read change stream method over gRPC.
+
         NOTE: This API is intended to be used by Apache Beam
         BigtableIO. Reads changes from a table's change stream.
         Changes will reflect both user-initiated mutations and
         mutations that are caused by garbage collection.
+
         Returns:
             Callable[[~.ReadChangeStreamRequest],
                     Awaitable[~.ReadChangeStreamResponse]]:

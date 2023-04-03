@@ -744,26 +744,27 @@ def test_read_rows(request_type, transport: str = "grpc"):
 
 
 def test_read_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.read_rows(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "read_rows")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -991,26 +992,27 @@ def test_sample_row_keys(request_type, transport: str = "grpc"):
 
 
 def test_sample_row_keys_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.sample_row_keys(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "sample_row_keys")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -1237,26 +1239,27 @@ def test_mutate_row(request_type, transport: str = "grpc"):
 
 
 def test_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.mutate_row(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "mutate_row")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -1528,26 +1531,27 @@ def test_mutate_rows(request_type, transport: str = "grpc"):
 
 
 def test_mutate_rows_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.mutate_rows(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "mutate_rows")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -1789,26 +1793,27 @@ def test_check_and_mutate_row(request_type, transport: str = "grpc"):
 
 
 def test_check_and_mutate_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.check_and_mutate_row(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "check_and_mutate_row")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -2194,26 +2199,27 @@ def test_ping_and_warm(request_type, transport: str = "grpc"):
 
 
 def test_ping_and_warm_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.ping_and_warm(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "ping_and_warm")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -2442,26 +2448,27 @@ def test_read_modify_write_row(request_type, transport: str = "grpc"):
 
 
 def test_read_modify_write_row_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.read_modify_write_row(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "read_modify_write_row")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -2731,26 +2738,27 @@ def test_generate_initial_change_stream_partitions(
 def test_generate_initial_change_stream_partitions_pooled_rotation(
     transport: str = "pooled_grpc_asyncio",
 ):
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport=transport,
-    )
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport=transport,
+        )
 
-    # Everything is optional in proto3 as far as the runtime is concerned,
-    # and we are mocking out the actual API, so just send an empty request.
-    request = {}
+        # Everything is optional in proto3 as far as the runtime is concerned,
+        # and we are mocking out the actual API, so just send an empty request.
+        request = {}
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
 
         response = client.generate_initial_change_stream_partitions(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "generate_initial_change_stream_partitions")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -3018,7 +3026,9 @@ def test_read_change_stream(request_type, transport: str = "grpc"):
 
 
 def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asyncio"):
-    with mock.patch.object(transports.pooled_grpc_asyncio.PooledChannel, "next_channel") as next_channel:
+    with mock.patch.object(
+        transports.pooled_grpc_asyncio.PooledChannel, "next_channel"
+    ) as next_channel:
         client = BigtableClient(
             credentials=ga_credentials.AnonymousCredentials(),
             transport=transport,
@@ -3028,15 +3038,15 @@ def test_read_change_stream_pooled_rotation(transport: str = "pooled_grpc_asynci
         # and we are mocking out the actual API, so just send an empty request.
         request = {}
 
-        channel = client.transport._grpc_channel._pool[client.transport._grpc_channel._next_idx]
+        channel = client.transport._grpc_channel._pool[
+            client.transport._grpc_channel._next_idx
+        ]
         next_channel.return_value = channel
+
         response = client.read_change_stream(request)
 
         # Establish that next_channel was called
         next_channel.assert_called_once()
-        # Establish that stubs has been populated for the channel
-        stub_key = (channel, "read_change_stream")
-        assert client.transport._stubs[stub_key] is not None
         # Establish that subsequent calls all call next_channel
         starting_idx = client.transport._grpc_channel._next_idx
         for i in range(2, 10):
@@ -3381,7 +3391,7 @@ def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_rows(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3667,7 +3677,7 @@ def test_sample_row_keys_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.sample_row_keys(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3939,7 +3949,7 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
 
             response = client.mutate_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4234,7 +4244,7 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
                 iter_content.return_value = iter(json_return_value)
                 response = client.mutate_rows(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4521,7 +4531,7 @@ def test_check_and_mutate_row_rest_required_fields(
 
             response = client.check_and_mutate_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4839,7 +4849,7 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
 
             response = client.ping_and_warm(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5105,7 +5115,7 @@ def test_read_modify_write_row_rest_required_fields(
 
             response = client.read_modify_write_row(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5404,7 +5414,7 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.generate_initial_change_stream_partitions(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5703,7 +5713,7 @@ def test_read_change_stream_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_change_stream(request)
 
-            expected_params = [("$alt", "json;enum-encoding=int")]
+            expected_params = []
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -6253,6 +6263,7 @@ def test_bigtable_pooled_grpc_transport_client_cert_source_for_mtls(transport_cl
                 pool_size=pool_num,
             )
             mock_create_channel.assert_called_with(
+                pool_num,
                 "squid.clam.whelk:443",
                 credentials=cred,
                 credentials_file=None,
@@ -6264,7 +6275,7 @@ def test_bigtable_pooled_grpc_transport_client_cert_source_for_mtls(transport_cl
                     ("grpc.max_receive_message_length", -1),
                 ],
             )
-            assert mock_create_channel.call_count == pool_num
+            assert mock_create_channel.call_count == 1
 
     # Check if ssl_channel_credentials is not provided, then client_cert_source_for_mtls
     # is used.
@@ -6700,7 +6711,9 @@ async def test_pooled_transport_close_async():
         transport="pooled_grpc_asyncio",
     )
     num_channels = len(client.transport._grpc_channel._pool)
-    with mock.patch.object(type(client.transport._grpc_channel._pool[0]), "close") as close:
+    with mock.patch.object(
+        type(client.transport._grpc_channel._pool[0]), "close"
+    ) as close:
         async with client:
             close.assert_not_called()
         close.assert_called()
@@ -6776,7 +6789,7 @@ def test_api_key_credentials(client_class, transport_class):
 
 @pytest.mark.asyncio
 async def test_pooled_transport_replace_default():
-    client = BigtableAsyncClient(
+    client = BigtableClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="pooled_grpc_asyncio",
     )
@@ -6791,7 +6804,9 @@ async def test_pooled_transport_replace_default():
             close.assert_called_once()
             close.assert_awaited()
             close.assert_called_with(grace=grace_period)
-        assert isinstance(client.transport._grpc_channel._pool[replace_idx], grpc.aio.Channel)
+        assert isinstance(
+            client.transport._grpc_channel._pool[replace_idx], grpc.aio.Channel
+        )
         # only the specified channel should be replaced
         for i in range(num_channels):
             if i == replace_idx:
@@ -6806,7 +6821,7 @@ async def test_pooled_transport_replace_default():
 
 @pytest.mark.asyncio
 async def test_pooled_transport_replace_explicit():
-    client = BigtableAsyncClient(
+    client = BigtableClient(
         credentials=ga_credentials.AnonymousCredentials(),
         transport="pooled_grpc_asyncio",
     )
@@ -6878,7 +6893,9 @@ def test_pooled_transport_pool_creation():
     scopes = ["test1", "test2"]
     quota_project_id = "test3"
     host = "testhost:8080"
-    with mock.patch("google.api_core.grpc_helpers_async.create_channel") as create_channel:
+    with mock.patch(
+        "google.api_core.grpc_helpers_async.create_channel"
+    ) as create_channel:
         transport = transports.PooledBigtableGrpcAsyncIOTransport(
             credentials=creds,
             pool_size=num_channels,
