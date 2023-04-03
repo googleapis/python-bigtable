@@ -18,7 +18,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import Mutation
-from google.cloud.bigtable.row_response import row_key
+from google.cloud.bigtable.row import row_key
 from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
