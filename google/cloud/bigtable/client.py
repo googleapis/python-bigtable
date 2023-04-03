@@ -33,6 +33,7 @@ from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
 
 from google.cloud.bigtable.row_merger import RowMerger
+from google.cloud.bigtable.row_merger import InvalidChunk
 
 import google.auth.credentials
 from google.api_core import retry_async as retries
@@ -403,11 +404,10 @@ class Table:
         request["table_name"] = self._gapic_client.table_name(self.table_id)
 
         def on_error(exc):
-            print(f"RETRYING: {exc}")
             return exc
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
-                RuntimeError,
+                InvalidChunk,
                 core_exceptions.DeadlineExceeded,
                 core_exceptions.ServiceUnavailable
             ),
@@ -423,8 +423,6 @@ class Table:
         async for result in retryable_fn(request, emitted_rows, per_request_timeout):
             if isinstance(result, Row):
                 yield result
-            elif isinstance(result, Exception):
-                print(f"Exception: {result}")
 
 
     async def _read_rows_retryable(
