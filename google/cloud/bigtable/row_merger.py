@@ -54,6 +54,14 @@ class RowMerger:
     ) -> AsyncGenerator[RowResponse, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
+
+        Args:
+          - request_generator: AsyncIterable of ReadRowsResponse objects. Typically
+                this is a stream of chunks from the Bigtable API
+        Returns:
+            - AsyncGenerator of Rows
+        Raises:
+            - InvalidChunk: if the chunk stream is invalid
         """
         async for row_response in request_generator:
             # unwrap protoplus object for increased performance
@@ -74,6 +82,9 @@ class RowMerger:
     async def _generator_to_cache(
         self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
     ) -> None:
+        """
+        Helper function to push items from an async generator into a cache
+        """
         async for item in input_generator:
             await cache.put(item)
 
@@ -82,6 +93,20 @@ class RowMerger:
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
     ) -> AsyncGenerator[RowResponse, None]:
+        """
+        Consume chunks from a ReadRowsResponse stream into a set of Rows,
+        with a local cache to decouple the producer from the consumer
+
+        Args:
+          - request_generator: AsyncIterable of ReadRowsResponse objects. Typically
+                this is a stream of chunks from the Bigtable API
+          - max_cache_size: maximum number of items to cache. If None, cache size
+                is unbounded
+        Returns:
+            - AsyncGenerator of Rows
+        Raises:
+            - InvalidChunk: if the chunk stream is invalid
+        """
         if max_cache_size is None:
             max_cache_size = -1
         cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_cache_size)
