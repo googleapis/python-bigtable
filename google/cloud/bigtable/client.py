@@ -409,7 +409,7 @@ class Table:
             predicate=retries.if_exception_type(
                 InvalidChunk,
                 core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable
+                core_exceptions.ServiceUnavailable,
             ),
             timeout=operation_timeout,
             on_error=on_error,
@@ -420,13 +420,13 @@ class Table:
         )
         retryable_fn = retry(self._read_rows_retryable)
         emitted_rows:set[bytes] = set({})
-        async for result in retryable_fn(request, emitted_rows, per_request_timeout):
+        async for result in retryable_fn(request, emitted_rows, per_request_timeout, per_request_timeout):
             if isinstance(result, Row):
                 yield result
 
 
     async def _read_rows_retryable(
-        self, request:dict[str, Any], emitted_rows: set[bytes], per_request_timeout=None, revise_on_retry=True, cache_size_limit=None,
+        self, request:dict[str, Any], emitted_rows: set[bytes], per_request_timeout=None, per_row_timeout=None, revise_on_retry=True, cache_size_limit=None,
     ) -> AsyncIterable[Row, None]:
         if revise_on_retry and len(emitted_rows) > 0:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
@@ -439,12 +439,22 @@ class Table:
             timeout=per_request_timeout,
         )
         merger = RowMerger()
-        async for row in merger.merge_row_stream_with_cache(gapic_stream_handler, cache_size_limit):
-            if row.row_key not in emitted_rows:
-                if not isinstance(row, _LastScannedRow):
-                    # last scanned rows are not emitted
-                    yield row
-                emitted_rows.add(row.row_key)
+        generator = merger.merge_row_stream_with_cache(gapic_stream_handler, cache_size_limit)
+        while True:
+            try:
+                row = await asyncio.wait_for(generator.__anext__(), timeout=per_row_timeout)
+                if row.row_key not in emitted_rows:
+                    if not isinstance(row, _LastScannedRow):
+                        # last scanned rows are not emitted
+                        yield row
+                    emitted_rows.add(row.row_key)
+            except asyncio.TimeoutError:
+                generator.close()
+                raise core_exceptions.DeadlineExceeded("per_row_timeout exceeded")
+            except StopAsyncIteration:
+                break
+
+
 
     def _revise_rowset(
         self, row_set: dict[str, Any]|None, emitted_rows: set[bytes]
