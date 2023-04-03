@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 import asyncio
 
@@ -51,7 +52,7 @@ class RowMerger:
 
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
-    ) -> AsyncGenerator[Row, None]:
+    ) -> AsyncGenerator[Row|RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
@@ -75,6 +76,9 @@ class RowMerger:
                 complete_row = self.state_machine.handle_chunk(chunk)
                 if complete_row is not None:
                     yield complete_row
+            # yield request stats if present
+            if response_pb.stats:
+                yield response_pb.stats
         if not self.state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
@@ -92,7 +96,7 @@ class RowMerger:
         self,
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
-    ) -> AsyncGenerator[Row, None]:
+    ) -> AsyncGenerator[Row|RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows,
         with a local cache to decouple the producer from the consumer

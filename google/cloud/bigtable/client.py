@@ -164,7 +164,8 @@ class Table:
         )
         merger = RowMerger()
         async for row in merger.merge_row_stream(gapic_stream_handler):
-            yield row
+            if isinstance(row, Row):
+                yield row
 
     async def read_rows(
         self,
