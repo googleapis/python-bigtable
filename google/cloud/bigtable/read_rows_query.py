@@ -192,6 +192,12 @@ class ReadRowsQuery:
               Can be a RowRange object or a dict representation in
               RowRange proto format
         """
+        if not (
+            isinstance(row_range, dict)
+            or isinstance(row_range, RowRange)
+            or row_range is None
+        ):
+            raise ValueError("row_range must be a RowRange or dict")
         self.row_ranges.append(row_range)
 
     def shard(self, shard_keys: "RowKeySamples" | None = None) -> list[ReadRowsQuery]:
