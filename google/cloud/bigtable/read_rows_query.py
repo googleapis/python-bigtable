@@ -196,10 +196,7 @@ class ReadRowsQuery:
               Can be a RowRange object or a dict representation in
               RowRange proto format
         """
-        if not (
-            isinstance(row_range, dict)
-            or isinstance(row_range, RowRange)
-        ):
+        if not (isinstance(row_range, dict) or isinstance(row_range, RowRange)):
             raise ValueError("row_range must be a RowRange or dict")
         self.row_ranges.append(row_range)
 
