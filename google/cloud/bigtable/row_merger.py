@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable.row_response import RowResponse, CellResponse
+from google.cloud.bigtable.row import Row, Cell
 import asyncio
 
 from abc import ABC, abstractmethod
@@ -37,7 +37,7 @@ class InvalidChunk(RuntimeError):
 class RowMerger:
     """
     RowMerger takes in a stream of ReadRows chunks
-    and processes them into a stream of RowResponses.
+    and processes them into a stream of Rows.
 
     RowMerger can wrap the stream directly, or use a cache to decouple
     the producer from the consumer
@@ -51,7 +51,7 @@ class RowMerger:
 
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
-    ) -> AsyncGenerator[RowResponse, None]:
+    ) -> AsyncGenerator[Row, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
@@ -92,7 +92,7 @@ class RowMerger:
         self,
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
-    ) -> AsyncGenerator[RowResponse, None]:
+    ) -> AsyncGenerator[Row, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows,
         with a local cache to decouple the producer from the consumer
@@ -109,7 +109,7 @@ class RowMerger:
         """
         if max_cache_size is None:
             max_cache_size = -1
-        cache: asyncio.Queue[RowResponse] = asyncio.Queue(max_cache_size)
+        cache: asyncio.Queue[Row] = asyncio.Queue(max_cache_size)
 
         stream_task = asyncio.create_task(
             self._generator_to_cache(cache, self.merge_row_stream(request_generator))
@@ -133,7 +133,7 @@ class RowMerger:
 
 class StateMachine:
     """
-    State Machine converts chunks into RowResponses
+    State Machine converts chunks into Rows
 
     Chunks are added to the state machine via handle_chunk, which
     transitions the state machine through the various states.
@@ -174,7 +174,7 @@ class StateMachine:
         """
         return isinstance(self.current_state, AWAITING_NEW_ROW)
 
-    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> RowResponse:
+    def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> Row:
         """
         Called by RowMerger to notify the state machine of a scan heartbeat
 
@@ -184,15 +184,15 @@ class StateMachine:
             raise InvalidChunk("Last scanned row key is out of order")
         if not isinstance(self.current_state, AWAITING_NEW_ROW):
             raise InvalidChunk("Last scanned row key received in invalid state")
-        scan_marker = RowResponse(last_scanned_row_key, [])
+        scan_marker = Row(last_scanned_row_key, [])
         self._handle_complete_row(scan_marker)
         return scan_marker
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> RowResponse | None:
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> Row | None:
         """
         Called by RowMerger to process a new chunk
 
-        Returns a RowResponse if the chunk completes a row, otherwise returns None
+        Returns a Row if the chunk completes a row, otherwise returns None
         """
         if chunk.row_key in self.completed_row_keys:
             raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
@@ -219,7 +219,7 @@ class StateMachine:
             # row is not complete, return None
             return None
 
-    def _handle_complete_row(self, complete_row: RowResponse) -> None:
+    def _handle_complete_row(self, complete_row: Row) -> None:
         """
         Complete row, update seen keys, and move back to AWAITING_NEW_ROW
 
@@ -383,9 +383,9 @@ class RowBuilder:
     def reset(self) -> None:
         """called when the current in progress row should be dropped"""
         self.current_key: bytes | None = None
-        self.working_cell: CellResponse | None = None
+        self.working_cell: Cell | None = None
         self.working_value: bytearray | None = None
-        self.completed_cells: List[CellResponse] = []
+        self.completed_cells: List[Cell] = []
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
@@ -413,7 +413,7 @@ class RowBuilder:
         if self.current_key is None:
             raise InvalidChunk("start_cell called without a row")
         self.working_value = bytearray()
-        self.working_cell = CellResponse(
+        self.working_cell = Cell(
             b"", self.current_key, family, qualifier, timestamp_micros, labels
         )
 
@@ -432,10 +432,10 @@ class RowBuilder:
         self.working_cell = None
         self.working_value = None
 
-    def finish_row(self) -> RowResponse:
+    def finish_row(self) -> Row:
         """called once per row to signal that all cells have been processed (unless reset)"""
         if self.current_key is None:
             raise InvalidChunk("No row in progress")
-        new_row = RowResponse(self.current_key, self.completed_cells)
+        new_row = Row(self.current_key, self.completed_cells)
         self.reset()
         return new_row
