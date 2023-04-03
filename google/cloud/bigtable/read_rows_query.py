@@ -76,7 +76,7 @@ class ReadRowsQuery:
 
     def __init__(
         self,
-        row_keys: list[str | bytes] | str | bytes | None = None,
+        row_key: list[str | bytes] | str | bytes | None = None,
         row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
         row_filter: RowFilter | dict[str, Any] | None = None,
@@ -85,7 +85,9 @@ class ReadRowsQuery:
         Create a new ReadRowsQuery
 
         Args:
-          - row_keys: a list of row keys to include in the query
+          - row_keys: row keys to include in the query
+                a query can contain multiple keys, but ranges should be preferred
+          - row_ranges: ranges of rows to include in the query
           - limit: the maximum number of rows to return. None or 0 means no limit
                 default: None (no limit)
           - row_filter: a RowFilter to apply to the query
@@ -95,7 +97,8 @@ class ReadRowsQuery:
         for range in row_ranges:
             self.row_ranges.append(range)
         if row_keys:
-            self.add_rows(row_keys)
+            for k in row_keys:
+                self.add_key(k)
         self.limit: int | None = limit
         self.filter: RowFilter | dict[str, Any] = row_filter
 
@@ -138,27 +141,24 @@ class ReadRowsQuery:
         self._filter = row_filter
         return self
 
-    def add_rows(self, row_keys: list[str | bytes] | str | bytes) -> ReadRowsQuery:
+    def add_key(self, row_key: str | bytes) -> ReadRowsQuery:
         """
-        Add a list of row keys to this query
+        Add a row key to this query
+
+        A query can contain multiple keys, but ranges should be preferred
 
         Args:
-          - row_keys: a list of row keys to add to this query
+          - row_key: a key to add to this query
         Returns:
           - a reference to this query for chaining
         Raises:
           - ValueError if an input is not a string or bytes
         """
-        if not isinstance(row_keys, list):
-            row_keys = [row_keys]
-        update_set = set()
-        for k in row_keys:
-            if isinstance(k, str):
-                k = k.encode()
-            elif not isinstance(k, bytes):
-                raise ValueError("row_keys must be strings or bytes")
-            update_set.add(k)
-        self.row_keys.update(update_set)
+        if isinstance(row_key, str):
+            row_key = row_key.encode()
+        elif not isinstance(row_key, bytes):
+            raise ValueError("row_key must be string or bytes")
+        self.row_keys.add(row_key)
         return self
 
     def add_range(
