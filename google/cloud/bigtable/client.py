@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, AsyncIterable, AsyncIterator, Set, TYPE_CHECKING
+from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
 
 import asyncio
 import grpc
@@ -388,8 +388,8 @@ class Table:
             - IdleTimeout: if generator was abandoned
         """
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self._client.table_name(self.table_id)
-        gapic_stream_handler = await self._client.read_rows(
+        request["table_name"] = self.client.table_path(self.table_id)
+        gapic_stream_handler = await self.client.read_rows(
             request=request,
             app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
@@ -664,7 +664,7 @@ class Table:
         raise NotImplementedError
 
 
-class ReadRowsGenerator(AsyncIterator[Row]):
+class ReadRowsGenerator(AsyncIterable[Row]):
     """
     User-facing async generator for streaming read_rows responses
     """
@@ -672,10 +672,10 @@ class ReadRowsGenerator(AsyncIterator[Row]):
     def __init__(self, gapic_stream: AsyncIterable["ReadRowsResponse"]):
         merger = RowMerger()
         self._inner_gen = merger.merge_row_stream(gapic_stream)
-        self.request_stats = None
+        self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
 
-    async def __aiter__(self) -> AsyncIterator[Row]:
+    async def __aiter__(self):
         return self
 
     async def __anext__(self) -> Row:
