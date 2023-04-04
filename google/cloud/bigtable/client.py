@@ -397,7 +397,7 @@ class Table:
         generator = ReadRowsIterator(
             RowMerger(
                 request,
-                self.client.read_rows,
+                self.client,
                 cache_size=cache_size,
                 operation_timeout=operation_timeout,
                 per_row_timeout=per_row_timeout,
@@ -696,17 +696,19 @@ class ReadRowsIterator(AsyncIterable[Row]):
             self._idle_timeout_coroutine(idle_timeout)
         )
 
-    async def _idle_timeout_coroutine(self, idle_timeout:float):
+    async def _idle_timeout_coroutine(self, idle_timeout: float):
         while self.last_raised is None:
             next_timeout = self.last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.time())
-            if self.last_interaction_time + idle_timeout < time.time() and self.last_raised is None:
+            if (
+                self.last_interaction_time + idle_timeout < time.time()
+                and self.last_raised is None
+            ):
                 # idle timeout has expired
                 self.last_raised = IdleTimeout("idle timeout expired")
 
     async def __aiter__(self):
         return self
-
 
     async def __anext__(self) -> Row:
         if self.last_raised:
@@ -722,6 +724,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         except Exception as e:
             self.last_raised = e
             raise e
+
 
 class IdleTimeout(core_exceptions.DeadlineExceeded):
     pass

@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 import asyncio
@@ -38,7 +39,7 @@ class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
 
 
-class RowMerger:
+class RowMerger(AsyncIterable[Row]):
     """
     RowMerger takes in a stream of ReadRows chunks
     and processes them into a stream of Rows.
@@ -49,10 +50,11 @@ class RowMerger:
     RowMerger uses a StateMachine instance to handle the chunk parsing
     logic
     """
+
     def __init__(
         self,
         request: dict[str, Any],
-        gapic_fn,
+        client: BigtableAsyncClient,
         *,
         cache_size: int | None = None,
         operation_timeout: float | None = None,
@@ -71,7 +73,7 @@ class RowMerger:
             cache_size,
             per_row_timeout,
             per_request_timeout,
-            gapic_fn,
+            client.read_rows,
         )
 
         retry = retries.AsyncRetry(
@@ -89,7 +91,10 @@ class RowMerger:
         self.retryable_stream = retry(partial_retryable)
 
     async def __aiter__(self):
-        return self.retryable_stream.__aiter__()
+        return self
+
+    async def __anext__(self):
+        return await self.retryable_stream().__anext__()
 
     async def _generator_to_cache(
         self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
@@ -114,7 +119,9 @@ class RowMerger:
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(cache_size)
         state_machine = StateMachine()
         stream_task = asyncio.create_task(
-            self._generator_to_cache(cache, self.merge_row_response_stream(new_gapic_stream, state_machine))
+            self._generator_to_cache(
+                cache, self.merge_row_response_stream(new_gapic_stream, state_machine)
+            )
         )
         try:
             # read from state machine and push into cache
