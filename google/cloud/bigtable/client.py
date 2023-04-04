@@ -58,7 +58,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Create a client instance for the Bigtable Data API
@@ -79,7 +78,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             client_options (Optional[Union[dict, google.api_core.client_options.ClientOptions]]):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
-            metadata: a list of metadata headers to be attached to all calls with this client
         Raises:
           - RuntimeError if called outside of an async run loop context
           - ValueError if pool_size is less than 1
@@ -111,7 +109,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             client_options=client_options,
             client_info=client_info,
         )
-        self.metadata = metadata or []
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
         # attempt to start background tasks
@@ -279,7 +276,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> Table:
         """
         Returns a table instance for making data API requests
@@ -291,9 +287,8 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
-            metadata: a list of metadata headers to be attached to all calls with this client
         """
-        return Table(self, instance_id, table_id, app_profile_id, metadata)
+        return Table(self, instance_id, table_id, app_profile_id)
 
 
 class Table:
@@ -310,7 +305,6 @@ class Table:
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Initialize a Table instance
@@ -324,7 +318,6 @@ class Table:
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
-            metadata: a list of metadata headers to be attached to all calls with this client
         Raises:
           - RuntimeError if called outside of an async run loop context
         """
@@ -332,7 +325,6 @@ class Table:
         self.instance = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
-        self.metadata = metadata or []
         # raises RuntimeError if called outside of an async run loop context
         try:
             self._register_instance_task = asyncio.create_task(
@@ -356,7 +348,6 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterable[RowResponse]:
         """
         Returns a generator to asynchronously stream back row data.
@@ -392,7 +383,6 @@ class Table:
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted
-            - metadata: Strings which should be sent along with the request as metadata headers.
 
         Returns:
             - an asynchronous generator that yields rows returned by the query
@@ -413,7 +403,6 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> list[RowResponse]:
         """
         Helper function that returns a full list instead of a generator
@@ -431,7 +420,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> RowResponse:
         """
         Helper function to return a single row
@@ -453,7 +441,6 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterable[RowResponse]:
         """
         Runs a sharded query in parallel
@@ -472,7 +459,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Helper function to determine if a row exists
@@ -490,7 +476,6 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_sample_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -531,7 +516,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
          Mutates a row atomically.
@@ -553,7 +537,6 @@ class Table:
                in seconds. If it takes longer than this time to complete, the request
                will be cancelled with a DeadlineExceeded exception, and a retry will be
                attempted if within operation_timeout budget
-             - metadata: Strings which should be sent along with the request as metadata headers.
 
         Raises:
              - DeadlineExceeded: raised after operation timeout
@@ -570,7 +553,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -596,7 +578,6 @@ class Table:
                 in seconds. If it takes longer than this time to complete, the request
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
-            - metadata: Strings which should be sent along with the request as metadata headers.
 
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
@@ -611,7 +592,6 @@ class Table:
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
         operation_timeout: int | float | None = 60,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -640,7 +620,6 @@ class Table:
                 `true_case_mutations is empty, and at most 100000.
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried.
-            - metadata: Strings which should be sent along with the request as metadata headers.
         Returns:
             - bool indicating whether the predicate was true or false
         Raises:
@@ -657,7 +636,6 @@ class Table:
         | list[dict[str, Any]],
         *,
         operation_timeout: int | float | None = 60,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> RowResponse:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -675,7 +653,6 @@ class Table:
                 results of later ones.
            - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried.
-            - metadata: Strings which should be sent along with the request as metadata headers.
         Returns:
             - RowResponse: containing cell data that was modified as part of the
                 operation
