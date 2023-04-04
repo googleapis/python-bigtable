@@ -96,6 +96,7 @@ class RowMerger:
         self,
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
+        per_row_timeout: float | None = None,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows,
@@ -106,6 +107,8 @@ class RowMerger:
                 this is a stream of chunks from the Bigtable API
           - max_cache_size: maximum number of items to cache. If None, cache size
                 is unbounded
+          - per_row_timeout: maximum time to wait for a complete row. If None,
+                timeout is unbounded
         Returns:
             - AsyncGenerator of Rows
         Raises:
@@ -124,12 +127,11 @@ class RowMerger:
                 yield await cache.get()
             else:
                 # wait for either the stream to finish, or a new item to enter the cache
-                get_from_cache = asyncio.create_task(cache.get())
-                await asyncio.wait(
+                get_from_cache = asyncio.wait_for(cache.get(), per_row_timeout)
+                first_finish = asyncio.wait(
                     [stream_task, get_from_cache], return_when=asyncio.FIRST_COMPLETED
                 )
-                if get_from_cache.done():
-                    yield get_from_cache.result()
+                await asyncio.wait_for(first_finish, per_row_timeout)
         # stream and cache are complete. if there's an exception, raise it
         if stream_task.exception():
             raise cast(Exception, stream_task.exception())

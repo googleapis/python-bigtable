@@ -438,23 +438,20 @@ class Table:
         )
         merger = RowMerger()
         generator = merger.merge_row_stream_with_cache(
-            gapic_stream_handler, cache_size_limit
+            gapic_stream_handler, cache_size_limit, per_row_timeout
         )
-        while True:
-            try:
-                row = await asyncio.wait_for(
-                    generator.__anext__(), timeout=per_row_timeout
-                )
+        try:
+            async for row in generator:
                 if row.row_key not in emitted_rows:
                     if not isinstance(row, _LastScannedRow):
                         # last scanned rows are not emitted
                         yield row
                     emitted_rows.add(row.row_key)
-            except asyncio.TimeoutError:
-                await generator.aclose()
-                raise core_exceptions.DeadlineExceeded("per_row_timeout exceeded")
-            except StopAsyncIteration:
-                break
+        except asyncio.TimeoutError:
+            await generator.aclose()
+            raise core_exceptions.DeadlineExceeded("per_row_timeout exceeded")
+        except StopAsyncIteration as e:
+            raise e
 
     def _revise_rowset(
         self, row_set: dict[str, Any] | None, emitted_rows: set[bytes]
