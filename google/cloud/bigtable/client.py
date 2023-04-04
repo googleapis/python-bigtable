@@ -15,7 +15,15 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
+from typing import (
+    cast,
+    Any,
+    Optional,
+    AsyncIterable,
+    AsyncGenerator,
+    Set,
+    TYPE_CHECKING,
+)
 
 import asyncio
 import grpc
@@ -43,7 +51,6 @@ from google.api_core import client_options as client_options_lib
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
-    from google.cloud.bigtable_v2.types import ReadRowsResponse
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.row import _LastScannedRow
@@ -383,11 +390,12 @@ class Table:
                 from any retries that failed
             - IdleTimeout: if generator was abandoned
         """
-        request = query.to_dict() if isinstance(query, ReadRowsQuery) else query
+        request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.client.table_path(self.table_id)
 
         def on_error(exc):
             return exc
+
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
                 InvalidChunk,
@@ -399,48 +407,57 @@ class Table:
             initial=0.1,
             multiplier=2,
             maximum=1,
-            is_generator=True
+            is_generator=True,
         )
         retryable_fn = retry(self._read_rows_retryable)
-        emitted_rows:set[bytes] = set({})
-        async for result in retryable_fn(request, emitted_rows, per_request_timeout, per_request_timeout):
-            if isinstance(result, Row):
-                yield result
-
+        emitted_rows: set[bytes] = set({})
+        return ReadRowsGenerator(
+            retryable_fn(
+                request, emitted_rows, per_request_timeout, per_request_timeout
+            )
+        )
 
     async def _read_rows_retryable(
-        self, request:dict[str, Any], emitted_rows: set[bytes], per_request_timeout=None, per_row_timeout=None, revise_on_retry=True, cache_size_limit=None,
-    ) -> AsyncIterable[Row, None]:
+        self,
+        request: dict[str, Any],
+        emitted_rows: set[bytes],
+        per_request_timeout=None,
+        per_row_timeout=None,
+        revise_on_retry=True,
+        cache_size_limit=None,
+    ) -> AsyncGenerator[Row | RequestStats, None]:
         if revise_on_retry and len(emitted_rows) > 0:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             request["rows"] = self._revise_rowset(
                 request.get("rows", None), emitted_rows
             )
-        gapic_stream_handler = await self._gapic_client.read_rows(
+        gapic_stream_handler = await self.client.read_rows(
             request=request,
             app_profile_id=self.app_profile_id,
             timeout=per_request_timeout,
         )
         merger = RowMerger()
-        generator = merger.merge_row_stream_with_cache(gapic_stream_handler, cache_size_limit)
+        generator = merger.merge_row_stream_with_cache(
+            gapic_stream_handler, cache_size_limit
+        )
         while True:
             try:
-                row = await asyncio.wait_for(generator.__anext__(), timeout=per_row_timeout)
+                row = await asyncio.wait_for(
+                    generator.__anext__(), timeout=per_row_timeout
+                )
                 if row.row_key not in emitted_rows:
                     if not isinstance(row, _LastScannedRow):
                         # last scanned rows are not emitted
                         yield row
                     emitted_rows.add(row.row_key)
             except asyncio.TimeoutError:
-                generator.close()
+                await generator.aclose()
                 raise core_exceptions.DeadlineExceeded("per_row_timeout exceeded")
             except StopAsyncIteration:
                 break
 
-
-
     def _revise_rowset(
-        self, row_set: dict[str, Any]|None, emitted_rows: set[bytes]
+        self, row_set: dict[str, Any] | None, emitted_rows: set[bytes]
     ) -> dict[str, Any]:
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None:
@@ -451,7 +468,7 @@ class Table:
             }
         else:
             # remove seen keys from user-specific key list
-            row_keys: List[bytes] = row_set.get("row_keys", [])
+            row_keys: list[bytes] = row_set.get("row_keys", [])
             adjusted_keys = []
             for key in row_keys:
                 if key not in emitted_rows:
@@ -737,9 +754,8 @@ class ReadRowsGenerator(AsyncIterable[Row]):
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, gapic_stream: AsyncIterable["ReadRowsResponse"]):
-        merger = RowMerger()
-        self._inner_gen = merger.merge_row_stream(gapic_stream)
+    def __init__(self, stream: AsyncGenerator[Row | RequestStats, None]):
+        self.stream = stream
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
 
@@ -748,9 +764,9 @@ class ReadRowsGenerator(AsyncIterable[Row]):
 
     async def __anext__(self) -> Row:
         self.last_interaction_time = time.time()
-        next_item = await self._inner_gen.__anext__()
-        while not isinstance(next_item, Row):
-            if isinstance(next_item, RequestStats):
-                self.request_stats = next_item
-            next_item = await self._inner_gen.__anext__()
-        return next_item
+        next_item = await self.stream.__anext__()
+        if isinstance(next_item, RequestStats):
+            self.request_stats = next_item
+            return await self.__anext__()
+        else:
+            return next_item
