@@ -3391,7 +3391,7 @@ def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_rows(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3677,7 +3677,7 @@ def test_sample_row_keys_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.sample_row_keys(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -3949,7 +3949,7 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
 
             response = client.mutate_row(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4244,7 +4244,7 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
                 iter_content.return_value = iter(json_return_value)
                 response = client.mutate_rows(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4531,7 +4531,7 @@ def test_check_and_mutate_row_rest_required_fields(
 
             response = client.check_and_mutate_row(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -4849,7 +4849,7 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
 
             response = client.ping_and_warm(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5115,7 +5115,7 @@ def test_read_modify_write_row_rest_required_fields(
 
             response = client.read_modify_write_row(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5414,7 +5414,7 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.generate_initial_change_stream_partitions(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
@@ -5713,7 +5713,7 @@ def test_read_change_stream_rest_required_fields(
                 iter_content.return_value = iter(json_return_value)
                 response = client.read_change_stream(request)
 
-            expected_params = []
+            expected_params = [("$alt", "json;enum-encoding=int")]
             actual_params = req.call_args.kwargs["params"]
             assert expected_params == actual_params
 
