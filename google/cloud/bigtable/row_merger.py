@@ -77,14 +77,14 @@ class RetryableRowMerger():
     async def __aiter__(self):
         return self.retryable_stream.__aiter__()
 
-    async def retryable_wrapper(cache_size. per_row_timeout, per_request_timeout, gapic_fn):
+    async def retryable_wrapper(self, cache_size, per_row_timeout, per_request_timeout, gapic_fn):
         if self.revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             self.request["rows"] = self._revise_rowset(
                 self.request.get("rows", None), self.last_seen_row_key, self.emitted_rows
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
-        self.last_merger = RowMerger()
+        merger = RowMerger()
         async for row in merger.merge_row_stream_with_cache(new_gapic_stream, cache_size, per_row_timeout):
             # ignore duplicates after retry
             if row not in self.emitted_rows:
