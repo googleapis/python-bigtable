@@ -40,7 +40,6 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable.row_merger import RowMerger
-from google.cloud.bigtable.row_merger import RetryableRowMerger
 from google.cloud.bigtable.row_merger import InvalidChunk
 from google.cloud.bigtable_v2.types import RequestStats
 
@@ -392,11 +391,11 @@ class Table:
 
         # read_rows smart retries is implemented using a series of generators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
-        # - RowMerger.merge_row_stream: parses chunks into rows
-        # - RetryableRowMerger.retryable_wrapper: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
+        # - RowMerger.merge_row_response_stream: parses chunks into rows
+        # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
         generator = ReadRowsIterator(
-            RetryableRowMerger(
+            RowMerger(
                 request,
                 self.client.read_rows,
                 cache_size=cache_size,
@@ -682,8 +681,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, stream: RetryableRowMerger):
-        self.stream: RetryableRowMerger = stream
+    def __init__(self, stream: RowMerger):
+        self.stream: RowMerger = stream
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self.last_raised: Exception | None = None

@@ -38,7 +38,17 @@ class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
 
 
-class RetryableRowMerger:
+class RowMerger:
+    """
+    RowMerger takes in a stream of ReadRows chunks
+    and processes them into a stream of Rows.
+
+    RowMerger can wrap the stream directly, or use a cache to decouple
+    the producer from the consumer
+
+    RowMerger uses a StateMachine instance to handle the chunk parsing
+    logic
+    """
     def __init__(
         self,
         request: dict[str, Any],
@@ -57,7 +67,7 @@ class RetryableRowMerger:
 
         # lock in paramters for retryable wrapper
         partial_retryable = partial(
-            self.retryable_wrapper,
+            self.retryable_merge_rows,
             cache_size,
             per_row_timeout,
             per_request_timeout,
@@ -90,7 +100,7 @@ class RetryableRowMerger:
         async for item in input_generator:
             await cache.put(item)
 
-    async def retryable_wrapper(
+    async def retryable_merge_rows(
         self, cache_size, per_row_timeout, per_request_timeout, gapic_fn
     ):
         if self.revise_on_retry and self.last_seen_row_key is not None:
@@ -102,9 +112,9 @@ class RetryableRowMerger:
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(cache_size)
-        merger = RowMerger()
+        state_machine = StateMachine()
         stream_task = asyncio.create_task(
-            self._generator_to_cache(cache, merger.merge_row_stream(new_gapic_stream))
+            self._generator_to_cache(cache, self.merge_row_response_stream(new_gapic_stream, state_machine))
         )
         try:
             # read from state machine and push into cache
@@ -135,8 +145,8 @@ class RetryableRowMerger:
         finally:
             stream_task.cancel()
 
+    @staticmethod
     def _revise_request_rowset(
-        self,
         row_set: dict[str, Any] | None,
         last_seen_row_key: bytes,
         emitted_rows: Set[bytes],
@@ -163,24 +173,9 @@ class RetryableRowMerger:
                     row_ranges[0].pop("start_key_closed")
             return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
 
-
-class RowMerger:
-    """
-    RowMerger takes in a stream of ReadRows chunks
-    and processes them into a stream of Rows.
-
-    RowMerger can wrap the stream directly, or use a cache to decouple
-    the producer from the consumer
-
-    RowMerger uses a StateMachine instance to handle the chunk parsing
-    logic
-    """
-
-    def __init__(self):
-        self.state_machine: StateMachine = StateMachine()
-
-    async def merge_row_stream(
-        self, request_generator: AsyncIterable[ReadRowsResponse]
+    @staticmethod
+    async def merge_row_response_stream(
+        request_generator: AsyncIterable[ReadRowsResponse], state_machine: StateMachine
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
@@ -199,16 +194,16 @@ class RowMerger:
             last_scanned = response_pb.last_scanned_row_key
             # if the server sends a scan heartbeat, notify the state machine.
             if last_scanned:
-                yield self.state_machine.handle_last_scanned_row(last_scanned)
+                yield state_machine.handle_last_scanned_row(last_scanned)
             # process new chunks through the state machine.
             for chunk in response_pb.chunks:
-                complete_row = self.state_machine.handle_chunk(chunk)
+                complete_row = state_machine.handle_chunk(chunk)
                 if complete_row is not None:
                     yield complete_row
             # yield request stats if present
             if response_pb.stats:
                 yield response_pb.stats
-        if not self.state_machine.is_terminal_state():
+        if not state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
 
