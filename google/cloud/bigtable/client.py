@@ -228,7 +228,9 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
-            await self.transport.replace_channel(channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel)
+            await self.transport.replace_channel(
+                channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
+            )
             # subtract the time spent waiting for the channel to be replaced
             next_sleep = refresh_interval - (time.time() - start_timestamp)
 

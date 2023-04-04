@@ -155,7 +155,9 @@ async def test_veneer_grpc_headers():
 @pytest.mark.asyncio
 async def test_channel_pool_creation():
     pool_size = 14
-    with mock.patch("google.api_core.grpc_helpers_async.create_channel") as create_channel:
+    with mock.patch(
+        "google.api_core.grpc_helpers_async.create_channel"
+    ) as create_channel:
         create_channel.return_value = AsyncMock()
         client = _make_one(project="project-id", pool_size=pool_size)
         assert create_channel.call_count == pool_size
@@ -174,11 +176,17 @@ async def test_channel_pool_rotation():
     client = _make_one(project="project-id", pool_size=pool_size)
     assert len(client.transport._grpc_channel._pool) == pool_size
 
-    with mock.patch.object(type(client.transport._grpc_channel), "next_channel") as next_channel:
-        with mock.patch.object(type(client.transport._grpc_channel._pool[0]), "unary_unary"):
+    with mock.patch.object(
+        type(client.transport._grpc_channel), "next_channel"
+    ) as next_channel:
+        with mock.patch.object(
+            type(client.transport._grpc_channel._pool[0]), "unary_unary"
+        ):
             # calling an rpc `pool_size` times should use a different channel each time
             for i in range(pool_size):
-                channel_1 = client.transport._grpc_channel._pool[client.transport._next_idx]
+                channel_1 = client.transport._grpc_channel._pool[
+                    client.transport._next_idx
+                ]
                 next_channel.return_value = channel_1
                 client.transport.ping_and_warm()
                 assert next_channel.call_count == i + 1
@@ -336,7 +344,9 @@ async def test__manage_channel_ping_and_warm():
     client = _make_one(project="project-id")
     new_channel = grpc.aio.insecure_channel("localhost:8080")
     with mock.patch.object(asyncio, "sleep"):
-        with mock.patch("google.api_core.grpc_helpers_async.create_channel") as create_channel:
+        with mock.patch(
+            "google.api_core.grpc_helpers_async.create_channel"
+        ) as create_channel:
             create_channel.return_value = new_channel
             with mock.patch.object(
                 PooledBigtableGrpcAsyncIOTransport, "replace_channel"
