@@ -40,6 +40,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable.row_merger import RowMerger
+from google.cloud.bigtable.row_merger import RetryableRowMerger
 from google.cloud.bigtable.row_merger import InvalidChunk
 from google.cloud.bigtable_v2.types import RequestStats
 
@@ -392,91 +393,11 @@ class Table:
         """
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.client.table_path(self.table_id)
+        request["app_profile_id"] = self.app_profile_id
 
-        def on_error(exc):
-            return exc
-
-        retry = retries.AsyncRetry(
-            predicate=retries.if_exception_type(
-                InvalidChunk,
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
-            ),
-            timeout=operation_timeout,
-            on_error=on_error,
-            initial=0.1,
-            multiplier=2,
-            maximum=1,
-            is_generator=True,
-        )
-        retryable_fn = retry(self._read_rows_retryable)
-        emitted_rows: set[bytes] = set({})
         return ReadRowsGenerator(
-            retryable_fn(
-                request, emitted_rows, per_request_timeout, per_request_timeout
-            )
+            RetryableRowMerger(request, self.client.read_rows, cache_size=cache_size, operation_timeout=operation_timeout, per_row_timeout=per_row_timeout, idle_timeout=idle_timeout, per_request_timeout=per_request_timeout)
         )
-
-    async def _read_rows_retryable(
-        self,
-        request: dict[str, Any],
-        emitted_rows: set[bytes],
-        per_request_timeout=None,
-        per_row_timeout=None,
-        revise_on_retry=True,
-        cache_size_limit=None,
-    ) -> AsyncGenerator[Row | RequestStats, None]:
-        if revise_on_retry and len(emitted_rows) > 0:
-            # if this is a retry, try to trim down the request to avoid ones we've already processed
-            request["rows"] = self._revise_rowset(
-                request.get("rows", None), emitted_rows
-            )
-        gapic_stream_handler = await self.client.read_rows(
-            request=request,
-            app_profile_id=self.app_profile_id,
-            timeout=per_request_timeout,
-        )
-        merger = RowMerger()
-        generator = merger.merge_row_stream_with_cache(
-            gapic_stream_handler, cache_size_limit, per_row_timeout
-        )
-        try:
-            async for row in generator:
-                if row.row_key not in emitted_rows:
-                    if not isinstance(row, _LastScannedRow):
-                        # last scanned rows are not emitted
-                        yield row
-                    emitted_rows.add(row.row_key)
-        except asyncio.TimeoutError:
-            await generator.aclose()
-            raise core_exceptions.DeadlineExceeded("per_row_timeout exceeded")
-        except StopAsyncIteration as e:
-            raise e
-
-    def _revise_rowset(
-        self, row_set: dict[str, Any] | None, emitted_rows: set[bytes]
-    ) -> dict[str, Any]:
-        # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None:
-            last_seen = max(emitted_rows)
-            return {
-                "row_keys": [],
-                "row_ranges": [{"start_key_open": last_seen}],
-            }
-        else:
-            # remove seen keys from user-specific key list
-            row_keys: list[bytes] = row_set.get("row_keys", [])
-            adjusted_keys = []
-            for key in row_keys:
-                if key not in emitted_rows:
-                    adjusted_keys.append(key)
-            # if user specified only a single range, set start to the last seen key
-            row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-            if len(row_keys) == 0 and len(row_ranges) == 1:
-                row_ranges[0]["start_key_open"] = max(emitted_rows)
-                if "start_key_closed" in row_ranges[0]:
-                    row_ranges[0].pop("start_key_closed")
-            return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
 
     async def read_rows(
         self,
