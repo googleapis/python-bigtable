@@ -52,7 +52,7 @@ class RowMerger:
 
     async def merge_row_stream(
         self, request_generator: AsyncIterable[ReadRowsResponse]
-    ) -> AsyncGenerator[Row|RequestStats, None]:
+    ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
@@ -96,7 +96,7 @@ class RowMerger:
         self,
         request_generator: AsyncIterable[ReadRowsResponse],
         max_cache_size: int | None = None,
-    ) -> AsyncGenerator[Row|RequestStats, None]:
+    ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows,
         with a local cache to decouple the producer from the consumer

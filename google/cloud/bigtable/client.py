@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
+from typing import cast, Any, Optional, AsyncIterable, AsyncIterator, Set, TYPE_CHECKING
 
 import asyncio
 import grpc
@@ -42,6 +42,7 @@ from google.api_core import client_options as client_options_lib
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+    from google.cloud.bigtable_v2.types import ReadRowsResponse
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
@@ -342,7 +343,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterator[Row]:
+    ) -> ReadRowsGenerator:
         """
         Returns a generator to asynchronously stream back row data.
 
@@ -386,9 +387,9 @@ class Table:
                 from any retries that failed
             - IdleTimeout: if generator was abandoned
         """
-        request = query.to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self._gapic_client.table_name(self.table_id)
-        gapic_stream_handler = await self._gapic_client.read_rows(
+        request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
+        request["table_name"] = self._client.table_name(self.table_id)
+        gapic_stream_handler = await self._client.read_rows(
             request=request,
             app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
@@ -442,7 +443,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[Row]:
+    ) -> ReadRowsGenerator:
         """
         Runs a sharded query in parallel
 
@@ -663,12 +664,12 @@ class Table:
         raise NotImplementedError
 
 
-class ReadRowsGenerator():
+class ReadRowsGenerator(AsyncIterator[Row]):
     """
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, gapic_stream:AsyncIterable["ReadRowsResponse"]):
+    def __init__(self, gapic_stream: AsyncIterable["ReadRowsResponse"]):
         merger = RowMerger()
         self._inner_gen = merger.merge_row_stream(gapic_stream)
         self.request_stats = None
@@ -685,4 +686,3 @@ class ReadRowsGenerator():
                 self.request_stats = next_item
             next_item = await self._inner_gen.__anext__()
         return next_item
-
