@@ -31,9 +31,9 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import _ClientProjectMixin
 from google.api_core.exceptions import GoogleAPICallError
-
 from google.cloud.bigtable.row_merger import RowMerger
 from google.cloud.bigtable.row_merger import InvalidChunk
+from google.cloud.bigtable_v2.types import RequestStats
 
 import google.auth.credentials
 from google.api_core import retry_async as retries
@@ -43,6 +43,7 @@ from google.api_core import client_options as client_options_lib
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+    from google.cloud.bigtable_v2.types import ReadRowsResponse
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.row import _LastScannedRow
@@ -342,7 +343,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[Row]:
+    ) -> ReadRowsGenerator:
         """
         Returns a generator to asynchronously stream back row data.
 
@@ -383,7 +384,7 @@ class Table:
             - IdleTimeout: if generator was abandoned
         """
         request = query.to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self._gapic_client.table_name(self.table_id)
+        request["table_name"] = self.client.table_path(self.table_id)
 
         def on_error(exc):
             return exc
@@ -472,7 +473,6 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> list[Row]:
         """
         Helper function that returns a full list instead of a generator
@@ -511,7 +511,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[Row]:
+    ) -> ReadRowsGenerator:
         """
         Runs a sharded query in parallel
 
@@ -730,3 +730,27 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
+
+
+class ReadRowsGenerator(AsyncIterable[Row]):
+    """
+    User-facing async generator for streaming read_rows responses
+    """
+
+    def __init__(self, gapic_stream: AsyncIterable["ReadRowsResponse"]):
+        merger = RowMerger()
+        self._inner_gen = merger.merge_row_stream(gapic_stream)
+        self.request_stats: RequestStats | None = None
+        self.last_interaction_time = time.time()
+
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self) -> Row:
+        self.last_interaction_time = time.time()
+        next_item = await self._inner_gen.__anext__()
+        while not isinstance(next_item, Row):
+            if isinstance(next_item, RequestStats):
+                self.request_stats = next_item
+            next_item = await self._inner_gen.__anext__()
+        return next_item

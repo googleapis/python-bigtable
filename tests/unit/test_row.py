@@ -90,9 +90,6 @@ class TestRow(unittest.TestCase):
             row_response.get_cells(family="1", qualifier=b"c")
 
     def test___repr__(self):
-        from google.cloud.bigtable.row import Cell
-        from google.cloud.bigtable.row import Row
-
         cell_str = (
             "{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}"
             % (TEST_TIMESTAMP)
