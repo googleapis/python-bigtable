@@ -395,8 +395,20 @@ class Table:
         request["table_name"] = self.client.table_path(self.table_id)
         request["app_profile_id"] = self.app_profile_id
 
+        # read_rows smart retries is implemented using a series of generators:
+        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
+        # - RowMerger.merge_row_stream: parses chunks into rows
+        # - RetryableRowMerger.retryable_wrapper: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
+        # - ReadRowsGenerator: adds idle_timeout, moves stats out of stream and into attribute
         return ReadRowsGenerator(
-            RetryableRowMerger(request, self.client.read_rows, cache_size=cache_size, operation_timeout=operation_timeout, per_row_timeout=per_row_timeout, idle_timeout=idle_timeout, per_request_timeout=per_request_timeout)
+            RetryableRowMerger(
+                request,
+                self.client.read_rows,
+                cache_size=cache_size,
+                operation_timeout=operation_timeout,
+                per_row_timeout=per_row_timeout,
+                per_request_timeout=per_request_timeout,
+            )
         )
 
     async def read_rows(

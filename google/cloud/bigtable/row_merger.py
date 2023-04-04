@@ -18,6 +18,9 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 import asyncio
+from functools import partial
+from google.api_core import retry_async as retries
+from google.api_core import exceptions as core_exceptions
 
 from abc import ABC, abstractmethod
 
@@ -34,30 +37,31 @@ from typing import (
 class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
 
-class RetryableRowMerger():
 
+class RetryableRowMerger:
     def __init__(
         self,
         request: dict[str, Any],
         gapic_fn,
         *,
-        cache_size: int|None = None,
-        operation_timeout: float|None = None,
-        per_row_timeout: float|None = None,
+        cache_size: int | None = None,
+        operation_timeout: float | None = None,
+        per_row_timeout: float | None = None,
+        per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
     ):
         self.revise_on_retry = revise_on_retry
-        self.last_seen_row_key : bytes | None = None
-        self.emitted_rows : Set[bytes] = set()
+        self.last_seen_row_key: bytes | None = None
+        self.emitted_rows: Set[bytes] = set()
         self.request = request
 
         # lock in paramters for retryable wrapper
-        partial_retryable = functools.partial(
+        partial_retryable = partial(
             self.retryable_wrapper,
             cache_size,
             per_row_timeout,
             per_request_timeout,
-            gapic_fn
+            gapic_fn,
         )
 
         retry = retries.AsyncRetry(
@@ -86,14 +90,18 @@ class RetryableRowMerger():
         async for item in input_generator:
             await cache.put(item)
 
-    async def retryable_wrapper(self, cache_size, per_row_timeout, per_request_timeout, gapic_fn):
+    async def retryable_wrapper(
+        self, cache_size, per_row_timeout, per_request_timeout, gapic_fn
+    ):
         if self.revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             self.request["rows"] = self._revise_rowset(
-                self.request.get("rows", None), self.last_seen_row_key, self.emitted_rows
+                self.request.get("rows", None),
+                self.last_seen_row_key,
+                self.emitted_rows,
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
-        cache: asyncio.Queue[Row|RequestStats] = asyncio.Queue(max_cache_size)
+        cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(cache_size)
         merger = RowMerger()
         stream_task = asyncio.create_task(
             self._generator_to_cache(cache, merger.merge_row_stream(new_gapic_stream))
@@ -106,7 +114,10 @@ class RetryableRowMerger():
                     # don't yield rows that have already been emitted
                     if isinstance(new_item, RequestStats):
                         yield new_item
-                    elif isinstance(new_item, Row) and new_item.row_key not in self.emitted_rows:
+                    elif (
+                        isinstance(new_item, Row)
+                        and new_item.row_key not in self.emitted_rows
+                    ):
                         self.last_seen_row_key = new_item.row_key
                         self.emitted_rows.add(new_item.row_key)
                         yield new_item
@@ -125,7 +136,10 @@ class RetryableRowMerger():
             stream_task.cancel()
 
     def _revise_request_rowset(
-        self, row_set: dict[str, Any] | None, last_seen_row_key: bytes, emitted_rows: Set[bytes]
+        self,
+        row_set: dict[str, Any] | None,
+        last_seen_row_key: bytes,
+        emitted_rows: Set[bytes],
     ) -> dict[str, Any]:
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None:
@@ -148,6 +162,7 @@ class RetryableRowMerger():
                 if "start_key_closed" in row_ranges[0]:
                     row_ranges[0].pop("start_key_closed")
             return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
+
 
 class RowMerger:
     """
@@ -196,6 +211,7 @@ class RowMerger:
         if not self.state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
+
 
 class StateMachine:
     """
