@@ -683,7 +683,7 @@ class Table:
         raise NotImplementedError
 
 
-class ReadRowsGenerator(AsyncIterable[Row]):
+class ReadRowsGenerator(AsyncGenerator[Row, None]):
     """
     User-facing async generator for streaming read_rows responses
     """
@@ -692,7 +692,7 @@ class ReadRowsGenerator(AsyncIterable[Row]):
         self.stream: RetryableRowMerger = stream
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
-        self.expired = False
+        self.last_raised: Exception | None = None
         self._idle_timeout_task: asyncio.Task | None = None
 
     async def _start_idle_timer(self, idle_timeout: float):
@@ -708,20 +708,30 @@ class ReadRowsGenerator(AsyncIterable[Row]):
             await asyncio.sleep(next_timeout - time.time())
             if self.last_interaction_time + idle_timeout < time.time():
                 # idle timeout has expired
-                self.expired = True
-                self.stream.cancel()
+                self.last_raised = DeadlineExceeded("idle timeout expired")
+                self.stream.close()
                 return
 
     async def __aiter__(self):
         return self
 
+    async def __aclose__(self):
+        await self.stream.close()
+        self.stream = None
+        self.last_raised = GeneratorExit("generator closed")
+
     async def __anext__(self) -> Row:
-        if self.expired:
-            raise core_exceptions.DeadlineExceeded("Idle timeout expired")
-        self.last_interaction_time = time.time()
-        next_item = await self.stream.__anext__()
-        if isinstance(next_item, RequestStats):
-            self.request_stats = next_item
-            return await self.__anext__()
-        else:
-            return next_item
+        if self.last_raised:
+            raise self.last_raised
+        try:
+            self.last_interaction_time = time.time()
+            next_item = await self.stream.__anext__()
+            if isinstance(next_item, RequestStats):
+                self.request_stats = next_item
+                return await self.__anext__()
+            else:
+                return next_item
+        except Exception as e:
+            await self.stream.close()
+            self.last_raised = e
+            raise e
