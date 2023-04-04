@@ -198,7 +198,7 @@ async def test_channel_pool_rotation():
 
 @pytest.mark.asyncio
 async def test_channel_pool_replace():
-    with mock.patch.object(asyncio, "sleep") as sleep:
+    with mock.patch.object(asyncio, "sleep"):
         pool_size = 7
         client = _make_one(project="project-id", pool_size=pool_size)
         for replace_idx in range(pool_size):
