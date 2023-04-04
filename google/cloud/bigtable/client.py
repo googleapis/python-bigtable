@@ -400,7 +400,7 @@ class Table:
         # - RowMerger.merge_row_stream: parses chunks into rows
         # - RetryableRowMerger.retryable_wrapper: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsGenerator: adds idle_timeout, moves stats out of stream and into attribute
-        return ReadRowsGenerator(
+        generator = ReadRowsGenerator(
             RetryableRowMerger(
                 request,
                 self.client.read_rows,
@@ -410,6 +410,10 @@ class Table:
                 per_request_timeout=per_request_timeout,
             )
         )
+        # add idle timeout
+        if idle_timeout:
+            generator._start_idle_timer(idle_timeout)
+        return generator
 
     async def read_rows(
         self,
@@ -684,15 +688,36 @@ class ReadRowsGenerator(AsyncIterable[Row]):
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, stream: AsyncGenerator[Row | RequestStats, None]):
-        self.stream = stream
+    def __init__(self, stream: RetryableRowMerger):
+        self.stream: RetryableRowMerger = stream
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
+        self.expired = False
+        self._idle_timeout_task: asyncio.Task | None = None
+
+    async def _start_idle_timer(self, idle_timeout: float):
+        if self._idle_timeout_task:
+            await self._idle_timeout_task.cancel()
+        self._idle_timeout_task = asyncio.create_task(
+            self._idle_timeout_coroutine(idle_timeout)
+        )
+
+    async def _idle_timeout_coroutine(self, idle_timeout:float):
+        while self.stream.is_active():
+            next_timeout = self.last_interaction_time + idle_timeout
+            await asyncio.sleep(next_timeout - time.time())
+            if self.last_interaction_time + idle_timeout < time.time():
+                # idle timeout has expired
+                self.expired = True
+                self.stream.cancel()
+                return
 
     async def __aiter__(self):
         return self
 
     async def __anext__(self) -> Row:
+        if self.expired:
+            raise core_exceptions.DeadlineExceeded("Idle timeout expired")
         self.last_interaction_time = time.time()
         next_item = await self.stream.__anext__()
         if isinstance(next_item, RequestStats):
