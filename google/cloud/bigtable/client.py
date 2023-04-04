@@ -214,17 +214,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         while True:
             await asyncio.sleep(next_sleep)
             # prepare new channel for use
-            new_channel = self.transport.create_channel(
-                self.transport._host,
-                credentials=self.transport._credentials,
-                scopes=self.transport._scopes,
-                ssl_credentials=self.transport._ssl_channel_credentials,
-                quota_project_id=self.transport._quota_project_id,
-                options=[
-                    ("grpc.max_send_message_length", -1),
-                    ("grpc.max_receive_message_length", -1),
-                ],
-            )
+            new_channel = self.transport.grpc_channel._create_channel()
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
