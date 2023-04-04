@@ -142,7 +142,7 @@ class PooledChannel(aio.Channel):
         raise NotImplementedError()
 
     async def replace_channel(
-        self, channel_idx, grace=None, new_channel=None
+        self, channel_idx, grace=None, swap_sleep=1, new_channel=None
     ) -> aio.Channel:
         """
         Replaces a channel in the pool with a fresh one.
@@ -155,6 +155,8 @@ class PooledChannel(aio.Channel):
           grace(Optional[float]): The time to wait until all active RPCs are
             finished. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
+          swap_sleep(Optional[float]): The number of seconds to sleep in between
+            replacing channels and closing the old one
           new_channel(grpc.aio.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
         """
@@ -166,6 +168,7 @@ class PooledChannel(aio.Channel):
             new_channel = self._create_channel()
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
+        await asyncio.sleep(swap_sleep)
         await old_channel.close(grace=grace)
         return new_channel
 
@@ -386,7 +389,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         return self._grpc_channel
 
     async def replace_channel(
-        self, channel_idx, grace=None, new_channel=None
+        self, channel_idx, grace=None, swap_sleep=1, new_channel=None
     ) -> aio.Channel:
         """
         Replaces a channel in the pool with a fresh one.
@@ -399,10 +402,14 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
           grace(Optional[float]): The time to wait until all active RPCs are
             finished. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
+          swap_sleep(Optional[float]): The number of seconds to sleep in between
+            replacing channels and closing the old one
           new_channel(grpc.aio.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
         """
-        return await self._grpc_channel.replace_channel(channel_idx, grace, new_channel)
+        return await self._grpc_channel.replace_channel(
+            channel_idx, grace, swap_sleep, new_channel
+        )
 
     @property
     def read_rows(

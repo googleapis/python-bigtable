@@ -188,7 +188,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         self,
         channel_idx: int,
         refresh_interval: float = 60 * 45,
-        grace_period: float = 60 * 15,
+        grace_period: float = 60 * 10,
     ) -> None:
         """
         Background coroutine that periodically refreshes and warms a grpc channel
@@ -228,7 +228,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
-            await self.transport.replace_channel(channel_idx, grace_period, new_channel)
+            await self.transport.replace_channel(channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel)
             # subtract the time spent waiting for the channel to be replaced
             next_sleep = refresh_interval - (time.time() - start_timestamp)
 
