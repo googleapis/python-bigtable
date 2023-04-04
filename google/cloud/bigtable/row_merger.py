@@ -95,7 +95,7 @@ class RetryableRowMerger:
     ):
         if self.revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self.request["rows"] = self._revise_rowset(
+            self.request["rows"] = self._revise_request_rowset(
                 self.request.get("rows", None),
                 self.last_seen_row_key,
                 self.emitted_rows,

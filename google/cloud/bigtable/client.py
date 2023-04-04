@@ -346,19 +346,19 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        cache_size_limit: int | None = None,
+        cache_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> ReadRowsGenerator:
+    ) -> ReadRowsIterator:
         """
-        Returns a generator to asynchronously stream back row data.
+        Returns an iterator to asynchronously stream back row data.
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
         By default, row data is streamed eagerly over the network, and fully cached in memory
-        in the generator, which can be consumed as needed. The size of the generator cache can
+        in the iterator, which can be consumed as needed. The size of the iterator cache can
         be configured with cache_size_limit. When the cache is full, the read_rows_stream will pause
         the network stream until space is available
 
@@ -384,12 +384,12 @@ class Table:
                 a DeadlineExceeded exception, and a retry will be attempted
 
         Returns:
-            - an asynchronous generator that yields rows returned by the query
+            - an asynchronous iterator that yields rows returned by the query
         Raises:
             - DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            - IdleTimeout: if generator was abandoned
+            - IdleTimeout: if iterator was abandoned
         """
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.client.table_path(self.table_id)
@@ -399,8 +399,8 @@ class Table:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
         # - RowMerger.merge_row_stream: parses chunks into rows
         # - RetryableRowMerger.retryable_wrapper: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
-        # - ReadRowsGenerator: adds idle_timeout, moves stats out of stream and into attribute
-        generator = ReadRowsGenerator(
+        # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
+        generator = ReadRowsIterator(
             RetryableRowMerger(
                 request,
                 self.client.read_rows,
@@ -412,7 +412,7 @@ class Table:
         )
         # add idle timeout
         if idle_timeout:
-            generator._start_idle_timer(idle_timeout)
+            await generator._start_idle_timer(idle_timeout)
         return generator
 
     async def read_rows(
@@ -462,7 +462,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> ReadRowsGenerator:
+    ) -> ReadRowsIterator:
         """
         Runs a sharded query in parallel
 
@@ -683,7 +683,7 @@ class Table:
         raise NotImplementedError
 
 
-class ReadRowsGenerator(AsyncGenerator[Row, None]):
+class ReadRowsIterator(AsyncIterable[Row]):
     """
     User-facing async generator for streaming read_rows responses
     """
@@ -693,45 +693,39 @@ class ReadRowsGenerator(AsyncGenerator[Row, None]):
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self.last_raised: Exception | None = None
-        self._idle_timeout_task: asyncio.Task | None = None
+        self._idle_timeout_task: asyncio.Task[None] | None = None
 
     async def _start_idle_timer(self, idle_timeout: float):
-        if self._idle_timeout_task:
-            await self._idle_timeout_task.cancel()
+        self.last_interaction_time = time.time()
+        if self._idle_timeout_task is not None:
+            self._idle_timeout_task.cancel()
         self._idle_timeout_task = asyncio.create_task(
             self._idle_timeout_coroutine(idle_timeout)
         )
 
     async def _idle_timeout_coroutine(self, idle_timeout:float):
-        while self.stream.is_active():
+        while self.last_raised is None:
             next_timeout = self.last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.time())
-            if self.last_interaction_time + idle_timeout < time.time():
+            if self.last_interaction_time + idle_timeout < time.time() and self.last_raised is None:
                 # idle timeout has expired
-                self.last_raised = DeadlineExceeded("idle timeout expired")
-                self.stream.close()
-                return
+                self.last_raised = core_exceptions.DeadlineExceeded("idle timeout expired")
 
     async def __aiter__(self):
         return self
 
-    async def __aclose__(self):
-        await self.stream.close()
-        self.stream = None
-        self.last_raised = GeneratorExit("generator closed")
 
     async def __anext__(self) -> Row:
         if self.last_raised:
             raise self.last_raised
         try:
             self.last_interaction_time = time.time()
-            next_item = await self.stream.__anext__()
+            next_item = await self.stream.__aiter__().__anext__()
             if isinstance(next_item, RequestStats):
                 self.request_stats = next_item
                 return await self.__anext__()
             else:
                 return next_item
         except Exception as e:
-            await self.stream.close()
             self.last_raised = e
             raise e
