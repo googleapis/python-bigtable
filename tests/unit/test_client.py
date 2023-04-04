@@ -48,18 +48,15 @@ def _make_one(*args, **kwargs):
 async def test_ctor():
     expected_project = "project-id"
     expected_pool_size = 11
-    expected_metadata = [("a", "b")]
     expected_credentials = AnonymousCredentials()
     client = _make_one(
         project="project-id",
         pool_size=expected_pool_size,
-        metadata=expected_metadata,
         credentials=expected_credentials,
     )
     await asyncio.sleep(0.1)
     assert client.project == expected_project
-    assert len(client.transport.channel_pool) == expected_pool_size
-    assert client.metadata == expected_metadata
+    assert len(client.transport._grpc_channel._pool) == expected_pool_size
     assert not client._active_instances
     assert len(client._channel_refresh_tasks) == expected_pool_size
     assert client.transport._credentials == expected_credentials
@@ -79,19 +76,19 @@ async def test_ctor_super_inits():
     credentials = AnonymousCredentials()
     client_options = {"api_endpoint": "foo.bar:1234"}
     options_parsed = client_options_lib.from_dict(client_options)
-    metadata = [("a", "b")]
     transport_str = f"pooled_grpc_asyncio_{pool_size}"
     with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
         with mock.patch.object(
             _ClientProjectMixin, "__init__"
         ) as client_project_mixin_init:
+            client_project_mixin_init.__code__ = mock.Mock()
+            client_project_mixin_init.__code__.co_varnames = "credentials"
             try:
                 _make_one(
                     project=project,
                     pool_size=pool_size,
                     credentials=credentials,
                     client_options=options_parsed,
-                    metadata=metadata,
                 )
             except AttributeError:
                 pass
@@ -154,13 +151,9 @@ async def test_veneer_grpc_headers():
 
 @pytest.mark.asyncio
 async def test_channel_pool_creation():
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-        PooledBigtableGrpcAsyncIOTransport,
-    )
-
     pool_size = 14
-    with mock.patch.object(
-        PooledBigtableGrpcAsyncIOTransport, "create_channel"
+    with mock.patch(
+        "google.api_core.grpc_helpers_async.create_channel"
     ) as create_channel:
         create_channel.return_value = AsyncMock()
         client = _make_one(project="project-id", pool_size=pool_size)
@@ -168,53 +161,65 @@ async def test_channel_pool_creation():
         await client.close()
     # channels should be unique
     client = _make_one(project="project-id", pool_size=pool_size)
-    pool_list = list(client.transport.channel_pool)
-    pool_set = set(client.transport.channel_pool)
+    pool_list = list(client.transport._grpc_channel._pool)
+    pool_set = set(client.transport._grpc_channel._pool)
     assert len(pool_list) == len(pool_set)
     await client.close()
 
 
 @pytest.mark.asyncio
 async def test_channel_pool_rotation():
-    pool_size = 7
-    client = _make_one(project="project-id", pool_size=pool_size)
-    assert len(client.transport.channel_pool) == pool_size
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledChannel,
+    )
 
-    with mock.patch.object(type(client.transport), "next_channel") as next_channel:
-        with mock.patch.object(type(client.transport.channel_pool[0]), "unary_unary"):
+    pool_size = 7
+
+    with mock.patch.object(PooledChannel, "next_channel") as next_channel:
+        client = _make_one(project="project-id", pool_size=pool_size)
+        assert len(client.transport._grpc_channel._pool) == pool_size
+        next_channel.reset_mock()
+        with mock.patch.object(
+            type(client.transport._grpc_channel._pool[0]), "unary_unary"
+        ) as unary_unary:
             # calling an rpc `pool_size` times should use a different channel each time
+            channel_next = None
             for i in range(pool_size):
-                channel_1 = client.transport.channel_pool[client.transport._next_idx]
-                next_channel.return_value = channel_1
+                channel_last = channel_next
+                channel_next = client.transport.grpc_channel._pool[i]
+                assert channel_last != channel_next
+                next_channel.return_value = channel_next
                 client.transport.ping_and_warm()
                 assert next_channel.call_count == i + 1
-                channel_1.unary_unary.assert_called_once()
+                unary_unary.assert_called_once()
+                unary_unary.reset_mock()
     await client.close()
 
 
 @pytest.mark.asyncio
 async def test_channel_pool_replace():
-    pool_size = 7
-    client = _make_one(project="project-id", pool_size=pool_size)
-    for replace_idx in range(pool_size):
-        start_pool = [channel for channel in client.transport.channel_pool]
-        grace_period = 9
-        with mock.patch.object(
-            type(client.transport.channel_pool[0]), "close"
-        ) as close:
-            new_channel = grpc.aio.insecure_channel("localhost:8080")
-            await client.transport.replace_channel(
-                replace_idx, grace=grace_period, new_channel=new_channel
-            )
-            close.assert_called_once_with(grace=grace_period)
-            close.assert_awaited_once()
-        assert client.transport.channel_pool[replace_idx] == new_channel
-        for i in range(pool_size):
-            if i != replace_idx:
-                assert client.transport.channel_pool[i] == start_pool[i]
-            else:
-                assert client.transport.channel_pool[i] != start_pool[i]
-    await client.close()
+    with mock.patch.object(asyncio, "sleep"):
+        pool_size = 7
+        client = _make_one(project="project-id", pool_size=pool_size)
+        for replace_idx in range(pool_size):
+            start_pool = [channel for channel in client.transport._grpc_channel._pool]
+            grace_period = 9
+            with mock.patch.object(
+                type(client.transport._grpc_channel._pool[0]), "close"
+            ) as close:
+                new_channel = grpc.aio.insecure_channel("localhost:8080")
+                await client.transport.replace_channel(
+                    replace_idx, grace=grace_period, new_channel=new_channel
+                )
+                close.assert_called_once_with(grace=grace_period)
+                close.assert_awaited_once()
+            assert client.transport._grpc_channel._pool[replace_idx] == new_channel
+            for i in range(pool_size):
+                if i != replace_idx:
+                    assert client.transport._grpc_channel._pool[i] == start_pool[i]
+                else:
+                    assert client.transport._grpc_channel._pool[i] != start_pool[i]
+        await client.close()
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -248,7 +253,7 @@ async def test_start_background_channel_refresh(pool_size):
         assert isinstance(task, asyncio.Task)
     await asyncio.sleep(0.1)
     assert ping_and_warm.call_count == pool_size
-    for channel in client.transport.channel_pool:
+    for channel in client.transport._grpc_channel._pool:
         ping_and_warm.assert_any_call(channel)
     await client.close()
 
@@ -273,7 +278,7 @@ async def test__ping_and_warm_instances():
     # test with no instances
     with mock.patch.object(asyncio, "gather", AsyncMock()) as gather:
         client = _make_one(project="project-id", pool_size=1)
-        channel = client.transport.channel_pool[0]
+        channel = client.transport._grpc_channel._pool[0]
         await client._ping_and_warm_instances(channel)
         gather.assert_called_once()
         gather.assert_awaited_once()
@@ -342,38 +347,37 @@ async def test__manage_channel_ping_and_warm():
     client = _make_one(project="project-id")
     new_channel = grpc.aio.insecure_channel("localhost:8080")
     with mock.patch.object(asyncio, "sleep"):
+        create_channel = mock.Mock()
+        create_channel.return_value = new_channel
+        client.transport.grpc_channel._create_channel = create_channel
         with mock.patch.object(
-            PooledBigtableGrpcAsyncIOTransport, "create_channel"
-        ) as create_channel:
-            create_channel.return_value = new_channel
+            PooledBigtableGrpcAsyncIOTransport, "replace_channel"
+        ) as replace_channel:
+            replace_channel.side_effect = asyncio.CancelledError
+            # should ping and warm old channel then new if sleep > 0
             with mock.patch.object(
-                PooledBigtableGrpcAsyncIOTransport, "replace_channel"
-            ) as replace_channel:
-                replace_channel.side_effect = asyncio.CancelledError
-                # should ping and warm old channel then new if sleep > 0
-                with mock.patch.object(
-                    type(_make_one()), "_ping_and_warm_instances"
-                ) as ping_and_warm:
-                    try:
-                        channel_idx = 2
-                        old_channel = client.transport.channel_pool[channel_idx]
-                        await client._manage_channel(channel_idx, 10)
-                    except asyncio.CancelledError:
-                        pass
-                    assert ping_and_warm.call_count == 2
-                    assert old_channel != new_channel
-                    called_with = [call[0][0] for call in ping_and_warm.call_args_list]
-                    assert old_channel in called_with
-                    assert new_channel in called_with
-                # should ping and warm instantly new channel only if not sleeping
-                with mock.patch.object(
-                    type(_make_one()), "_ping_and_warm_instances"
-                ) as ping_and_warm:
-                    try:
-                        await client._manage_channel(0, 0)
-                    except asyncio.CancelledError:
-                        pass
-                    ping_and_warm.assert_called_once_with(new_channel)
+                type(_make_one()), "_ping_and_warm_instances"
+            ) as ping_and_warm:
+                try:
+                    channel_idx = 2
+                    old_channel = client.transport._grpc_channel._pool[channel_idx]
+                    await client._manage_channel(channel_idx, 10)
+                except asyncio.CancelledError:
+                    pass
+                assert ping_and_warm.call_count == 2
+                assert old_channel != new_channel
+                called_with = [call[0][0] for call in ping_and_warm.call_args_list]
+                assert old_channel in called_with
+                assert new_channel in called_with
+            # should ping and warm instantly new channel only if not sleeping
+            with mock.patch.object(
+                type(_make_one()), "_ping_and_warm_instances"
+            ) as ping_and_warm:
+                try:
+                    await client._manage_channel(0, 0)
+                except asyncio.CancelledError:
+                    pass
+                ping_and_warm.assert_called_once_with(new_channel)
     await client.close()
 
 
@@ -420,6 +424,7 @@ async def test__manage_channel_refresh(num_cycles):
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledBigtableGrpcAsyncIOTransport,
     )
+    from google.api_core import grpc_helpers_async
 
     expected_grace = 9
     expected_refresh = 0.5
@@ -433,11 +438,12 @@ async def test__manage_channel_refresh(num_cycles):
             sleep.side_effect = [None for i in range(num_cycles)] + [
                 asyncio.CancelledError
             ]
-            client = _make_one(project="project-id")
             with mock.patch.object(
-                PooledBigtableGrpcAsyncIOTransport, "create_channel"
+                grpc_helpers_async, "create_channel"
             ) as create_channel:
                 create_channel.return_value = new_channel
+                client = _make_one(project="project-id")
+                create_channel.reset_mock()
                 try:
                     await client._manage_channel(
                         channel_idx,
@@ -450,9 +456,10 @@ async def test__manage_channel_refresh(num_cycles):
                 assert create_channel.call_count == num_cycles
                 assert replace_channel.call_count == num_cycles
                 for call in replace_channel.call_args_list:
-                    assert call[0][0] == channel_idx
-                    assert call[0][1] == expected_grace
-                    assert call[0][2] == new_channel
+                    args, kwargs = call
+                    assert args[0] == channel_idx
+                    assert kwargs["grace"] == expected_grace
+                    assert kwargs["new_channel"] == new_channel
             await client.close()
 
 
@@ -535,19 +542,16 @@ async def test_get_table():
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
-    expected_metadata = [("a", "b")]
     table = client.get_table(
         expected_instance_id,
         expected_table_id,
         expected_app_profile_id,
-        expected_metadata,
     )
     await asyncio.sleep(0)
     assert isinstance(table, Table)
     assert table.table_id == expected_table_id
     assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
-    assert table.metadata == expected_metadata
     assert table.client is client
     full_instance_name = client.instance_path(client.project, expected_instance_id)
     assert full_instance_name in client._active_instances
@@ -654,7 +658,6 @@ async def test_table_ctor():
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
-    expected_metadata = [("a", "b")]
     client = BigtableDataClient()
     assert not client._active_instances
 
@@ -663,13 +666,11 @@ async def test_table_ctor():
         expected_instance_id,
         expected_table_id,
         expected_app_profile_id,
-        expected_metadata,
     )
     await asyncio.sleep(0)
     assert table.table_id == expected_table_id
     assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
-    assert table.metadata == expected_metadata
     assert table.client is client
     full_instance_name = client.instance_path(client.project, expected_instance_id)
     assert full_instance_name in client._active_instances
@@ -692,5 +693,4 @@ def test_table_ctor_sync():
     assert table.table_id == "table-id"
     assert table.instance == "instance-id"
     assert table.app_profile_id is None
-    assert table.metadata == []
     assert table.client is client
