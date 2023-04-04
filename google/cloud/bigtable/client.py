@@ -349,7 +349,6 @@ class Table:
         cache_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
-        idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:
         """
@@ -375,10 +374,6 @@ class Table:
                 longer than per_row_timeout to complete, the ongoing network request will be with a
                 DeadlineExceeded exception, and a retry may be attempted
                 Applies only to the underlying network call.
-            - idle_timeout: the number of idle seconds before an active generator is marked as
-                stale and the cache is drained. The idle count is reset each time the generator
-                is yielded from
-                raises DeadlineExceeded on future yields
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted
@@ -410,9 +405,8 @@ class Table:
                 per_request_timeout=per_request_timeout,
             )
         )
-        # add idle timeout
-        if idle_timeout:
-            await generator._start_idle_timer(idle_timeout)
+        # add idle timeout to clear resources if generator is abandoned
+        await generator._start_idle_timer(600)
         return generator
 
     async def read_rows(
@@ -709,7 +703,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             await asyncio.sleep(next_timeout - time.time())
             if self.last_interaction_time + idle_timeout < time.time() and self.last_raised is None:
                 # idle timeout has expired
-                self.last_raised = core_exceptions.DeadlineExceeded("idle timeout expired")
+                self.last_raised = IdleTimeout("idle timeout expired")
 
     async def __aiter__(self):
         return self
@@ -729,3 +723,6 @@ class ReadRowsIterator(AsyncIterable[Row]):
         except Exception as e:
             self.last_raised = e
             raise e
+
+class IdleTimeout(core_exceptions.DeadlineExceeded):
+    pass
