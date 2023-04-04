@@ -15,14 +15,30 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterable, AsyncIterator, TYPE_CHECKING
+from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
 
+import asyncio
+import grpc
 import time
+import warnings
+import sys
 
-from google.cloud.client import ClientWithProject
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledBigtableGrpcAsyncIOTransport,
+)
+from google.cloud.client import _ClientProjectMixin
+from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable.row_merger import RowMerger
 from google.cloud.bigtable_v2.types import RequestStats
+
+
 import google.auth.credentials
+import google.auth._default
+from google.api_core import client_options as client_options_lib
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -34,7 +50,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
-class BigtableDataClient(ClientWithProject):
+class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
     def __init__(
         self,
         *,
@@ -44,10 +60,11 @@ class BigtableDataClient(ClientWithProject):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Create a client instance for the Bigtable Data API
+
+        Client must be created within an async run loop context
 
         Args:
             project: the project which the client acts on behalf of.
@@ -63,30 +80,216 @@ class BigtableDataClient(ClientWithProject):
             client_options (Optional[Union[dict, google.api_core.client_options.ClientOptions]]):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
-            metadata: a list of metadata headers to be attached to all calls with this client
+        Raises:
+          - RuntimeError if called outside of an async run loop context
+          - ValueError if pool_size is less than 1
         """
-        raise NotImplementedError
+        # set up transport in registry
+        transport_str = f"pooled_grpc_asyncio_{pool_size}"
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
+        # set up client info headers for veneer library
+        client_info = DEFAULT_CLIENT_INFO
+        client_info.client_library_version = client_info.gapic_version
+        # parse client options
+        if type(client_options) is dict:
+            client_options = client_options_lib.from_dict(client_options)
+        client_options = cast(
+            Optional[client_options_lib.ClientOptions], client_options
+        )
+        mixin_args = {"project": project, "credentials": credentials}
+        # support google-api-core <=1.5.0, which does not have credentials
+        if "credentials" not in _ClientProjectMixin.__init__.__code__.co_varnames:
+            mixin_args.pop("credentials")
+        # initialize client
+        _ClientProjectMixin.__init__(self, **mixin_args)
+        # raises RuntimeError if called outside of an async run loop context
+        BigtableAsyncClient.__init__(
+            self,
+            transport=transport_str,
+            credentials=credentials,
+            client_options=client_options,
+            client_info=client_info,
+        )
+        # keep track of active instances to for warmup on channel refresh
+        self._active_instances: Set[str] = set()
+        # attempt to start background tasks
+        self._channel_init_time = time.time()
+        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        try:
+            self.start_background_channel_refresh()
+        except RuntimeError:
+            warnings.warn(
+                f"{self.__class__.__name__} should be started in an "
+                "asyncio event loop. Channel refresh will not be started",
+                RuntimeWarning,
+            )
 
-    def get_table(
-        self, instance_id: str, table_id: str, app_profile_id: str | None = None
-    ) -> Table:
+    def start_background_channel_refresh(self) -> None:
         """
-        Return a Table instance to make API requests for a specific table.
+        Starts a background task to ping and warm each channel in the pool
+        Raises:
+          - RuntimeError if not called in an asyncio event loop
+        """
+        if not self._channel_refresh_tasks:
+            # raise RuntimeError if there is no event loop
+            asyncio.get_running_loop()
+            for channel_idx in range(len(self.transport._grpc_channel._pool)):
+                refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
+                if sys.version_info >= (3, 8):
+                    refresh_task.set_name(
+                        f"{self.__class__.__name__} channel refresh {channel_idx}"
+                    )
+                self._channel_refresh_tasks.append(refresh_task)
+
+    @property
+    def transport(self) -> PooledBigtableGrpcAsyncIOTransport:
+        """Returns the transport used by the client instance.
+        Returns:
+            BigtableTransport: The transport used by the client instance.
+        """
+        return cast(PooledBigtableGrpcAsyncIOTransport, self._client.transport)
+
+    async def close(self, timeout: float = 2.0):
+        """
+        Cancel all background tasks
+        """
+        for task in self._channel_refresh_tasks:
+            task.cancel()
+        group = asyncio.gather(*self._channel_refresh_tasks, return_exceptions=True)
+        await asyncio.wait_for(group, timeout=timeout)
+        await self.transport.close()
+        self._channel_refresh_tasks = []
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Cleanly close context manager on exit
+        """
+        await self.close()
+
+    async def _ping_and_warm_instances(
+        self, channel: grpc.aio.Channel
+    ) -> list[GoogleAPICallError | None]:
+        """
+        Prepares the backend for requests on a channel
+
+        Pings each Bigtable instance registered in `_active_instances` on the client
 
         Args:
-            instance_id: The ID of the instance that owns the table.
+            channel: grpc channel to ping
+        Returns:
+            - squence of results or exceptions from the ping requests
+        """
+        ping_rpc = channel.unary_unary(
+            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+        )
+        tasks = [ping_rpc({"name": n}) for n in self._active_instances]
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _manage_channel(
+        self,
+        channel_idx: int,
+        refresh_interval: float = 60 * 45,
+        grace_period: float = 60 * 10,
+    ) -> None:
+        """
+        Background coroutine that periodically refreshes and warms a grpc channel
+
+        The backend will automatically close channels after 60 minutes, so
+        `refresh_interval` + `grace_period` should be < 60 minutes
+
+        Runs continuously until the client is closed
+
+        Args:
+            channel_idx: index of the channel in the transport's channel pool
+            refresh_interval: interval before initiating refresh process in seconds
+            grace_period: time to allow previous channel to serve existing
+                requests before closing, in seconds
+        """
+        first_refresh = self._channel_init_time + refresh_interval
+        next_sleep = max(first_refresh - time.time(), 0)
+        if next_sleep > 0:
+            # warm the current channel immediately
+            channel = self.transport._grpc_channel._pool[channel_idx]
+            await self._ping_and_warm_instances(channel)
+        # continuously refresh the channel every `refresh_interval` seconds
+        while True:
+            await asyncio.sleep(next_sleep)
+            # prepare new channel for use
+            new_channel = self.transport.grpc_channel._create_channel()
+            await self._ping_and_warm_instances(new_channel)
+            # cycle channel out of use, with long grace window before closure
+            start_timestamp = time.time()
+            await self.transport.replace_channel(
+                channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
+            )
+            # subtract the time spent waiting for the channel to be replaced
+            next_sleep = refresh_interval - (time.time() - start_timestamp)
+
+    async def register_instance(self, instance_id: str):
+        """
+        Registers an instance with the client, and warms the channel pool
+        for the instance
+        The client will periodically refresh grpc channel pool used to make
+        requests, and new channels will be warmed for each registered instance
+        Channels will not be refreshed unless at least one instance is registered
+        """
+        instance_name = self.instance_path(self.project, instance_id)
+        if instance_name not in self._active_instances:
+            self._active_instances.add(instance_name)
+            if self._channel_refresh_tasks:
+                # refresh tasks already running
+                # call ping and warm on all existing channels
+                for channel in self.transport._grpc_channel._pool:
+                    await self._ping_and_warm_instances(channel)
+            else:
+                # refresh tasks aren't active. start them as background tasks
+                self.start_background_channel_refresh()
+
+    async def remove_instance_registration(self, instance_id: str) -> bool:
+        """
+        Removes an instance from the client's registered instances, to prevent
+        warming new channels for the instance
+
+        If instance_id is not registered, returns False
+
+        Args:
+            instance_id: id of the instance to remove
+        Returns:
+            - True if instance was removed
+        """
+        instance_name = self.instance_path(self.project, instance_id)
+        try:
+            self._active_instances.remove(instance_name)
+            return True
+        except KeyError:
+            return False
+
+    def get_table(
+        self,
+        instance_id: str,
+        table_id: str,
+        app_profile_id: str | None = None,
+    ) -> Table:
+        """
+        Returns a table instance for making data API requests
+
+        Args:
+            instance_id: The Bigtable instance ID to associate with this client
+                instance_id is combined with the client's project to fully
+                specify the instance
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        raise NotImplementedError
+        return Table(self, instance_id, table_id, app_profile_id)
 
 
 class Table:
     """
     Main Data API surface
 
-    Table object maintains instance_id, table_id, and app_profile_id context, and passes them with
+    Table object maintains table_id, and app_profile_id context, and passes them with
     each call
     """
 
@@ -97,7 +300,36 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
     ):
-        raise NotImplementedError
+        """
+        Initialize a Table instance
+
+        Must be created within an async run loop context
+
+        Args:
+            instance_id: The Bigtable instance ID to associate with this client
+                instance_id is combined with the client's project to fully
+                specify the instance
+            table_id: The ID of the table.
+            app_profile_id: (Optional) The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+        Raises:
+          - RuntimeError if called outside of an async run loop context
+        """
+        self.client = client
+        self.instance = instance_id
+        self.table_id = table_id
+        self.app_profile_id = app_profile_id
+        # raises RuntimeError if called outside of an async run loop context
+        try:
+            self._register_instance_task = asyncio.create_task(
+                self.client.register_instance(instance_id)
+            )
+        except RuntimeError:
+            warnings.warn(
+                "Table should be created in an asyncio event loop."
+                " Instance will not be registered with client for refresh",
+                RuntimeWarning,
+            )
 
     async def read_rows_stream(
         self,
@@ -110,7 +342,6 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterator[Row]:
         """
         Returns a generator to asynchronously stream back row data.
@@ -146,7 +377,6 @@ class Table:
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted
-            - metadata: Strings which should be sent along with the request as metadata headers.
 
         Returns:
             - an asynchronous generator that yields rows returned by the query
@@ -174,7 +404,6 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> list[Row]:
         """
         Helper function that returns a full list instead of a generator
@@ -192,7 +421,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> Row:
         """
         Helper function to return a single row
@@ -214,7 +442,6 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> AsyncIterable[Row]:
         """
         Runs a sharded query in parallel
@@ -233,7 +460,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Helper function to determine if a row exists
@@ -251,7 +477,6 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_sample_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -292,7 +517,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
          Mutates a row atomically.
@@ -314,7 +538,6 @@ class Table:
                in seconds. If it takes longer than this time to complete, the request
                will be cancelled with a DeadlineExceeded exception, and a retry will be
                attempted if within operation_timeout budget
-             - metadata: Strings which should be sent along with the request as metadata headers.
 
         Raises:
              - DeadlineExceeded: raised after operation timeout
@@ -331,7 +554,6 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -357,7 +579,6 @@ class Table:
                 in seconds. If it takes longer than this time to complete, the request
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
-            - metadata: Strings which should be sent along with the request as metadata headers.
 
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
@@ -372,7 +593,6 @@ class Table:
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
         operation_timeout: int | float | None = 60,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -401,7 +621,6 @@ class Table:
                 `true_case_mutations is empty, and at most 100000.
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried.
-            - metadata: Strings which should be sent along with the request as metadata headers.
         Returns:
             - bool indicating whether the predicate was true or false
         Raises:
@@ -418,7 +637,6 @@ class Table:
         | list[dict[str, Any]],
         *,
         operation_timeout: int | float | None = 60,
-        metadata: list[tuple[str, str]] | None = None,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -436,7 +654,6 @@ class Table:
                 results of later ones.
            - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried.
-            - metadata: Strings which should be sent along with the request as metadata headers.
         Returns:
             - Row: containing cell data that was modified as part of the
                 operation
