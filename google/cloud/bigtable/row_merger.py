@@ -77,6 +77,15 @@ class RetryableRowMerger():
     async def __aiter__(self):
         return self.retryable_stream.__aiter__()
 
+    async def _generator_to_cache(
+        self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
+    ) -> None:
+        """
+        Helper function to push items from an async generator into a cache
+        """
+        async for item in input_generator:
+            await cache.put(item)
+
     async def retryable_wrapper(self, cache_size, per_row_timeout, per_request_timeout, gapic_fn):
         if self.revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
@@ -84,13 +93,36 @@ class RetryableRowMerger():
                 self.request.get("rows", None), self.last_seen_row_key, self.emitted_rows
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
+        cache: asyncio.Queue[Row|RequestStats] = asyncio.Queue(max_cache_size)
         merger = RowMerger()
-        async for row in merger.merge_row_stream_with_cache(new_gapic_stream, cache_size, per_row_timeout):
-            # ignore duplicates after retry
-            if row not in self.emitted_rows:
-                self.emitted_rows.add(row)
-                self.last_seen_row_key = row.row_key
-                yield row
+        stream_task = asyncio.create_task(
+            self._generator_to_cache(cache, merger.merge_row_stream(new_gapic_stream))
+        )
+        try:
+            # read from state machine and push into cache
+            while not stream_task.done() or not cache.empty():
+                if not cache.empty():
+                    new_item = await cache.get()
+                    # don't yield rows that have already been emitted
+                    if isinstance(new_item, RequestStats):
+                        yield new_item
+                    elif isinstance(new_item, Row) and new_item.row_key not in self.emitted_rows:
+                        self.last_seen_row_key = new_item.row_key
+                        self.emitted_rows.add(new_item.row_key)
+                        yield new_item
+                else:
+                    # wait for either the stream to finish, or a new item to enter the cache
+                    get_from_cache = asyncio.wait_for(cache.get(), per_row_timeout)
+                    first_finish = asyncio.wait(
+                        [stream_task, get_from_cache],
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    await asyncio.wait_for(first_finish, per_row_timeout)
+            # stream and cache are complete. if there's an exception, raise it
+            if stream_task.exception():
+                raise cast(Exception, stream_task.exception())
+        finally:
+            stream_task.cancel()
 
     def _revise_request_rowset(
         self, row_set: dict[str, Any] | None, last_seen_row_key: bytes, emitted_rows: Set[bytes]
@@ -164,64 +196,6 @@ class RowMerger:
         if not self.state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
-
-    async def _generator_to_cache(
-        self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
-    ) -> None:
-        """
-        Helper function to push items from an async generator into a cache
-        """
-        async for item in input_generator:
-            await cache.put(item)
-
-    async def merge_row_stream_with_cache(
-        self,
-        request_generator: AsyncIterable[ReadRowsResponse],
-        max_cache_size: int | None = None,
-        per_row_timeout: float | None = None,
-    ) -> AsyncGenerator[Row | RequestStats, None]:
-        """
-        Consume chunks from a ReadRowsResponse stream into a set of Rows,
-        with a local cache to decouple the producer from the consumer
-
-        Args:
-          - request_generator: AsyncIterable of ReadRowsResponse objects. Typically
-                this is a stream of chunks from the Bigtable API
-          - max_cache_size: maximum number of items to cache. If None, cache size
-                is unbounded
-          - per_row_timeout: maximum time to wait for a complete row. If None,
-                timeout is unbounded
-        Returns:
-            - AsyncGenerator of Rows
-        Raises:
-            - InvalidChunk: if the chunk stream is invalid
-        """
-        if max_cache_size is None:
-            max_cache_size = -1
-        cache: asyncio.Queue[Row|RequestStats] = asyncio.Queue(max_cache_size)
-
-        stream_task = asyncio.create_task(
-            self._generator_to_cache(cache, self.merge_row_stream(request_generator))
-        )
-        try:
-            # read from state machine and push into cache
-            while not stream_task.done() or not cache.empty():
-                if not cache.empty():
-                    yield await cache.get()
-                else:
-                    # wait for either the stream to finish, or a new item to enter the cache
-                    get_from_cache = asyncio.wait_for(cache.get(), per_row_timeout)
-                    first_finish = asyncio.wait(
-                        [stream_task, get_from_cache],
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    await asyncio.wait_for(first_finish, per_row_timeout)
-            # stream and cache are complete. if there's an exception, raise it
-            if stream_task.exception():
-                raise cast(Exception, stream_task.exception())
-        finally:
-            stream_task.cancel()
-
 
 class StateMachine:
     """
