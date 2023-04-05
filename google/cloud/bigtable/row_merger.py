@@ -211,8 +211,8 @@ class RowMerger(AsyncIterable[Row]):
                 if complete_row is not None:
                     yield complete_row
             # yield request stats if present
-            if response_pb.stats:
-                yield response_pb.stats
+            if row_response.request_stats:
+                yield response_pb.request_stats
         if not state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")

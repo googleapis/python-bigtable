@@ -45,11 +45,11 @@ import google.auth.credentials
 from google.api_core import exceptions as core_exceptions
 import google.auth._default
 from google.api_core import client_options as client_options_lib
+from google.cloud.bigtable.row import Row
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter

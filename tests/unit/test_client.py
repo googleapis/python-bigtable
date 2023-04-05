@@ -553,13 +553,16 @@ async def test_get_table():
     )
     await asyncio.sleep(0)
     assert isinstance(table, Table)
-    assert table.table_id == expected_table_id
-    assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
     full_instance_name = client._gapic_client.instance_path(
         client.project, expected_instance_id
     )
+    full_table_name = client._gapic_client.table_path(
+        client.project, expected_instance_id, expected_table_id
+    )
+    assert table.instance_path == full_instance_name
+    assert table.table_path == full_table_name
     assert full_instance_name in client._active_instances
     await client.close()
 
@@ -674,13 +677,16 @@ async def test_table_ctor():
         expected_app_profile_id,
     )
     await asyncio.sleep(0)
-    assert table.table_id == expected_table_id
-    assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
     full_instance_name = client._gapic_client.instance_path(
         client.project, expected_instance_id
     )
+    full_table_name = client._gapic_client.table_path(
+        client.project, expected_instance_id, expected_table_id
+    )
+    assert table.instance_path == full_instance_name
+    assert table.table_path == full_table_name
     assert full_instance_name in client._active_instances
     # ensure task reaches completion
     await table._register_instance_task
@@ -695,10 +701,14 @@ def test_table_ctor_sync():
     from google.cloud.bigtable.client import Table
 
     client = mock.Mock()
+    client._gapic_client.table_path.return_value = "table-path"
+    client._gapic_client.instance_path.return_value = "instance-path"
     with pytest.warns(RuntimeWarning) as warnings:
         table = Table(client, "instance-id", "table-id")
     assert "event loop" in str(warnings[0].message)
-    assert table.table_id == "table-id"
-    assert table.instance == "instance-id"
+    assert table.table_path == "table-path"
+    client._gapic_client.table_path.assert_called_once()
+    assert table.instance_path == "instance-path"
+    client._gapic_client.instance_path.assert_called_once()
     assert table.app_profile_id is None
     assert table.client is client

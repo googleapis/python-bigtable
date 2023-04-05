@@ -5,7 +5,7 @@ import pytest
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
-from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk
+from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk, StateMachine
 from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
@@ -47,9 +47,9 @@ async def test_scenario(test_case: ReadRowsTest):
             yield ReadRowsResponse(chunks=[chunk])
 
     try:
-        merger = RowMerger()
+        state = StateMachine()
         results = []
-        async for row in merger.merge_row_stream(_scenerio_stream()):
+        async for row in RowMerger.merge_row_response_stream(_scenerio_stream(), state):
             for cell in row:
                 cell_result = ReadRowsTest.Result(
                     row_key=cell.row_key,
@@ -60,8 +60,8 @@ async def test_scenario(test_case: ReadRowsTest):
                     label=cell.labels[0] if cell.labels else "",
                 )
                 results.append(cell_result)
-        if not merger.state_machine.is_terminal_state():
-            raise InvalidChunk("merger has partial frame after reading")
+        if not state.is_terminal_state():
+            raise InvalidChunk("state machine has partial frame after reading")
     except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
     for expected, actual in zip_longest(test_case.results, results):
@@ -73,10 +73,10 @@ async def test_out_of_order_rows():
     async def _row_stream():
         yield ReadRowsResponse(last_scanned_row_key=b"a")
 
-    merger = RowMerger()
-    merger.state_machine.last_seen_row_key = b"a"
+    state = StateMachine()
+    state.last_seen_row_key = b"a"
     with pytest.raises(InvalidChunk):
-        async for _ in merger.merge_row_stream(_row_stream()):
+        async for _ in RowMerger.merge_row_response_stream(_row_stream(), state):
             pass
 
 
@@ -231,8 +231,8 @@ async def _process_chunks(*chunks):
     async def _row_stream():
         yield ReadRowsResponse(chunks=chunks)
 
-    merger = RowMerger()
+    state = StateMachine()
     results = []
-    async for row in merger.merge_row_stream(_row_stream()):
+    async for row in RowMerger.merge_row_response_stream(_row_stream(), state):
         results.append(row)
     return results
