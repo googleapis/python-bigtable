@@ -137,6 +137,7 @@ class BigtableDataClient(ClientWithProject):
             for channel_idx in range(len(self.transport._grpc_channel._pool)):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 if sys.version_info >= (3, 8):
+                    # task names supported in Python 3.8+
                     refresh_task.set_name(
                         f"{self.__class__.__name__} channel refresh {channel_idx}"
                     )
