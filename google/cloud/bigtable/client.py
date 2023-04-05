@@ -342,7 +342,7 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        cache_size: int | None = None,
+        cache_size: int = 0,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
@@ -359,8 +359,8 @@ class Table:
 
         Args:
             - query: contains details about which rows to return
-            - cache_size: the number of rows to cache in memory. If None, no limits.
-                 Defaults to None
+            - cache_size: the number of rows to cache in memory. If less than
+                or equal to 0, cache is unbounded. Defaults to 0 (unbounded)
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
@@ -384,7 +384,8 @@ class Table:
         """
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_path
-        request["app_profile_id"] = self.app_profile_id
+        if self.app_profile_id:
+            request["app_profile_id"] = self.app_profile_id
 
         # read_rows smart retries is implemented using a series of generators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout

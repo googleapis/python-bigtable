@@ -61,14 +61,13 @@ class RowMerger():
         request: dict[str, Any],
         client: BigtableAsyncClient,
         *,
-        cache_size: int | None = None,
+        cache_size: int = 0,
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
     ) -> AsyncGenerator[Row|RequestStats, None]:
-        if cache_size is None:
-            cache_size = 0
+        cache_size = max(cache_size, 0)
         self.request = request
         # lock in paramters for retryable wrapper
         partial_retryable = partial(
@@ -127,7 +126,7 @@ class RowMerger():
                 self.emitted_rows,
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
-        cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(cache_size)
+        cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
         state_machine = StateMachine()
         stream_task = asyncio.create_task(
             RowMerger._generator_to_cache(

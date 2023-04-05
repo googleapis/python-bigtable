@@ -47,23 +47,77 @@ def _make_chunk(*args, **kwargs):
     return ReadRowsResponse.CellChunk(*args, **kwargs)
 
 
-async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
+async def _make_gapic_stream(chunk_list: list[ReadRowsResponse], sleep_time=0):
     from google.cloud.bigtable_v2 import ReadRowsResponse
     async def inner():
         for chunk in chunk_list:
+            if sleep_time:
+                await asyncio.sleep(sleep_time)
             yield ReadRowsResponse(chunks=[chunk])
     return inner()
 
 
 @pytest.mark.asyncio
-async def test_read_rows_stream():
+async def test_read_rows():
     client = _make_client()
     table = client.get_table("instance", "table")
     query = ReadRowsQuery()
-    chunks = [_make_chunk()]
+    chunks = [_make_chunk(row_key=b"test_1")]
     with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
         read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
         gen = await table.read_rows_stream(query, operation_timeout=3)
-        async for row in gen:
-            print(row)
+        results = [row async for row in gen]
+        assert len(results) == 1
+        assert results[0].row_key == b"test_1"
     await client.close()
+
+@pytest.mark.parametrize("include_app_profile", [True, False])
+@pytest.mark.asyncio
+async def test_read_rows_query_matches_request(include_app_profile):
+    from google.cloud.bigtable import RowRange
+    async with _make_client() as client:
+        app_profile_id = "app_profile_id" if include_app_profile else None
+        table = client.get_table("instance", "table", app_profile_id=app_profile_id)
+        row_keys = [b"test_1", "test_2"]
+        row_ranges = RowRange('start', 'end')
+        filter_ = {'test': 'filter'}
+        limit = 99
+        query = ReadRowsQuery(row_keys=row_keys, row_ranges=row_ranges, row_filter=filter_, limit=limit)
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([])
+            gen = await table.read_rows_stream(query, operation_timeout=3)
+            results = [row async for row in gen]
+            assert len(results) == 0
+            call_request = read_rows.call_args_list[0][0][0]
+            query_dict = query._to_dict()
+            if include_app_profile:
+                assert set(call_request.keys()) == set(query_dict.keys()) | {'table_name', 'app_profile_id'}
+            else:
+                assert set(call_request.keys()) == set(query_dict.keys()) | {"table_name"}
+            assert call_request['rows'] == query_dict['rows']
+            assert call_request['filter'] == filter_
+            assert call_request['rows_limit'] == limit
+            assert call_request['table_name'] == table.table_path
+            if include_app_profile:
+                assert call_request['app_profile_id'] == app_profile_id
+
+
+@pytest.mark.parametrize("input_cache_size, expected_cache_size",
+    [(-100, 0), (-1, 0), (0, 0), (1, 1), (2, 2), (100, 100), (101, 101)])
+@pytest.mark.asyncio
+async def test_read_rows_cache_size(input_cache_size, expected_cache_size):
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        chunks = [_make_chunk(row_key=b"test_1")]
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
+            with mock.patch.object(asyncio, "Queue") as queue:
+                queue.side_effect = asyncio.CancelledError
+                try:
+                    gen = await table.read_rows_stream(query, operation_timeout=3, cache_size=input_cache_size)
+                    [row async for row in gen]
+                except asyncio.CancelledError:
+                    pass
+                queue.assert_called_once_with(maxsize=expected_cache_size)
+
