@@ -62,7 +62,6 @@ async def test_read_rows_stream():
     with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
         read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
         gen = await table.read_rows_stream(query, operation_timeout=3)
-        breakpoint()
         async for row in gen:
             print(row)
     await client.close()

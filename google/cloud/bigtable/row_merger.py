@@ -137,8 +137,24 @@ class RowMerger():
         try:
             # read from state machine and push into cache
             while not stream_task.done() or not cache.empty():
+                new_item = None
                 if not cache.empty():
                     new_item = await cache.get()
+                else:
+                    # wait for either the stream to finish, or a new item to enter the cache
+                    get_from_cache = asyncio.create_task(cache.get())
+                    get_from_cache_w_timeout = asyncio.wait_for(
+                        get_from_cache, per_row_timeout
+                    )
+                    first_finish = asyncio.wait(
+                        [stream_task, get_from_cache_w_timeout],
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    await asyncio.wait_for(first_finish, per_row_timeout)
+                    if get_from_cache.done():
+                        new_item = get_from_cache.result()
+                # if we found an item this loop, yield it
+                if new_item is not None:
                     # don't yield rows that have already been emitted
                     if isinstance(new_item, RequestStats):
                         yield new_item
@@ -152,14 +168,6 @@ class RowMerger():
                         if not isinstance(new_item, _LastScannedRow):
                             self.emitted_rows.add(new_item.row_key)
                             yield new_item
-                else:
-                    # wait for either the stream to finish, or a new item to enter the cache
-                    get_from_cache = asyncio.wait_for(cache.get(), per_row_timeout)
-                    first_finish = asyncio.wait(
-                        [stream_task, get_from_cache],
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    await asyncio.wait_for(first_finish, per_row_timeout)
             # stream and cache are complete. if there's an exception, raise it
             if stream_task.exception():
                 raise cast(Exception, stream_task.exception())
