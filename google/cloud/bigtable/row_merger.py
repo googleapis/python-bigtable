@@ -41,14 +41,15 @@ class InvalidChunk(RuntimeError):
 
 class RowMerger(AsyncIterable[Row]):
     """
-    RowMerger takes in a stream of ReadRows chunks
-    and processes them into a stream of Rows.
+    RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
+    into a stream of Row objects.
 
-    RowMerger can wrap the stream directly, or use a cache to decouple
-    the producer from the consumer
+    RowMerger.merge_row_response_stream takes in a stream of ReadRowsResponse
+    and handles turns them into a stream of Row objects using an internal
+    StateMachine.
 
-    RowMerger uses a StateMachine instance to handle the chunk parsing
-    logic
+    RowMerger(request, client) handles row merging logic end-to-end, including
+    performing retries on stream errors.
     """
 
     def __init__(
