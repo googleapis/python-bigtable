@@ -211,7 +211,7 @@ def test_flow_control_event_is_set_when_not_blocked():
 def test_flow_control_event_is_not_set_when_blocked():
     flow_control = FlowControl()
     flow_control.inflight_mutations = flow_control.max_mutations
-    flow_control.inflight_size = flow_control.max_row_bytes
+    flow_control.inflight_size = flow_control.max_mutation_bytes
 
     flow_control.set_flow_control_status()
     assert not flow_control.event.is_set()
