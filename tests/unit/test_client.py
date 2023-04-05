@@ -68,7 +68,7 @@ async def test_ctor_super_inits():
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
-    from google.cloud.client import _ClientProjectMixin
+    from google.cloud.client import ClientWithProject
     from google.api_core import client_options as client_options_lib
 
     project = "project-id"
@@ -78,11 +78,9 @@ async def test_ctor_super_inits():
     options_parsed = client_options_lib.from_dict(client_options)
     transport_str = f"pooled_grpc_asyncio_{pool_size}"
     with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
-        with mock.patch.object(
-            _ClientProjectMixin, "__init__"
-        ) as client_project_mixin_init:
-            client_project_mixin_init.__code__ = mock.Mock()
-            client_project_mixin_init.__code__.co_varnames = "credentials"
+        bigtable_client_init.return_value = None
+        with mock.patch.object(ClientWithProject, "__init__") as client_project_init:
+            client_project_init.return_value = None
             try:
                 _make_one(
                     project=project,
@@ -99,10 +97,11 @@ async def test_ctor_super_inits():
             assert kwargs["credentials"] == credentials
             assert kwargs["client_options"] == options_parsed
             # test mixin superclass init was called
-            assert client_project_mixin_init.call_count == 1
-            kwargs = client_project_mixin_init.call_args[1]
+            assert client_project_init.call_count == 1
+            kwargs = client_project_init.call_args[1]
             assert kwargs["project"] == project
             assert kwargs["credentials"] == credentials
+            assert kwargs["client_options"] == options_parsed
 
 
 @pytest.mark.asyncio
@@ -114,17 +113,22 @@ async def test_ctor_dict_options():
     from google.cloud.bigtable.client import BigtableDataClient
 
     client_options = {"api_endpoint": "foo.bar:1234"}
+    with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        try:
+            _make_one(client_options=client_options)
+        except TypeError:
+            pass
+        bigtable_client_init.assert_called_once()
+        kwargs = bigtable_client_init.call_args[1]
+        called_options = kwargs["client_options"]
+        assert called_options.api_endpoint == "foo.bar:1234"
+        assert isinstance(called_options, ClientOptions)
     with mock.patch.object(
         BigtableDataClient, "start_background_channel_refresh"
     ) as start_background_refresh:
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
-            _make_one(client_options=client_options)
-            bigtable_client_init.assert_called_once()
-            kwargs = bigtable_client_init.call_args[1]
-            called_options = kwargs["client_options"]
-            assert called_options.api_endpoint == "foo.bar:1234"
-            assert isinstance(called_options, ClientOptions)
-            start_background_refresh.assert_called_once()
+        client = _make_one(client_options=client_options)
+        start_background_refresh.assert_called_once()
+        await client.close()
 
 
 @pytest.mark.asyncio
@@ -553,7 +557,9 @@ async def test_get_table():
     assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client.instance_path(client.project, expected_instance_id)
+    full_instance_name = client._gapic_client.instance_path(
+        client.project, expected_instance_id
+    )
     assert full_instance_name in client._active_instances
     await client.close()
 
@@ -672,7 +678,9 @@ async def test_table_ctor():
     assert table.instance == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client.instance_path(client.project, expected_instance_id)
+    full_instance_name = client._gapic_client.instance_path(
+        client.project, expected_instance_id
+    )
     assert full_instance_name in client._active_instances
     # ensure task reaches completion
     await table._register_instance_task

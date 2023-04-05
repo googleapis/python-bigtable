@@ -29,7 +29,7 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
-from google.cloud.client import _ClientProjectMixin
+from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 
 
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
-class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
+class BigtableDataClient(ClientWithProject):
     def __init__(
         self,
         *,
@@ -95,19 +95,21 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
-        mixin_args = {"project": project, "credentials": credentials}
-        # support google-api-core <=1.5.0, which does not have credentials
-        if "credentials" not in _ClientProjectMixin.__init__.__code__.co_varnames:
-            mixin_args.pop("credentials")
         # initialize client
-        _ClientProjectMixin.__init__(self, **mixin_args)
-        # raises RuntimeError if called outside of an async run loop context
-        BigtableAsyncClient.__init__(
+        ClientWithProject.__init__(
             self,
+            credentials=credentials,
+            project=project,
+            client_options=client_options,
+        )
+        self._gapic_client = BigtableAsyncClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
+        )
+        self.transport = cast(
+            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
@@ -140,14 +142,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
                     )
                 self._channel_refresh_tasks.append(refresh_task)
 
-    @property
-    def transport(self) -> PooledBigtableGrpcAsyncIOTransport:
-        """Returns the transport used by the client instance.
-        Returns:
-            BigtableTransport: The transport used by the client instance.
-        """
-        return cast(PooledBigtableGrpcAsyncIOTransport, self._client.transport)
-
     async def close(self, timeout: float = 2.0):
         """
         Cancel all background tasks
@@ -158,12 +152,6 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         await asyncio.wait_for(group, timeout=timeout)
         await self.transport.close()
         self._channel_refresh_tasks = []
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """
-        Cleanly close context manager on exit
-        """
-        await self.close()
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel
@@ -232,7 +220,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
         """
-        instance_name = self.instance_path(self.project, instance_id)
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             if self._channel_refresh_tasks:
@@ -256,7 +244,7 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
         Returns:
             - True if instance was removed
         """
-        instance_name = self.instance_path(self.project, instance_id)
+        instance_name = self._gapic_client.instance_path(self.project, instance_id)
         try:
             self._active_instances.remove(instance_name)
             return True
@@ -281,6 +269,14 @@ class BigtableDataClient(BigtableAsyncClient, _ClientProjectMixin):
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
         return Table(self, instance_id, table_id, app_profile_id)
+
+    async def __aenter__(self):
+        self.start_background_channel_refresh()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+        await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
 class Table:
