@@ -25,7 +25,7 @@ import google.auth.credentials
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.row_response import RowResponse
+    from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
@@ -109,7 +109,7 @@ class Table:
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> AsyncIterable[RowResponse]:
+    ) -> AsyncIterable[Row]:
         """
         Returns a generator to asynchronously stream back row data.
 
@@ -166,7 +166,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> list[RowResponse]:
+    ) -> list[Row]:
         """
         Helper function that returns a full list instead of a generator
 
@@ -184,7 +184,7 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> RowResponse:
+    ) -> Row:
         """
         Helper function to return a single row
 
@@ -206,7 +206,7 @@ class Table:
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> AsyncIterable[RowResponse]:
+    ) -> AsyncIterable[Row]:
         """
         Runs a sharded query in parallel
 
@@ -410,7 +410,7 @@ class Table:
         *,
         operation_timeout: int | float | None = 60,
         metadata: list[tuple[str, str]] | None = None,
-    ) -> RowResponse:
+    ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
         and returns the contents of all modified cells
@@ -429,7 +429,7 @@ class Table:
                 Failed requests will not be retried.
             - metadata: Strings which should be sent along with the request as metadata headers.
         Returns:
-            - RowResponse: containing cell data that was modified as part of the
+            - Row: containing cell data that was modified as part of the
                 operation
         Raises:
             - GoogleAPIError exceptions from grpc call
