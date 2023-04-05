@@ -682,7 +682,6 @@ class ReadRowsIterator(AsyncIterable[Row]):
     """
 
     def __init__(self, merger: RowMerger):
-        self.stream = merger.__aiter__()
         self.merger : RowMerger = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
@@ -718,7 +717,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             raise self.last_raised
         try:
             self.last_interaction_time = time.time()
-            next_item = await self.stream.__anext__()
+            next_item = await self.merger.__anext__()
             if isinstance(next_item, RequestStats):
                 self.request_stats = next_item
                 return await self.__anext__()

@@ -31,6 +31,7 @@ from typing import (
     Set,
     Any,
     AsyncIterable,
+    AsyncIterator,
     AsyncGenerator,
 )
 
@@ -77,8 +78,6 @@ class RowMerger(AsyncIterable[Row]):
             per_request_timeout,
             revise_on_retry,
         )
-
-    def __aiter__(self) -> AsyncGenerator[Row|RequestStats, None]:
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
                 InvalidChunk,
@@ -92,7 +91,13 @@ class RowMerger(AsyncIterable[Row]):
             maximum=1,
             is_generator=True,
         )
-        return retry(self.partial_retryable)()
+        self.stream = retry(self.partial_retryable)()
+
+    def __aiter__(self) -> AsyncIterator[Row|RequestStats]:
+        return self
+
+    async def __anext__(self) -> Row | RequestStats:
+        return await self.stream.__anext__()
 
     @staticmethod
     async def _generator_to_cache(
