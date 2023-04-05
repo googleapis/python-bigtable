@@ -63,18 +63,18 @@ class RowMerger(AsyncIterable[Row]):
         per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
     ):
-        self.revise_on_retry = revise_on_retry
         self.last_seen_row_key: bytes | None = None
         self.emitted_rows: Set[bytes] = set()
         self.request = request
 
         # lock in paramters for retryable wrapper
         partial_retryable = partial(
+            client.read_rows,
             self.retryable_merge_rows,
             cache_size,
             per_row_timeout,
             per_request_timeout,
-            client.read_rows,
+            revise_on_retry,
         )
 
         retry = retries.AsyncRetry(
@@ -97,8 +97,9 @@ class RowMerger(AsyncIterable[Row]):
     async def __anext__(self):
         return await self.retryable_stream().__anext__()
 
+    @staticmethod
     async def _generator_to_cache(
-        self, cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
+        cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
     ) -> None:
         """
         Helper function to push items from an async generator into a cache
@@ -107,11 +108,24 @@ class RowMerger(AsyncIterable[Row]):
             await cache.put(item)
 
     async def retryable_merge_rows(
-        self, cache_size, per_row_timeout, per_request_timeout, gapic_fn
-    ):
-        if self.revise_on_retry and self.last_seen_row_key is not None:
+        self, gapic_fn,  cache_size, per_row_timeout, per_request_timeout, revise_on_retry
+    ) -> AsyncGenerator[Row | RequestStats, None]:
+        """
+        Retryable wrapper for merge_rows. This function is called each time
+        a retry is attempted.
+
+        Some fresh state is created on each retry:
+          - grpc network stream
+          - cache for the stream
+          - state machine to hold merge chunks received from stream
+        Some state is shared between retries:
+          - last_seen_row_key and emitted_rows are used to ensure that
+            duplicate rows are not emitted
+          - request is stored and (optionally) modified on each retry
+        """
+        if revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self.request["rows"] = self._revise_request_rowset(
+            self.request["rows"] = RowMerger._revise_request_rowset(
                 self.request.get("rows", None),
                 self.last_seen_row_key,
                 self.emitted_rows,
@@ -120,8 +134,8 @@ class RowMerger(AsyncIterable[Row]):
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(cache_size)
         state_machine = StateMachine()
         stream_task = asyncio.create_task(
-            self._generator_to_cache(
-                cache, self.merge_row_response_stream(new_gapic_stream, state_machine)
+            RowMerger._generator_to_cache(
+                cache, RowMerger.merge_row_response_stream(new_gapic_stream, state_machine)
             )
         )
         try:
