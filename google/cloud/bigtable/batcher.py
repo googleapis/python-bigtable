@@ -94,7 +94,7 @@ class BatchInfo:
 
 class FlowControl(object):
     def __init__(
-        self, max_mutations=MAX_OUTSTANDING_BYTES, max_row_bytes=MAX_MUTATION_SIZE
+        self, max_mutations=MAX_OUTSTANDING_ELEMENTS, max_row_bytes=MAX_OUTSTANDING_BYTES
     ):
         """Control the inflight requests. Keep track of the mutations, row bytes and row counts.
         As requests to backend are being made, adjust the number of mutations being processed.
