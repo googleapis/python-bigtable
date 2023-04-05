@@ -343,9 +343,9 @@ class Table:
         query: ReadRowsQuery | dict[str, Any],
         *,
         cache_size: int = 0,
-        operation_timeout: int | float | None = 60,
-        per_row_timeout: int | float | None = 10,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float = 60,
+        per_row_timeout: float | None = 10,
+        per_request_timeout: float | None = None,
     ) -> ReadRowsIterator:
         """
         Returns an iterator to asynchronously stream back row data.
@@ -380,8 +380,11 @@ class Table:
             - DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
             - IdleTimeout: if iterator was abandoned
         """
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_path
         if self.app_profile_id:
@@ -392,8 +395,7 @@ class Table:
         # - RowMerger.merge_row_response_stream: parses chunks into rows
         # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        row_merger = RowMerger()
-        row_merge_gen = await row_merger.start_row_merge(
+        row_merger = RowMerger(
             request,
             self.client._gapic_client,
             cache_size=cache_size,
@@ -401,7 +403,7 @@ class Table:
             per_row_timeout=per_row_timeout,
             per_request_timeout=per_request_timeout,
         )
-        output_generator = ReadRowsIterator(row_merge_gen)
+        output_generator = ReadRowsIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
         await output_generator._start_idle_timer(600)
         return output_generator
@@ -679,8 +681,9 @@ class ReadRowsIterator(AsyncIterable[Row]):
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, stream: RowMerger):
-        self.stream: RowMerger = stream
+    def __init__(self, merger: RowMerger):
+        self.stream = merger.__aiter__()
+        self.merger : RowMerger = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self.last_raised: Exception | None = None
@@ -721,11 +724,20 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 return await self.__anext__()
             else:
                 return next_item
+        except core_exceptions.RetryError as e:
+            # raised by AsyncRetry after operation deadline exceeded
+            new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {self.merger.operation_timeout:0.1f}s exceeded")
+            self._finish_with_error(new_exc)
+            raise new_exc from e
         except Exception as e:
-            self.last_raised = e
-            self._idle_timeout_task.cancel()
+            self._finish_with_error(e)
             raise e
 
+    def _finish_with_error(self, e:Exception):
+        self.last_raised = e
+        if self._idle_timeout_task is not None:
+            self._idle_timeout_task.cancel()
+        #TODO: remove resources on completion
 
 class IdleTimeout(core_exceptions.DeadlineExceeded):
     pass

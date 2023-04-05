@@ -39,7 +39,7 @@ class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
 
 
-class RowMerger():
+class RowMerger(AsyncIterable[Row]):
     """
     RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -52,11 +52,7 @@ class RowMerger():
     performing retries on stream errors.
     """
 
-    def __init__(self):
-        self.last_seen_row_key: bytes | None = None
-        self.emitted_rows: Set[bytes] = set()
-
-    async def start_row_merge(
+    def __init__(
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
@@ -66,11 +62,14 @@ class RowMerger():
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
-    ) -> AsyncGenerator[Row|RequestStats, None]:
+    ):
+        self.last_seen_row_key: bytes | None = None
+        self.emitted_rows: Set[bytes] = set()
         cache_size = max(cache_size, 0)
         self.request = request
+        self.operation_timeout = operation_timeout
         # lock in paramters for retryable wrapper
-        partial_retryable = partial(
+        self.partial_retryable = partial(
             self.retryable_merge_rows,
             client.read_rows,
             cache_size,
@@ -78,19 +77,22 @@ class RowMerger():
             per_request_timeout,
             revise_on_retry,
         )
+
+    def __aiter__(self) -> AsyncGenerator[Row|RequestStats, None]:
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
                 InvalidChunk,
                 core_exceptions.DeadlineExceeded,
                 core_exceptions.ServiceUnavailable,
+                asyncio.TimeoutError,
             ),
-            timeout=operation_timeout,
+            timeout=self.operation_timeout,
             initial=0.1,
             multiplier=2,
             maximum=1,
             is_generator=True,
         )
-        return retry(partial_retryable)()
+        return retry(self.partial_retryable)()
 
     @staticmethod
     async def _generator_to_cache(
@@ -142,11 +144,8 @@ class RowMerger():
                 else:
                     # wait for either the stream to finish, or a new item to enter the cache
                     get_from_cache = asyncio.create_task(cache.get())
-                    get_from_cache_w_timeout = asyncio.wait_for(
-                        get_from_cache, per_row_timeout
-                    )
                     first_finish = asyncio.wait(
-                        [stream_task, get_from_cache_w_timeout],
+                        [stream_task, get_from_cache],
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                     await asyncio.wait_for(first_finish, per_row_timeout)
@@ -170,6 +169,9 @@ class RowMerger():
             # stream and cache are complete. if there's an exception, raise it
             if stream_task.exception():
                 raise cast(Exception, stream_task.exception())
+        except asyncio.TimeoutError:
+            # per_row_timeout from asyncio.wait_for
+            raise core_exceptions.DeadlineExceeded("per_row_timeout of {per_row_timeout:0.1f}s exceeded")
         finally:
             stream_task.cancel()
 

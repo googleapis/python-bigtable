@@ -121,3 +121,19 @@ async def test_read_rows_cache_size(input_cache_size, expected_cache_size):
                     pass
                 queue.assert_called_once_with(maxsize=expected_cache_size)
 
+@pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
+@pytest.mark.asyncio
+async def test_read_rows_operation_timeout(operation_timeout):
+    from google.api_core import exceptions as core_exceptions
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        chunks = [_make_chunk(row_key=b"test_1")]
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks, sleep_time=1)
+            gen = await table.read_rows_stream(query, operation_timeout=operation_timeout)
+            try:
+                [row async for row in gen]
+            except core_exceptions.DeadlineExceeded as e:
+                assert e.message == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+
