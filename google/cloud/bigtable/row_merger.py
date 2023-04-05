@@ -136,8 +136,11 @@ class RowMerger(AsyncIterable[Row]):
                         and new_item.row_key not in self.emitted_rows
                     ):
                         self.last_seen_row_key = new_item.row_key
-                        self.emitted_rows.add(new_item.row_key)
-                        yield new_item
+                        # don't yeild _LastScannedRow markers; they
+                        # should only update last_seen_row_key
+                        if not isinstance(new_item, _LastScannedRow):
+                            self.emitted_rows.add(new_item.row_key)
+                            yield new_item
                 else:
                     # wait for either the stream to finish, or a new item to enter the cache
                     get_from_cache = asyncio.wait_for(cache.get(), per_row_timeout)
