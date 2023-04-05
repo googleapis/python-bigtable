@@ -46,11 +46,11 @@ from google.api_core import exceptions as core_exceptions
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
+from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
@@ -391,19 +391,19 @@ class Table:
         # - RowMerger.merge_row_response_stream: parses chunks into rows
         # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        generator = ReadRowsIterator(
-            RowMerger(
-                request,
-                self.client._gapic_client,
-                cache_size=cache_size,
-                operation_timeout=operation_timeout,
-                per_row_timeout=per_row_timeout,
-                per_request_timeout=per_request_timeout,
-            )
+        row_merger = RowMerger()
+        row_merge_gen = await row_merger.start_row_merge(
+            request,
+            self.client._gapic_client,
+            cache_size=cache_size,
+            operation_timeout=operation_timeout,
+            per_row_timeout=per_row_timeout,
+            per_request_timeout=per_request_timeout,
         )
+        output_generator = ReadRowsIterator(row_merge_gen)
         # add idle timeout to clear resources if generator is abandoned
-        await generator._start_idle_timer(600)
-        return generator
+        await output_generator._start_idle_timer(600)
+        return output_generator
 
     async def read_rows(
         self,
@@ -704,7 +704,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 # idle timeout has expired
                 self.last_raised = IdleTimeout("idle timeout expired")
 
-    async def __aiter__(self):
+    def __aiter__(self):
         return self
 
     async def __anext__(self) -> Row:
@@ -712,7 +712,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             raise self.last_raised
         try:
             self.last_interaction_time = time.time()
-            next_item = await self.stream.__aiter__().__anext__()
+            next_item = await self.stream.__anext__()
             if isinstance(next_item, RequestStats):
                 self.request_stats = next_item
                 return await self.__anext__()

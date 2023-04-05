@@ -39,7 +39,7 @@ class InvalidChunk(RuntimeError):
     """Exception raised to invalid chunk data from back-end."""
 
 
-class RowMerger(AsyncIterable[Row]):
+class RowMerger():
     """
     RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -52,7 +52,11 @@ class RowMerger(AsyncIterable[Row]):
     performing retries on stream errors.
     """
 
-    def __init__(
+    def __init__(self):
+        self.last_seen_row_key: bytes | None = None
+        self.emitted_rows: Set[bytes] = set()
+
+    async def start_row_merge(
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
@@ -62,11 +66,10 @@ class RowMerger(AsyncIterable[Row]):
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
-    ):
-        self.last_seen_row_key: bytes | None = None
-        self.emitted_rows: Set[bytes] = set()
+    ) -> AsyncGenerator[Row|RequestStats, None]:
+        if cache_size is None:
+            cache_size = 0
         self.request = request
-
         # lock in paramters for retryable wrapper
         partial_retryable = partial(
             self.retryable_merge_rows,
@@ -76,7 +79,6 @@ class RowMerger(AsyncIterable[Row]):
             per_request_timeout,
             revise_on_retry,
         )
-
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
                 InvalidChunk,
@@ -89,13 +91,7 @@ class RowMerger(AsyncIterable[Row]):
             maximum=1,
             is_generator=True,
         )
-        self.retryable_stream = retry(partial_retryable)
-
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        return await self.retryable_stream().__anext__()
+        return retry(partial_retryable)()
 
     @staticmethod
     async def _generator_to_cache(
@@ -108,7 +104,7 @@ class RowMerger(AsyncIterable[Row]):
             await cache.put(item)
 
     async def retryable_merge_rows(
-        self, gapic_fn,  cache_size, per_row_timeout, per_request_timeout, revise_on_retry
+        self, gapic_fn, cache_size, per_row_timeout, per_request_timeout, revise_on_retry
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
