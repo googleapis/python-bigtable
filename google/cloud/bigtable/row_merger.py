@@ -69,8 +69,8 @@ class RowMerger(AsyncIterable[Row]):
 
         # lock in paramters for retryable wrapper
         partial_retryable = partial(
-            client.read_rows,
             self.retryable_merge_rows,
+            client.read_rows,
             cache_size,
             per_row_timeout,
             per_request_timeout,
