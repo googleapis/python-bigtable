@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
-from .row_response import row_key
+from .row import row_key
 from dataclasses import dataclass
 from google.cloud.bigtable.row_filters import RowFilter
 
