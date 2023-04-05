@@ -44,7 +44,7 @@ class MutationsBatchError(Exception):
 class _MutationsBatchQueue(object):
     """Private Threadsafe Queue to hold rows for batching."""
 
-    def __init__(self, max_row_bytes=MAX_MUTATION_SIZE, flush_count=FLUSH_COUNT):
+    def __init__(self, max_mutation_bytes=MAX_MUTATION_SIZE, flush_count=FLUSH_COUNT):
         """Specify the queue constraints"""
         self._queue = queue.Queue()
         self.total_mutation_count = 0
