@@ -20,7 +20,6 @@ from typing import (
     Any,
     Optional,
     AsyncIterable,
-    AsyncGenerator,
     Set,
     TYPE_CHECKING,
 )
@@ -40,11 +39,9 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable.row_merger import RowMerger
-from google.cloud.bigtable.row_merger import InvalidChunk
 from google.cloud.bigtable_v2.types import RequestStats
 
 import google.auth.credentials
-from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 import google.auth._default
 from google.api_core import client_options as client_options_lib
@@ -53,7 +50,6 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.row import Row
-    from google.cloud.bigtable.row import _LastScannedRow
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
@@ -322,8 +318,13 @@ class Table:
           - RuntimeError if called outside of an async run loop context
         """
         self.client = client
-        self.instance = instance_id
-        self.table_id = table_id
+
+        self.instance_path = self.client._gapic_client.instance_path(
+            self.client.project, instance_id
+        )
+        self.table_path = self.client._gapic_client.table_path(
+            self.client.project, instance_id, table_id
+        )
         self.app_profile_id = app_profile_id
         # raises RuntimeError if called outside of an async run loop context
         try:
@@ -382,7 +383,7 @@ class Table:
             - IdleTimeout: if iterator was abandoned
         """
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self.client.table_path(self.table_id)
+        request["table_name"] = self.table_path
         request["app_profile_id"] = self.app_profile_id
 
         # read_rows smart retries is implemented using a series of generators:
@@ -393,7 +394,7 @@ class Table:
         generator = ReadRowsIterator(
             RowMerger(
                 request,
-                self.client,
+                self.client._gapic_client,
                 cache_size=cache_size,
                 operation_timeout=operation_timeout,
                 per_row_timeout=per_row_timeout,
