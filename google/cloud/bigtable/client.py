@@ -692,6 +692,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
         self._idle_timeout_task = asyncio.create_task(
             self._idle_timeout_coroutine(idle_timeout)
         )
+        if sys.version_info >= (3, 8):
+            self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         while self.last_raised is None:
@@ -720,6 +722,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 return next_item
         except Exception as e:
             self.last_raised = e
+            self._idle_timeout_task.cancel()
             raise e
 
 
