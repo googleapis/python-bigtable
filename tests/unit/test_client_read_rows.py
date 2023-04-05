@@ -46,12 +46,14 @@ def _make_chunk(*args, **kwargs):
 
     return ReadRowsResponse.CellChunk(*args, **kwargs)
 
+
 async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
     from google.cloud.bigtable_v2 import ReadRowsResponse
     async def inner():
         for chunk in chunk_list:
             yield ReadRowsResponse(chunks=[chunk])
     return inner()
+
 
 @pytest.mark.asyncio
 async def test_read_rows_stream():

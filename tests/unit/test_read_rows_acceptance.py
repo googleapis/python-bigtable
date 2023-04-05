@@ -5,11 +5,19 @@ import pytest
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
+from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk, StateMachine
 from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
 
+# try/except added for compatibility with python < 3.8
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock  # type: ignore
+except ImportError:  # pragma: NO COVER
+    import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore
 
 def parse_readrows_acceptance_tests():
     dirname = os.path.dirname(__file__)
@@ -41,7 +49,7 @@ def extract_results_from_row(row: Row):
     "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
 )
 @pytest.mark.asyncio
-async def test_scenario(test_case: ReadRowsTest):
+async def test_row_merger_scenario(test_case: ReadRowsTest):
     async def _scenerio_stream():
         for chunk in test_case.chunks:
             yield ReadRowsResponse(chunks=[chunk])
@@ -64,6 +72,42 @@ async def test_scenario(test_case: ReadRowsTest):
             raise InvalidChunk("state machine has partial frame after reading")
     except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
+    for expected, actual in zip_longest(test_case.results, results):
+        assert actual == expected
+
+@pytest.mark.parametrize(
+    "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
+)
+@pytest.mark.asyncio
+async def test_read_rows_scenario(test_case: ReadRowsTest):
+    async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
+        from google.cloud.bigtable_v2 import ReadRowsResponse
+        async def inner():
+            for chunk in chunk_list:
+                yield ReadRowsResponse(chunks=[chunk])
+        return inner()
+    try:
+        client = BigtableDataClient()
+        table = client.get_table("instance", "table")
+        results = []
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(test_case.chunks)
+            async for row in await table.read_rows_stream(query={}, operation_timeout=0.5):
+                for cell in row:
+                    cell_result = ReadRowsTest.Result(
+                        row_key=cell.row_key,
+                        family_name=cell.family,
+                        qualifier=cell.column_qualifier,
+                        timestamp_micros=cell.timestamp_micros,
+                        value=cell.value,
+                        label=cell.labels[0] if cell.labels else "",
+                    )
+                    results.append(cell_result)
+    except Exception as e:
+        assert isinstance(e.cause, InvalidChunk)
+        results.append(ReadRowsTest.Result(error=True))
+    finally:
+        await client.close()
     for expected, actual in zip_longest(test_case.results, results):
         assert actual == expected
 
