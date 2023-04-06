@@ -177,9 +177,9 @@ class _RowMerger(AsyncIterable[Row]):
         if revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             self.request["rows"] = _RowMerger._revise_request_rowset(
-                self.request.get("rows", None),
-                self.last_seen_row_key,
-                self.emitted_rows,
+                row_set=self.request.get("rows", None),
+                last_seen_row_key=self.last_seen_row_key,
+                emitted_rows=self.emitted_rows,
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)

@@ -418,3 +418,35 @@ async def test_read_rows_request_stats_missing():
             gen = await table.read_rows_stream(query)
             [row async for row in gen]
             assert gen.request_stats is None
+
+
+@pytest.mark.asyncio
+async def test_read_rows_revise_request():
+    from google.cloud.bigtable._row_merger import _RowMerger
+
+    with mock.patch.object(_RowMerger, "_revise_request_rowset") as revise_rowset:
+        with mock.patch.object(_RowMerger, "aclose"):
+            revise_rowset.side_effect = [True, core_exceptions.Aborted("mock error")]
+            async with _make_client() as client:
+                table = client.get_table("instance", "table")
+                row_keys = [b"test_1", b"test_2", b"test_3"]
+                query = ReadRowsQuery(row_keys=row_keys)
+                chunks = [_make_chunk(row_key=b"test_1"), InvalidChunk("mock error")]
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
+                        chunks, request_stats=None
+                    )
+                    try:
+                        await table.read_rows(query)
+                    except core_exceptions.Aborted:
+                        revise_rowset.assert_called()
+                        first_call_kwargs = revise_rowset.call_args_list[0].kwargs
+                        assert first_call_kwargs["row_set"] == query._to_dict()["rows"]
+                        assert first_call_kwargs["last_seen_row_key"] == b"test_1"
+                        assert first_call_kwargs["emitted_rows"] == {b"test_1"}
+                        second_call_kwargs = revise_rowset.call_args_list[1].kwargs
+                        assert second_call_kwargs["row_set"] == True
+                        assert second_call_kwargs["last_seen_row_key"] == b"test_1"
+                        assert second_call_kwargs["emitted_rows"] == {b"test_1"}
