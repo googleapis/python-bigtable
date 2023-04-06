@@ -17,6 +17,7 @@ import os
 from itertools import zip_longest
 
 import pytest
+import mock
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
@@ -26,14 +27,6 @@ from google.cloud.bigtable._row_merger import _RowMerger, _StateMachine
 from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
-
-# try/except added for compatibility with python < 3.8
-try:
-    from unittest import mock
-    from unittest.mock import AsyncMock  # type: ignore
-except ImportError:  # pragma: NO COVER
-    import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
 
 
 def parse_readrows_acceptance_tests():

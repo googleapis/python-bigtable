@@ -40,7 +40,7 @@ from typing import (
 This module provides a set of classes for merging ReadRowsResponse chunks
 into Row objects.
 
-- RowMerger is the highest level class, providing an interface for asynchronous 
+- RowMerger is the highest level class, providing an interface for asynchronous
   merging with or without retrues
 - StateMachine is used internally to track the state of the merge, including
   rows the current row and the keys of the rows that have been processed.

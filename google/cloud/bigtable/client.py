@@ -53,8 +53,6 @@ from google.cloud.bigtable.exceptions import IdleTimeout
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.row import Row
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
@@ -416,7 +414,7 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: float = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
     ) -> list[Row]:

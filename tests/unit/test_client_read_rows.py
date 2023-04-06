@@ -287,7 +287,7 @@ async def test_read_rows_per_request_timeout(per_request_t, operation_t, expecte
                         assert f"{expected_num} failed attempts" in str(retry_exc)
                         assert len(retry_exc.exceptions) == expected_num
                         for sub_exc in retry_exc.exceptions:
-                            assert sub_exc.message == f"mock deadline"
+                            assert sub_exc.message == "mock deadline"
                 assert read_rows.call_count == expected_num + 1
                 called_kwargs = read_rows.call_args[1]
                 assert called_kwargs["timeout"] == per_request_t
@@ -426,7 +426,10 @@ async def test_read_rows_revise_request():
 
     with mock.patch.object(_RowMerger, "_revise_request_rowset") as revise_rowset:
         with mock.patch.object(_RowMerger, "aclose"):
-            revise_rowset.side_effect = [True, core_exceptions.Aborted("mock error")]
+            revise_rowset.side_effect = [
+                "modified",
+                core_exceptions.Aborted("mock error"),
+            ]
             async with _make_client() as client:
                 table = client.get_table("instance", "table")
                 row_keys = [b"test_1", b"test_2", b"test_3"]
@@ -447,6 +450,6 @@ async def test_read_rows_revise_request():
                         assert first_call_kwargs["last_seen_row_key"] == b"test_1"
                         assert first_call_kwargs["emitted_rows"] == {b"test_1"}
                         second_call_kwargs = revise_rowset.call_args_list[1].kwargs
-                        assert second_call_kwargs["row_set"] == True
+                        assert second_call_kwargs["row_set"] == "modified"
                         assert second_call_kwargs["last_seen_row_key"] == b"test_1"
                         assert second_call_kwargs["emitted_rows"] == {b"test_1"}
