@@ -20,6 +20,8 @@ import pytest
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import RequestStats
+from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable.row_merger import InvalidChunk
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -149,7 +151,6 @@ async def test_read_rows_cache_size(input_cache_size, expected_cache_size):
 @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
 @pytest.mark.asyncio
 async def test_read_rows_operation_timeout(operation_timeout):
-    from google.api_core import exceptions as core_exceptions
     async with _make_client() as client:
         table = client.get_table("instance", "table")
         query = ReadRowsQuery()
@@ -167,7 +168,6 @@ async def test_read_rows_operation_timeout(operation_timeout):
 )
 @pytest.mark.asyncio
 async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
-    from google.api_core import exceptions as core_exceptions
     from google.cloud.bigtable.exceptions import RetryExceptionGroup
     # mocking uniform ensures there are no sleeps between retries
     with mock.patch("random.uniform", side_effect=lambda a,b: 0):
@@ -196,7 +196,6 @@ async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
 )
 @pytest.mark.asyncio
 async def test_read_rows_per_request_timeout(per_request_t, operation_t, expected_num):
-    from google.api_core import exceptions as core_exceptions
     from google.cloud.bigtable.exceptions import RetryExceptionGroup
     # mocking uniform ensures there are no sleeps between retries
     with mock.patch("random.uniform", side_effect=lambda a,b: 0):
@@ -255,6 +254,44 @@ async def test_read_rows_idle_timeout():
         assert e.value.message == "idle timeout expired"
         aclose.assert_called_once()
         aclose.assert_awaited()
+
+@pytest.mark.parametrize("exc_type",
+    [InvalidChunk, core_exceptions.DeadlineExceeded, core_exceptions.InternalServerError,
+    core_exceptions.ServiceUnavailable, core_exceptions.TooManyRequests, core_exceptions.ResourceExhausted]
+)
+@pytest.mark.asyncio
+async def test_read_rows_retryable_error(exc_type):
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        expected_error = exc_type("mock error")
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([expected_error])
+            gen = await table.read_rows_stream(query, operation_timeout=0.1)
+            try:
+                [row async for row in gen]
+            except core_exceptions.DeadlineExceeded as e:
+                retry_exc = e.__cause__
+                root_cause = retry_exc.exceptions[0]
+                assert type(root_cause) == exc_type
+                assert root_cause == expected_error
+
+@pytest.mark.parametrize("exc_type",
+    [core_exceptions.Cancelled, core_exceptions.PreconditionFailed, core_exceptions.NotFound,
+    core_exceptions.PermissionDenied, core_exceptions.Conflict, core_exceptions.Aborted])
+@pytest.mark.asyncio
+async def test_read_rows_non_retryable_error(exc_type):
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        expected_error = exc_type("mock error")
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([expected_error])
+            gen = await table.read_rows_stream(query, operation_timeout=0.1)
+            try:
+                [row async for row in gen]
+            except exc_type as e:
+                assert e == expected_error
 
 
 @pytest.mark.asyncio

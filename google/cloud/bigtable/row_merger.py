@@ -78,15 +78,13 @@ class RowMerger(AsyncIterable[Row]):
             per_request_timeout,
             revise_on_retry,
         )
-        self.retryable_errors = (
+        self._error_predicate = retries.if_exception_type(
             InvalidChunk,
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
+            core_exceptions.ServerError,
+            core_exceptions.TooManyRequests,
         )
         retry = retries.AsyncRetry(
-            predicate=retries.if_exception_type(
-                *self.retryable_errors
-            ),
+            predicate=self._error_predicate,
             timeout=self.operation_timeout,
             initial=0.1,
             multiplier=2,
@@ -98,7 +96,7 @@ class RowMerger(AsyncIterable[Row]):
         self.errors: List[Exception] = []
 
     def _on_error(self, exc: Exception) -> None:
-        if type(exc) in self.retryable_errors:
+        if self._error_predicate(exc):
             self.errors.append(exc)
 
     def __aiter__(self) -> AsyncIterator[Row|RequestStats]:
