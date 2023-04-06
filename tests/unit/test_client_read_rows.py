@@ -47,13 +47,16 @@ def _make_chunk(*args, **kwargs):
     return ReadRowsResponse.CellChunk(*args, **kwargs)
 
 
-async def _make_gapic_stream(chunk_list: list[ReadRowsResponse], sleep_time=0):
+async def _make_gapic_stream(chunk_list: list[ReadRowsResponse.CellChunk|Exception], sleep_time=0):
     from google.cloud.bigtable_v2 import ReadRowsResponse
     async def inner():
         for chunk in chunk_list:
             if sleep_time:
                 await asyncio.sleep(sleep_time)
-            yield ReadRowsResponse(chunks=[chunk])
+            if isinstance(chunk, Exception):
+                raise chunk
+            else:
+                yield ReadRowsResponse(chunks=[chunk])
     return inner()
 
 
@@ -143,6 +146,7 @@ async def test_read_rows_operation_timeout(operation_timeout):
 @pytest.mark.asyncio
 async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
     from google.api_core import exceptions as core_exceptions
+    from google.cloud.bigtable.exceptions import RetryExceptionGroup
     # mocking uniform ensures there are no sleeps between retries
     with mock.patch("random.uniform", side_effect=lambda a,b: 0):
         async with _make_client() as client:
@@ -159,8 +163,40 @@ async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
                     if expected_num == 0:
                         assert retry_exc is None
                     else:
+                        assert type(retry_exc) == RetryExceptionGroup
                         assert f"{expected_num} failed attempts" in str(retry_exc)
                         assert len(retry_exc.exceptions) == expected_num
                         for sub_exc in retry_exc.exceptions:
                             assert sub_exc.message == f"per_row_timeout of {per_row_t:0.1f}s exceeded"
 
+@pytest.mark.parametrize("per_request_t, operation_t, expected_num", 
+    [(0.1, 0.01, 0), (0.01, 0.015, 1), (0.05, 0.54, 10), (0.05, 0.14, 2), (0.05, 0.21, 4)]
+)
+@pytest.mark.asyncio
+async def test_read_rows_per_request_timeout(per_request_t, operation_t, expected_num):
+    from google.api_core import exceptions as core_exceptions
+    from google.cloud.bigtable.exceptions import RetryExceptionGroup
+    # mocking uniform ensures there are no sleeps between retries
+    with mock.patch("random.uniform", side_effect=lambda a,b: 0):
+        async with _make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
+            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks, sleep_time=per_request_t)
+                gen = await table.read_rows_stream(query, operation_timeout=operation_t, per_request_timeout=per_request_t)
+                try:
+                    [row async for row in gen]
+                except core_exceptions.DeadlineExceeded as e:
+                    retry_exc = e.__cause__
+                    if expected_num == 0:
+                        assert retry_exc is None
+                    else:
+                        assert type(retry_exc) == RetryExceptionGroup
+                        assert f"{expected_num} failed attempts" in str(retry_exc)
+                        assert len(retry_exc.exceptions) == expected_num
+                        for sub_exc in retry_exc.exceptions:
+                            assert sub_exc.message == f"mock deadline"
+                assert read_rows.call_count == expected_num+1
+                called_kwargs = read_rows.call_args[1]
+                assert called_kwargs["timeout"] == per_request_t
