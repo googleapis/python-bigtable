@@ -399,7 +399,7 @@ class Table:
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
-        # read_rows smart retries is implemented using a series of generators:
+        # read_rows smart retries is implemented using a series of iterators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
         # - RowMerger.merge_row_response_stream: parses chunks into rows
         # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
