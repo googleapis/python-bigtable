@@ -208,7 +208,7 @@ async def test_read_rows_idle_timeout():
     from google.cloud.bigtable.exceptions import IdleTimeout
     chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
     with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
-        read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([_make_chunk(row_key=b"test_1")])
+        read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
         with mock.patch.object(ReadRowsIterator, "_start_idle_timer") as start_idle_timer:
             client = _make_client()
             table = client.get_table("instance", "table")
@@ -221,8 +221,12 @@ async def test_read_rows_idle_timeout():
     # should timeout after being abandoned
     await gen.__anext__()
     await asyncio.sleep(0.2)
+    # generator should be expired
+    assert not gen.active()
+    assert type(gen._merger_or_error) == IdleTimeout
+    assert gen._idle_timeout_task is None
+    await client.close()
     with pytest.raises(IdleTimeout) as e:
         await gen.__anext__()
     assert e.value.message == "idle timeout expired"
-    await client.close()
 

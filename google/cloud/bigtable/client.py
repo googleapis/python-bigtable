@@ -684,10 +684,9 @@ class ReadRowsIterator(AsyncIterable[Row]):
     """
 
     def __init__(self, merger: RowMerger):
-        self.merger : RowMerger = merger
+        self._merger_or_error : RowMerger | Exception = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
-        self.last_raised: Exception | None = None
         self._idle_timeout_task: asyncio.Task[None] | None = None
 
     async def _start_idle_timer(self, idle_timeout: float):
@@ -700,13 +699,16 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if sys.version_info >= (3, 8):
             self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
 
+    def active(self):
+        return isinstance(self._merger_or_error, RowMerger)
+
     async def _idle_timeout_coroutine(self, idle_timeout: float):
-        while self.last_raised is None:
+        while self.active():
             next_timeout = self.last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.time())
             if (
                 self.last_interaction_time + idle_timeout < time.time()
-                and self.last_raised is None
+                and self.active()
             ):
                 # idle timeout has expired
                 self._finish_with_error(IdleTimeout("idle timeout expired"))
@@ -715,32 +717,33 @@ class ReadRowsIterator(AsyncIterable[Row]):
         return self
 
     async def __anext__(self) -> Row:
-        if self.last_raised:
-            raise self.last_raised
-        try:
-            self.last_interaction_time = time.time()
-            next_item = await self.merger.__anext__()
-            if isinstance(next_item, RequestStats):
-                self.request_stats = next_item
-                return await self.__anext__()
-            else:
-                return next_item
-        except core_exceptions.RetryError as e:
-            # raised by AsyncRetry after operation deadline exceeded
-            new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {self.merger.operation_timeout:0.1f}s exceeded")
-            source_exc = None
-            if self.merger.errors:
-                source_exc = RetryExceptionGroup(f"{len(self.merger.errors)} failed attempts", self.merger.errors)
-            new_exc.__cause__ = source_exc
-            self._finish_with_error(new_exc)
-            raise new_exc from source_exc
-        except Exception as e:
-            self._finish_with_error(e)
-            raise e
+        if isinstance(self._merger_or_error, Exception):
+            raise self._merger_or_error
+        else:
+            merger = cast(RowMerger, self._merger_or_error)
+            try:
+                self.last_interaction_time = time.time()
+                next_item = await merger.__anext__()
+                if isinstance(next_item, RequestStats):
+                    self.request_stats = next_item
+                    return await self.__anext__()
+                else:
+                    return next_item
+            except core_exceptions.RetryError:
+                # raised by AsyncRetry after operation deadline exceeded
+                new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded")
+                source_exc = None
+                if merger.errors:
+                    source_exc = RetryExceptionGroup(f"{len(merger.errors)} failed attempts", merger.errors)
+                new_exc.__cause__ = source_exc
+                self._finish_with_error(new_exc)
+                raise new_exc from source_exc
+            except Exception as e:
+                self._finish_with_error(e)
+                raise e
 
     def _finish_with_error(self, e:Exception):
-        self.last_raised = e
+        self._merger_or_error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
             self._idle_timeout_task = None
-        #TODO: remove resources on completion
