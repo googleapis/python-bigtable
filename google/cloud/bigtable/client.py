@@ -711,7 +711,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 and self.active()
             ):
                 # idle timeout has expired
-                self._finish_with_error(IdleTimeout("idle timeout expired"))
+                await self._finish_with_error(IdleTimeout("idle timeout expired"))
 
     def __aiter__(self):
         return self
@@ -736,14 +736,17 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 if merger.errors:
                     source_exc = RetryExceptionGroup(f"{len(merger.errors)} failed attempts", merger.errors)
                 new_exc.__cause__ = source_exc
-                self._finish_with_error(new_exc)
+                await self._finish_with_error(new_exc)
                 raise new_exc from source_exc
             except Exception as e:
-                self._finish_with_error(e)
+                await self._finish_with_error(e)
                 raise e
 
-    def _finish_with_error(self, e:Exception):
-        self._merger_or_error = e
+    async def _finish_with_error(self, e:Exception):
+        if isinstance(self._merger_or_error, RowMerger):
+            await self._merger_or_error.aclose()
+            del self._merger_or_error
+            self._merger_or_error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
             self._idle_timeout_task = None

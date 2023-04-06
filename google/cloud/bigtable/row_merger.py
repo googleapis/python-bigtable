@@ -94,7 +94,7 @@ class RowMerger(AsyncIterable[Row]):
             on_error=self._on_error,
             is_generator=True,
         )
-        self.stream = retry(self.partial_retryable)()
+        self.stream: AsyncGenerator[Row|RequestStats, None] | None = retry(self.partial_retryable)()
         self.errors: List[Exception] = []
 
     def _on_error(self, exc: Exception) -> None:
@@ -105,7 +105,19 @@ class RowMerger(AsyncIterable[Row]):
         return self
 
     async def __anext__(self) -> Row | RequestStats:
-        return await self.stream.__anext__()
+        if isinstance(self.stream, AsyncGenerator):
+            return await self.stream.__anext__()
+        else:
+            raise asyncio.InvalidStateError("stream is closed")
+
+    async def aclose(self):
+        # release resources
+        if isinstance(self.stream, AsyncGenerator):
+            await self.stream.aclose()
+        del self.stream
+        self.stream = None
+        self.emitted_rows.clear()
+        self.last_seen_row_key = None
 
     @staticmethod
     async def _generator_to_cache(

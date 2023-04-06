@@ -206,6 +206,7 @@ async def test_read_rows_idle_timeout():
     from google.cloud.bigtable.client import ReadRowsIterator
     from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
     from google.cloud.bigtable.exceptions import IdleTimeout
+    from google.cloud.bigtable.row_merger import RowMerger
     chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
     with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
         read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
@@ -216,17 +217,20 @@ async def test_read_rows_idle_timeout():
             gen = await table.read_rows_stream(query)
         # should start idle timer on creation
         start_idle_timer.assert_called_once()
-    # start idle timer with our own value
-    await gen._start_idle_timer(0.1)
-    # should timeout after being abandoned
-    await gen.__anext__()
-    await asyncio.sleep(0.2)
-    # generator should be expired
-    assert not gen.active()
-    assert type(gen._merger_or_error) == IdleTimeout
-    assert gen._idle_timeout_task is None
-    await client.close()
-    with pytest.raises(IdleTimeout) as e:
+    with mock.patch.object(RowMerger, "aclose", AsyncMock()) as aclose:
+        # start idle timer with our own value
+        await gen._start_idle_timer(0.1)
+        # should timeout after being abandoned
         await gen.__anext__()
-    assert e.value.message == "idle timeout expired"
+        await asyncio.sleep(0.2)
+        # generator should be expired
+        assert not gen.active()
+        assert type(gen._merger_or_error) == IdleTimeout
+        assert gen._idle_timeout_task is None
+        await client.close()
+        with pytest.raises(IdleTimeout) as e:
+            await gen.__anext__()
+        assert e.value.message == "idle timeout expired"
+        aclose.assert_called_once()
+        aclose.assert_awaited()
 
