@@ -48,6 +48,7 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.exceptions import IdleTimeout
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -708,7 +709,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 and self.last_raised is None
             ):
                 # idle timeout has expired
-                self.last_raised = IdleTimeout("idle timeout expired")
+                self._finish_with_error(IdleTimeout("idle timeout expired"))
 
     def __aiter__(self):
         return self
@@ -741,7 +742,5 @@ class ReadRowsIterator(AsyncIterable[Row]):
         self.last_raised = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
+            self._idle_timeout_task = None
         #TODO: remove resources on completion
-
-class IdleTimeout(core_exceptions.DeadlineExceeded):
-    pass

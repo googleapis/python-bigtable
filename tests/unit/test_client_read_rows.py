@@ -200,3 +200,29 @@ async def test_read_rows_per_request_timeout(per_request_t, operation_t, expecte
                 assert read_rows.call_count == expected_num+1
                 called_kwargs = read_rows.call_args[1]
                 assert called_kwargs["timeout"] == per_request_t
+
+@pytest.mark.asyncio
+async def test_read_rows_idle_timeout():
+    from google.cloud.bigtable.client import ReadRowsIterator
+    from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+    from google.cloud.bigtable.exceptions import IdleTimeout
+    chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
+    with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
+        read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([_make_chunk(row_key=b"test_1")])
+        with mock.patch.object(ReadRowsIterator, "_start_idle_timer") as start_idle_timer:
+            client = _make_client()
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            gen = await table.read_rows_stream(query)
+        # should start idle timer on creation
+        start_idle_timer.assert_called_once()
+    # start idle timer with our own value
+    await gen._start_idle_timer(0.1)
+    # should timeout after being abandoned
+    await gen.__anext__()
+    await asyncio.sleep(0.2)
+    with pytest.raises(IdleTimeout) as e:
+        await gen.__anext__()
+    assert e.value.message == "idle timeout expired"
+    await client.close()
+
