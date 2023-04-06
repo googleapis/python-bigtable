@@ -19,6 +19,7 @@ import pytest
 
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable_v2.types import RequestStats
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -34,6 +35,21 @@ def _make_client(*args, **kwargs):
 
     return BigtableDataClient(*args, **kwargs)
 
+def _make_stats():
+    from google.cloud.bigtable_v2.types import RequestStats
+    from google.cloud.bigtable_v2.types import FullReadStatsView
+    from google.cloud.bigtable_v2.types import ReadIterationStats
+
+    return RequestStats(
+        full_read_stats_view=FullReadStatsView(
+            read_iteration_stats=ReadIterationStats(
+                rows_seen_count=1,
+                rows_returned_count=2,
+                cells_seen_count=3,
+                cells_returned_count=4,
+            )
+        )
+    )
 
 def _make_chunk(*args, **kwargs):
     from google.cloud.bigtable_v2 import ReadRowsResponse
@@ -47,7 +63,11 @@ def _make_chunk(*args, **kwargs):
     return ReadRowsResponse.CellChunk(*args, **kwargs)
 
 
-async def _make_gapic_stream(chunk_list: list[ReadRowsResponse.CellChunk|Exception], sleep_time=0):
+async def _make_gapic_stream(
+        chunk_list: list[ReadRowsResponse.CellChunk|Exception],
+        request_stats: RequestStats | None = None,
+        sleep_time=0
+):
     from google.cloud.bigtable_v2 import ReadRowsResponse
     async def inner():
         for chunk in chunk_list:
@@ -57,6 +77,8 @@ async def _make_gapic_stream(chunk_list: list[ReadRowsResponse.CellChunk|Excepti
                 raise chunk
             else:
                 yield ReadRowsResponse(chunks=[chunk])
+        if request_stats:
+            yield ReadRowsResponse(request_stats=request_stats)
     return inner()
 
 
@@ -233,4 +255,30 @@ async def test_read_rows_idle_timeout():
         assert e.value.message == "idle timeout expired"
         aclose.assert_called_once()
         aclose.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_read_rows_request_stats():
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        chunks = [_make_chunk(row_key=b"test_1")]
+        stats = _make_stats()
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks, request_stats=stats)
+            gen = await table.read_rows_stream(query)
+            [row async for row in gen]
+            assert gen.request_stats == stats
+
+@pytest.mark.asyncio
+async def test_read_rows_request_stats_missing():
+    async with _make_client() as client:
+        table = client.get_table("instance", "table")
+        query = ReadRowsQuery()
+        chunks = [_make_chunk(row_key=b"test_1")]
+        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks, request_stats=None)
+            gen = await table.read_rows_stream(query)
+            [row async for row in gen]
+            assert gen.request_stats is None
 

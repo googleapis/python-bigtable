@@ -184,6 +184,7 @@ class RowMerger(AsyncIterable[Row]):
                             yield new_item
                     # start new task for cache
                     get_from_cache_task = asyncio.create_task(cache.get())
+                    asyncio.sleep(0)
                 else:
                     # wait for either the stream to finish, or a new item to enter the cache
                     first_finish = asyncio.wait(
@@ -258,7 +259,7 @@ class RowMerger(AsyncIterable[Row]):
                     yield complete_row
             # yield request stats if present
             if row_response.request_stats:
-                yield response_pb.request_stats
+                yield row_response.request_stats
         if not state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
