@@ -727,10 +727,12 @@ class ReadRowsIterator(AsyncIterable[Row]):
         except core_exceptions.RetryError as e:
             # raised by AsyncRetry after operation deadline exceeded
             new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {self.merger.operation_timeout:0.1f}s exceeded")
-            retry_errors = RetryExceptionGroup(f"{len(self.merger.errors)} failed attempts", self.merger.errors)
-            new_exc.__cause__ = retry_errors
+            source_exc = None
+            if self.merger.errors:
+                source_exc = RetryExceptionGroup(f"{len(self.merger.errors)} failed attempts", self.merger.errors)
+            new_exc.__cause__ = source_exc
             self._finish_with_error(new_exc)
-            raise new_exc from retry_errors
+            raise new_exc from source_exc
         except Exception as e:
             self._finish_with_error(e)
             raise e
