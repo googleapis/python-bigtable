@@ -47,6 +47,7 @@ import google.auth._default
 from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -726,8 +727,10 @@ class ReadRowsIterator(AsyncIterable[Row]):
         except core_exceptions.RetryError as e:
             # raised by AsyncRetry after operation deadline exceeded
             new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {self.merger.operation_timeout:0.1f}s exceeded")
+            retry_errors = RetryExceptionGroup(f"{len(self.merger.errors)} failed attempts", self.merger.errors)
+            new_exc.__cause__ = retry_errors
             self._finish_with_error(new_exc)
-            raise new_exc from e
+            raise new_exc from retry_errors
         except Exception as e:
             self._finish_with_error(e)
             raise e

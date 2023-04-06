@@ -29,7 +29,12 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
     """
 
     def __init__(self, message, excs):
-        raise NotImplementedError()
+        if is_311_plus:
+            super().__init__(message, excs)
+        else:
+            self.exceptions = excs
+            revised_message = f"{message} ({len(excs)} sub-exceptions)"
+            super().__init__(revised_message)
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):

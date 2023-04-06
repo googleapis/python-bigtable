@@ -78,20 +78,28 @@ class RowMerger(AsyncIterable[Row]):
             per_request_timeout,
             revise_on_retry,
         )
+        self.retryable_errors = (
+            InvalidChunk,
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        )
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
-                InvalidChunk,
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
-                asyncio.TimeoutError,
+                *self.retryable_errors
             ),
             timeout=self.operation_timeout,
             initial=0.1,
             multiplier=2,
             maximum=1,
+            on_error=self._on_error,
             is_generator=True,
         )
         self.stream = retry(self.partial_retryable)()
+        self.errors: List[Exception] = []
+
+    def _on_error(self, exc: Exception) -> None:
+        if type(exc) in self.retryable_errors:
+            self.errors.append(exc)
 
     def __aiter__(self) -> AsyncIterator[Row|RequestStats]:
         return self
@@ -176,7 +184,7 @@ class RowMerger(AsyncIterable[Row]):
                 raise cast(Exception, stream_task.exception())
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
-            raise core_exceptions.DeadlineExceeded("per_row_timeout of {per_row_timeout:0.1f}s exceeded")
+            raise core_exceptions.DeadlineExceeded(f"per_row_timeout of {per_row_timeout:0.1f}s exceeded")
         finally:
             stream_task.cancel()
 

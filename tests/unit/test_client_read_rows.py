@@ -137,3 +137,27 @@ async def test_read_rows_operation_timeout(operation_timeout):
             except core_exceptions.DeadlineExceeded as e:
                 assert e.message == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
 
+@pytest.mark.parametrize("per_row_t, operation_t, expected_num", 
+    [(0.01, 0.015, 1), (0.05, 0.54, 10), (0.05, 0.14, 2), (0.05, 0.21, 4)]
+)
+@pytest.mark.asyncio
+async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
+    from google.api_core import exceptions as core_exceptions
+    # mocking uniform ensures there are no sleeps between retries
+    with mock.patch("random.uniform", side_effect=lambda a,b: 0):
+        async with _make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [_make_chunk(row_key=b"test_1")]
+            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks, sleep_time=5)
+                gen = await table.read_rows_stream(query, per_row_timeout=per_row_t, operation_timeout=operation_t)
+                try:
+                    [row async for row in gen]
+                except core_exceptions.DeadlineExceeded as deadline_exc:
+                    retry_exc = deadline_exc.__cause__
+                    assert f"{expected_num} failed attempts" in str(retry_exc)
+                    assert len(retry_exc.exceptions) == expected_num
+                    for sub_exc in retry_exc.exceptions:
+                        assert sub_exc.message == f"per_row_timeout of {per_row_t:0.1f}s exceeded"
+
