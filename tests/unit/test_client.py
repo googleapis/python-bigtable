@@ -411,7 +411,9 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
             try:
                 client = _make_one(project="project-id")
                 if refresh_interval is not None:
-                    await client._manage_channel(channel_idx, refresh_interval, refresh_interval)
+                    await client._manage_channel(
+                        channel_idx, refresh_interval, refresh_interval
+                    )
                 else:
                     await client._manage_channel(channel_idx)
             except asyncio.CancelledError:
@@ -423,9 +425,11 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
             ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
     await client.close()
 
+
 @pytest.mark.asyncio
 async def test__manage_channel_random():
     import random
+
     with mock.patch.object(asyncio, "sleep") as sleep:
         with mock.patch.object(random, "uniform") as uniform:
             uniform.return_value = 0
@@ -449,6 +453,7 @@ async def test__manage_channel_random():
             for found_min, found_max in uniform_args:
                 assert found_min == min_val
                 assert found_max == max_val
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])

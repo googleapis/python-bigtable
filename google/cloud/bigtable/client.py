@@ -347,7 +347,7 @@ class Table:
         per_row_timeout: int | float | None = 10,
         idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[RowResponse]:
+    ) -> AsyncIterable[Row]:
         """
         Returns a generator to asynchronously stream back row data.
 
