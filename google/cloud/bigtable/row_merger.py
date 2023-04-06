@@ -36,7 +36,7 @@ from typing import (
 )
 
 
-class InvalidChunk(RuntimeError):
+class InvalidChunk(core_exceptions.ServerError):
     """Exception raised to invalid chunk data from back-end."""
 
 
@@ -79,7 +79,6 @@ class RowMerger(AsyncIterable[Row]):
             revise_on_retry,
         )
         predicate = retries.if_exception_type(
-            InvalidChunk,
             core_exceptions.ServerError,
             core_exceptions.TooManyRequests,
         )
