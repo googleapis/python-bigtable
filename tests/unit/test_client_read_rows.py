@@ -290,7 +290,7 @@ async def test_read_rows_idle_timeout():
         BigtableAsyncClient,
     )
     from google.cloud.bigtable.exceptions import IdleTimeout
-    from google.cloud.bigtable.row_merger import RowMerger
+    from google.cloud.bigtable._row_merger import _RowMerger
 
     chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
     with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
@@ -304,7 +304,7 @@ async def test_read_rows_idle_timeout():
             gen = await table.read_rows_stream(query)
         # should start idle timer on creation
         start_idle_timer.assert_called_once()
-    with mock.patch.object(RowMerger, "aclose", AsyncMock()) as aclose:
+    with mock.patch.object(_RowMerger, "aclose", AsyncMock()) as aclose:
         # start idle timer with our own value
         await gen._start_idle_timer(0.1)
         # should timeout after being abandoned

@@ -38,7 +38,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-from google.cloud.bigtable.row_merger import RowMerger
+from google.cloud.bigtable._row_merger import _RowMerger
 from google.cloud.bigtable_v2.types import RequestStats
 
 import google.auth.credentials
@@ -399,7 +399,7 @@ class Table:
         # - RowMerger.merge_row_response_stream: parses chunks into rows
         # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        row_merger = RowMerger(
+        row_merger = _RowMerger(
             request,
             self.client._gapic_client,
             cache_size=cache_size,
@@ -685,8 +685,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
     User-facing async generator for streaming read_rows responses
     """
 
-    def __init__(self, merger: RowMerger):
-        self._merger_or_error: RowMerger | Exception = merger
+    def __init__(self, merger: _RowMerger):
+        self._merger_or_error: _RowMerger | Exception = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
@@ -702,7 +702,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
 
     def active(self):
-        return isinstance(self._merger_or_error, RowMerger)
+        return isinstance(self._merger_or_error, _RowMerger)
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         while self.active():
@@ -722,7 +722,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if isinstance(self._merger_or_error, Exception):
             raise self._merger_or_error
         else:
-            merger = cast(RowMerger, self._merger_or_error)
+            merger = cast(_RowMerger, self._merger_or_error)
             try:
                 self.last_interaction_time = time.time()
                 next_item = await merger.__anext__()
@@ -749,7 +749,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 raise e
 
     async def _finish_with_error(self, e: Exception):
-        if isinstance(self._merger_or_error, RowMerger):
+        if isinstance(self._merger_or_error, _RowMerger):
             await self._merger_or_error.aclose()
             del self._merger_or_error
             self._merger_or_error = e

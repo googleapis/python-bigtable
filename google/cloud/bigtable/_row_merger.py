@@ -37,7 +37,7 @@ from typing import (
 )
 
 
-class RowMerger(AsyncIterable[Row]):
+class _RowMerger(AsyncIterable[Row]):
     """
     RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -150,19 +150,19 @@ class RowMerger(AsyncIterable[Row]):
         """
         if revise_on_retry and self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self.request["rows"] = RowMerger._revise_request_rowset(
+            self.request["rows"] = _RowMerger._revise_request_rowset(
                 self.request.get("rows", None),
                 self.last_seen_row_key,
                 self.emitted_rows,
             )
         new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
-        state_machine = StateMachine()
+        state_machine = _StateMachine()
         try:
             stream_task = asyncio.create_task(
-                RowMerger._generator_to_cache(
+                _RowMerger._generator_to_cache(
                     cache,
-                    RowMerger.merge_row_response_stream(
+                    _RowMerger.merge_row_response_stream(
                         new_gapic_stream, state_machine
                     ),
                 )
@@ -244,7 +244,7 @@ class RowMerger(AsyncIterable[Row]):
 
     @staticmethod
     async def merge_row_response_stream(
-        request_generator: AsyncIterable[ReadRowsResponse], state_machine: StateMachine
+        request_generator: AsyncIterable[ReadRowsResponse], state_machine: _StateMachine
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
@@ -277,7 +277,7 @@ class RowMerger(AsyncIterable[Row]):
             raise InvalidChunk("read_rows completed with partial state remaining")
 
 
-class StateMachine:
+class _StateMachine:
     """
     State Machine converts chunks into Rows
 
@@ -296,14 +296,14 @@ class StateMachine:
         # represents either the last row emitted, or the last_scanned_key sent from backend
         # all future rows should have keys > last_seen_row_key
         self.last_seen_row_key: bytes | None = None
-        self.adapter: "RowBuilder" = RowBuilder()
+        self.adapter = _RowBuilder()
         self._reset_row()
 
     def _reset_row(self) -> None:
         """
         Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
         """
-        self.current_state: State = AWAITING_NEW_ROW(self)
+        self.current_state: _State = AWAITING_NEW_ROW(self)
         self.current_family: str | None = None
         self.current_qualifier: bytes | None = None
         # self.expected_cell_size:int = 0
@@ -402,7 +402,7 @@ class StateMachine:
             raise InvalidChunk("Failed to reset state machine")
 
 
-class State(ABC):
+class _State(ABC):
     """
     Represents a state the state machine can be in
 
@@ -410,15 +410,15 @@ class State(ABC):
     transitioning to the next state
     """
 
-    def __init__(self, owner: StateMachine):
+    def __init__(self, owner: _StateMachine):
         self._owner = owner
 
     @abstractmethod
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         pass
 
 
-class AWAITING_NEW_ROW(State):
+class AWAITING_NEW_ROW(_State):
     """
     Default state
     Awaiting a chunk to start a new row
@@ -426,7 +426,7 @@ class AWAITING_NEW_ROW(State):
       - AWAITING_NEW_CELL: when a chunk with a row_key is received
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         if not chunk.row_key:
             raise InvalidChunk("New row is missing a row key")
         self._owner.adapter.start_row(chunk.row_key)
@@ -435,7 +435,7 @@ class AWAITING_NEW_ROW(State):
         return AWAITING_NEW_CELL(self._owner).handle_chunk(chunk)
 
 
-class AWAITING_NEW_CELL(State):
+class AWAITING_NEW_CELL(_State):
     """
     Represents a cell boundary witin a row
 
@@ -444,7 +444,7 @@ class AWAITING_NEW_CELL(State):
     - AWAITING_CELL_VALUE: when the value is split across multiple chunks
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         is_split = chunk.value_size > 0
         # expected_cell_size = chunk.value_size if is_split else len(chunk.value)
         # track latest cell data. New chunks won't send repeated data
@@ -477,7 +477,7 @@ class AWAITING_NEW_CELL(State):
             return AWAITING_NEW_CELL(self._owner)
 
 
-class AWAITING_CELL_VALUE(State):
+class AWAITING_CELL_VALUE(_State):
     """
     State that represents a split cell's continuation
 
@@ -486,7 +486,7 @@ class AWAITING_CELL_VALUE(State):
     - AWAITING_CELL_VALUE: when additional value chunks are required
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "State":
+    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("Found row key mid cell")
@@ -509,7 +509,7 @@ class AWAITING_CELL_VALUE(State):
             return AWAITING_NEW_CELL(self._owner)
 
 
-class RowBuilder:
+class _RowBuilder:
     """
     called by state machine to build rows
     State machine makes the following guarantees:

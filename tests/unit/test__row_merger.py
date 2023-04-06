@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from google.cloud.bigtable.row_merger import InvalidChunk
+from google.cloud.bigtable.exceptions import InvalidChunk
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"column_qualifier"
@@ -12,9 +12,9 @@ TEST_LABELS = ["label1", "label2"]
 class TestRowMerger(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_merger import RowMerger
+        from google.cloud.bigtable._row_merger import _RowMerger
 
-        return RowMerger
+        return _RowMerger
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
@@ -23,9 +23,9 @@ class TestRowMerger(unittest.IsolatedAsyncioTestCase):
 class TestStateMachine(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_merger import StateMachine
+        from google.cloud.bigtable._row_merger import _StateMachine
 
-        return StateMachine
+        return _StateMachine
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
@@ -38,15 +38,15 @@ class TestState(unittest.TestCase):
 class TestRowBuilder(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row_merger import RowBuilder
+        from google.cloud.bigtable._row_merger import _RowBuilder
 
-        return RowBuilder
+        return _RowBuilder
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
     def test_ctor(self):
-        with mock.patch("google.cloud.bigtable.row_merger.RowBuilder.reset") as reset:
+        with mock.patch.object(self._get_target_class(), "reset") as reset:
             self._make_one()
             reset.assert_called_once()
         row_builder = self._make_one()
