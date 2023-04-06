@@ -15,8 +15,22 @@
 
 import sys
 
+from google.api_core import exceptions as core_exceptions
 
 is_311_plus = sys.version_info >= (3, 11)
+
+
+class IdleTimeout(core_exceptions.DeadlineExceeded):
+    """
+    Exception raised by ReadRowsIterator when the generator
+    has been idle for longer than the internal idle_timeout.
+    """
+
+    pass
+
+
+class InvalidChunk(core_exceptions.ServerError):
+    """Exception raised to invalid chunk data from back-end."""
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
@@ -29,7 +43,12 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
     """
 
     def __init__(self, message, excs):
-        raise NotImplementedError()
+        if is_311_plus:
+            super().__init__(message, excs)
+        else:
+            self.exceptions = excs
+            revised_message = f"{message} ({len(excs)} sub-exceptions)"
+            super().__init__(revised_message)
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):

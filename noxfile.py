@@ -126,12 +126,13 @@ def format(session):
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
-    session.install("mypy", "types-setuptools", "types-protobuf", "types-mock")
+    session.install(
+        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
+    )
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
         "google/cloud/bigtable",
-        "tests/",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
@@ -177,6 +178,7 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
+    session.install("-e", "./python-api-core", *constraints)
 
 
 def default(session):
