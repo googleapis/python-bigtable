@@ -414,7 +414,8 @@ class Table:
         )
         output_generator = ReadRowsIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
-        await output_generator._start_idle_timer(600)
+        idle_timeout_seconds = 600
+        await output_generator._start_idle_timer(idle_timeout_seconds)
         return output_generator
 
     async def read_rows(
