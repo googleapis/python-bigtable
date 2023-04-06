@@ -69,5 +69,6 @@ def default(session):
     else:
         # install the library from the source
         session.install("-e", str(REPO_ROOT_DIRECTORY))
+        session.install("-e", str(REPO_ROOT_DIRECTORY / "python-api-core"))
 
     session.run("python", "proxy_server.py", PROXY_SERVER_PORT, *session.posargs,)

@@ -128,6 +128,10 @@ def grpc_server_process(request_q, queue_pool, port=50055):
 
 
 def client_handler_process(request_q, queue_pool):
+    import asyncio
+    asyncio.run(client_handler_process_async(request_q, queue_pool))
+
+async def client_handler_process_async(request_q, queue_pool):
     """
     Defines a process that recives Bigtable requests from a grpc_server_process,
     and runs the request using a client library instance
@@ -192,26 +196,12 @@ def client_handler_process(request_q, queue_pool):
             self.closed = True
 
         @error_safe
-        def ReadRows(self, request, **kwargs):
+        async def ReadRows(self, request, **kwargs):
             table_id = request["table_name"].split("/")[-1]
             app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
             table = self.client.get_table(self.instance_id, table_id, app_profile_id)
-            # unpack request into client objects
-            query = ReadRowsQuery(limit=request.get("rows_limit", None))
-            if request.get("filter", None):
-                query.set_filter(request["filter"])
-            if request.get("rows", None):
-                row_ranges = request["rows"].get("row_ranges", [])
-                for this_range in row_ranges:
-                    start = this_range.get("start_key_closed", None) or this_range.get("start_key_open", None)
-                    start_open = "start_key_open" in this_range
-                    end = this_range.get("end_key_closed", None) or this_range.get("end_key_open", None)
-                    end_closed = "end_key_closed" in this_range
-                    query.add_row_range(start, end, start_open, end_closed)
-                row_keys = request["rows"].get("row_keys", [])
-                if row_keys:
-                    query.set_rows(row_keys)
-            result_list = table.read_rows(query,operation_timeout=self.per_operation_timeout)
+            kwargs = {"operation_timeout": self.per_operation_timeout} if self.per_operation_timeout else {}
+            result_list = await table.read_rows(request, **kwargs)
             # pack results back into protobuf-parsable format
             serialized_response = [row.to_dict() for row in result_list]
             return serialized_response
@@ -248,7 +238,7 @@ def client_handler_process(request_q, queue_pool):
             else:
                 # run actual rpc against client
                 fn = getattr(client, fn_name)
-                result = fn(**json_data)
+                result = await fn(**json_data)
                 out_q.put(result)
         time.sleep(1e-4)
 
