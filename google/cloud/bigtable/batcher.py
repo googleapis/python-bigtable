@@ -373,7 +373,6 @@ class MutationsBatcher(object):
         :raises:
             * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
         """
-        self._is_open = False
         self.flush()
         self._executor.shutdown(wait=True)
         atexit.unregister(self.close)
