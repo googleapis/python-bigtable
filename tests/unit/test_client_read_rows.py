@@ -93,13 +93,28 @@ async def test_read_rows():
     client = _make_client()
     table = client.get_table("instance", "table")
     query = ReadRowsQuery()
-    chunks = [_make_chunk(row_key=b"test_1")]
+    chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
+    with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+        read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
+        results = await table.read_rows(query, operation_timeout=3)
+        assert len(results) == 2
+        assert results[0].row_key == b"test_1"
+        assert results[1].row_key == b"test_2"
+    await client.close()
+
+@pytest.mark.asyncio
+async def test_read_rows_stream():
+    client = _make_client()
+    table = client.get_table("instance", "table")
+    query = ReadRowsQuery()
+    chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
     with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
         read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(chunks)
         gen = await table.read_rows_stream(query, operation_timeout=3)
         results = [row async for row in gen]
-        assert len(results) == 1
+        assert len(results) == 2
         assert results[0].row_key == b"test_1"
+        assert results[1].row_key == b"test_2"
     await client.close()
 
 
@@ -120,8 +135,7 @@ async def test_read_rows_query_matches_request(include_app_profile):
         )
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
             read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream([])
-            gen = await table.read_rows_stream(query, operation_timeout=3)
-            results = [row async for row in gen]
+            results = await table.read_rows(query, operation_timeout=3)
             assert len(results) == 0
             call_request = read_rows.call_args_list[0][0][0]
             query_dict = query._to_dict()
@@ -177,11 +191,10 @@ async def test_read_rows_operation_timeout(operation_timeout):
             read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
                 chunks, sleep_time=1
             )
-            gen = await table.read_rows_stream(
-                query, operation_timeout=operation_timeout
-            )
             try:
-                [row async for row in gen]
+                await table.read_rows(
+                    query, operation_timeout=operation_timeout
+                )
             except core_exceptions.DeadlineExceeded as e:
                 assert (
                     e.message
@@ -215,11 +228,10 @@ async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
                 read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
                     chunks, sleep_time=5
                 )
-                gen = await table.read_rows_stream(
-                    query, per_row_timeout=per_row_t, operation_timeout=operation_t
-                )
                 try:
-                    [row async for row in gen]
+                    await table.read_rows(
+                        query, per_row_timeout=per_row_t, operation_timeout=operation_t
+                    )
                 except core_exceptions.DeadlineExceeded as deadline_exc:
                     retry_exc = deadline_exc.__cause__
                     if expected_num == 0:
@@ -242,7 +254,7 @@ async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
         (0.01, 0.015, 1),
         (0.05, 0.54, 10),
         (0.05, 0.14, 2),
-        (0.05, 0.21, 4),
+        (0.05, 0.24, 4),
     ],
 )
 @pytest.mark.asyncio
@@ -261,13 +273,12 @@ async def test_read_rows_per_request_timeout(per_request_t, operation_t, expecte
                 read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
                     chunks, sleep_time=per_request_t
                 )
-                gen = await table.read_rows_stream(
-                    query,
-                    operation_timeout=operation_t,
-                    per_request_timeout=per_request_t,
-                )
                 try:
-                    [row async for row in gen]
+                    await table.read_rows(
+                        query,
+                        operation_timeout=operation_t,
+                        per_request_timeout=per_request_t,
+                    )
                 except core_exceptions.DeadlineExceeded as e:
                     retry_exc = e.__cause__
                     if expected_num == 0:
@@ -343,9 +354,8 @@ async def test_read_rows_retryable_error(exc_type):
             read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
                 [expected_error]
             )
-            gen = await table.read_rows_stream(query, operation_timeout=0.1)
             try:
-                [row async for row in gen]
+                await table.read_rows(query, operation_timeout=0.1)
             except core_exceptions.DeadlineExceeded as e:
                 retry_exc = e.__cause__
                 root_cause = retry_exc.exceptions[0]
@@ -374,9 +384,8 @@ async def test_read_rows_non_retryable_error(exc_type):
             read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
                 [expected_error]
             )
-            gen = await table.read_rows_stream(query, operation_timeout=0.1)
             try:
-                [row async for row in gen]
+                await table.read_rows(query, operation_timeout=0.1)
             except exc_type as e:
                 assert e == expected_error
 

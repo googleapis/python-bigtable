@@ -416,8 +416,6 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        shard: bool = False,
-        limit: int | None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
@@ -430,7 +428,14 @@ class Table:
         Returns:
             - a list of the rows returned by the query
         """
-        raise NotImplementedError
+        row_generator = await self.read_rows_stream(
+            query,
+            operation_timeout=operation_timeout,
+            per_row_timeout=per_row_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        results = [row async for row in row_generator]
+        return results
 
     async def read_row(
         self,
