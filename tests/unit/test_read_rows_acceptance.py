@@ -1,3 +1,18 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from __future__ import annotations
+
 import os
 from itertools import zip_longest
 
@@ -92,7 +107,7 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
         results = []
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
             read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(test_case.chunks)
-            async for row in await table.read_rows_stream(query={}, operation_timeout=0.5):
+            async for row in await table.read_rows_stream(query={}, operation_timeout=0.02):
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
                         row_key=cell.row_key,
@@ -104,7 +119,9 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
                     )
                     results.append(cell_result)
     except Exception as e:
-        assert isinstance(e.cause, InvalidChunk)
+        retry_exc = e.__cause__
+        root_exc = retry_exc.exceptions[0]
+        assert isinstance(root_exc, InvalidChunk)
         results.append(ReadRowsTest.Result(error=True))
     finally:
         await client.close()

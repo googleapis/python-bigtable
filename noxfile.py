@@ -178,7 +178,7 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
-
+    session.install("-e", "./python-api-core", *constraints)
 
 def default(session):
     # Install all test dependencies, then install this package in-place.
