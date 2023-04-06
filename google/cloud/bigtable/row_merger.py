@@ -181,7 +181,7 @@ class RowMerger(AsyncIterable[Row]):
                             yield new_item
                     # start new task for cache
                     get_from_cache_task = asyncio.create_task(cache.get())
-                    asyncio.sleep(0)
+                    await asyncio.sleep(0)
                 else:
                     # wait for either the stream to finish, or a new item to enter the cache
                     first_finish = asyncio.wait(
