@@ -19,8 +19,10 @@ from google.api_core import exceptions as core_exceptions
 
 is_311_plus = sys.version_info >= (3, 11)
 
+
 class IdleTimeout(core_exceptions.DeadlineExceeded):
     pass
+
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
     """

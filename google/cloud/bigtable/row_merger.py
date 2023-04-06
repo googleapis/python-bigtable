@@ -83,9 +83,11 @@ class RowMerger(AsyncIterable[Row]):
             core_exceptions.ServerError,
             core_exceptions.TooManyRequests,
         )
+
         def on_error_fn(exc):
             if predicate(exc):
                 self.errors.append(exc)
+
         retry = retries.AsyncRetry(
             predicate=predicate,
             timeout=self.operation_timeout,
@@ -95,10 +97,12 @@ class RowMerger(AsyncIterable[Row]):
             on_error=on_error_fn,
             is_generator=True,
         )
-        self.stream: AsyncGenerator[Row|RequestStats, None] | None = retry(self.partial_retryable)()
+        self.stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
+            self.partial_retryable
+        )()
         self.errors: List[Exception] = []
 
-    def __aiter__(self) -> AsyncIterator[Row|RequestStats]:
+    def __aiter__(self) -> AsyncIterator[Row | RequestStats]:
         return self
 
     async def __anext__(self) -> Row | RequestStats:
@@ -127,7 +131,12 @@ class RowMerger(AsyncIterable[Row]):
             await cache.put(item)
 
     async def retryable_merge_rows(
-        self, gapic_fn, cache_size, per_row_timeout, per_request_timeout, revise_on_retry
+        self,
+        gapic_fn,
+        cache_size,
+        per_row_timeout,
+        per_request_timeout,
+        revise_on_retry,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
@@ -155,7 +164,10 @@ class RowMerger(AsyncIterable[Row]):
         try:
             stream_task = asyncio.create_task(
                 RowMerger._generator_to_cache(
-                    cache, RowMerger.merge_row_response_stream(new_gapic_stream, state_machine)
+                    cache,
+                    RowMerger.merge_row_response_stream(
+                        new_gapic_stream, state_machine
+                    ),
                 )
             )
             get_from_cache_task = asyncio.create_task(cache.get())
@@ -163,7 +175,11 @@ class RowMerger(AsyncIterable[Row]):
             await asyncio.sleep(0)
             # read from state machine and push into cache
             # when finished, stream will be done, cache will be empty, but get_from_cache_task will still be waiting
-            while not stream_task.done() or not cache.empty() or get_from_cache_task.done():
+            while (
+                not stream_task.done()
+                or not cache.empty()
+                or get_from_cache_task.done()
+            ):
                 if get_from_cache_task.done():
                     new_item = get_from_cache_task.result()
                     # don't yield rows that have already been emitted
@@ -194,7 +210,9 @@ class RowMerger(AsyncIterable[Row]):
                 raise cast(Exception, stream_task.exception())
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
-            raise core_exceptions.DeadlineExceeded(f"per_row_timeout of {per_row_timeout:0.1f}s exceeded")
+            raise core_exceptions.DeadlineExceeded(
+                f"per_row_timeout of {per_row_timeout:0.1f}s exceeded"
+            )
         finally:
             stream_task.cancel()
             get_from_cache_task.cancel()

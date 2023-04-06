@@ -686,7 +686,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
     """
 
     def __init__(self, merger: RowMerger):
-        self._merger_or_error : RowMerger | Exception = merger
+        self._merger_or_error: RowMerger | Exception = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
@@ -733,10 +733,14 @@ class ReadRowsIterator(AsyncIterable[Row]):
                     return next_item
             except core_exceptions.RetryError:
                 # raised by AsyncRetry after operation deadline exceeded
-                new_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded")
+                new_exc = core_exceptions.DeadlineExceeded(
+                    f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
+                )
                 source_exc = None
                 if merger.errors:
-                    source_exc = RetryExceptionGroup(f"{len(merger.errors)} failed attempts", merger.errors)
+                    source_exc = RetryExceptionGroup(
+                        f"{len(merger.errors)} failed attempts", merger.errors
+                    )
                 new_exc.__cause__ = source_exc
                 await self._finish_with_error(new_exc)
                 raise new_exc from source_exc
@@ -744,7 +748,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 await self._finish_with_error(e)
                 raise e
 
-    async def _finish_with_error(self, e:Exception):
+    async def _finish_with_error(self, e: Exception):
         if isinstance(self._merger_or_error, RowMerger):
             await self._merger_or_error.aclose()
             del self._merger_or_error

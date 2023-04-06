@@ -34,6 +34,7 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
 
+
 def parse_readrows_acceptance_tests():
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, "./read-rows-acceptance-test.json")
@@ -90,6 +91,7 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
     for expected, actual in zip_longest(test_case.results, results):
         assert actual == expected
 
+
 @pytest.mark.parametrize(
     "test_case", parse_readrows_acceptance_tests(), ids=lambda t: t.description
 )
@@ -97,17 +99,24 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
 async def test_read_rows_scenario(test_case: ReadRowsTest):
     async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
         from google.cloud.bigtable_v2 import ReadRowsResponse
+
         async def inner():
             for chunk in chunk_list:
                 yield ReadRowsResponse(chunks=[chunk])
+
         return inner()
+
     try:
         client = BigtableDataClient()
         table = client.get_table("instance", "table")
         results = []
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
-            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(test_case.chunks)
-            async for row in await table.read_rows_stream(query={}, operation_timeout=0.02):
+            read_rows.side_effect = lambda *args, **kwargs: _make_gapic_stream(
+                test_case.chunks
+            )
+            async for row in await table.read_rows_stream(
+                query={}, operation_timeout=0.02
+            ):
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
                         row_key=cell.row_key,
