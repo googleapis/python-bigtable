@@ -28,6 +28,7 @@ import grpc
 import time
 import warnings
 import sys
+import random
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -143,6 +144,7 @@ class BigtableDataClient(ClientWithProject):
             for channel_idx in range(len(self.transport._grpc_channel._pool)):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 if sys.version_info >= (3, 8):
+                    # task names supported in Python 3.8+
                     refresh_task.set_name(
                         f"{self.__class__.__name__} channel refresh {channel_idx}"
                     )
@@ -181,7 +183,8 @@ class BigtableDataClient(ClientWithProject):
     async def _manage_channel(
         self,
         channel_idx: int,
-        refresh_interval: float = 60 * 45,
+        refresh_interval_min: float = 60 * 35,
+        refresh_interval_max: float = 60 * 45,
         grace_period: float = 60 * 10,
     ) -> None:
         """
@@ -194,11 +197,18 @@ class BigtableDataClient(ClientWithProject):
 
         Args:
             channel_idx: index of the channel in the transport's channel pool
-            refresh_interval: interval before initiating refresh process in seconds
+            refresh_interval_min: minimum interval before initiating refresh
+                process in seconds. Actual interval will be a random value
+                between `refresh_interval_min` and `refresh_interval_max`
+            refresh_interval_max: maximum interval before initiating refresh
+                process in seconds. Actual interval will be a random value
+                between `refresh_interval_min` and `refresh_interval_max`
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        first_refresh = self._channel_init_time + refresh_interval
+        first_refresh = self._channel_init_time + random.uniform(
+            refresh_interval_min, refresh_interval_max
+        )
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
@@ -216,7 +226,8 @@ class BigtableDataClient(ClientWithProject):
                 channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
             )
             # subtract the time spent waiting for the channel to be replaced
-            next_sleep = refresh_interval - (time.time() - start_timestamp)
+            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
+            next_sleep = next_refresh - (time.time() - start_timestamp)
 
     async def register_instance(self, instance_id: str):
         """

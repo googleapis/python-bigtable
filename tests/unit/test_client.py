@@ -330,7 +330,7 @@ async def test__manage_channel_first_sleep(refresh_interval, wait_time, expected
             try:
                 client = _make_one(project="project-id")
                 client._channel_init_time = -wait_time
-                await client._manage_channel(0, refresh_interval)
+                await client._manage_channel(0, refresh_interval, refresh_interval)
             except asyncio.CancelledError:
                 pass
             sleep.assert_called_once()
@@ -378,7 +378,7 @@ async def test__manage_channel_ping_and_warm():
                 type(_make_one()), "_ping_and_warm_instances"
             ) as ping_and_warm:
                 try:
-                    await client._manage_channel(0, 0)
+                    await client._manage_channel(0, 0, 0)
                 except asyncio.CancelledError:
                     pass
                 ping_and_warm.assert_called_once_with(new_channel)
@@ -389,7 +389,7 @@ async def test__manage_channel_ping_and_warm():
 @pytest.mark.parametrize(
     "refresh_interval, num_cycles, expected_sleep",
     [
-        (None, 1, 60 * 45),
+        (None, 1, 60 * 35),
         (10, 10, 100),
         (10, 1, 10),
     ],
@@ -397,8 +397,11 @@ async def test__manage_channel_ping_and_warm():
 async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sleep):
     # make sure that sleeps work as expected
     import time
+    import random
 
     channel_idx = 1
+    random.uniform = mock.Mock()
+    random.uniform.side_effect = lambda min_, max_: min_
     with mock.patch.object(time, "time") as time:
         time.return_value = 0
         with mock.patch.object(asyncio, "sleep") as sleep:
@@ -408,7 +411,9 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
             try:
                 client = _make_one(project="project-id")
                 if refresh_interval is not None:
-                    await client._manage_channel(channel_idx, refresh_interval)
+                    await client._manage_channel(
+                        channel_idx, refresh_interval, refresh_interval
+                    )
                 else:
                     await client._manage_channel(channel_idx)
             except asyncio.CancelledError:
@@ -419,6 +424,35 @@ async def test__manage_channel_sleeps(refresh_interval, num_cycles, expected_sle
                 abs(total_sleep - expected_sleep) < 0.1
             ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test__manage_channel_random():
+    import random
+
+    with mock.patch.object(asyncio, "sleep") as sleep:
+        with mock.patch.object(random, "uniform") as uniform:
+            uniform.return_value = 0
+            try:
+                uniform.side_effect = asyncio.CancelledError
+                client = _make_one(project="project-id", pool_size=1)
+            except asyncio.CancelledError:
+                uniform.side_effect = None
+                uniform.reset_mock()
+                sleep.reset_mock()
+            min_val = 200
+            max_val = 205
+            uniform.side_effect = lambda min_, max_: min_
+            sleep.side_effect = [None, None, asyncio.CancelledError]
+            try:
+                await client._manage_channel(0, min_val, max_val)
+            except asyncio.CancelledError:
+                pass
+            assert uniform.call_count == 2
+            uniform_args = [call[0] for call in uniform.call_args_list]
+            for found_min, found_max in uniform_args:
+                assert found_min == min_val
+                assert found_max == max_val
 
 
 @pytest.mark.asyncio
@@ -451,7 +485,8 @@ async def test__manage_channel_refresh(num_cycles):
                 try:
                     await client._manage_channel(
                         channel_idx,
-                        refresh_interval=expected_refresh,
+                        refresh_interval_min=expected_refresh,
+                        refresh_interval_max=expected_refresh,
                         grace_period=expected_grace,
                     )
                 except asyncio.CancelledError:
