@@ -21,7 +21,16 @@ is_311_plus = sys.version_info >= (3, 11)
 
 
 class IdleTimeout(core_exceptions.DeadlineExceeded):
+    """
+    Exception raised by ReadRowsIterator when the generator
+    has been idle for longer than the internal idle_timeout.
+    """
+
     pass
+
+
+class InvalidChunk(core_exceptions.ServerError):
+    """Exception raised to invalid chunk data from back-end."""
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821

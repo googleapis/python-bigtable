@@ -18,6 +18,7 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
+from google.cloud.bigtable.exceptions import InvalidChunk
 import asyncio
 from functools import partial
 from google.api_core import retry_async as retries
@@ -34,10 +35,6 @@ from typing import (
     AsyncIterator,
     AsyncGenerator,
 )
-
-
-class InvalidChunk(core_exceptions.ServerError):
-    """Exception raised to invalid chunk data from back-end."""
 
 
 class RowMerger(AsyncIterable[Row]):
@@ -79,6 +76,7 @@ class RowMerger(AsyncIterable[Row]):
             revise_on_retry,
         )
         predicate = retries.if_exception_type(
+            InvalidChunk,
             core_exceptions.ServerError,
             core_exceptions.TooManyRequests,
         )

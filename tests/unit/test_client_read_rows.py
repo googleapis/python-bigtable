@@ -21,7 +21,7 @@ from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable_v2.types import RequestStats
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.row_merger import InvalidChunk
+from google.cloud.bigtable.exceptions import InvalidChunk
 
 # try/except added for compatibility with python < 3.8
 try:

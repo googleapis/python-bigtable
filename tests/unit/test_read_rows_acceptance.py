@@ -21,7 +21,8 @@ import pytest
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
 from google.cloud.bigtable.client import BigtableDataClient
-from google.cloud.bigtable.row_merger import RowMerger, InvalidChunk, StateMachine
+from google.cloud.bigtable.exceptions import InvalidChunk
+from google.cloud.bigtable.row_merger import RowMerger, StateMachine
 from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
