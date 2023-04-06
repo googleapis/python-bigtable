@@ -74,7 +74,9 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
     try:
         state = _StateMachine()
         results = []
-        async for row in _RowMerger.merge_row_response_stream(_scenerio_stream(), state):
+        async for row in _RowMerger.merge_row_response_stream(
+            _scenerio_stream(), state
+        ):
             for cell in row:
                 cell_result = ReadRowsTest.Result(
                     row_key=cell.row_key,

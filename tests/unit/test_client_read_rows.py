@@ -102,6 +102,7 @@ async def test_read_rows():
         assert results[1].row_key == b"test_2"
     await client.close()
 
+
 @pytest.mark.asyncio
 async def test_read_rows_stream():
     client = _make_client()
@@ -192,9 +193,7 @@ async def test_read_rows_operation_timeout(operation_timeout):
                 chunks, sleep_time=1
             )
             try:
-                await table.read_rows(
-                    query, operation_timeout=operation_timeout
-                )
+                await table.read_rows(query, operation_timeout=operation_timeout)
             except core_exceptions.DeadlineExceeded as e:
                 assert (
                     e.message
