@@ -19,7 +19,6 @@ from typing import (
     cast,
     Any,
     Optional,
-    AsyncIterable,
     Set,
     TYPE_CHECKING,
 )
@@ -39,16 +38,13 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable._row_merger import _RowMerger
-from google.cloud.bigtable_v2.types import RequestStats
 
 import google.auth.credentials
-from google.api_core import exceptions as core_exceptions
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
-from google.cloud.bigtable.exceptions import IdleTimeout
+from google.cloud.bigtable.iterators import ReadRowsIterator
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -681,81 +677,3 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
-
-
-class ReadRowsIterator(AsyncIterable[Row]):
-    """
-    User-facing async generator for streaming read_rows responses
-    """
-
-    def __init__(self, merger: _RowMerger):
-        self._merger_or_error: _RowMerger | Exception = merger
-        self.request_stats: RequestStats | None = None
-        self.last_interaction_time = time.time()
-        self._idle_timeout_task: asyncio.Task[None] | None = None
-
-    async def _start_idle_timer(self, idle_timeout: float):
-        self.last_interaction_time = time.time()
-        if self._idle_timeout_task is not None:
-            self._idle_timeout_task.cancel()
-        self._idle_timeout_task = asyncio.create_task(
-            self._idle_timeout_coroutine(idle_timeout)
-        )
-        if sys.version_info >= (3, 8):
-            self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
-
-    def active(self):
-        return isinstance(self._merger_or_error, _RowMerger)
-
-    async def _idle_timeout_coroutine(self, idle_timeout: float):
-        while self.active():
-            next_timeout = self.last_interaction_time + idle_timeout
-            await asyncio.sleep(next_timeout - time.time())
-            if (
-                self.last_interaction_time + idle_timeout < time.time()
-                and self.active()
-            ):
-                # idle timeout has expired
-                await self._finish_with_error(IdleTimeout("idle timeout expired"))
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self) -> Row:
-        if isinstance(self._merger_or_error, Exception):
-            raise self._merger_or_error
-        else:
-            merger = cast(_RowMerger, self._merger_or_error)
-            try:
-                self.last_interaction_time = time.time()
-                next_item = await merger.__anext__()
-                if isinstance(next_item, RequestStats):
-                    self.request_stats = next_item
-                    return await self.__anext__()
-                else:
-                    return next_item
-            except core_exceptions.RetryError:
-                # raised by AsyncRetry after operation deadline exceeded
-                new_exc = core_exceptions.DeadlineExceeded(
-                    f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
-                )
-                source_exc = None
-                if merger.errors:
-                    source_exc = RetryExceptionGroup(
-                        f"{len(merger.errors)} failed attempts", merger.errors
-                    )
-                new_exc.__cause__ = source_exc
-                await self._finish_with_error(new_exc)
-                raise new_exc from source_exc
-            except Exception as e:
-                await self._finish_with_error(e)
-                raise e
-
-    async def _finish_with_error(self, e: Exception):
-        if isinstance(self._merger_or_error, _RowMerger):
-            await self._merger_or_error.aclose()
-            del self._merger_or_error
-            self._merger_or_error = e
-        if self._idle_timeout_task is not None:
-            self._idle_timeout_task.cancel()
-            self._idle_timeout_task = None
