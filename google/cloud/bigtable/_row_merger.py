@@ -36,6 +36,21 @@ from typing import (
     AsyncGenerator,
 )
 
+"""
+This module provides a set of classes for merging ReadRowsResponse chunks
+into Row objects.
+
+- RowMerger is the highest level class, providing an interface for asynchronous 
+  merging with or without retrues
+- StateMachine is used internally to track the state of the merge, including
+  rows the current row and the keys of the rows that have been processed.
+  It processes a stream of chunks, and will raise InvalidChunk if it reaches
+  an invalid state.
+- State classes track the current state of the StateMachine, and define what
+  to do on the next chunk.
+- RowBuilder is used by the StateMachine to build a Row object.
+"""
+
 
 class _RowMerger(AsyncIterable[Row]):
     """
@@ -61,6 +76,15 @@ class _RowMerger(AsyncIterable[Row]):
         per_request_timeout: float | None = None,
         revise_on_retry: bool = True,
     ):
+        """
+        Args:
+          - request: the request dict to send to the Bigtable API
+          - client: the Bigtable client to use to make the request
+          - cache_size: the size of the buffer to use for caching rows from the network
+          - operation_timeout: the timeout to use for the entire operation, in seconds
+          - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
+          - revise_on_retry: if True, retried request will be modified based on rows that have already been seen
+        """
         self.last_seen_row_key: bytes | None = None
         self.emitted_rows: Set[bytes] = set()
         cache_size = max(cache_size, 0)
@@ -100,16 +124,18 @@ class _RowMerger(AsyncIterable[Row]):
         self.errors: List[Exception] = []
 
     def __aiter__(self) -> AsyncIterator[Row | RequestStats]:
+        """Implements the AsyncIterable interface"""
         return self
 
     async def __anext__(self) -> Row | RequestStats:
+        """Implements the AsyncIterator interface"""
         if isinstance(self.stream, AsyncGenerator):
             return await self.stream.__anext__()
         else:
             raise asyncio.InvalidStateError("stream is closed")
 
     async def aclose(self):
-        # release resources
+        """Close the stream and release resources"""
         if isinstance(self.stream, AsyncGenerator):
             await self.stream.aclose()
         del self.stream
@@ -220,6 +246,14 @@ class _RowMerger(AsyncIterable[Row]):
         last_seen_row_key: bytes,
         emitted_rows: Set[bytes],
     ) -> dict[str, Any]:
+        """
+        Revise the rows in the request to avoid ones we've already processed.
+
+        Args:
+          - row_set: the row set from the request
+          - last_seen_row_key: the last row key encountered
+          - emitted_rows: the set of row keys that have already been emitted
+        """
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None:
             last_seen = last_seen_row_key
