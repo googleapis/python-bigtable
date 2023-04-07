@@ -157,7 +157,9 @@ async def client_handler_process_async(request_q, queue_pool):
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     import grpc
     from google.api_core import client_options as client_options_lib
+    from google.cloud.environment_vars import BIGTABLE_EMULATOR
     import re
+    import os
 
     def camel_to_snake(str):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
@@ -182,10 +184,8 @@ async def client_handler_process_async(request_q, queue_pool):
             **kwargs,
         ):
             self.closed = False
-            # todo: make transport instance for emulator
-            # transport = PooledBigtableGrpcAsyncIOTransport(
-            #     channel=grpc.insecure_channel(data_target),
-            # )
+            # use emulator
+            os.environ[BIGTABLE_EMULATOR] = data_target
             self.client = BigtableDataClient()
             self.project_id = project_id
             self.instance_id = instance_id

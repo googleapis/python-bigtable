@@ -29,16 +29,18 @@ import time
 import warnings
 import sys
 import random
+import os
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
+    PooledBigtableGrpcAsyncIOTransport, PooledChannel
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable._row_merger import _RowMerger
+from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
 import google.auth.credentials
 import google.auth._default
@@ -120,17 +122,33 @@ class BigtableDataClient(ClientWithProject):
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
-        # attempt to start background tasks
+        # grpc channel management
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        try:
-            self.start_background_channel_refresh()
-        except RuntimeError:
+        self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
+        if self._emulator_host is not None:
+            # connect to an emulator host
             warnings.warn(
-                f"{self.__class__.__name__} should be started in an "
-                "asyncio event loop. Channel refresh will not be started",
-                RuntimeWarning,
+                "Connecting to Bigtable emulator at {}".format(self._emulator_host)
             )
+            self.transport._grpc_channel = PooledChannel(
+                pool_size=pool_size,
+                host=self._emulator_host,
+                insecure=True,
+            )
+            # refresh cached stubs to use emulator pool
+            self.transport._stubs = {}
+            self.transport._prep_wrapped_messages(client_info)
+        else:
+            # attempt to start background channel refresh tasks
+            try:
+                self.start_background_channel_refresh()
+            except RuntimeError:
+                warnings.warn(
+                    f"{self.__class__.__name__} should be started in an "
+                    "asyncio event loop. Channel refresh will not be started",
+                    RuntimeWarning,
+                )
 
     def start_background_channel_refresh(self) -> None:
         """
