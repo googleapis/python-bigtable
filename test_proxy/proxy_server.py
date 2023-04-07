@@ -113,11 +113,12 @@ def grpc_server_process(request_q, queue_pool, port=50055):
 
         @delegate_to_client_handler
         def ReadRows(self, request, context, client_response=None):
-            rows = [data_pb2.Row(**d) for d in client_response]
-            if rows:
-                status = Status(code=0)
-            else:
+            status = Status()
+            rows = []
+            if isinstance(client_response, dict) and "error" in client_response:
                 status = Status(code=5)
+            else:
+                rows = [data_pb2.Row(**d) for d in client_response]
             result = test_proxy_pb2.RowsResult(row=rows, status=status)
             return result
 
@@ -205,14 +206,14 @@ async def client_handler_process_async(request_q, queue_pool):
             Also check if client is closed before processing requests
             """
 
-            def wrapper(self, *args, **kwargs):
+            async def wrapper(self, *args, **kwargs):
                 try:
                     if self.closed:
                         raise RuntimeError("client is closed")
-                    return func(self, *args, **kwargs)
+                    return await func(self, *args, **kwargs)
                 except (Exception, NotImplementedError) as e:
                     # exceptions should be raised in grpc_server_process
-                    return e
+                    return {"error": str(e)}
 
             return wrapper
 
