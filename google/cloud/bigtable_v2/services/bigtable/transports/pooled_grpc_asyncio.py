@@ -94,7 +94,7 @@ class PooledChannel(aio.Channel):
         self._pool: List[aio.Channel] = []
         self._next_idx = 0
         if insecure:
-            self.create_channel = partial(aio.insecure_channel, host)
+            self._create_channel = partial(aio.insecure_channel, host)
         else:
             self._create_channel = partial(
                 grpc_helpers_async.create_channel,
