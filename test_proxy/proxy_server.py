@@ -46,6 +46,7 @@ def grpc_server_process(request_q, queue_pool, port=50055):
     import test_proxy_pb2
     import test_proxy_pb2_grpc
     import data_pb2
+    from google.rpc.status_pb2 import Status
 
     from google.protobuf import json_format
 
@@ -112,7 +113,13 @@ def grpc_server_process(request_q, queue_pool, port=50055):
 
         @delegate_to_client_handler
         def ReadRows(self, request, context, client_response=None):
-            return
+            rows = [data_pb2.Row(**d) for d in client_response]
+            if rows:
+                status = Status(code=0)
+            else:
+                status = Status(code=5)
+            result = test_proxy_pb2.RowsResult(row=rows, status=status)
+            return result
 
         def ReadRow(self, request, context):
             return
