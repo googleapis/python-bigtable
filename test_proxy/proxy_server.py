@@ -224,7 +224,7 @@ async def client_handler_process_async(request_q, queue_pool):
             table_id = request["table_name"].split("/")[-1]
             app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
             table = self.client.get_table(self.instance_id, table_id, app_profile_id)
-            kwargs = {"operation_timeout": self.per_operation_timeout} if self.per_operation_timeout else {}
+            kwargs["operation_timeout"] = kwargs.get("operation_timeout", 0.1)
             result_list = await table.read_rows(request, **kwargs)
             # pack results back into protobuf-parsable format
             serialized_response = [row.to_dict() for row in result_list]
@@ -244,7 +244,7 @@ async def client_handler_process_async(request_q, queue_pool):
             # print(json_data)
             fn_name = json_data.pop("proxy_request")
             out_q = queue_pool[json_data.pop("response_queue_idx")]
-            client_id = json_data["client_id"]
+            client_id = json_data.pop("client_id")
             client = client_map.get(client_id, None)
             # handle special cases for client creation and deletion
             if fn_name == "CreateClient":
@@ -257,7 +257,7 @@ async def client_handler_process_async(request_q, queue_pool):
                 client.close()
                 out_q.put(True)
             elif fn_name == "RemoveClient":
-                client_map.pop(json_data["client_id"], None)
+                client_map.pop(client_id, None)
                 out_q.put(True)
             else:
                 # run actual rpc against client
