@@ -122,22 +122,22 @@ def grpc_server_process(request_q, queue_pool, port=50055):
             return result
 
         def ReadRow(self, request, context):
-            return
+            return test_proxy_pb2.RowResult()
 
         def MutateRow(self, request, context):
-            return
+            return test_proxy_pb2.MutateRowResult()
 
         def MutateRows(self, request, context):
-            return
+            return test_proxy_pb2.MutateRowsResult()
 
         def CheckAndMutateRow(self, request, context):
-            return
+            return test_proxy_pb2.CheckAndMutateRowResult()
 
         def ReadModifyWriteRow(self, request, context):
-            return
+            return test_proxy_pb2.ReadModifyWriteRowResult()
 
         def SampleRowKeys(self, request, context):
-            return
+            return test_proxy_pb2.SampleRowKeysResult()
 
 
     # Start gRPC server
