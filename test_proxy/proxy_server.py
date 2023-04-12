@@ -239,7 +239,7 @@ async def client_handler_process_async(request_q, queue_pool):
             table_id = request["table_name"].split("/")[-1]
             app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
             table = self.client.get_table(self.instance_id, table_id, app_profile_id)
-            kwargs["operation_timeout"] = kwargs.get("operation_timeout", 0.1)
+            kwargs["operation_timeout"] = kwargs.get("operation_timeout", 20)
             result_list = await table.read_rows(request, **kwargs)
             # pack results back into protobuf-parsable format
             serialized_response = [row.to_dict() for row in result_list]
