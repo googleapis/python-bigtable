@@ -206,8 +206,7 @@ async def client_handler_process_async(request_q, queue_pool):
             self.closed = False
             # use emulator
             os.environ[BIGTABLE_EMULATOR] = data_target
-            self.client = BigtableDataClient()
-            self.project_id = project_id
+            self.client = BigtableDataClient(project=project_id)
             self.instance_id = instance_id
             self.app_profile_id = app_profile_id
             self.per_operation_timeout = per_operation_timeout
