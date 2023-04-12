@@ -176,20 +176,22 @@ async def client_handler_process_async(request_q, queue_pool):
     def camel_to_snake(str):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
 
-    def format_dict(input_dict):
-        new_dict = {}
-        for k, v in input_dict.items():
-            new_key = camel_to_snake(k)
-            if isinstance(v, dict):
-                new_value = format_dict(v)
-            else:
-                new_value = v
-                try:
-                    new_value = int(v)
-                except (ValueError, TypeError):
-                    pass
-            new_dict[new_key] = new_value
-        return new_dict
+    def format_dict(input_obj):
+        if isinstance(input_obj, list):
+            return [format_dict(x) for x in input_obj]
+        elif isinstance(input_obj, dict):
+            return {camel_to_snake(k): format_dict(v) for k, v in input_obj.items()}
+        elif isinstance(input_obj, str):
+            # check for time encodings
+            if re.match("^[0-9]+s$", input_obj):
+                return int(input_obj[:-1])
+            # check for int strings
+            try:
+                return int(input_obj)
+            except (ValueError, TypeError):
+                return input_obj
+        else:
+            return input_obj
 
     class TestProxyClientHandler:
         """
@@ -246,7 +248,7 @@ async def client_handler_process_async(request_q, queue_pool):
             table_id = request["table_name"].split("/")[-1]
             app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
             table = self.client.get_table(self.instance_id, table_id, app_profile_id)
-            kwargs["operation_timeout"] = kwargs.get("operation_timeout", 20)
+            kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
             result_list = await table.read_rows(request, **kwargs)
             # pack results back into protobuf-parsable format
             serialized_response = [row.to_dict() for row in result_list]
