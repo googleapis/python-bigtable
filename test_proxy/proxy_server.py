@@ -178,10 +178,16 @@ async def client_handler_process_async(request_q, queue_pool):
     def format_dict(input_dict):
         new_dict = {}
         for k, v in input_dict.items():
-            try:
-                new_dict[camel_to_snake(k)] = int(v)
-            except (ValueError, TypeError):
-                new_dict[camel_to_snake(k)] = v
+            new_key = camel_to_snake(k)
+            if isinstance(v, dict):
+                new_value = format_dict(v)
+            else:
+                new_value = v
+                try:
+                    new_value = int(v)
+                except (ValueError, TypeError):
+                    pass
+            new_dict[new_key] = new_value
         return new_dict
 
     class TestProxyClientHandler:
@@ -251,8 +257,6 @@ async def client_handler_process_async(request_q, queue_pool):
     while True:
         if not request_q.empty():
             json_data = format_dict(request_q.get())
-            if "request" in json_data:
-                json_data["request"] = format_dict(json_data["request"])
             # print(json_data)
             fn_name = json_data.pop("proxy_request")
             out_q = queue_pool[json_data.pop("response_queue_idx")]
