@@ -175,6 +175,15 @@ async def client_handler_process_async(request_q, queue_pool):
     def camel_to_snake(str):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
 
+    def format_dict(input_dict):
+        new_dict = {}
+        for k, v in input_dict.items():
+            try:
+                new_dict[camel_to_snake(k)] = int(v)
+            except (ValueError, TypeError):
+                new_dict[camel_to_snake(k)] = v
+        return new_dict
+
     class TestProxyClientHandler:
         """
         Implements the same methods as the grpc server, but handles the client
@@ -242,12 +251,9 @@ async def client_handler_process_async(request_q, queue_pool):
     client_map = {}
     while True:
         if not request_q.empty():
-            json_data = request_q.get()
-            json_data = {camel_to_snake(k): v for k, v in json_data.items()}
+            json_data = format_dict(request_q.get())
             if "request" in json_data:
-                json_data["request"] = {
-                    camel_to_snake(k): v for k, v in json_data["request"].items()
-                }
+                json_data["request"] = format_dict(json_data["request"])
             # print(json_data)
             fn_name = json_data.pop("proxy_request")
             out_q = queue_pool[json_data.pop("response_queue_idx")]
