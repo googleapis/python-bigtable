@@ -171,6 +171,7 @@ async def client_handler_process_async(request_q, queue_pool):
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
     import re
     import os
+    import asyncio
 
     def camel_to_snake(str):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
@@ -254,6 +255,7 @@ async def client_handler_process_async(request_q, queue_pool):
     # Listen to requests from grpc server process
     print("client_handler_process started")
     client_map = {}
+    background_tasks = set()
     while True:
         if not request_q.empty():
             json_data = format_dict(request_q.get())
@@ -277,10 +279,15 @@ async def client_handler_process_async(request_q, queue_pool):
                 out_q.put(True)
             else:
                 # run actual rpc against client
+                async def _run_fn(out_q, fn, **kwargs):
+                    result = await fn(**kwargs)
+                    out_q.put(result)
                 fn = getattr(client, fn_name)
-                result = await fn(**json_data)
-                out_q.put(result)
-        time.sleep(1e-4)
+                task = asyncio.create_task(_run_fn(out_q, fn, **json_data))
+                await asyncio.sleep(0)
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.remove)
+        await asyncio.sleep(0.01)
 
 
 if __name__ == "__main__":
