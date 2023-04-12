@@ -116,7 +116,7 @@ def grpc_server_process(request_q, queue_pool, port=50055):
             status = Status()
             rows = []
             if isinstance(client_response, dict) and "error" in client_response:
-                status = Status(code=5)
+                status = Status(code=5, message=client_response["error"])
             else:
                 rows = [data_pb2.Row(**d) for d in client_response]
             result = test_proxy_pb2.RowsResult(row=rows, status=status)
@@ -215,8 +215,11 @@ async def client_handler_process_async(request_q, queue_pool):
                         raise RuntimeError("client is closed")
                     return await func(self, *args, **kwargs)
                 except (Exception, NotImplementedError) as e:
+                    error_msg = f"{type(e).__name__}: {e}"
+                    if e.__cause__:
+                        error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
                     # exceptions should be raised in grpc_server_process
-                    return {"error": str(e)}
+                    return {"error": error_msg}
 
             return wrapper
 
