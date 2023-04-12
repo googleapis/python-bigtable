@@ -109,7 +109,7 @@ def grpc_server_process(request_q, queue_pool, port=50055):
 
         @delegate_to_client_handler
         def RemoveClient(self, request, context, client_response=None):
-            return
+            return test_proxy_pb2.RemoveClientResponse()
 
         @delegate_to_client_handler
         def ReadRows(self, request, context, client_response=None):
