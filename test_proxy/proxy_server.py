@@ -25,14 +25,10 @@ objects cannot be used in the same process, so we had to make use of the
 multiprocessing module to allow them to work together.
 """
 
-import logging
-from multiprocessing import Process
 import multiprocessing
 import time
-import inspect
-from collections import namedtuple
-import random
 import sys
+import client_handler
 
 
 def grpc_server_process(request_q, queue_pool, port=50055):
@@ -155,146 +151,6 @@ def grpc_server_process(request_q, queue_pool, port=50055):
     server.wait_for_termination()
 
 
-def client_handler_process(request_q, queue_pool):
-    import asyncio
-    asyncio.run(client_handler_process_async(request_q, queue_pool))
-
-async def client_handler_process_async(request_q, queue_pool):
-    """
-    Defines a process that recives Bigtable requests from a grpc_server_process,
-    and runs the request using a client library instance
-    """
-    from google.cloud.bigtable import BigtableDataClient
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-    import grpc
-    from google.api_core import client_options as client_options_lib
-    from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    import re
-    import os
-    import asyncio
-    import warnings
-    warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Bigtable emulator.*")
-
-    def camel_to_snake(str):
-        return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
-
-    def format_dict(input_obj):
-        if isinstance(input_obj, list):
-            return [format_dict(x) for x in input_obj]
-        elif isinstance(input_obj, dict):
-            return {camel_to_snake(k): format_dict(v) for k, v in input_obj.items()}
-        elif isinstance(input_obj, str):
-            # check for time encodings
-            if re.match("^[0-9]+s$", input_obj):
-                return int(input_obj[:-1])
-            # check for int strings
-            try:
-                return int(input_obj)
-            except (ValueError, TypeError):
-                return input_obj
-        else:
-            return input_obj
-
-    class TestProxyClientHandler:
-        """
-        Implements the same methods as the grpc server, but handles the client
-        library side of the request.
-
-        Requests received in TestProxyGrpcServer are converted to a dictionary,
-        and supplied to the TestProxyClientHandler methods as kwargs.
-        The client response is then returned back to the TestProxyGrpcServer
-        """
-
-        def __init__(
-            self,
-            data_target=None,
-            project_id=None,
-            instance_id=None,
-            app_profile_id=None,
-            per_operation_timeout=None,
-            **kwargs,
-        ):
-            self.closed = False
-            # use emulator
-            os.environ[BIGTABLE_EMULATOR] = data_target
-            self.client = BigtableDataClient(project=project_id)
-            self.instance_id = instance_id
-            self.app_profile_id = app_profile_id
-            self.per_operation_timeout = per_operation_timeout
-
-        def error_safe(func):
-            """
-            Catch and pass errors back to the grpc_server_process
-            Also check if client is closed before processing requests
-            """
-
-            async def wrapper(self, *args, **kwargs):
-                try:
-                    if self.closed:
-                        raise RuntimeError("client is closed")
-                    return await func(self, *args, **kwargs)
-                except (Exception, NotImplementedError) as e:
-                    error_msg = f"{type(e).__name__}: {e}"
-                    if e.__cause__:
-                        error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
-                    # exceptions should be raised in grpc_server_process
-                    return {"error": error_msg}
-
-            return wrapper
-
-        def close(self):
-            self.closed = True
-
-        @error_safe
-        async def ReadRows(self, request, **kwargs):
-            table_id = request["table_name"].split("/")[-1]
-            app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
-            table = self.client.get_table(self.instance_id, table_id, app_profile_id)
-            kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-            result_list = await table.read_rows(request, **kwargs)
-            # pack results back into protobuf-parsable format
-            serialized_response = [row.to_dict() for row in result_list]
-            return serialized_response
-
-    # Listen to requests from grpc server process
-    print("client_handler_process started")
-    client_map = {}
-    background_tasks = set()
-    while True:
-        if not request_q.empty():
-            json_data = format_dict(request_q.get())
-            fn_name = json_data.pop("proxy_request")
-            print(f"--- running {fn_name} with {json_data}")
-            out_q = queue_pool[json_data.pop("response_queue_idx")]
-            client_id = json_data.pop("client_id")
-            client = client_map.get(client_id, None)
-            # handle special cases for client creation and deletion
-            if fn_name == "CreateClient":
-                client = TestProxyClientHandler(**json_data)
-                client_map[client_id] = client
-                out_q.put(True)
-            elif client is None:
-                out_q.put(RuntimeError("client not found"))
-            elif fn_name == "CloseClient":
-                client.close()
-                out_q.put(True)
-            elif fn_name == "RemoveClient":
-                client_map.pop(client_id, None)
-                out_q.put(True)
-                print("")
-            else:
-                # run actual rpc against client
-                async def _run_fn(out_q, fn, **kwargs):
-                    result = await fn(**kwargs)
-                    out_q.put(result)
-                fn = getattr(client, fn_name)
-                task = asyncio.create_task(_run_fn(out_q, fn, **json_data))
-                await asyncio.sleep(0)
-                background_tasks.add(task)
-                task.add_done_callback(background_tasks.remove)
-        await asyncio.sleep(0.01)
-
-
 if __name__ == "__main__":
     port = "50055"
     if len(sys.argv) > 1:
@@ -303,8 +159,10 @@ if __name__ == "__main__":
     # larger pools support more concurrent requests
     response_queue_pool = [multiprocessing.Queue() for _ in range(100)]
     request_q = multiprocessing.Queue()
-    logging.basicConfig()
-    proxy = Process(
+
+    # run client in forground and proxy in background
+    # breakpoints can be attached to client_handler_process
+    proxy = multiprocessing.Process(
         target=grpc_server_process,
         args=(
             request_q,
@@ -313,13 +171,16 @@ if __name__ == "__main__":
         ),
     )
     proxy.start()
-    client = Process(
-        target=client_handler_process,
-        args=(
-            request_q,
-            response_queue_pool,
-        ),
-    )
-    client.start()
-    proxy.join()
-    client.join()
+    client_handler.client_handler_process(request_q, response_queue_pool)
+
+    # uncomment to run proxy in foreground instead
+    # client = multiprocessing.Process(
+    #     target=client_handler.client_handler_process,
+    #     args=(
+    #         request_q,
+    #         response_queue_pool,
+    #     ),
+    # )
+    # client.start()
+    # grpc_server_process(request_q, response_queue_pool, port)
+    # client.join()
