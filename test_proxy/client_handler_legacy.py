@@ -53,7 +53,22 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         end_key = request.get("rows", {}).get("row_keys", [None])[-1]
         end_inclusive = request.get("rows", {}).get("row_ranges", [{}])[-1].get("end_key_closed", True)
 
-        result_list = table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive)
-        # pack results back into protobuf-parsable format
-        serialized_response = [row.to_dict() for row in result_list]
-        return serialized_response
+        row_list = []
+        for row in table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive):
+            # parse results into proto formatted dict
+            dict_val = {"row_key": row.row_key}
+            for family, family_cells in row.cells.items():
+                family_dict = {"name": family}
+                for qualifier, qualifier_cells in family_cells.items():
+                    column_dict = {"qualifier": qualifier}
+                    for cell in qualifier_cells:
+                        cell_dict = {
+                            "value": cell.value,
+                            "timestamp_micros": cell.timestamp.timestamp() * 1000000,
+                            "labels": cell.labels,
+                        }
+                        column_dict.setdefault("cells", []).append(cell_dict)
+                    family_dict.setdefault("columns", []).append(column_dict)
+                dict_val.setdefault("families", []).append(family_dict)
+            row_list.append(dict_val)
+        return row_list
