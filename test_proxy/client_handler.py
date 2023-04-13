@@ -19,6 +19,27 @@ import os
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable import BigtableDataClient
 
+
+def error_safe(func):
+    """
+    Catch and pass errors back to the grpc_server_process
+    Also check if client is closed before processing requests
+    """
+    async def wrapper(self, *args, **kwargs):
+        try:
+            if self.closed:
+                raise RuntimeError("client is closed")
+            return await func(self, *args, **kwargs)
+        except (Exception, NotImplementedError) as e:
+            error_msg = f"{type(e).__name__}: {e}"
+            if e.__cause__:
+                error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
+            # exceptions should be raised in grpc_server_process
+            return {"error": error_msg}
+
+    return wrapper
+
+
 class TestProxyClientHandler:
     """
     Implements the same methods as the grpc server, but handles the client
@@ -45,26 +66,6 @@ class TestProxyClientHandler:
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
-
-    def error_safe(func):
-        """
-        Catch and pass errors back to the grpc_server_process
-        Also check if client is closed before processing requests
-        """
-
-        async def wrapper(self, *args, **kwargs):
-            try:
-                if self.closed:
-                    raise RuntimeError("client is closed")
-                return await func(self, *args, **kwargs)
-            except (Exception, NotImplementedError) as e:
-                error_msg = f"{type(e).__name__}: {e}"
-                if e.__cause__:
-                    error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
-                # exceptions should be raised in grpc_server_process
-                return {"error": error_msg}
-
-        return wrapper
 
     def close(self):
         self.closed = True

@@ -88,3 +88,11 @@ nox -s run_proxy
 ```
 
 if unset, it will default to installing the library from source
+
+## Test the legacy client
+
+You can run the test proxy against the previous `v2` client by running it with the `--legacy-client` flag:
+
+```
+python test_proxy.py --legacy-client
+```

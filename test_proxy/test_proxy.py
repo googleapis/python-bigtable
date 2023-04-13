@@ -51,18 +51,16 @@ def grpc_server_process(request_q, queue_pool, port=50055):
     server.wait_for_termination()
 
 
-async def client_handler_process_async(request_q, queue_pool):
+async def client_handler_process_async(request_q, queue_pool, use_legacy_client=False):
     """
     Defines a process that recives Bigtable requests from a grpc_server_process,
     and runs the request using a client library instance
     """
-    from google.cloud.bigtable import BigtableDataClient
-    from google.cloud.environment_vars import BIGTABLE_EMULATOR
     import re
-    import os
     import asyncio
     import warnings
     import client_handler
+    import client_handler_legacy
     warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Bigtable emulator.*")
 
     def camel_to_snake(str):
@@ -87,7 +85,10 @@ async def client_handler_process_async(request_q, queue_pool):
 
 
     # Listen to requests from grpc server process
-    print("client_handler_process started")
+    print_msg = "client_handler_process started"
+    if use_legacy_client:
+        print_msg += ", using legacy client"
+    print(print_msg)
     client_map = {}
     background_tasks = set()
     while True:
@@ -100,7 +101,10 @@ async def client_handler_process_async(request_q, queue_pool):
             client = client_map.get(client_id, None)
             # handle special cases for client creation and deletion
             if fn_name == "CreateClient":
-                client = client_handler.TestProxyClientHandler(**json_data)
+                if use_legacy_client:
+                    client = client_handler_legacy.LegacyTestProxyClientHandler(**json_data)
+                else:
+                    client = client_handler.TestProxyClientHandler(**json_data)
                 client_map[client_id] = client
                 out_q.put(True)
             elif client is None:
@@ -125,9 +129,9 @@ async def client_handler_process_async(request_q, queue_pool):
         await asyncio.sleep(0.01)
 
 
-def client_handler_process(request_q, queue_pool):
+def client_handler_process(request_q, queue_pool, legacy_client=False):
     import asyncio
-    asyncio.run(client_handler_process_async(request_q, queue_pool))
+    asyncio.run(client_handler_process_async(request_q, queue_pool, legacy_client))
 
 
 import argparse
@@ -155,7 +159,7 @@ if __name__ == "__main__":
         ),
     )
     proxy.start()
-    client_handler_process(request_q, response_queue_pool)
+    client_handler_process(request_q, response_queue_pool, use_legacy_client)
 
     # uncomment to run proxy in foreground instead
     # client = multiprocessing.Process(
