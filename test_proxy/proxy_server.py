@@ -263,8 +263,8 @@ async def client_handler_process_async(request_q, queue_pool):
     while True:
         if not request_q.empty():
             json_data = format_dict(request_q.get())
-            # print(json_data)
             fn_name = json_data.pop("proxy_request")
+            print(f"--- running {fn_name} with {json_data}")
             out_q = queue_pool[json_data.pop("response_queue_idx")]
             client_id = json_data.pop("client_id")
             client = client_map.get(client_id, None)
@@ -281,6 +281,7 @@ async def client_handler_process_async(request_q, queue_pool):
             elif fn_name == "RemoveClient":
                 client_map.pop(client_id, None)
                 out_q.put(True)
+                print("")
             else:
                 # run actual rpc against client
                 async def _run_fn(out_q, fn, **kwargs):
