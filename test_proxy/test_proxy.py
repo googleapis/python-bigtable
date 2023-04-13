@@ -130,11 +130,15 @@ def client_handler_process(request_q, queue_pool):
     asyncio.run(client_handler_process_async(request_q, queue_pool))
 
 
+import argparse
+p = argparse.ArgumentParser()
+p.add_argument("--port", dest='port', default="50055")
+p.add_argument('--legacy-client', dest='use_legacy', action='store_true', default=False)
 
 if __name__ == "__main__":
-    port = "50055"
-    if len(sys.argv) > 1:
-        port = sys.argv[1]
+    port = p.parse_args().port
+    use_legacy_client = p.parse_args().use_legacy
+
     # start and run both processes
     # larger pools support more concurrent requests
     response_queue_pool = [multiprocessing.Queue() for _ in range(100)]

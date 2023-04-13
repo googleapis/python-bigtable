@@ -34,7 +34,7 @@ The port can be set by passing in an extra positional argument
 
 ```
 cd python-bigtable/test_proxy
-python test_proxy.py 8080
+python test_proxy.py --port 8080
 ```
 
 ## Run the test cases
