@@ -327,7 +327,11 @@ async def test_read_rows_idle_timeout():
         await client.close()
         with pytest.raises(IdleTimeout) as e:
             await gen.__anext__()
-        assert e.value.message == "idle timeout expired"
+
+        expected_msg = (
+            "Timed out waiting for next Row to be consumed. (idle_timeout=0.1s)"
+        )
+        assert e.value.message == expected_msg
         aclose.assert_called_once()
         aclose.assert_awaited()
 

@@ -82,8 +82,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 await self._finish_with_error(
                     IdleTimeout(
                         (
-                            "Timed out waiting for next row to be consumed "
-                            f"(idle_timeout is {idle_timeout:0.1f}s)."
+                            "Timed out waiting for next Row to be consumed. "
+                            f"(idle_timeout={idle_timeout:0.1f}s)"
                         )
                     )
                 )
