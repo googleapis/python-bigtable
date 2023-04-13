@@ -41,9 +41,9 @@ This module provides a set of classes for merging ReadRowsResponse chunks
 into Row objects.
 
 - RowMerger is the highest level class, providing an interface for asynchronous
-  merging with or without retrues
+  merging end-to-end
 - StateMachine is used internally to track the state of the merge, including
-  rows the current row and the keys of the rows that have been processed.
+  the current row key and the keys of the rows that have been processed.
   It processes a stream of chunks, and will raise InvalidChunk if it reaches
   an invalid state.
 - State classes track the current state of the StateMachine, and define what
@@ -58,7 +58,7 @@ class _RowMerger(AsyncIterable[Row]):
     into a stream of Row objects.
 
     RowMerger.merge_row_response_stream takes in a stream of ReadRowsResponse
-    and handles turns them into a stream of Row objects using an internal
+    and turns them into a stream of Row objects using an internal
     StateMachine.
 
     RowMerger(request, client) handles row merging logic end-to-end, including
