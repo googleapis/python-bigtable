@@ -29,7 +29,6 @@ from abc import ABC, abstractmethod
 from typing import (
     cast,
     List,
-    Set,
     Any,
     AsyncIterable,
     AsyncIterator,
@@ -87,7 +86,6 @@ class _RowMerger(AsyncIterable[Row]):
           - revise_on_retry: if True, retried request will be modified based on rows that have already been seen
         """
         self.last_seen_row_key: bytes | None = None
-        self.emitted_rows: Set[bytes] = set()
         self.emit_count = 0
         cache_size = max(cache_size, 0)
         self.request = request
@@ -144,7 +142,6 @@ class _RowMerger(AsyncIterable[Row]):
             await self.stream.aclose()
         del self.stream
         self.stream = None
-        self.emitted_rows.clear()
         self.last_seen_row_key = None
 
     @staticmethod
@@ -175,7 +172,7 @@ class _RowMerger(AsyncIterable[Row]):
           - cache for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
-          - last_seen_row_key and emitted_rows are used to ensure that
+          - last_seen_row_key is used to ensure that
             duplicate rows are not emitted
           - request is stored and (optionally) modified on each retry
         """
@@ -184,7 +181,6 @@ class _RowMerger(AsyncIterable[Row]):
             self.request["rows"] = _RowMerger._revise_request_rowset(
                 row_set=self.request.get("rows", None),
                 last_seen_row_key=self.last_seen_row_key,
-                emitted_rows=self.emitted_rows,
             )
             # revise next request's row limit based on number emitted
             if row_limit:
@@ -223,15 +219,15 @@ class _RowMerger(AsyncIterable[Row]):
                     # don't yield rows that have already been emitted
                     if isinstance(new_item, RequestStats):
                         yield new_item
-                    elif (
-                        isinstance(new_item, Row)
-                        and new_item.row_key not in self.emitted_rows
+                    # ignore rows that have already been emitted
+                    elif isinstance(new_item, Row) and (
+                        self.last_seen_row_key is None
+                        or new_item.row_key > self.last_seen_row_key
                     ):
                         self.last_seen_row_key = new_item.row_key
                         # don't yeild _LastScannedRow markers; they
                         # should only update last_seen_row_key
                         if not isinstance(new_item, _LastScannedRow):
-                            self.emitted_rows.add(new_item.row_key)
                             yield new_item
                             self.emit_count += 1
                             if row_limit and self.emit_count >= row_limit:
@@ -262,7 +258,6 @@ class _RowMerger(AsyncIterable[Row]):
     def _revise_request_rowset(
         row_set: dict[str, Any] | None,
         last_seen_row_key: bytes,
-        emitted_rows: Set[bytes],
     ) -> dict[str, Any]:
         """
         Revise the rows in the request to avoid ones we've already processed.
@@ -270,7 +265,6 @@ class _RowMerger(AsyncIterable[Row]):
         Args:
           - row_set: the row set from the request
           - last_seen_row_key: the last row key encountered
-          - emitted_rows: the set of row keys that have already been emitted
         """
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None:
@@ -284,7 +278,7 @@ class _RowMerger(AsyncIterable[Row]):
             row_keys: list[bytes] = row_set.get("row_keys", [])
             adjusted_keys = []
             for key in row_keys:
-                if key not in emitted_rows:
+                if key > last_seen_row_key:
                     adjusted_keys.append(key)
             # if user specified only a single range, set start to the last seen key
             row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
@@ -344,7 +338,6 @@ class _StateMachine:
     """
 
     def __init__(self):
-        self.completed_row_keys: Set[bytes] = set({})
         # represents either the last row emitted, or the last_scanned_key sent from backend
         # all future rows should have keys > last_seen_row_key
         self.last_seen_row_key: bytes | None = None
@@ -392,8 +385,6 @@ class _StateMachine:
 
         Returns a Row if the chunk completes a row, otherwise returns None
         """
-        if chunk.row_key in self.completed_row_keys:
-            raise InvalidChunk(f"duplicate row key: {chunk.row_key.decode()}")
         if (
             self.last_seen_row_key
             and chunk.row_key
@@ -425,7 +416,6 @@ class _StateMachine:
         or when a scan heartbeat is received
         """
         self.last_seen_row_key = complete_row.row_key
-        self.completed_row_keys.add(complete_row.row_key)
         self._reset_row()
 
     def _handle_reset_chunk(self, chunk: ReadRowsResponse.CellChunk):

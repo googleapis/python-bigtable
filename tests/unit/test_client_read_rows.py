@@ -455,8 +455,6 @@ async def test_read_rows_revise_request():
                         first_call_kwargs = revise_rowset.call_args_list[0].kwargs
                         assert first_call_kwargs["row_set"] == query._to_dict()["rows"]
                         assert first_call_kwargs["last_seen_row_key"] == b"test_1"
-                        assert first_call_kwargs["emitted_rows"] == {b"test_1"}
                         second_call_kwargs = revise_rowset.call_args_list[1].kwargs
                         assert second_call_kwargs["row_set"] == "modified"
                         assert second_call_kwargs["last_seen_row_key"] == b"test_1"
-                        assert second_call_kwargs["emitted_rows"] == {b"test_1"}
