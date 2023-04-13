@@ -438,7 +438,7 @@ class Table:
         )
         output_generator = ReadRowsIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
-        idle_timeout_seconds = 600
+        idle_timeout_seconds = 300
         await output_generator._start_idle_timer(idle_timeout_seconds)
         return output_generator
 
@@ -492,7 +492,6 @@ class Table:
         cache_size_limit: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
-        idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:
         """
