@@ -335,12 +335,9 @@ async def test_read_rows_idle_timeout():
 @pytest.mark.parametrize(
     "exc_type",
     [
-        InvalidChunk,
+        core_exceptions.Aborted,
         core_exceptions.DeadlineExceeded,
-        core_exceptions.InternalServerError,
         core_exceptions.ServiceUnavailable,
-        core_exceptions.TooManyRequests,
-        core_exceptions.ResourceExhausted,
     ],
 )
 @pytest.mark.asyncio
@@ -370,7 +367,10 @@ async def test_read_rows_retryable_error(exc_type):
         core_exceptions.NotFound,
         core_exceptions.PermissionDenied,
         core_exceptions.Conflict,
-        core_exceptions.Aborted,
+        core_exceptions.InternalServerError,
+        core_exceptions.TooManyRequests,
+        core_exceptions.ResourceExhausted,
+        InvalidChunk,
     ],
 )
 @pytest.mark.asyncio
@@ -428,13 +428,16 @@ async def test_read_rows_revise_request():
         with mock.patch.object(_RowMerger, "aclose"):
             revise_rowset.side_effect = [
                 "modified",
-                core_exceptions.Aborted("mock error"),
+                core_exceptions.Cancelled("mock error"),
             ]
             async with _make_client() as client:
                 table = client.get_table("instance", "table")
                 row_keys = [b"test_1", b"test_2", b"test_3"]
                 query = ReadRowsQuery(row_keys=row_keys)
-                chunks = [_make_chunk(row_key=b"test_1"), InvalidChunk("mock error")]
+                chunks = [
+                    _make_chunk(row_key=b"test_1"),
+                    core_exceptions.Aborted("mock retryable error"),
+                ]
                 with mock.patch.object(
                     table.client._gapic_client, "read_rows"
                 ) as read_rows:
@@ -443,7 +446,7 @@ async def test_read_rows_revise_request():
                     )
                     try:
                         await table.read_rows(query)
-                    except core_exceptions.Aborted:
+                    except core_exceptions.Cancelled:
                         revise_rowset.assert_called()
                         first_call_kwargs = revise_rowset.call_args_list[0].kwargs
                         assert first_call_kwargs["row_set"] == query._to_dict()["rows"]

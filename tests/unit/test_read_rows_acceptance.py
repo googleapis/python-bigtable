@@ -108,7 +108,7 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
         results = []
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
             # run once, then return error on retry
-            read_rows.side_effect = [_make_gapic_stream(test_case.chunks), RuntimeError]
+            read_rows.return_value = _make_gapic_stream(test_case.chunks)
             async for row in await table.read_rows_stream(query={}):
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
@@ -120,7 +120,7 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
                         label=cell.labels[0] if cell.labels else "",
                     )
                     results.append(cell_result)
-    except RuntimeError:
+    except InvalidChunk:
         results.append(ReadRowsTest.Result(error=True))
     finally:
         await client.close()

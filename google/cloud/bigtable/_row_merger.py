@@ -103,8 +103,8 @@ class _RowMerger(AsyncIterable[Row]):
             row_limit,
         )
         predicate = retries.if_exception_type(
-            core_exceptions.ServerError,
-            core_exceptions.TooManyRequests,
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
 
@@ -185,7 +185,10 @@ class _RowMerger(AsyncIterable[Row]):
                 last_seen_row_key=self.last_seen_row_key,
                 emitted_rows=self.emitted_rows,
             )
-        new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
+        new_gapic_stream = await gapic_fn(
+            self.request,
+            timeout=per_request_timeout,
+        )
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
         state_machine = _StateMachine()
         try:
