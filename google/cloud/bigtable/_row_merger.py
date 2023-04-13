@@ -186,6 +186,13 @@ class _RowMerger(AsyncIterable[Row]):
                 last_seen_row_key=self.last_seen_row_key,
                 emitted_rows=self.emitted_rows,
             )
+            # revise next request's row limit based on number emitted
+            if row_limit:
+                new_limit = row_limit - self.emit_count
+                if new_limit <= 0:
+                    return
+                else:
+                    self.request["rows_limit"] = new_limit
         new_gapic_stream = await gapic_fn(
             self.request,
             timeout=per_request_timeout,
