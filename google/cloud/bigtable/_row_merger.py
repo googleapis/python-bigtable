@@ -450,8 +450,6 @@ class _StateMachine:
         if chunk.value:
             raise InvalidChunk("Reset chunk has a value")
         self._reset_row()
-        if not isinstance(self.current_state, AWAITING_NEW_ROW):
-            raise InvalidChunk("Failed to reset state machine")
 
 
 class _State(ABC):
