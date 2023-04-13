@@ -38,12 +38,12 @@ def grpc_server_process(request_q, queue_pool, port=50055):
 
     import grpc
     import test_proxy_pb2_grpc
-    import proxy_grpc_server
+    import grpc_handler
 
     # Start gRPC server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     test_proxy_pb2_grpc.add_CloudBigtableV2TestProxyServicer_to_server(
-        proxy_grpc_server.TestProxyGrpcServer(request_q, queue_pool), server
+        grpc_handler.TestProxyGrpcServer(request_q, queue_pool), server
     )
     server.add_insecure_port("[::]:" + port)
     server.start()
