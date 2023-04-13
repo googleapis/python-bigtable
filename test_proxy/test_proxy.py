@@ -1,0 +1,166 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""
+The Python implementation of the `cloud-bigtable-clients-test` proxy server.
+
+https://github.com/googleapis/cloud-bigtable-clients-test
+
+This server is intended to be used to test the correctness of Bigtable
+clients across languages.
+
+Contributor Note: the proxy implementation is split across TestProxyClientHandler
+and TestProxyGrpcServer. This is due to the fact that generated protos and proto-plus
+objects cannot be used in the same process, so we had to make use of the
+multiprocessing module to allow them to work together.
+"""
+
+import multiprocessing
+import sys
+
+
+def grpc_server_process(request_q, queue_pool, port=50055):
+    """
+    Defines a process that hosts a grpc server
+    proxies requests to a client_handler_process
+    """
+    from concurrent import futures
+
+    import grpc
+    import test_proxy_pb2_grpc
+    import proxy_grpc_server
+
+    # Start gRPC server
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    test_proxy_pb2_grpc.add_CloudBigtableV2TestProxyServicer_to_server(
+        proxy_grpc_server.TestProxyGrpcServer(request_q, queue_pool), server
+    )
+    server.add_insecure_port("[::]:" + port)
+    server.start()
+    print("grpc_server_process started, listening on " + port)
+    server.wait_for_termination()
+
+
+async def client_handler_process_async(request_q, queue_pool):
+    """
+    Defines a process that recives Bigtable requests from a grpc_server_process,
+    and runs the request using a client library instance
+    """
+    from google.cloud.bigtable import BigtableDataClient
+    from google.cloud.environment_vars import BIGTABLE_EMULATOR
+    import re
+    import os
+    import asyncio
+    import warnings
+    import client_handler
+    warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Bigtable emulator.*")
+
+    def camel_to_snake(str):
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()
+
+    def format_dict(input_obj):
+        if isinstance(input_obj, list):
+            return [format_dict(x) for x in input_obj]
+        elif isinstance(input_obj, dict):
+            return {camel_to_snake(k): format_dict(v) for k, v in input_obj.items()}
+        elif isinstance(input_obj, str):
+            # check for time encodings
+            if re.match("^[0-9]+s$", input_obj):
+                return int(input_obj[:-1])
+            # check for int strings
+            try:
+                return int(input_obj)
+            except (ValueError, TypeError):
+                return input_obj
+        else:
+            return input_obj
+
+
+    # Listen to requests from grpc server process
+    print("client_handler_process started")
+    client_map = {}
+    background_tasks = set()
+    while True:
+        if not request_q.empty():
+            json_data = format_dict(request_q.get())
+            fn_name = json_data.pop("proxy_request")
+            print(f"--- running {fn_name} with {json_data}")
+            out_q = queue_pool[json_data.pop("response_queue_idx")]
+            client_id = json_data.pop("client_id")
+            client = client_map.get(client_id, None)
+            # handle special cases for client creation and deletion
+            if fn_name == "CreateClient":
+                client = client_handler.TestProxyClientHandler(**json_data)
+                client_map[client_id] = client
+                out_q.put(True)
+            elif client is None:
+                out_q.put(RuntimeError("client not found"))
+            elif fn_name == "CloseClient":
+                client.close()
+                out_q.put(True)
+            elif fn_name == "RemoveClient":
+                client_map.pop(client_id, None)
+                out_q.put(True)
+                print("")
+            else:
+                # run actual rpc against client
+                async def _run_fn(out_q, fn, **kwargs):
+                    result = await fn(**kwargs)
+                    out_q.put(result)
+                fn = getattr(client, fn_name)
+                task = asyncio.create_task(_run_fn(out_q, fn, **json_data))
+                await asyncio.sleep(0)
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.remove)
+        await asyncio.sleep(0.01)
+
+
+def client_handler_process(request_q, queue_pool):
+    import asyncio
+    asyncio.run(client_handler_process_async(request_q, queue_pool))
+
+
+
+if __name__ == "__main__":
+    port = "50055"
+    if len(sys.argv) > 1:
+        port = sys.argv[1]
+    # start and run both processes
+    # larger pools support more concurrent requests
+    response_queue_pool = [multiprocessing.Queue() for _ in range(100)]
+    request_q = multiprocessing.Queue()
+
+    # run client in forground and proxy in background
+    # breakpoints can be attached to client_handler_process
+    proxy = multiprocessing.Process(
+        target=grpc_server_process,
+        args=(
+            request_q,
+            response_queue_pool,
+            port
+        ),
+    )
+    proxy.start()
+    client_handler_process(request_q, response_queue_pool)
+
+    # uncomment to run proxy in foreground instead
+    # client = multiprocessing.Process(
+    #     target=client_handler.client_handler_process,
+    #     args=(
+    #         request_q,
+    #         response_queue_pool,
+    #     ),
+    # )
+    # client.start()
+    # grpc_server_process(request_q, response_queue_pool, port)
+    # client.join()

@@ -23,18 +23,18 @@ nox -s run_proxy
 
 #### running the proxy script manually
 
-You can also run the `proxy_server.py` file directly
+You can also run the `test_proxy.py` file directly
 
 ```
 cd python-bigtable/test_proxy
-python proxy_server.py
+python test_proxy.py
 ```
 
 The port can be set by passing in an extra positional argument
 
 ```
 cd python-bigtable/test_proxy
-python proxy_server.py 8080
+python test_proxy.py 8080
 ```
 
 ## Run the test cases

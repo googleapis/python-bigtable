@@ -71,4 +71,4 @@ def default(session):
         session.install("-e", str(REPO_ROOT_DIRECTORY))
         session.install("-e", str(REPO_ROOT_DIRECTORY / "python-api-core"))
 
-    session.run("python", "proxy_server.py", PROXY_SERVER_PORT, *session.posargs,)
+    session.run("python", "test_proxy.py", PROXY_SERVER_PORT, *session.posargs,)
