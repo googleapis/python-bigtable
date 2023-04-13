@@ -124,6 +124,7 @@ class BigtableDataClient(ClientWithProject):
                 f"{self.__class__.__name__} should be started in an "
                 "asyncio event loop. Channel refresh will not be started",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
     def start_background_channel_refresh(self) -> None:
@@ -334,6 +335,7 @@ class Table:
                 "Table should be created in an asyncio event loop."
                 " Instance will not be registered with client for refresh",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
     async def read_rows_stream(
