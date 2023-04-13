@@ -172,6 +172,8 @@ async def client_handler_process_async(request_q, queue_pool):
     import re
     import os
     import asyncio
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Bigtable emulator.*")
 
     def camel_to_snake(str):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", str).lower()

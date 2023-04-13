@@ -130,7 +130,9 @@ class BigtableDataClient(ClientWithProject):
         if self._emulator_host is not None:
             # connect to an emulator host
             warnings.warn(
-                "Connecting to Bigtable emulator at {}".format(self._emulator_host)
+                "Connecting to Bigtable emulator at {}".format(self._emulator_host),
+                RuntimeWarning,
+                stacklevel=2,
             )
             self.transport._grpc_channel = PooledChannel(
                 pool_size=pool_size,
