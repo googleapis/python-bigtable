@@ -79,7 +79,14 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 and self.active()
             ):
                 # idle timeout has expired
-                await self._finish_with_error(IdleTimeout("idle timeout expired"))
+                await self._finish_with_error(
+                    IdleTimeout(
+                        (
+                            "Timed out waiting for next Row to be consumed. "
+                            f"(idle_timeout={idle_timeout:0.1f}s)"
+                        )
+                    )
+                )
 
     def __aiter__(self):
         """Implement the async iterator protocol."""

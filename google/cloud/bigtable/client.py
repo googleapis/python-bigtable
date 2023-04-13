@@ -331,6 +331,10 @@ class Table:
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        *,
+        default_operation_timeout: float = 60,
+        default_per_row_timeout: float | None = 10,
+        default_per_request_timeout: float | None = None,
     ):
         """
         Initialize a Table instance
@@ -342,8 +346,13 @@ class Table:
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table.
-            app_profile_id: (Optional) The app profile to associate with requests.
+            app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
+            default_operation_timeout: (Optional) The default timeout, in seconds
+            default_per_row_timeout: (Optional) The default timeout for individual
+                rows in all read_rows requests, in seconds
+            default_per_request_timeout: (Optional) The default timeout for individual
+                rpc requests, in seconds
         Raises:
           - RuntimeError if called outside of an async run loop context
         """
@@ -356,6 +365,9 @@ class Table:
             self.client.project, instance_id, table_id
         )
         self.app_profile_id = app_profile_id
+        self.default_operation_timeout = default_operation_timeout
+        self.default_per_row_timeout = default_per_row_timeout
+        self.default_per_request_timeout = default_per_request_timeout
         # raises RuntimeError if called outside of an async run loop context
         try:
             self._register_instance_task = asyncio.create_task(
@@ -373,8 +385,8 @@ class Table:
         query: ReadRowsQuery | dict[str, Any],
         *,
         cache_size: int = 0,
-        operation_timeout: float = 60,
-        per_row_timeout: float | None = 10,
+        operation_timeout: float | None = None,
+        per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ) -> ReadRowsIterator:
         """
@@ -395,14 +407,17 @@ class Table:
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
                  Completed and cached results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after cached results are exhausted
+                 with a DeadlineExceeded exception only raised after cached results are exhausted.
+                 If None, defaults to the Table's default_operation_timeout
             - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
                 longer than per_row_timeout to complete, the ongoing network request will be with a
                 DeadlineExceeded exception, and a retry may be attempted
                 Applies only to the underlying network call.
+                If None, defaults to the Table's default_per_row_timeout
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_per_request_timeout
 
         Returns:
             - an asynchronous iterator that yields rows returned by the query
@@ -413,8 +428,17 @@ class Table:
             - GoogleAPIError: raised if the request encounters an unrecoverable error
             - IdleTimeout: if iterator was abandoned
         """
+
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_row_timeout = per_row_timeout or self.default_per_row_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
+        if per_row_timeout is not None and per_row_timeout <= 0:
+            raise ValueError("per_row_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_path
         if self.app_profile_id:
@@ -435,7 +459,7 @@ class Table:
         )
         output_generator = ReadRowsIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
-        idle_timeout_seconds = 600
+        idle_timeout_seconds = 300
         await output_generator._start_idle_timer(idle_timeout_seconds)
         return output_generator
 
@@ -443,9 +467,9 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        operation_timeout: float = 60,
-        per_row_timeout: int | float | None = 10,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = None,
+        per_row_timeout: float | None = None,
+        per_request_timeout: float | None = None,
     ) -> list[Row]:
         """
         Helper function that returns a full list instead of a generator
@@ -489,7 +513,6 @@ class Table:
         cache_size_limit: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
-        idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:
         """
