@@ -83,6 +83,7 @@ class _RowMerger(AsyncIterable[Row]):
           - cache_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
+          - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
           - revise_on_retry: if True, retried request will be modified based on rows that have already been seen
         """
         self.last_seen_row_key: bytes | None = None
@@ -117,7 +118,7 @@ class _RowMerger(AsyncIterable[Row]):
             timeout=self.operation_timeout,
             initial=0.1,
             multiplier=2,
-            maximum=1,
+            maximum=60,
             on_error=on_error_fn,
             is_generator=True,
         )
