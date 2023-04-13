@@ -103,9 +103,9 @@ class _RowMerger(AsyncIterable[Row]):
             row_limit,
         )
         predicate = retries.if_exception_type(
-            InvalidChunk,
             core_exceptions.ServerError,
             core_exceptions.TooManyRequests,
+            core_exceptions.Aborted,
         )
 
         def on_error_fn(exc):
@@ -388,7 +388,7 @@ class _StateMachine:
             and chunk.row_key
             and self.last_seen_row_key >= chunk.row_key
         ):
-            raise InvalidChunk("Out of order row keys")
+            raise InvalidChunk("row keys should be strictly increasing")
         if chunk.reset_row:
             # reset row if requested
             self._handle_reset_chunk(chunk)

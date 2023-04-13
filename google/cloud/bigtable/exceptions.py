@@ -29,7 +29,7 @@ class IdleTimeout(core_exceptions.DeadlineExceeded):
     pass
 
 
-class InvalidChunk(core_exceptions.ServerError):
+class InvalidChunk(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid chunk data from back-end."""
 
 
