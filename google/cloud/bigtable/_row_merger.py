@@ -87,9 +87,11 @@ class _RowMerger(AsyncIterable[Row]):
         """
         self.last_seen_row_key: bytes | None = None
         self.emitted_rows: Set[bytes] = set()
+        self.emit_count = 0
         cache_size = max(cache_size, 0)
         self.request = request
         self.operation_timeout = operation_timeout
+        row_limit = request.get("rows_limit", 0)
         # lock in paramters for retryable wrapper
         self.partial_retryable = partial(
             self.retryable_merge_rows,
@@ -98,6 +100,7 @@ class _RowMerger(AsyncIterable[Row]):
             per_row_timeout,
             per_request_timeout,
             revise_on_retry,
+            row_limit,
         )
         predicate = retries.if_exception_type(
             InvalidChunk,
@@ -160,6 +163,7 @@ class _RowMerger(AsyncIterable[Row]):
         per_row_timeout,
         per_request_timeout,
         revise_on_retry,
+        row_limit,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
@@ -218,6 +222,9 @@ class _RowMerger(AsyncIterable[Row]):
                         if not isinstance(new_item, _LastScannedRow):
                             self.emitted_rows.add(new_item.row_key)
                             yield new_item
+                            self.emit_count += 1
+                            if row_limit and self.emit_count >= row_limit:
+                                return
                     # start new task for cache
                     get_from_cache_task = asyncio.create_task(cache.get())
                     await asyncio.sleep(0)
