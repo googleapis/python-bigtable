@@ -181,7 +181,14 @@ class _RowMerger(AsyncIterable[Row]):
                 last_seen_row_key=self.last_seen_row_key,
                 emitted_rows=self.emitted_rows,
             )
-        new_gapic_stream = await gapic_fn(self.request, timeout=per_request_timeout)
+        params_str = f'table_name={self.request["table_name"]}'
+        if self.request.get("app_profile_id", None):
+            params_str = f'{params_str},app_profile_id={self.request["app_profile_id"]}'
+        new_gapic_stream = await gapic_fn(
+            self.request,
+            timeout=per_request_timeout,
+            metadata=[('x-goog-request-params', params_str)],
+        )
         cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
         state_machine = _StateMachine()
         try:
