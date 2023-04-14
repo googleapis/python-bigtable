@@ -30,7 +30,6 @@ class _RangePoint:
     key: row_key
     is_inclusive: bool
 
-
 @dataclass
 class RowRange:
     start: _RangePoint | None
@@ -81,6 +80,11 @@ class RowRange:
             key = "end_key_closed" if self.end.is_inclusive else "end_key_open"
             output[key] = self.end.key
         return output
+
+    def __str__(self) -> str:
+        start_char = "[" if self.start.is_inclusive else "("
+        end_char = "]" if self.end.is_inclusive else ")"
+        return f"{start_char}{self.start.key}-{self.end.key}{end_char}"
 
 
 class ReadRowsQuery:
@@ -266,3 +270,11 @@ class ReadRowsQuery:
         if self.limit is not None:
             final_dict["rows_limit"] = self.limit
         return final_dict
+
+    def __eq__(self, other):
+        if not isinstance(other, ReadRowsQuery):
+            return False
+        return self.row_keys == other.row_keys and self.row_ranges == other.row_ranges and self.filter == other.filter and self.limit == other.limit
+
+    def __repr__(self):
+        return f"ReadRowsQuery(row_keys={self.row_keys}, row_ranges={self.row_ranges}, filter={self.filter}, limit={self.limit})"
