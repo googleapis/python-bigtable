@@ -73,7 +73,6 @@ class _RowMerger(AsyncIterable[Row]):
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
-        revise_on_retry: bool = True,
     ):
         """
         Args:
@@ -83,7 +82,6 @@ class _RowMerger(AsyncIterable[Row]):
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
-          - revise_on_retry: if True, retried request will be modified based on rows that have already been seen
         """
         self.last_seen_row_key: bytes | None = None
         self.emit_count = 0
@@ -98,7 +96,6 @@ class _RowMerger(AsyncIterable[Row]):
             cache_size,
             per_row_timeout,
             per_request_timeout,
-            revise_on_retry,
             row_limit,
         )
         predicate = retries.if_exception_type(
@@ -160,7 +157,6 @@ class _RowMerger(AsyncIterable[Row]):
         cache_size,
         per_row_timeout,
         per_request_timeout,
-        revise_on_retry,
         row_limit,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
@@ -176,7 +172,7 @@ class _RowMerger(AsyncIterable[Row]):
             duplicate rows are not emitted
           - request is stored and (optionally) modified on each retry
         """
-        if revise_on_retry and self.last_seen_row_key is not None:
+        if self.last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             self.request["rows"] = _RowMerger._revise_request_rowset(
                 row_set=self.request.get("rows", None),
