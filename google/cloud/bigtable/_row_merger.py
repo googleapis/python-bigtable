@@ -111,7 +111,7 @@ class _RowMerger(AsyncIterable[Row]):
         retry = retries.AsyncRetry(
             predicate=predicate,
             timeout=self.operation_timeout,
-            initial=0.1,
+            initial=0.01,
             multiplier=2,
             maximum=60,
             on_error=on_error_fn,
