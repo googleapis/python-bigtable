@@ -418,6 +418,8 @@ class Table:
             raise ValueError("per_row_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout <= 0:
             raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError("per_request_timeout must be less than operation_timeout")
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_path
         if self.app_profile_id:
