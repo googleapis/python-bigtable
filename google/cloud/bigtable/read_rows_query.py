@@ -213,32 +213,33 @@ class ReadRowsQuery:
         if self.limit is not None:
             raise AttributeError("Cannot shard a query with a limit")
 
-        split_points = [sample.row_key for sample in shard_keys if sample.row_key]
+        split_points = [sample[0] for sample in shard_keys if sample[0]]
+        sharded_queries = {}
 
         # use binary search to find split point segments for each row key in original query
         for this_key in list(self.row_keys):
-            index = bisect.bisect_left(split_points, row_key)
-            sharded_queries[index] = sharded_queries.get(index, ReadRowsQuery()).add_key(row_key)
+            index = bisect.bisect_left(split_points, this_key)
+            sharded_queries.setdefault(index, ReadRowsQuery()).add_key(this_key)
 
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
-        for this_range in self.row_ranges():
-            start_index = bisect.bisect_left(split_points, this_range.start.key) is this_range.start is not None else 0
+        for this_range in self.row_ranges:
+            start_index = bisect.bisect_left(split_points, this_range.start.key) if this_range.start is not None else 0
             end_index = bisect.bisect_left(split_points, this_range.end.key) if this_range.end is not None else len(split_points)
             if start_index == end_index:
                 # range is contained in a single segment
-                sharded_queries[start_index] = sharded_queries.get(start_index, ReadRowsQuery()).add_range(this_range)
+                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(this_range)
             else:
                 # range spans multiple segments
                 # create start and end ranges
-                start_range = RowRange(start_key=this_range.start.key, end_key=split_points[start_index], this_range.start_inclusive, False))
-                sharded_queries[start_index] = sharded_queries.get(start_index, ReadRowsQuery()).add_range(start_range)
-                end_range = RowRange(start_key=split_points[end_index], end_key=this_range.end.key, True, this_range.end_inclusive))
-                sharded_queries[end_index] = sharded_queries.get(end_index, ReadRowsQuery()).add_range(end_range)
+                start_range = RowRange(this_range.start.key, split_points[start_index], this_range.start.is_inclusive, False)
+                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(start_range)
+                end_range = RowRange(split_points[end_index], this_range.end.key, True, this_range.end.is_inclusive)
+                sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(end_range)
                 # put the middle of the range in all segments in between
                 for i in range(start_index + 1, end_index):
-                    mid_range = RowRange(start_key=split_points[i], end_key=split_points[i + 1], True, False)
-                    sharded_queries[i] = sharded_queries.get(i, ReadRowsQuery()).add_range(mid_range)
+                    mid_range = RowRange(split_points[i], split_points[i + 1], True, False)
+                    sharded_queries.setdefault(i, ReadRowsQuery()).add_range(mid_range)
         return list(sharded_queries.values())
 
 

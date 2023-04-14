@@ -579,12 +579,11 @@ class Table:
             multiplier=2,
             maximum=60,
         )
-        wrapped_call = retry(
-            lambda: [
-                (s.row_key, s.offset_bytes)
-                async for s in await gapic_fn(**gapic_kwargs)
-            ],
-        )
+        async def _get_rows():
+            return [(s.row_key, s.offset_bytes)
+                    async for s in await gapic_fn(**gapic_kwargs)
+            ]
+        wrapped_call = retry(_get_rows)
         return wrapped_call()
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
