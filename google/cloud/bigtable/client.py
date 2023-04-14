@@ -29,6 +29,7 @@ import time
 import warnings
 import sys
 import random
+from itertools import chain
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -492,12 +493,10 @@ class Table:
         self,
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
-        limit: int | None,
-        cache_size_limit: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-    ) -> ReadRowsIterator:
+    ) -> list[Row]:
         """
         Runs a sharded query in parallel
 
@@ -507,7 +506,11 @@ class Table:
         Args:
             - query_list: a list of queries to run in parallel
         """
-        raise NotImplementedError
+        kwargs = {"operation_timeout": operation_timeout, "per_row_timeout": per_row_timeout, "per_request_timeout": per_request_timeout}
+        routine_list = [self.read_rows(query, **kwargs) for query in query_list]
+        results_lists = asyncio.gather(*routine_list)
+        return list(chain.from_iterable(results_lists))
+
 
     async def row_exists(
         self,
