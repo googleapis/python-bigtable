@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import unittest
+import pytest
 
 TEST_ROWS = [
     "row_key_1",
@@ -355,5 +356,47 @@ class TestReadRowsQuery(unittest.TestCase):
         filter_proto = request_proto.filter
         self.assertEqual(filter_proto, row_filter._to_pb())
 
-    def test_shard(self):
-        pass
+def _parse_query_string(query_string):
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery, RowRange
+    query = ReadRowsQuery()
+    segments = query_string.split(",")
+    for segment in segments:
+        if "-" in segment:
+            start, end = segment.split("-")
+            s_open, e_open = True, True
+            if start == "":
+                start = None
+            else:
+                if start[0] == "(":
+                    s_open = False
+                start = start[1:]
+            if end == "":
+                end = None
+            else:
+                if end[-1] == ")":
+                    e_open = False
+                end = end[:-1]
+            query.add_range(RowRange(start, end, s_open, e_open))
+        else:
+            query.add_key(segment)
+    return query
+
+@pytest.mark.parametrize(
+    "query_string,shard_points", [
+        ("a,[p-q)", []),
+        ("0_key,[1_range_start-2_range_end)", ["3_split"]),
+        ("-1_range_end)", ["5_split"]),
+        ("0_key,[1_range_start-2_range_end)", ["2_range_end"]),
+        ("9_row_key,(5_range_start-7_range_end)", ["3_split"]),
+        ("(5_range_start-", ["3_split"]),
+        ("3_split,[3_split-5_split)", ["3_split", "5_split"]),
+        ("[3_split-", ["3_split"]),
+    ]
+)
+def test_shard_no_split(query_string, shard_points):
+    # these queries should not be sharded
+    initial_query = _parse_query_string(query_string)
+    row_samples = [(point.encode(), None) for point in shard_points]
+    sharded_queries = initial_query.shard(row_samples)
+    assert len(sharded_queries) == 1
+    assert initial_query == sharded_queries[0]
