@@ -403,11 +403,40 @@ def test_shard_no_split(query_string, shard_points):
     assert len(sharded_queries) == 1
     assert initial_query == sharded_queries[0]
 
+
 def test_shard_full_table_scan():
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery, RowRange
     full_scan_query = ReadRowsQuery(row_ranges=[RowRange()])
-    split_points = [('a', None)]
+    split_points = [(b'a', None)]
     sharded_queries = full_scan_query.shard(split_points)
     assert len(sharded_queries) == 2
     assert sharded_queries[0] == _parse_query_string("-a)")
     assert sharded_queries[1] == _parse_query_string("[a-")
+
+def test_shard_multiple_keys():
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    initial_query = _parse_query_string("1_beforeSplit,2_onSplit,3_afterSplit")
+    split_points = [(b'2_onSplit', None)]
+    sharded_queries = initial_query.shard(split_points)
+    assert len(sharded_queries) == 2
+    assert sharded_queries[0] == _parse_query_string("1_beforeSplit")
+    assert sharded_queries[1] == _parse_query_string("2_onSplit,3_afterSplit")
+
+def test_shard_keys_empty_left():
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    initial_query = _parse_query_string("5_test,8_test")
+    split_points = [(b'0_split', None), (b'6_split', None)]
+    sharded_queries = initial_query.shard(split_points)
+    assert len(sharded_queries) == 2
+    assert sharded_queries[0] == _parse_query_string("5_test")
+    assert sharded_queries[1] == _parse_query_string("8_test")
+
+def test_shard_keys_empty_right():
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    initial_query = _parse_query_string("0_test,2_test")
+    split_points = [(b'1_split', None), (b'5_split', None)]
+    sharded_queries = initial_query.shard(split_points)
+    assert len(sharded_queries) == 2
+    assert sharded_queries[0] == _parse_query_string("0_test")
+    assert sharded_queries[1] == _parse_query_string("2_test")
+

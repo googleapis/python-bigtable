@@ -279,7 +279,10 @@ class ReadRowsQuery:
                 for i in range(start_index + 1, end_index):
                     mid_range = RowRange(split_points[i], split_points[i + 1], True, False)
                     sharded_queries.setdefault(i, ReadRowsQuery()).add_range(mid_range)
-        return list(sharded_queries.values())
+        # return a list of queries, sorted by segment index
+        keys = list(sharded_queries.keys())
+        keys.sort()
+        return [sharded_queries[k] for k in keys]
 
 
     def _to_dict(self) -> dict[str, Any]:
