@@ -93,8 +93,8 @@ class RowRange:
         """Creates a RowRange from a dictionary"""
         start_key = data.get("start_key_closed", data.get("start_key_open"))
         end_key = data.get("end_key_closed", data.get("end_key_open"))
-        start_is_inclusive = "start_key_closed" in data
-        end_is_inclusive = "end_key_closed" in data
+        start_is_inclusive = "start_key_closed" in data if start_key else None
+        end_is_inclusive = "end_key_closed" in data if end_key else None
         return cls(
             start_key,
             end_key,
