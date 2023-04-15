@@ -30,6 +30,9 @@ class _RangePoint:
     key: row_key
     is_inclusive: bool
 
+    def __hash__(self) -> int:
+        return hash((self.key, self.is_inclusive))
+
 @dataclass
 class RowRange:
     start: _RangePoint | None
@@ -80,6 +83,9 @@ class RowRange:
             key = "end_key_closed" if self.end.is_inclusive else "end_key_open"
             output[key] = self.end.key
         return output
+
+    def __hash__(self) -> int:
+        return hash((self.start, self.end))
 
     @classmethod
     def _from_dict(cls, data: dict[str, bytes]) -> RowRange:
@@ -137,7 +143,7 @@ class ReadRowsQuery:
           - row_filter: a RowFilter to apply to the query
         """
         self.row_keys: set[bytes] = set()
-        self.row_ranges: list[RowRange | dict[str, bytes]] = []
+        self.row_ranges: set[RowRange] = set()
         if row_ranges:
             if isinstance(row_ranges, RowRange):
                 row_ranges = [row_ranges]
@@ -229,7 +235,9 @@ class ReadRowsQuery:
         """
         if not (isinstance(row_range, dict) or isinstance(row_range, RowRange)):
             raise ValueError("row_range must be a RowRange or dict")
-        self.row_ranges.append(row_range)
+        if isinstance(row_range, dict):
+            row_range = RowRange._from_dict(row_range)
+        self.row_ranges.add(row_range)
 
     def shard(self, shard_keys: RowKeySamples) -> list[ReadRowsQuery]:
         """
