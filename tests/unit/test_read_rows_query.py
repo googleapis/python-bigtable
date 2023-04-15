@@ -420,8 +420,6 @@ def test_shard_full_table_scan():
 
 
 def test_shard_multiple_keys():
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-
     initial_query = _parse_query_string("1_beforeSplit,2_onSplit,3_afterSplit")
     split_points = [(b"2_onSplit", None)]
     sharded_queries = initial_query.shard(split_points)
@@ -431,8 +429,6 @@ def test_shard_multiple_keys():
 
 
 def test_shard_keys_empty_left():
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-
     initial_query = _parse_query_string("5_test,8_test")
     split_points = [(b"0_split", None), (b"6_split", None)]
     sharded_queries = initial_query.shard(split_points)
@@ -442,8 +438,6 @@ def test_shard_keys_empty_left():
 
 
 def test_shard_keys_empty_right():
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-
     initial_query = _parse_query_string("0_test,2_test")
     split_points = [(b"1_split", None), (b"5_split", None)]
     sharded_queries = initial_query.shard(split_points)
@@ -453,8 +447,6 @@ def test_shard_keys_empty_right():
 
 
 def test_shard_mixed_split():
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-
     initial_query = _parse_query_string("0,a,c,-a],-b],(c-e],(d-f],(m-")
     split_points = [(s.encode(), None) for s in ["a", "d", "j", "o"]]
     sharded_queries = initial_query.shard(split_points)
@@ -467,8 +459,6 @@ def test_shard_mixed_split():
 
 
 def test_shard_unsorted_request():
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-
     initial_query = _parse_query_string(
         "7_row_key_1,2_row_key_2,[8_range_1_start-9_range_1_end),[3_range_2_start-4_range_2_end)"
     )
