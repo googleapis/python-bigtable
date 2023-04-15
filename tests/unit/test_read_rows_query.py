@@ -452,3 +452,11 @@ def test_shard_mixed_split():
     assert sharded_queries[3] == _parse_query_string("(m-o)")
     assert sharded_queries[4] == _parse_query_string("[o-")
 
+def test_shard_unsorted_request():
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    initial_query = _parse_query_string("7_row_key_1,2_row_key_2,[8_range_1_start-9_range_1_end),[3_range_2_start-4_range_2_end)")
+    split_points = [(b"5-split", None)]
+    sharded_queries = initial_query.shard(split_points)
+    assert len(sharded_queries) == 2
+    assert sharded_queries[0] == _parse_query_string("2_row_key_2,[3_range_2_start-4_range_2_end)")
+    assert sharded_queries[1] == _parse_query_string("7_row_key_1,[8_range_1_start-9_range_1_end)")
