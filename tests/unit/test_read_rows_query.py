@@ -366,12 +366,14 @@ def _parse_query_string(query_string):
             s_open, e_open = True, True
             if start == "":
                 start = None
+                s_open = None
             else:
                 if start[0] == "(":
                     s_open = False
                 start = start[1:]
             if end == "":
                 end = None
+                e_open = None
             else:
                 if end[-1] == ")":
                     e_open = False

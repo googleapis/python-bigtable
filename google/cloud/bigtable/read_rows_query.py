@@ -81,6 +81,32 @@ class RowRange:
             output[key] = self.end.key
         return output
 
+    @classmethod
+    def _from_dict(cls, data: dict[str, bytes]) -> RowRange:
+        """Creates a RowRange from a dictionary"""
+        start_key = data.get("start_key_closed", data.get("start_key_open"))
+        end_key = data.get("end_key_closed", data.get("end_key_open"))
+        start_is_inclusive = "start_key_closed" in data
+        end_is_inclusive = "end_key_closed" in data
+        return cls(
+            start_key,
+            end_key,
+            start_is_inclusive,
+            end_is_inclusive,
+        )
+
+    @classmethod
+    def _from_points(cls, start: _RangePoint|None, end: _RangePoint|None) -> RowRange:
+        """Creates a RowRange from two RangePoints"""
+        kwargs = {}
+        if start is not None:
+            kwargs["start_key"] = start.key
+            kwargs["start_is_inclusive"] = start.is_inclusive
+        if end is not None:
+            kwargs["end_key"] = end.key
+            kwargs["end_is_inclusive"] = end.is_inclusive
+        return cls(**kwargs)
+
     def __str__(self) -> str:
         start_char = "[" if self.start.is_inclusive else "("
         end_char = "]" if self.end.is_inclusive else ")"
@@ -222,23 +248,32 @@ class ReadRowsQuery:
 
         # use binary search to find split point segments for each row key in original query
         for this_key in list(self.row_keys):
-            index = bisect.bisect_left(split_points, this_key)
+            index = bisect.bisect_right(split_points, this_key)
             sharded_queries.setdefault(index, ReadRowsQuery()).add_key(this_key)
 
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
         for this_range in self.row_ranges:
-            start_index = bisect.bisect_left(split_points, this_range.start.key) if this_range.start is not None else 0
-            end_index = bisect.bisect_left(split_points, this_range.end.key) if this_range.end is not None else len(split_points)
+            this_range = this_range if isinstance(this_range, RowRange) else RowRange._from_dict(this_range)
+            # start index always bisects right, since points define the left side of the range
+            start_index = bisect.bisect_right(split_points, this_range.start.key) if this_range.start is not None else 0
+            # end index can bisect left or right, depending on whether the range is inclusive
+            if this_range.end is None:
+                end_index = len(split_points)
+            elif this_range.end.is_inclusive:
+                end_index = bisect.bisect_right(split_points, this_range.end.key)
+            else:
+                end_index = bisect.bisect_left(split_points, this_range.end.key)
+            # create new ranges for each segment
             if start_index == end_index:
                 # range is contained in a single segment
                 sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(this_range)
             else:
                 # range spans multiple segments
                 # create start and end ranges
-                start_range = RowRange(this_range.start.key, split_points[start_index], this_range.start.is_inclusive, False)
+                start_range = RowRange._from_points(this_range.start, _RangePoint(split_points[start_index], False))
+                end_range = RowRange._from_points(_RangePoint(split_points[end_index], True), this_range.end)
                 sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(start_range)
-                end_range = RowRange(split_points[end_index], this_range.end.key, True, this_range.end.is_inclusive)
                 sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(end_range)
                 # put the middle of the range in all segments in between
                 for i in range(start_index + 1, end_index):
