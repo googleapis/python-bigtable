@@ -107,7 +107,7 @@ class RowRange:
         cls, start: _RangePoint | None, end: _RangePoint | None
     ) -> RowRange:
         """Creates a RowRange from two RangePoints"""
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if start is not None:
             kwargs["start_key"] = start.key
             kwargs["start_is_inclusive"] = start.is_inclusive
@@ -117,9 +117,17 @@ class RowRange:
         return cls(**kwargs)
 
     def __str__(self) -> str:
-        start_char = "[" if self.start.is_inclusive else "("
-        end_char = "]" if self.end.is_inclusive else ")"
-        return f"{start_char}{self.start.key}-{self.end.key}{end_char}"
+        if self.start is None:
+            start_str = "-inf"
+        else:
+            start_char = "[" if self.start.is_inclusive else "("
+            start_str = f"{start_char}{self.start.key!r}"
+        if self.end is None:
+            end_str = "inf"
+        else:
+            end_char = "]" if self.end.is_inclusive else ")"
+            end_str = f"{end_char}{self.end.key!r}"
+        return f"{start_str}, {end_str}"
 
 
 class ReadRowsQuery:
@@ -255,7 +263,7 @@ class ReadRowsQuery:
             raise AttributeError("Cannot shard a query with a limit")
 
         split_points = [sample[0] for sample in shard_keys if sample[0]]
-        sharded_queries = {}
+        sharded_queries: dict[int, ReadRowsQuery] = {}
 
         # use binary search to find split point segments for each row key in original query
         for this_key in list(self.row_keys):
@@ -265,11 +273,6 @@ class ReadRowsQuery:
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
         for this_range in self.row_ranges:
-            this_range = (
-                this_range
-                if isinstance(this_range, RowRange)
-                else RowRange._from_dict(this_range)
-            )
             # start index always bisects right, since points define the left side of the range
             start_index = (
                 bisect.bisect_right(split_points, this_range.start.key)

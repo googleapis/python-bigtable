@@ -565,12 +565,6 @@ class Table:
             raise ValueError("per_request_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
-        gapic_fn = self.client._gapic_client.sample_row_keys
-        gapic_kwargs = {
-            "table_name": self.table_path,
-            "app_profile_id": self.app_profile_id,
-            "timeout": per_request_timeout,
-        }
         retry = retries.AsyncRetry(
             predicate=retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
@@ -584,10 +578,12 @@ class Table:
         )
 
         async def _get_rows():
-            return [
-                (s.row_key, s.offset_bytes)
-                async for s in await gapic_fn(**gapic_kwargs)
-            ]
+            gen = await self.client._gapic_client.sample_row_keys(
+                table_name=self.table_path,
+                app_profile_id=self.app_profile_id,
+                timeout=per_request_timeout,
+            )
+            return [(s.row_key, s.offset_bytes) async for s in gen]
 
         wrapped_call = retry(_get_rows)
         return wrapped_call()
