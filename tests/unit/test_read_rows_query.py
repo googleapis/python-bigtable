@@ -402,3 +402,12 @@ def test_shard_no_split(query_string, shard_points):
     sharded_queries = initial_query.shard(row_samples)
     assert len(sharded_queries) == 1
     assert initial_query == sharded_queries[0]
+
+def test_shard_full_table_scan():
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery, RowRange
+    full_scan_query = ReadRowsQuery(row_ranges=[RowRange()])
+    split_points = [('a', None)]
+    sharded_queries = full_scan_query.shard(split_points)
+    assert len(sharded_queries) == 2
+    assert sharded_queries[0] == _parse_query_string("-a)")
+    assert sharded_queries[1] == _parse_query_string("[a-")

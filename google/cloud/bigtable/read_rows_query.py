@@ -272,7 +272,7 @@ class ReadRowsQuery:
                 # range spans multiple segments
                 # create start and end ranges
                 start_range = RowRange._from_points(this_range.start, _RangePoint(split_points[start_index], False))
-                end_range = RowRange._from_points(_RangePoint(split_points[end_index], True), this_range.end)
+                end_range = RowRange._from_points(_RangePoint(split_points[end_index-1], True), this_range.end)
                 sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(start_range)
                 sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(end_range)
                 # put the middle of the range in all segments in between
