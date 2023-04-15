@@ -506,11 +506,14 @@ class Table:
         Args:
             - query_list: a list of queries to run in parallel
         """
-        kwargs = {"operation_timeout": operation_timeout, "per_row_timeout": per_row_timeout, "per_request_timeout": per_request_timeout}
+        kwargs = {
+            "operation_timeout": operation_timeout,
+            "per_row_timeout": per_row_timeout,
+            "per_request_timeout": per_request_timeout,
+        }
         routine_list = [self.read_rows(query, **kwargs) for query in query_list]
         results_lists = asyncio.gather(*routine_list)
         return list(chain.from_iterable(results_lists))
-
 
     async def row_exists(
         self,
@@ -579,10 +582,13 @@ class Table:
             multiplier=2,
             maximum=60,
         )
+
         async def _get_rows():
-            return [(s.row_key, s.offset_bytes)
-                    async for s in await gapic_fn(**gapic_kwargs)
+            return [
+                (s.row_key, s.offset_bytes)
+                async for s in await gapic_fn(**gapic_kwargs)
             ]
+
         wrapped_call = retry(_get_rows)
         return wrapped_call()
 

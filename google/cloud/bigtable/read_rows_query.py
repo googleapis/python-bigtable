@@ -33,6 +33,7 @@ class _RangePoint:
     def __hash__(self) -> int:
         return hash((self.key, self.is_inclusive))
 
+
 @dataclass
 class RowRange:
     start: _RangePoint | None
@@ -102,7 +103,9 @@ class RowRange:
         )
 
     @classmethod
-    def _from_points(cls, start: _RangePoint|None, end: _RangePoint|None) -> RowRange:
+    def _from_points(
+        cls, start: _RangePoint | None, end: _RangePoint | None
+    ) -> RowRange:
         """Creates a RowRange from two RangePoints"""
         kwargs = {}
         if start is not None:
@@ -262,9 +265,17 @@ class ReadRowsQuery:
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
         for this_range in self.row_ranges:
-            this_range = this_range if isinstance(this_range, RowRange) else RowRange._from_dict(this_range)
+            this_range = (
+                this_range
+                if isinstance(this_range, RowRange)
+                else RowRange._from_dict(this_range)
+            )
             # start index always bisects right, since points define the left side of the range
-            start_index = bisect.bisect_right(split_points, this_range.start.key) if this_range.start is not None else 0
+            start_index = (
+                bisect.bisect_right(split_points, this_range.start.key)
+                if this_range.start is not None
+                else 0
+            )
             # end index can bisect left or right, depending on whether the range is inclusive
             if this_range.end is None:
                 end_index = len(split_points)
@@ -275,23 +286,34 @@ class ReadRowsQuery:
             # create new ranges for each segment
             if start_index == end_index:
                 # range is contained in a single segment
-                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(this_range)
+                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(
+                    this_range
+                )
             else:
                 # range spans multiple segments
                 # create start and end ranges
-                start_range = RowRange._from_points(this_range.start, _RangePoint(split_points[start_index], False))
-                end_range = RowRange._from_points(_RangePoint(split_points[end_index-1], True), this_range.end)
-                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(start_range)
-                sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(end_range)
+                start_range = RowRange._from_points(
+                    this_range.start, _RangePoint(split_points[start_index], False)
+                )
+                end_range = RowRange._from_points(
+                    _RangePoint(split_points[end_index - 1], True), this_range.end
+                )
+                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(
+                    start_range
+                )
+                sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(
+                    end_range
+                )
                 # put the middle of the range in all segments in between
                 for i in range(start_index + 1, end_index):
-                    mid_range = RowRange(split_points[i], split_points[i + 1], True, False)
+                    mid_range = RowRange(
+                        split_points[i], split_points[i + 1], True, False
+                    )
                     sharded_queries.setdefault(i, ReadRowsQuery()).add_range(mid_range)
         # return a list of queries, sorted by segment index
         keys = list(sharded_queries.keys())
         keys.sort()
         return [sharded_queries[k] for k in keys]
-
 
     def _to_dict(self) -> dict[str, Any]:
         """
@@ -320,7 +342,12 @@ class ReadRowsQuery:
     def __eq__(self, other):
         if not isinstance(other, ReadRowsQuery):
             return False
-        return self.row_keys == other.row_keys and self.row_ranges == other.row_ranges and self.filter == other.filter and self.limit == other.limit
+        return (
+            self.row_keys == other.row_keys
+            and self.row_ranges == other.row_ranges
+            and self.filter == other.filter
+            and self.limit == other.limit
+        )
 
     def __repr__(self):
         return f"ReadRowsQuery(row_keys={self.row_keys}, row_ranges={self.row_ranges}, filter={self.filter}, limit={self.limit})"
