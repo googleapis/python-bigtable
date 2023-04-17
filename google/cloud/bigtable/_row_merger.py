@@ -406,9 +406,10 @@ class _StateMachine:
         if chunk.reset_row:
             # reset row if requested
             self._handle_reset_chunk(chunk)
-        else:
-            # otherwise, process the chunk and update the state
-            self.current_state = self.current_state.handle_chunk(chunk)
+            return None
+
+        # process the chunk and update the state
+        self.current_state = self.current_state.handle_chunk(chunk)
         if chunk.commit_row:
             # check if row is complete, and return it if so
             if not isinstance(self.current_state, AWAITING_NEW_CELL):
