@@ -126,19 +126,26 @@ class TestReadRowsQuery(unittest.TestCase):
     def test_ctor_defaults(self):
         query = self._make_one()
         self.assertEqual(query.row_keys, set())
-        self.assertEqual(query.row_ranges, [])
+        self.assertEqual(query.row_ranges, set())
         self.assertEqual(query.filter, None)
         self.assertEqual(query.limit, None)
 
     def test_ctor_explicit(self):
         from google.cloud.bigtable.row_filters import RowFilterChain
+        from google.cloud.bigtable.read_rows_query import RowRange
 
         filter_ = RowFilterChain()
-        query = self._make_one(["row_key_1", "row_key_2"], limit=10, row_filter=filter_)
+        query = self._make_one(
+            ["row_key_1", "row_key_2"],
+            row_ranges=[RowRange("row_key_3", "row_key_4")],
+            limit=10,
+            row_filter=filter_,
+        )
         self.assertEqual(len(query.row_keys), 2)
         self.assertIn("row_key_1".encode(), query.row_keys)
         self.assertIn("row_key_2".encode(), query.row_keys)
-        self.assertEqual(query.row_ranges, [])
+        self.assertEqual(len(query.row_ranges), 1)
+        self.assertIn(RowRange("row_key_3", "row_key_4"), query.row_ranges)
         self.assertEqual(query.filter, filter_)
         self.assertEqual(query.limit, 10)
 
@@ -274,24 +281,29 @@ class TestReadRowsQuery(unittest.TestCase):
         from google.cloud.bigtable.read_rows_query import RowRange
 
         query = self._make_one()
-        self.assertEqual(query.row_ranges, [])
+        self.assertEqual(query.row_ranges, set())
         input_range = RowRange(start_key=b"test_row")
         query.add_range(input_range)
         self.assertEqual(len(query.row_ranges), 1)
-        self.assertEqual(query.row_ranges[0], input_range)
+        self.assertIn(input_range, query.row_ranges)
         input_range2 = RowRange(start_key=b"test_row2")
         query.add_range(input_range2)
         self.assertEqual(len(query.row_ranges), 2)
-        self.assertEqual(query.row_ranges[0], input_range)
-        self.assertEqual(query.row_ranges[1], input_range2)
+        self.assertIn(input_range, query.row_ranges)
+        self.assertIn(input_range2, query.row_ranges)
+        query.add_range(input_range2)
+        self.assertEqual(len(query.row_ranges), 2)
 
     def test_add_range_dict(self):
+        from google.cloud.bigtable.read_rows_query import RowRange
+
         query = self._make_one()
-        self.assertEqual(query.row_ranges, [])
+        self.assertEqual(query.row_ranges, set())
         input_range = {"start_key_closed": b"test_row"}
         query.add_range(input_range)
         self.assertEqual(len(query.row_ranges), 1)
-        self.assertEqual(query.row_ranges[0], input_range)
+        range_obj = RowRange._from_dict(input_range)
+        self.assertIn(range_obj, query.row_ranges)
 
     def test_to_dict_rows_default(self):
         # dictionary should be in rowset proto format
@@ -322,7 +334,7 @@ class TestReadRowsQuery(unittest.TestCase):
         query.add_range(RowRange("test_row3"))
         query.add_range(RowRange(start_key=None, end_key="test_row5"))
         query.add_range(RowRange(b"test_row6", b"test_row7", False, True))
-        query.add_range(RowRange())
+        query.add_range({})
         query.add_key("test_row")
         query.add_key(b"test_row2")
         query.add_key("test_row3")
@@ -340,16 +352,17 @@ class TestReadRowsQuery(unittest.TestCase):
         self.assertEqual(rowset_proto.row_keys[3], b"test_row4")
         # check ranges
         self.assertEqual(len(rowset_proto.row_ranges), 5)
-        self.assertEqual(rowset_proto.row_ranges[0].start_key_closed, b"test_row")
-        self.assertEqual(rowset_proto.row_ranges[0].end_key_open, b"test_row2")
-        self.assertEqual(rowset_proto.row_ranges[1].start_key_closed, b"test_row3")
-        self.assertEqual(rowset_proto.row_ranges[1].end_key_open, b"")
-        self.assertEqual(rowset_proto.row_ranges[2].start_key_closed, b"")
-        self.assertEqual(rowset_proto.row_ranges[2].end_key_open, b"test_row5")
-        self.assertEqual(rowset_proto.row_ranges[3].start_key_open, b"test_row6")
-        self.assertEqual(rowset_proto.row_ranges[3].end_key_closed, b"test_row7")
-        self.assertEqual(rowset_proto.row_ranges[4].start_key_closed, b"")
-        self.assertEqual(rowset_proto.row_ranges[4].end_key_open, b"")
+        self.assertIn(
+            {"start_key_closed": b"test_row", "end_key_open": b"test_row2"},
+            output["rows"]["row_ranges"],
+        )
+        self.assertIn({"start_key_closed": b"test_row3"}, output["rows"]["row_ranges"])
+        self.assertIn({"end_key_open": b"test_row5"}, output["rows"]["row_ranges"])
+        self.assertIn(
+            {"start_key_open": b"test_row6", "end_key_closed": b"test_row7"},
+            output["rows"]["row_ranges"],
+        )
+        self.assertIn({}, output["rows"]["row_ranges"])
         # check limit
         self.assertEqual(request_proto.rows_limit, 100)
         # check filter
