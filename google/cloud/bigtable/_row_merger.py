@@ -334,6 +334,11 @@ class _StateMachine:
 
     If an unexpected chunk is received for the current state,
     the state machine will raise an InvalidChunk exception
+
+    The server may send a heartbeat message indicating that it has
+    processed a particular row, to facilitate retries. This will be passed
+    to the state machine via handle_last_scanned_row, which emit a
+    _LastScannedRow marker to the stream.
     """
 
     __slots__ = (
