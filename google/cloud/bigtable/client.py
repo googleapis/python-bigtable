@@ -325,7 +325,7 @@ class Table:
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table.
-            app_profile_id: The app profile to associate with requests.
+            app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_operation_timeout: (Optional) The default timeout, in seconds
             default_per_row_timeout: (Optional) The default timeout for individual

@@ -33,6 +33,8 @@ from typing import (
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
+    Callable,
+    Awaitable,
 )
 
 """
@@ -153,11 +155,11 @@ class _RowMerger(AsyncIterable[Row]):
 
     async def retryable_merge_rows(
         self,
-        gapic_fn,
-        cache_size,
-        per_row_timeout,
-        per_request_timeout,
-        row_limit,
+        gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
+        cache_size: int,
+        per_row_timeout: float | None,
+        per_request_timeout: float | None,
+        row_limit: int,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
