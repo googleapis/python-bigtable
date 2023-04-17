@@ -131,7 +131,7 @@ class _RowMerger(AsyncIterable[Row]):
 
     async def __anext__(self) -> Row | RequestStats:
         """Implements the AsyncIterator interface"""
-        if isinstance(self.stream, AsyncGenerator):
+        if self.stream is not None:
             return await self.stream.__anext__()
         else:
             raise asyncio.InvalidStateError("stream is closed")
