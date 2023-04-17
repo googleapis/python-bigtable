@@ -117,9 +117,10 @@ class ReadRowsIterator(AsyncIterable[Row]):
                     f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
                 )
                 source_exc = None
-                if merger.errors:
+                if merger.transient_errors:
                     source_exc = RetryExceptionGroup(
-                        f"{len(merger.errors)} failed attempts", merger.errors
+                        f"{len(merger.transient_errors)} failed attempts",
+                        merger.transient_errors,
                     )
                 new_exc.__cause__ = source_exc
                 await self._finish_with_error(new_exc)

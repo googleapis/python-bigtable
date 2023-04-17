@@ -108,7 +108,7 @@ class _RowMerger(AsyncIterable[Row]):
 
         def on_error_fn(exc):
             if predicate(exc):
-                self.errors.append(exc)
+                self.transient_errors.append(exc)
 
         retry = retries.AsyncRetry(
             predicate=predicate,
@@ -122,7 +122,8 @@ class _RowMerger(AsyncIterable[Row]):
         self.stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
             self.partial_retryable
         )()
-        self.errors: List[Exception] = []
+        # contains the list of errors that were retried
+        self.transient_errors: List[Exception] = []
 
     def __aiter__(self) -> AsyncIterator[Row | RequestStats]:
         """Implements the AsyncIterable interface"""
