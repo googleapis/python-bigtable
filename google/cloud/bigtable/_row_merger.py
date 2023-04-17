@@ -71,7 +71,7 @@ class _RowMerger(AsyncIterable[Row]):
         request: dict[str, Any],
         client: BigtableAsyncClient,
         *,
-        cache_size: int = 0,
+        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
@@ -80,14 +80,14 @@ class _RowMerger(AsyncIterable[Row]):
         Args:
           - request: the request dict to send to the Bigtable API
           - client: the Bigtable client to use to make the request
-          - cache_size: the size of the buffer to use for caching rows from the network
+          - buffer_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
         """
         self.last_seen_row_key: bytes | None = None
         self.emit_count = 0
-        cache_size = max(cache_size, 0)
+        buffer_size = max(buffer_size, 0)
         self.request = request
         self.operation_timeout = operation_timeout
         row_limit = request.get("rows_limit", 0)
@@ -95,7 +95,7 @@ class _RowMerger(AsyncIterable[Row]):
         self.partial_retryable = partial(
             self.retryable_merge_rows,
             client.read_rows,
-            cache_size,
+            buffer_size,
             per_row_timeout,
             per_request_timeout,
             row_limit,
@@ -144,19 +144,19 @@ class _RowMerger(AsyncIterable[Row]):
         self.last_seen_row_key = None
 
     @staticmethod
-    async def _generator_to_cache(
-        cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
+    async def _generator_to_buffer(
+        buffer: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
     ) -> None:
         """
-        Helper function to push items from an async generator into a cache
+        Helper function to push items from an async generator into a buffer
         """
         async for item in input_generator:
-            await cache.put(item)
+            await buffer.put(item)
 
     async def retryable_merge_rows(
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
-        cache_size: int,
+        buffer_size: int,
         per_row_timeout: float | None,
         per_request_timeout: float | None,
         row_limit: int,
@@ -167,7 +167,7 @@ class _RowMerger(AsyncIterable[Row]):
 
         Some fresh state is created on each retry:
           - grpc network stream
-          - cache for the stream
+          - buffer for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
           - last_seen_row_key is used to ensure that
@@ -191,29 +191,29 @@ class _RowMerger(AsyncIterable[Row]):
             self.request,
             timeout=per_request_timeout,
         )
-        cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
+        buffer: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=buffer_size)
         state_machine = _StateMachine()
         try:
             stream_task = asyncio.create_task(
-                _RowMerger._generator_to_cache(
-                    cache,
+                _RowMerger._generator_to_buffer(
+                    buffer,
                     _RowMerger.merge_row_response_stream(
                         new_gapic_stream, state_machine
                     ),
                 )
             )
-            get_from_cache_task = asyncio.create_task(cache.get())
+            get_from_buffer_task = asyncio.create_task(buffer.get())
             # sleep to allow other tasks to run
             await asyncio.sleep(0)
-            # read from state machine and push into cache
-            # when finished, stream will be done, cache will be empty, but get_from_cache_task will still be waiting
+            # read from state machine and push into buffer
+            # when finished, stream will be done, buffer will be empty, but get_from_buffer_task will still be waiting
             while (
                 not stream_task.done()
-                or not cache.empty()
-                or get_from_cache_task.done()
+                or not buffer.empty()
+                or get_from_buffer_task.done()
             ):
-                if get_from_cache_task.done():
-                    new_item = get_from_cache_task.result()
+                if get_from_buffer_task.done():
+                    new_item = get_from_buffer_task.result()
                     # don't yield rows that have already been emitted
                     if isinstance(new_item, RequestStats):
                         yield new_item
@@ -230,17 +230,17 @@ class _RowMerger(AsyncIterable[Row]):
                             self.emit_count += 1
                             if row_limit and self.emit_count >= row_limit:
                                 return
-                    # start new task for cache
-                    get_from_cache_task = asyncio.create_task(cache.get())
+                    # start new task for buffer
+                    get_from_buffer_task = asyncio.create_task(buffer.get())
                     await asyncio.sleep(0)
                 else:
-                    # wait for either the stream to finish, or a new item to enter the cache
+                    # wait for either the stream to finish, or a new item to enter the buffer
                     first_finish = asyncio.wait(
-                        [stream_task, get_from_cache_task],
+                        [stream_task, get_from_buffer_task],
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                     await asyncio.wait_for(first_finish, per_row_timeout)
-            # stream and cache are complete. if there's an exception, raise it
+            # stream and buffer are complete. if there's an exception, raise it
             if stream_task.exception():
                 raise cast(Exception, stream_task.exception())
         except asyncio.TimeoutError:
@@ -250,7 +250,7 @@ class _RowMerger(AsyncIterable[Row]):
             )
         finally:
             stream_task.cancel()
-            get_from_cache_task.cancel()
+            get_from_buffer_task.cancel()
 
     @staticmethod
     def _revise_request_rowset(

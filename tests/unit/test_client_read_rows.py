@@ -158,11 +158,11 @@ async def test_read_rows_query_matches_request(include_app_profile):
 
 
 @pytest.mark.parametrize(
-    "input_cache_size, expected_cache_size",
+    "input_buffer_size, expected_buffer_size",
     [(-100, 0), (-1, 0), (0, 0), (1, 1), (2, 2), (100, 100), (101, 101)],
 )
 @pytest.mark.asyncio
-async def test_read_rows_cache_size(input_cache_size, expected_cache_size):
+async def test_read_rows_buffer_size(input_buffer_size, expected_buffer_size):
     async with _make_client() as client:
         table = client.get_table("instance", "table")
         query = ReadRowsQuery()
@@ -173,12 +173,12 @@ async def test_read_rows_cache_size(input_cache_size, expected_cache_size):
                 queue.side_effect = asyncio.CancelledError
                 try:
                     gen = await table.read_rows_stream(
-                        query, operation_timeout=3, cache_size=input_cache_size
+                        query, operation_timeout=3, buffer_size=input_buffer_size
                     )
                     [row async for row in gen]
                 except asyncio.CancelledError:
                     pass
-                queue.assert_called_once_with(maxsize=expected_cache_size)
+                queue.assert_called_once_with(maxsize=expected_buffer_size)
 
 
 @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])

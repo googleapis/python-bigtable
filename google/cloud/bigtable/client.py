@@ -363,7 +363,7 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        cache_size: int = 0,
+        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
@@ -373,20 +373,20 @@ class Table:
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully cached in memory
-        in the iterator, which can be consumed as needed. The size of the iterator cache can
-        be configured with cache_size_limit. When the cache is full, the read_rows_stream will pause
+        By default, row data is streamed eagerly over the network, and fully bufferd in memory
+        in the iterator, which can be consumed as needed. The size of the iterator buffer can
+        be configured with buffer_size. When the buffer is full, the read_rows_stream will pause
         the network stream until space is available
 
         Args:
             - query: contains details about which rows to return
-            - cache_size: the number of rows to cache in memory. If less than
-                or equal to 0, cache is unbounded. Defaults to 0 (unbounded)
+            - buffer_size: the number of rows to buffer in memory. If less than
+                or equal to 0, buffer is unbounded. Defaults to 0 (unbounded)
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
-                 Completed and cached results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after cached results are exhausted.
+                 Completed and bufferd results can still be accessed after the deadline is complete,
+                 with a DeadlineExceeded exception only raised after bufferd results are exhausted.
                  If None, defaults to the Table's default_operation_timeout
             - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
                 longer than per_row_timeout to complete, the ongoing network request will be with a
@@ -433,7 +433,7 @@ class Table:
         row_merger = _RowMerger(
             request,
             self.client._gapic_client,
-            cache_size=cache_size,
+            buffer_size=buffer_size,
             operation_timeout=operation_timeout,
             per_row_timeout=per_row_timeout,
             per_request_timeout=per_request_timeout,
@@ -491,7 +491,7 @@ class Table:
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        cache_size_limit: int | None = None,
+        buffer_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
