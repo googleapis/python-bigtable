@@ -335,6 +335,14 @@ class _StateMachine:
     the state machine will raise an InvalidChunk exception
     """
 
+    __slots__ = (
+        "current_state",
+        "current_family",
+        "current_qualifier",
+        "last_seen_row_key",
+        "adapter",
+    )
+
     def __init__(self):
         # represents either the last row emitted, or the last_scanned_key sent from backend
         # all future rows should have keys > last_seen_row_key
@@ -448,6 +456,8 @@ class _State(ABC):
     transitioning to the next state
     """
 
+    __slots__ = ("_owner",)
+
     def __init__(self, owner: _StateMachine):
         self._owner = owner
 
@@ -559,6 +569,8 @@ class _RowBuilder:
     `reset` can be called at any point and can be invoked multiple times in
     a row.
     """
+
+    __slots__ = "current_key", "working_cell", "working_value", "completed_cells"
 
     def __init__(self):
         # initialize state
