@@ -516,6 +516,12 @@ class AWAITING_NEW_CELL(_State):
         # key or the row is the same
         if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
             raise InvalidChunk("Row key changed mid row")
+
+        if not self._owner.current_family:
+            raise InvalidChunk("Missing family for a new cell")
+        if self._owner.current_qualifier is None:
+            raise InvalidChunk("Missing qualifier for a new cell")
+
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
@@ -603,16 +609,12 @@ class _RowBuilder:
 
     def start_cell(
         self,
-        family: str | None,
-        qualifier: bytes | None,
+        family: str,
+        qualifier: bytes,
         timestamp_micros: int,
         labels: List[str],
     ) -> None:
         """called to start a new cell in a row."""
-        if not family:
-            raise InvalidChunk("Missing family for a new cell")
-        if qualifier is None:
-            raise InvalidChunk("Missing qualifier for a new cell")
         if self.current_key is None:
             raise InvalidChunk("start_cell called without a row")
         self.working_value = bytearray()
