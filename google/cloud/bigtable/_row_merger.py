@@ -284,6 +284,10 @@ class _RowMerger(AsyncIterable[Row]):
                 row_ranges[0]["start_key_open"] = last_seen_row_key
                 if "start_key_closed" in row_ranges[0]:
                     row_ranges[0].pop("start_key_closed")
+            # if our modifications result in an empty row_set, return the
+            # original row_set. This will avoid an unwanted full table scan
+            if len(row_keys) == 0 and len(row_ranges) == 0:
+                return row_set
             return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
 
     @staticmethod

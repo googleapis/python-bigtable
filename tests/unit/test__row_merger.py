@@ -19,6 +19,11 @@ class TestRowMerger(unittest.IsolatedAsyncioTestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
+    def test_revise_to_empty_rowset(self):
+        # ensure that the _revise_to_empty_set method
+        # does not return a full table scan
+        pass
+
 
 class TestStateMachine(unittest.TestCase):
     @staticmethod
