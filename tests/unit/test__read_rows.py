@@ -61,7 +61,11 @@ class TestRowBuilder(unittest.TestCase):
         self.assertEqual(row_builder.completed_cells, [])
 
     def test_start_row(self):
-        pass
+        row_builder = self._make_one()
+        row_builder.start_row(b"row_key")
+        self.assertEqual(row_builder.current_key, b"row_key")
+        row_builder.start_row(b"row_key2")
+        self.assertEqual(row_builder.current_key, b"row_key2")
 
     def test_start_cell(self):
         # test with no family
