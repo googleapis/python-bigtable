@@ -149,8 +149,27 @@ class _RowMerger(AsyncIterable[Row]):
         """
         Helper function to push items from an async generator into a buffer
         """
-        async for item in input_generator:
-            await buffer.put(item)
+        try:
+            async for item in input_generator:
+                await buffer.put(item)
+            await buffer.put(StopAsyncIteration)
+        except Exception as e:
+            await buffer.put(e)
+
+    @staticmethod
+    async def _buffer_to_generator(
+        buffer: asyncio.Queue[Any],
+    ) -> AsyncGenerator[Any, None]:
+        """
+        Helper function to yield items from a buffer as an async generator
+        """
+        while True:
+            item = await buffer.get()
+            if item is StopAsyncIteration:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
 
     async def retryable_merge_rows(
         self,
@@ -190,10 +209,17 @@ class _RowMerger(AsyncIterable[Row]):
             self.request,
             timeout=per_request_timeout,
         )
+        buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
+            maxsize=buffer_size
+        )
+        buffer_task = asyncio.create_task(
+            self._generator_to_buffer(buffer, new_gapic_stream)
+        )
+        buffered_stream = self._buffer_to_generator(buffer)
         state_machine = _StateMachine()
         try:
             stream = _RowMerger.merge_row_response_stream(
-                new_gapic_stream, state_machine
+                buffered_stream, state_machine
             )
             # run until we get a timeout or the stream is exhausted
             while True:
@@ -223,6 +249,8 @@ class _RowMerger(AsyncIterable[Row]):
         except StopAsyncIteration:
             # end of stream
             return
+        finally:
+            buffer_task.cancel()
 
     @staticmethod
     def _revise_request_rowset(
