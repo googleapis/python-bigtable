@@ -27,7 +27,6 @@ from google.api_core import exceptions as core_exceptions
 from abc import ABC, abstractmethod
 
 from typing import (
-    cast,
     List,
     Any,
     AsyncIterable,
@@ -191,65 +190,39 @@ class _RowMerger(AsyncIterable[Row]):
             self.request,
             timeout=per_request_timeout,
         )
-        buffer: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=buffer_size)
         state_machine = _StateMachine()
         try:
-            stream_task = asyncio.create_task(
-                _RowMerger._generator_to_buffer(
-                    buffer,
-                    _RowMerger.merge_row_response_stream(
-                        new_gapic_stream, state_machine
-                    ),
-                )
+            stream = _RowMerger.merge_row_response_stream(
+                new_gapic_stream, state_machine
             )
-            get_from_buffer_task = asyncio.create_task(buffer.get())
-            # sleep to allow other tasks to run
-            await asyncio.sleep(0)
-            # read from state machine and push into buffer
-            # when finished, stream will be done, buffer will be empty, but get_from_buffer_task will still be waiting
-            while (
-                not stream_task.done()
-                or not buffer.empty()
-                or get_from_buffer_task.done()
-            ):
-                if get_from_buffer_task.done():
-                    new_item = get_from_buffer_task.result()
-                    if isinstance(new_item, RequestStats):
+            # run until we get a timeout or the stream is exhausted
+            while True:
+                new_item = await asyncio.wait_for(
+                    stream.__anext__(), timeout=per_row_timeout
+                )
+                if isinstance(new_item, RequestStats):
+                    yield new_item
+                # ignore rows that have already been emitted
+                elif isinstance(new_item, Row) and (
+                    self.last_seen_row_key is None
+                    or new_item.row_key > self.last_seen_row_key
+                ):
+                    self.last_seen_row_key = new_item.row_key
+                    # don't yeild _LastScannedRow markers; they
+                    # should only update last_seen_row_key
+                    if not isinstance(new_item, _LastScannedRow):
                         yield new_item
-                    # ignore rows that have already been emitted
-                    elif isinstance(new_item, Row) and (
-                        self.last_seen_row_key is None
-                        or new_item.row_key > self.last_seen_row_key
-                    ):
-                        self.last_seen_row_key = new_item.row_key
-                        # don't yeild _LastScannedRow markers; they
-                        # should only update last_seen_row_key
-                        if not isinstance(new_item, _LastScannedRow):
-                            yield new_item
-                            self.emit_count += 1
-                            if row_limit and self.emit_count >= row_limit:
-                                return
-                    # start new task for buffer
-                    get_from_buffer_task = asyncio.create_task(buffer.get())
-                    await asyncio.sleep(0)
-                else:
-                    # wait for either the stream to finish, or a new item to enter the buffer
-                    first_finish = asyncio.wait(
-                        [stream_task, get_from_buffer_task],
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    await asyncio.wait_for(first_finish, per_row_timeout)
-            # stream and buffer are complete. if there's an exception, raise it
-            if stream_task.exception():
-                raise cast(Exception, stream_task.exception())
+                        self.emit_count += 1
+                        if row_limit and self.emit_count >= row_limit:
+                            return
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
             raise core_exceptions.DeadlineExceeded(
                 f"per_row_timeout of {per_row_timeout:0.1f}s exceeded"
             )
-        finally:
-            stream_task.cancel()
-            get_from_buffer_task.cancel()
+        except StopAsyncIteration:
+            # end of stream
+            return
 
     @staticmethod
     def _revise_request_rowset(
