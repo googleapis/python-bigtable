@@ -140,7 +140,6 @@ class _RowMerger(AsyncIterable[Row]):
         """Close the stream and release resources"""
         if isinstance(self.stream, AsyncGenerator):
             await self.stream.aclose()
-        del self.stream
         self.stream = None
         self.last_seen_row_key = None
 
@@ -215,7 +214,6 @@ class _RowMerger(AsyncIterable[Row]):
             ):
                 if get_from_buffer_task.done():
                     new_item = get_from_buffer_task.result()
-                    # don't yield rows that have already been emitted
                     if isinstance(new_item, RequestStats):
                         yield new_item
                     # ignore rows that have already been emitted
