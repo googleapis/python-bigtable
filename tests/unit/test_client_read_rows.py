@@ -183,7 +183,7 @@ async def test_read_rows_buffer_size(input_buffer_size, expected_buffer_size):
 
 @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
 @pytest.mark.asyncio
-async def test_read_rows_operation_timeout(operation_timeout):
+async def test_read_rows_timeout(operation_timeout):
     async with _make_client() as client:
         table = client.get_table("instance", "table")
         query = ReadRowsQuery()
@@ -299,7 +299,7 @@ async def test_read_rows_idle_timeout():
         BigtableAsyncClient,
     )
     from google.cloud.bigtable.exceptions import IdleTimeout
-    from google.cloud.bigtable._row_merger import _RowMerger
+    from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
     chunks = [_make_chunk(row_key=b"test_1"), _make_chunk(row_key=b"test_2")]
     with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
@@ -313,7 +313,7 @@ async def test_read_rows_idle_timeout():
             gen = await table.read_rows_stream(query)
         # should start idle timer on creation
         start_idle_timer.assert_called_once()
-    with mock.patch.object(_RowMerger, "aclose", AsyncMock()) as aclose:
+    with mock.patch.object(_ReadRowsOperation, "aclose", AsyncMock()) as aclose:
         # start idle timer with our own value
         await gen._start_idle_timer(0.1)
         # should timeout after being abandoned
@@ -425,10 +425,12 @@ async def test_read_rows_request_stats_missing():
 
 @pytest.mark.asyncio
 async def test_read_rows_revise_request():
-    from google.cloud.bigtable._row_merger import _RowMerger
+    from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
-    with mock.patch.object(_RowMerger, "_revise_request_rowset") as revise_rowset:
-        with mock.patch.object(_RowMerger, "aclose"):
+    with mock.patch.object(
+        _ReadRowsOperation, "_revise_request_rowset"
+    ) as revise_rowset:
+        with mock.patch.object(_ReadRowsOperation, "aclose"):
             revise_rowset.side_effect = [
                 "modified",
                 core_exceptions.Cancelled("mock error"),

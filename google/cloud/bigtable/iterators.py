@@ -22,7 +22,7 @@ import asyncio
 import time
 import sys
 
-from google.cloud.bigtable._row_merger import _RowMerger
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 from google.cloud.bigtable_v2.types import RequestStats
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
@@ -35,8 +35,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
     Async iterator for ReadRows responses.
     """
 
-    def __init__(self, merger: _RowMerger):
-        self._merger_or_error: _RowMerger | Exception = merger
+    def __init__(self, merger: _ReadRowsOperation):
+        self._merger_or_error: _ReadRowsOperation | Exception = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
@@ -64,7 +64,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         """
         Returns True if the iterator is still active and has not been closed
         """
-        return isinstance(self._merger_or_error, _RowMerger)
+        return isinstance(self._merger_or_error, _ReadRowsOperation)
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         """
@@ -102,7 +102,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if isinstance(self._merger_or_error, Exception):
             raise self._merger_or_error
         else:
-            merger = cast(_RowMerger, self._merger_or_error)
+            merger = cast(_ReadRowsOperation, self._merger_or_error)
             try:
                 self.last_interaction_time = time.time()
                 next_item = await merger.__anext__()
@@ -134,7 +134,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         Helper function to close the stream and clean up resources
         after an error has occurred.
         """
-        if isinstance(self._merger_or_error, _RowMerger):
+        if isinstance(self._merger_or_error, _ReadRowsOperation):
             await self._merger_or_error.aclose()
             del self._merger_or_error
             self._merger_or_error = e

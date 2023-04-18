@@ -40,7 +40,7 @@ from typing import (
 This module provides a set of classes for merging ReadRowsResponse chunks
 into Row objects.
 
-- RowMerger is the highest level class, providing an interface for asynchronous
+- ReadRowsOperation is the highest level class, providing an interface for asynchronous
   merging end-to-end
 - StateMachine is used internally to track the state of the merge, including
   the current row key and the keys of the rows that have been processed.
@@ -52,16 +52,16 @@ into Row objects.
 """
 
 
-class _RowMerger(AsyncIterable[Row]):
+class _ReadRowsOperation(AsyncIterable[Row]):
     """
-    RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
+    ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
 
-    RowMerger.merge_row_response_stream takes in a stream of ReadRowsResponse
+    ReadRowsOperation.merge_row_response_stream takes in a stream of ReadRowsResponse
     and turns them into a stream of Row objects using an internal
     StateMachine.
 
-    RowMerger(request, client) handles row merging logic end-to-end, including
+    ReadRowsOperation(request, client) handles row merging logic end-to-end, including
     performing retries on stream errors.
     """
 
@@ -194,7 +194,7 @@ class _RowMerger(AsyncIterable[Row]):
         """
         if self._last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self._request["rows"] = _RowMerger._revise_request_rowset(
+            self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
                 row_set=self._request.get("rows", None),
                 last_seen_row_key=self._last_seen_row_key,
             )
@@ -218,7 +218,7 @@ class _RowMerger(AsyncIterable[Row]):
         buffered_stream = self._buffer_to_generator(buffer)
         state_machine = _StateMachine()
         try:
-            stream = _RowMerger.merge_row_response_stream(
+            stream = _ReadRowsOperation.merge_row_response_stream(
                 buffered_stream, state_machine
             )
             # run until we get a timeout or the stream is exhausted
@@ -382,7 +382,7 @@ class _StateMachine:
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> Row:
         """
-        Called by RowMerger to notify the state machine of a scan heartbeat
+        Called by ReadRowsOperation to notify the state machine of a scan heartbeat
 
         Returns an empty row with the last_scanned_row_key
         """
@@ -396,7 +396,7 @@ class _StateMachine:
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> Row | None:
         """
-        Called by RowMerger to process a new chunk
+        Called by ReadRowsOperation to process a new chunk
 
         Returns a Row if the chunk completes a row, otherwise returns None
         """

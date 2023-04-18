@@ -38,7 +38,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-from google.cloud.bigtable._row_merger import _RowMerger
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
 import google.auth.credentials
 import google.auth._default
@@ -427,10 +427,10 @@ class Table:
 
         # read_rows smart retries is implemented using a series of iterators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
-        # - RowMerger.merge_row_response_stream: parses chunks into rows
-        # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
+        # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
+        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        row_merger = _RowMerger(
+        row_merger = _ReadRowsOperation(
             request,
             self.client._gapic_client,
             buffer_size=buffer_size,

@@ -9,12 +9,12 @@ TEST_TIMESTAMP = 123456789
 TEST_LABELS = ["label1", "label2"]
 
 
-class TestRowMerger(unittest.IsolatedAsyncioTestCase):
+class TestReadRowsOperation(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._row_merger import _RowMerger
+        from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
-        return _RowMerger
+        return _ReadRowsOperation
 
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
@@ -28,7 +28,7 @@ class TestRowMerger(unittest.IsolatedAsyncioTestCase):
 class TestStateMachine(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._row_merger import _StateMachine
+        from google.cloud.bigtable._read_rows import _StateMachine
 
         return _StateMachine
 
@@ -43,7 +43,7 @@ class TestState(unittest.TestCase):
 class TestRowBuilder(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._row_merger import _RowBuilder
+        from google.cloud.bigtable._read_rows import _RowBuilder
 
         return _RowBuilder
 
