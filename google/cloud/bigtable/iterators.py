@@ -141,3 +141,11 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
             self._idle_timeout_task = None
+
+    async def aclose(self):
+        """
+        Support closing the stream with an explicit call to aclose()
+        """
+        await self._finish_with_error(
+            StopAsyncIteration(f"{self.__class__.__name__} closed")
+        )
