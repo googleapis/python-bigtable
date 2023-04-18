@@ -601,13 +601,6 @@ class _RowBuilder:
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
-        if (
-            self.current_key is not None
-            or self.working_cell is not None
-            or self.working_value is not None
-            or self.completed_cells
-        ):
-            raise InvalidChunk("start_row called without finishing previous row")
         self.current_key = key
 
     def start_cell(
