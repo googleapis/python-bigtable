@@ -445,9 +445,9 @@ class _StateMachine:
             raise InvalidChunk("Reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
-        if chunk.family_name.value:
+        if chunk.family_name and chunk.family_name.value:
             raise InvalidChunk("Reset chunk has family_name")
-        if chunk.qualifier.value:
+        if chunk.qualifier and chunk.qualifier.value:
             raise InvalidChunk("Reset chunk has qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("Reset chunk has a timestamp")
