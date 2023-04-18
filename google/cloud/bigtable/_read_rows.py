@@ -627,7 +627,7 @@ class _RowBuilder:
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
         if self.working_cell is None or self.working_value is None:
-            raise InvalidChunk("Cell value received before start_cell")
+            raise InvalidChunk("finish_cell called before start_cell")
         self.working_cell.value = bytes(self.working_value)
         self.completed_cells.append(self.working_cell)
         self.working_cell = None

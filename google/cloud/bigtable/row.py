@@ -60,6 +60,13 @@ class Row(Sequence["Cell"]):
             self._cells_map[cell.family][cell.column_qualifier].append(cell)
             self._cells_list.append(cell)
 
+    @property
+    def cells(self) -> list[Cell]:
+        """
+        Returns a list of all cells in the row
+        """
+        return self.get_cells()
+
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
     ) -> list[Cell]:
