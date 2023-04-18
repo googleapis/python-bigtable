@@ -84,15 +84,15 @@ class _RowMerger(AsyncIterable[Row]):
           - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
         """
-        self.last_seen_row_key: bytes | None = None
-        self.emit_count = 0
+        self._last_seen_row_key: bytes | None = None
+        self._emit_count = 0
         buffer_size = max(buffer_size, 0)
-        self.request = request
+        self._request = request
         self.operation_timeout = operation_timeout
         row_limit = request.get("rows_limit", 0)
         # lock in paramters for retryable wrapper
-        self.partial_retryable = partial(
-            self.retryable_merge_rows,
+        self._partial_retryable = partial(
+            self._read_rows_retryable_attempt,
             client.read_rows,
             buffer_size,
             per_row_timeout,
@@ -118,8 +118,8 @@ class _RowMerger(AsyncIterable[Row]):
             on_error=on_error_fn,
             is_generator=True,
         )
-        self.stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
-            self.partial_retryable
+        self._stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
+            self._partial_retryable
         )()
         # contains the list of errors that were retried
         self.transient_errors: List[Exception] = []
@@ -130,17 +130,17 @@ class _RowMerger(AsyncIterable[Row]):
 
     async def __anext__(self) -> Row | RequestStats:
         """Implements the AsyncIterator interface"""
-        if self.stream is not None:
-            return await self.stream.__anext__()
+        if self._stream is not None:
+            return await self._stream.__anext__()
         else:
             raise asyncio.InvalidStateError("stream is closed")
 
     async def aclose(self):
         """Close the stream and release resources"""
-        if isinstance(self.stream, AsyncGenerator):
-            await self.stream.aclose()
-        self.stream = None
-        self.last_seen_row_key = None
+        if isinstance(self._stream, AsyncGenerator):
+            await self._stream.aclose()
+        self._stream = None
+        self._last_seen_row_key = None
 
     @staticmethod
     async def _generator_to_buffer(
@@ -171,7 +171,7 @@ class _RowMerger(AsyncIterable[Row]):
                 raise item
             yield item
 
-    async def retryable_merge_rows(
+    async def _read_rows_retryable_attempt(
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
         buffer_size: int,
@@ -192,21 +192,21 @@ class _RowMerger(AsyncIterable[Row]):
             duplicate rows are not emitted
           - request is stored and (optionally) modified on each retry
         """
-        if self.last_seen_row_key is not None:
+        if self._last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self.request["rows"] = _RowMerger._revise_request_rowset(
-                row_set=self.request.get("rows", None),
-                last_seen_row_key=self.last_seen_row_key,
+            self._request["rows"] = _RowMerger._revise_request_rowset(
+                row_set=self._request.get("rows", None),
+                last_seen_row_key=self._last_seen_row_key,
             )
             # revise next request's row limit based on number emitted
             if row_limit:
-                new_limit = row_limit - self.emit_count
+                new_limit = row_limit - self._emit_count
                 if new_limit <= 0:
                     return
                 else:
-                    self.request["rows_limit"] = new_limit
+                    self._request["rows_limit"] = new_limit
         new_gapic_stream = await gapic_fn(
-            self.request,
+            self._request,
             timeout=per_request_timeout,
         )
         buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
@@ -230,16 +230,16 @@ class _RowMerger(AsyncIterable[Row]):
                     yield new_item
                 # ignore rows that have already been emitted
                 elif isinstance(new_item, Row) and (
-                    self.last_seen_row_key is None
-                    or new_item.row_key > self.last_seen_row_key
+                    self._last_seen_row_key is None
+                    or new_item.row_key > self._last_seen_row_key
                 ):
-                    self.last_seen_row_key = new_item.row_key
+                    self._last_seen_row_key = new_item.row_key
                     # don't yeild _LastScannedRow markers; they
                     # should only update last_seen_row_key
                     if not isinstance(new_item, _LastScannedRow):
                         yield new_item
-                        self.emit_count += 1
-                        if row_limit and self.emit_count >= row_limit:
+                        self._emit_count += 1
+                        if row_limit and self._emit_count >= row_limit:
                             return
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
