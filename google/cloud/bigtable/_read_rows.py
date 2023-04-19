@@ -265,7 +265,10 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - last_seen_row_key: the last row key encountered
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None or (len(row_set.get("row_ranges", [])) == 0 and len(row_set.get("row_keys", [])) == 0):
+        if row_set is None or (
+            len(row_set.get("row_ranges", [])) == 0
+            and len(row_set.get("row_keys", [])) == 0
+        ):
             last_seen = last_seen_row_key
             return {
                 "row_keys": [],
@@ -282,11 +285,15 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
             adjusted_ranges = []
             for row_range in row_ranges:
-                end_key = row_range.get("end_key_closed", None) or row_range.get("end_key_open", None)
+                end_key = row_range.get("end_key_closed", None) or row_range.get(
+                    "end_key_open", None
+                )
                 if end_key is None or end_key > last_seen_row_key:
                     # end range is after last seen key
                     new_range = row_range.copy()
-                    start_key = row_range.get("start_key_closed", None) or row_range.get("start_key_open", None)
+                    start_key = row_range.get(
+                        "start_key_closed", None
+                    ) or row_range.get("start_key_open", None)
                     if start_key is None or start_key <= last_seen_row_key:
                         # replace start key with last seen
                         new_range["start_key_open"] = last_seen_row_key
