@@ -116,7 +116,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             multiplier=2,
             maximum=60,
             on_error=on_error_fn,
-            is_generator=True,
+            is_stream=True,
         )
         self._stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
             self._partial_retryable
