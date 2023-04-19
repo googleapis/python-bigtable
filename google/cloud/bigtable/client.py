@@ -80,7 +80,7 @@ class BigtableDataClient(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-          - RuntimeError if called outside of an async run loop context
+          - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
         # set up transport in registry
