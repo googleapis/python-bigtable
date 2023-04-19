@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+import pytest
 
 from google.cloud.bigtable.exceptions import InvalidChunk
 
@@ -9,7 +10,7 @@ TEST_TIMESTAMP = 123456789
 TEST_LABELS = ["label1", "label2"]
 
 
-class TestReadRowsOperation(unittest.IsolatedAsyncioTestCase):
+class TestReadRowsOperation():
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
@@ -19,10 +20,60 @@ class TestReadRowsOperation(unittest.IsolatedAsyncioTestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
+    @pytest.mark.parametrize("in_keys,last_key,expected", [
+        (["b", "c", "d"], "a", ["b", "c", "d"]),
+        (["a", "b", "c"], "b", ["c"]),
+        (["a", "b", "c"], "c", []),
+        (["a", "b", "c"], "d", []),
+        (["d", "c", "b", "a"], "b", ["d", "c"]),
+    ])
+    def test_revise_request_rowset_keys(self, in_keys, last_key, expected):
+        sample_range = {"start_key_open": last_key}
+        row_set = {"row_keys": in_keys, "row_ranges": [sample_range]}
+        revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
+        assert revised["row_keys"] == expected
+        assert revised["row_ranges"] == [sample_range]
+
+    @pytest.mark.parametrize("in_ranges,last_key,expected", [
+        ([{"start_key_open": "b", "end_key_closed": "d"}], "a", [{"start_key_open": "b", "end_key_closed": "d"}]),
+        ([{"start_key_closed": "b", "end_key_closed": "d"}], "a", [{"start_key_closed": "b", "end_key_closed": "d"}]),
+        ([{"start_key_open": "a", "end_key_closed": "d"}], "b", [{"start_key_open": "b", "end_key_closed": "d"}]),
+        ([{"start_key_closed": "a", "end_key_open": "d"}], "b", [{"start_key_open": "b", "end_key_open": "d"}]),
+        ([{"start_key_closed": "b", "end_key_closed": "d"}], "b", [{"start_key_open": "b", "end_key_closed": "d"}]),
+        ([{"start_key_closed": "b", "end_key_closed": "d"}], "d", []),
+        ([{"start_key_closed": "b", "end_key_open": "d"}], "d", []),
+        ([{"start_key_closed": "b", "end_key_closed": "d"}], "e", []),
+        ([{"start_key_closed": "b"}], "z", [{"start_key_open": "z"}]),
+        ([{"start_key_closed": "b"}], "a", [{"start_key_closed": "b"}]),
+        ([{"end_key_closed": "z"}], "a", [{"start_key_open": "a", "end_key_closed": "z"}]),
+        ([{"end_key_open": "z"}], "a", [{"start_key_open": "a", "end_key_open": "z"}]),
+    ])
+
+    def test_revise_request_rowset_ranges(self, in_ranges, last_key, expected):
+        next_key = last_key + "a"
+        row_set = {"row_keys": [next_key], "row_ranges": in_ranges}
+        revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
+        assert revised["row_keys"] == [next_key]
+        assert revised["row_ranges"] == expected
+
+    @pytest.mark.parametrize("last_key", ["a", "b", "c"])
+    def test_revise_request_full_table(self, last_key):
+        row_set = {"row_keys": [], "row_ranges": []}
+        for selected_set in [row_set, None]:
+            revised = self._get_target_class()._revise_request_rowset(selected_set, last_key)
+            assert revised["row_keys"] == []
+            assert len(revised["row_ranges"]) == 1
+            assert revised["row_ranges"][0]["start_key_open"] == last_key
+
     def test_revise_to_empty_rowset(self):
         # ensure that the _revise_to_empty_set method
         # does not return a full table scan
-        pass
+        row_keys = ["a", "b", "c"]
+        row_set = {"row_keys": row_keys, "row_ranges": [{"end_key_open": "c"}]}
+        revised = self._get_target_class()._revise_request_rowset(row_set, "d")
+        assert revised == row_set
+        assert len(revised["row_keys"]) == 3
+        assert revised["row_keys"] == row_keys
 
 
 class TestStateMachine(unittest.TestCase):

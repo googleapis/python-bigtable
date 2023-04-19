@@ -265,7 +265,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - last_seen_row_key: the last row key encountered
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None:
+        if row_set is None or (len(row_set.get("row_ranges", [])) == 0 and len(row_set.get("row_keys", [])) == 0):
             last_seen = last_seen_row_key
             return {
                 "row_keys": [],
@@ -278,17 +278,25 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             for key in row_keys:
                 if key > last_seen_row_key:
                     adjusted_keys.append(key)
-            # if user specified only a single range, set start to the last seen key
+            # adjust ranges to ignore keys before last seen
             row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-            if len(row_keys) == 0 and len(row_ranges) == 1:
-                row_ranges[0]["start_key_open"] = last_seen_row_key
-                if "start_key_closed" in row_ranges[0]:
-                    row_ranges[0].pop("start_key_closed")
+            adjusted_ranges = []
+            for row_range in row_ranges:
+                end_key = row_range.get("end_key_closed", None) or row_range.get("end_key_open", None)
+                if end_key is None or end_key > last_seen_row_key:
+                    # end range is after last seen key
+                    new_range = row_range.copy()
+                    start_key = row_range.get("start_key_closed", None) or row_range.get("start_key_open", None)
+                    if start_key is None or start_key <= last_seen_row_key:
+                        # replace start key with last seen
+                        new_range["start_key_open"] = last_seen_row_key
+                        new_range.pop("start_key_closed", None)
+                    adjusted_ranges.append(new_range)
             # if our modifications result in an empty row_set, return the
             # original row_set. This will avoid an unwanted full table scan
-            if len(row_keys) == 0 and len(row_ranges) == 0:
+            if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
                 return row_set
-            return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
+            return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod
     async def merge_row_response_stream(
