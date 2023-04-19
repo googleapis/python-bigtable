@@ -20,6 +20,61 @@ class TestReadRowsOperation:
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
+    def test_ctor_defaults(self):
+        from types import AsyncGeneratorType
+
+        request = {}
+        client = mock.Mock()
+        client.read_rows = mock.Mock()
+        client.read_rows.return_value = None
+        instance = self._make_one(request, client)
+        assert instance.transient_errors == []
+        assert instance._last_seen_row_key is None
+        assert instance._emit_count == 0
+        assert isinstance(instance._stream, AsyncGeneratorType)
+        retryable_fn = instance._partial_retryable
+        assert retryable_fn.func == instance._read_rows_retryable_attempt
+        assert retryable_fn.args[0] == client.read_rows
+        assert retryable_fn.args[1] == 0
+        assert retryable_fn.args[2] == None
+        assert retryable_fn.args[3] == None
+        assert retryable_fn.args[4] == 0
+        assert client.read_rows.call_count == 0
+
+    def test_ctor(self):
+        from types import AsyncGeneratorType
+
+        row_limit = 91
+        request = {"rows_limit": row_limit}
+        client = mock.Mock()
+        client.read_rows = mock.Mock()
+        client.read_rows.return_value = None
+        expected_buffer_size = 21
+        expected_operation_timeout = 42
+        expected_row_timeout = 43
+        expected_request_timeout = 44
+        instance = self._make_one(
+            request,
+            client,
+            buffer_size=expected_buffer_size,
+            operation_timeout=expected_operation_timeout,
+            per_row_timeout=expected_row_timeout,
+            per_request_timeout=expected_request_timeout,
+        )
+        assert instance.transient_errors == []
+        assert instance._last_seen_row_key is None
+        assert instance._emit_count == 0
+        assert instance.operation_timeout == expected_operation_timeout
+        assert isinstance(instance._stream, AsyncGeneratorType)
+        retryable_fn = instance._partial_retryable
+        assert retryable_fn.func == instance._read_rows_retryable_attempt
+        assert retryable_fn.args[0] == client.read_rows
+        assert retryable_fn.args[1] == expected_buffer_size
+        assert retryable_fn.args[2] == expected_row_timeout
+        assert retryable_fn.args[3] == expected_request_timeout
+        assert retryable_fn.args[4] == row_limit
+        assert client.read_rows.call_count == 0
+
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
         [
@@ -121,6 +176,11 @@ class TestStateMachine(unittest.TestCase):
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
+    def test_ctor(self):
+        # ensure that the _StateMachine constructor
+        # sets the initial state
+        pass
+
 
 class TestState(unittest.TestCase):
     pass
@@ -178,7 +238,7 @@ class TestRowBuilder(unittest.TestCase):
     def test_cell_value(self):
         row_builder = self._make_one()
         row_builder.start_row(b"row_key")
-        with self.assertRaises(InvalidChunk) as e:
+        with self.assertRaises(InvalidChunk):
             # start_cell must be called before cell_value
             row_builder.cell_value(b"cell_value")
         row_builder.start_cell(TEST_FAMILY, TEST_QUALIFIER, TEST_TIMESTAMP, TEST_LABELS)
@@ -195,8 +255,12 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 1)
         self.assertEqual(row_builder.completed_cells[0].family, TEST_FAMILY)
-        self.assertEqual(row_builder.completed_cells[0].column_qualifier, TEST_QUALIFIER)
-        self.assertEqual(row_builder.completed_cells[0].timestamp_micros, TEST_TIMESTAMP)
+        self.assertEqual(
+            row_builder.completed_cells[0].column_qualifier, TEST_QUALIFIER
+        )
+        self.assertEqual(
+            row_builder.completed_cells[0].timestamp_micros, TEST_TIMESTAMP
+        )
         self.assertEqual(row_builder.completed_cells[0].labels, TEST_LABELS)
         self.assertEqual(row_builder.completed_cells[0].value, b"")
         self.assertEqual(row_builder.working_cell, None)
@@ -208,8 +272,12 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 2)
         self.assertEqual(row_builder.completed_cells[1].family, TEST_FAMILY)
-        self.assertEqual(row_builder.completed_cells[1].column_qualifier, TEST_QUALIFIER)
-        self.assertEqual(row_builder.completed_cells[1].timestamp_micros, TEST_TIMESTAMP)
+        self.assertEqual(
+            row_builder.completed_cells[1].column_qualifier, TEST_QUALIFIER
+        )
+        self.assertEqual(
+            row_builder.completed_cells[1].timestamp_micros, TEST_TIMESTAMP
+        )
         self.assertEqual(row_builder.completed_cells[1].labels, TEST_LABELS)
         self.assertEqual(row_builder.completed_cells[1].value, b"cell_valueappended")
         self.assertEqual(row_builder.working_cell, None)
@@ -248,7 +316,6 @@ class TestRowBuilder(unittest.TestCase):
             self.assertEqual(output[i].timestamp_micros, TEST_TIMESTAMP)
             self.assertEqual(output[i].labels, TEST_LABELS)
             self.assertEqual(output[i].value, b"cell_value: " + str(i).encode("utf-8"))
-
 
     def finish_row_no_row(self):
         with self.assertRaises(InvalidChunk) as e:
