@@ -383,7 +383,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         # Wrap messages. This must be done after self._grpc_channel exists
         self._prep_wrapped_messages(client_info)
 
-    @propery
+    @property
     def pool_size(self) -> int:
         """The number of grpc channels in the pool."""
         return len(self._grpc_channel._pool)
