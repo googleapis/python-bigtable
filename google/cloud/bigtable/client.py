@@ -224,7 +224,7 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    async def register_instance(self, instance_id: str):
+    async def _register_instance(self, instance_id: str):
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -244,7 +244,7 @@ class BigtableDataClient(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self.start_background_channel_refresh()
 
-    async def remove_instance_registration(self, instance_id: str) -> bool:
+    async def _remove_instance_registration(self, instance_id: str) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -328,15 +328,12 @@ class Table:
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
-                self.client.register_instance(instance_id)
+                self.client._register_instance(instance_id)
             )
-        except RuntimeError:
-            warnings.warn(
-                "Table should be created in an asyncio event loop."
-                " Instance will not be registered with client for refresh",
-                RuntimeWarning,
-                stacklevel=2,
-            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"{self.__class__.__name__} must be created within an async event loop context."
+            ) from e
 
     async def read_rows_stream(
         self,

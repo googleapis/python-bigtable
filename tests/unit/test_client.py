@@ -504,7 +504,7 @@ async def test__manage_channel_refresh(num_cycles):
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-async def test_register_instance():
+async def test__register_instance():
     # create the client without calling start_background_channel_refresh
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
         get_event_loop.side_effect = RuntimeError("no event loop")
@@ -512,7 +512,7 @@ async def test_register_instance():
     assert not client._channel_refresh_tasks
     # first call should start background refresh
     assert client._active_instances == set()
-    await client.register_instance("instance-1")
+    await client._register_instance("instance-1")
     assert len(client._active_instances) == 1
     assert client._active_instances == {"projects/project-id/instances/instance-1"}
     assert client._channel_refresh_tasks
@@ -520,7 +520,7 @@ async def test_register_instance():
     with mock.patch.object(
         type(_make_one()), "start_background_channel_refresh"
     ) as refresh_mock:
-        await client.register_instance("instance-2")
+        await client._register_instance("instance-2")
         assert len(client._active_instances) == 2
         assert client._active_instances == {
             "projects/project-id/instances/instance-1",
@@ -531,7 +531,7 @@ async def test_register_instance():
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-async def test_register_instance_ping_and_warm():
+async def test__register_instance_ping_and_warm():
     # should ping and warm each new instance
     pool_size = 7
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
@@ -539,34 +539,34 @@ async def test_register_instance_ping_and_warm():
         client = _make_one(project="project-id", pool_size=pool_size)
     # first call should start background refresh
     assert not client._channel_refresh_tasks
-    await client.register_instance("instance-1")
+    await client._register_instance("instance-1")
     client = _make_one(project="project-id", pool_size=pool_size)
     assert len(client._channel_refresh_tasks) == pool_size
     assert not client._active_instances
     # next calls should trigger ping and warm
     with mock.patch.object(type(_make_one()), "_ping_and_warm_instances") as ping_mock:
         # new instance should trigger ping and warm
-        await client.register_instance("instance-2")
+        await client._register_instance("instance-2")
         assert ping_mock.call_count == pool_size
-        await client.register_instance("instance-3")
+        await client._register_instance("instance-3")
         assert ping_mock.call_count == pool_size * 2
         # duplcate instances should not trigger ping and warm
-        await client.register_instance("instance-3")
+        await client._register_instance("instance-3")
         assert ping_mock.call_count == pool_size * 2
     await client.close()
 
 
 @pytest.mark.asyncio
-async def test_remove_instance_registration():
+async def test__remove_instance_registration():
     client = _make_one(project="project-id")
-    await client.register_instance("instance-1")
-    await client.register_instance("instance-2")
+    await client._register_instance("instance-1")
+    await client._register_instance("instance-2")
     assert len(client._active_instances) == 2
-    success = await client.remove_instance_registration("instance-1")
+    success = await client._remove_instance_registration("instance-1")
     assert success
     assert len(client._active_instances) == 1
     assert client._active_instances == {"projects/project-id/instances/instance-2"}
-    success = await client.remove_instance_registration("nonexistant")
+    success = await client._remove_instance_registration("nonexistant")
     assert not success
     assert len(client._active_instances) == 1
     await client.close()
@@ -730,10 +730,6 @@ def test_table_ctor_sync():
     from google.cloud.bigtable.client import Table
 
     client = mock.Mock()
-    with pytest.warns(RuntimeWarning) as warnings:
-        table = Table(client, "instance-id", "table-id")
-    assert "event loop" in str(warnings[0].message)
-    assert table.table_id == "table-id"
-    assert table.instance == "instance-id"
-    assert table.app_profile_id is None
-    assert table.client is client
+    with pytest.raises(RuntimeError) as e:
+        Table(client, "instance-id", "table-id")
+    assert e.match("Table must be created within an async event loop context.")
