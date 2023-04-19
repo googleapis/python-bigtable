@@ -273,7 +273,7 @@ class BigtableDataClient(ClientWithProject):
         Returns a table instance for making data API requests
 
         Args:
-            instance_id: The Bigtable instance ID to associate with this client
+            instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table.
@@ -309,23 +309,23 @@ class Table:
         """
         Initialize a Table instance
 
-        Must be created within an async run loop context
+        Must be created within an async context (running event loop)
 
         Args:
-            instance_id: The Bigtable instance ID to associate with this client
+            instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         Raises:
-          - RuntimeError if called outside of an async run loop context
+          - RuntimeError if called outside of an async context (no running event loop)
         """
         self.client = client
         self.instance = instance_id
         self.table_id = table_id
         self.app_profile_id = app_profile_id
-        # raises RuntimeError if called outside of an async run loop context
+        # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
                 self.client.register_instance(instance_id)
