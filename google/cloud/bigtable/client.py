@@ -167,7 +167,7 @@ class BigtableDataClient(ClientWithProject):
         Args:
             channel: grpc channel to ping
         Returns:
-            - squence of results or exceptions from the ping requests
+            - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
