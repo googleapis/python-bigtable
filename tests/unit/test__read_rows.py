@@ -11,6 +11,12 @@ TEST_LABELS = ["label1", "label2"]
 
 
 class TestReadRowsOperation:
+    """
+    Tests helper functions in the ReadRowsOperation class
+    in-depth merging logic in merge_row_response_stream and _read_rows_retryable_attempt
+    is tested in test_read_rows_acceptance test_client_read_rows, and conformance tests
+    """
+
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
@@ -21,8 +27,6 @@ class TestReadRowsOperation:
         return self._get_target_class()(*args, **kwargs)
 
     def test_ctor_defaults(self):
-        from types import AsyncGeneratorType
-
         request = {}
         client = mock.Mock()
         client.read_rows = mock.Mock()
@@ -31,19 +35,16 @@ class TestReadRowsOperation:
         assert instance.transient_errors == []
         assert instance._last_seen_row_key is None
         assert instance._emit_count == 0
-        assert isinstance(instance._stream, AsyncGeneratorType)
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
         assert retryable_fn.args[1] == 0
-        assert retryable_fn.args[2] == None
-        assert retryable_fn.args[3] == None
+        assert retryable_fn.args[2] is None
+        assert retryable_fn.args[3] is None
         assert retryable_fn.args[4] == 0
         assert client.read_rows.call_count == 0
 
     def test_ctor(self):
-        from types import AsyncGeneratorType
-
         row_limit = 91
         request = {"rows_limit": row_limit}
         client = mock.Mock()
@@ -65,7 +66,6 @@ class TestReadRowsOperation:
         assert instance._last_seen_row_key is None
         assert instance._emit_count == 0
         assert instance.operation_timeout == expected_operation_timeout
-        assert isinstance(instance._stream, AsyncGeneratorType)
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
@@ -74,6 +74,22 @@ class TestReadRowsOperation:
         assert retryable_fn.args[3] == expected_request_timeout
         assert retryable_fn.args[4] == row_limit
         assert client.read_rows.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test_transient_error_capture(self):
+        from google.api_core import exceptions as core_exceptions
+
+        client = mock.Mock()
+        client.read_rows = mock.Mock()
+        test_exc = core_exceptions.Aborted("test")
+        test_exc2 = core_exceptions.DeadlineExceeded("test")
+        client.read_rows.side_effect = [test_exc, test_exc2]
+        instance = self._make_one({}, client)
+        with pytest.raises(RuntimeError):
+            await instance.__anext__()
+        assert len(instance.transient_errors) == 2
+        assert instance.transient_errors[0] == test_exc
+        assert instance.transient_errors[1] == test_exc2
 
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
@@ -164,6 +180,136 @@ class TestReadRowsOperation:
         assert revised == row_set
         assert len(revised["row_keys"]) == 3
         assert revised["row_keys"] == row_keys
+
+    @pytest.mark.parametrize(
+        "start_limit,emit_num,expected_limit",
+        [
+            (10, 0, 10),
+            (10, 1, 9),
+            (10, 10, 0),
+            (0, 10, 0),
+            (0, 0, 0),
+            (4, 2, 2),
+            (3, 9, 0),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_revise_limit(self, start_limit, emit_num, expected_limit):
+        request = {"rows_limit": start_limit}
+        instance = self._make_one(request, mock.Mock())
+        instance._emit_count = emit_num
+        instance._last_seen_row_key = "a"
+        gapic_mock = mock.Mock()
+        gapic_mock.side_effect = [RuntimeError("stop_fn")]
+        attempt = instance._read_rows_retryable_attempt(
+            gapic_mock, 0, None, None, start_limit
+        )
+        if start_limit != 0 and expected_limit == 0:
+            # if we emitted the expected number of rows, we should receive a StopAsyncIteration
+            with pytest.raises(StopAsyncIteration):
+                await attempt.__anext__()
+        else:
+            with pytest.raises(RuntimeError):
+                await attempt.__anext__()
+            assert request["rows_limit"] == expected_limit
+
+    @pytest.mark.asyncio
+    async def test__generator_to_buffer(self):
+        import asyncio
+
+        async def test_generator(n):
+            for i in range(n):
+                yield i
+
+        out_buffer = asyncio.Queue()
+        await self._get_target_class()._generator_to_buffer(
+            out_buffer, test_generator(10)
+        )
+        assert out_buffer.qsize() == 11
+        for i in range(10):
+            assert out_buffer.get_nowait() == i
+        assert out_buffer.get_nowait() == StopAsyncIteration
+        assert out_buffer.empty()
+
+    @pytest.mark.asyncio
+    async def test__generator_to_buffer_with_error(self):
+        import asyncio
+
+        async def test_generator(n, error_at=2):
+            for i in range(n):
+                if i == error_at:
+                    raise ValueError("test error")
+                else:
+                    yield i
+
+        out_buffer = asyncio.Queue()
+        await self._get_target_class()._generator_to_buffer(
+            out_buffer, test_generator(10, error_at=4)
+        )
+        assert out_buffer.qsize() == 5
+        for i in range(4):
+            assert out_buffer.get_nowait() == i
+        assert isinstance(out_buffer.get_nowait(), ValueError)
+        assert out_buffer.empty()
+
+    @pytest.mark.asyncio
+    async def test__buffer_to_generator(self):
+        import asyncio
+
+        buffer = asyncio.Queue()
+        for i in range(10):
+            buffer.put_nowait(i)
+        buffer.put_nowait(StopAsyncIteration)
+        gen = self._get_target_class()._buffer_to_generator(buffer)
+        for i in range(10):
+            assert await gen.__anext__() == i
+        with pytest.raises(StopAsyncIteration):
+            await gen.__anext__()
+
+    @pytest.mark.asyncio
+    async def test__buffer_to_generator_with_error(self):
+        import asyncio
+
+        buffer = asyncio.Queue()
+        for i in range(4):
+            buffer.put_nowait(i)
+        test_error = ValueError("test error")
+        buffer.put_nowait(test_error)
+        gen = self._get_target_class()._buffer_to_generator(buffer)
+        for i in range(4):
+            assert await gen.__anext__() == i
+        with pytest.raises(ValueError) as e:
+            await gen.__anext__()
+        assert e.value == test_error
+
+    @pytest.mark.asyncio
+    async def test_generator_to_buffer_to_generator(self):
+        import asyncio
+
+        async def test_generator():
+            for i in range(10):
+                yield i
+
+        buffer = asyncio.Queue()
+        await self._get_target_class()._generator_to_buffer(buffer, test_generator())
+        out_gen = self._get_target_class()._buffer_to_generator(buffer)
+
+        out_expected = [i async for i in test_generator()]
+        out_actual = [i async for i in out_gen]
+        assert out_expected == out_actual
+
+    @pytest.mark.asyncio
+    async def test_aclose(self):
+        import asyncio
+
+        instance = self._make_one({}, mock.Mock())
+        await instance.aclose()
+        assert instance._stream is None
+        assert instance._last_seen_row_key is None
+        with pytest.raises(asyncio.InvalidStateError):
+            await instance.__anext__()
+        # try calling a second time
+        await instance.aclose()
 
 
 class TestStateMachine(unittest.TestCase):

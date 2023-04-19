@@ -137,7 +137,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
 
     async def aclose(self):
         """Close the stream and release resources"""
-        if isinstance(self._stream, AsyncGenerator):
+        if self._stream is not None:
             await self._stream.aclose()
         self._stream = None
         self._last_seen_row_key = None
@@ -199,8 +199,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 last_seen_row_key=self._last_seen_row_key,
             )
             # revise next request's row limit based on number emitted
-            if row_limit:
-                new_limit = row_limit - self._emit_count
+            if total_row_limit:
+                new_limit = total_row_limit - self._emit_count
                 if new_limit <= 0:
                     return
                 else:
@@ -239,7 +239,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                     if not isinstance(new_item, _LastScannedRow):
                         yield new_item
                         self._emit_count += 1
-                        if row_limit and self._emit_count >= row_limit:
+                        if total_row_limit and self._emit_count >= total_row_limit:
                             return
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
@@ -381,9 +381,6 @@ class _StateMachine:
         self.current_state: _State = AWAITING_NEW_ROW(self)
         self.current_family: str | None = None
         self.current_qualifier: bytes | None = None
-        # self.expected_cell_size:int = 0
-        # self.remaining_cell_bytes:int = 0
-        # self.num_cells_in_row:int = 0
         self.adapter.reset()
 
     def is_terminal_state(self) -> bool:
