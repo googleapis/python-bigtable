@@ -114,6 +114,7 @@ class BigtableDataClient(ClientWithProject):
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
+        self._instance_owners: dict[str, Set[Table]] = {}
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
@@ -224,15 +225,22 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    async def _register_instance(self, instance_id: str):
+    async def _register_instance(self, instance_id: str, owner: Table) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
         The client will periodically refresh grpc channel pool used to make
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
+
+        Args:
+          - instance_id: id of the instance to register.
+          - owner: table that owns the instance. Owners will be tracked in
+            _instance_owners, and instances will only be unregistered when all
+            owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        self._instance_owners.setdefault(instance_name, set()).add(owner)
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             if self._channel_refresh_tasks:
@@ -244,21 +252,27 @@ class BigtableDataClient(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self.start_background_channel_refresh()
 
-    async def _remove_instance_registration(self, instance_id: str) -> bool:
+    async def _remove_instance_registration(self, instance_id: str, owner:Table) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
 
-        If instance_id is not registered, returns False
+        If instance_id is not registered, or is still in use by other tables, returns False
 
         Args:
-            instance_id: id of the instance to remove
+            - instance_id: id of the instance to remove
+            - owner: table that owns the instance. Owners will be tracked in
+              _instance_owners, and instances will only be unregistered when all
+              owners call _remove_instance_registration
         Returns:
             - True if instance was removed
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        owner_list = self._instance_owners.get(instance_name, set())
         try:
-            self._active_instances.remove(instance_name)
+            owner_list.remove(owner)
+            if len(owner_list) == 0:
+                self._active_instances.remove(instance_name)
             return True
         except KeyError:
             return False
@@ -328,7 +342,7 @@ class Table:
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
-                self.client._register_instance(instance_id)
+                self.client._register_instance(instance_id, self)
             )
         except RuntimeError as e:
             raise RuntimeError(
@@ -658,3 +672,28 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
+
+    async def close(self):
+        """
+        Called to close the Table instance and release any resources held by it.
+        """
+        await self.client._remove_instance_registration(self.instance, self)
+
+    async def __aenter__(self):
+        """
+        Implement async context manager protocol
+
+        Register this instance with the client, so that
+        grpc channels will be warmed for the specified instance
+        """
+        await self.client._register_instance(self.instance, self)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Implement async context manager protocol
+
+        Unregister this instance with the client, so that
+        grpc channels will no longer be warmed
+        """
+        await self.close()
