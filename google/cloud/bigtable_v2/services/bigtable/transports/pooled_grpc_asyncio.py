@@ -88,19 +88,23 @@ class PooledChannel(aio.Channel):
         credentials_file: Optional[str] = None,
         scopes: Optional[Sequence[str]] = None,
         quota_project_id: Optional[str] = None,
+        insecure: bool = False,
         **kwargs,
     ):
         self._pool: List[aio.Channel] = []
         self._next_idx = 0
-        self._create_channel = partial(
-            grpc_helpers_async.create_channel,
-            target=host,
-            credentials=credentials,
-            credentials_file=credentials_file,
-            scopes=scopes,
-            quota_project_id=quota_project_id,
-            **kwargs,
-        )
+        if insecure:
+            self._create_channel = partial(aio.insecure_channel, host)
+        else:
+            self._create_channel = partial(
+                grpc_helpers_async.create_channel,
+                target=host,
+                credentials=credentials,
+                credentials_file=credentials_file,
+                scopes=scopes,
+                quota_project_id=quota_project_id,
+                **kwargs,
+            )
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
@@ -378,6 +382,16 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
 
         # Wrap messages. This must be done after self._grpc_channel exists
         self._prep_wrapped_messages(client_info)
+
+    @propery
+    def pool_size(self) -> int:
+        """The number of grpc channels in the pool."""
+        return len(self._grpc_channel._pool)
+
+    @property
+    def channels(self) -> List[grpc.Channel]:
+        """Acccess the internal list of grpc channels."""
+        return self._grpc_channel._pool
 
     async def replace_channel(
         self, channel_idx, grace=None, swap_sleep=1, new_channel=None
