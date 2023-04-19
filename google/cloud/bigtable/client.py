@@ -63,7 +63,7 @@ class BigtableDataClient(ClientWithProject):
         """
         Create a client instance for the Bigtable Data API
 
-        Client must be created within an async run loop context
+        Client should be created within an async context (running event loop)
 
         Args:
             project: the project which the client acts on behalf of.
