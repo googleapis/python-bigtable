@@ -563,9 +563,9 @@ class AWAITING_CELL_VALUE(_State):
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("Found row key mid cell")
-        if chunk_has_field_set(chunk, "family_name"):
+        if _chunk_has_field(chunk, "family_name"):
             raise InvalidChunk("In progress cell had a family name")
-        if _chunk_has_field_set(chunk, "qualifier"):
+        if _chunk_has_field(chunk, "qualifier"):
             raise InvalidChunk("In progress cell had a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("In progress cell had a timestamp")
