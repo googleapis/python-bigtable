@@ -252,7 +252,9 @@ class BigtableDataClient(ClientWithProject):
                 # refresh tasks aren't active. start them as background tasks
                 self.start_background_channel_refresh()
 
-    async def _remove_instance_registration(self, instance_id: str, owner:Table) -> bool:
+    async def _remove_instance_registration(
+        self, instance_id: str, owner: Table
+    ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance

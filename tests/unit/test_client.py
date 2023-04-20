@@ -581,11 +581,14 @@ async def test__remove_instance_registration():
     assert len(client._active_instances) == 1
     await client.close()
 
+
 @pytest.mark.asyncio
 async def test__multiple_table_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
-            instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
+            instance_1_path = client._gapic_client.instance_path(
+                client.project, "instance_1"
+            )
             assert len(client._instance_owners[instance_1_path]) == 1
             assert len(client._active_instances) == 1
             assert table_1 in client._instance_owners[instance_1_path]
@@ -603,12 +606,17 @@ async def test__multiple_table_registration():
         assert instance_1_path not in client._active_instances
         assert len(client._instance_owners[instance_1_path]) == 0
 
+
 async def test__multiple_instance_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
             async with client.get_table("instance_2", "table_2") as table_2:
-                instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
-                instance_2_path = client._gapic_client.instance_path(client.project, "instance_2")
+                instance_1_path = client._gapic_client.instance_path(
+                    client.project, "instance_1"
+                )
+                instance_2_path = client._gapic_client.instance_path(
+                    client.project, "instance_2"
+                )
                 assert len(client._instance_owners[instance_1_path]) == 1
                 assert len(client._instance_owners[instance_2_path]) == 1
                 assert len(client._active_instances) == 2
@@ -652,9 +660,11 @@ async def test_get_table():
     assert full_instance_name in client._active_instances
     await client.close()
 
+
 @pytest.mark.asyncio
 async def test_get_table_context_manager():
     from google.cloud.bigtable.client import Table
+
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
@@ -677,6 +687,7 @@ async def test_get_table_context_manager():
                 )
                 assert full_instance_name in client._active_instances
         assert close_mock.call_count == 1
+
 
 @pytest.mark.asyncio
 async def test_multiple_pool_sizes():
