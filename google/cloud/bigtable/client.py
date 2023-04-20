@@ -114,7 +114,9 @@ class BigtableDataClient(ClientWithProject):
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
-        self._instance_owners: dict[str, Set[Table]] = {}
+        # keep track of table objects associated with each instance
+        # only remove instance from _active_instances when all associated tables remove it
+        self._instance_owners: dict[str, Set[int]] = {}
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
@@ -240,7 +242,7 @@ class BigtableDataClient(ClientWithProject):
             owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._instance_owners.setdefault(instance_name, set()).add(owner)
+        self._instance_owners.setdefault(instance_name, set()).add(id(owner))
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             if self._channel_refresh_tasks:
@@ -272,7 +274,7 @@ class BigtableDataClient(ClientWithProject):
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         owner_list = self._instance_owners.get(instance_name, set())
         try:
-            owner_list.remove(owner)
+            owner_list.remove(id(owner))
             if len(owner_list) == 0:
                 self._active_instances.remove(instance_name)
             return True

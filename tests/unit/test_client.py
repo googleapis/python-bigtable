@@ -567,9 +567,9 @@ async def test__remove_instance_registration():
     instance_1_path = client._gapic_client.instance_path(client.project, "instance-1")
     instance_2_path = client._gapic_client.instance_path(client.project, "instance-2")
     assert len(client._instance_owners[instance_1_path]) == 1
-    assert list(client._instance_owners[instance_1_path])[0] is table
+    assert list(client._instance_owners[instance_1_path])[0] == id(table)
     assert len(client._instance_owners[instance_2_path]) == 1
-    assert list(client._instance_owners[instance_2_path])[0] is table
+    assert list(client._instance_owners[instance_2_path])[0] == id(table)
     success = await client._remove_instance_registration("instance-1", table)
     assert success
     assert len(client._active_instances) == 1
@@ -586,21 +586,19 @@ async def test__remove_instance_registration():
 async def test__multiple_table_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
-            instance_1_path = client._gapic_client.instance_path(
-                client.project, "instance_1"
-            )
+            instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
             assert len(client._instance_owners[instance_1_path]) == 1
             assert len(client._active_instances) == 1
-            assert table_1 in client._instance_owners[instance_1_path]
+            assert id(table_1) in client._instance_owners[instance_1_path]
             async with client.get_table("instance_1", "table_2") as table_2:
                 assert len(client._instance_owners[instance_1_path]) == 2
                 assert len(client._active_instances) == 1
-                assert table_1 in client._instance_owners[instance_1_path]
-                assert table_2 in client._instance_owners[instance_1_path]
+                assert id(table_1) in client._instance_owners[instance_1_path]
+                assert id(table_2) in client._instance_owners[instance_1_path]
             # table_2 should be unregistered, but instance should still be active
             assert len(client._active_instances) == 1
             assert instance_1_path in client._active_instances
-            assert table_2 not in client._instance_owners[instance_1_path]
+            assert id(table_2) not in client._instance_owners[instance_1_path]
         # both tables are gone. instance should be unregistered
         assert len(client._active_instances) == 0
         assert instance_1_path not in client._active_instances
@@ -611,23 +609,19 @@ async def test__multiple_instance_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
             async with client.get_table("instance_2", "table_2") as table_2:
-                instance_1_path = client._gapic_client.instance_path(
-                    client.project, "instance_1"
-                )
-                instance_2_path = client._gapic_client.instance_path(
-                    client.project, "instance_2"
-                )
+                instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
+                instance_2_path = client._gapic_client.instance_path(client.project, "instance_2")
                 assert len(client._instance_owners[instance_1_path]) == 1
                 assert len(client._instance_owners[instance_2_path]) == 1
                 assert len(client._active_instances) == 2
-                assert table_1 in client._instance_owners[instance_1_path]
-                assert table_2 in client._instance_owners[instance_2_path]
+                assert id(table_1) in client._instance_owners[instance_1_path]
+                assert id(table_2) in client._instance_owners[instance_2_path]
             # instance2 should be unregistered, but instance1 should still be active
             assert len(client._active_instances) == 1
             assert instance_1_path in client._active_instances
             assert len(client._instance_owners[instance_2_path]) == 0
             assert len(client._instance_owners[instance_1_path]) == 1
-            assert table_1 in client._instance_owners[instance_1_path]
+            assert id(table_1) in client._instance_owners[instance_1_path]
         # both tables are gone. instances should both be unregistered
         assert len(client._active_instances) == 0
         assert len(client._instance_owners[instance_1_path]) == 0
@@ -664,7 +658,6 @@ async def test_get_table():
 @pytest.mark.asyncio
 async def test_get_table_context_manager():
     from google.cloud.bigtable.client import Table
-
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
