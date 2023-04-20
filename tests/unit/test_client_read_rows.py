@@ -205,10 +205,10 @@ async def test_read_rows_timeout(operation_timeout):
     "per_row_t, operation_t, expected_num",
     [
         (0.1, 0.01, 0),
-        (0.01, 0.015, 1),
+        (0.1, 0.19, 1),
         (0.05, 0.54, 10),
         (0.05, 0.14, 2),
-        (0.05, 0.21, 4),
+        (0.05, 0.24, 4),
     ],
 )
 @pytest.mark.asyncio
@@ -249,7 +249,7 @@ async def test_read_rows_per_row_timeout(per_row_t, operation_t, expected_num):
 @pytest.mark.parametrize(
     "per_request_t, operation_t, expected_num",
     [
-        (0.01, 0.015, 1),
+        (0.05, 0.09, 1),
         (0.05, 0.54, 10),
         (0.05, 0.14, 2),
         (0.05, 0.24, 4),

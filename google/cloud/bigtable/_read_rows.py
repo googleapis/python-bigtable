@@ -177,7 +177,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         buffer_size: int,
         per_row_timeout: float | None,
         per_request_timeout: float | None,
-        row_limit: int,
+        total_row_limit: int,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
