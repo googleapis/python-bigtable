@@ -471,6 +471,7 @@ class _StateMachine:
             raise InvalidChunk("Reset chunk has a value")
         self._reset_row()
 
+
 class _State(ABC):
     """
     Represents a state the state machine can be in
@@ -504,6 +505,7 @@ class AWAITING_NEW_ROW(_State):
         # the first chunk signals both the start of a new row and the start of a new cell, so
         # force the chunk processing in the AWAITING_CELL_VALUE.
         return AWAITING_NEW_CELL(self._owner).handle_chunk(chunk)
+
 
 class AWAITING_NEW_CELL(_State):
     """
@@ -651,6 +653,7 @@ class _RowBuilder:
         new_row = Row(self.current_key, self.completed_cells)
         self.reset()
         return new_row
+
 
 def _chunk_has_field(chunk: ReadRowsResponse.CellChunk, field: str) -> bool:
     """
