@@ -78,6 +78,13 @@ class TestReadRowsOperation:
         assert retryable_fn.args[4] == row_limit
         assert client.read_rows.call_count == 0
 
+    def test___aiter__(self):
+        request = {}
+        client = mock.Mock()
+        client.read_rows = mock.Mock()
+        instance = self._make_one(request, client)
+        assert instance.__aiter__() is instance
+
     @pytest.mark.asyncio
     async def test_transient_error_capture(self):
         from google.api_core import exceptions as core_exceptions
@@ -314,6 +321,68 @@ class TestReadRowsOperation:
         # try calling a second time
         await instance.aclose()
 
+    @pytest.mark.parametrize("limit", [1, 3, 10])
+    @pytest.mark.asyncio
+    async def test_retryable_attempt_hit_limit(self, limit):
+        """
+        Stream should end after hitting the limit
+        """
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        instance = self._make_one({}, mock.Mock())
+        async def mock_gapic(*args, **kwargs):
+            # continuously return a single row
+            async def gen():
+                for i in range(limit*2):
+                    chunk = ReadRowsResponse.CellChunk(row_key=str(i).encode(), family_name="family_name", qualifier=b"qualifier", commit_row=True)
+                    yield ReadRowsResponse(chunks=[chunk])
+            return gen()
+        gen = instance._read_rows_retryable_attempt(mock_gapic, 0, None, None, limit)
+        # should yield values up to the limit
+        for i in range(limit):
+            await gen.__anext__()
+        # next value should be StopAsyncIteration
+        with pytest.raises(StopAsyncIteration):
+            await gen.__anext__()
+
+    @pytest.mark.asyncio
+    async def test_retryable_ignore_repeated_rows(self):
+        """
+        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        """
+        from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.row import Row
+        async def mock_stream():
+            while True:
+                yield Row(b"dup_key", cells=[])
+                yield Row(b"dup_key", cells=[])
+                yield Row(b"new", cells=[])
+        with mock.patch.object(_ReadRowsOperation, "merge_row_response_stream") as mock_stream_fn:
+            mock_stream_fn.return_value = mock_stream()
+            instance = self._make_one({}, mock.AsyncMock())
+            first_row = await instance.__anext__()
+            assert first_row.row_key == b"dup_key"
+            second_row = await instance.__anext__()
+            assert second_row.row_key == b"new"
+
+    @pytest.mark.asyncio
+    async def test_retryable_ignore_last_scanned_rows(self):
+        """
+        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        """
+        from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.row import Row, _LastScannedRow
+        async def mock_stream():
+            while True:
+                yield Row(b"key1", cells=[])
+                yield _LastScannedRow(b"ignored")
+                yield Row(b"key2", cells=[])
+        with mock.patch.object(_ReadRowsOperation, "merge_row_response_stream") as mock_stream_fn:
+            mock_stream_fn.return_value = mock_stream()
+            instance = self._make_one({}, mock.AsyncMock())
+            first_row = await instance.__anext__()
+            assert first_row.row_key == b"key1"
+            second_row = await instance.__anext__()
+            assert second_row.row_key == b"key2"
 
 class TestStateMachine(unittest.TestCase):
 
@@ -855,7 +924,7 @@ class TestRowBuilder(unittest.TestCase):
             self.assertEqual(output[i].labels, TEST_LABELS)
             self.assertEqual(output[i].value, b"cell_value: " + str(i).encode("utf-8"))
 
-    def finish_row_no_row(self):
+    def test_finish_row_no_row(self):
         with self.assertRaises(InvalidChunk) as e:
             self._make_one().finish_row()
             self.assertEqual(str(e.exception), "No row in progress")

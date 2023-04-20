@@ -152,6 +152,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         try:
             async for item in input_generator:
                 await buffer.put(item)
+                await asyncio.sleep(0)
             await buffer.put(StopAsyncIteration)
         except Exception as e:
             await buffer.put(e)
@@ -170,6 +171,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             if isinstance(item, Exception):
                 raise item
             yield item
+            await asyncio.sleep(0)
 
     async def _read_rows_retryable_attempt(
         self,
@@ -484,7 +486,7 @@ class _State(ABC):
 
     @abstractmethod
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
-        pass
+        raise NotImplementedError
 
 
 class AWAITING_NEW_ROW(_State):
@@ -562,7 +564,7 @@ class AWAITING_CELL_VALUE(_State):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         # ensure reset chunk matches expectations
         if chunk.row_key:
-            raise InvalidChunk("Found row key mid cell")
+            raise InvalidChunk("In progress cell had a row key")
         if _chunk_has_field(chunk, "family_name"):
             raise InvalidChunk("In progress cell had a family name")
         if _chunk_has_field(chunk, "qualifier"):
