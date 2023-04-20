@@ -519,7 +519,209 @@ class TestStateMachine(unittest.TestCase):
         assert instance.current_qualifier == b"q"
 
 class TestState(unittest.TestCase):
-    pass
+
+    def test_AWAITING_NEW_ROW_empty_key(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        instance = AWAITING_NEW_ROW(mock.Mock())
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(row_key=b"")._pb
+            instance.handle_chunk(chunk)
+        assert "missing a row key" in e.value.args[0]
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk()._pb
+            instance.handle_chunk(chunk)
+        assert "missing a row key" in e.value.args[0]
+
+    def test_AWAITING_NEW_ROW(self):
+        """
+        AWAITING_NEW_ROW should start a RowBuilder row, then
+        delegate the call to AWAITING_NEW_CELL
+        """
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        instance = AWAITING_NEW_ROW(mock.Mock())
+        with mock.patch.object(AWAITING_NEW_CELL, "handle_chunk") as mock_delegate:
+            chunk = ReadRowsResponse.CellChunk(row_key=b"row_key")._pb
+            output = instance.handle_chunk(chunk)
+            assert instance._owner.adapter.start_row.call_count == 1
+            assert instance._owner.adapter.start_row.call_args[0][0] == b"row_key"
+        mock_delegate.assert_called_once_with(chunk)
+
+    def test_AWAITING_NEW_CELL_family_without_qualifier(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        state_machine.current_qualifier = b"q"
+        instance = AWAITING_NEW_CELL(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(family_name="fam")._pb
+            instance.handle_chunk(chunk)
+        assert "New family must specify qualifier" in e.value.args[0]
+
+    def test_AWAITING_NEW_CELL_qualifier_without_family(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_NEW_CELL(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(qualifier=b"q")._pb
+            instance.handle_chunk(chunk)
+        assert "Family not found" in e.value.args[0]
+
+    def test_AWAITING_NEW_CELL_no_row_state(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_NEW_CELL(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk()._pb
+            instance.handle_chunk(chunk)
+        assert "Missing family for new cell" in e.value.args[0]
+        state_machine.current_family = "fam"
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk()._pb
+            instance.handle_chunk(chunk)
+        assert "Missing qualifier for new cell" in e.value.args[0]
+
+    def test_AWAITING_NEW_CELL_invalid_row_key(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_NEW_CELL(state_machine)
+        state_machine.adapter.current_key = b"abc"
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(row_key=b"123")._pb
+            instance.handle_chunk(chunk)
+        assert "Row key changed mid row" in e.value.args[0]
+
+    def test_AWAITING_NEW_CELL_success_no_split(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        state_machine.adapter = mock.Mock()
+        instance = AWAITING_NEW_CELL(state_machine)
+        row_key = b"row_key"
+        family = "fam"
+        qualifier = b"q"
+        labels = ["label"]
+        timestamp = 123
+        value = b"value"
+        chunk = ReadRowsResponse.CellChunk(row_key=row_key, family_name=family, qualifier=qualifier, timestamp_micros=timestamp, value=value, labels=labels)._pb
+        state_machine.adapter.current_key = row_key
+        new_state = instance.handle_chunk(chunk)
+        assert state_machine.adapter.start_cell.call_count == 1
+        kwargs = state_machine.adapter.start_cell.call_args[1]
+        assert kwargs["family"] == family
+        assert kwargs["qualifier"] == qualifier
+        assert kwargs["timestamp_micros"] == timestamp
+        assert kwargs["labels"] == labels
+        assert state_machine.adapter.cell_value.call_count == 1
+        assert state_machine.adapter.cell_value.call_args[0][0] == value
+        assert state_machine.adapter.finish_cell.call_count == 1
+        assert isinstance(new_state, AWAITING_NEW_CELL)
+
+    def test_AWAITING_NEW_CELL_success_with_split(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        state_machine.adapter = mock.Mock()
+        instance = AWAITING_NEW_CELL(state_machine)
+        row_key = b"row_key"
+        family = "fam"
+        qualifier = b"q"
+        labels = ["label"]
+        timestamp = 123
+        value = b"value"
+        chunk = ReadRowsResponse.CellChunk(value_size=1, row_key=row_key, family_name=family, qualifier=qualifier, timestamp_micros=timestamp, value=value, labels=labels)._pb
+        state_machine.adapter.current_key = row_key
+        new_state = instance.handle_chunk(chunk)
+        assert state_machine.adapter.start_cell.call_count == 1
+        kwargs = state_machine.adapter.start_cell.call_args[1]
+        assert kwargs["family"] == family
+        assert kwargs["qualifier"] == qualifier
+        assert kwargs["timestamp_micros"] == timestamp
+        assert kwargs["labels"] == labels
+        assert state_machine.adapter.cell_value.call_count == 1
+        assert state_machine.adapter.cell_value.call_args[0][0] == value
+        assert state_machine.adapter.finish_cell.call_count == 0
+        assert isinstance(new_state, AWAITING_CELL_VALUE)
+
+    def test_AWAITING_CELL_VALUE_w_row_key(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(row_key=b"123")._pb
+            instance.handle_chunk(chunk)
+        assert "In progress cell had a row key" in e.value.args[0]
+
+    def test_AWAITING_CELL_VALUE_w_row_key(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(family_name="")._pb
+            instance.handle_chunk(chunk)
+        assert "In progress cell had a family name" in e.value.args[0]
+
+    def test_AWAITING_CELL_VALUE_w_qualifier(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(qualifier=b"")._pb
+            instance.handle_chunk(chunk)
+        assert "In progress cell had a qualifier" in e.value.args[0]
+
+    def test_AWAITING_CELL_VALUE_w_timestamp(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(timestamp_micros=123)._pb
+            instance.handle_chunk(chunk)
+        assert "In progress cell had a timestamp" in e.value.args[0]
+
+    def test_AWAITING_CELL_VALUE_w_labels(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        with pytest.raises(InvalidChunk) as e:
+            chunk = ReadRowsResponse.CellChunk(labels=[""])._pb
+            instance.handle_chunk(chunk)
+        assert "In progress cell had labels" in e.value.args[0]
+
+    def test_AWAITING_CELL_VALUE_continuation(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        state_machine.adapter = mock.Mock()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        value = b"value"
+        chunk = ReadRowsResponse.CellChunk(value=value, value_size=1)._pb
+        new_state = instance.handle_chunk(chunk)
+        assert state_machine.adapter.cell_value.call_count == 1
+        assert state_machine.adapter.cell_value.call_args[0][0] == value
+        assert state_machine.adapter.finish_cell.call_count == 0
+        assert isinstance(new_state, AWAITING_CELL_VALUE)
+
+    def test_AWAITING_CELL_VALUE_final_chunk(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _StateMachine
+        state_machine = _StateMachine()
+        state_machine.adapter = mock.Mock()
+        instance = AWAITING_CELL_VALUE(state_machine)
+        value = b"value"
+        chunk = ReadRowsResponse.CellChunk(value=value, value_size=0)._pb
+        new_state = instance.handle_chunk(chunk)
+        assert state_machine.adapter.cell_value.call_count == 1
+        assert state_machine.adapter.cell_value.call_args[0][0] == value
+        assert state_machine.adapter.finish_cell.call_count == 1
+        assert isinstance(new_state, AWAITING_NEW_CELL)
 
 
 class TestRowBuilder(unittest.TestCase):
@@ -672,3 +874,19 @@ class TestRowBuilder(unittest.TestCase):
         self.assertEqual(row_builder.working_cell, None)
         self.assertEqual(row_builder.working_value, None)
         self.assertEqual(len(row_builder.completed_cells), 0)
+
+class TestChunkHasField():
+
+    def test__chunk_has_field_empty(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _chunk_has_field
+        chunk = ReadRowsResponse.CellChunk()._pb
+        assert not _chunk_has_field(chunk, "family_name")
+        assert not _chunk_has_field(chunk, "qualifier")
+
+    def test__chunk_has_field_populated_empty_strings(self):
+        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        from google.cloud.bigtable._read_rows import _chunk_has_field
+        chunk = ReadRowsResponse.CellChunk(qualifier=b'', family_name="")._pb
+        assert _chunk_has_field(chunk, "family_name")
+        assert _chunk_has_field(chunk, "qualifier")

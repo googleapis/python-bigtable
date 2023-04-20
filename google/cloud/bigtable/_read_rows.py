@@ -518,7 +518,7 @@ class AWAITING_NEW_CELL(_State):
         if _chunk_has_field(chunk, "family_name"):
             self._owner.current_family = chunk.family_name.value
             if not _chunk_has_field(chunk, "qualifier"):
-                raise InvalidChunk("New column family must specify qualifier")
+                raise InvalidChunk("New family must specify qualifier")
         if _chunk_has_field(chunk, "qualifier"):
             self._owner.current_qualifier = chunk.qualifier.value
             if self._owner.current_family is None:
@@ -530,9 +530,9 @@ class AWAITING_NEW_CELL(_State):
             raise InvalidChunk("Row key changed mid row")
 
         if self._owner.current_family is None:
-            raise InvalidChunk("Missing family for a new cell")
+            raise InvalidChunk("Missing family for new cell")
         if self._owner.current_qualifier is None:
-            raise InvalidChunk("Missing qualifier for a new cell")
+            raise InvalidChunk("Missing qualifier for new cell")
 
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
