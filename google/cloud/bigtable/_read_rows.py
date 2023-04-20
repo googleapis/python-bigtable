@@ -428,7 +428,7 @@ class _StateMachine:
         if chunk.commit_row:
             # check if row is complete, and return it if so
             if not isinstance(self.current_state, AWAITING_NEW_CELL):
-                raise InvalidChunk("commit row attempted without finishing cell")
+                raise InvalidChunk("Commit chunk received in invalid state")
             complete_row = self.adapter.finish_row()
             self._handle_complete_row(complete_row)
             return complete_row
@@ -457,10 +457,10 @@ class _StateMachine:
             raise InvalidChunk("Reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
-        if chunk.family_name and chunk.family_name.value:
-            raise InvalidChunk("Reset chunk has family_name")
-        if chunk.qualifier and chunk.qualifier.value:
-            raise InvalidChunk("Reset chunk has qualifier")
+        if _chunk_has_field(chunk, "family_name"):
+            raise InvalidChunk("Reset chunk has a family name")
+        if _chunk_has_field(chunk, "qualifier"):
+            raise InvalidChunk("Reset chunk has a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("Reset chunk has a timestamp")
         if chunk.labels:
@@ -468,7 +468,6 @@ class _StateMachine:
         if chunk.value:
             raise InvalidChunk("Reset chunk has a value")
         self._reset_row()
-
 
 class _State(ABC):
     """
@@ -504,7 +503,6 @@ class AWAITING_NEW_ROW(_State):
         # force the chunk processing in the AWAITING_CELL_VALUE.
         return AWAITING_NEW_CELL(self._owner).handle_chunk(chunk)
 
-
 class AWAITING_NEW_CELL(_State):
     """
     Represents a cell boundary witin a row
@@ -516,13 +514,12 @@ class AWAITING_NEW_CELL(_State):
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         is_split = chunk.value_size > 0
-        # expected_cell_size = chunk.value_size if is_split else len(chunk.value)
         # track latest cell data. New chunks won't send repeated data
-        if chunk.family_name.value:
+        if _chunk_has_field(chunk, "family_name"):
             self._owner.current_family = chunk.family_name.value
-            if not chunk.qualifier.value:
+            if not _chunk_has_field(chunk, "qualifier"):
                 raise InvalidChunk("New column family must specify qualifier")
-        if chunk.qualifier.value:
+        if _chunk_has_field(chunk, "qualifier"):
             self._owner.current_qualifier = chunk.qualifier.value
             if self._owner.current_family is None:
                 raise InvalidChunk("Family not found")
@@ -532,7 +529,7 @@ class AWAITING_NEW_CELL(_State):
         if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
             raise InvalidChunk("Row key changed mid row")
 
-        if not self._owner.current_family:
+        if self._owner.current_family is None:
             raise InvalidChunk("Missing family for a new cell")
         if self._owner.current_qualifier is None:
             raise InvalidChunk("Missing qualifier for a new cell")
@@ -566,9 +563,9 @@ class AWAITING_CELL_VALUE(_State):
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("Found row key mid cell")
-        if chunk.family_name.value:
+        if chunk_has_field_set(chunk, "family_name"):
             raise InvalidChunk("In progress cell had a family name")
-        if chunk.qualifier.value:
+        if _chunk_has_field_set(chunk, "qualifier"):
             raise InvalidChunk("In progress cell had a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("In progress cell had a timestamp")
@@ -652,3 +649,14 @@ class _RowBuilder:
         new_row = Row(self.current_key, self.completed_cells)
         self.reset()
         return new_row
+
+def _chunk_has_field(chunk: ReadRowsResponse.CellChunk, field: str) -> bool:
+    """
+    Returns true if the field is set on the chunk
+
+    Required to disambiguate between empty strings and unset values
+    """
+    try:
+        return chunk.HasField(field)
+    except ValueError:
+        return False
