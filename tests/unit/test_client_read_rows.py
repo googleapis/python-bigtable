@@ -459,3 +459,47 @@ async def test_read_rows_revise_request():
                         second_call_kwargs = revise_rowset.call_args_list[1].kwargs
                         assert second_call_kwargs["row_set"] == "modified"
                         assert second_call_kwargs["last_seen_row_key"] == b"test_1"
+
+@pytest.mark.asyncio
+async def test_read_rows_default_timeouts():
+    """
+    Ensure that the default timeouts are set on the read rows operation when not overridden
+    """
+    from google.cloud.bigtable._read_rows import _ReadRowsOperation
+    operation_timeout = 8
+    per_row_timeout = 2
+    per_request_timeout = 4
+    with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+        mock_op.side_effect = RuntimeError("mock error")
+        async with _make_client() as client:
+            async with client.get_table("instance", "table", default_operation_timeout=operation_timeout, default_per_row_timeout=per_row_timeout, default_per_request_timeout=per_request_timeout) as table:
+                try:
+                    await table.read_rows(ReadRowsQuery())
+                except RuntimeError:
+                    pass
+                kwargs = mock_op.call_args_list[0].kwargs
+                assert kwargs["operation_timeout"] == operation_timeout
+                assert kwargs["per_row_timeout"] == per_row_timeout
+                assert kwargs["per_request_timeout"] == per_request_timeout
+
+@pytest.mark.asyncio
+async def test_read_rows_default_timeout_override():
+    """
+    When timeouts are passed, they overwrite default values
+    """
+    from google.cloud.bigtable._read_rows import _ReadRowsOperation
+    operation_timeout = 8
+    per_row_timeout = 2
+    per_request_timeout = 4
+    with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+        mock_op.side_effect = RuntimeError("mock error")
+        async with _make_client() as client:
+            async with client.get_table("instance", "table", default_operation_timeout=99, default_per_row_timeout=98, default_per_request_timeout=97) as table:
+                try:
+                    await table.read_rows(ReadRowsQuery(), operation_timeout=operation_timeout, per_row_timeout=per_row_timeout, per_request_timeout=per_request_timeout)
+                except RuntimeError:
+                    pass
+                kwargs = mock_op.call_args_list[0].kwargs
+                assert kwargs["operation_timeout"] == operation_timeout
+                assert kwargs["per_row_timeout"] == per_row_timeout
+                assert kwargs["per_request_timeout"] == per_request_timeout

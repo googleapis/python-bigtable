@@ -292,6 +292,10 @@ class BigtableDataClient(ClientWithProject):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        *,
+        default_operation_timeout: float = 60,
+        default_per_row_timeout: float | None = 10,
+        default_per_request_timeout: float | None = None,
     ) -> Table:
         """
         Returns a table instance for making data API requests
@@ -304,7 +308,7 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(self, instance_id, table_id, app_profile_id)
+        return Table(self, instance_id, table_id, app_profile_id, default_operation_timeout=default_operation_timeout, default_per_row_timeout=default_per_row_timeout, default_per_request_timeout=default_per_request_timeout)
 
     async def __aenter__(self):
         self.start_background_channel_refresh()
@@ -355,8 +359,16 @@ class Table:
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
+        # validate timeouts
+        if default_operation_timeout <= 0:
+            raise ValueError("default_operation_timeout must be greater than 0")
+        if default_per_row_timeout is not None and default_per_row_timeout <= 0:
+            raise ValueError("default_per_row_timeout must be greater than 0")
+        if default_per_request_timeout is not None and default_per_request_timeout <= 0:
+            raise ValueError("default_per_request_timeout must be greater than 0")
+        if default_per_request_timeout is not None and default_per_request_timeout > default_operation_timeout:
+            raise ValueError("default_per_request_timeout must be less than default_operation_timeout")
         self.client = client
-
         self.instance_id = instance_id
         self.instance_name = self.client._gapic_client.instance_path(
             self.client.project, instance_id
@@ -367,7 +379,6 @@ class Table:
         )
         self.app_profile_id = app_profile_id
 
-        self.app_profile_id = app_profile_id
         self.default_operation_timeout = default_operation_timeout
         self.default_per_row_timeout = default_per_row_timeout
         self.default_per_request_timeout = default_per_request_timeout

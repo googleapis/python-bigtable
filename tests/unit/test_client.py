@@ -606,7 +606,7 @@ async def test__multiple_table_registration():
         assert instance_1_path not in client._active_instances
         assert len(client._instance_owners[instance_1_path]) == 0
 
-
+@pytest.mark.asyncio
 async def test__multiple_instance_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
@@ -800,6 +800,9 @@ async def test_table_ctor():
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
+    expected_operation_timeout = 123
+    expected_per_row_timeout = 21
+    expected_per_request_timeout = 12
     client = BigtableDataClient()
     assert not client._active_instances
 
@@ -808,6 +811,9 @@ async def test_table_ctor():
         expected_instance_id,
         expected_table_id,
         expected_app_profile_id,
+        default_operation_timeout=expected_operation_timeout,
+        default_per_row_timeout=expected_per_row_timeout,
+        default_per_request_timeout=expected_per_request_timeout,
     )
     await asyncio.sleep(0)
     assert table.table_id == expected_table_id
@@ -815,11 +821,35 @@ async def test_table_ctor():
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
     assert table.instance_name in client._active_instances
+    assert table.default_operation_timeout == expected_operation_timeout
+    assert table.default_per_row_timeout == expected_per_row_timeout
+    assert table.default_per_request_timeout == expected_per_request_timeout
     # ensure task reaches completion
     await table._register_instance_task
     assert table._register_instance_task.done()
     assert not table._register_instance_task.cancelled()
     assert table._register_instance_task.exception() is None
+    await client.close()
+
+@pytest.mark.asyncio
+async def test_table_ctor_bad_timeout_values():
+    from google.cloud.bigtable.client import BigtableDataClient
+    from google.cloud.bigtable.client import Table
+
+    client = BigtableDataClient()
+
+    with pytest.raises(ValueError) as e:
+        table = Table(client, "", "", default_per_row_timeout=-1)
+    assert "default_per_row_timeout must be greater than 0" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        table = Table(client, "", "", default_per_request_timeout=-1)
+    assert "default_per_request_timeout must be greater than 0" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        table = Table(client, "", "", default_operation_timeout=-1)
+    assert "default_operation_timeout must be greater than 0" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        table = Table(client, "", "", default_operation_timeout=1, default_per_request_timeout=2)
+    assert "default_per_request_timeout must be less than default_operation_timeout" in str(e.value)
     await client.close()
 
 
