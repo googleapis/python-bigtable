@@ -34,16 +34,14 @@ VENEER_HEADER_REGEX = re.compile(
 )
 
 
-class TestBigtableDataClient():
+class TestBigtableDataClient:
     def _get_target_class(self):
         from google.cloud.bigtable.client import BigtableDataClient
 
         return BigtableDataClient
 
-
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
-
 
     @pytest.mark.asyncio
     async def test_ctor(self):
@@ -63,7 +61,6 @@ class TestBigtableDataClient():
         assert client.transport._credentials == expected_credentials
         await client.close()
 
-
     @pytest.mark.asyncio
     async def test_ctor_super_inits(self):
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -80,7 +77,9 @@ class TestBigtableDataClient():
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
-            with mock.patch.object(ClientWithProject, "__init__") as client_project_init:
+            with mock.patch.object(
+                ClientWithProject, "__init__"
+            ) as client_project_init:
                 client_project_init.return_value = None
                 try:
                     self._make_one(
@@ -103,7 +102,6 @@ class TestBigtableDataClient():
                 assert kwargs["project"] == project
                 assert kwargs["credentials"] == credentials
                 assert kwargs["client_options"] == options_parsed
-
 
     @pytest.mark.asyncio
     async def test_ctor_dict_options(self):
@@ -131,7 +129,6 @@ class TestBigtableDataClient():
             start_background_refresh.assert_called_once()
             await client.close()
 
-
     @pytest.mark.asyncio
     async def test_veneer_grpc_headers(self):
         # client_info should be populated with headers to
@@ -153,7 +150,6 @@ class TestBigtableDataClient():
                 ), f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}"
             await client.close()
 
-
     @pytest.mark.asyncio
     async def test_channel_pool_creation(self):
         pool_size = 14
@@ -170,7 +166,6 @@ class TestBigtableDataClient():
         pool_set = set(client.transport._grpc_channel._pool)
         assert len(pool_list) == len(pool_set)
         await client.close()
-
 
     @pytest.mark.asyncio
     async def test_channel_pool_rotation(self):
@@ -200,14 +195,15 @@ class TestBigtableDataClient():
                     unary_unary.reset_mock()
         await client.close()
 
-
     @pytest.mark.asyncio
     async def test_channel_pool_replace(self):
         with mock.patch.object(asyncio, "sleep"):
             pool_size = 7
             client = self._make_one(project="project-id", pool_size=pool_size)
             for replace_idx in range(pool_size):
-                start_pool = [channel for channel in client.transport._grpc_channel._pool]
+                start_pool = [
+                    channel for channel in client.transport._grpc_channel._pool
+                ]
                 grace_period = 9
                 with mock.patch.object(
                     type(client.transport._grpc_channel._pool[0]), "close"
@@ -226,14 +222,12 @@ class TestBigtableDataClient():
                         assert client.transport._grpc_channel._pool[i] != start_pool[i]
             await client.close()
 
-
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
         client = self._make_one(project="project-id")
         with pytest.raises(RuntimeError):
             client.start_background_channel_refresh()
-
 
     @pytest.mark.asyncio
     async def test_start_background_channel_refresh_tasks_exist(self):
@@ -243,7 +237,6 @@ class TestBigtableDataClient():
             client.start_background_channel_refresh()
             create_task.assert_not_called()
         await client.close()
-
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
@@ -262,7 +255,6 @@ class TestBigtableDataClient():
             ping_and_warm.assert_any_call(channel)
         await client.close()
 
-
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
@@ -276,7 +268,6 @@ class TestBigtableDataClient():
             assert str(i) in name
             assert "BigtableDataClient channel refresh " in name
         await client.close()
-
 
     @pytest.mark.asyncio
     async def test__ping_and_warm_instances(self):
@@ -307,7 +298,6 @@ class TestBigtableDataClient():
                 call._request["name"] = client._active_instances[idx]
         await client.close()
 
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "refresh_interval, wait_time, expected_sleep",
@@ -320,7 +310,9 @@ class TestBigtableDataClient():
             (10, 15, 0),
         ],
     )
-    async def test__manage_channel_first_sleep(self, refresh_interval, wait_time, expected_sleep):
+    async def test__manage_channel_first_sleep(
+        self, refresh_interval, wait_time, expected_sleep
+    ):
         # first sleep time should be `refresh_interval` seconds after client init
         import time
 
@@ -340,7 +332,6 @@ class TestBigtableDataClient():
                     abs(call_time - expected_sleep) < 0.1
                 ), f"refresh_interval: {refresh_interval}, wait_time: {wait_time}, expected_sleep: {expected_sleep}"
                 await client.close()
-
 
     @pytest.mark.asyncio
     async def test__manage_channel_ping_and_warm(self):
@@ -385,7 +376,6 @@ class TestBigtableDataClient():
                     ping_and_warm.assert_called_once_with(new_channel)
         await client.close()
 
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "refresh_interval, num_cycles, expected_sleep",
@@ -395,7 +385,9 @@ class TestBigtableDataClient():
             (10, 1, 10),
         ],
     )
-    async def test__manage_channel_sleeps(self, refresh_interval, num_cycles, expected_sleep):
+    async def test__manage_channel_sleeps(
+        self, refresh_interval, num_cycles, expected_sleep
+    ):
         # make sure that sleeps work as expected
         import time
         import random
@@ -426,7 +418,6 @@ class TestBigtableDataClient():
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
         await client.close()
 
-
     @pytest.mark.asyncio
     async def test__manage_channel_random(self):
         import random
@@ -454,7 +445,6 @@ class TestBigtableDataClient():
                 for found_min, found_max in uniform_args:
                     assert found_min == min_val
                     assert found_max == max_val
-
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("num_cycles", [0, 1, 10, 100])
@@ -502,7 +492,6 @@ class TestBigtableDataClient():
                         assert kwargs["new_channel"] == new_channel
                 await client.close()
 
-
     @pytest.mark.asyncio
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__register_instance(self):
@@ -529,7 +518,6 @@ class TestBigtableDataClient():
             }
             refresh_mock.assert_not_called()
 
-
     @pytest.mark.asyncio
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__register_instance_ping_and_warm(self):
@@ -545,7 +533,9 @@ class TestBigtableDataClient():
         assert len(client._channel_refresh_tasks) == pool_size
         assert not client._active_instances
         # next calls should trigger ping and warm
-        with mock.patch.object(type(self._make_one()), "_ping_and_warm_instances") as ping_mock:
+        with mock.patch.object(
+            type(self._make_one()), "_ping_and_warm_instances"
+        ) as ping_mock:
             # new instance should trigger ping and warm
             await client._register_instance("instance-2", mock.Mock())
             assert ping_mock.call_count == pool_size
@@ -556,7 +546,6 @@ class TestBigtableDataClient():
             assert ping_mock.call_count == pool_size * 2
         await client.close()
 
-
     @pytest.mark.asyncio
     async def test__remove_instance_registration(self):
         client = self._make_one(project="project-id")
@@ -565,8 +554,12 @@ class TestBigtableDataClient():
         await client._register_instance("instance-2", table)
         assert len(client._active_instances) == 2
         assert len(client._instance_owners.keys()) == 2
-        instance_1_path = client._gapic_client.instance_path(client.project, "instance-1")
-        instance_2_path = client._gapic_client.instance_path(client.project, "instance-2")
+        instance_1_path = client._gapic_client.instance_path(
+            client.project, "instance-1"
+        )
+        instance_2_path = client._gapic_client.instance_path(
+            client.project, "instance-2"
+        )
         assert len(client._instance_owners[instance_1_path]) == 1
         assert list(client._instance_owners[instance_1_path])[0] == id(table)
         assert len(client._instance_owners[instance_2_path]) == 1
@@ -581,7 +574,6 @@ class TestBigtableDataClient():
         assert not success
         assert len(client._active_instances) == 1
         await client.close()
-
 
     @pytest.mark.asyncio
     async def test__multiple_table_registration(self):
@@ -634,7 +626,6 @@ class TestBigtableDataClient():
             assert len(client._instance_owners[instance_1_path]) == 0
             assert len(client._instance_owners[instance_2_path]) == 0
 
-
     @pytest.mark.asyncio
     async def test_get_table(self):
         from google.cloud.bigtable.client import Table
@@ -665,7 +656,6 @@ class TestBigtableDataClient():
         assert table.client is client
         assert table.instance_name in client._active_instances
         await client.close()
-
 
     @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
@@ -700,7 +690,6 @@ class TestBigtableDataClient():
                     assert table.instance_name in client._active_instances
             assert close_mock.call_count == 1
 
-
     @pytest.mark.asyncio
     async def test_multiple_pool_sizes(self):
         # should be able to create multiple clients with different pool sizes without issue
@@ -713,7 +702,6 @@ class TestBigtableDataClient():
             assert str(pool_size) in str(client.transport)
             await client.close()
             await client_duplicate.close()
-
 
     @pytest.mark.asyncio
     async def test_close(self):
@@ -738,7 +726,6 @@ class TestBigtableDataClient():
             assert task.cancelled()
         assert client._channel_refresh_tasks == []
 
-
     @pytest.mark.asyncio
     async def test_close_with_timeout(self):
         pool_size = 7
@@ -752,7 +739,6 @@ class TestBigtableDataClient():
             assert wait_for_mock.call_args[1]["timeout"] == expected_timeout
         client._channel_refresh_tasks = tasks
         await client.close()
-
 
     @pytest.mark.asyncio
     async def test_context_manager(self):
@@ -772,7 +758,6 @@ class TestBigtableDataClient():
         # actually close the client
         await true_close
 
-
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
         from google.cloud.bigtable.client import BigtableDataClient
@@ -788,8 +773,7 @@ class TestBigtableDataClient():
         assert client._channel_refresh_tasks == []
 
 
-class TestTable():
-
+class TestTable:
     @pytest.mark.asyncio
     async def test_table_ctor(self):
         from google.cloud.bigtable.client import BigtableDataClient
@@ -819,7 +803,6 @@ class TestTable():
         assert not table._register_instance_task.cancelled()
         assert table._register_instance_task.exception() is None
         await client.close()
-
 
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
