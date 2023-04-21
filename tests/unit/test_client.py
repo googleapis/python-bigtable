@@ -586,7 +586,9 @@ async def test__remove_instance_registration():
 async def test__multiple_table_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
-            instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
+            instance_1_path = client._gapic_client.instance_path(
+                client.project, "instance_1"
+            )
             assert len(client._instance_owners[instance_1_path]) == 1
             assert len(client._active_instances) == 1
             assert id(table_1) in client._instance_owners[instance_1_path]
@@ -609,8 +611,12 @@ async def test__multiple_instance_registration():
     async with _make_one(project="project-id") as client:
         async with client.get_table("instance_1", "table_1") as table_1:
             async with client.get_table("instance_2", "table_2") as table_2:
-                instance_1_path = client._gapic_client.instance_path(client.project, "instance_1")
-                instance_2_path = client._gapic_client.instance_path(client.project, "instance_2")
+                instance_1_path = client._gapic_client.instance_path(
+                    client.project, "instance_1"
+                )
+                instance_2_path = client._gapic_client.instance_path(
+                    client.project, "instance_2"
+                )
                 assert len(client._instance_owners[instance_1_path]) == 1
                 assert len(client._instance_owners[instance_2_path]) == 1
                 assert len(client._active_instances) == 2
@@ -658,6 +664,7 @@ async def test_get_table():
 @pytest.mark.asyncio
 async def test_get_table_context_manager():
     from google.cloud.bigtable.client import Table
+
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
