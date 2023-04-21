@@ -92,11 +92,10 @@ async def test_read_rows_stream(table, temp_rows):
     """
     Ensure that the read_rows_stream method works
     """
-    from google.cloud.bigtable import ReadRowsQuery
-
     await temp_rows.add_row(b"row_key_1", "cf1", "c1", b"value1")
     await temp_rows.add_row(b"row_key_2", "cf1", "c1", b"value2")
 
+    # full table scan
     generator = await table.read_rows_stream({})
     first_row = await generator.__anext__()
     second_row = await generator.__anext__()
@@ -104,3 +103,17 @@ async def test_read_rows_stream(table, temp_rows):
     assert second_row.row_key == b"row_key_2"
     with pytest.raises(StopAsyncIteration):
         await generator.__anext__()
+
+
+@pytest.mark.asyncio
+async def test_read_rows(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    await temp_rows.add_row(b"row_key_1", "cf1", "c1", b"value1")
+    await temp_rows.add_row(b"row_key_2", "cf1", "c1", b"value2")
+    # full table scan
+    row_list = await table.read_rows({})
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"row_key_1"
+    assert row_list[1].row_key == b"row_key_2"
