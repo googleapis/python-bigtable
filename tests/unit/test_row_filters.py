@@ -823,21 +823,21 @@ def test_value_regex_filter___repr__():
 
 
 def test_exact_value_filter_to_pb_w_bytes():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = regex = b"value-regex"
-    row_filter = ExactValueFilter(value)
+    value = regex = b"value_regex"
+    row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
 
 def test_exact_value_filter_to_dict_w_bytes():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    value = regex = b"value-regex"
-    row_filter = ExactValueFilter(value)
+    value = regex = b"value_regex"
+    row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
@@ -845,23 +845,23 @@ def test_exact_value_filter_to_dict_w_bytes():
 
 
 def test_exact_value_filter_to_pb_w_str():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = "value-regex"
+    value = "value_regex"
     regex = value.encode("ascii")
-    row_filter = ExactValueFilter(value)
+    row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
 
 def test_exact_value_filter_to_dict_w_str():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    value = "value-regex"
+    value = "value_regex"
     regex = value.encode("ascii")
-    row_filter = ExactValueFilter(value)
+    row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
@@ -869,37 +869,37 @@ def test_exact_value_filter_to_dict_w_str():
 
 
 def test_exact_value_filter_to_pb_w_int():
-    import struct
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     value = 1
-    regex = struct.Struct(">q").pack(value)
-    row_filter = ExactValueFilter(value)
+    # encode numbers with double escapes for the backslashes
+    expected_byte_string = b'\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01'
+    row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
-    expected_pb = _RowFilterPB(value_regex_filter=regex)
+    expected_pb = _RowFilterPB(value_regex_filter=expected_byte_string)
     assert pb_val == expected_pb
 
 
 def test_exact_value_filter_to_dict_w_int():
-    import struct
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     value = 1
-    regex = struct.Struct(">q").pack(value)
-    row_filter = ExactValueFilter(value)
-    expected_dict = {"value_regex_filter": regex}
+    # encode numbers with double escapes for the backslashes
+    expected_byte_string = b'\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01'
+    row_filter = LiteralValueFilter(value)
+    expected_dict = {"value_regex_filter": expected_byte_string}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
 def test_exact_value_filter___repr__():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = "value-regex"
-    row_filter = ExactValueFilter(value)
-    expected = "ExactValueFilter(value=b'value-regex')"
+    value = "value_regex"
+    row_filter = LiteralValueFilter(value)
+    expected = "LiteralValueFilter(value=b'value_regex')"
     assert repr(row_filter) == expected
     assert repr(row_filter) == str(row_filter)
     assert eval(repr(row_filter)) == row_filter
@@ -1906,6 +1906,24 @@ def test_conditional_row_filter___str__():
     expected = "ConditionalRowFilter(\n    predicate_filter=ConditionalRowFilter(\n        predicate_filter=StripValueTransformerFilter(flag=True),\n        true_filter=RowSampleFilter(sample=0.25),\n    ),\n    true_filter=RowSampleFilter(sample=0.25),\n    false_filter=RowFilterUnion([\n        StripValueTransformerFilter(flag=True),\n        RowSampleFilter(sample=0.25),\n    ]),\n)"
     assert str(row_filter4) == expected
 
+@pytest.mark.parametrize("input_arg, expected_bytes", [
+    (b"abc", b"abc"),
+    ("abc", b"abc"),
+    (1, b"\\\000\\\000\\\000\\\000\\\000\\\000\\\000\\\001"),
+    (b'*', b'\\*'),
+    (".", b"\\."),
+    (b'\\', b'\\\\'),
+    (b'h.*i', b"h\\.\\*i"),
+    (b'\d', b'\\\d'),
+    (b'""', b'\\"\\"'),
+    (b'[xyz]', b'\\[xyz\\]'),
+    (b'\xe2\x98\xba\xef\xb8\x8f', b'\xe2\x98\xba\xef\xb8\x8f'),
+])
+def test_literal_value__write_literal_regex(input_arg, expected_bytes):
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
+
+    filter_ = LiteralValueFilter(input_arg)
+    assert filter_.regex == expected_bytes
 
 def _ColumnRangePB(*args, **kw):
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
@@ -1955,7 +1973,7 @@ def _get_regex_filters():
         FamilyNameRegexFilter,
         ColumnQualifierRegexFilter,
         ValueRegexFilter,
-        ExactValueFilter,
+        LiteralValueFilter,
     )
 
     return [
@@ -1963,7 +1981,7 @@ def _get_regex_filters():
         FamilyNameRegexFilter,
         ColumnQualifierRegexFilter,
         ValueRegexFilter,
-        ExactValueFilter,
+        LiteralValueFilter,
     ]
 
 
@@ -2007,3 +2025,4 @@ def _get_filter_combination_filters():
         RowFilterChain,
         RowFilterUnion,
     ]
+
