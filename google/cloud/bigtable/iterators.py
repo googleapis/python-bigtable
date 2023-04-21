@@ -133,7 +133,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
         after an error has occurred.
         """
         if self.active:
-            await self._merger_or_error.aclose()
+            merger = cast(_ReadRowsOperation, self._merger_or_error)
+            await merger.aclose()
             self._merger_or_error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()

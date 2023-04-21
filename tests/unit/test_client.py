@@ -841,16 +841,16 @@ async def test_table_ctor_bad_timeout_values():
     client = BigtableDataClient()
 
     with pytest.raises(ValueError) as e:
-        table = Table(client, "", "", default_per_row_timeout=-1)
+        Table(client, "", "", default_per_row_timeout=-1)
     assert "default_per_row_timeout must be greater than 0" in str(e.value)
     with pytest.raises(ValueError) as e:
-        table = Table(client, "", "", default_per_request_timeout=-1)
+        Table(client, "", "", default_per_request_timeout=-1)
     assert "default_per_request_timeout must be greater than 0" in str(e.value)
     with pytest.raises(ValueError) as e:
-        table = Table(client, "", "", default_operation_timeout=-1)
+        Table(client, "", "", default_operation_timeout=-1)
     assert "default_operation_timeout must be greater than 0" in str(e.value)
     with pytest.raises(ValueError) as e:
-        table = Table(
+        Table(
             client, "", "", default_operation_timeout=1, default_per_request_timeout=2
         )
     assert (

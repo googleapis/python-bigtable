@@ -22,10 +22,8 @@ from google.cloud.bigtable._read_rows import _ReadRowsOperation
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
 
 
 class MockStream(_ReadRowsOperation):
