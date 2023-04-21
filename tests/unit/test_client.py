@@ -416,7 +416,7 @@ class TestBigtableDataClient:
                     assert (
                         abs(total_sleep - expected_sleep) < 0.1
                     ), f"refresh_interval={refresh_interval}, num_cycles={num_cycles}, expected_sleep={expected_sleep}"
-            await client.close()
+        await client.close()
 
     @pytest.mark.asyncio
     async def test__manage_channel_random(self):
