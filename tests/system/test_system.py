@@ -39,7 +39,5 @@ async def test_ping_and_warm_gapic(client, table):
     Simple ping rpc test
     This test ensures channels are able to authenticate with backend
     """
-    request = {
-        "name": client._gapic_client.instance_path(client.project, table.instance)
-    }
+    request = {"name": table.instance_name}
     await client._gapic_client.ping_and_warm(request)

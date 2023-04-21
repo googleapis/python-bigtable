@@ -333,15 +333,22 @@ class Table:
             instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
-            table_id: The ID of the table.
+            table_id: The ID of the table. table_id is combined with the
+                instance_id and the client's project to fully specify the table
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
         self.client = client
-        self.instance = instance_id
+        self.instance_id = instance_id
+        self.instance_name = self.client._gapic_client.instance_path(
+            self.client.project, instance_id
+        )
         self.table_id = table_id
+        self.table_name = self.client._gapic_client.table_path(
+            self.client.project, instance_id, table_id
+        )
         self.app_profile_id = app_profile_id
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
@@ -681,7 +688,7 @@ class Table:
         """
         Called to close the Table instance and release any resources held by it.
         """
-        await self.client._remove_instance_registration(self.instance, self)
+        await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
         """
@@ -690,7 +697,7 @@ class Table:
         Register this instance with the client, so that
         grpc channels will be warmed for the specified instance
         """
-        await self.client._register_instance(self.instance, self)
+        await self.client._register_instance(self.instance_id, self)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

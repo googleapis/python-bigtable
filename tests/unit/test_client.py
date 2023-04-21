@@ -651,13 +651,18 @@ async def test_get_table():
     await asyncio.sleep(0)
     assert isinstance(table, Table)
     assert table.table_id == expected_table_id
-    assert table.instance == expected_instance_id
+    assert (
+        table.table_name
+        == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+    )
+    assert table.instance_id == expected_instance_id
+    assert (
+        table.instance_name
+        == f"projects/{client.project}/instances/{expected_instance_id}"
+    )
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client._gapic_client.instance_path(
-        client.project, expected_instance_id
-    )
-    assert full_instance_name in client._active_instances
+    assert table.instance_name in client._active_instances
     await client.close()
 
 
@@ -668,9 +673,10 @@ async def test_get_table_context_manager():
     expected_table_id = "table-id"
     expected_instance_id = "instance-id"
     expected_app_profile_id = "app-profile-id"
+    expected_project_id = "project-id"
 
     with mock.patch.object(Table, "close") as close_mock:
-        async with _make_one(project="project-id") as client:
+        async with _make_one(project=expected_project_id) as client:
             async with client.get_table(
                 expected_instance_id,
                 expected_table_id,
@@ -679,13 +685,18 @@ async def test_get_table_context_manager():
                 await asyncio.sleep(0)
                 assert isinstance(table, Table)
                 assert table.table_id == expected_table_id
-                assert table.instance == expected_instance_id
+                assert (
+                    table.table_name
+                    == f"projects/{expected_project_id}/instances/{expected_instance_id}/tables/{expected_table_id}"
+                )
+                assert table.instance_id == expected_instance_id
+                assert (
+                    table.instance_name
+                    == f"projects/{expected_project_id}/instances/{expected_instance_id}"
+                )
                 assert table.app_profile_id == expected_app_profile_id
                 assert table.client is client
-                full_instance_name = client._gapic_client.instance_path(
-                    client.project, expected_instance_id
-                )
-                assert full_instance_name in client._active_instances
+                assert table.instance_name in client._active_instances
         assert close_mock.call_count == 1
 
 
@@ -800,13 +811,10 @@ async def test_table_ctor():
     )
     await asyncio.sleep(0)
     assert table.table_id == expected_table_id
-    assert table.instance == expected_instance_id
+    assert table.instance_id == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client._gapic_client.instance_path(
-        client.project, expected_instance_id
-    )
-    assert full_instance_name in client._active_instances
+    assert table.instance_name in client._active_instances
     # ensure task reaches completion
     await table._register_instance_task
     assert table._register_instance_task.done()
