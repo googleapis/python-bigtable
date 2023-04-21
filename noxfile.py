@@ -40,7 +40,7 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-asyncio",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES = []
-UNIT_TEST_LOCAL_DEPENDENCIES = []
+UNIT_TEST_LOCAL_DEPENDENCIES = ["python-api-core"]
 UNIT_TEST_DEPENDENCIES = []
 UNIT_TEST_EXTRAS = []
 UNIT_TEST_EXTRAS_BY_PYTHON = {}
@@ -53,7 +53,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "google-cloud-testutils",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES = []
-SYSTEM_TEST_LOCAL_DEPENDENCIES = []
+SYSTEM_TEST_LOCAL_DEPENDENCIES = ["python-api-core"]
 SYSTEM_TEST_DEPENDENCIES = []
 SYSTEM_TEST_EXTRAS = []
 SYSTEM_TEST_EXTRAS_BY_PYTHON = {}
@@ -166,7 +166,7 @@ def install_unittest_dependencies(session, *constraints):
         session.install(*UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_LOCAL_DEPENDENCIES:
-        session.install(*UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
+        session.install("-e", *UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_EXTRAS_BY_PYTHON:
         extras = UNIT_TEST_EXTRAS_BY_PYTHON.get(session.python, [])
@@ -179,7 +179,6 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
-    session.install("-e", "./python-api-core", *constraints)
 
 
 def default(session):
