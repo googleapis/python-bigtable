@@ -86,8 +86,10 @@ class PooledChannel(aio.Channel):
         host: str = "bigtable.googleapis.com",
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
-        scopes: Optional[Sequence[str]] = None,
         quota_project_id: Optional[str] = None,
+        default_scopes: Optional[Sequence[str]] = None,
+        scopes: Optional[Sequence[str]] = None,
+        default_host: Optional[str] = None,
         insecure: bool = False,
         **kwargs,
     ):
@@ -101,8 +103,10 @@ class PooledChannel(aio.Channel):
                 target=host,
                 credentials=credentials,
                 credentials_file=credentials_file,
-                scopes=scopes,
                 quota_project_id=quota_project_id,
+                default_scopes=default_scopes,
+                scopes=scopes,
+                default_host=default_host,
                 **kwargs,
             )
         for i in range(pool_size):
@@ -249,8 +253,10 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
             host,
             credentials=credentials,
             credentials_file=credentials_file,
-            scopes=scopes,
             quota_project_id=quota_project_id,
+            default_scopes=cls.AUTH_SCOPES,
+            scopes=scopes,
+            default_host=cls.DEFAULT_HOST,
             **kwargs,
         )
 
