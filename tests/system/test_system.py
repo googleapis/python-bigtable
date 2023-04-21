@@ -14,21 +14,22 @@
 
 import pytest
 import pytest_asyncio
+import os
 
 
 @pytest_asyncio.fixture
 async def client():
     from google.cloud.bigtable import BigtableDataClient
 
-    project = "sanche-testing-project"
+    project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
     async with BigtableDataClient(project=project) as client:
         yield client
 
 
 @pytest_asyncio.fixture
 async def table(client):
-    instance = "sanche-test"
-    table = "random"
+    instance = os.getenv("BIGTABLE_TEST_INSTANCE") or "test-instance"
+    table = os.getenv("BIGTABLE_TEST_TABLE") or "test-table"
     async with client.get_table(instance, table) as table:
         yield table
 
