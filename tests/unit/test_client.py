@@ -504,7 +504,7 @@ async def test__manage_channel_refresh(num_cycles):
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-async def test_register_instance():
+async def test__register_instance():
     # create the client without calling start_background_channel_refresh
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
         get_event_loop.side_effect = RuntimeError("no event loop")
@@ -512,7 +512,7 @@ async def test_register_instance():
     assert not client._channel_refresh_tasks
     # first call should start background refresh
     assert client._active_instances == set()
-    await client.register_instance("instance-1")
+    await client._register_instance("instance-1", mock.Mock())
     assert len(client._active_instances) == 1
     assert client._active_instances == {"projects/project-id/instances/instance-1"}
     assert client._channel_refresh_tasks
@@ -520,7 +520,7 @@ async def test_register_instance():
     with mock.patch.object(
         type(_make_one()), "start_background_channel_refresh"
     ) as refresh_mock:
-        await client.register_instance("instance-2")
+        await client._register_instance("instance-2", mock.Mock())
         assert len(client._active_instances) == 2
         assert client._active_instances == {
             "projects/project-id/instances/instance-1",
@@ -531,7 +531,7 @@ async def test_register_instance():
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-async def test_register_instance_ping_and_warm():
+async def test__register_instance_ping_and_warm():
     # should ping and warm each new instance
     pool_size = 7
     with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
@@ -539,37 +539,99 @@ async def test_register_instance_ping_and_warm():
         client = _make_one(project="project-id", pool_size=pool_size)
     # first call should start background refresh
     assert not client._channel_refresh_tasks
-    await client.register_instance("instance-1")
+    await client._register_instance("instance-1", mock.Mock())
     client = _make_one(project="project-id", pool_size=pool_size)
     assert len(client._channel_refresh_tasks) == pool_size
     assert not client._active_instances
     # next calls should trigger ping and warm
     with mock.patch.object(type(_make_one()), "_ping_and_warm_instances") as ping_mock:
         # new instance should trigger ping and warm
-        await client.register_instance("instance-2")
+        await client._register_instance("instance-2", mock.Mock())
         assert ping_mock.call_count == pool_size
-        await client.register_instance("instance-3")
+        await client._register_instance("instance-3", mock.Mock())
         assert ping_mock.call_count == pool_size * 2
         # duplcate instances should not trigger ping and warm
-        await client.register_instance("instance-3")
+        await client._register_instance("instance-3", mock.Mock())
         assert ping_mock.call_count == pool_size * 2
     await client.close()
 
 
 @pytest.mark.asyncio
-async def test_remove_instance_registration():
+async def test__remove_instance_registration():
     client = _make_one(project="project-id")
-    await client.register_instance("instance-1")
-    await client.register_instance("instance-2")
+    table = mock.Mock()
+    await client._register_instance("instance-1", table)
+    await client._register_instance("instance-2", table)
     assert len(client._active_instances) == 2
-    success = await client.remove_instance_registration("instance-1")
+    assert len(client._instance_owners.keys()) == 2
+    instance_1_path = client._gapic_client.instance_path(client.project, "instance-1")
+    instance_2_path = client._gapic_client.instance_path(client.project, "instance-2")
+    assert len(client._instance_owners[instance_1_path]) == 1
+    assert list(client._instance_owners[instance_1_path])[0] == id(table)
+    assert len(client._instance_owners[instance_2_path]) == 1
+    assert list(client._instance_owners[instance_2_path])[0] == id(table)
+    success = await client._remove_instance_registration("instance-1", table)
     assert success
     assert len(client._active_instances) == 1
+    assert len(client._instance_owners[instance_1_path]) == 0
+    assert len(client._instance_owners[instance_2_path]) == 1
     assert client._active_instances == {"projects/project-id/instances/instance-2"}
-    success = await client.remove_instance_registration("nonexistant")
+    success = await client._remove_instance_registration("nonexistant", table)
     assert not success
     assert len(client._active_instances) == 1
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test__multiple_table_registration():
+    async with _make_one(project="project-id") as client:
+        async with client.get_table("instance_1", "table_1") as table_1:
+            instance_1_path = client._gapic_client.instance_path(
+                client.project, "instance_1"
+            )
+            assert len(client._instance_owners[instance_1_path]) == 1
+            assert len(client._active_instances) == 1
+            assert id(table_1) in client._instance_owners[instance_1_path]
+            async with client.get_table("instance_1", "table_2") as table_2:
+                assert len(client._instance_owners[instance_1_path]) == 2
+                assert len(client._active_instances) == 1
+                assert id(table_1) in client._instance_owners[instance_1_path]
+                assert id(table_2) in client._instance_owners[instance_1_path]
+            # table_2 should be unregistered, but instance should still be active
+            assert len(client._active_instances) == 1
+            assert instance_1_path in client._active_instances
+            assert id(table_2) not in client._instance_owners[instance_1_path]
+        # both tables are gone. instance should be unregistered
+        assert len(client._active_instances) == 0
+        assert instance_1_path not in client._active_instances
+        assert len(client._instance_owners[instance_1_path]) == 0
+
+
+async def test__multiple_instance_registration():
+    async with _make_one(project="project-id") as client:
+        async with client.get_table("instance_1", "table_1") as table_1:
+            async with client.get_table("instance_2", "table_2") as table_2:
+                instance_1_path = client._gapic_client.instance_path(
+                    client.project, "instance_1"
+                )
+                instance_2_path = client._gapic_client.instance_path(
+                    client.project, "instance_2"
+                )
+                assert len(client._instance_owners[instance_1_path]) == 1
+                assert len(client._instance_owners[instance_2_path]) == 1
+                assert len(client._active_instances) == 2
+                assert id(table_1) in client._instance_owners[instance_1_path]
+                assert id(table_2) in client._instance_owners[instance_2_path]
+            # instance2 should be unregistered, but instance1 should still be active
+            assert len(client._active_instances) == 1
+            assert instance_1_path in client._active_instances
+            assert len(client._instance_owners[instance_2_path]) == 0
+            assert len(client._instance_owners[instance_1_path]) == 1
+            assert id(table_1) in client._instance_owners[instance_1_path]
+        # both tables are gone. instances should both be unregistered
+        assert len(client._active_instances) == 0
+        assert len(client._instance_owners[instance_1_path]) == 0
+        assert len(client._instance_owners[instance_2_path]) == 0
 
 
 @pytest.mark.asyncio
@@ -588,18 +650,54 @@ async def test_get_table():
     )
     await asyncio.sleep(0)
     assert isinstance(table, Table)
+    assert table.table_id == expected_table_id
+    assert (
+        table.table_name
+        == f"projects/{client.project}/instances/{expected_instance_id}/tables/{expected_table_id}"
+    )
+    assert table.instance_id == expected_instance_id
+    assert (
+        table.instance_name
+        == f"projects/{client.project}/instances/{expected_instance_id}"
+    )
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client._gapic_client.instance_path(
-        client.project, expected_instance_id
-    )
-    full_table_name = client._gapic_client.table_path(
-        client.project, expected_instance_id, expected_table_id
-    )
-    assert table.instance_path == full_instance_name
-    assert table.table_path == full_table_name
-    assert full_instance_name in client._active_instances
+    assert table.instance_name in client._active_instances
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_get_table_context_manager():
+    from google.cloud.bigtable.client import Table
+
+    expected_table_id = "table-id"
+    expected_instance_id = "instance-id"
+    expected_app_profile_id = "app-profile-id"
+    expected_project_id = "project-id"
+
+    with mock.patch.object(Table, "close") as close_mock:
+        async with _make_one(project=expected_project_id) as client:
+            async with client.get_table(
+                expected_instance_id,
+                expected_table_id,
+                expected_app_profile_id,
+            ) as table:
+                await asyncio.sleep(0)
+                assert isinstance(table, Table)
+                assert table.table_id == expected_table_id
+                assert (
+                    table.table_name
+                    == f"projects/{expected_project_id}/instances/{expected_instance_id}/tables/{expected_table_id}"
+                )
+                assert table.instance_id == expected_instance_id
+                assert (
+                    table.instance_name
+                    == f"projects/{expected_project_id}/instances/{expected_instance_id}"
+                )
+                assert table.app_profile_id == expected_app_profile_id
+                assert table.client is client
+                assert table.instance_name in client._active_instances
+        assert close_mock.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -712,17 +810,11 @@ async def test_table_ctor():
         expected_app_profile_id,
     )
     await asyncio.sleep(0)
+    assert table.table_id == expected_table_id
+    assert table.instance_id == expected_instance_id
     assert table.app_profile_id == expected_app_profile_id
     assert table.client is client
-    full_instance_name = client._gapic_client.instance_path(
-        client.project, expected_instance_id
-    )
-    full_table_name = client._gapic_client.table_path(
-        client.project, expected_instance_id, expected_table_id
-    )
-    assert table.instance_path == full_instance_name
-    assert table.table_path == full_table_name
-    assert full_instance_name in client._active_instances
+    assert table.instance_name in client._active_instances
     # ensure task reaches completion
     await table._register_instance_task
     assert table._register_instance_task.done()
@@ -736,14 +828,6 @@ def test_table_ctor_sync():
     from google.cloud.bigtable.client import Table
 
     client = mock.Mock()
-    client._gapic_client.table_path.return_value = "table-path"
-    client._gapic_client.instance_path.return_value = "instance-path"
-    with pytest.warns(RuntimeWarning) as warnings:
-        table = Table(client, "instance-id", "table-id")
-    assert "event loop" in str(warnings[0].message)
-    assert table.table_path == "table-path"
-    client._gapic_client.table_path.assert_called_once()
-    assert table.instance_path == "instance-path"
-    client._gapic_client.instance_path.assert_called_once()
-    assert table.app_profile_id is None
-    assert table.client is client
+    with pytest.raises(RuntimeError) as e:
+        Table(client, "instance-id", "table-id")
+    assert e.match("Table must be created within an async event loop context.")

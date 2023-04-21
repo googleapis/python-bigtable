@@ -471,6 +471,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.CheckAndMutateRowRequest):
                     The request object. Request message for
                 Bigtable.CheckAndMutateRow.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -574,6 +575,7 @@ class BigtableRestTransport(BigtableTransport):
                     by Apache Beam BigtableIO. Request
                     message for
                     Bigtable.GenerateInitialChangeStreamPartitions.
+
                     retry (google.api_core.retry.Retry): Designation of what errors, if any,
                         should be retried.
                     timeout (float): The timeout for this request.
@@ -682,6 +684,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.MutateRowRequest):
                     The request object. Request message for
                 Bigtable.MutateRow.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -780,6 +783,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.MutateRowsRequest):
                     The request object. Request message for
                 BigtableService.MutateRows.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -877,6 +881,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.PingAndWarmRequest):
                     The request object. Request message for client connection
                 keep-alive and warming.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -977,6 +982,7 @@ class BigtableRestTransport(BigtableTransport):
                     The request object. NOTE: This API is intended to be used
                 by Apache Beam BigtableIO. Request
                 message for Bigtable.ReadChangeStream.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -1077,6 +1083,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.ReadModifyWriteRowRequest):
                     The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -1177,6 +1184,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.ReadRowsRequest):
                     The request object. Request message for
                 Bigtable.ReadRows.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.
@@ -1272,6 +1280,7 @@ class BigtableRestTransport(BigtableTransport):
                 request (~.bigtable.SampleRowKeysRequest):
                     The request object. Request message for
                 Bigtable.SampleRowKeys.
+
                 retry (google.api_core.retry.Retry): Designation of what errors, if any,
                     should be retried.
                 timeout (float): The timeout for this request.

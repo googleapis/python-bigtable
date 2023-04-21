@@ -152,7 +152,7 @@ async def test_read_rows_query_matches_request(include_app_profile):
             assert call_request["rows"] == query_dict["rows"]
             assert call_request["filter"] == filter_
             assert call_request["rows_limit"] == limit
-            assert call_request["table_name"] == table.table_path
+            assert call_request["table_name"] == table.table_name
             if include_app_profile:
                 assert call_request["app_profile_id"] == app_profile_id
 
