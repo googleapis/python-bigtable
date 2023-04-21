@@ -60,6 +60,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if sys.version_info >= (3, 8):
             self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
 
+    @property
     def active(self):
         """
         Returns True if the iterator is still active and has not been closed
@@ -71,12 +72,12 @@ class ReadRowsIterator(AsyncIterable[Row]):
         Coroutine that will cancel a stream if no interaction with the iterator
         in the last `idle_timeout` seconds.
         """
-        while self.active():
+        while self.active:
             next_timeout = self.last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.time())
             if (
                 self.last_interaction_time + idle_timeout < time.time()
-                and self.active()
+                and self.active
             ):
                 # idle timeout has expired
                 await self._finish_with_error(
