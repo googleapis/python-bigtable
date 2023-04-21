@@ -513,20 +513,22 @@ class LiteralValueFilter(ValueRegexFilter):
             # to copy this byte without escaping.  Experimentally this is \
             # what works correctly with the regexp library. \
             utf8_latin1_check = (byte & 128) == 0
-            if (byte < ord('a') or byte > ord('z')) \
-                    and (byte < ord('A') or byte > ord('Z')) \
-                    and (byte < ord('0') or byte > ord('9')) \
-                    and byte != ord('_') \
-                    and utf8_latin1_check:
-                if (byte == '\0'):
+            if (
+                (byte < ord("a") or byte > ord("z"))
+                and (byte < ord("A") or byte > ord("Z"))
+                and (byte < ord("0") or byte > ord("9"))
+                and byte != ord("_")
+                and utf8_latin1_check
+            ):
+                if byte == "\0":
                     # Special handling for null chars.
                     # Note that this special handling is not strictly required for RE2,
                     # but this quoting is required for other regexp libraries such as
                     # PCRE.
                     # Can't use "\\0" since the next character might be a digit.
-                    result.append(ord(b'\\x00'))
+                    result.append(ord(b"\\x00"))
                     continue
-                result.append(ord(b'\\'))
+                result.append(ord(b"\\"))
             result.append(byte)
         return bytes(result)
 

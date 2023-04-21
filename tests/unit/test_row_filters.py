@@ -873,7 +873,7 @@ def test_exact_value_filter_to_pb_w_int():
 
     value = 1
     # encode numbers with double escapes for the backslashes
-    expected_byte_string = b'\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01'
+    expected_byte_string = b"\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01"
     row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=expected_byte_string)
@@ -886,7 +886,7 @@ def test_exact_value_filter_to_dict_w_int():
 
     value = 1
     # encode numbers with double escapes for the backslashes
-    expected_byte_string = b'\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01'
+    expected_byte_string = b"\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x00\\\x01"
     row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": expected_byte_string}
     assert row_filter.to_dict() == expected_dict
@@ -1906,24 +1906,28 @@ def test_conditional_row_filter___str__():
     expected = "ConditionalRowFilter(\n    predicate_filter=ConditionalRowFilter(\n        predicate_filter=StripValueTransformerFilter(flag=True),\n        true_filter=RowSampleFilter(sample=0.25),\n    ),\n    true_filter=RowSampleFilter(sample=0.25),\n    false_filter=RowFilterUnion([\n        StripValueTransformerFilter(flag=True),\n        RowSampleFilter(sample=0.25),\n    ]),\n)"
     assert str(row_filter4) == expected
 
-@pytest.mark.parametrize("input_arg, expected_bytes", [
-    (b"abc", b"abc"),
-    ("abc", b"abc"),
-    (1, b"\\\000\\\000\\\000\\\000\\\000\\\000\\\000\\\001"),
-    (b'*', b'\\*'),
-    (".", b"\\."),
-    (b'\\', b'\\\\'),
-    (b'h.*i', b"h\\.\\*i"),
-    (b'\d', b'\\\d'),
-    (b'""', b'\\"\\"'),
-    (b'[xyz]', b'\\[xyz\\]'),
-    (b'\xe2\x98\xba\xef\xb8\x8f', b'\xe2\x98\xba\xef\xb8\x8f'),
-])
+
+@pytest.mark.parametrize(
+    "input_arg, expected_bytes",
+    [
+        (b"abc", b"abc"),
+        ("abc", b"abc"),
+        (1, b"\\\000\\\000\\\000\\\000\\\000\\\000\\\000\\\001"),
+        (b"*", b"\\*"),
+        (".", b"\\."),
+        (b"\\", b"\\\\"),
+        (b"h.*i", b"h\\.\\*i"),
+        (b'""', b'\\"\\"'),
+        (b"[xyz]", b"\\[xyz\\]"),
+        (b"\xe2\x98\xba\xef\xb8\x8f", b"\xe2\x98\xba\xef\xb8\x8f"),
+    ],
+)
 def test_literal_value__write_literal_regex(input_arg, expected_bytes):
     from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     filter_ = LiteralValueFilter(input_arg)
     assert filter_.regex == expected_bytes
+
 
 def _ColumnRangePB(*args, **kw):
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
@@ -2025,4 +2029,3 @@ def _get_filter_combination_filters():
         RowFilterChain,
         RowFilterUnion,
     ]
-
