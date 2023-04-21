@@ -117,3 +117,22 @@ async def test_read_rows(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"row_key_1"
     assert row_list[1].row_key == b"row_key_2"
+
+
+@pytest.mark.asyncio
+async def test_read_rows_range_query(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable import RowRange
+    await temp_rows.add_row(b"a", "cf1", "c1", b"value1")
+    await temp_rows.add_row(b"b", "cf1", "c1", b"value2")
+    await temp_rows.add_row(b"c", "cf1", "c1", b"value2")
+    await temp_rows.add_row(b"d", "cf1", "c1", b"value2")
+    # full table scan
+    query = ReadRowsQuery(row_ranges=RowRange(start_key=b"b", end_key=b"d"))
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"b"
+    assert row_list[1].row_key == b"c"
