@@ -20,23 +20,29 @@ import asyncio
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
+
 @pytest.fixture(scope="session")
 def event_loop():
     return asyncio.get_event_loop()
+
 
 @pytest.fixture(scope="session")
 def instance_admin_client():
     """Client for interacting with the Instance Admin API."""
     from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
+
     with BigtableInstanceAdminClient() as client:
         yield client
+
 
 @pytest.fixture(scope="session")
 def table_admin_client():
     """Client for interacting with the Table Admin API."""
     from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
+
     with BigtableTableAdminClient() as client:
         yield client
+
 
 @pytest.fixture(scope="session")
 def instance_id(instance_admin_client, project_id):
@@ -45,6 +51,7 @@ def instance_id(instance_admin_client, project_id):
     """
     from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
+
     # use user-specified instance if available
     user_specified_instance = os.getenv("BIGTABLE_TEST_INSTANCE")
     if user_specified_instance:
@@ -55,7 +62,7 @@ def instance_id(instance_admin_client, project_id):
     # create a new temporary test instance
     instance_id = "test-instance"
     try:
-        operation =instance_admin_client.create_instance(
+        operation = instance_admin_client.create_instance(
             parent=f"projects/{project_id}",
             instance_id=instance_id,
             instance=types.Instance(
@@ -73,7 +80,10 @@ def instance_id(instance_admin_client, project_id):
     except exceptions.AlreadyExists:
         pass
     yield instance_id
-    instance_admin_client.delete_instance(name=f"projects/{project_id}/instances/{instance_id}")
+    instance_admin_client.delete_instance(
+        name=f"projects/{project_id}/instances/{instance_id}"
+    )
+
 
 @pytest.fixture(scope="session")
 def table_id(table_admin_client, project_id, instance_id):
@@ -83,6 +93,7 @@ def table_id(table_admin_client, project_id, instance_id):
     from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
     from google.api_core import retry
+
     # use user-specified instance if available
     user_specified_table = os.getenv("BIGTABLE_TEST_TABLE")
     if user_specified_table:
@@ -91,20 +102,28 @@ def table_id(table_admin_client, project_id, instance_id):
         return
 
     table_id = "test-table"
-    retry = retry.Retry(predicate=retry.if_exception_type(exceptions.FailedPrecondition))
+    retry = retry.Retry(
+        predicate=retry.if_exception_type(exceptions.FailedPrecondition)
+    )
     try:
         table_admin_client.create_table(
             parent=f"projects/{project_id}/instances/{instance_id}",
             table_id=table_id,
             table=types.Table(
-                column_families={TEST_FAMILY: types.ColumnFamily(), TEST_FAMILY_2: types.ColumnFamily()},
+                column_families={
+                    TEST_FAMILY: types.ColumnFamily(),
+                    TEST_FAMILY_2: types.ColumnFamily(),
+                },
             ),
             retry=retry,
         )
     except exceptions.AlreadyExists:
         pass
     yield table_id
-    table_admin_client.delete_table(name=f"projects/{project_id}/instances/{instance_id}/tables/{table_id}")
+    table_admin_client.delete_table(
+        name=f"projects/{project_id}/instances/{instance_id}/tables/{table_id}"
+    )
+
 
 @pytest_asyncio.fixture(scope="session")
 async def client():
@@ -113,6 +132,7 @@ async def client():
     project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
     async with BigtableDataClient(project=project) as client:
         yield client
+
 
 @pytest.fixture(scope="session")
 def project_id(client):
@@ -130,11 +150,14 @@ class TempRowBuilder:
     """
     Used to add rows to a table for testing purposes.
     """
+
     def __init__(self, table):
         self.rows = []
         self.table = table
 
-    async def add_row(self, row_key, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"):
+    async def add_row(
+        self, row_key, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
+    ):
         request = {
             "table_name": self.table.table_name,
             "row_key": row_key,
@@ -218,6 +241,7 @@ async def test_read_rows_range_query(table, temp_rows):
     """
     from google.cloud.bigtable import ReadRowsQuery
     from google.cloud.bigtable import RowRange
+
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
@@ -229,13 +253,14 @@ async def test_read_rows_range_query(table, temp_rows):
     assert row_list[0].row_key == b"b"
     assert row_list[1].row_key == b"c"
 
+
 @pytest.mark.asyncio
 async def test_read_rows_key_query(table, temp_rows):
     """
     Ensure that the read_rows method works
     """
     from google.cloud.bigtable import ReadRowsQuery
-    from google.cloud.bigtable import RowRange
+
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
@@ -246,6 +271,7 @@ async def test_read_rows_key_query(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"a"
     assert row_list[1].row_key == b"c"
+
 
 @pytest.mark.asyncio
 async def test_read_rows_stream_close(table, temp_rows):
@@ -272,6 +298,7 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
     Ensure that the read_rows_stream method works
     """
     from google.cloud.bigtable.exceptions import IdleTimeout
+
     await temp_rows.add_row(b"row_key_1")
     await temp_rows.add_row(b"row_key_2")
 

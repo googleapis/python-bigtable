@@ -320,7 +320,7 @@ async def test_read_rows_idle_timeout():
         await gen.__anext__()
         await asyncio.sleep(0.2)
         # generator should be expired
-        assert not gen.active()
+        assert not gen.active
         assert type(gen._merger_or_error) == IdleTimeout
         assert gen._idle_timeout_task is None
         await client.close()
