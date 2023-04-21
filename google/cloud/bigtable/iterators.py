@@ -65,7 +65,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         """
         Returns True if the iterator is still active and has not been closed
         """
-        return isinstance(self._merger_or_error, _ReadRowsOperation)
+        return not isinstance(self._merger_or_error, Exception)
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         """
@@ -132,9 +132,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
         Helper function to close the stream and clean up resources
         after an error has occurred.
         """
-        if isinstance(self._merger_or_error, _ReadRowsOperation):
+        if self.active:
             await self._merger_or_error.aclose()
-            del self._merger_or_error
             self._merger_or_error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
