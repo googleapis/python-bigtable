@@ -308,7 +308,15 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(self, instance_id, table_id, app_profile_id, default_operation_timeout=default_operation_timeout, default_per_row_timeout=default_per_row_timeout, default_per_request_timeout=default_per_request_timeout)
+        return Table(
+            self,
+            instance_id,
+            table_id,
+            app_profile_id,
+            default_operation_timeout=default_operation_timeout,
+            default_per_row_timeout=default_per_row_timeout,
+            default_per_request_timeout=default_per_request_timeout,
+        )
 
     async def __aenter__(self):
         self.start_background_channel_refresh()
@@ -366,8 +374,13 @@ class Table:
             raise ValueError("default_per_row_timeout must be greater than 0")
         if default_per_request_timeout is not None and default_per_request_timeout <= 0:
             raise ValueError("default_per_request_timeout must be greater than 0")
-        if default_per_request_timeout is not None and default_per_request_timeout > default_operation_timeout:
-            raise ValueError("default_per_request_timeout must be less than default_operation_timeout")
+        if (
+            default_per_request_timeout is not None
+            and default_per_request_timeout > default_operation_timeout
+        ):
+            raise ValueError(
+                "default_per_request_timeout must be less than default_operation_timeout"
+            )
         self.client = client
         self.instance_id = instance_id
         self.instance_name = self.client._gapic_client.instance_path(

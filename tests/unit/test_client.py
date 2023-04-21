@@ -606,6 +606,7 @@ async def test__multiple_table_registration():
         assert instance_1_path not in client._active_instances
         assert len(client._instance_owners[instance_1_path]) == 0
 
+
 @pytest.mark.asyncio
 async def test__multiple_instance_registration():
     async with _make_one(project="project-id") as client:
@@ -831,6 +832,7 @@ async def test_table_ctor():
     assert table._register_instance_task.exception() is None
     await client.close()
 
+
 @pytest.mark.asyncio
 async def test_table_ctor_bad_timeout_values():
     from google.cloud.bigtable.client import BigtableDataClient
@@ -848,8 +850,13 @@ async def test_table_ctor_bad_timeout_values():
         table = Table(client, "", "", default_operation_timeout=-1)
     assert "default_operation_timeout must be greater than 0" in str(e.value)
     with pytest.raises(ValueError) as e:
-        table = Table(client, "", "", default_operation_timeout=1, default_per_request_timeout=2)
-    assert "default_per_request_timeout must be less than default_operation_timeout" in str(e.value)
+        table = Table(
+            client, "", "", default_operation_timeout=1, default_per_request_timeout=2
+        )
+    assert (
+        "default_per_request_timeout must be less than default_operation_timeout"
+        in str(e.value)
+    )
     await client.close()
 
 
