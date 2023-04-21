@@ -34,6 +34,49 @@ async def table(client):
         yield table
 
 
+class TempRowBuilder:
+    """
+    Used to add rows to a table for testing purposes.
+    """
+    def __init__(self, table):
+        self.rows = []
+        self.table = table
+
+    async def add_row(self, row_key, family, qualifier, value):
+        request = {
+            "table_name": self.table.table_name,
+            "row_key": row_key,
+            "mutations": [
+                {
+                    "set_cell": {
+                        "family_name": family,
+                        "column_qualifier": qualifier,
+                        "value": value,
+                    }
+                }
+            ],
+        }
+        await self.table.client._gapic_client.mutate_row(request)
+        self.rows.append(row_key)
+
+    async def delete_rows(self):
+        request = {
+            "table_name": self.table.table_name,
+            "entries": [
+                {"row_key": row, "mutations": [{"delete_from_row": {}}]}
+                for row in self.rows
+            ],
+        }
+        await self.table.client._gapic_client.mutate_rows(request)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def temp_rows(table):
+    builder = TempRowBuilder(table)
+    yield builder
+    await builder.delete_rows()
+
+
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -43,16 +86,21 @@ async def test_ping_and_warm_gapic(client, table):
     request = {"name": table.instance_name}
     await client._gapic_client.ping_and_warm(request)
 
+
 @pytest.mark.asyncio
-async def test_read_rows_stream(table):
+async def test_read_rows_stream(table, temp_rows):
     """
     Ensure that the read_rows_stream method works
     """
     from google.cloud.bigtable import ReadRowsQuery
 
-    query = ReadRowsQuery()
-    generator = await table.read_rows_stream(query)
+    await temp_rows.add_row(b"row_key_1", "cf1", "c1", b"value1")
+    await temp_rows.add_row(b"row_key_2", "cf1", "c1", b"value2")
+
+    generator = await table.read_rows_stream({})
     first_row = await generator.__anext__()
-    print(first_row)
-    async for row in generator:
-        print(row)
+    second_row = await generator.__anext__()
+    assert first_row.row_key == b"row_key_1"
+    assert second_row.row_key == b"row_key_2"
+    with pytest.raises(StopAsyncIteration):
+        await generator.__anext__()
