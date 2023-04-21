@@ -228,3 +228,58 @@ async def test_read_rows_range_query(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"b"
     assert row_list[1].row_key == b"c"
+
+@pytest.mark.asyncio
+async def test_read_rows_key_query(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable import RowRange
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    # full table scan
+    query = ReadRowsQuery(row_keys=[b"a", b"c"])
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"a"
+    assert row_list[1].row_key == b"c"
+
+@pytest.mark.asyncio
+async def test_read_rows_stream_close(table, temp_rows):
+    """
+    Ensure that the read_rows_stream can be closed
+    """
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    # full table scan
+    generator = await table.read_rows_stream({})
+    first_row = await generator.__anext__()
+    assert first_row.row_key == b"row_key_1"
+    await generator.aclose()
+    assert generator.active is False
+    with pytest.raises(StopAsyncIteration) as e:
+        await generator.__anext__()
+        assert "closed" in str(e)
+
+
+@pytest.mark.asyncio
+async def test_read_rows_stream_inactive_timer(table, temp_rows):
+    """
+    Ensure that the read_rows_stream method works
+    """
+    from google.cloud.bigtable.exceptions import IdleTimeout
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    generator = await table.read_rows_stream({})
+    await generator._start_idle_timer(0.05)
+    await asyncio.sleep(0.2)
+    assert generator.active is False
+    with pytest.raises(IdleTimeout) as e:
+        await generator.__anext__()
+        assert "inactivity" in str(e)
+        assert "idle_timeout=0.1" in str(e)
