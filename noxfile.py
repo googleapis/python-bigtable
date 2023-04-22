@@ -166,6 +166,13 @@ def install_unittest_dependencies(session, *constraints):
         session.install(*UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_LOCAL_DEPENDENCIES:
+        # update submodules if needed
+        import subprocess
+        try:
+            subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
+        except OSError:
+            # git is not installed
+            pass
         session.install("-e", *UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_EXTRAS_BY_PYTHON:
@@ -224,6 +231,13 @@ def install_systemtest_dependencies(session, *constraints):
         session.install(*SYSTEM_TEST_EXTERNAL_DEPENDENCIES, *constraints)
 
     if SYSTEM_TEST_LOCAL_DEPENDENCIES:
+        # update submodules if needed
+        import subprocess
+        try:
+            subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
+        except OSError:
+            # git is not installed
+            pass
         session.install("-e", *SYSTEM_TEST_LOCAL_DEPENDENCIES, *constraints)
 
     if SYSTEM_TEST_DEPENDENCIES:
