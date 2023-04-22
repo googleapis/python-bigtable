@@ -168,6 +168,7 @@ def install_unittest_dependencies(session, *constraints):
     if UNIT_TEST_LOCAL_DEPENDENCIES:
         # update submodules if needed
         import subprocess
+
         try:
             subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
         except OSError:
@@ -233,6 +234,7 @@ def install_systemtest_dependencies(session, *constraints):
     if SYSTEM_TEST_LOCAL_DEPENDENCIES:
         # update submodules if needed
         import subprocess
+
         try:
             subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
         except OSError:
