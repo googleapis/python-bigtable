@@ -13,42 +13,91 @@
 # limitations under the License.
 #
 from __future__ import annotations
-
+from typing import TYPE_CHECKING, Any
 from dataclasses import dataclass
-from google.cloud.bigtable.row import family_id, qualifier, row_key
+from abc import ABC, abstractmethod
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable import RowKeySamples
 
 
-class Mutation:
-    pass
+class Mutation(ABC):
+    """Model class for mutations"""
+
+    @abstractmethod
+    def _to_dict(self) -> dict[str, Any]:
+        raise NotImplementedError
 
 
 @dataclass
 class SetCell(Mutation):
-    family: family_id
-    column_qualifier: qualifier
-    new_value: bytes | str | int
-    timestamp_ms: int | None = None
+    family:str
+    qualifier:bytes
+    new_value:bytes|str|int
+    timestamp_micros:int|None
+
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "set_cell": {
+                "family_name": self.family,
+                "column_qualifier": self.qualifier,
+                "timestamp_micros": self.timestamp_micros if self.timestamp_micros is not None else -1,
+                "value": self.new_value,
+            }
+        }
 
 
 @dataclass
 class DeleteRangeFromColumn(Mutation):
-    family: family_id
-    column_qualifier: qualifier
-    start_timestamp_ms: int
-    end_timestamp_ms: int
+    family:str
+    qualifier:bytes
+    # None represents 0
+    start_timestamp_micros:int|None
+    # None represents infinity
+    end_timestamp_micros:int|None
 
+    def _to_dict(self) -> dict[str, Any]:
+        timestamp_range = {}
+        if self.start_timestamp_micros is not None:
+            timestamp_range["start_timestamp_micros"] = self.start_timestamp_micros
+        if self.end_timestamp_micros is not None:
+            timestamp_range["end_timestamp_micros"] = self.end_timestamp_micros
+        return {
+            "delete_from_column": {
+                "family_name": self.family,
+                "column_qualifier": self.qualifier,
+                "time_range": timestamp_range,
+            }
+        }
 
 @dataclass
 class DeleteAllFromFamily(Mutation):
-    family_to_delete: family_id
+    family_to_delete:str
+
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "delete_from_family": {
+                "family_name": self.family_to_delete,
+            }
+        }
 
 
 @dataclass
 class DeleteAllFromRow(Mutation):
-    pass
+
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "delete_from_row": {},
+        }
 
 
 @dataclass
-class BulkMutationsEntry:
-    row: row_key
-    mutations: list[Mutation] | Mutation
+class BulkMutationsEntry():
+    row_key:bytes
+    mutations: list[Mutation]|Mutation
+
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "row_key": self.row_key,
+            "mutations": [mutation._to_dict() for mutation in self.mutations]
+        }
