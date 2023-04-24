@@ -39,7 +39,7 @@ from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc import BigtableGrpcTransport
+from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 
 
 class PooledMultiCallable:
@@ -86,21 +86,29 @@ class PooledChannel(aio.Channel):
         host: str = "bigtable.googleapis.com",
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
-        scopes: Optional[Sequence[str]] = None,
         quota_project_id: Optional[str] = None,
+        default_scopes: Optional[Sequence[str]] = None,
+        scopes: Optional[Sequence[str]] = None,
+        default_host: Optional[str] = None,
+        insecure: bool = False,
         **kwargs,
     ):
         self._pool: List[aio.Channel] = []
         self._next_idx = 0
-        self._create_channel = partial(
-            grpc_helpers_async.create_channel,
-            target=host,
-            credentials=credentials,
-            credentials_file=credentials_file,
-            scopes=scopes,
-            quota_project_id=quota_project_id,
-            **kwargs,
-        )
+        if insecure:
+            self._create_channel = partial(aio.insecure_channel, host)
+        else:
+            self._create_channel = partial(
+                grpc_helpers_async.create_channel,
+                target=host,
+                credentials=credentials,
+                credentials_file=credentials_file,
+                quota_project_id=quota_project_id,
+                default_scopes=default_scopes,
+                scopes=scopes,
+                default_host=default_host,
+                **kwargs,
+            )
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
@@ -173,7 +181,7 @@ class PooledChannel(aio.Channel):
         return new_channel
 
 
-class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
+class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
     """Pooled gRPC AsyncIO backend transport for Bigtable.
 
     Service for reading from and writing to existing Bigtable
@@ -219,7 +227,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
     ) -> aio.Channel:
         """Create and return a PooledChannel object, representing a pool of gRPC AsyncIO channels
         Args:
-            pool_size (int): the number of channels in the pool
+            pool_size (int): The number of channels in the pool.
             host (Optional[str]): The host for the channel to use.
             credentials (Optional[~.Credentials]): The
                 authorization credentials to attach to requests. These
@@ -245,8 +253,10 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
             host,
             credentials=credentials,
             credentials_file=credentials_file,
-            scopes=scopes,
             quota_project_id=quota_project_id,
+            default_scopes=cls.AUTH_SCOPES,
+            scopes=scopes,
+            default_host=cls.DEFAULT_HOST,
             **kwargs,
         )
 
@@ -347,7 +357,8 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
                 )
 
         # The base transport sets the host, credentials and scopes
-        super().__init__(
+        BigtableTransport.__init__(
+            self,
             host=host,
             credentials=credentials,
             credentials_file=credentials_file,
@@ -379,14 +390,14 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         self._prep_wrapped_messages(client_info)
 
     @property
-    def grpc_channel(self) -> aio.Channel:
-        """Create the channel designed to connect to this service.
+    def pool_size(self) -> int:
+        """The number of grpc channels in the pool."""
+        return len(self._grpc_channel._pool)
 
-        This property caches on the instance; repeated calls return
-        the same channel.
-        """
-        # Return the channel from cache.
-        return self._grpc_channel
+    @property
+    def channels(self) -> List[grpc.Channel]:
+        """Acccess the internal list of grpc channels."""
+        return self._grpc_channel._pool
 
     async def replace_channel(
         self, channel_idx, grace=None, swap_sleep=1, new_channel=None
@@ -410,288 +421,6 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableTransport):
         return await self._grpc_channel.replace_channel(
             channel_idx, grace, swap_sleep, new_channel
         )
-
-    @property
-    def read_rows(
-        self,
-    ) -> Callable[[bigtable.ReadRowsRequest], Awaitable[bigtable.ReadRowsResponse]]:
-        r"""Return a callable for the read rows method over gRPC.
-
-        Streams back the contents of all requested rows in
-        key order, optionally applying the same Reader filter to
-        each. Depending on their size, rows and cells may be
-        broken up across multiple responses, but atomicity of
-        each row will still be preserved. See the
-        ReadRowsResponse documentation for details.
-
-        Returns:
-            Callable[[~.ReadRowsRequest],
-                    Awaitable[~.ReadRowsResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "read_rows" not in self._stubs:
-            self._stubs["read_rows"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/ReadRows",
-                request_serializer=bigtable.ReadRowsRequest.serialize,
-                response_deserializer=bigtable.ReadRowsResponse.deserialize,
-            )
-        return self._stubs["read_rows"]
-
-    @property
-    def sample_row_keys(
-        self,
-    ) -> Callable[
-        [bigtable.SampleRowKeysRequest], Awaitable[bigtable.SampleRowKeysResponse]
-    ]:
-        r"""Return a callable for the sample row keys method over gRPC.
-
-        Returns a sample of row keys in the table. The
-        returned row keys will delimit contiguous sections of
-        the table of approximately equal size, which can be used
-        to break up the data for distributed tasks like
-        mapreduces.
-
-        Returns:
-            Callable[[~.SampleRowKeysRequest],
-                    Awaitable[~.SampleRowKeysResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "sample_row_keys" not in self._stubs:
-            self._stubs["sample_row_keys"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/SampleRowKeys",
-                request_serializer=bigtable.SampleRowKeysRequest.serialize,
-                response_deserializer=bigtable.SampleRowKeysResponse.deserialize,
-            )
-        return self._stubs["sample_row_keys"]
-
-    @property
-    def mutate_row(
-        self,
-    ) -> Callable[[bigtable.MutateRowRequest], Awaitable[bigtable.MutateRowResponse]]:
-        r"""Return a callable for the mutate row method over gRPC.
-
-        Mutates a row atomically. Cells already present in the row are
-        left unchanged unless explicitly changed by ``mutation``.
-
-        Returns:
-            Callable[[~.MutateRowRequest],
-                    Awaitable[~.MutateRowResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "mutate_row" not in self._stubs:
-            self._stubs["mutate_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/MutateRow",
-                request_serializer=bigtable.MutateRowRequest.serialize,
-                response_deserializer=bigtable.MutateRowResponse.deserialize,
-            )
-        return self._stubs["mutate_row"]
-
-    @property
-    def mutate_rows(
-        self,
-    ) -> Callable[[bigtable.MutateRowsRequest], Awaitable[bigtable.MutateRowsResponse]]:
-        r"""Return a callable for the mutate rows method over gRPC.
-
-        Mutates multiple rows in a batch. Each individual row
-        is mutated atomically as in MutateRow, but the entire
-        batch is not executed atomically.
-
-        Returns:
-            Callable[[~.MutateRowsRequest],
-                    Awaitable[~.MutateRowsResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "mutate_rows" not in self._stubs:
-            self._stubs["mutate_rows"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/MutateRows",
-                request_serializer=bigtable.MutateRowsRequest.serialize,
-                response_deserializer=bigtable.MutateRowsResponse.deserialize,
-            )
-        return self._stubs["mutate_rows"]
-
-    @property
-    def check_and_mutate_row(
-        self,
-    ) -> Callable[
-        [bigtable.CheckAndMutateRowRequest],
-        Awaitable[bigtable.CheckAndMutateRowResponse],
-    ]:
-        r"""Return a callable for the check and mutate row method over gRPC.
-
-        Mutates a row atomically based on the output of a
-        predicate Reader filter.
-
-        Returns:
-            Callable[[~.CheckAndMutateRowRequest],
-                    Awaitable[~.CheckAndMutateRowResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "check_and_mutate_row" not in self._stubs:
-            self._stubs["check_and_mutate_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/CheckAndMutateRow",
-                request_serializer=bigtable.CheckAndMutateRowRequest.serialize,
-                response_deserializer=bigtable.CheckAndMutateRowResponse.deserialize,
-            )
-        return self._stubs["check_and_mutate_row"]
-
-    @property
-    def ping_and_warm(
-        self,
-    ) -> Callable[
-        [bigtable.PingAndWarmRequest], Awaitable[bigtable.PingAndWarmResponse]
-    ]:
-        r"""Return a callable for the ping and warm method over gRPC.
-
-        Warm up associated instance metadata for this
-        connection. This call is not required but may be useful
-        for connection keep-alive.
-
-        Returns:
-            Callable[[~.PingAndWarmRequest],
-                    Awaitable[~.PingAndWarmResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "ping_and_warm" not in self._stubs:
-            self._stubs["ping_and_warm"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/PingAndWarm",
-                request_serializer=bigtable.PingAndWarmRequest.serialize,
-                response_deserializer=bigtable.PingAndWarmResponse.deserialize,
-            )
-        return self._stubs["ping_and_warm"]
-
-    @property
-    def read_modify_write_row(
-        self,
-    ) -> Callable[
-        [bigtable.ReadModifyWriteRowRequest],
-        Awaitable[bigtable.ReadModifyWriteRowResponse],
-    ]:
-        r"""Return a callable for the read modify write row method over gRPC.
-
-        Modifies a row atomically on the server. The method
-        reads the latest existing timestamp and value from the
-        specified columns and writes a new entry based on
-        pre-defined read/modify/write rules. The new value for
-        the timestamp is the greater of the existing timestamp
-        or the current server time. The method returns the new
-        contents of all modified cells.
-
-        Returns:
-            Callable[[~.ReadModifyWriteRowRequest],
-                    Awaitable[~.ReadModifyWriteRowResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "read_modify_write_row" not in self._stubs:
-            self._stubs["read_modify_write_row"] = self.grpc_channel.unary_unary(
-                "/google.bigtable.v2.Bigtable/ReadModifyWriteRow",
-                request_serializer=bigtable.ReadModifyWriteRowRequest.serialize,
-                response_deserializer=bigtable.ReadModifyWriteRowResponse.deserialize,
-            )
-        return self._stubs["read_modify_write_row"]
-
-    @property
-    def generate_initial_change_stream_partitions(
-        self,
-    ) -> Callable[
-        [bigtable.GenerateInitialChangeStreamPartitionsRequest],
-        Awaitable[bigtable.GenerateInitialChangeStreamPartitionsResponse],
-    ]:
-        r"""Return a callable for the generate initial change stream
-        partitions method over gRPC.
-
-        NOTE: This API is intended to be used by Apache Beam BigtableIO.
-        Returns the current list of partitions that make up the table's
-        change stream. The union of partitions will cover the entire
-        keyspace. Partitions can be read with ``ReadChangeStream``.
-
-        Returns:
-            Callable[[~.GenerateInitialChangeStreamPartitionsRequest],
-                    Awaitable[~.GenerateInitialChangeStreamPartitionsResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "generate_initial_change_stream_partitions" not in self._stubs:
-            self._stubs[
-                "generate_initial_change_stream_partitions"
-            ] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/GenerateInitialChangeStreamPartitions",
-                request_serializer=bigtable.GenerateInitialChangeStreamPartitionsRequest.serialize,
-                response_deserializer=bigtable.GenerateInitialChangeStreamPartitionsResponse.deserialize,
-            )
-        return self._stubs["generate_initial_change_stream_partitions"]
-
-    @property
-    def read_change_stream(
-        self,
-    ) -> Callable[
-        [bigtable.ReadChangeStreamRequest], Awaitable[bigtable.ReadChangeStreamResponse]
-    ]:
-        r"""Return a callable for the read change stream method over gRPC.
-
-        NOTE: This API is intended to be used by Apache Beam
-        BigtableIO. Reads changes from a table's change stream.
-        Changes will reflect both user-initiated mutations and
-        mutations that are caused by garbage collection.
-
-        Returns:
-            Callable[[~.ReadChangeStreamRequest],
-                    Awaitable[~.ReadChangeStreamResponse]]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if "read_change_stream" not in self._stubs:
-            self._stubs["read_change_stream"] = self.grpc_channel.unary_stream(
-                "/google.bigtable.v2.Bigtable/ReadChangeStream",
-                request_serializer=bigtable.ReadChangeStreamRequest.serialize,
-                response_deserializer=bigtable.ReadChangeStreamResponse.deserialize,
-            )
-        return self._stubs["read_change_stream"]
-
-    def close(self):
-        return self.grpc_channel.close()
 
 
 __all__ = ("PooledBigtableGrpcAsyncIOTransport",)

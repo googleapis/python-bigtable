@@ -23,7 +23,7 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 
 from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable._row_merger import _RowMerger, _StateMachine
+from google.cloud.bigtable._read_rows import _ReadRowsOperation, _StateMachine
 from google.cloud.bigtable.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
@@ -67,7 +67,7 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
     try:
         state = _StateMachine()
         results = []
-        async for row in _RowMerger.merge_row_response_stream(
+        async for row in _ReadRowsOperation.merge_row_response_stream(
             _scenerio_stream(), state
         ):
             for cell in row:
@@ -136,7 +136,9 @@ async def test_out_of_order_rows():
     state = _StateMachine()
     state.last_seen_row_key = b"a"
     with pytest.raises(InvalidChunk):
-        async for _ in _RowMerger.merge_row_response_stream(_row_stream(), state):
+        async for _ in _ReadRowsOperation.merge_row_response_stream(
+            _row_stream(), state
+        ):
             pass
 
 
@@ -293,6 +295,6 @@ async def _process_chunks(*chunks):
 
     state = _StateMachine()
     results = []
-    async for row in _RowMerger.merge_row_response_stream(_row_stream(), state):
+    async for row in _ReadRowsOperation.merge_row_response_stream(_row_stream(), state):
         results.append(row)
     return results
