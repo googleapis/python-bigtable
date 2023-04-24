@@ -32,7 +32,8 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-
+from google.api_core import retry_async as retries
+from google.api_core import exceptions as core_exceptions
 
 import google.auth.credentials
 import google.auth._default
@@ -586,8 +587,20 @@ class Table:
 
         if isinstance(mutations, Mutation):
             mutations = [mutations]
-        request["mutations"] = [mutation.to_dict() for mutation in mutations]
-        await self._gapic_client.mutate_row(request)
+        request["mutations"] = [mutation._to_dict() for mutation in mutations]
+
+        retry = retries.AsyncRetry(
+            predicate = retries.if_exception_type(
+                core_exceptions.DeadlineExceeded,
+                core_exceptions.ServiceUnavailable,
+                core_exceptions.Aborted
+            ),
+            timeout = operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+        )
+        await retry(self._gapic_client.mutate_row)(request, timeout=per_request_timeout)
 
     async def bulk_mutate_rows(
         self,
