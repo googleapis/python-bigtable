@@ -40,6 +40,9 @@ import google.auth._default
 from google.api_core import client_options as client_options_lib
 
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.exceptions import FailedMutationError
+from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -570,15 +573,16 @@ class Table:
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
         """
-        operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        # TODO: bring in default, from read_rows
+        # operation_timeout = operation_timeout or self.default_operation_timeout
+        # per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
+        # if operation_timeout <= 0:
+        #     raise ValueError("operation_timeout must be greater than 0")
+        # if per_request_timeout is not None and per_request_timeout <= 0:
+        #     raise ValueError("per_request_timeout must be greater than 0")
+        # if per_request_timeout is not None and per_request_timeout > operation_timeout:
+        #     raise ValueError("per_request_timeout must be less than operation_timeout")
 
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")
@@ -616,7 +620,9 @@ class Table:
             maximum=60,
         )
         try:
-            await retry(self._gapic_client.mutate_row)(request, timeout=per_request_timeout)
+            await retry(self.client._gapic_client.mutate_row)(
+                request, timeout=per_request_timeout
+            )
         except core_exceptions.RetryError:
             # raised by AsyncRetry after operation deadline exceeded
             # TODO: merge with similar logic in ReadRowsIterator
@@ -626,13 +632,10 @@ class Table:
             source_exc = None
             if transient_errors:
                 source_exc = RetryExceptionGroup(
-                    f"{len(transient_errors)} failed attempts",
                     transient_errors,
                 )
             new_exc.__cause__ = source_exc
-            await self._finish_with_error(new_exc)
             raise new_exc from source_exc
-
 
     async def bulk_mutate_rows(
         self,
@@ -670,38 +673,43 @@ class Table:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
         """
-        operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        # TODO: bring in default, from read_rows
+        # operation_timeout = operation_timeout or self.default_operation_timeout
+        # per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
+        # if operation_timeout <= 0:
+        #     raise ValueError("operation_timeout must be greater than 0")
+        # if per_request_timeout is not None and per_request_timeout <= 0:
+        #     raise ValueError("per_request_timeout must be greater than 0")
+        # if per_request_timeout is not None and per_request_timeout > operation_timeout:
+        #     raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        request = {"table_name": self.table_name, "row_key": row_key}
+        request = {"table_name": self.table_name}
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
-        mutations_dict = {idx:mut for idx, mut in enumerate(mutation_entries)}
-        error_dict = {idx:None for idx in mutations_dict.keys()}
+        mutations_dict: dict[int, BulkMutationsEntry | None] = {
+            idx: mut for idx, mut in enumerate(mutation_entries)
+        }
+        error_dict: dict[int, list[Exception]] = {
+            idx: [] for idx in mutations_dict.keys()
+        }
 
-        request_level_errors = []
         predicate = retries.if_exception_type(
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
+
         def on_error_fn(exc):
             if predicate(exc):
                 # add this exception to list for each active mutation
                 for idx in error_dict.keys():
                     if mutations_dict[idx] is not None:
-                        error_dict.setdefault(idx, []).append(exc)i
+                        error_dict[idx].append(exc)
                 # remove non-idempotent mutations from mutations_dict, so they are not retried
                 for idx, mut in mutations_dict.items():
-                    if mut is not None and not mut.is_idempotent()
+                    if mut is not None and not mut.is_idempotent():
                         mutations_dict[idx] = None
 
         retry = retries.AsyncRetry(
@@ -713,7 +721,9 @@ class Table:
             maximum=60,
         )
         try:
-            await retry(self._mutations_retryable_attempt)(request, per_request_timeout, mutations_dict, error_dict)
+            await retry(self._mutations_retryable_attempt)(
+                request, per_request_timeout, mutations_dict, error_dict
+            )
         except core_exceptions.RetryError:
             # raised by AsyncRetry after operation deadline exceeded
             # add DeadlineExceeded to list for each active mutation
@@ -722,12 +732,12 @@ class Table:
             )
             for idx in error_dict.keys():
                 if mutations_dict[idx] is not None:
-                    error_dict.setdefault(idx, []).append(deadline_exc)
+                    error_dict[idx].append(deadline_exc)
         except Exception as exc:
             # other exceptions are added to the list of exceptions for unprocessed mutations
             for idx in error_dict.keys():
                 if mutations_dict[idx] is not None:
-                    error_dict.setdefault(idx, []).append(exc)
+                    error_dict[idx].append(exc)
         finally:
             # raise exception detailing incomplete mutations
             all_errors = []
@@ -737,25 +747,38 @@ class Table:
                         cause_exc = exc_list[0]
                     else:
                         cause_exc = RetryExceptionGroup(exc_list)
-                    all_errors.append(FailedMutationException(idx, mutation_entries[idx], cause_exc))
+                    all_errors.append(
+                        FailedMutationError(idx, mutation_entries[idx], cause_exc)
+                    )
             if all_errors:
                 raise MutationsExceptionGroup(all_errors, len(mutation_entries))
 
-
-    async def _mutations_retryable_attempt(self, request, per_request_timeout, mutation_dict, error_dict):
+    async def _mutations_retryable_attempt(
+        self, request, per_request_timeout, mutation_dict, error_dict
+    ):
         new_request = request.copy()
         while any(mutation is not None for mutation in mutation_dict.values()):
             # continue to retry until timeout, or all mutations are complete (success or failure)
-            new_request["entries"] = [mutation_dict[i]._to_dict() for i in range(len(mutation_dict)) if mutation_dict[i] is not None]
-            async for result in self._gapic_client.mutate_rows(new_request, timeout=per_request_timeout):
+            new_request["entries"] = [
+                mutation_dict[i]._to_dict()
+                for i in range(len(mutation_dict))
+                if mutation_dict[i] is not None
+            ]
+            async for result in await self.client._gapic_client.mutate_rows(
+                new_request, timeout=per_request_timeout
+            ):
                 idx = result.index
                 if result.status.code == 0:
                     # mutation succeeded
                     mutation_dict[idx] = None
-                    error_dict[idx] = None
+                    error_dict[idx] = []
                 if result.status.code != 0:
                     # mutation failed
-                    exception = core_exceptions.from_grpc_status(result.status)
+                    exception = core_exceptions.from_grpc_status(
+                        result.status.code,
+                        result.status.message,
+                        details=result.status.details,
+                    )
                     error_dict.setdefault(idx, []).append(exception)
                     # if not idempotent, remove from retry list
                     if mutation_dict[idx].is_idempotent():

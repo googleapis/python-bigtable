@@ -15,8 +15,12 @@
 
 import sys
 
+from typing import TYPE_CHECKING
 
 is_311_plus = sys.version_info >= (3, 11)
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.mutations import BulkMutationsEntry
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
@@ -42,16 +46,22 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     Represents one or more exceptions that occur during a bulk mutation operation
     """
 
-    def __init__(self, excs):
-        super().__init__(f"len(excs) failed mutations", excs)
+    def __init__(self, excs, total_num):
+        super().__init__(f"{len(excs)} failed mutations (out of {total_num})", excs)
 
 
-class FailedMutationException(Exception):
+class FailedMutationError(Exception):
     """
     Represents a failed mutation entry for bulk mutation operations
     """
-    def __init__(self, failed_idx:int, failed_mutation_obj:"Mutation", cause:Exception):
-        super.init(f"Failed mutation at index: {failed_idx} with cause: {cause}")
+
+    def __init__(
+        self,
+        failed_idx: int,
+        failed_mutation_obj: "BulkMutationsEntry",
+        cause: Exception,
+    ):
+        super().__init__(f"Failed mutation at index: {failed_idx} with cause: {cause}")
         self.failed_idx = failed_idx
         self.failed_mutation_obj = failed_mutation_obj
         self.__cause__ = cause
@@ -60,5 +70,5 @@ class FailedMutationException(Exception):
 class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
-    def __init__(self, excs, total_num):
-        super().__init__(f"{len(excs)} failed attempts (out of {total_num})", excs)
+    def __init__(self, excs):
+        super().__init__(f"{len(excs)} failed attempts", excs)
