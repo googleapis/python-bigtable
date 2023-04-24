@@ -29,7 +29,12 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
     """
 
     def __init__(self, message, excs):
-        raise NotImplementedError()
+        if is_311_plus:
+            super().__init__(message, excs)
+        else:
+            self.exceptions = excs
+            revised_message = f"{message} ({len(excs)} sub-exceptions)"
+            super().__init__(revised_message)
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
@@ -39,6 +44,15 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
 
     pass
 
+class FailedMutationException(Exception):
+    """
+    Represents a failed mutation entry for bulk mutation operations
+    """
+    def __init__(self, failed_idx:int, failed_mutation_obj:"Mutation", cause:Exception):
+        super.init(f"Failed mutation at index: {failed_idx} with cause: {cause}")
+        self.failed_idx = failed_idx
+        self.failed_mutation_obj = failed_mutation_obj
+        self.__cause__ = cause
 
 class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""

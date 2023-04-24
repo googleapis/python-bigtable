@@ -35,6 +35,9 @@ class Mutation(ABC):
         """
         return True
 
+    def __str__(self) -> str:
+        return str(self._to_dict())
+
 
 @dataclass
 class SetCell(Mutation):
