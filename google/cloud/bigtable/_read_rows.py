@@ -209,11 +209,13 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                     self._request["rows_limit"] = new_limit
         params_str = f'table_name={self._request.get("table_name", "")}'
         if self._request.get("app_profile_id", None):
-            params_str = f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
+            params_str = (
+                f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
+            )
         new_gapic_stream = await gapic_fn(
             self._request,
             timeout=per_request_timeout,
-            metadata=[('x-goog-request-params', params_str)],
+            metadata=[("x-goog-request-params", params_str)],
         )
         buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
             maxsize=buffer_size
