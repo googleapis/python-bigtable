@@ -49,6 +49,7 @@ SYSTEM_TEST_PYTHON_VERSIONS = ["3.8"]
 SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "mock",
     "pytest",
+    "pytest-asyncio",
     "google-cloud-testutils",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES = []
@@ -306,6 +307,7 @@ def system(session):
             "py.test",
             "--quiet",
             f"--junitxml=system_{session.python}_sponge_log.xml",
+            "--ignore=tests/system/v2_client",
             system_test_folder_path,
             *session.posargs,
         )
