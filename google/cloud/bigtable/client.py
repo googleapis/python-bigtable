@@ -568,7 +568,26 @@ class Table:
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError("per_request_timeout must be less than operation_timeout")
+
+        if isinstance(row_key, str):
+            row_key = row_key.encode("utf-8")
+        request = {"table_name": self.table_name, "row_key": row_key}
+        if self.app_profile_id:
+            request["app_profile_id"] = self.app_profile_id
+
+        if isinstance(mutations, Mutation):
+            mutations = [mutations]
+        request["mutations"] = [mutation.to_dict() for mutation in mutations]
+        await self._gapic_client.mutate_row(request)
 
     async def bulk_mutate_rows(
         self,
