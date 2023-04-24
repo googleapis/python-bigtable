@@ -145,6 +145,7 @@ async def table(client, table_id, instance_id):
     async with client.get_table(instance_id, table_id) as table:
         yield table
 
+
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -153,4 +154,3 @@ async def test_ping_and_warm_gapic(client, table):
     """
     request = {"name": table.instance_name}
     await client._gapic_client.ping_and_warm(request)
-
