@@ -24,5 +24,7 @@ function cleanup() {
 }
 trap cleanup EXIT
 
+git submodule update --init --recursive
+
 $(dirname $0)/populate-secrets.sh # Secret Manager secrets.
 python3 "${KOKORO_GFILE_DIR}/trampoline_v1.py"
