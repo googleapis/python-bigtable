@@ -86,8 +86,10 @@ class PooledChannel(aio.Channel):
         host: str = "bigtable.googleapis.com",
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
-        scopes: Optional[Sequence[str]] = None,
         quota_project_id: Optional[str] = None,
+        default_scopes: Optional[Sequence[str]] = None,
+        scopes: Optional[Sequence[str]] = None,
+        default_host: Optional[str] = None,
         insecure: bool = False,
         **kwargs,
     ):
@@ -101,8 +103,10 @@ class PooledChannel(aio.Channel):
                 target=host,
                 credentials=credentials,
                 credentials_file=credentials_file,
-                scopes=scopes,
                 quota_project_id=quota_project_id,
+                default_scopes=default_scopes,
+                scopes=scopes,
+                default_host=default_host,
                 **kwargs,
             )
         for i in range(pool_size):
@@ -249,8 +253,10 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
             host,
             credentials=credentials,
             credentials_file=credentials_file,
-            scopes=scopes,
             quota_project_id=quota_project_id,
+            default_scopes=cls.AUTH_SCOPES,
+            scopes=scopes,
+            default_host=cls.DEFAULT_HOST,
             **kwargs,
         )
 
@@ -382,6 +388,16 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
 
         # Wrap messages. This must be done after self._grpc_channel exists
         self._prep_wrapped_messages(client_info)
+
+    @property
+    def pool_size(self) -> int:
+        """The number of grpc channels in the pool."""
+        return len(self._grpc_channel._pool)
+
+    @property
+    def channels(self) -> List[grpc.Channel]:
+        """Acccess the internal list of grpc channels."""
+        return self._grpc_channel._pool
 
     async def replace_channel(
         self, channel_idx, grace=None, swap_sleep=1, new_channel=None

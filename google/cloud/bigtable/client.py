@@ -39,8 +39,8 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-from google.cloud.bigtable._row_merger import _RowMerger
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
 import google.auth.credentials
 import google.auth._default
@@ -71,7 +71,7 @@ class BigtableDataClient(ClientWithProject):
         """
         Create a client instance for the Bigtable Data API
 
-        Client must be created within an async run loop context
+        Client should be created within an async context (running event loop)
 
         Args:
             project: the project which the client acts on behalf of.
@@ -88,7 +88,7 @@ class BigtableDataClient(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-          - RuntimeError if called outside of an async run loop context
+          - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
         # set up transport in registry
@@ -123,7 +123,10 @@ class BigtableDataClient(ClientWithProject):
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
-        # grpc channel management
+        # keep track of table objects associated with each instance
+        # only remove instance from _active_instances when all associated tables remove it
+        self._instance_owners: dict[str, Set[int]] = {}
+        # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
@@ -162,7 +165,7 @@ class BigtableDataClient(ClientWithProject):
         if not self._channel_refresh_tasks:
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
-            for channel_idx in range(len(self.transport._grpc_channel._pool)):
+            for channel_idx in range(self.transport.pool_size):
                 refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
                 if sys.version_info >= (3, 8):
                     # task names supported in Python 3.8+
@@ -193,7 +196,7 @@ class BigtableDataClient(ClientWithProject):
         Args:
             channel: grpc channel to ping
         Returns:
-            - squence of results or exceptions from the ping requests
+            - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
@@ -233,7 +236,7 @@ class BigtableDataClient(ClientWithProject):
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
-            channel = self.transport._grpc_channel._pool[channel_idx]
+            channel = self.transport.channels[channel_idx]
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
@@ -250,41 +253,56 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    async def register_instance(self, instance_id: str):
+    async def _register_instance(self, instance_id: str, owner: Table) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
         The client will periodically refresh grpc channel pool used to make
         requests, and new channels will be warmed for each registered instance
         Channels will not be refreshed unless at least one instance is registered
+
+        Args:
+          - instance_id: id of the instance to register.
+          - owner: table that owns the instance. Owners will be tracked in
+            _instance_owners, and instances will only be unregistered when all
+            owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        self._instance_owners.setdefault(instance_name, set()).add(id(owner))
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             if self._channel_refresh_tasks:
                 # refresh tasks already running
                 # call ping and warm on all existing channels
-                for channel in self.transport._grpc_channel._pool:
+                for channel in self.transport.channels:
                     await self._ping_and_warm_instances(channel)
             else:
                 # refresh tasks aren't active. start them as background tasks
                 self.start_background_channel_refresh()
 
-    async def remove_instance_registration(self, instance_id: str) -> bool:
+    async def _remove_instance_registration(
+        self, instance_id: str, owner: Table
+    ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
 
-        If instance_id is not registered, returns False
+        If instance_id is not registered, or is still in use by other tables, returns False
 
         Args:
-            instance_id: id of the instance to remove
+            - instance_id: id of the instance to remove
+            - owner: table that owns the instance. Owners will be tracked in
+              _instance_owners, and instances will only be unregistered when all
+              owners call _remove_instance_registration
         Returns:
             - True if instance was removed
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
+        owner_list = self._instance_owners.get(instance_name, set())
         try:
-            self._active_instances.remove(instance_name)
+            owner_list.remove(id(owner))
+            if len(owner_list) == 0:
+                self._active_instances.remove(instance_name)
             return True
         except KeyError:
             return False
@@ -294,19 +312,30 @@ class BigtableDataClient(ClientWithProject):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        default_operation_timeout: float = 60,
+        default_per_row_timeout: float | None = 10,
+        default_per_request_timeout: float | None = None,
     ) -> Table:
         """
         Returns a table instance for making data API requests
 
         Args:
-            instance_id: The Bigtable instance ID to associate with this client
+            instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
             table_id: The ID of the table.
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(self, instance_id, table_id, app_profile_id)
+        return Table(
+            self,
+            instance_id,
+            table_id,
+            app_profile_id,
+            default_operation_timeout=default_operation_timeout,
+            default_per_row_timeout=default_per_row_timeout,
+            default_per_request_timeout=default_per_request_timeout,
+        )
 
     async def __aenter__(self):
         self.start_background_channel_refresh()
@@ -339,14 +368,15 @@ class Table:
         """
         Initialize a Table instance
 
-        Must be created within an async run loop context
+        Must be created within an async context (running event loop)
 
         Args:
-            instance_id: The Bigtable instance ID to associate with this client
+            instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
-            table_id: The ID of the table.
-            app_profile_id: The app profile to associate with requests.
+            table_id: The ID of the table. table_id is combined with the
+                instance_id and the client's project to fully specify the table
+            app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_operation_timeout: (Optional) The default timeout, in seconds
             default_per_row_timeout: (Optional) The default timeout for individual
@@ -354,37 +384,52 @@ class Table:
             default_per_request_timeout: (Optional) The default timeout for individual
                 rpc requests, in seconds
         Raises:
-          - RuntimeError if called outside of an async run loop context
+          - RuntimeError if called outside of an async context (no running event loop)
         """
+        # validate timeouts
+        if default_operation_timeout <= 0:
+            raise ValueError("default_operation_timeout must be greater than 0")
+        if default_per_row_timeout is not None and default_per_row_timeout <= 0:
+            raise ValueError("default_per_row_timeout must be greater than 0")
+        if default_per_request_timeout is not None and default_per_request_timeout <= 0:
+            raise ValueError("default_per_request_timeout must be greater than 0")
+        if (
+            default_per_request_timeout is not None
+            and default_per_request_timeout > default_operation_timeout
+        ):
+            raise ValueError(
+                "default_per_request_timeout must be less than default_operation_timeout"
+            )
         self.client = client
-
-        self.instance_path = self.client._gapic_client.instance_path(
+        self.instance_id = instance_id
+        self.instance_name = self.client._gapic_client.instance_path(
             self.client.project, instance_id
         )
-        self.table_path = self.client._gapic_client.table_path(
+        self.table_id = table_id
+        self.table_name = self.client._gapic_client.table_path(
             self.client.project, instance_id, table_id
         )
         self.app_profile_id = app_profile_id
+
         self.default_operation_timeout = default_operation_timeout
         self.default_per_row_timeout = default_per_row_timeout
         self.default_per_request_timeout = default_per_request_timeout
-        # raises RuntimeError if called outside of an async run loop context
+
+        # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
-                self.client.register_instance(instance_id)
+                self.client._register_instance(instance_id, self)
             )
-        except RuntimeError:
-            warnings.warn(
-                "Table should be created in an asyncio event loop."
-                " Instance will not be registered with client for refresh",
-                RuntimeWarning,
-            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"{self.__class__.__name__} must be created within an async event loop context."
+            ) from e
 
     async def read_rows_stream(
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        cache_size: int = 0,
+        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
@@ -394,20 +439,20 @@ class Table:
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully cached in memory
-        in the iterator, which can be consumed as needed. The size of the iterator cache can
-        be configured with cache_size_limit. When the cache is full, the read_rows_stream will pause
+        By default, row data is streamed eagerly over the network, and fully bufferd in memory
+        in the iterator, which can be consumed as needed. The size of the iterator buffer can
+        be configured with buffer_size. When the buffer is full, the read_rows_stream will pause
         the network stream until space is available
 
         Args:
             - query: contains details about which rows to return
-            - cache_size: the number of rows to cache in memory. If less than
-                or equal to 0, cache is unbounded. Defaults to 0 (unbounded)
+            - buffer_size: the number of rows to buffer in memory. If less than
+                or equal to 0, buffer is unbounded. Defaults to 0 (unbounded)
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
-                 Completed and cached results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after cached results are exhausted.
+                 Completed and bufferd results can still be accessed after the deadline is complete,
+                 with a DeadlineExceeded exception only raised after bufferd results are exhausted.
                  If None, defaults to the Table's default_operation_timeout
             - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
                 longer than per_row_timeout to complete, the ongoing network request will be with a
@@ -439,20 +484,22 @@ class Table:
             raise ValueError("per_row_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout <= 0:
             raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError("per_request_timeout must be less than operation_timeout")
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self.table_path
+        request["table_name"] = self.table_name
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
         # read_rows smart retries is implemented using a series of iterators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
-        # - RowMerger.merge_row_response_stream: parses chunks into rows
-        # - RowMerger.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
+        # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
+        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        row_merger = _RowMerger(
+        row_merger = _ReadRowsOperation(
             request,
             self.client._gapic_client,
-            cache_size=cache_size,
+            buffer_size=buffer_size,
             operation_timeout=operation_timeout,
             per_row_timeout=per_row_timeout,
             per_request_timeout=per_request_timeout,
@@ -510,7 +557,7 @@ class Table:
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        cache_size_limit: int | None = None,
+        buffer_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
@@ -733,3 +780,28 @@ class Table:
             - GoogleAPIError exceptions from grpc call
         """
         raise NotImplementedError
+
+    async def close(self):
+        """
+        Called to close the Table instance and release any resources held by it.
+        """
+        await self.client._remove_instance_registration(self.instance_id, self)
+
+    async def __aenter__(self):
+        """
+        Implement async context manager protocol
+
+        Register this instance with the client, so that
+        grpc channels will be warmed for the specified instance
+        """
+        await self.client._register_instance(self.instance_id, self)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Implement async context manager protocol
+
+        Unregister this instance with the client, so that
+        grpc channels will no longer be warmed
+        """
+        await self.close()

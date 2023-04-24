@@ -27,19 +27,20 @@ from google.api_core import exceptions as core_exceptions
 from abc import ABC, abstractmethod
 
 from typing import (
-    cast,
     List,
     Any,
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
+    Callable,
+    Awaitable,
 )
 
 """
 This module provides a set of classes for merging ReadRowsResponse chunks
 into Row objects.
 
-- RowMerger is the highest level class, providing an interface for asynchronous
+- ReadRowsOperation is the highest level class, providing an interface for asynchronous
   merging end-to-end
 - StateMachine is used internally to track the state of the merge, including
   the current row key and the keys of the rows that have been processed.
@@ -51,16 +52,16 @@ into Row objects.
 """
 
 
-class _RowMerger(AsyncIterable[Row]):
+class _ReadRowsOperation(AsyncIterable[Row]):
     """
-    RowMerger handles the logic of merging chunks from a ReadRowsResponse stream
+    ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
 
-    RowMerger.merge_row_response_stream takes in a stream of ReadRowsResponse
+    ReadRowsOperation.merge_row_response_stream takes in a stream of ReadRowsResponse
     and turns them into a stream of Row objects using an internal
     StateMachine.
 
-    RowMerger(request, client) handles row merging logic end-to-end, including
+    ReadRowsOperation(request, client) handles row merging logic end-to-end, including
     performing retries on stream errors.
     """
 
@@ -69,36 +70,33 @@ class _RowMerger(AsyncIterable[Row]):
         request: dict[str, Any],
         client: BigtableAsyncClient,
         *,
-        cache_size: int = 0,
+        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
-        revise_on_retry: bool = True,
     ):
         """
         Args:
           - request: the request dict to send to the Bigtable API
           - client: the Bigtable client to use to make the request
-          - cache_size: the size of the buffer to use for caching rows from the network
+          - buffer_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
-          - revise_on_retry: if True, retried request will be modified based on rows that have already been seen
         """
-        self.last_seen_row_key: bytes | None = None
-        self.emit_count = 0
-        cache_size = max(cache_size, 0)
-        self.request = request
+        self._last_seen_row_key: bytes | None = None
+        self._emit_count = 0
+        buffer_size = max(buffer_size, 0)
+        self._request = request
         self.operation_timeout = operation_timeout
         row_limit = request.get("rows_limit", 0)
         # lock in paramters for retryable wrapper
-        self.partial_retryable = partial(
-            self.retryable_merge_rows,
+        self._partial_retryable = partial(
+            self._read_rows_retryable_attempt,
             client.read_rows,
-            cache_size,
+            buffer_size,
             per_row_timeout,
             per_request_timeout,
-            revise_on_retry,
             row_limit,
         )
         predicate = retries.if_exception_type(
@@ -109,21 +107,22 @@ class _RowMerger(AsyncIterable[Row]):
 
         def on_error_fn(exc):
             if predicate(exc):
-                self.errors.append(exc)
+                self.transient_errors.append(exc)
 
         retry = retries.AsyncRetry(
             predicate=predicate,
             timeout=self.operation_timeout,
-            initial=0.1,
+            initial=0.01,
             multiplier=2,
             maximum=60,
             on_error=on_error_fn,
-            is_generator=True,
+            is_stream=True,
         )
-        self.stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
-            self.partial_retryable
+        self._stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
+            self._partial_retryable
         )()
-        self.errors: List[Exception] = []
+        # contains the list of errors that were retried
+        self.transient_errors: List[Exception] = []
 
     def __aiter__(self) -> AsyncIterator[Row | RequestStats]:
         """Implements the AsyncIterable interface"""
@@ -131,37 +130,56 @@ class _RowMerger(AsyncIterable[Row]):
 
     async def __anext__(self) -> Row | RequestStats:
         """Implements the AsyncIterator interface"""
-        if isinstance(self.stream, AsyncGenerator):
-            return await self.stream.__anext__()
+        if self._stream is not None:
+            return await self._stream.__anext__()
         else:
             raise asyncio.InvalidStateError("stream is closed")
 
     async def aclose(self):
         """Close the stream and release resources"""
-        if isinstance(self.stream, AsyncGenerator):
-            await self.stream.aclose()
-        del self.stream
-        self.stream = None
-        self.last_seen_row_key = None
+        if self._stream is not None:
+            await self._stream.aclose()
+        self._stream = None
+        self._last_seen_row_key = None
 
     @staticmethod
-    async def _generator_to_cache(
-        cache: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
+    async def _generator_to_buffer(
+        buffer: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
     ) -> None:
         """
-        Helper function to push items from an async generator into a cache
+        Helper function to push items from an async generator into a buffer
         """
-        async for item in input_generator:
-            await cache.put(item)
+        try:
+            async for item in input_generator:
+                await buffer.put(item)
+                await asyncio.sleep(0)
+            await buffer.put(StopAsyncIteration)
+        except Exception as e:
+            await buffer.put(e)
 
-    async def retryable_merge_rows(
+    @staticmethod
+    async def _buffer_to_generator(
+        buffer: asyncio.Queue[Any],
+    ) -> AsyncGenerator[Any, None]:
+        """
+        Helper function to yield items from a buffer as an async generator
+        """
+        while True:
+            item = await buffer.get()
+            if item is StopAsyncIteration:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
+            await asyncio.sleep(0)
+
+    async def _read_rows_retryable_attempt(
         self,
-        gapic_fn,
-        cache_size,
-        per_row_timeout,
-        per_request_timeout,
-        revise_on_retry,
-        row_limit,
+        gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
+        buffer_size: int,
+        per_row_timeout: float | None,
+        per_request_timeout: float | None,
+        total_row_limit: int,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
@@ -169,22 +187,22 @@ class _RowMerger(AsyncIterable[Row]):
 
         Some fresh state is created on each retry:
           - grpc network stream
-          - cache for the stream
+          - buffer for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
           - last_seen_row_key is used to ensure that
             duplicate rows are not emitted
           - request is stored and (optionally) modified on each retry
         """
-        if revise_on_retry and self.last_seen_row_key is not None:
+        if self._last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self.request["rows"] = _RowMerger._revise_request_rowset(
-                row_set=self.request.get("rows", None),
-                last_seen_row_key=self.last_seen_row_key,
+            self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
+                row_set=self._request.get("rows", None),
+                last_seen_row_key=self._last_seen_row_key,
             )
             # revise next request's row limit based on number emitted
-            if row_limit:
-                new_limit = row_limit - self.emit_count
+            if total_row_limit:
+                new_limit = total_row_limit - self._emit_count
                 if new_limit <= 0:
                     return
                 else:
@@ -193,70 +211,52 @@ class _RowMerger(AsyncIterable[Row]):
         if self.request.get("app_profile_id", None):
             params_str = f'{params_str},app_profile_id={self.request["app_profile_id"]}'
         new_gapic_stream = await gapic_fn(
-            self.request,
+            self._request,
             timeout=per_request_timeout,
             metadata=[('x-goog-request-params', params_str)],
         )
-        cache: asyncio.Queue[Row | RequestStats] = asyncio.Queue(maxsize=cache_size)
+        buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
+            maxsize=buffer_size
+        )
+        buffer_task = asyncio.create_task(
+            self._generator_to_buffer(buffer, new_gapic_stream)
+        )
+        buffered_stream = self._buffer_to_generator(buffer)
         state_machine = _StateMachine()
         try:
-            stream_task = asyncio.create_task(
-                _RowMerger._generator_to_cache(
-                    cache,
-                    _RowMerger.merge_row_response_stream(
-                        new_gapic_stream, state_machine
-                    ),
-                )
+            stream = _ReadRowsOperation.merge_row_response_stream(
+                buffered_stream, state_machine
             )
-            get_from_cache_task = asyncio.create_task(cache.get())
-            # sleep to allow other tasks to run
-            await asyncio.sleep(0)
-            # read from state machine and push into cache
-            # when finished, stream will be done, cache will be empty, but get_from_cache_task will still be waiting
-            while (
-                not stream_task.done()
-                or not cache.empty()
-                or get_from_cache_task.done()
-            ):
-                if get_from_cache_task.done():
-                    new_item = get_from_cache_task.result()
-                    # don't yield rows that have already been emitted
-                    if isinstance(new_item, RequestStats):
+            # run until we get a timeout or the stream is exhausted
+            while True:
+                new_item = await asyncio.wait_for(
+                    stream.__anext__(), timeout=per_row_timeout
+                )
+                if isinstance(new_item, RequestStats):
+                    yield new_item
+                # ignore rows that have already been emitted
+                elif isinstance(new_item, Row) and (
+                    self._last_seen_row_key is None
+                    or new_item.row_key > self._last_seen_row_key
+                ):
+                    self._last_seen_row_key = new_item.row_key
+                    # don't yeild _LastScannedRow markers; they
+                    # should only update last_seen_row_key
+                    if not isinstance(new_item, _LastScannedRow):
                         yield new_item
-                    # ignore rows that have already been emitted
-                    elif isinstance(new_item, Row) and (
-                        self.last_seen_row_key is None
-                        or new_item.row_key > self.last_seen_row_key
-                    ):
-                        self.last_seen_row_key = new_item.row_key
-                        # don't yeild _LastScannedRow markers; they
-                        # should only update last_seen_row_key
-                        if not isinstance(new_item, _LastScannedRow):
-                            yield new_item
-                            self.emit_count += 1
-                            if row_limit and self.emit_count >= row_limit:
-                                return
-                    # start new task for cache
-                    get_from_cache_task = asyncio.create_task(cache.get())
-                    await asyncio.sleep(0)
-                else:
-                    # wait for either the stream to finish, or a new item to enter the cache
-                    first_finish = asyncio.wait(
-                        [stream_task, get_from_cache_task],
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    await asyncio.wait_for(first_finish, per_row_timeout)
-            # stream and cache are complete. if there's an exception, raise it
-            if stream_task.exception():
-                raise cast(Exception, stream_task.exception())
+                        self._emit_count += 1
+                        if total_row_limit and self._emit_count >= total_row_limit:
+                            return
         except asyncio.TimeoutError:
             # per_row_timeout from asyncio.wait_for
             raise core_exceptions.DeadlineExceeded(
                 f"per_row_timeout of {per_row_timeout:0.1f}s exceeded"
             )
+        except StopAsyncIteration:
+            # end of stream
+            return
         finally:
-            stream_task.cancel()
-            get_from_cache_task.cancel()
+            buffer_task.cancel()
 
     @staticmethod
     def _revise_request_rowset(
@@ -271,7 +271,10 @@ class _RowMerger(AsyncIterable[Row]):
           - last_seen_row_key: the last row key encountered
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None:
+        if row_set is None or (
+            len(row_set.get("row_ranges", [])) == 0
+            and len(row_set.get("row_keys", [])) == 0
+        ):
             last_seen = last_seen_row_key
             return {
                 "row_keys": [],
@@ -284,13 +287,29 @@ class _RowMerger(AsyncIterable[Row]):
             for key in row_keys:
                 if key > last_seen_row_key:
                     adjusted_keys.append(key)
-            # if user specified only a single range, set start to the last seen key
+            # adjust ranges to ignore keys before last seen
             row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-            if len(row_keys) == 0 and len(row_ranges) == 1:
-                row_ranges[0]["start_key_open"] = last_seen_row_key
-                if "start_key_closed" in row_ranges[0]:
-                    row_ranges[0].pop("start_key_closed")
-            return {"row_keys": adjusted_keys, "row_ranges": row_ranges}
+            adjusted_ranges = []
+            for row_range in row_ranges:
+                end_key = row_range.get("end_key_closed", None) or row_range.get(
+                    "end_key_open", None
+                )
+                if end_key is None or end_key > last_seen_row_key:
+                    # end range is after last seen key
+                    new_range = row_range.copy()
+                    start_key = row_range.get(
+                        "start_key_closed", None
+                    ) or row_range.get("start_key_open", None)
+                    if start_key is None or start_key <= last_seen_row_key:
+                        # replace start key with last seen
+                        new_range["start_key_open"] = last_seen_row_key
+                        new_range.pop("start_key_closed", None)
+                    adjusted_ranges.append(new_range)
+            # if our modifications result in an empty row_set, return the
+            # original row_set. This will avoid an unwanted full table scan
+            if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
+                return row_set
+            return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod
     async def merge_row_response_stream(
@@ -339,7 +358,20 @@ class _StateMachine:
 
     If an unexpected chunk is received for the current state,
     the state machine will raise an InvalidChunk exception
+
+    The server may send a heartbeat message indicating that it has
+    processed a particular row, to facilitate retries. This will be passed
+    to the state machine via handle_last_scanned_row, which emit a
+    _LastScannedRow marker to the stream.
     """
+
+    __slots__ = (
+        "current_state",
+        "current_family",
+        "current_qualifier",
+        "last_seen_row_key",
+        "adapter",
+    )
 
     def __init__(self):
         # represents either the last row emitted, or the last_scanned_key sent from backend
@@ -355,9 +387,6 @@ class _StateMachine:
         self.current_state: _State = AWAITING_NEW_ROW(self)
         self.current_family: str | None = None
         self.current_qualifier: bytes | None = None
-        # self.expected_cell_size:int = 0
-        # self.remaining_cell_bytes:int = 0
-        # self.num_cells_in_row:int = 0
         self.adapter.reset()
 
     def is_terminal_state(self) -> bool:
@@ -371,7 +400,7 @@ class _StateMachine:
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> Row:
         """
-        Called by RowMerger to notify the state machine of a scan heartbeat
+        Called by ReadRowsOperation to notify the state machine of a scan heartbeat
 
         Returns an empty row with the last_scanned_row_key
         """
@@ -385,7 +414,7 @@ class _StateMachine:
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> Row | None:
         """
-        Called by RowMerger to process a new chunk
+        Called by ReadRowsOperation to process a new chunk
 
         Returns a Row if the chunk completes a row, otherwise returns None
         """
@@ -398,13 +427,14 @@ class _StateMachine:
         if chunk.reset_row:
             # reset row if requested
             self._handle_reset_chunk(chunk)
-        else:
-            # otherwise, process the chunk and update the state
-            self.current_state = self.current_state.handle_chunk(chunk)
+            return None
+
+        # process the chunk and update the state
+        self.current_state = self.current_state.handle_chunk(chunk)
         if chunk.commit_row:
             # check if row is complete, and return it if so
             if not isinstance(self.current_state, AWAITING_NEW_CELL):
-                raise InvalidChunk("commit row attempted without finishing cell")
+                raise InvalidChunk("Commit chunk received in invalid state")
             complete_row = self.adapter.finish_row()
             self._handle_complete_row(complete_row)
             return complete_row
@@ -433,10 +463,10 @@ class _StateMachine:
             raise InvalidChunk("Reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
-        if chunk.family_name.value:
-            raise InvalidChunk("Reset chunk has family_name")
-        if chunk.qualifier.value:
-            raise InvalidChunk("Reset chunk has qualifier")
+        if _chunk_has_field(chunk, "family_name"):
+            raise InvalidChunk("Reset chunk has a family name")
+        if _chunk_has_field(chunk, "qualifier"):
+            raise InvalidChunk("Reset chunk has a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("Reset chunk has a timestamp")
         if chunk.labels:
@@ -454,12 +484,14 @@ class _State(ABC):
     transitioning to the next state
     """
 
+    __slots__ = ("_owner",)
+
     def __init__(self, owner: _StateMachine):
         self._owner = owner
 
     @abstractmethod
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
-        pass
+        raise NotImplementedError
 
 
 class AWAITING_NEW_ROW(_State):
@@ -490,13 +522,12 @@ class AWAITING_NEW_CELL(_State):
 
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         is_split = chunk.value_size > 0
-        # expected_cell_size = chunk.value_size if is_split else len(chunk.value)
         # track latest cell data. New chunks won't send repeated data
-        if chunk.family_name.value:
+        if _chunk_has_field(chunk, "family_name"):
             self._owner.current_family = chunk.family_name.value
-            if not chunk.qualifier.value:
-                raise InvalidChunk("New column family must specify qualifier")
-        if chunk.qualifier.value:
+            if not _chunk_has_field(chunk, "qualifier"):
+                raise InvalidChunk("New family must specify qualifier")
+        if _chunk_has_field(chunk, "qualifier"):
             self._owner.current_qualifier = chunk.qualifier.value
             if self._owner.current_family is None:
                 raise InvalidChunk("Family not found")
@@ -505,6 +536,12 @@ class AWAITING_NEW_CELL(_State):
         # key or the row is the same
         if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
             raise InvalidChunk("Row key changed mid row")
+
+        if self._owner.current_family is None:
+            raise InvalidChunk("Missing family for new cell")
+        if self._owner.current_qualifier is None:
+            raise InvalidChunk("Missing qualifier for new cell")
+
         self._owner.adapter.start_cell(
             family=self._owner.current_family,
             qualifier=self._owner.current_qualifier,
@@ -533,10 +570,10 @@ class AWAITING_CELL_VALUE(_State):
     def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
         # ensure reset chunk matches expectations
         if chunk.row_key:
-            raise InvalidChunk("Found row key mid cell")
-        if chunk.family_name.value:
+            raise InvalidChunk("In progress cell had a row key")
+        if _chunk_has_field(chunk, "family_name"):
             raise InvalidChunk("In progress cell had a family name")
-        if chunk.qualifier.value:
+        if _chunk_has_field(chunk, "qualifier"):
             raise InvalidChunk("In progress cell had a qualifier")
         if chunk.timestamp_micros:
             raise InvalidChunk("In progress cell had a timestamp")
@@ -566,6 +603,8 @@ class _RowBuilder:
     a row.
     """
 
+    __slots__ = "current_key", "working_cell", "working_value", "completed_cells"
+
     def __init__(self):
         # initialize state
         self.reset()
@@ -579,27 +618,16 @@ class _RowBuilder:
 
     def start_row(self, key: bytes) -> None:
         """Called to start a new row. This will be called once per row"""
-        if (
-            self.current_key is not None
-            or self.working_cell is not None
-            or self.working_value is not None
-            or self.completed_cells
-        ):
-            raise InvalidChunk("start_row called without finishing previous row")
         self.current_key = key
 
     def start_cell(
         self,
-        family: str | None,
-        qualifier: bytes | None,
+        family: str,
+        qualifier: bytes,
         timestamp_micros: int,
         labels: List[str],
     ) -> None:
         """called to start a new cell in a row."""
-        if not family:
-            raise InvalidChunk("Missing family for a new cell")
-        if qualifier is None:
-            raise InvalidChunk("Missing qualifier for a new cell")
         if self.current_key is None:
             raise InvalidChunk("start_cell called without a row")
         self.working_value = bytearray()
@@ -616,7 +644,7 @@ class _RowBuilder:
     def finish_cell(self) -> None:
         """called once per cell to signal the end of the value (unless reset)"""
         if self.working_cell is None or self.working_value is None:
-            raise InvalidChunk("Cell value received before start_cell")
+            raise InvalidChunk("finish_cell called before start_cell")
         self.working_cell.value = bytes(self.working_value)
         self.completed_cells.append(self.working_cell)
         self.working_cell = None
@@ -629,3 +657,15 @@ class _RowBuilder:
         new_row = Row(self.current_key, self.completed_cells)
         self.reset()
         return new_row
+
+
+def _chunk_has_field(chunk: ReadRowsResponse.CellChunk, field: str) -> bool:
+    """
+    Returns true if the field is set on the chunk
+
+    Required to disambiguate between empty strings and unset values
+    """
+    try:
+        return chunk.HasField(field)
+    except ValueError:
+        return False

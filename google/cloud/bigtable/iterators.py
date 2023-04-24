@@ -22,7 +22,7 @@ import asyncio
 import time
 import sys
 
-from google.cloud.bigtable._row_merger import _RowMerger
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 from google.cloud.bigtable_v2.types import RequestStats
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
@@ -35,8 +35,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
     Async iterator for ReadRows responses.
     """
 
-    def __init__(self, merger: _RowMerger):
-        self._merger_or_error: _RowMerger | Exception = merger
+    def __init__(self, merger: _ReadRowsOperation):
+        self._merger_or_error: _ReadRowsOperation | Exception = merger
         self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
@@ -60,24 +60,22 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if sys.version_info >= (3, 8):
             self._idle_timeout_task.name = "ReadRowsIterator._idle_timeout"
 
+    @property
     def active(self):
         """
         Returns True if the iterator is still active and has not been closed
         """
-        return isinstance(self._merger_or_error, _RowMerger)
+        return not isinstance(self._merger_or_error, Exception)
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         """
         Coroutine that will cancel a stream if no interaction with the iterator
         in the last `idle_timeout` seconds.
         """
-        while self.active():
+        while self.active:
             next_timeout = self.last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.time())
-            if (
-                self.last_interaction_time + idle_timeout < time.time()
-                and self.active()
-            ):
+            if self.last_interaction_time + idle_timeout < time.time() and self.active:
                 # idle timeout has expired
                 await self._finish_with_error(
                     IdleTimeout(
@@ -102,7 +100,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         if isinstance(self._merger_or_error, Exception):
             raise self._merger_or_error
         else:
-            merger = cast(_RowMerger, self._merger_or_error)
+            merger = cast(_ReadRowsOperation, self._merger_or_error)
             try:
                 self.last_interaction_time = time.time()
                 next_item = await merger.__anext__()
@@ -117,9 +115,10 @@ class ReadRowsIterator(AsyncIterable[Row]):
                     f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
                 )
                 source_exc = None
-                if merger.errors:
+                if merger.transient_errors:
                     source_exc = RetryExceptionGroup(
-                        f"{len(merger.errors)} failed attempts", merger.errors
+                        f"{len(merger.transient_errors)} failed attempts",
+                        merger.transient_errors,
                     )
                 new_exc.__cause__ = source_exc
                 await self._finish_with_error(new_exc)
@@ -133,10 +132,18 @@ class ReadRowsIterator(AsyncIterable[Row]):
         Helper function to close the stream and clean up resources
         after an error has occurred.
         """
-        if isinstance(self._merger_or_error, _RowMerger):
-            await self._merger_or_error.aclose()
-            del self._merger_or_error
+        if self.active:
+            merger = cast(_ReadRowsOperation, self._merger_or_error)
+            await merger.aclose()
             self._merger_or_error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
             self._idle_timeout_task = None
+
+    async def aclose(self):
+        """
+        Support closing the stream with an explicit call to aclose()
+        """
+        await self._finish_with_error(
+            StopAsyncIteration(f"{self.__class__.__name__} closed")
+        )
