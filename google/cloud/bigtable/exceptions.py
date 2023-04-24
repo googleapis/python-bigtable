@@ -42,7 +42,9 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     Represents one or more exceptions that occur during a bulk mutation operation
     """
 
-    pass
+    def __init__(self, excs):
+        super().__init__(f"len(excs) failed mutations", excs)
+
 
 class FailedMutationException(Exception):
     """
@@ -54,7 +56,9 @@ class FailedMutationException(Exception):
         self.failed_mutation_obj = failed_mutation_obj
         self.__cause__ = cause
 
+
 class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
-    pass
+    def __init__(self, excs, total_num):
+        super().__init__(f"{len(excs)} failed attempts (out of {total_num})", excs)

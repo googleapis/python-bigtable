@@ -739,7 +739,7 @@ class Table:
                         cause_exc = RetryExceptionGroup(exc_list)
                     all_errors.append(FailedMutationException(idx, mutation_entries[idx], cause_exc))
             if all_errors:
-                raise MutationsExceptionGroup(all_errors)
+                raise MutationsExceptionGroup(all_errors, len(mutation_entries))
 
 
     async def _mutations_retryable_attempt(self, request, per_request_timeout, mutation_dict, error_dict):
