@@ -206,10 +206,10 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 if new_limit <= 0:
                     return
                 else:
-                    self.request["rows_limit"] = new_limit
-        params_str = f'table_name={self.request["table_name"]}'
-        if self.request.get("app_profile_id", None):
-            params_str = f'{params_str},app_profile_id={self.request["app_profile_id"]}'
+                    self._request["rows_limit"] = new_limit
+        params_str = f'table_name={self._request.get("table_name", "")}'
+        if self._request.get("app_profile_id", None):
+            params_str = f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
         new_gapic_stream = await gapic_fn(
             self._request,
             timeout=per_request_timeout,

@@ -36,7 +36,7 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 VENEER_HEADER_REGEX = re.compile(
-    r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
+    r"bigtable-python\/[0-9]+\.[\w.-]+ gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
 )
 
 
