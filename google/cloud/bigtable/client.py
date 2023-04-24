@@ -590,12 +590,19 @@ class Table:
             mutations = [mutations]
         request["mutations"] = [mutation._to_dict() for mutation in mutations]
 
+        if all(mutation.is_idempotent for mutation in mutations):
+            # mutations are all idempotent and safe to retry
+            predicate = retries.if_exception_type(
+                core_exceptions.DeadlineExceeded,
+                core_exceptions.ServiceUnavailable,
+                core_exceptions.Aborted,
+            )
+        else:
+            # mutations should not be retried
+            predicate = retries.if_exception_type()
+
         transient_errors = []
-        predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
-        )
+
         def on_error_fn(exc):
             if predicate(exc):
                 transient_errors.append(exc)
@@ -610,7 +617,7 @@ class Table:
         )
         try:
             await retry(self._gapic_client.mutate_row)(request, timeout=per_request_timeout)
-        except core_exceptions.RetryError as e:
+        except core_exceptions.RetryError:
             # raised by AsyncRetry after operation deadline exceeded
             # TODO: merge with similar logic in ReadRowsIterator
             new_exc = core_exceptions.DeadlineExceeded(

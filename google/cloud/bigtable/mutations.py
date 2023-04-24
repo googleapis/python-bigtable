@@ -28,6 +28,13 @@ class Mutation(ABC):
     def _to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
+    def is_idempotent(self) -> bool:
+        """
+        Check if the mutation is idempotent
+        If false, the mutation will not be retried
+        """
+        return True
+
 
 @dataclass
 class SetCell(Mutation):
@@ -46,15 +53,19 @@ class SetCell(Mutation):
             }
         }
 
+    def is_idempotent(self) -> bool:
+        """Check if the mutation is idempotent"""
+        return self.timestamp_micros is not None and self.timestamp_micros >= 0
+
 
 @dataclass
 class DeleteRangeFromColumn(Mutation):
     family:str
     qualifier:bytes
     # None represents 0
-    start_timestamp_micros:int|None
+    start_timestamp_micros:int | None
     # None represents infinity
-    end_timestamp_micros:int|None
+    end_timestamp_micros:int | None
 
     def _to_dict(self) -> dict[str, Any]:
         timestamp_range = {}
@@ -69,6 +80,7 @@ class DeleteRangeFromColumn(Mutation):
                 "time_range": timestamp_range,
             }
         }
+
 
 @dataclass
 class DeleteAllFromFamily(Mutation):
@@ -94,10 +106,14 @@ class DeleteAllFromRow(Mutation):
 @dataclass
 class BulkMutationsEntry():
     row_key:bytes
-    mutations: list[Mutation]|Mutation
+    mutations: list[Mutation] | Mutation
 
     def _to_dict(self) -> dict[str, Any]:
         return {
             "row_key": self.row_key,
             "mutations": [mutation._to_dict() for mutation in self.mutations]
         }
+
+    def is_idempotent(self) -> bool:
+        """Check if the mutation is idempotent"""
+        return all(mutation.is_idempotent() for mutation in self.mutations)
