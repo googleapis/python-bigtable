@@ -19,6 +19,7 @@ from typing import (
     cast,
     Any,
     Optional,
+    AsyncIterable,
     Set,
     TYPE_CHECKING,
 )
@@ -292,7 +293,6 @@ class BigtableDataClient(ClientWithProject):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        *,
         default_operation_timeout: float = 60,
         default_per_row_timeout: float | None = 10,
         default_per_request_timeout: float | None = None,
