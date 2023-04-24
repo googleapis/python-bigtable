@@ -39,6 +39,7 @@ import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 
+from google.cloud.bigtable.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -589,18 +590,42 @@ class Table:
             mutations = [mutations]
         request["mutations"] = [mutation._to_dict() for mutation in mutations]
 
+        transient_errors = []
+        predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+            core_exceptions.Aborted,
+        )
+        def on_error_fn(exc):
+            if predicate(exc):
+                transient_errors.append(exc)
+
         retry = retries.AsyncRetry(
-            predicate = retries.if_exception_type(
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
-                core_exceptions.Aborted
-            ),
-            timeout = operation_timeout,
+            predicate=predicate,
+            on_error=on_error_fn,
+            timeout=operation_timeout,
             initial=0.01,
             multiplier=2,
             maximum=60,
         )
-        await retry(self._gapic_client.mutate_row)(request, timeout=per_request_timeout)
+        try:
+            await retry(self._gapic_client.mutate_row)(request, timeout=per_request_timeout)
+        except core_exceptions.RetryError as e:
+            # raised by AsyncRetry after operation deadline exceeded
+            # TODO: merge with similar logic in ReadRowsIterator
+            new_exc = core_exceptions.DeadlineExceeded(
+                f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+            )
+            source_exc = None
+            if transient_errors:
+                source_exc = RetryExceptionGroup(
+                    f"{len(transient_errors)} failed attempts",
+                    transient_errors,
+                )
+            new_exc.__cause__ = source_exc
+            await self._finish_with_error(new_exc)
+            raise new_exc from source_exc
+
 
     async def bulk_mutate_rows(
         self,
