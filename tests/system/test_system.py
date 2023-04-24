@@ -154,3 +154,23 @@ async def test_ping_and_warm_gapic(client, table):
     """
     request = {"name": table.instance_name}
     await client._gapic_client.ping_and_warm(request)
+
+@pytest.mark.asyncio
+async def test_mutation_set_cell(client, table):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell
+    mutation = SetCell(family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value")
+    await table.mutate_row("abc", mutation)
+
+@pytest.mark.asyncio
+async def test_bulk_mutations_set_cell(client, table):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell, BulkMutationsEntry
+    mutation = SetCell(family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value")
+    bulk_mutation = BulkMutationsEntry(b"abc", [mutation])
+    await table.bulk_mutate_rows([bulk_mutation])
+

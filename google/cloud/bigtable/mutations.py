@@ -40,8 +40,8 @@ class Mutation(ABC):
 class SetCell(Mutation):
     family: str
     qualifier: bytes
-    new_value: bytes | str | int
-    timestamp_micros: int | None
+    new_value: bytes
+    timestamp_micros: int | None = None
 
     def _to_dict(self) -> dict[str, Any]:
         return {
