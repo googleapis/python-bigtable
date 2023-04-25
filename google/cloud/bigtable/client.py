@@ -40,7 +40,7 @@ import google.auth._default
 from google.api_core import client_options as client_options_lib
 
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
-from google.cloud.bigtable.exceptions import FailedMutationError
+from google.cloud.bigtable.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -748,7 +748,7 @@ class Table:
                     else:
                         cause_exc = RetryExceptionGroup(exc_list)
                     all_errors.append(
-                        FailedMutationError(idx, mutation_entries[idx], cause_exc)
+                        FailedMutationEntryError(idx, mutation_entries[idx], cause_exc)
                     )
             if all_errors:
                 raise MutationsExceptionGroup(all_errors, len(mutation_entries))
@@ -758,6 +758,7 @@ class Table:
     ):
         new_request = request.copy()
         while any(mutation is not None for mutation in mutation_dict.values()):
+            await asyncio.sleep(0)
             # continue to retry until timeout, or all mutations are complete (success or failure)
             new_request["entries"] = [
                 mutation_dict[i]._to_dict()
@@ -780,9 +781,9 @@ class Table:
                             result.status.message,
                             details=result.status.details,
                         )
-                        error_dict.setdefault(idx, []).append(exception)
+                        error_dict[idx].append(exception)
                         # if not idempotent, remove from retry list
-                        if mutation_dict[idx].is_idempotent():
+                        if not mutation_dict[idx].is_idempotent():
                             mutation_dict[idx] = None
 
     async def check_and_mutate_row(

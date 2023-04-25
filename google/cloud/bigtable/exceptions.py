@@ -37,8 +37,7 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
             super().__init__(message, excs)
         else:
             self.exceptions = excs
-            revised_message = f"{message} ({len(excs)} sub-exceptions)"
-            super().__init__(revised_message)
+            super().__init__(message)
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
@@ -47,10 +46,10 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     """
 
     def __init__(self, excs, total_num):
-        super().__init__(f"{len(excs)} failed mutations (out of {total_num})", excs)
+        super().__init__(f"{len(excs)} out of {total_num} mutation entries failed", excs)
 
 
-class FailedMutationError(Exception):
+class FailedMutationEntryError(Exception):
     """
     Represents a failed mutation entry for bulk mutation operations
     """
@@ -58,12 +57,14 @@ class FailedMutationError(Exception):
     def __init__(
         self,
         failed_idx: int,
-        failed_mutation_obj: "BulkMutationsEntry",
+        failed_mutation_entry: "BulkMutationsEntry",
         cause: Exception,
     ):
-        super().__init__(f"Failed mutation at index: {failed_idx} with cause: {cause}")
-        self.failed_idx = failed_idx
-        self.failed_mutation_obj = failed_mutation_obj
+        idempotent_msg = "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
+        message = f"Failed {idempotent_msg} mutation entry at index {failed_idx} with cause: {cause!r}"
+        super().__init__(message)
+        self.index = failed_idx
+        self.entry = failed_mutation_entry
         self.__cause__ = cause
 
 
@@ -71,4 +72,9 @@ class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
     def __init__(self, excs):
-        super().__init__(f"{len(excs)} failed attempts", excs)
+        if len(excs) == 0:
+            raise ValueError("RetryExceptionGroup must have at least one exception")
+        elif len(excs) == 1:
+            super().__init__(f"1 failed attempt: {excs[0]!r}")
+        else:
+            super().__init__(f"{len(excs)} failed attempts. Latest: {excs[-1]!r}", excs)
