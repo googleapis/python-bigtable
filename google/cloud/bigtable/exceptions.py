@@ -46,7 +46,9 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     """
 
     def __init__(self, excs, total_num):
-        super().__init__(f"{len(excs)} out of {total_num} mutation entries failed", excs)
+        super().__init__(
+            f"{len(excs)} out of {total_num} mutation entries failed", excs
+        )
 
 
 class FailedMutationEntryError(Exception):
@@ -60,7 +62,9 @@ class FailedMutationEntryError(Exception):
         failed_mutation_entry: "BulkMutationsEntry",
         cause: Exception,
     ):
-        idempotent_msg = "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
+        idempotent_msg = (
+            "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
+        )
         message = f"Failed {idempotent_msg} mutation entry at index {failed_idx} with cause: {cause!r}"
         super().__init__(message)
         self.index = failed_idx
