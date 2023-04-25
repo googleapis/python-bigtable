@@ -39,16 +39,28 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
             self.exceptions = excs
             super().__init__(message)
 
+    def __new__(cls, message, excs):
+        if is_311_plus:
+            return super().__new__(cls, message, excs)
+        else:
+            return super().__new__(cls)
+
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation
     """
 
+    @staticmethod
+    def _format_message(excs, total_num):
+        entry_str = "entry" if total_num == 1 else "entries"
+        return f"{len(excs)} out of {total_num} mutation {entry_str} failed"
+
     def __init__(self, excs, total_num):
-        super().__init__(
-            f"{len(excs)} out of {total_num} mutation entries failed", excs
-        )
+        super().__init__(self._format_message(excs, total_num), excs)
+
+    def __new__(cls, excs, total_num):
+        return super().__new__(cls, cls._format_message(excs, total_num), excs)
 
 
 class FailedMutationEntryError(Exception):
@@ -75,10 +87,17 @@ class FailedMutationEntryError(Exception):
 class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
-    def __init__(self, excs):
+    @staticmethod
+    def _format_message(excs):
         if len(excs) == 0:
             raise ValueError("RetryExceptionGroup must have at least one exception")
         elif len(excs) == 1:
-            super().__init__(f"1 failed attempt: {excs[0]!r}")
+            return f"1 failed attempt: {excs[0]!r}"
         else:
-            super().__init__(f"{len(excs)} failed attempts. Latest: {excs[-1]!r}", excs)
+            return f"{len(excs)} failed attempts. Latest: {excs[-1]!r}"
+
+    def __init__(self, excs):
+        super().__init__(self._format_message(excs), excs)
+
+    def __new__(cls, excs):
+        return super().__new__(cls, cls._format_message(excs), excs)
