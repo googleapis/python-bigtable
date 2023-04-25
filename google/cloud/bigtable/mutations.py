@@ -65,9 +65,9 @@ class DeleteRangeFromColumn(Mutation):
     family: str
     qualifier: bytes
     # None represents 0
-    start_timestamp_micros: int | None=None
+    start_timestamp_micros: int | None = None
     # None represents infinity
-    end_timestamp_micros: int | None=None
+    end_timestamp_micros: int | None = None
 
     def _to_dict(self) -> dict[str, Any]:
         timestamp_range = {}
