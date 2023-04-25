@@ -52,15 +52,15 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     """
 
     @staticmethod
-    def _format_message(excs, total_num):
-        entry_str = "entry" if total_num == 1 else "entries"
-        return f"{len(excs)} out of {total_num} mutation {entry_str} failed"
+    def _format_message(excs, total_entries):
+        entry_str = "entry" if total_entries == 1 else "entries"
+        return f"{len(excs)} out of {total_entries} mutation {entry_str} failed"
 
-    def __init__(self, excs, total_num):
-        super().__init__(self._format_message(excs, total_num), excs)
+    def __init__(self, excs, total_entries):
+        super().__init__(self._format_message(excs, total_entries), excs)
 
-    def __new__(cls, excs, total_num):
-        return super().__new__(cls, cls._format_message(excs, total_num), excs)
+    def __new__(cls, excs, total_entries):
+        return super().__new__(cls, cls._format_message(excs, total_entries), excs)
 
 
 class FailedMutationEntryError(Exception):
@@ -90,7 +90,7 @@ class RetryExceptionGroup(BigtableExceptionGroup):
     @staticmethod
     def _format_message(excs):
         if len(excs) == 0:
-            raise ValueError("RetryExceptionGroup must have at least one exception")
+            raise ValueError("Empty exception list")
         elif len(excs) == 1:
             return f"1 failed attempt: {excs[0]!r}"
         else:
