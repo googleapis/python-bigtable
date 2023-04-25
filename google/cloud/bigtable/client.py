@@ -594,7 +594,7 @@ class Table:
             mutations = [mutations]
         request["mutations"] = [mutation._to_dict() for mutation in mutations]
 
-        if all(mutation.is_idempotent for mutation in mutations):
+        if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
