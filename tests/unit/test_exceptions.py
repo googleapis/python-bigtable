@@ -53,6 +53,14 @@ class TestBigtableExceptionGroup():
         assert str(e.value) == test_msg
         assert list(e.value.exceptions) == test_excs
 
+    def test_raise_empty_list(self):
+        """
+        Empty exception lists are not supported
+        """
+        with pytest.raises(ValueError) as e:
+            raise self._make_one(excs=[])
+        assert "non-empty sequence" in str(e.value)
+
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
     def test_311_exception_group(self):
         """
@@ -97,10 +105,9 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         return self._get_class()(excs, num_entries)
 
     @pytest.mark.parametrize("exception_list,total_entries,expected_message", [
-        ([Exception()], 1, "1 out of 1 mutation entry failed"),
-        ([Exception()], 2, "1 out of 2 mutation entries failed"),
-        ([Exception(), RuntimeError()], 2, "2 out of 2 mutation entries failed"),
-        ([], 0, "0 out of 0 mutation entries failed"),
+        ([Exception()], 1, "1 sub-exception (from 1 entry attempted)"),
+        ([Exception()], 2, "1 sub-exception (from 2 entries attempted)"),
+        ([Exception(), RuntimeError()], 2, "2 sub-exceptions (from 2 entries attempted)"),
     ])
     def test_raise(self, exception_list, total_entries, expected_message):
         """
@@ -123,10 +130,10 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         return self._get_class()(excs=excs)
 
     @pytest.mark.parametrize("exception_list,expected_message", [
-        ([Exception()], "1 failed attempt: Exception()"),
-        ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError()"),
-        ([Exception(), ValueError("test")], "2 failed attempts. Latest: ValueError('test')"),
-        ([bigtable_exceptions.RetryExceptionGroup([Exception(), ValueError("test")])], "1 failed attempt: RetryExceptionGroup(\"2 failed attempts. Latest: ValueError('test')\")"),
+        ([Exception()], "1 failed attempt: Exception"),
+        ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError"),
+        ([Exception(), ValueError("test")], "2 failed attempts. Latest: ValueError"),
+        ([bigtable_exceptions.RetryExceptionGroup([Exception(), ValueError("test")])], "1 failed attempt: RetryExceptionGroup"),
     ])
     def test_raise(self, exception_list, expected_message):
         """
@@ -136,14 +143,6 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
             raise self._get_class()(exception_list)
         assert str(e.value) == expected_message
         assert list(e.value.exceptions) == exception_list
-
-    def test_raise_empty_list(self):
-        """
-        Empty exception lists are not supported
-        """
-        with pytest.raises(ValueError) as e:
-            raise self._get_class()([])
-        assert str(e.value) == "Empty exception list"
 
 
 class TestFailedMutationEntryError():

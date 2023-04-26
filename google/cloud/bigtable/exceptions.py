@@ -36,6 +36,8 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         if is_311_plus:
             super().__init__(message, excs)
         else:
+            if len(excs) == 0:
+                raise ValueError("exceptions must be a non-empty sequence")
             self.exceptions = tuple(excs)
             super().__init__(message)
 
@@ -45,6 +47,12 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         else:
             return super().__new__(cls)
 
+    def __str__(self):
+        """
+        String representation doesn't display sub-exceptions. Subexceptions are
+        described in message
+        """
+        return self.args[0]
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
     """
@@ -54,7 +62,8 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     @staticmethod
     def _format_message(excs, total_entries):
         entry_str = "entry" if total_entries == 1 else "entries"
-        return f"{len(excs)} out of {total_entries} mutation {entry_str} failed"
+        plural_str = "" if len(excs) == 1 else "s"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
 
     def __init__(self, excs, total_entries):
         super().__init__(self._format_message(excs, total_entries), excs)
@@ -90,11 +99,11 @@ class RetryExceptionGroup(BigtableExceptionGroup):
     @staticmethod
     def _format_message(excs):
         if len(excs) == 0:
-            raise ValueError("Empty exception list")
-        elif len(excs) == 1:
-            return f"1 failed attempt: {excs[0]!r}"
+            return "No exceptions"
+        if len(excs) == 1:
+            return f"1 failed attempt: {type(excs[0]).__name__}"
         else:
-            return f"{len(excs)} failed attempts. Latest: {excs[-1]!r}"
+            return f"{len(excs)} failed attempts. Latest: {type(excs[-1]).__name__}"
 
     def __init__(self, excs):
         super().__init__(self._format_message(excs), excs)
