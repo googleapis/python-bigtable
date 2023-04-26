@@ -36,7 +36,7 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         if is_311_plus:
             super().__init__(message, excs)
         else:
-            self.exceptions = excs
+            self.exceptions = tuple(excs)
             super().__init__(message)
 
     def __new__(cls, message, excs):

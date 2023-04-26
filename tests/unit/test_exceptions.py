@@ -51,7 +51,7 @@ class TestBigtableExceptionGroup():
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_msg, test_excs)
         assert str(e.value) == test_msg
-        assert e.value.exceptions == test_excs
+        assert list(e.value.exceptions) == test_excs
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
     def test_311_exception_group(self):
@@ -109,7 +109,7 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, total_entries)
         assert str(e.value) == expected_message
-        assert e.value.exceptions == exception_list
+        assert list(e.value.exceptions) == exception_list
 
 class TestRetryExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
@@ -135,7 +135,7 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list)
         assert str(e.value) == expected_message
-        assert e.value.exceptions == exception_list
+        assert list(e.value.exceptions) == exception_list
 
     def test_raise_empty_list(self):
         """
