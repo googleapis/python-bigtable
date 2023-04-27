@@ -1067,14 +1067,11 @@ class TestBulkMutateRows:
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
-            core_exceptions.OutOfRange,
-            core_exceptions.NotFound,
-            core_exceptions.FailedPrecondition,
         ],
     )
     async def test_bulk_mutate_rows_idempotent_mutation_error_retries(self, exception):
         """
-        Individual idempotent mutations should be retried if they fail with any error
+        Individual idempotent mutations should be retried if they fail with a retryable error
         """
         from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.exceptions import (
@@ -1108,6 +1105,47 @@ class TestBulkMutateRows:
                         cause.exceptions[-1], core_exceptions.DeadlineExceeded
                     )
 
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+        ],
+    )
+    async def test_bulk_mutate_rows_idempotent_mutation_error_retries(self, exception):
+        """
+        Individual idempotent mutations should not be retried if they fail with a non-retryable error
+        """
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.cloud.bigtable.exceptions import (
+            RetryExceptionGroup,
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = lambda *a, **k: self._mock_response(
+                        [exception("mock")]
+                    )
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.DeleteAllFromRow()
+                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.05)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert "non-idempotent" not in str(failed_exception)
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, exception)
+
     @pytest.mark.parametrize(
         "retryable_exception",
         [
@@ -1117,7 +1155,7 @@ class TestBulkMutateRows:
         ],
     )
     @pytest.mark.asyncio
-    async def test_bulk_mutate_idempotent_retryable_errors(self, retryable_exception):
+    async def test_bulk_mutate_idempotent_retryable_request_errors(self, retryable_exception):
         """
         Individual idempotent mutations should be retried if the request fails with a retryable error
         """
@@ -1157,10 +1195,10 @@ class TestBulkMutateRows:
             core_exceptions.Aborted,
         ],
     )
-    async def test_bulk_mutate_rows_idempotent_retryable_errors(
+    async def test_bulk_mutate_rows_non_idempotent_retryable_errors(
         self, retryable_exception
     ):
-        """Idempotent mutations should never be retried"""
+        """Non-Idempotent mutations should never be retried"""
         from google.cloud.bigtable.exceptions import (
             RetryExceptionGroup,
             FailedMutationEntryError,
@@ -1227,3 +1265,43 @@ class TestBulkMutateRows:
                     assert "non-idempotent" not in str(failed_exception)
                     cause = failed_exception.__cause__
                     assert isinstance(cause, non_retryable_exception)
+
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_error_index(self):
+        """
+        Test partial failure, partial success. Errors should be associated with the correct index
+        """
+        from google.api_core.exceptions import DeadlineExceeded, Aborted, FailedPrecondition
+        from google.cloud.bigtable.exceptions import (
+            RetryExceptionGroup,
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    # fail with retryable errors, then a non-retryable one
+                    mock_gapic.side_effect =[ self._mock_response([None, Aborted("mock"), None]), self._mock_response([DeadlineExceeded("mock")]), self._mock_response([FailedPrecondition("final")])]
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", timestamp_micros=123
+                        )
+                        entries = [mutations.BulkMutationsEntry((f"row_key_{i}").encode(), [mutation]) for i in range(3)]
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows(entries, operation_timeout=1000)
+                    assert len(e.value.exceptions) == 1
+                    failed = e.value.exceptions[0]
+                    assert isinstance(failed, FailedMutationEntryError)
+                    assert failed.index == 1
+                    assert failed.entry == entries[1]
+                    cause = failed.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert len(cause.exceptions) == 3
+                    assert isinstance(cause.exceptions[0], Aborted)
+                    assert isinstance(cause.exceptions[1], DeadlineExceeded)
+                    assert isinstance(cause.exceptions[2], FailedPrecondition)
+
+
