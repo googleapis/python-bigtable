@@ -35,17 +35,21 @@ async def _mutate_rows_retryable_attempt(
     new_request = request.copy()
     while any(mutation is not None for mutation in mutation_dict.values()):
         await asyncio.sleep(0)
+        # keep map between sub-request indices and global entry indices
+        index_map : dict[int, int] = {}
         # continue to retry until timeout, or all mutations are complete (success or failure)
         request_entries : list[dict[str, Any]] = []
         for index, entry in mutation_dict.items():
             if entry is not None:
+                index_map[len(request_entries)] = index
                 request_entries.append(entry._to_dict())
         new_request["entries"] = request_entries
         async for result_list in await gapic_client.mutate_rows(
             new_request, timeout=per_request_timeout
         ):
             for result in result_list.entries:
-                idx = result.index
+                # convert sub-request index to global index
+                idx = index_map[result.index]
                 if result.status.code == 0:
                     # mutation succeeded
                     mutation_dict[idx] = None
