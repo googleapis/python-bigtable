@@ -62,6 +62,34 @@ class TestBigtableExceptionGroup():
         assert "non-empty sequence" in str(e.value)
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
+    def test_311_traceback(self):
+        """
+        Exception customizations should not break rich exception group traceback in python 3.11
+        """
+        import traceback
+        sub_exc1 = RuntimeError("first sub exception")
+        sub_exc2 = ZeroDivisionError("second sub exception")
+        exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
+
+        expected_traceback = (
+          f"  | google.cloud.bigtable.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+           "  +-+---------------- 1 ----------------",
+           "    | RuntimeError: first sub exception",
+           "    +---------------- 2 ----------------",
+           "    | ZeroDivisionError: second sub exception",
+           "    +------------------------------------",
+        )
+        exception_caught = False
+        try:
+            raise exc_group
+        except self._get_class() as e:
+            exception_caught = True
+            tb = traceback.format_exc()
+            tb_relevant_lines = tuple(tb.splitlines()[3:])
+            assert expected_traceback == tb_relevant_lines
+        assert exception_caught
+
+    @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
     def test_311_exception_group(self):
         """
         Python 3.11+ should handle exepctions as native exception groups
