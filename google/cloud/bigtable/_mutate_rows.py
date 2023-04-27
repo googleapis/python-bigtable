@@ -31,6 +31,7 @@ async def _mutate_rows_retryable_attempt(
     per_request_timeout : float | None,
     mutation_dict: dict[int, "BulkMutationsEntry"|None],
     error_dict: dict[int, list[Exception]],
+    predicate: callable[[Exception], bool],
 ):
     """
     Helper function for managing the mutate_rows lifecycle.
@@ -50,6 +51,7 @@ async def _mutate_rows_retryable_attempt(
             At the start of the request, all entries are outstanding.
       - error_dict: a dictionary tracking errors associated with each entry index.
             Each retry will append a new error. Successful mutations will clear the error list.
+      - predicate: a function that takes an exception and returns True if the exception is retryable.
     """
     new_request = request.copy()
     while any(mutation is not None for mutation in mutation_dict.values()):
@@ -81,8 +83,10 @@ async def _mutate_rows_retryable_attempt(
                         details=result.status.details,
                     )
                     error_dict[idx].append(exception)
-                    # if not idempotent, remove from retry list
+                    # if mutation is non-idempotent or the error is not retryable,
+                    # mark the mutation as terminal
                     entry = mutation_dict[idx]
-                    if entry is not None and not entry.is_idempotent():
-                        mutation_dict[idx] = None
+                    if entry is not None:
+                        if not predicate(exception) or and not entry.is_idempotent():
+                            mutation_dict[idx] = None
 

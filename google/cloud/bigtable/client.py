@@ -642,8 +642,8 @@ class Table:
         self,
         mutation_entries: list[BulkMutationsEntry],
         *,
-        operation_timeout: int | float | None = 60,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = 60,
+        per_request_timeout: float | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -723,7 +723,7 @@ class Table:
         )
         try:
             await retry(_mutate_rows_retryable_attempt)(
-                self.client._gapic_client, request, per_request_timeout, mutations_dict, error_dict
+                self.client._gapic_client, request, per_request_timeout, mutations_dict, error_dict, predicate
             )
         except core_exceptions.RetryError:
             # raised by AsyncRetry after operation deadline exceeded
