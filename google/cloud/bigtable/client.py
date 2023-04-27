@@ -44,6 +44,7 @@ from google.cloud.bigtable.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -721,8 +722,8 @@ class Table:
             maximum=60,
         )
         try:
-            await retry(self._mutations_retryable_attempt)(
-                request, per_request_timeout, mutations_dict, error_dict
+            await retry(_mutate_rows_retryable_attempt)(
+                self.client._gapic_client, request, per_request_timeout, mutations_dict, error_dict
             )
         except core_exceptions.RetryError:
             # raised by AsyncRetry after operation deadline exceeded
@@ -752,39 +753,6 @@ class Table:
                     )
             if all_errors:
                 raise MutationsExceptionGroup(all_errors, len(mutation_entries))
-
-    async def _mutations_retryable_attempt(
-        self, request, per_request_timeout, mutation_dict, error_dict
-    ):
-        new_request = request.copy()
-        while any(mutation is not None for mutation in mutation_dict.values()):
-            await asyncio.sleep(0)
-            # continue to retry until timeout, or all mutations are complete (success or failure)
-            new_request["entries"] = [
-                mutation_dict[i]._to_dict()
-                for i in range(len(mutation_dict))
-                if mutation_dict[i] is not None
-            ]
-            async for result_list in await self.client._gapic_client.mutate_rows(
-                new_request, timeout=per_request_timeout
-            ):
-                for result in result_list.entries:
-                    idx = result.index
-                    if result.status.code == 0:
-                        # mutation succeeded
-                        mutation_dict[idx] = None
-                        error_dict[idx] = []
-                    if result.status.code != 0:
-                        # mutation failed
-                        exception = core_exceptions.from_grpc_status(
-                            result.status.code,
-                            result.status.message,
-                            details=result.status.details,
-                        )
-                        error_dict[idx].append(exception)
-                        # if not idempotent, remove from retry list
-                        if not mutation_dict[idx].is_idempotent():
-                            mutation_dict[idx] = None
 
     async def check_and_mutate_row(
         self,
