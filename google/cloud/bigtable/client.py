@@ -42,6 +42,7 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
@@ -621,23 +622,12 @@ class Table:
             multiplier=2,
             maximum=60,
         )
-        try:
-            await retry(self.client._gapic_client.mutate_row)(
-                request, timeout=per_request_timeout
-            )
-        except core_exceptions.RetryError:
-            # raised by AsyncRetry after operation deadline exceeded
-            # TODO: merge with similar logic in ReadRowsIterator
-            new_exc = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {operation_timeout:0.1f}s exceeded"
-            )
-            source_exc = None
-            if transient_errors:
-                source_exc = RetryExceptionGroup(
-                    transient_errors,
-                )
-            new_exc.__cause__ = source_exc
-            raise new_exc from source_exc
+        # wrap rpc in retry logic
+        retry_wrapped = retry(self.client._gapic_client.mutate_row)
+        # convert RetryErrors from retry wrapper into DeadlineExceeded errors
+        deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout, transient_errors)
+        # trigger rpc
+        await deadline_wrapped(request, timeout=per_request_timeout)
 
     async def bulk_mutate_rows(
         self,
@@ -723,21 +713,17 @@ class Table:
             multiplier=2,
             maximum=60,
         )
+        # wrap attempt in retry logic
+        retry_wrapped = retry(_mutate_rows_retryable_attempt)
+        # convert RetryErrors from retry wrapper into DeadlineExceeded errors
+        deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout)
         try:
-            await retry(_mutate_rows_retryable_attempt)(
+            # trigger mutate_rows
+            await deadline_wrapped(
                 self.client._gapic_client, request, per_request_timeout, mutations_dict, error_dict, predicate
             )
-        except core_exceptions.RetryError:
-            # raised by AsyncRetry after operation deadline exceeded
-            # add DeadlineExceeded to list for each active mutation
-            deadline_exc = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {operation_timeout:0.1f}s exceeded"
-            )
-            for idx in error_dict.keys():
-                if mutations_dict[idx] is not None:
-                    error_dict[idx].append(deadline_exc)
         except Exception as exc:
-            # other exceptions are added to the list of exceptions for unprocessed mutations
+            # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
             for idx in error_dict.keys():
                 if mutations_dict[idx] is not None:
                     error_dict[idx].append(exc)
@@ -746,10 +732,7 @@ class Table:
             all_errors = []
             for idx, exc_list in error_dict.items():
                 if exc_list:
-                    if len(exc_list) == 1:
-                        cause_exc = exc_list[0]
-                    else:
-                        cause_exc = RetryExceptionGroup(exc_list)
+                    cause_exc = exc_list[0] if len(exc_list) == 1 else RetryExceptionGroup(exc_list)
                     all_errors.append(
                         FailedMutationEntryError(idx, mutation_entries[idx], cause_exc)
                     )

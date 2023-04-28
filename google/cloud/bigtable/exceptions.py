@@ -12,15 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import sys
 
 from typing import TYPE_CHECKING
 
+from google.api_core import exceptions as core_exceptions
+
 is_311_plus = sys.version_info >= (3, 11)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import BulkMutationsEntry
+
+
+def _convert_retry_deadline(func:callable, timeout_value:float, retry_errors:list[Exception]|None=None):
+    """
+    Decorator to convert RetryErrors raised by api_core.retry into
+    DeadlineExceeded exceptions, indicating that the underlying retries have
+    exhaused the timeout value.
+
+    Optionally attaches a RetryExceptionGroup to the DeadlineExceeded.__cause__,
+    detailing the failed exceptions associated with each retry.
+
+    Args:
+      - func: The function to decorate
+      - timeout_value: The timeout value to display in the DeadlineExceeded error message
+      - retry_errors: An optional list of exceptions to attach as a RetryExceptionGroup to the DeadlineExceeded.__cause__
+    """
+    async def wrapper(*args, **kwargs):
+        try:
+            await func(*args, **kwargs)
+        except core_exceptions.RetryError:
+            new_exc = core_exceptions.DeadlineExceeded(
+                f"operation_timeout of {timeout_value:0.1f}s exceeded"
+            )
+            source_exc = None
+            if retry_errors:
+                source_exc = RetryExceptionGroup(retry_errors)
+            new_exc.__cause__ = source_exc
+            raise new_exc from source_exc
+    return wrapper
+
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
