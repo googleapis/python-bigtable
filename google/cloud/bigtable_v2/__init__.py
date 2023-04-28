@@ -31,6 +31,7 @@ from .types.bigtable import MutateRowsRequest
 from .types.bigtable import MutateRowsResponse
 from .types.bigtable import PingAndWarmRequest
 from .types.bigtable import PingAndWarmResponse
+from .types.bigtable import RateLimitInfo
 from .types.bigtable import ReadChangeStreamRequest
 from .types.bigtable import ReadChangeStreamResponse
 from .types.bigtable import ReadModifyWriteRowRequest
@@ -79,6 +80,7 @@ __all__ = (
     "Mutation",
     "PingAndWarmRequest",
     "PingAndWarmResponse",
+    "RateLimitInfo",
     "ReadChangeStreamRequest",
     "ReadChangeStreamResponse",
     "ReadIterationStats",
