@@ -1069,7 +1069,9 @@ class TestBulkMutateRows:
             core_exceptions.Aborted,
         ],
     )
-    async def test_bulk_mutate_rows_idempotent_mutation_error_retryable(self, exception):
+    async def test_bulk_mutate_rows_idempotent_mutation_error_retryable(
+        self, exception
+    ):
         """
         Individual idempotent mutations should be retried if they fail with a retryable error
         """
@@ -1113,7 +1115,9 @@ class TestBulkMutateRows:
             core_exceptions.FailedPrecondition,
         ],
     )
-    async def test_bulk_mutate_rows_idempotent_mutation_error_non_retryable(self, exception):
+    async def test_bulk_mutate_rows_idempotent_mutation_error_non_retryable(
+        self, exception
+    ):
         """
         Individual idempotent mutations should not be retried if they fail with a non-retryable error
         """

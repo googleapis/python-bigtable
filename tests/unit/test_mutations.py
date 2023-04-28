@@ -266,3 +266,59 @@ class TestDeleteFromRow:
         """Str representation of mutations should be to_dict"""
         instance = self._make_one()
         assert instance.__str__() == "{'delete_from_row': {}}"
+
+
+class TestBulkMutationsEntry:
+
+    def _target_class(self):
+        from google.cloud.bigtable.mutations import BulkMutationsEntry
+        return BulkMutationsEntry
+
+    def _make_one(self, row_key, mutations):
+        return self._target_class()(row_key, mutations)
+
+    def test_ctor(self):
+        expected_key = b"row_key"
+        expected_mutations = [mock.Mock()]
+        instance = self._make_one(expected_key, expected_mutations)
+        assert instance.row_key == expected_key
+        assert instance.mutations == expected_mutations
+
+    def test_ctor_str_key(self):
+        expected_key = "row_key"
+        expected_mutations = [mock.Mock()]
+        instance = self._make_one(expected_key, expected_mutations)
+        assert instance.row_key == b"row_key"
+        assert instance.mutations == expected_mutations
+
+    def test_ctor_single_mutation(self):
+        from google.cloud.bigtable.mutations import DeleteAllFromRow
+        expected_key = b"row_key"
+        expected_mutations = DeleteAllFromRow()
+        instance = self._make_one(expected_key, expected_mutations)
+        assert instance.row_key == expected_key
+        assert instance.mutations == [expected_mutations]
+
+    def test__to_dict(self):
+        expected_key = "row_key"
+        mutation_mock = mock.Mock()
+        n_mutations = 3
+        expected_mutations = [mutation_mock for i in range(n_mutations)]
+        for mock_mutations in expected_mutations:
+            mock_mutations._to_dict.return_value = {"test": "data"}
+        instance = self._make_one(expected_key, expected_mutations)
+        expected_result = {"row_key": b"row_key", "mutations": [{"test": "data"}] * n_mutations}
+        assert instance._to_dict() == expected_result
+        assert mutation_mock._to_dict.call_count == n_mutations
+
+    @pytest.mark.parametrize("mutations,result", [
+        ([], True),
+        ([mock.Mock(is_idempotent=lambda: True)], True),
+        ([mock.Mock(is_idempotent=lambda: False)], False),
+        ([mock.Mock(is_idempotent=lambda: True), mock.Mock(is_idempotent=lambda: False)], False),
+        ([mock.Mock(is_idempotent=lambda: True), mock.Mock(is_idempotent=lambda: True)], True),
+    ])
+    def test_is_idempotent(self, mutations, result):
+        instance = self._make_one("row_key", mutations)
+        assert instance.is_idempotent() == result
+

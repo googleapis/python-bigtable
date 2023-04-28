@@ -113,10 +113,14 @@ class DeleteAllFromRow(Mutation):
         }
 
 
-@dataclass
 class BulkMutationsEntry:
-    row_key: bytes
-    mutations: list[Mutation]
+    def __init__(self, row_key: bytes | str, mutations: Mutation | list[Mutation]):
+        if isinstance(row_key, str):
+            row_key = row_key.encode("utf-8")
+        if isinstance(mutations, Mutation):
+            mutations = [mutations]
+        self.row_key = row_key
+        self.mutations = mutations
 
     def _to_dict(self) -> dict[str, Any]:
         return {
