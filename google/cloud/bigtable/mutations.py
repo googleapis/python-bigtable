@@ -71,10 +71,12 @@ class DeleteRangeFromColumn(Mutation):
     end_timestamp_micros: int | None = None
 
     def __post_init__(self):
-        if self.start_timestamp_micros is not None and self.end_timestamp_micros is not None and self.start_timestamp_micros > self.end_timestamp_micros:
-            raise ValueError(
-                "start_timestamp_micros must be <= end_timestamp_micros"
-            )
+        if (
+            self.start_timestamp_micros is not None
+            and self.end_timestamp_micros is not None
+            and self.start_timestamp_micros > self.end_timestamp_micros
+        ):
+            raise ValueError("start_timestamp_micros must be <= end_timestamp_micros")
 
     def _to_dict(self) -> dict[str, Any]:
         timestamp_range = {}

@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import pytest
-import sys
 
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
-    from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
+
 
 class TestBaseMutation:
-
     def _target_class(self):
         from google.cloud.bigtable.mutations import Mutation
+
         return Mutation
 
     def test__to_dict(self):
@@ -46,10 +43,11 @@ class TestBaseMutation:
         assert self_mock._to_dict.called
         assert str_value == str(self_mock._to_dict.return_value)
 
-class TestSetCell:
 
+class TestSetCell:
     def _target_class(self):
         from google.cloud.bigtable.mutations import SetCell
+
         return SetCell
 
     def _make_one(self, *args, **kwargs):
@@ -61,7 +59,9 @@ class TestSetCell:
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
         expected_timestamp = 1234567890
-        instance = self._make_one(expected_family, expected_qualifier, expected_value, expected_timestamp)
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_value, expected_timestamp
+        )
         got_dict = instance._to_dict()
         assert list(got_dict.keys()) == ["set_cell"]
         got_inner_dict = got_dict["set_cell"]
@@ -87,29 +87,37 @@ class TestSetCell:
         assert got_inner_dict["value"] == expected_value
         assert len(got_inner_dict.keys()) == 4
 
-    @pytest.mark.parametrize("timestamp,expected_value", [
-        (1234567890, True),
-        (1, True),
-        (0, True),
-        (-1, False),
-        (None, False),
-    ])
+    @pytest.mark.parametrize(
+        "timestamp,expected_value",
+        [
+            (1234567890, True),
+            (1, True),
+            (0, True),
+            (-1, False),
+            (None, False),
+        ],
+    )
     def test_is_idempotent(self, timestamp, expected_value):
         """is_idempotent is based on whether an explicit timestamp is set"""
-        instance = self._make_one("test-family", b"test-qualifier", b'test-value', timestamp)
+        instance = self._make_one(
+            "test-family", b"test-qualifier", b"test-value", timestamp
+        )
         assert instance.is_idempotent() is expected_value
 
     def test___str__(self):
         """Str representation of mutations should be to_dict"""
-        instance = self._make_one("test-family", b"test-qualifier", b'test-value', 1234567890)
+        instance = self._make_one(
+            "test-family", b"test-qualifier", b"test-value", 1234567890
+        )
         str_value = instance.__str__()
         dict_value = instance._to_dict()
         assert str_value == str(dict_value)
 
-class TestDeleteRangeFromColumn:
 
+class TestDeleteRangeFromColumn:
     def _target_class(self):
         from google.cloud.bigtable.mutations import DeleteRangeFromColumn
+
         return DeleteRangeFromColumn
 
     def _make_one(self, *args, **kwargs):
@@ -120,7 +128,9 @@ class TestDeleteRangeFromColumn:
         expected_qualifier = b"test-qualifier"
         expected_start = 1234567890
         expected_end = 1234567891
-        instance = self._make_one(expected_family, expected_qualifier, expected_start, expected_end)
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_start, expected_end
+        )
         assert instance.family == expected_family
         assert instance.qualifier == expected_qualifier
         assert instance.start_timestamp_micros == expected_start
@@ -141,15 +151,21 @@ class TestDeleteRangeFromColumn:
         expected_start = 10
         expected_end = 1
         with pytest.raises(ValueError) as excinfo:
-            self._make_one(expected_family, expected_qualifier, expected_start, expected_end)
-        assert "start_timestamp_micros must be <= end_timestamp_micros" in str(excinfo.value)
+            self._make_one(
+                expected_family, expected_qualifier, expected_start, expected_end
+            )
+        assert "start_timestamp_micros must be <= end_timestamp_micros" in str(
+            excinfo.value
+        )
 
-
-    @pytest.mark.parametrize("start,end", [
-        (0, 1),
-        (None, 1),
-        (0, None),
-    ])
+    @pytest.mark.parametrize(
+        "start,end",
+        [
+            (0, 1),
+            (None, 1),
+            (0, None),
+        ],
+    )
     def test__to_dict(self, start, end):
         """Should be unimplemented in the base class"""
         expected_family = "test-family"
@@ -172,7 +188,9 @@ class TestDeleteRangeFromColumn:
 
     def test_is_idempotent(self):
         """is_idempotent is always true"""
-        instance = self._make_one("test-family", b"test-qualifier", 1234567890, 1234567891)
+        instance = self._make_one(
+            "test-family", b"test-qualifier", 1234567890, 1234567891
+        )
         assert instance.is_idempotent() is True
 
     def test___str__(self):
@@ -183,11 +201,10 @@ class TestDeleteRangeFromColumn:
         assert str_value == str(dict_value)
 
 
-
 class TestDeleteAllFromFamily:
-
     def _target_class(self):
         from google.cloud.bigtable.mutations import DeleteAllFromFamily
+
         return DeleteAllFromFamily
 
     def _make_one(self, *args, **kwargs):
@@ -208,7 +225,6 @@ class TestDeleteAllFromFamily:
         assert len(got_inner_dict.keys()) == 1
         assert got_inner_dict["family_name"] == expected_family
 
-
     def test_is_idempotent(self):
         """is_idempotent is always true"""
         instance = self._make_one("test-family")
@@ -222,18 +238,17 @@ class TestDeleteAllFromFamily:
         assert str_value == str(dict_value)
 
 
-
 class TestDeleteFromRow:
-
     def _target_class(self):
         from google.cloud.bigtable.mutations import DeleteAllFromRow
+
         return DeleteAllFromRow
 
     def _make_one(self, *args, **kwargs):
         return self._target_class()(*args, **kwargs)
 
     def test_ctor(self):
-        instance = self._make_one()
+        self._make_one()
 
     def test__to_dict(self):
         """Should be unimplemented in the base class"""
@@ -251,5 +266,3 @@ class TestDeleteFromRow:
         """Str representation of mutations should be to_dict"""
         instance = self._make_one()
         assert instance.__str__() == "{'delete_from_row': {}}"
-
-

@@ -1069,11 +1069,10 @@ class TestBulkMutateRows:
             core_exceptions.Aborted,
         ],
     )
-    async def test_bulk_mutate_rows_idempotent_mutation_error_retries(self, exception):
+    async def test_bulk_mutate_rows_idempotent_mutation_error_retryable(self, exception):
         """
         Individual idempotent mutations should be retried if they fail with a retryable error
         """
-        from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.exceptions import (
             RetryExceptionGroup,
             FailedMutationEntryError,
@@ -1114,13 +1113,11 @@ class TestBulkMutateRows:
             core_exceptions.FailedPrecondition,
         ],
     )
-    async def test_bulk_mutate_rows_idempotent_mutation_error_retries(self, exception):
+    async def test_bulk_mutate_rows_idempotent_mutation_error_non_retryable(self, exception):
         """
         Individual idempotent mutations should not be retried if they fail with a non-retryable error
         """
-        from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.exceptions import (
-            RetryExceptionGroup,
             FailedMutationEntryError,
             MutationsExceptionGroup,
         )
@@ -1201,7 +1198,6 @@ class TestBulkMutateRows:
     ):
         """Non-Idempotent mutations should never be retried"""
         from google.cloud.bigtable.exceptions import (
-            RetryExceptionGroup,
             FailedMutationEntryError,
             MutationsExceptionGroup,
         )
@@ -1242,7 +1238,6 @@ class TestBulkMutateRows:
         If the request fails with a non-retryable error, mutations should not be retried
         """
         from google.cloud.bigtable.exceptions import (
-            RetryExceptionGroup,
             FailedMutationEntryError,
             MutationsExceptionGroup,
         )

@@ -19,15 +19,6 @@ import sys
 import google.cloud.bigtable.exceptions as bigtable_exceptions
 
 
-# try/except added for compatibility with python < 3.8
-try:
-    from unittest import mock
-    from unittest.mock import AsyncMock  # type: ignore
-except ImportError:  # pragma: NO COVER
-    import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
-
-
 class TestConvertRetryDeadline:
     """
     Test _convert_retry_deadline wrapper
@@ -135,7 +126,7 @@ class TestBigtableExceptionGroup:
         exception_caught = False
         try:
             raise exc_group
-        except self._get_class() as e:
+        except self._get_class():
             exception_caught = True
             tb = traceback.format_exc()
             tb_relevant_lines = tuple(tb.splitlines()[3:])
@@ -151,12 +142,9 @@ class TestBigtableExceptionGroup:
         """
         exceptions = [RuntimeError("mock"), ValueError("mock")]
         instance = self._make_one(excs=exceptions)
-        assert isinstance(instance, ExceptionGroup)
         # ensure split works as expected
         runtime_error, others = instance.split(lambda e: isinstance(e, RuntimeError))
-        assert isinstance(runtime_error, ExceptionGroup)
         assert runtime_error.exceptions[0] == exceptions[0]
-        assert isinstance(others, ExceptionGroup)
         assert others.exceptions[0] == exceptions[1]
 
     def test_exception_handling(self):

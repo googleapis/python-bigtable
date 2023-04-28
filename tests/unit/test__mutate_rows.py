@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import pytest
-import sys
 
-import google.cloud.bigtable.exceptions as bigtable_exceptions
 from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.rpc import status_pb2
 
