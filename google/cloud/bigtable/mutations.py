@@ -44,13 +44,14 @@ class SetCell(Mutation):
     timestamp_micros: int | None = None
 
     def _to_dict(self) -> dict[str, Any]:
+        """Convert the mutation to a dictionary representation"""
+        # if timestamp not given, use -1 for server-side timestamp
+        timestamp = self.timestamp_micros if self.timestamp_micros is not None else -1
         return {
             "set_cell": {
                 "family_name": self.family,
                 "column_qualifier": self.qualifier,
-                "timestamp_micros": self.timestamp_micros
-                if self.timestamp_micros is not None
-                else -1,
+                "timestamp_micros": timestamp,
                 "value": self.new_value,
             }
         }
@@ -68,6 +69,12 @@ class DeleteRangeFromColumn(Mutation):
     start_timestamp_micros: int | None = None
     # None represents infinity
     end_timestamp_micros: int | None = None
+
+    def __post_init__(self):
+        if self.start_timestamp_micros is not None and self.end_timestamp_micros is not None and self.start_timestamp_micros > self.end_timestamp_micros:
+            raise ValueError(
+                "start_timestamp_micros must be <= end_timestamp_micros"
+            )
 
     def _to_dict(self) -> dict[str, Any]:
         timestamp_range = {}
