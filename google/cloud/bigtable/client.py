@@ -545,8 +545,8 @@ class Table:
         row_key: str | bytes,
         mutations: list[Mutation] | Mutation,
         *,
-        operation_timeout: int | float | None = 60,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = 60,
+        per_request_timeout: float | None = None,
     ):
         """
          Mutates a row atomically.
@@ -625,7 +625,9 @@ class Table:
         # wrap rpc in retry logic
         retry_wrapped = retry(self.client._gapic_client.mutate_row)
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-        deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout, transient_errors)
+        deadline_wrapped = _convert_retry_deadline(
+            retry_wrapped, operation_timeout, transient_errors
+        )
         # trigger rpc
         await deadline_wrapped(request, timeout=per_request_timeout)
 
@@ -720,7 +722,12 @@ class Table:
         try:
             # trigger mutate_rows
             await deadline_wrapped(
-                self.client._gapic_client, request, per_request_timeout, mutations_dict, error_dict, predicate
+                self.client._gapic_client,
+                request,
+                per_request_timeout,
+                mutations_dict,
+                error_dict,
+                predicate,
             )
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
@@ -732,7 +739,10 @@ class Table:
             all_errors = []
             for idx, exc_list in error_dict.items():
                 if exc_list:
-                    cause_exc = exc_list[0] if len(exc_list) == 1 else RetryExceptionGroup(exc_list)
+                    if len(exc_list) == 1:
+                        cause_exc = exc_list[0]
+                    else:
+                        cause_exc = RetryExceptionGroup(exc_list)
                     all_errors.append(
                         FailedMutationEntryError(idx, mutation_entries[idx], cause_exc)
                     )

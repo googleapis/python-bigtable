@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import sys
 
-from typing import TYPE_CHECKING
+from typing import Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 
@@ -26,7 +26,9 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import BulkMutationsEntry
 
 
-def _convert_retry_deadline(func:callable, timeout_value:float, retry_errors:list[Exception]|None=None):
+def _convert_retry_deadline(
+    func: Callable[..., Any], timeout_value: float, retry_errors: list[Exception] | None = None
+):
     """
     Decorator to convert RetryErrors raised by api_core.retry into
     DeadlineExceeded exceptions, indicating that the underlying retries have
@@ -40,9 +42,10 @@ def _convert_retry_deadline(func:callable, timeout_value:float, retry_errors:lis
       - timeout_value: The timeout value to display in the DeadlineExceeded error message
       - retry_errors: An optional list of exceptions to attach as a RetryExceptionGroup to the DeadlineExceeded.__cause__
     """
+
     async def wrapper(*args, **kwargs):
         try:
-            await func(*args, **kwargs)
+            return await func(*args, **kwargs)
         except core_exceptions.RetryError:
             new_exc = core_exceptions.DeadlineExceeded(
                 f"operation_timeout of {timeout_value:0.1f}s exceeded"
@@ -52,8 +55,8 @@ def _convert_retry_deadline(func:callable, timeout_value:float, retry_errors:lis
                 source_exc = RetryExceptionGroup(retry_errors)
             new_exc.__cause__ = source_exc
             raise new_exc from source_exc
-    return wrapper
 
+    return wrapper
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
@@ -86,6 +89,7 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         described in message
         """
         return self.args[0]
+
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
     """

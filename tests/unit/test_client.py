@@ -1105,7 +1105,6 @@ class TestBulkMutateRows:
                         cause.exceptions[-1], core_exceptions.DeadlineExceeded
                     )
 
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "exception",
@@ -1155,7 +1154,9 @@ class TestBulkMutateRows:
         ],
     )
     @pytest.mark.asyncio
-    async def test_bulk_mutate_idempotent_retryable_request_errors(self, retryable_exception):
+    async def test_bulk_mutate_idempotent_retryable_request_errors(
+        self, retryable_exception
+    ):
         """
         Individual idempotent mutations should be retried if the request fails with a retryable error
         """
@@ -1271,7 +1272,11 @@ class TestBulkMutateRows:
         """
         Test partial failure, partial success. Errors should be associated with the correct index
         """
-        from google.api_core.exceptions import DeadlineExceeded, Aborted, FailedPrecondition
+        from google.api_core.exceptions import (
+            DeadlineExceeded,
+            Aborted,
+            FailedPrecondition,
+        )
         from google.cloud.bigtable.exceptions import (
             RetryExceptionGroup,
             FailedMutationEntryError,
@@ -1284,12 +1289,21 @@ class TestBulkMutateRows:
                     client._gapic_client, "mutate_rows"
                 ) as mock_gapic:
                     # fail with retryable errors, then a non-retryable one
-                    mock_gapic.side_effect =[ self._mock_response([None, Aborted("mock"), None]), self._mock_response([DeadlineExceeded("mock")]), self._mock_response([FailedPrecondition("final")])]
+                    mock_gapic.side_effect = [
+                        self._mock_response([None, Aborted("mock"), None]),
+                        self._mock_response([DeadlineExceeded("mock")]),
+                        self._mock_response([FailedPrecondition("final")]),
+                    ]
                     with pytest.raises(MutationsExceptionGroup) as e:
                         mutation = mutations.SetCell(
                             "family", b"qualifier", b"value", timestamp_micros=123
                         )
-                        entries = [mutations.BulkMutationsEntry((f"row_key_{i}").encode(), [mutation]) for i in range(3)]
+                        entries = [
+                            mutations.BulkMutationsEntry(
+                                (f"row_key_{i}").encode(), [mutation]
+                            )
+                            for i in range(3)
+                        ]
                         assert mutation.is_idempotent() is True
                         await table.bulk_mutate_rows(entries, operation_timeout=1000)
                     assert len(e.value.exceptions) == 1
@@ -1303,5 +1317,3 @@ class TestBulkMutateRows:
                     assert isinstance(cause.exceptions[0], Aborted)
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
-
-

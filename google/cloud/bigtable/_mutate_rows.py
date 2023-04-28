@@ -14,12 +14,14 @@
 #
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+    from google.cloud.bigtable_v2.services.bigtable.async_client import (
+        BigtableAsyncClient,
+    )
     from google.cloud.bigtable.mutations import BulkMutationsEntry
 
 
@@ -27,16 +29,17 @@ class _MutateRowsIncomplete(RuntimeError):
     """
     Exception raised when a mutate_rows call has unfinished work.
     """
+
     pass
 
 
 async def _mutate_rows_retryable_attempt(
-    gapic_client:"BigtableAsyncClient",
-    request : dict[str, Any],
-    per_request_timeout : float | None,
+    gapic_client: "BigtableAsyncClient",
+    request: dict[str, Any],
+    per_request_timeout: float | None,
     mutation_dict: dict[int, "BulkMutationsEntry" | None],
     error_dict: dict[int, list[Exception]],
-    predicate: callable[[Exception], bool],
+    predicate: Callable[[Exception], bool],
 ):
     """
     Helper function for managing a single mutate_rows attempt.
@@ -51,7 +54,7 @@ async def _mutate_rows_retryable_attempt(
       - gapic_client: the client to use for the mutate_rows call
       - request: the request to send to the server, populated with table name and app profile id
       - per_request_timeout: the timeout to use for each mutate_rows attempt
-      - mutation_dict: a dictionary tracking which entries are outstanding 
+      - mutation_dict: a dictionary tracking which entries are outstanding
             (stored as BulkMutationsEntry), and which have reached a terminal state (stored as None).
             At the start of the request, all entries are outstanding.
       - error_dict: a dictionary tracking errors associated with each entry index.
@@ -63,9 +66,9 @@ async def _mutate_rows_retryable_attempt(
     """
     new_request = request.copy()
     # keep map between sub-request indices and global entry indices
-    index_map : dict[int, int] = {}
+    index_map: dict[int, int] = {}
     # continue to retry until timeout, or all mutations are complete (success or failure)
-    request_entries : list[dict[str, Any]] = []
+    request_entries: list[dict[str, Any]] = []
     for index, entry in mutation_dict.items():
         if entry is not None:
             index_map[len(request_entries)] = index
@@ -98,4 +101,3 @@ async def _mutate_rows_retryable_attempt(
     if any(mutation is not None for mutation in mutation_dict.values()):
         # unfinished work; raise exception to trigger retry
         raise _MutateRowsIncomplete()
-

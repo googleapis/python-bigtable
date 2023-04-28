@@ -28,16 +28,15 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
 
-class Test_MutateRowsRetryableAttempt():
 
+class Test_MutateRowsRetryableAttempt:
     async def _mock_stream(self, mutation_dict, error_dict):
         for idx, entry in mutation_dict.items():
             code = error_dict.get(idx, 0)
             yield MutateRowsResponse(
                 entries=[
                     MutateRowsResponse.Entry(
-                        index=idx,
-                        status=status_pb2.Status(code=code)
+                        index=idx, status=status_pb2.Status(code=code)
                     )
                 ]
             )
@@ -47,25 +46,35 @@ class Test_MutateRowsRetryableAttempt():
         client.mutate_rows = AsyncMock()
         if error_dict is None:
             error_dict = {}
-        client.mutate_rows.side_effect = lambda *args, **kwargs: self._mock_stream(mutation_dict, error_dict)
+        client.mutate_rows.side_effect = lambda *args, **kwargs: self._mock_stream(
+            mutation_dict, error_dict
+        )
         return client
 
     @pytest.mark.asyncio
     async def test_single_entry_success(self):
         """Test mutating a single entry"""
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+
         mutation = mock.Mock()
         mutations = {0: mutation}
         client = self._make_mock_client(mutations)
         errors = {0: []}
         expected_request = {"test": "data"}
         expected_timeout = 9
-        await _mutate_rows_retryable_attempt(client, expected_request, expected_timeout, mutations, errors, lambda x: False)
+        await _mutate_rows_retryable_attempt(
+            client,
+            expected_request,
+            expected_timeout,
+            mutations,
+            errors,
+            lambda x: False,
+        )
         assert mutations[0] is None
         assert errors[0] == []
         assert client.mutate_rows.call_count == 1
         args, kwargs = client.mutate_rows.call_args
-        assert kwargs['timeout'] == expected_timeout
+        assert kwargs["timeout"] == expected_timeout
         assert args[0]["test"] == "data"
         assert args[0]["entries"] == [mutation._to_dict()]
 
@@ -73,6 +82,7 @@ class Test_MutateRowsRetryableAttempt():
     async def test_empty_request(self):
         """Calling with no mutations should result in a single API call"""
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+
         client = self._make_mock_client({})
         await _mutate_rows_retryable_attempt(client, {}, None, {}, {}, lambda x: False)
         assert client.mutate_rows.call_count == 1
@@ -80,7 +90,11 @@ class Test_MutateRowsRetryableAttempt():
     @pytest.mark.asyncio
     async def test_partial_success_retryable(self):
         """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
-        from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt, _MutateRowsIncomplete
+        from google.cloud.bigtable._mutate_rows import (
+            _mutate_rows_retryable_attempt,
+            _MutateRowsIncomplete,
+        )
+
         success_mutation = mock.Mock()
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
@@ -91,7 +105,14 @@ class Test_MutateRowsRetryableAttempt():
         expected_request = {}
         expected_timeout = 9
         with pytest.raises(_MutateRowsIncomplete):
-            await _mutate_rows_retryable_attempt(client, expected_request, expected_timeout, mutations, errors, lambda x: True)
+            await _mutate_rows_retryable_attempt(
+                client,
+                expected_request,
+                expected_timeout,
+                mutations,
+                errors,
+                lambda x: True,
+            )
         assert mutations == {0: None, 1: failure_mutation, 2: None}
         assert errors[0] == []
         assert len(errors[1]) == 1
@@ -102,6 +123,7 @@ class Test_MutateRowsRetryableAttempt():
     async def test_partial_success_non_retryable(self):
         """Some entries succeed, but one fails. Exception marked as non-retryable. Do not raise incomplete error"""
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+
         success_mutation = mock.Mock()
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
@@ -111,12 +133,16 @@ class Test_MutateRowsRetryableAttempt():
         # raise retryable error 3 times, then raise non-retryable error
         expected_request = {}
         expected_timeout = 9
-        await _mutate_rows_retryable_attempt(client, expected_request, expected_timeout, mutations, errors, lambda x: False)
+        await _mutate_rows_retryable_attempt(
+            client,
+            expected_request,
+            expected_timeout,
+            mutations,
+            errors,
+            lambda x: False,
+        )
         assert mutations == {0: None, 1: None, 2: None}
         assert errors[0] == []
         assert len(errors[1]) == 1
         assert errors[1][0].grpc_status_code == 300
         assert errors[2] == []
-
-
-

@@ -27,18 +27,20 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
 
-class TestBigtableExceptionGroup():
+
+class TestBigtableExceptionGroup:
     """
     Subclass for MutationsExceptionGroup and RetryExceptionGroup
     """
 
     def _get_class(self):
         from google.cloud.bigtable.exceptions import BigtableExceptionGroup
+
         return BigtableExceptionGroup
 
     def _make_one(self, message="test_message", excs=None):
         if excs is None:
-            excs = [RuntimeError('mock')]
+            excs = [RuntimeError("mock")]
 
         return self._get_class()(message, excs=excs)
 
@@ -61,23 +63,26 @@ class TestBigtableExceptionGroup():
             raise self._make_one(excs=[])
         assert "non-empty sequence" in str(e.value)
 
-    @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="requires python3.11 or higher"
+    )
     def test_311_traceback(self):
         """
         Exception customizations should not break rich exception group traceback in python 3.11
         """
         import traceback
+
         sub_exc1 = RuntimeError("first sub exception")
         sub_exc2 = ZeroDivisionError("second sub exception")
         exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
 
         expected_traceback = (
-          f"  | google.cloud.bigtable.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
-           "  +-+---------------- 1 ----------------",
-           "    | RuntimeError: first sub exception",
-           "    +---------------- 2 ----------------",
-           "    | ZeroDivisionError: second sub exception",
-           "    +------------------------------------",
+            f"  | google.cloud.bigtable.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+            "  +-+---------------- 1 ----------------",
+            "    | RuntimeError: first sub exception",
+            "    +---------------- 2 ----------------",
+            "    | ZeroDivisionError: second sub exception",
+            "    +------------------------------------",
         )
         exception_caught = False
         try:
@@ -89,7 +94,9 @@ class TestBigtableExceptionGroup():
             assert expected_traceback == tb_relevant_lines
         assert exception_caught
 
-    @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="requires python3.11 or higher"
+    )
     def test_311_exception_group(self):
         """
         Python 3.11+ should handle exepctions as native exception groups
@@ -120,23 +127,30 @@ class TestBigtableExceptionGroup():
         assert was_raised
 
 
-
 class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
         from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+
         return MutationsExceptionGroup
 
     def _make_one(self, excs=None, num_entries=3):
         if excs is None:
-            excs = [RuntimeError('mock')]
+            excs = [RuntimeError("mock")]
 
         return self._get_class()(excs, num_entries)
 
-    @pytest.mark.parametrize("exception_list,total_entries,expected_message", [
-        ([Exception()], 1, "1 sub-exception (from 1 entry attempted)"),
-        ([Exception()], 2, "1 sub-exception (from 2 entries attempted)"),
-        ([Exception(), RuntimeError()], 2, "2 sub-exceptions (from 2 entries attempted)"),
-    ])
+    @pytest.mark.parametrize(
+        "exception_list,total_entries,expected_message",
+        [
+            ([Exception()], 1, "1 sub-exception (from 1 entry attempted)"),
+            ([Exception()], 2, "1 sub-exception (from 2 entries attempted)"),
+            (
+                [Exception(), RuntimeError()],
+                2,
+                "2 sub-exceptions (from 2 entries attempted)",
+            ),
+        ],
+    )
     def test_raise(self, exception_list, total_entries, expected_message):
         """
         Create exception in raise statement, which calls __new__ and __init__
@@ -146,23 +160,38 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         assert str(e.value) == expected_message
         assert list(e.value.exceptions) == exception_list
 
+
 class TestRetryExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
         from google.cloud.bigtable.exceptions import RetryExceptionGroup
+
         return RetryExceptionGroup
 
     def _make_one(self, excs=None):
         if excs is None:
-            excs = [RuntimeError('mock')]
+            excs = [RuntimeError("mock")]
 
         return self._get_class()(excs=excs)
 
-    @pytest.mark.parametrize("exception_list,expected_message", [
-        ([Exception()], "1 failed attempt: Exception"),
-        ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError"),
-        ([Exception(), ValueError("test")], "2 failed attempts. Latest: ValueError"),
-        ([bigtable_exceptions.RetryExceptionGroup([Exception(), ValueError("test")])], "1 failed attempt: RetryExceptionGroup"),
-    ])
+    @pytest.mark.parametrize(
+        "exception_list,expected_message",
+        [
+            ([Exception()], "1 failed attempt: Exception"),
+            ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError"),
+            (
+                [Exception(), ValueError("test")],
+                "2 failed attempts. Latest: ValueError",
+            ),
+            (
+                [
+                    bigtable_exceptions.RetryExceptionGroup(
+                        [Exception(), ValueError("test")]
+                    )
+                ],
+                "1 failed attempt: RetryExceptionGroup",
+            ),
+        ],
+    )
     def test_raise(self, exception_list, expected_message):
         """
         Create exception in raise statement, which calls __new__ and __init__
@@ -173,12 +202,13 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         assert list(e.value.exceptions) == exception_list
 
 
-class TestFailedMutationEntryError():
+class TestFailedMutationEntryError:
     def _get_class(self):
         from google.cloud.bigtable.exceptions import FailedMutationEntryError
+
         return FailedMutationEntryError
 
-    def _make_one(self, idx=9, entry=unittest.mock.Mock(), cause=RuntimeError('mock')):
+    def _make_one(self, idx=9, entry=unittest.mock.Mock(), cause=RuntimeError("mock")):
 
         return self._get_class()(idx, entry, cause)
 
@@ -191,7 +221,10 @@ class TestFailedMutationEntryError():
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert str(e.value) == "Failed idempotent mutation entry at index 2 with cause: ValueError('test')"
+        assert (
+            str(e.value)
+            == "Failed idempotent mutation entry at index 2 with cause: ValueError('test')"
+        )
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -208,7 +241,10 @@ class TestFailedMutationEntryError():
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert str(e.value) == "Failed non-idempotent mutation entry at index 2 with cause: ValueError('test')"
+        assert (
+            str(e.value)
+            == "Failed non-idempotent mutation entry at index 2 with cause: ValueError('test')"
+        )
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
