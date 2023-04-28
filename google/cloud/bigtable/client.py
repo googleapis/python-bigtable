@@ -331,6 +331,10 @@ class Table:
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        *,
+        default_operation_timeout: float = 60,
+        default_per_row_timeout: float | None = 10,
+        default_per_request_timeout: float | None = None,
     ):
         """
         Initialize a Table instance
@@ -345,9 +349,28 @@ class Table:
                 instance_id and the client's project to fully specify the table
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
+            default_operation_timeout: (Optional) The default timeout, in seconds
+            default_per_row_timeout: (Optional) The default timeout for individual
+                rows in all read_rows requests, in seconds
+            default_per_request_timeout: (Optional) The default timeout for individual
+                rpc requests, in seconds
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
+        # validate timeouts
+        if default_operation_timeout <= 0:
+            raise ValueError("default_operation_timeout must be greater than 0")
+        if default_per_row_timeout is not None and default_per_row_timeout <= 0:
+            raise ValueError("default_per_row_timeout must be greater than 0")
+        if default_per_request_timeout is not None and default_per_request_timeout <= 0:
+            raise ValueError("default_per_request_timeout must be greater than 0")
+        if (
+            default_per_request_timeout is not None
+            and default_per_request_timeout > default_operation_timeout
+        ):
+            raise ValueError(
+                "default_per_request_timeout must be less than default_operation_timeout"
+            )
         self.client = client
         self.instance_id = instance_id
         self.instance_name = self.client._gapic_client.instance_path(
@@ -358,6 +381,9 @@ class Table:
             self.client.project, instance_id, table_id
         )
         self.app_profile_id = app_profile_id
+        self.default_operation_timeout = default_operation_timeout
+        self.default_per_row_timeout = default_per_row_timeout
+        self.default_per_request_timeout = default_per_request_timeout
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
@@ -576,16 +602,15 @@ class Table:
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
         """
-        # TODO: bring in default, from read_rows
-        # operation_timeout = operation_timeout or self.default_operation_timeout
-        # per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
-        # if operation_timeout <= 0:
-        #     raise ValueError("operation_timeout must be greater than 0")
-        # if per_request_timeout is not None and per_request_timeout <= 0:
-        #     raise ValueError("per_request_timeout must be greater than 0")
-        # if per_request_timeout is not None and per_request_timeout > operation_timeout:
-        #     raise ValueError("per_request_timeout must be less than operation_timeout")
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError("per_request_timeout must be less than operation_timeout")
 
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")
@@ -667,16 +692,15 @@ class Table:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
         """
-        # TODO: bring in default, from read_rows
-        # operation_timeout = operation_timeout or self.default_operation_timeout
-        # per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
-        # if operation_timeout <= 0:
-        #     raise ValueError("operation_timeout must be greater than 0")
-        # if per_request_timeout is not None and per_request_timeout <= 0:
-        #     raise ValueError("per_request_timeout must be greater than 0")
-        # if per_request_timeout is not None and per_request_timeout > operation_timeout:
-        #     raise ValueError("per_request_timeout must be less than operation_timeout")
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError("per_request_timeout must be less than operation_timeout")
 
         request = {"table_name": self.table_name}
         if self.app_profile_id:

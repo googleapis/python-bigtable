@@ -27,7 +27,9 @@ if TYPE_CHECKING:
 
 
 def _convert_retry_deadline(
-    func: Callable[..., Any], timeout_value: float, retry_errors: list[Exception] | None = None
+    func: Callable[..., Any],
+    timeout_value: float,
+    retry_errors: list[Exception] | None = None,
 ):
     """
     Decorator to convert RetryErrors raised by api_core.retry into
