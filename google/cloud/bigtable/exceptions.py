@@ -99,21 +99,22 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     """
 
     @staticmethod
-    def _format_message(excs, total_entries):
+    def _format_message(excs: list[FailedMutationEntryError], total_entries: int):
         entry_str = "entry" if total_entries == 1 else "entries"
         plural_str = "" if len(excs) == 1 else "s"
         return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
 
-    def __init__(self, excs, total_entries):
+    def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
         super().__init__(self._format_message(excs, total_entries), excs)
 
-    def __new__(cls, excs, total_entries):
+    def __new__(cls, excs: list[FailedMutationEntryError], total_entries: int):
         return super().__new__(cls, cls._format_message(excs, total_entries), excs)
 
 
 class FailedMutationEntryError(Exception):
     """
-    Represents a failed mutation entry for bulk mutation operations
+    Represents a single failed BulkMutationsEntry in a bulk_mutate_rows request.
+    A collection of FailedMutationEntryErrors will be raised in a MutationsExceptionGroup
     """
 
     def __init__(
@@ -136,7 +137,7 @@ class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
     @staticmethod
-    def _format_message(excs):
+    def _format_message(excs: list[Exception]):
         if len(excs) == 0:
             return "No exceptions"
         if len(excs) == 1:
@@ -144,8 +145,8 @@ class RetryExceptionGroup(BigtableExceptionGroup):
         else:
             return f"{len(excs)} failed attempts. Latest: {type(excs[-1]).__name__}"
 
-    def __init__(self, excs):
+    def __init__(self, excs: list[Exception]):
         super().__init__(self._format_message(excs), excs)
 
-    def __new__(cls, excs):
+    def __new__(cls, excs: list[Exception]):
         return super().__new__(cls, cls._format_message(excs), excs)
