@@ -34,10 +34,11 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        instance = self._make_one(request, client)
+        instance = self._make_one(request, client, 10)
         assert instance.transient_errors == []
         assert instance._last_seen_row_key is None
         assert instance._emit_count == 0
+        assert instance.operation_timeout == 10
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
@@ -82,7 +83,7 @@ class TestReadRowsOperation:
         request = {}
         client = mock.Mock()
         client.read_rows = mock.Mock()
-        instance = self._make_one(request, client)
+        instance = self._make_one(request, client, 10)
         assert instance.__aiter__() is instance
 
     @pytest.mark.asyncio
@@ -94,7 +95,7 @@ class TestReadRowsOperation:
         test_exc = core_exceptions.Aborted("test")
         test_exc2 = core_exceptions.DeadlineExceeded("test")
         client.read_rows.side_effect = [test_exc, test_exc2]
-        instance = self._make_one({}, client)
+        instance = self._make_one({}, client, 10)
         with pytest.raises(RuntimeError):
             await instance.__anext__()
         assert len(instance.transient_errors) == 2
@@ -206,7 +207,7 @@ class TestReadRowsOperation:
     @pytest.mark.asyncio
     async def test_revise_limit(self, start_limit, emit_num, expected_limit):
         request = {"rows_limit": start_limit}
-        instance = self._make_one(request, mock.Mock())
+        instance = self._make_one(request, mock.Mock(), 10)
         instance._emit_count = emit_num
         instance._last_seen_row_key = "a"
         gapic_mock = mock.Mock()
@@ -312,7 +313,7 @@ class TestReadRowsOperation:
     async def test_aclose(self):
         import asyncio
 
-        instance = self._make_one({}, mock.Mock())
+        instance = self._make_one({}, mock.Mock(), 10)
         await instance.aclose()
         assert instance._stream is None
         assert instance._last_seen_row_key is None
@@ -329,7 +330,7 @@ class TestReadRowsOperation:
         """
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
-        instance = self._make_one({}, mock.Mock())
+        instance = self._make_one({}, mock.Mock(), 10)
 
         async def mock_gapic(*args, **kwargs):
             # continuously return a single row
@@ -371,7 +372,7 @@ class TestReadRowsOperation:
             _ReadRowsOperation, "merge_row_response_stream"
         ) as mock_stream_fn:
             mock_stream_fn.return_value = mock_stream()
-            instance = self._make_one({}, mock.AsyncMock())
+            instance = self._make_one({}, mock.AsyncMock(), 10)
             first_row = await instance.__anext__()
             assert first_row.row_key == b"dup_key"
             second_row = await instance.__anext__()
@@ -395,7 +396,7 @@ class TestReadRowsOperation:
             _ReadRowsOperation, "merge_row_response_stream"
         ) as mock_stream_fn:
             mock_stream_fn.return_value = mock_stream()
-            instance = self._make_one({}, mock.AsyncMock())
+            instance = self._make_one({}, mock.AsyncMock(), 10)
             first_row = await instance.__anext__()
             assert first_row.row_key == b"key1"
             second_row = await instance.__anext__()

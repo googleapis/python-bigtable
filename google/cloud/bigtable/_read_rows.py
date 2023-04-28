@@ -69,9 +69,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
+        operation_timeout: float,
         *,
         buffer_size: int = 0,
-        operation_timeout: float | None = None,
         per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ):

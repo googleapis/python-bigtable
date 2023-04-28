@@ -24,9 +24,8 @@ import sys
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
 from google.cloud.bigtable_v2.types import RequestStats
-from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.exceptions import IdleTimeout
+from google.cloud.bigtable.exceptions import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
 
 
@@ -103,26 +102,16 @@ class ReadRowsIterator(AsyncIterable[Row]):
             merger = cast(_ReadRowsOperation, self._merger_or_error)
             try:
                 self.last_interaction_time = time.time()
-                next_item = await merger.__anext__()
+                # convert RetryErrors into DeadlineExceeded while calling anext()
+                deadline_wrapped_next = _convert_retry_deadline(
+                    merger.__anext__, merger.operation_timeout, merger.transient_errors
+                )
+                next_item = await deadline_wrapped_next()
                 if isinstance(next_item, RequestStats):
                     self.request_stats = next_item
                     return await self.__anext__()
                 else:
                     return next_item
-            except core_exceptions.RetryError:
-                # raised by AsyncRetry after operation deadline exceeded
-                new_exc = core_exceptions.DeadlineExceeded(
-                    f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
-                )
-                source_exc = None
-                if merger.transient_errors:
-                    source_exc = RetryExceptionGroup(
-                        f"{len(merger.transient_errors)} failed attempts",
-                        merger.transient_errors,
-                    )
-                new_exc.__cause__ = source_exc
-                await self._finish_with_error(new_exc)
-                raise new_exc from source_exc
             except Exception as e:
                 await self._finish_with_error(e)
                 raise e
