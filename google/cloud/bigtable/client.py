@@ -45,6 +45,7 @@ from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -700,10 +701,11 @@ class Table:
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
+            _MutateRowsIncomplete,
         )
 
         def on_error_fn(exc):
-            if predicate(exc):
+            if predicate(exc) and not isinstance(exc, _MutateRowsIncomplete):
                 # add this exception to list for each active mutation
                 for idx in error_dict.keys():
                     if mutations_dict[idx] is not None:

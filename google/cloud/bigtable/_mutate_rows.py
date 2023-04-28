@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-import asyncio
-
 from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
@@ -25,19 +23,26 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import BulkMutationsEntry
 
 
+class _MutateRowsIncomplete(RuntimeError):
+    """
+    Exception raised when a mutate_rows call has unfinished work.
+    """
+    pass
+
+
 async def _mutate_rows_retryable_attempt(
     gapic_client:"BigtableAsyncClient",
     request : dict[str, Any],
     per_request_timeout : float | None,
-    mutation_dict: dict[int, "BulkMutationsEntry"|None],
+    mutation_dict: dict[int, "BulkMutationsEntry" | None],
     error_dict: dict[int, list[Exception]],
     predicate: callable[[Exception], bool],
 ):
     """
-    Helper function for managing the mutate_rows lifecycle.
+    Helper function for managing a single mutate_rows attempt.
 
-    Function will continuously retry failed mutations, until all mutations succeed or encounter
-    an unrecoverable error.
+    If one or more retryable mutations remain incomplete at the end of the function,
+    _MutateRowsIncomplete will be raised to trigger a retry
 
     This function is intended to be wrapped in an api_core.retry.AsyncRetry object, which will handle
     timeouts and retrying raised exceptions.
@@ -52,41 +57,45 @@ async def _mutate_rows_retryable_attempt(
       - error_dict: a dictionary tracking errors associated with each entry index.
             Each retry will append a new error. Successful mutations will clear the error list.
       - predicate: a function that takes an exception and returns True if the exception is retryable.
+    Raises:
+      - _MutateRowsIncomplete: if one or more retryable mutations remain incomplete at the end of the function
+      - GoogleAPICallError: if the server returns an error on the grpc call
     """
     new_request = request.copy()
-    while any(mutation is not None for mutation in mutation_dict.values()):
-        await asyncio.sleep(0)
-        # keep map between sub-request indices and global entry indices
-        index_map : dict[int, int] = {}
-        # continue to retry until timeout, or all mutations are complete (success or failure)
-        request_entries : list[dict[str, Any]] = []
-        for index, entry in mutation_dict.items():
-            if entry is not None:
-                index_map[len(request_entries)] = index
-                request_entries.append(entry._to_dict())
-        new_request["entries"] = request_entries
-        async for result_list in await gapic_client.mutate_rows(
-            new_request, timeout=per_request_timeout
-        ):
-            for result in result_list.entries:
-                # convert sub-request index to global index
-                idx = index_map[result.index]
-                if result.status.code == 0:
-                    # mutation succeeded
-                    mutation_dict[idx] = None
-                    error_dict[idx] = []
-                if result.status.code != 0:
-                    # mutation failed
-                    exception = core_exceptions.from_grpc_status(
-                        result.status.code,
-                        result.status.message,
-                        details=result.status.details,
-                    )
-                    error_dict[idx].append(exception)
-                    # if mutation is non-idempotent or the error is not retryable,
-                    # mark the mutation as terminal
-                    entry = mutation_dict[idx]
-                    if entry is not None:
-                        if not predicate(exception) or and not entry.is_idempotent():
-                            mutation_dict[idx] = None
+    # keep map between sub-request indices and global entry indices
+    index_map : dict[int, int] = {}
+    # continue to retry until timeout, or all mutations are complete (success or failure)
+    request_entries : list[dict[str, Any]] = []
+    for index, entry in mutation_dict.items():
+        if entry is not None:
+            index_map[len(request_entries)] = index
+            request_entries.append(entry._to_dict())
+    new_request["entries"] = request_entries
+    async for result_list in await gapic_client.mutate_rows(
+        new_request, timeout=per_request_timeout
+    ):
+        for result in result_list.entries:
+            # convert sub-request index to global index
+            idx = index_map[result.index]
+            if result.status.code == 0:
+                # mutation succeeded
+                mutation_dict[idx] = None
+                error_dict[idx] = []
+            if result.status.code != 0:
+                # mutation failed
+                exception = core_exceptions.from_grpc_status(
+                    result.status.code,
+                    result.status.message,
+                    details=result.status.details,
+                )
+                error_dict[idx].append(exception)
+                # if mutation is non-idempotent or the error is not retryable,
+                # mark the mutation as terminal
+                entry = mutation_dict[idx]
+                if entry is not None:
+                    if not predicate(exception) or not entry.is_idempotent():
+                        mutation_dict[idx] = None
+    if any(mutation is not None for mutation in mutation_dict.values()):
+        # unfinished work; raise exception to trigger retry
+        raise _MutateRowsIncomplete()
 
