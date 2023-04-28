@@ -39,8 +39,8 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-cov",
     "pytest-asyncio",
 ]
-UNIT_TEST_EXTERNAL_DEPENDENCIES = []
-UNIT_TEST_LOCAL_DEPENDENCIES = ["python-api-core"]
+UNIT_TEST_EXTERNAL_DEPENDENCIES = ["git+https://github.com/googleapis/python-api-core.git@retry_generators"]
+UNIT_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []
 UNIT_TEST_EXTRAS = []
 UNIT_TEST_EXTRAS_BY_PYTHON = {}
@@ -52,8 +52,9 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "pytest-asyncio",
     "google-cloud-testutils",
 ]
-SYSTEM_TEST_EXTERNAL_DEPENDENCIES = []
-SYSTEM_TEST_LOCAL_DEPENDENCIES = ["python-api-core"]
+SYSTEM_TEST_EXTERNAL_DEPENDENCIES = ["git+https://github.com/googleapis/python-api-core.git@retry_generators"]
+SYSTEM_TEST_LOCAL_DEPENDENCIES = []
+UNIT_TEST_DEPENDENCIES = []
 SYSTEM_TEST_DEPENDENCIES = []
 SYSTEM_TEST_EXTRAS = []
 SYSTEM_TEST_EXTRAS_BY_PYTHON = {}
