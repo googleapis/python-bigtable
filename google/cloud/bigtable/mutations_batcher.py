@@ -55,7 +55,7 @@ class MutationsBatcher:
         max_mutation_bytes: int = 20 * MB_SIZE,
         flush_interval: float = 5,
     ):
-        self._queue_map : dict[row_key, list[Mutation]] = {}
+        self._queue : asyncio.Queue[BulkMutationsEntry] = asyncio.Queue()
         self._table : "Table" = table
         self._max_mutation_bytes = max_mutation_bytes
         self._flush_limit_bytes = flush_limit_bytes
@@ -87,8 +87,8 @@ class MutationsBatcher:
             if size > self._max_mutation_bytes:
                 raise ValueError(f"Mutation {idx} exceeds max mutation size: {m.size()} > {self._max_mutation_bytes}")
             total_size += size
-        existing_mutations = self._queue_map.setdefault(row_key, [])
-        existing_mutations.extend(mutations)
+        new_batch = BulkMutationsEntry(row_key, mutations)
+        await self._queue.put(new_batch)
         self._queued_size += total_size
         self._queued_count += len(mutations)
         if self._queued_size > self._flush_limit_bytes or self._queued_count > self._flush_limit_count:
@@ -104,9 +104,10 @@ class MutationsBatcher:
         """
         entries : list[BulkMutationsEntry] = []
         # reset queue
-        old_queue, self._queue_map, self._queued_size, self._queued_count = self._queue_map, {}, 0, 0
-        for key, mutations in old_queue.items():
-            entries.append(BulkMutationsEntry(key, mutations))
+        while not self._queue.empty():
+            entries.append(await self._queue.get())
+        self._queued_size = 0
+        self._queued_count = 0
         if entries:
             await self._table.bulk_mutate_rows(entries)
 
