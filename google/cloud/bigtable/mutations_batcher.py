@@ -18,6 +18,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import Mutation
+from google.cloud.bigtable.mutations import BulkMutationsEntry
 from google.cloud.bigtable.row import row_key
 from google.cloud.bigtable.row_filters import RowFilter
 
@@ -49,14 +50,20 @@ class MutationsBatcher:
     def __init__(
         self,
         table: "Table",
-        flush_count: int = 100,
-        flush_size_bytes: int = 100 * MB_SIZE,
+        flush_limit_count: int = 100,
+        flush_limit_bytes: int = 100 * MB_SIZE,
         max_mutation_bytes: int = 20 * MB_SIZE,
         flush_interval: float = 5,
     ):
         self._queue_map : dict[row_key, list[Mutation]] = {}
         self._table : "Table" = table
+        self._max_mutation_bytes = max_mutation_bytes
+        self._flush_limit_bytes = flush_limit_bytes
+        self._flush_limit_count = flush_limit_count
+        self._queued_size = 0
+        self._queued_count = 0
         self._flush_timer_task : asyncio.Task[None] = asyncio.create_task(self._flush_timer(flush_interval))
+        self._flush_tasks : list[asyncio.Task[None]] = []
 
     async def _flush_timer(self, interval:float):
         """
@@ -74,8 +81,19 @@ class MutationsBatcher:
             mutations = [mutations]
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")
+        total_size = 0
+        for idx, m in enumerate(mutations):
+            size = m.size()
+            if size > self._max_mutation_bytes:
+                raise ValueError(f"Mutation {idx} exceeds max mutation size: {m.size()} > {self._max_mutation_bytes}")
+            total_size += size
         existing_mutations = self._queue_map.setdefault(row_key, [])
         existing_mutations.extend(mutations)
+        self._queued_size += total_size
+        self._queued_count += len(mutations)
+        if self._queued_size > self._flush_limit_bytes or self._queued_count > self._flush_limit_count:
+            # start a new flush task
+            self._flush_tasks.append(asyncio.create_task(self.flush()))
 
     async def flush(self):
         """
@@ -85,7 +103,9 @@ class MutationsBatcher:
         - MutationsExceptionGroup if any mutation in the batch fails
         """
         entries : list[BulkMutationsEntry] = []
-        for key, mutations in self._queue_map.items():
+        # reset queue
+        old_queue, self._queue_map, self._queued_size, self._queued_count = self._queue_map, {}, 0, 0
+        for key, mutations in old_queue.items():
             entries.append(BulkMutationsEntry(key, mutations))
         if entries:
             await self._table.bulk_mutate_rows(entries)
@@ -98,11 +118,16 @@ class MutationsBatcher:
         """For context manager API"""
         await self.close()
 
-    async def close(self):
+    async def close(self, timeout: float = 5.0):
         """
         Flush queue and clean up resources
         """
         await self.flush()
         self._flush_timer_task.cancel()
-        await self._flush_timer_task
+        for task in self._flush_tasks:
+            task.cancel()
+        group = asyncio.gather([*self._flush_tasks, self._flush_timer_task], return_exceptions=True)
+        self._flush_tasks = []
+        await asyncio.wait_for(group, timeout=timeout)
+
 

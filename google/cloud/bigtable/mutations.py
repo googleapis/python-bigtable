@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from sys import getsizeof
 
 
 class Mutation(ABC):
@@ -34,6 +35,12 @@ class Mutation(ABC):
 
     def __str__(self) -> str:
         return str(self._to_dict())
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
 
 
 @dataclass
