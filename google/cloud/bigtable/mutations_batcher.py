@@ -27,8 +27,19 @@ if TYPE_CHECKING:
 
 
 class _FlowControl:
+    """
+    Manages underlying rpcs for MutationsBatcher. Ensures that in-flight requests
+    stay within the configured limits (max_mutation_count, max_mutation_bytes).
+    """
 
     def __init__(self, table, max_mutation_count, max_mutation_bytes):
+        """
+        Args:
+          - table: Table object that performs rpc calls
+          - max_mutation_count: maximum number of mutations to send in a single rpc.
+             This corresponds to individual mutations in a single BulkMutationsEntry.
+          - max_mutation_bytes: maximum number of bytes to send in a single rpc
+        """
         self.table = table
         self.max_mutation_count = max_mutation_count
         self.max_mutation_bytes = max_mutation_bytes
@@ -36,6 +47,10 @@ class _FlowControl:
         self.available_mutation_bytes : asyncio.Semaphore = asyncio.Semaphore(max_mutation_bytes)
 
     def _mutation_fits(self, mutation: BulkMutationsEntry) -> bool:
+        """
+        Checks if a mutation fits within the current flow control limits
+        """
+        # TODO: is _value safe to use?
         return (
             not self.available_mutation_count.locked()
             and not self.available_mutation_bytes.locked()
@@ -44,6 +59,10 @@ class _FlowControl:
         )
 
     async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None):
+        """
+        Ascynronously send the set of mutations to the server. This method will block
+        when the flow control limits are reached.
+        """
         errors : list[FailedMutationEntryError] = []
         while mutations:
             batch : list[BulkMutationsEntry] = []
@@ -72,6 +91,7 @@ class _FlowControl:
                 batch_bytes += next_mutation_size
             # start mutate_rows rpc
             try:
+                # TODO: free up space as individual mutations are completed
                 await self.table.mutate_rows(batch, operation_timeout=timeout, per_request_timeout=timeout)
             except MutationsExceptionGroup as e:
                 errors.extend(e.exceptions)
@@ -161,12 +181,21 @@ class MutationsBatcher:
     def __init__(
         self,
         table: "Table",
+        flush_interval: float = 5,
         flush_limit_count: int = 100,
         flush_limit_bytes: int = 20 * MB_SIZE,
         flow_control_max_count: int = 100000,
         flow_control_max_bytes: int = 100 * MB_SIZE,
-        flush_interval: float = 5,
     ):
+        """
+        Args:
+          - table: Table to preform rpc calls
+          - flush_interval: Automatically flush every flush_interval seconds
+          - flush_limit_count: Flush immediately after flush_limit_count mutations are added
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added
+          - flow_control_max_count: Maximum number of inflight mutations
+          - flow_control_max_bytes: Maximum number of inflight bytes
+        """
         self.closed : bool = False
         self._queue : _BatchMutationsQueue = _BatchMutationsQueue()
         self._flow_control = _FlowControl(table, flow_control_max_count, flow_control_max_bytes)
@@ -178,7 +207,7 @@ class MutationsBatcher:
 
     async def _flush_timer(self, interval:float):
         """
-        Flush queue on a timer
+        Triggers new flush tasks every `interval` seconds
         """
         while not self.closed:
             await asyncio.sleep(interval)
@@ -189,7 +218,7 @@ class MutationsBatcher:
 
     async def append(self, mutations:BulkMutationsEntry):
         """
-        Add a new mutation to the internal queue
+        Add a new set of mutations to the internal queue
         """
         if self.closed:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
