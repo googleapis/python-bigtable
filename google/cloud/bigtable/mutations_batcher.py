@@ -20,9 +20,68 @@ from typing import TYPE_CHECKING
 from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.mutations import BulkMutationsEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
+
+
+class _FlowControl:
+
+    def __init__(self, table, max_mutation_count, max_mutation_bytes):
+        self.table = table
+        self.max_mutation_count = max_mutation_count
+        self.max_mutation_bytes = max_mutation_bytes
+        self.available_mutation_count : asyncio.Semaphore = asyncio.Semaphore(max_mutation_count)
+        self.available_mutation_bytes : asyncio.Semaphore = asyncio.Semaphore(max_mutation_bytes)
+
+    def _mutation_fits(self, mutation: BulkMutationsEntry) -> bool:
+        return (
+            not self.available_mutation_count.locked()
+            and not self.available_mutation_bytes.locked()
+            and self.available_mutation_count._value >= len(mutation.mutations)
+            and self.available_mutation_bytes._value >= mutation.size()
+        )
+
+    async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None):
+        errors : list[FailedMutationEntryError] = []
+        while mutations:
+            batch : list[BulkMutationsEntry] = []
+            batch_bytes = 0
+            # grab at least one mutation
+            next_mutation = mutations.pop()
+            next_mutation_size = next_mutation.size()
+            # do extra sanity check to avoid deadlocks
+            if len(next_mutation.mutations) > self.max_mutation_count:
+                raise ValueError(
+                    f"Mutation count {len(next_mutation.mutations)} exceeds max mutation count {self.max_mutation_count}"
+                )
+            if next_mutation_size > self.max_mutation_bytes:
+                raise ValueError(
+                    f"Mutation size {next_mutation_size} exceeds max mutation size {self.max_mutation_bytes}"
+                )
+            self.available_mutation_count.acquire(len(next_mutation.mutations))
+            self.available_mutation_bytes.acquire(next_mutation_size)
+            # fill up batch until we hit lock
+            while mutations and self._mutation_fits(mutations[0]):
+                next_mutation = mutations.pop()
+                next_mutation_size = next_mutation.size()
+                await self.available_mutation_count.acquire(len(next_mutation.mutations))
+                await self.available_mutation_bytes.acquire(next_mutation_size)
+                batch.append(next_mutation)
+                batch_bytes += next_mutation_size
+            # start mutate_rows rpc
+            try:
+                await self.table.mutate_rows(batch, operation_timeout=timeout, per_request_timeout=timeout)
+            except MutationsExceptionGroup as e:
+                errors.extend(e.exceptions)
+            finally:
+                # release locks
+                self.available_mutation_count.release(sum([len(m.mutations) for m in batch]))
+                self.available_mutation_bytes.release(batch_bytes)
+        # raise set of failed mutations on completion
+        if errors:
+            raise MutationsExceptionGroup(errors)
 
 
 class _BatchMutationsQueue(asyncio.Queue[BulkMutationsEntry]):
@@ -103,14 +162,14 @@ class MutationsBatcher:
         self,
         table: "Table",
         flush_limit_count: int = 100,
-        flush_limit_bytes: int = 100 * MB_SIZE,
-        max_mutation_bytes: int = 20 * MB_SIZE,
+        flush_limit_bytes: int = 20 * MB_SIZE,
+        flow_control_max_count: int = 100000,
+        flow_control_max_bytes: int = 100 * MB_SIZE,
         flush_interval: float = 5,
     ):
         self.closed : bool = False
         self._queue : _BatchMutationsQueue = _BatchMutationsQueue()
-        self._table : "Table" = table
-        self._max_mutation_bytes = max_mutation_bytes
+        self._flow_control = _FlowControl(table, flow_control_max_count, flow_control_max_bytes)
         self._flush_limit_bytes = flush_limit_bytes
         self._flush_limit_count = flush_limit_count
         self.exceptions = []
@@ -135,8 +194,10 @@ class MutationsBatcher:
         if self.closed:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         size = mutations.size()
-        if size > self._max_mutation_bytes:
-            raise ValueError(f"Mutation size exceeds max_mutation_bytes: {size} > {self._max_mutation_bytes}")
+        if size > self._flow_control.max_mutation_bytes:
+            raise ValueError(f"Mutation size {size} exceeds flow_control_max_bytes: {self._flow_control.max_mutation_bytes}")
+        if len(mutations.mutations) > self._flow_control.max_mutation_count:
+            raise ValueError(f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}")
         await self._queue.put(mutations)
         if self._queue.mutation_bytes_size > self._flush_limit_bytes or self.mutation_count > self._flush_limit_count:
             # start a new flush task
@@ -159,7 +220,7 @@ class MutationsBatcher:
             entries.append(await self._queue.get())
         if entries:
             try:
-                await self._table.bulk_mutate_rows(entries, operation_timeout=timeout, per_request_timeout=timeout)
+                await self._flow_control.mutate_rows(entries, timeout=timeout)
             except MutationsExceptionGroup as e:
                 if raise_exceptions:
                     raise e
