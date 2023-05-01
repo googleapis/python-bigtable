@@ -51,6 +51,9 @@ from .data import (
     TimestampRange,
     ValueRange,
 )
+from .feature_flags import (
+    FeatureFlags,
+)
 from .request_stats import (
     FullReadStatsView,
     ReadIterationStats,
@@ -96,6 +99,7 @@ __all__ = (
     "StreamPartition",
     "TimestampRange",
     "ValueRange",
+    "FeatureFlags",
     "FullReadStatsView",
     "ReadIterationStats",
     "RequestLatencyStats",

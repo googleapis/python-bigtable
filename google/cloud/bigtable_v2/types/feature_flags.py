@@ -21,9 +21,9 @@ import proto  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.v2',
+    package="google.bigtable.v2",
     manifest={
-        'FeatureFlags',
+        "FeatureFlags",
     },
 )
 
