@@ -44,9 +44,6 @@ class MutationsBatcher:
          batcher.add(row, mut)
     """
 
-    queue: asyncio.Queue[tuple[row_key, list[Mutation]]]
-    conditional_queues: dict[RowFilter, tuple[list[Mutation], list[Mutation]]]
-
     MB_SIZE = 1024 * 1024
 
     def __init__(
@@ -55,30 +52,22 @@ class MutationsBatcher:
         flush_count: int = 100,
         flush_size_bytes: int = 100 * MB_SIZE,
         max_mutation_bytes: int = 20 * MB_SIZE,
-        flush_interval: int = 5,
+        flush_interval: float = 5,
         metadata: list[tuple[str, str]] | None = None,
     ):
-        raise NotImplementedError
+        self._queue_map : dict[row_key, list[Mutation]] = {}
+        self._table = table
 
-    async def append(self, row_key: str | bytes, mutation: Mutation | list[Mutation]):
+    async def append(self, row_key: str | bytes, mutations: Mutation | list[Mutation]):
         """
         Add a new mutation to the internal queue
         """
-        raise NotImplementedError
-
-    async def append_conditional(
-        self,
-        predicate_filter: RowFilter,
-        row_key: str | bytes,
-        if_true_mutations: Mutation | list[Mutation] | None = None,
-        if_false_mutations: Mutation | list[Mutation] | None = None,
-    ):
-        """
-        Apply a different set of mutations based on the outcome of predicate_filter
-
-        Calls check_and_mutate_row internally on flush
-        """
-        raise NotImplementedError
+        if isinstance(mutations, Mutation):
+            mutations = [mutations]
+        if isinstance(row_key, str):
+            row_key = row_key.encode("utf-8")
+        existing_mutations = self._queue_map.setdefault(row_key, [])
+        existing_mutations.extend(mutations)
 
     async def flush(self):
         """
@@ -87,18 +76,21 @@ class MutationsBatcher:
         Raises:
         - MutationsExceptionGroup if any mutation in the batch fails
         """
-        raise NotImplementedError
+        entries : list[BulkMutationsEntry] = []
+        for key, mutations in self._queue_map.items():
+            entries.append(BulkMutationsEntry(key, mutations))
+        await self._table.bulk_mutate_rows(entries)
 
     async def __aenter__(self):
         """For context manager API"""
-        raise NotImplementedError
+        return self
 
     async def __aexit__(self, exc_type, exc, tb):
         """For context manager API"""
-        raise NotImplementedError
+        await self.close()
 
     async def close(self):
         """
         Flush queue and clean up resources
         """
-        raise NotImplementedError
+        await self.flush()
