@@ -71,7 +71,7 @@ class MutationsBatcher:
         """
         while True:
             await asyncio.sleep(interval)
-            await self.flush()
+            await self.flush(timeout=None, raise_on_error=False)
 
     async def append(self, mutations:BulkMutationsEntry):
         """
@@ -85,14 +85,18 @@ class MutationsBatcher:
         self._queued_count += len(mutations)
         if self._queued_size > self._flush_limit_bytes or self._queued_count > self._flush_limit_count:
             # start a new flush task
-            self._flush_tasks.append(asyncio.create_task(self.flush()))
+            self._flush_tasks.append(asyncio.create_task(self.flush(timeout=None, raise_exceptions=False)))
 
-    async def flush(self):
+    async def flush(self, *, timeout: float | None = 5.0, raise_exceptions=True):
         """
         Send queue over network in as few calls as possible
 
+        Args:
+          - timeout: operation_timeout for underlying rpc, in seconds
+          - raise_exceptions: if True, raise MutationsExceptionGroup if any mutations fail. If False,
+              exceptions are saved in self.exceptions and raised on close()
         Raises:
-        - MutationsExceptionGroup if any mutation in the batch fails
+        - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
         """
         entries : list[BulkMutationsEntry] = []
         # reset queue
@@ -102,10 +106,12 @@ class MutationsBatcher:
         self._queued_count = 0
         if entries:
             try:
-                await self._table.bulk_mutate_rows(entries)
+                await self._table.bulk_mutate_rows(entries, operation_timeout=timeout, per_request_timeout=timeout)
             except MutationsExceptionGroup as e:
-                mutation_exceptions = e.exceptions
-                self.exceptions.extend(mutation_exceptions)
+                if raise_exceptions:
+                    raise e
+                else:
+                    self.exceptions.extend(e.exceptions)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -119,13 +125,12 @@ class MutationsBatcher:
         """
         Flush queue and clean up resources
         """
-        await self.flush()
+        final_flush = self.flush(timeout=timeout, raise_exceptions=False)
         self._flush_timer_task.cancel()
         for task in self._flush_tasks:
             task.cancel()
-        group = asyncio.gather([*self._flush_tasks, self._flush_timer_task], return_exceptions=True)
+        await asyncio.gather([final_flush, *self._flush_tasks, self._flush_timer_task])
         self._flush_tasks = []
-        await asyncio.wait_for(group, timeout=timeout)
         if self.exceptions:
             # TODO: deal with indices
             raise MutationsExceptionGroup(self.exceptions)
