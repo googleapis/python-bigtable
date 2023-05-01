@@ -53,10 +53,18 @@ class MutationsBatcher:
         flush_size_bytes: int = 100 * MB_SIZE,
         max_mutation_bytes: int = 20 * MB_SIZE,
         flush_interval: float = 5,
-        metadata: list[tuple[str, str]] | None = None,
     ):
         self._queue_map : dict[row_key, list[Mutation]] = {}
-        self._table = table
+        self._table : "Table" = table
+        self._flush_timer_task : asyncio.Task[None] = asyncio.create_task(self._flush_timer(flush_interval))
+
+    async def _flush_timer(self, interval:float):
+        """
+        Flush queue on a timer
+        """
+        while True:
+            await asyncio.sleep(interval)
+            await self.flush()
 
     async def append(self, row_key: str | bytes, mutations: Mutation | list[Mutation]):
         """
@@ -79,7 +87,8 @@ class MutationsBatcher:
         entries : list[BulkMutationsEntry] = []
         for key, mutations in self._queue_map.items():
             entries.append(BulkMutationsEntry(key, mutations))
-        await self._table.bulk_mutate_rows(entries)
+        if entries:
+            await self._table.bulk_mutate_rows(entries)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -94,3 +103,6 @@ class MutationsBatcher:
         Flush queue and clean up resources
         """
         await self.flush()
+        self._flush_timer_task.cancel()
+        await self._flush_timer_task
+
