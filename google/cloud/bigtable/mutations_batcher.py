@@ -19,8 +19,7 @@ from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.mutations import BulkMutationsEntry
-from google.cloud.bigtable.row import row_key
-from google.cloud.bigtable.row_filters import RowFilter
+from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
@@ -62,6 +61,7 @@ class MutationsBatcher:
         self._flush_limit_count = flush_limit_count
         self._queued_size = 0
         self._queued_count = 0
+        self.exceptions = []
         self._flush_timer_task : asyncio.Task[None] = asyncio.create_task(self._flush_timer(flush_interval))
         self._flush_tasks : list[asyncio.Task[None]] = []
 
@@ -73,23 +73,15 @@ class MutationsBatcher:
             await asyncio.sleep(interval)
             await self.flush()
 
-    async def append(self, row_key: str | bytes, mutations: Mutation | list[Mutation]):
+    async def append(self, mutations:BulkMutationsEntry):
         """
         Add a new mutation to the internal queue
         """
-        if isinstance(mutations, Mutation):
-            mutations = [mutations]
-        if isinstance(row_key, str):
-            row_key = row_key.encode("utf-8")
-        total_size = 0
-        for idx, m in enumerate(mutations):
-            size = m.size()
-            if size > self._max_mutation_bytes:
-                raise ValueError(f"Mutation {idx} exceeds max mutation size: {m.size()} > {self._max_mutation_bytes}")
-            total_size += size
-        new_batch = BulkMutationsEntry(row_key, mutations)
-        await self._queue.put(new_batch)
-        self._queued_size += total_size
+        size = mutations.size()
+        if size > self._max_mutation_bytes:
+            raise ValueError(f"Mutation size exceeds max_mutation_bytes: {size} > {self._max_mutation_bytes}")
+        await self._queue.put(mutations)
+        self._queued_size += size
         self._queued_count += len(mutations)
         if self._queued_size > self._flush_limit_bytes or self._queued_count > self._flush_limit_count:
             # start a new flush task
@@ -109,7 +101,11 @@ class MutationsBatcher:
         self._queued_size = 0
         self._queued_count = 0
         if entries:
-            await self._table.bulk_mutate_rows(entries)
+            try:
+                await self._table.bulk_mutate_rows(entries)
+            except MutationsExceptionGroup as e:
+                mutation_exceptions = e.exceptions
+                self.exceptions.extend(mutation_exceptions)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -130,5 +126,8 @@ class MutationsBatcher:
         group = asyncio.gather([*self._flush_tasks, self._flush_timer_task], return_exceptions=True)
         self._flush_tasks = []
         await asyncio.wait_for(group, timeout=timeout)
+        if self.exceptions:
+            # TODO: deal with indices
+            raise MutationsExceptionGroup(self.exceptions)
 
 

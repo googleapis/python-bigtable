@@ -138,3 +138,9 @@ class BulkMutationsEntry:
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
         return all(mutation.is_idempotent() for mutation in self.mutations)
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
