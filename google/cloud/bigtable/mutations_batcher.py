@@ -54,6 +54,7 @@ class MutationsBatcher:
         max_mutation_bytes: int = 20 * MB_SIZE,
         flush_interval: float = 5,
     ):
+        self.closed : bool = False
         self._queue : asyncio.Queue[BulkMutationsEntry] = asyncio.Queue()
         self._table : "Table" = table
         self._max_mutation_bytes = max_mutation_bytes
@@ -69,20 +70,25 @@ class MutationsBatcher:
         """
         Flush queue on a timer
         """
-        while True:
+        while not self.closed:
             await asyncio.sleep(interval)
-            await self.flush(timeout=None, raise_on_error=False)
+            # add new flush task to list
+            if not self.closed:
+                new_task = asyncio.create_task(self.flush(timeout=None, raise_exceptions=False))
+                self._flush_tasks.append(new_task)
 
     async def append(self, mutations:BulkMutationsEntry):
         """
         Add a new mutation to the internal queue
         """
+        if self.closed:
+            raise RuntimeError("Cannot append to closed MutationsBatcher")
         size = mutations.size()
         if size > self._max_mutation_bytes:
             raise ValueError(f"Mutation size exceeds max_mutation_bytes: {size} > {self._max_mutation_bytes}")
         await self._queue.put(mutations)
         self._queued_size += size
-        self._queued_count += len(mutations)
+        self._queued_count += len(mutations.mutations)
         if self._queued_size > self._flush_limit_bytes or self._queued_count > self._flush_limit_count:
             # start a new flush task
             self._flush_tasks.append(asyncio.create_task(self.flush(timeout=None, raise_exceptions=False)))
@@ -125,11 +131,12 @@ class MutationsBatcher:
         """
         Flush queue and clean up resources
         """
+        self.closed = True
         final_flush = self.flush(timeout=timeout, raise_exceptions=False)
+        finalize_tasks = asyncio.wait_for(asyncio.gather(*self._flush_tasks), timeout=timeout)
         self._flush_timer_task.cancel()
-        for task in self._flush_tasks:
-            task.cancel()
-        await asyncio.gather([final_flush, *self._flush_tasks, self._flush_timer_task])
+        # wait for all to finish
+        await asyncio.gather([final_flush, self._flush_timer_task, finalize_tasks])
         self._flush_tasks = []
         if self.exceptions:
             # TODO: deal with indices
