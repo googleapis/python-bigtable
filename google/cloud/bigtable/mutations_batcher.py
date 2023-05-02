@@ -268,21 +268,23 @@ class MutationsBatcher:
 
         Args:
           - timeout: operation_timeout for underlying rpc, in seconds
-          - raise_exceptions: if True, raise MutationsExceptionGroup if any mutations fail. If False,
-              exceptions are saved in self.exceptions and raised on close()
+          - raise_exceptions: if True, will raise any unreported exceptions from this or previous flushes.
+              If False, exceptions will be stored in self.exceptions and raised on a future flush
+              or when the batcher is closed.
         Raises:
-        - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
+          - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
         """
         entries : list[BulkMutationsEntry] = []
         # reset queue
         while not self._queue.empty():
             entries.append(await self._queue.get())
         if entries:
-            errors = await self._flow_control.mutate_rows(entries, timeout=timeout)
-            if raise_exceptions and errors:
-                raise MutationsExceptionGroup(errors)
-            else:
-                self.exceptions.extend(errors)
+            flush_errors = await self._flow_control.mutate_rows(entries, timeout=timeout)
+            self.exceptions.extend(flush_errors)
+            if raise_exceptions and self.exceptions:
+                # raise any exceptions from this or previous flushes
+                exc_list, self.exceptions = self.exceptions, []
+                raise MutationsExceptionGroup(exc_list)
 
     async def __aenter__(self):
         """For context manager API"""
