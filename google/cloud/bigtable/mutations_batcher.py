@@ -32,30 +32,33 @@ class _FlowControl:
     stay within the configured limits (max_mutation_count, max_mutation_bytes).
     """
 
-    def __init__(self, table, max_mutation_count, max_mutation_bytes):
+    def __init__(self, table, max_mutation_count:float|None, max_mutation_bytes:float|None):
         """
         Args:
           - table: Table object that performs rpc calls
           - max_mutation_count: maximum number of mutations to send in a single rpc.
              This corresponds to individual mutations in a single BulkMutationsEntry.
-          - max_mutation_bytes: maximum number of bytes to send in a single rpc
+             If None, no limit is enforced.
+          - max_mutation_bytes: maximum number of bytes to send in a single rpc.
+             If None, no limit is enforced.
         """
         self.table = table
+        if max_mutation_count is None:
+            self.max_mutation_count = float("inf")
+        if max_mutation_bytes is None:
+            self.max_mutation_bytes = float("inf")
         self.max_mutation_count = max_mutation_count
         self.max_mutation_bytes = max_mutation_bytes
         self.available_mutation_count : asyncio.Semaphore = asyncio.Semaphore(max_mutation_count)
         self.available_mutation_bytes : asyncio.Semaphore = asyncio.Semaphore(max_mutation_bytes)
 
-    def _mutation_fits(self, mutation: BulkMutationsEntry) -> bool:
+    def is_locked(self) -> bool:
         """
-        Checks if a mutation fits within the current flow control limits
+        Check if either flow control semaphore is locked
         """
-        # TODO: is _value safe to use?
         return (
-            not self.available_mutation_count.locked()
-            and not self.available_mutation_bytes.locked()
-            and self.available_mutation_count._value >= len(mutation.mutations)
-            and self.available_mutation_bytes._value >= mutation.size()
+            self.available_mutation_count.locked()
+            or self.available_mutation_bytes.locked()
         )
 
     async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None):
@@ -82,7 +85,7 @@ class _FlowControl:
             self.available_mutation_count.acquire(len(next_mutation.mutations))
             self.available_mutation_bytes.acquire(next_mutation_size)
             # fill up batch until we hit lock
-            while mutations and self._mutation_fits(mutations[0]):
+            while mutations and not self.is_locked():
                 next_mutation = mutations.pop()
                 next_mutation_size = next_mutation.size()
                 await self.available_mutation_count.acquire(len(next_mutation.mutations))
@@ -181,34 +184,40 @@ class MutationsBatcher:
     def __init__(
         self,
         table: "Table",
-        flush_interval: float = 5,
-        flush_limit_count: int = 100,
-        flush_limit_bytes: int = 20 * MB_SIZE,
-        flow_control_max_count: int = 100000,
-        flow_control_max_bytes: int = 100 * MB_SIZE,
+        flush_interval: float | None = 5,
+        flush_limit_count: int | None = 100,
+        flush_limit_bytes: int | None = 20 * MB_SIZE,
+        flow_control_max_count: int | None = 100000,
+        flow_control_max_bytes: int | None = 100 * MB_SIZE,
     ):
         """
         Args:
           - table: Table to preform rpc calls
           - flush_interval: Automatically flush every flush_interval seconds
-          - flush_limit_count: Flush immediately after flush_limit_count mutations are added
-          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added
-          - flow_control_max_count: Maximum number of inflight mutations
-          - flow_control_max_bytes: Maximum number of inflight bytes
+          - flush_limit_count: Flush immediately after flush_limit_count mutations are added.
+              If None, this limit is ignored.
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
+              If None, this limit is ignored.
+          - flow_control_max_count: Maximum number of inflight mutations.
+              If None, this limit is ignored.
+          - flow_control_max_bytes: Maximum number of inflight bytes.
+              If None, this limit is ignored.
         """
         self.closed : bool = False
         self._queue : _BatchMutationsQueue = _BatchMutationsQueue()
         self._flow_control = _FlowControl(table, flow_control_max_count, flow_control_max_bytes)
-        self._flush_limit_bytes = flush_limit_bytes
-        self._flush_limit_count = flush_limit_count
+        self._flush_limit_bytes = flush_limit_bytes if flush_limit_bytes is not None else float("inf")
+        self._flush_limit_count = flush_limit_count if flush_limit_count is not None else float("inf")
         self.exceptions = []
         self._flush_timer_task : asyncio.Task[None] = asyncio.create_task(self._flush_timer(flush_interval))
         self._flush_tasks : list[asyncio.Task[None]] = []
 
-    async def _flush_timer(self, interval:float):
+    async def _flush_timer(self, interval:float | None):
         """
         Triggers new flush tasks every `interval` seconds
         """
+        if interval is None:
+            return
         while not self.closed:
             await asyncio.sleep(interval)
             # add new flush task to list
@@ -228,8 +237,8 @@ class MutationsBatcher:
         if len(mutations.mutations) > self._flow_control.max_mutation_count:
             raise ValueError(f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}")
         await self._queue.put(mutations)
-        if self._queue.mutation_bytes_size > self._flush_limit_bytes or self.mutation_count > self._flush_limit_count:
-            # start a new flush task
+        # start a new flush task if limits exceeded
+        if self._queue.mutation_count > self._flush_limit_count or self._queue.mutation_bytes_size > self._flush_limit_bytes:
             self._flush_tasks.append(asyncio.create_task(self.flush(timeout=None, raise_exceptions=False)))
 
     async def flush(self, *, timeout: float | None = 5.0, raise_exceptions=True):
