@@ -93,26 +93,21 @@ class _FlowControl:
         errors : list[FailedMutationEntryError] = []
         while mutations:
             batch : list[BulkMutationsEntry] = []
-            # grab at least one mutation
-            next_mutation = mutations.pop()
-            next_mutation_size = next_mutation.size()
-            # do extra sanity check to avoid deadlocks
-            if len(next_mutation.mutations) > self.max_mutation_count:
-                raise ValueError(
-                    f"Mutation count {len(next_mutation.mutations)} exceeds max mutation count {self.max_mutation_count}"
-                )
-            if next_mutation_size > self.max_mutation_bytes:
-                raise ValueError(
-                    f"Mutation size {next_mutation_size} exceeds max mutation size {self.max_mutation_bytes}"
-                )
-            self.available_mutation_count.acquire(len(next_mutation.mutations))
-            self.available_mutation_bytes.acquire(next_mutation_size)
-            # fill up batch until we hit lock
-            while mutations and not self.is_locked():
+            # fill up batch until we hit a lock. Grab at least one entry
+            while mutations and (not self.is_locked() or not batch):
                 next_mutation = mutations.pop()
                 next_mutation_size = next_mutation.size()
-                await self.available_mutation_count.acquire(len(next_mutation.mutations))
-                await self.available_mutation_bytes.acquire(next_mutation_size)
+                # do extra sanity check to avoid deadlocks
+                if len(next_mutation.mutations) > self.max_mutation_count:
+                    raise ValueError(
+                        f"Mutation count {len(next_mutation.mutations)} exceeds max mutation count {self.max_mutation_count}"
+                    )
+                if next_mutation_size > self.max_mutation_bytes:
+                    raise ValueError(
+                        f"Mutation size {next_mutation_size} exceeds max mutation size {self.max_mutation_bytes}"
+                    )
+                self.available_mutation_count.acquire(len(next_mutation.mutations))
+                self.available_mutation_bytes.acquire(next_mutation_size)
                 batch.append(next_mutation)
             # start mutate_rows rpc
             try:
