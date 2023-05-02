@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, AsyncIterable, Set, TYPE_CHECKING
+from typing import cast, Any, Optional, AsyncIterable, Set, Callable, TYPE_CHECKING
 
 import asyncio
 import grpc
@@ -659,6 +659,7 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
+        on_success: Callable[[BulkMutationsEntry], None] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -684,7 +685,8 @@ class Table:
                 in seconds. If it takes longer than this time to complete, the request
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
-
+            - on_success: a callback function that will be called when each mutation
+                entry is confirmed to be applied successfully.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -703,12 +705,21 @@ class Table:
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
+        callback: Callable[[BulkMutationsEntry, Exception | None], None] | None = None
+        if on_success is not None:
+            # convert on_terminal_state callback to callback for successful results only
+            # failed results will be rasied as exceptions
+            def callback(entry: BulkMutationsEntry, exc: Exception | None):
+                if exc is None and on_success is not None:
+                    on_success(entry)
+
         await _mutate_rows_operation(
             self.client._gapic_client,
             request,
             mutation_entries,
             operation_timeout,
             per_request_timeout,
+            on_terminal_state=callback,
         )
 
     async def check_and_mutate_row(
