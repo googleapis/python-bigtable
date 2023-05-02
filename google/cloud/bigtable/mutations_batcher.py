@@ -17,10 +17,11 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.mutations import BulkMutationsEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
+
+from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
@@ -61,6 +62,29 @@ class _FlowControl:
             or self.available_mutation_bytes.locked()
         )
 
+    def _on_mutation_entry_complete(self, mutation_entry:BulkMutationsEntry, exception:Exception|None):
+        """
+        Each time an in-flight mutation is complete, release the flow control semaphore
+        """
+        self.available_mutation_count.release(len(mutation_entry.mutations))
+        self.available_mutation_bytes.release(mutation_entry.size())
+
+    def _execute_mutate_rows(self, batch:list[BulkMutationsEntry], timeout:float | None):
+        """
+        Helper to execute mutation operation on a batch
+
+        Args:
+          - batch: list of BulkMutationsEntry objects to send to server
+          - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
+              If not given, will use table defaults
+        """
+        request = {"table_name": self.table.table_name}
+        if self.table.app_profile_id:
+            request["app_profile_id"] = self.table.app_profile_id
+        operation_timeout = timeout or self.table.default_operation_timeout
+        request_timeout = timeout or self.table.default_per_request_timeout
+        await _mutate_rows_operation(self.table.client._gapic_client, request, batch, operation_timeout, request_timeout, self._on_mutation_entry_complete)
+
     async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None):
         """
         Ascynronously send the set of mutations to the server. This method will block
@@ -69,7 +93,6 @@ class _FlowControl:
         errors : list[FailedMutationEntryError] = []
         while mutations:
             batch : list[BulkMutationsEntry] = []
-            batch_bytes = 0
             # grab at least one mutation
             next_mutation = mutations.pop()
             next_mutation_size = next_mutation.size()
@@ -91,17 +114,11 @@ class _FlowControl:
                 await self.available_mutation_count.acquire(len(next_mutation.mutations))
                 await self.available_mutation_bytes.acquire(next_mutation_size)
                 batch.append(next_mutation)
-                batch_bytes += next_mutation_size
             # start mutate_rows rpc
             try:
-                # TODO: free up space as individual mutations are completed
-                await self.table.mutate_rows(batch, operation_timeout=timeout, per_request_timeout=timeout)
+                await self._execute_mutate_rows(batch, timeout)
             except MutationsExceptionGroup as e:
                 errors.extend(e.exceptions)
-            finally:
-                # release locks
-                self.available_mutation_count.release(sum([len(m.mutations) for m in batch]))
-                self.available_mutation_bytes.release(batch_bytes)
         # raise set of failed mutations on completion
         if errors:
             raise MutationsExceptionGroup(errors)
