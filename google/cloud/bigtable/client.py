@@ -39,14 +39,11 @@ import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
-from google.cloud.bigtable.exceptions import FailedMutationEntryError
-from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+
 from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
-from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
-from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
+from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -706,72 +703,13 @@ class Table:
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
-        mutations_dict: dict[int, BulkMutationsEntry | None] = {
-            idx: mut for idx, mut in enumerate(mutation_entries)
-        }
-        error_dict: dict[int, list[Exception]] = {
-            idx: [] for idx in mutations_dict.keys()
-        }
-
-        predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
-            _MutateRowsIncomplete,
+        await _mutate_rows_operation(
+            self.client._gapic_client,
+            request,
+            mutation_entries,
+            operation_timeout,
+            per_request_timeout,
         )
-
-        def on_error_fn(exc):
-            if predicate(exc) and not isinstance(exc, _MutateRowsIncomplete):
-                # add this exception to list for each active mutation
-                for idx in error_dict.keys():
-                    if mutations_dict[idx] is not None:
-                        error_dict[idx].append(exc)
-                # remove non-idempotent mutations from mutations_dict, so they are not retried
-                for idx, mut in mutations_dict.items():
-                    if mut is not None and not mut.is_idempotent():
-                        mutations_dict[idx] = None
-
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            on_error=on_error_fn,
-            timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-        )
-        # wrap attempt in retry logic
-        retry_wrapped = retry(_mutate_rows_retryable_attempt)
-        # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-        deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout)
-        try:
-            # trigger mutate_rows
-            await deadline_wrapped(
-                self.client._gapic_client,
-                request,
-                per_request_timeout,
-                mutations_dict,
-                error_dict,
-                predicate,
-            )
-        except Exception as exc:
-            # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
-            for idx in error_dict.keys():
-                if mutations_dict[idx] is not None:
-                    error_dict[idx].append(exc)
-        finally:
-            # raise exception detailing incomplete mutations
-            all_errors = []
-            for idx, exc_list in error_dict.items():
-                if exc_list:
-                    if len(exc_list) == 1:
-                        cause_exc = exc_list[0]
-                    else:
-                        cause_exc = RetryExceptionGroup(exc_list)
-                    all_errors.append(
-                        FailedMutationEntryError(idx, mutation_entries[idx], cause_exc)
-                    )
-            if all_errors:
-                raise MutationsExceptionGroup(all_errors, len(mutation_entries))
 
     async def check_and_mutate_row(
         self,

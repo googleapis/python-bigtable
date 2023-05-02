@@ -17,6 +17,8 @@ from __future__ import annotations
 from typing import Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
+from google.api_core import retry_async as retries
+import google.cloud.bigtable.exceptions as bt_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -31,6 +33,96 @@ class _MutateRowsIncomplete(RuntimeError):
     """
 
     pass
+
+
+async def _mutate_rows_operation(
+    gapic_client: "BigtableAsyncClient",
+    request: dict[str, Any],
+    mutation_entries: list["BulkMutationsEntry"],
+    operation_timeout: float,
+    per_request_timeout: float | None,
+):
+    """
+    Helper function for managing a single mutate_rows operation, end-to-end.
+
+    Args:
+      - gapic_client: the client to use for the mutate_rows call
+      - request: A request dict containing table name, app profile id, and other details to inclide in the request
+      - mutation_entries: a list of BulkMutationsEntry objects to send to the server
+      - operation_timeout: the timeout to use for the entire operation, in seconds.
+      - per_request_timeout: the timeout to use for each mutate_rows attempt, in seconds.
+          If not specified, the request will run until operation_timeout is reached.
+    """
+    mutations_dict: dict[int, BulkMutationsEntry | None] = {
+        idx: mut for idx, mut in enumerate(mutation_entries)
+    }
+    error_dict: dict[int, list[Exception]] = {idx: [] for idx in mutations_dict.keys()}
+
+    predicate = retries.if_exception_type(
+        core_exceptions.DeadlineExceeded,
+        core_exceptions.ServiceUnavailable,
+        core_exceptions.Aborted,
+        _MutateRowsIncomplete,
+    )
+
+    def on_error_fn(exc):
+        if predicate(exc) and not isinstance(exc, _MutateRowsIncomplete):
+            # add this exception to list for each active mutation
+            for idx in error_dict.keys():
+                if mutations_dict[idx] is not None:
+                    error_dict[idx].append(exc)
+            # remove non-idempotent mutations from mutations_dict, so they are not retried
+            for idx, mut in mutations_dict.items():
+                if mut is not None and not mut.is_idempotent():
+                    mutations_dict[idx] = None
+
+    retry = retries.AsyncRetry(
+        predicate=predicate,
+        on_error=on_error_fn,
+        timeout=operation_timeout,
+        initial=0.01,
+        multiplier=2,
+        maximum=60,
+    )
+    # wrap attempt in retry logic
+    retry_wrapped = retry(_mutate_rows_retryable_attempt)
+    # convert RetryErrors from retry wrapper into DeadlineExceeded errors
+    deadline_wrapped = bt_exceptions._convert_retry_deadline(
+        retry_wrapped, operation_timeout
+    )
+    try:
+        # trigger mutate_rows
+        await deadline_wrapped(
+            gapic_client,
+            request,
+            per_request_timeout,
+            mutations_dict,
+            error_dict,
+            predicate,
+        )
+    except Exception as exc:
+        # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
+        for idx in error_dict.keys():
+            if mutations_dict[idx] is not None:
+                error_dict[idx].append(exc)
+    finally:
+        # raise exception detailing incomplete mutations
+        all_errors = []
+        for idx, exc_list in error_dict.items():
+            if exc_list:
+                if len(exc_list) == 1:
+                    cause_exc = exc_list[0]
+                else:
+                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
+                all_errors.append(
+                    bt_exceptions.FailedMutationEntryError(
+                        idx, mutation_entries[idx], cause_exc
+                    )
+                )
+        if all_errors:
+            raise bt_exceptions.MutationsExceptionGroup(
+                all_errors, len(mutation_entries)
+            )
 
 
 async def _mutate_rows_retryable_attempt(
