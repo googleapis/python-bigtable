@@ -64,12 +64,12 @@ class _FlowControl:
 
     def _on_mutation_entry_complete(self, mutation_entry:BulkMutationsEntry, exception:Exception|None):
         """
-        Each time an in-flight mutation is complete, release the flow control semaphore
+        Every time an in-flight mutation is complete, release the flow control semaphore
         """
         self.available_mutation_count.release(len(mutation_entry.mutations))
         self.available_mutation_bytes.release(mutation_entry.size())
 
-    def _execute_mutate_rows(self, batch:list[BulkMutationsEntry], timeout:float | None):
+    def _execute_mutate_rows(self, batch:list[BulkMutationsEntry], timeout:float | None) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
 
@@ -77,18 +77,30 @@ class _FlowControl:
           - batch: list of BulkMutationsEntry objects to send to server
           - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
               If not given, will use table defaults
+        Returns:
+          - list of FailedMutationEntryError objects for mutations that failed.
+              FailedMutationEntryError objects will not contain index information
         """
         request = {"table_name": self.table.table_name}
         if self.table.app_profile_id:
             request["app_profile_id"] = self.table.app_profile_id
         operation_timeout = timeout or self.table.default_operation_timeout
         request_timeout = timeout or self.table.default_per_request_timeout
-        await _mutate_rows_operation(self.table.client._gapic_client, request, batch, operation_timeout, request_timeout, self._on_mutation_entry_complete)
+        try:
+            await _mutate_rows_operation(self.table.client._gapic_client, request, batch, operation_timeout, request_timeout, self._on_mutation_entry_complete)
+        except MutationsExceptionGroup as e:
+            for subexc in e.exceptions:
+                subexc.index = None
+            return e.exceptions
+        return []
 
-    async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None):
+    async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None) -> list[FailedMutationEntryError]:
         """
         Ascynronously send the set of mutations to the server. This method will block
         when the flow control limits are reached.
+
+        Returns:
+          - list of FailedMutationEntryError objects for mutations that failed
         """
         errors : list[FailedMutationEntryError] = []
         while mutations:
@@ -110,13 +122,10 @@ class _FlowControl:
                 self.available_mutation_bytes.acquire(next_mutation_size)
                 batch.append(next_mutation)
             # start mutate_rows rpc
-            try:
-                await self._execute_mutate_rows(batch, timeout)
-            except MutationsExceptionGroup as e:
-                errors.extend(e.exceptions)
+            batch_errors = self._execute_mutate_rows(batch, timeout)
+            errors.extend(batch_errors)
         # raise set of failed mutations on completion
-        if errors:
-            raise MutationsExceptionGroup(errors)
+        return errors
 
 
 class _BatchMutationsQueue(asyncio.Queue[BulkMutationsEntry]):
@@ -269,15 +278,11 @@ class MutationsBatcher:
         while not self._queue.empty():
             entries.append(await self._queue.get())
         if entries:
-            try:
-                await self._flow_control.mutate_rows(entries, timeout=timeout)
-            except MutationsExceptionGroup as e:
-                if raise_exceptions:
-                    raise e
-                else:
-                    for failed_mutation_exc in e.exceptions:
-                        failed_mutation_exc.index = None
-                        self.exceptions.append(failed_mutation_exc)
+            errors = await self._flow_control.mutate_rows(entries, timeout=timeout)
+            if raise_exceptions and errors:
+                raise MutationsExceptionGroup(errors)
+            else:
+                self.exceptions.extend(errors)
 
     async def __aenter__(self):
         """For context manager API"""
