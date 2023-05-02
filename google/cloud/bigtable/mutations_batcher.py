@@ -263,7 +263,9 @@ class MutationsBatcher:
                 if raise_exceptions:
                     raise e
                 else:
-                    self.exceptions.extend(e.exceptions)
+                    for failed_mutation_exc in e.exceptions:
+                        failed_mutation_exc.index = None
+                        self.exceptions.append(failed_mutation_exc)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -285,6 +287,5 @@ class MutationsBatcher:
         await asyncio.gather([final_flush, self._flush_timer_task, finalize_tasks])
         self._flush_tasks = []
         if self.exceptions:
-            # TODO: deal with indices
             raise MutationsExceptionGroup(self.exceptions)
 

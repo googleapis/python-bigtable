@@ -119,14 +119,15 @@ class FailedMutationEntryError(Exception):
 
     def __init__(
         self,
-        failed_idx: int,
+        failed_idx: int | None,
         failed_mutation_entry: "BulkMutationsEntry",
         cause: Exception,
     ):
         idempotent_msg = (
             "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
         )
-        message = f"Failed {idempotent_msg} mutation entry at index {failed_idx} with cause: {cause!r}"
+        index_msg = f" at index {failed_idx}" if failed_idx is not None else ""
+        message = f"Failed {idempotent_msg} mutation entry {index_msg} with cause: {cause!r}"
         super().__init__(message)
         self.index = failed_idx
         self.entry = failed_mutation_entry
