@@ -126,6 +126,8 @@ class BulkMutationsEntry:
             row_key = row_key.encode("utf-8")
         if isinstance(mutations, Mutation):
             mutations = [mutations]
+        if len(mutations) == 0:
+            raise ValueError("mutations must not be empty")
         self.row_key = row_key
         self.mutations = mutations
 
