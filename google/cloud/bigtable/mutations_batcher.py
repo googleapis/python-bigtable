@@ -284,11 +284,18 @@ class MutationsBatcher:
             )
             self.exceptions.extend(flush_errors)
             self._entries_processed_since_last_raise += flush_count
-            if raise_exceptions and self.exceptions:
-                # raise any exceptions from this or previous flushes
-                exc_list, self.exceptions = self.exceptions, []
-                raise_count, self._entries_processed_since_last_raise = self._entries_processed_since_last_raise, 0
-                raise MutationsExceptionGroup(exc_list, raise_count)
+            # raise any exceptions from this or previous flushes
+            if raise_exceptions:
+                self._raise_exceptions()
+
+    def _raise_exceptions(self):
+        """
+        Raise any unreported exceptions from background flush operations
+        """
+        if self.exceptions:
+            exc_list, self.exceptions = self.exceptions, []
+            raise_count, self._entries_processed_since_last_raise = self._entries_processed_since_last_raise, 0
+            raise MutationsExceptionGroup(exc_list, raise_count)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -310,5 +317,5 @@ class MutationsBatcher:
         self._flush_timer_task.cancel()
         # wait for all to finish
         await asyncio.gather(final_flush, self._flush_timer_task, finalize_tasks)
-        if self.exceptions:
-            raise MutationsExceptionGroup(self.exceptions, self._entries_processed_since_last_raise)
+        # raise unreported exceptions
+        self._raise_exceptions()
