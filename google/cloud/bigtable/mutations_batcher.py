@@ -128,59 +128,6 @@ class _FlowControl:
         return errors
 
 
-class _BatchMutationsQueue(asyncio.Queue[BulkMutationsEntry]):
-    """
-    asyncio.Queue subclass that tracks the size and number of mutations
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._mutation_count = 0
-        self._mutation_bytes_size = 0
-
-    @property
-    def mutation_count(self):
-        return self._mutation_count
-
-    @mutation_count.setter
-    def mutation_count(self, value):
-        if value < 0:
-            raise ValueError("Mutation count cannot be negative")
-        self._mutation_count = value
-
-    @property
-    def mutation_bytes_size(self):
-        return self._mutation_bytes_size
-
-    @mutation_bytes_size.setter
-    def mutation_bytes_size(self, value):
-        if value < 0:
-            raise ValueError("Mutation bytes size cannot be negative")
-        self._mutation_bytes_size = value
-
-    def put_nowait(self, item:BulkMutationsEntry):
-        super().put_nowait(item)
-        self.mutation_count += len(item.mutations)
-        self.mutation_bytes_size += item.size()
-
-    def get_nowait(self):
-        item = super().get_nowait()
-        self.mutation_count -= len(item.mutations)
-        self.mutation_bytes_size -= item.size()
-        return item
-
-    async def put(self, item:BulkMutationsEntry):
-        await super().put(item)
-        self.mutation_count += len(item.mutations)
-        self.mutation_bytes_size += item.size()
-
-    async def get(self):
-        item = await super().get()
-        self.mutation_count -= len(item.mutations)
-        self.mutation_bytes_size -= item.size()
-        return item
-
-
 class MutationsBatcher:
     """
     Allows users to send batches using context manager API:
@@ -225,7 +172,8 @@ class MutationsBatcher:
               If None, this limit is ignored.
         """
         self.closed : bool = False
-        self._queue : _BatchMutationsQueue = _BatchMutationsQueue()
+        self._staged_mutations : list[BulkMutationsEntry] = []
+        self._staged_count, self._staged_size = 0, 0
         self._flow_control = _FlowControl(table, flow_control_max_count, flow_control_max_bytes)
         self._flush_limit_bytes = flush_limit_bytes if flush_limit_bytes is not None else float("inf")
         self._flush_limit_count = flush_limit_count if flush_limit_count is not None else float("inf")
@@ -246,7 +194,7 @@ class MutationsBatcher:
                 new_task = asyncio.create_task(self.flush(timeout=None, raise_exceptions=False))
                 self._flush_tasks.append(new_task)
 
-    async def append(self, mutations:BulkMutationsEntry):
+    def append(self, mutations:BulkMutationsEntry):
         """
         Add a new set of mutations to the internal queue
         """
@@ -257,9 +205,11 @@ class MutationsBatcher:
             raise ValueError(f"Mutation size {size} exceeds flow_control_max_bytes: {self._flow_control.max_mutation_bytes}")
         if len(mutations.mutations) > self._flow_control.max_mutation_count:
             raise ValueError(f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}")
-        await self._queue.put(mutations)
+        self._staged_mutations.append(mutations)
         # start a new flush task if limits exceeded
-        if self._queue.mutation_count > self._flush_limit_count or self._queue.mutation_bytes_size > self._flush_limit_bytes:
+        self._staged_count += len(mutations.mutations)
+        self._staged_size += size
+        if self._staged_count >= self._flush_limit_count or self._staged_size >= self._flush_limit_bytes:
             self._flush_tasks.append(asyncio.create_task(self.flush(timeout=None, raise_exceptions=False)))
 
     async def flush(self, *, timeout: float | None = 5.0, raise_exceptions=True):
@@ -274,10 +224,10 @@ class MutationsBatcher:
         Raises:
           - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
         """
-        entries : list[BulkMutationsEntry] = []
         # reset queue
-        while not self._queue.empty():
-            entries.append(await self._queue.get())
+        entries, self._staged_mutations = self._staged_mutations, []
+        self._staged_count, self._staged_size = 0, 0
+        # perform flush
         if entries:
             flush_errors = await self._flow_control.mutate_rows(entries, timeout=timeout)
             self.exceptions.extend(flush_errors)
@@ -304,7 +254,6 @@ class MutationsBatcher:
         self._flush_timer_task.cancel()
         # wait for all to finish
         await asyncio.gather([final_flush, self._flush_timer_task, finalize_tasks])
-        self._flush_tasks = []
         if self.exceptions:
             raise MutationsExceptionGroup(self.exceptions)
 
