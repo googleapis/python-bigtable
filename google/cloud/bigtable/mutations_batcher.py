@@ -33,7 +33,9 @@ class _FlowControl:
     stay within the configured limits (max_mutation_count, max_mutation_bytes).
     """
 
-    def __init__(self, table, max_mutation_count:float|None, max_mutation_bytes:float|None):
+    def __init__(
+        self, table, max_mutation_count: float | None, max_mutation_bytes: float | None
+    ):
         """
         Args:
           - table: Table object that performs rpc calls
@@ -50,8 +52,12 @@ class _FlowControl:
             self.max_mutation_bytes = float("inf")
         self.max_mutation_count = max_mutation_count
         self.max_mutation_bytes = max_mutation_bytes
-        self.available_mutation_count : asyncio.Semaphore = asyncio.Semaphore(max_mutation_count)
-        self.available_mutation_bytes : asyncio.Semaphore = asyncio.Semaphore(max_mutation_bytes)
+        self.available_mutation_count: asyncio.Semaphore = asyncio.Semaphore(
+            max_mutation_count
+        )
+        self.available_mutation_bytes: asyncio.Semaphore = asyncio.Semaphore(
+            max_mutation_bytes
+        )
 
     def is_locked(self) -> bool:
         """
@@ -62,14 +68,18 @@ class _FlowControl:
             or self.available_mutation_bytes.locked()
         )
 
-    def _on_mutation_entry_complete(self, mutation_entry:BulkMutationsEntry, exception:Exception|None):
+    def _on_mutation_entry_complete(
+        self, mutation_entry: BulkMutationsEntry, exception: Exception | None
+    ):
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
         self.available_mutation_count.release(len(mutation_entry.mutations))
         self.available_mutation_bytes.release(mutation_entry.size())
 
-    def _execute_mutate_rows(self, batch:list[BulkMutationsEntry], timeout:float | None) -> list[FailedMutationEntryError]:
+    def _execute_mutate_rows(
+        self, batch: list[BulkMutationsEntry], timeout: float | None
+    ) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
 
@@ -87,14 +97,23 @@ class _FlowControl:
         operation_timeout = timeout or self.table.default_operation_timeout
         request_timeout = timeout or self.table.default_per_request_timeout
         try:
-            await _mutate_rows_operation(self.table.client._gapic_client, request, batch, operation_timeout, request_timeout, self._on_mutation_entry_complete)
+            await _mutate_rows_operation(
+                self.table.client._gapic_client,
+                request,
+                batch,
+                operation_timeout,
+                request_timeout,
+                self._on_mutation_entry_complete,
+            )
         except MutationsExceptionGroup as e:
             for subexc in e.exceptions:
                 subexc.index = None
             return e.exceptions
         return []
 
-    async def process_mutations(self, mutations:list[BulkMutationsEntry], timeout:float | None) -> list[FailedMutationEntryError]:
+    async def process_mutations(
+        self, mutations: list[BulkMutationsEntry], timeout: float | None
+    ) -> list[FailedMutationEntryError]:
         """
         Ascynronously send the set of mutations to the server. This method will block
         when the flow control limits are reached.
@@ -102,9 +121,9 @@ class _FlowControl:
         Returns:
           - list of FailedMutationEntryError objects for mutations that failed
         """
-        errors : list[FailedMutationEntryError] = []
+        errors: list[FailedMutationEntryError] = []
         while mutations:
-            batch : list[BulkMutationsEntry] = []
+            batch: list[BulkMutationsEntry] = []
             # fill up batch until we hit a lock. Grab at least one entry
             while mutations and (not self.is_locked() or not batch):
                 next_mutation = mutations.pop()
@@ -171,17 +190,25 @@ class MutationsBatcher:
           - flow_control_max_bytes: Maximum number of inflight bytes.
               If None, this limit is ignored.
         """
-        self.closed : bool = False
-        self._staged_mutations : list[BulkMutationsEntry] = []
+        self.closed: bool = False
+        self._staged_mutations: list[BulkMutationsEntry] = []
         self._staged_count, self._staged_size = 0, 0
-        self._flow_control = _FlowControl(table, flow_control_max_count, flow_control_max_bytes)
-        self._flush_limit_bytes = flush_limit_bytes if flush_limit_bytes is not None else float("inf")
-        self._flush_limit_count = flush_limit_count if flush_limit_count is not None else float("inf")
+        self._flow_control = _FlowControl(
+            table, flow_control_max_count, flow_control_max_bytes
+        )
+        self._flush_limit_bytes = (
+            flush_limit_bytes if flush_limit_bytes is not None else float("inf")
+        )
+        self._flush_limit_count = (
+            flush_limit_count if flush_limit_count is not None else float("inf")
+        )
         self.exceptions = []
-        self._flush_timer_task : asyncio.Task[None] = asyncio.create_task(self._flush_timer(flush_interval))
-        self._flush_tasks : list[asyncio.Task[None]] = []
+        self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
+            self._flush_timer(flush_interval)
+        )
+        self._flush_tasks: list[asyncio.Task[None]] = []
 
-    async def _flush_timer(self, interval:float | None):
+    async def _flush_timer(self, interval: float | None):
         """
         Triggers new flush tasks every `interval` seconds
         """
@@ -191,10 +218,12 @@ class MutationsBatcher:
             await asyncio.sleep(interval)
             # add new flush task to list
             if not self.closed:
-                new_task = asyncio.create_task(self.flush(timeout=None, raise_exceptions=False))
+                new_task = asyncio.create_task(
+                    self.flush(timeout=None, raise_exceptions=False)
+                )
                 self._flush_tasks.append(new_task)
 
-    def append(self, mutations:BulkMutationsEntry):
+    def append(self, mutations: BulkMutationsEntry):
         """
         Add a new set of mutations to the internal queue
         """
@@ -202,15 +231,24 @@ class MutationsBatcher:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         size = mutations.size()
         if size > self._flow_control.max_mutation_bytes:
-            raise ValueError(f"Mutation size {size} exceeds flow_control_max_bytes: {self._flow_control.max_mutation_bytes}")
+            raise ValueError(
+                f"Mutation size {size} exceeds flow_control_max_bytes: {self._flow_control.max_mutation_bytes}"
+            )
         if len(mutations.mutations) > self._flow_control.max_mutation_count:
-            raise ValueError(f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}")
+            raise ValueError(
+                f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}"
+            )
         self._staged_mutations.append(mutations)
         # start a new flush task if limits exceeded
         self._staged_count += len(mutations.mutations)
         self._staged_size += size
-        if self._staged_count >= self._flush_limit_count or self._staged_size >= self._flush_limit_bytes:
-            self._flush_tasks.append(asyncio.create_task(self.flush(timeout=None, raise_exceptions=False)))
+        if (
+            self._staged_count >= self._flush_limit_count
+            or self._staged_size >= self._flush_limit_bytes
+        ):
+            self._flush_tasks.append(
+                asyncio.create_task(self.flush(timeout=None, raise_exceptions=False))
+            )
 
     async def flush(self, *, timeout: float | None = 5.0, raise_exceptions=True):
         """
@@ -229,7 +267,9 @@ class MutationsBatcher:
         self._staged_count, self._staged_size = 0, 0
         # perform flush
         if entries:
-            flush_errors = await self._flow_control.mutate_rows(entries, timeout=timeout)
+            flush_errors = await self._flow_control.mutate_rows(
+                entries, timeout=timeout
+            )
             self.exceptions.extend(flush_errors)
             if raise_exceptions and self.exceptions:
                 # raise any exceptions from this or previous flushes
@@ -250,10 +290,11 @@ class MutationsBatcher:
         """
         self.closed = True
         final_flush = self.flush(timeout=timeout, raise_exceptions=False)
-        finalize_tasks = asyncio.wait_for(asyncio.gather(*self._flush_tasks), timeout=timeout)
+        finalize_tasks = asyncio.wait_for(
+            asyncio.gather(*self._flush_tasks), timeout=timeout
+        )
         self._flush_timer_task.cancel()
         # wait for all to finish
         await asyncio.gather([final_flush, self._flush_timer_task, finalize_tasks])
         if self.exceptions:
             raise MutationsExceptionGroup(self.exceptions)
-
