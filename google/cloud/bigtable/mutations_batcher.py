@@ -26,6 +26,9 @@ from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
 
+# used to make more readable default values
+MB_SIZE = 1024 * 1024
+
 
 class _FlowControl:
     """
@@ -175,8 +178,6 @@ class MutationsBatcher:
          batcher.add(row, mut)
     """
 
-    MB_SIZE = 1024 * 1024
-
     def __init__(
         self,
         table: "Table",
@@ -211,7 +212,7 @@ class MutationsBatcher:
         self._flush_limit_count = (
             flush_limit_count if flush_limit_count is not None else float("inf")
         )
-        self.exceptions : list[FailedMutationEntryError] = []
+        self.exceptions: list[FailedMutationEntryError] = []
         self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
             self._flush_timer(flush_interval)
         )
@@ -294,7 +295,10 @@ class MutationsBatcher:
         """
         if self.exceptions:
             exc_list, self.exceptions = self.exceptions, []
-            raise_count, self._entries_processed_since_last_raise = self._entries_processed_since_last_raise, 0
+            raise_count, self._entries_processed_since_last_raise = (
+                self._entries_processed_since_last_raise,
+                0,
+            )
             raise MutationsExceptionGroup(exc_list, raise_count)
 
     async def __aenter__(self):

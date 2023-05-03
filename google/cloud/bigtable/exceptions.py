@@ -126,9 +126,9 @@ class FailedMutationEntryError(Exception):
         idempotent_msg = (
             "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
         )
-        index_msg = f" at index {failed_idx}" if failed_idx is not None else ""
+        index_msg = f" at index {failed_idx} " if failed_idx is not None else " "
         message = (
-            f"Failed {idempotent_msg} mutation entry {index_msg} with cause: {cause!r}"
+            f"Failed {idempotent_msg} mutation entry{index_msg}with cause: {cause!r}"
         )
         super().__init__(message)
         self.index = failed_idx

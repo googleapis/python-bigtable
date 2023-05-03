@@ -318,7 +318,6 @@ class TestBulkMutationsEntry:
     @pytest.mark.parametrize(
         "mutations,result",
         [
-            ([], True),
             ([mock.Mock(is_idempotent=lambda: True)], True),
             ([mock.Mock(is_idempotent=lambda: False)], False),
             (
@@ -340,3 +339,8 @@ class TestBulkMutationsEntry:
     def test_is_idempotent(self, mutations, result):
         instance = self._make_one("row_key", mutations)
         assert instance.is_idempotent() == result
+
+    def test_empty_mutations(self):
+        with pytest.raises(ValueError) as e:
+            self._make_one("row_key", [])
+        assert "must not be empty" in str(e.value)

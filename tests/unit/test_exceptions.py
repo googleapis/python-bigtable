@@ -285,3 +285,22 @@ class TestFailedMutationEntryError:
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
         assert test_entry.is_idempotent.call_count == 1
+
+    def test_no_index(self):
+        """
+        Instances without an index should display different error string
+        """
+        test_idx = None
+        test_entry = unittest.mock.Mock()
+        test_exc = ValueError("test")
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(test_idx, test_entry, test_exc)
+        assert (
+            str(e.value)
+            == "Failed idempotent mutation entry with cause: ValueError('test')"
+        )
+        assert e.value.index == test_idx
+        assert e.value.entry == test_entry
+        assert e.value.__cause__ == test_exc
+        assert isinstance(e.value, Exception)
+        assert test_entry.is_idempotent.call_count == 1
