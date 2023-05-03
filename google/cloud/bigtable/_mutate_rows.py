@@ -14,7 +14,9 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Any, TYPE_CHECKING
+from typing import Callable, Awaitable, Any, TYPE_CHECKING
+
+from inspect import iscoroutine
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
@@ -41,7 +43,9 @@ async def _mutate_rows_operation(
     mutation_entries: list["BulkMutationsEntry"],
     operation_timeout: float,
     per_request_timeout: float | None,
-    on_terminal_state: Callable[["BulkMutationsEntry", Exception | None], None]
+    on_terminal_state: Callable[
+        ["BulkMutationsEntry", Exception | None], Awaitable[None] | None
+    ]
     | None = None,
 ):
     """
@@ -125,7 +129,9 @@ async def _mutate_rows_operation(
                 )
                 # call on_terminal_state for each unreported failed mutation
                 if on_terminal_state and mutations_dict[idx] is not None:
-                    on_terminal_state(entry, cause_exc)
+                    output = on_terminal_state(mutations_dict[idx], cause_exc)
+                    if iscoroutine(output):
+                        await output
         if all_errors:
             raise bt_exceptions.MutationsExceptionGroup(
                 all_errors, len(mutation_entries)
@@ -139,7 +145,9 @@ async def _mutate_rows_retryable_attempt(
     mutation_dict: dict[int, "BulkMutationsEntry" | None],
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
-    on_terminal_state: Callable[["BulkMutationsEntry", Exception | None], None]
+    on_terminal_state: Callable[
+        ["BulkMutationsEntry", Exception | None], Awaitable[None] | None
+    ]
     | None = None,
 ):
     """
@@ -209,7 +217,9 @@ async def _mutate_rows_retryable_attempt(
             if terminal_state:
                 mutation_dict[idx] = None
                 if on_terminal_state is not None:
-                    on_terminal_state(entry, exc)
+                    result = on_terminal_state(entry, exc)
+                    if iscoroutine(result):
+                        await result
     # check if attempt succeeded, or needs to be retried
     if any(mutation is not None for mutation in mutation_dict.values()):
         # unfinished work; raise exception to trigger retry

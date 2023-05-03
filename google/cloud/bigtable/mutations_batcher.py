@@ -46,38 +46,36 @@ class _FlowControl:
              If None, no limit is enforced.
         """
         self.table = table
-        if max_mutation_count is None:
-            self.max_mutation_count = float("inf")
-        if max_mutation_bytes is None:
-            self.max_mutation_bytes = float("inf")
-        self.max_mutation_count = max_mutation_count
-        self.max_mutation_bytes = max_mutation_bytes
-        self.available_mutation_count: asyncio.Semaphore = asyncio.Semaphore(
-            max_mutation_count
+        self.max_mutation_count = (
+            max_mutation_count if max_mutation_count is not None else float("inf")
         )
-        self.available_mutation_bytes: asyncio.Semaphore = asyncio.Semaphore(
-            max_mutation_bytes
+        self.max_mutation_bytes = (
+            max_mutation_bytes if max_mutation_bytes is not None else float("inf")
         )
+        self.capacity_condition = asyncio.Condition()
+        self.in_flight_mutation_count = 0
+        self.in_flight_mutation_bytes = 0
 
-    def is_locked(self) -> bool:
-        """
-        Check if either flow control semaphore is locked
-        """
+    def _has_capacity(self, additional_size: int, additional_count: int) -> bool:
+        new_size = self.in_flight_mutation_bytes + additional_size
+        new_count = self.in_flight_mutation_count + additional_count
         return (
-            self.available_mutation_count.locked()
-            or self.available_mutation_bytes.locked()
+            new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
         )
 
-    def _on_mutation_entry_complete(
+    async def _on_mutation_entry_complete(
         self, mutation_entry: BulkMutationsEntry, exception: Exception | None
     ):
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
-        self.available_mutation_count.release(len(mutation_entry.mutations))
-        self.available_mutation_bytes.release(mutation_entry.size())
+        self.in_flight_mutation_count -= len(mutation_entry.mutations)
+        self.in_flight_mutation_bytes -= mutation_entry.size()
+        # notify any blocked requests that there is additional capacity
+        async with self.capacity_condition:
+            self.capacity_condition.notify_all()
 
-    def _execute_mutate_rows(
+    async def _execute_mutate_rows(
         self, batch: list[BulkMutationsEntry], timeout: float | None
     ) -> list[FailedMutationEntryError]:
         """
@@ -124,24 +122,35 @@ class _FlowControl:
         errors: list[FailedMutationEntryError] = []
         while mutations:
             batch: list[BulkMutationsEntry] = []
-            # fill up batch until we hit a lock. Grab at least one entry
-            while mutations and (not self.is_locked() or not batch):
-                next_mutation = mutations.pop()
-                next_mutation_size = next_mutation.size()
-                # do extra sanity check to avoid deadlocks
-                if len(next_mutation.mutations) > self.max_mutation_count:
-                    raise ValueError(
-                        f"Mutation count {len(next_mutation.mutations)} exceeds max mutation count {self.max_mutation_count}"
-                    )
-                if next_mutation_size > self.max_mutation_bytes:
-                    raise ValueError(
-                        f"Mutation size {next_mutation_size} exceeds max mutation size {self.max_mutation_bytes}"
-                    )
-                self.available_mutation_count.acquire(len(next_mutation.mutations))
-                self.available_mutation_bytes.acquire(next_mutation_size)
-                batch.append(next_mutation)
+            # fill up batch until we hit capacity
+            async with self.capacity_condition:
+                while mutations:
+                    next_entry = mutations[0]
+                    next_size = next_entry.size()
+                    next_count = len(next_entry.mutations)
+                    # do extra sanity check to avoid blocking forever
+                    if next_count > self.max_mutation_count:
+                        raise ValueError(
+                            f"Mutation count {next_count} exceeds max mutation count {self.max_mutation_count}"
+                        )
+                    if next_size > self.max_mutation_bytes:
+                        raise ValueError(
+                            f"Mutation size {next_size} exceeds max mutation size {self.max_mutation_bytes}"
+                        )
+                    if self._has_capacity(next_size, next_count):
+                        batch.append(mutations.pop(0))
+                        self.in_flight_mutation_bytes += next_size
+                        self.in_flight_mutation_count += next_count
+                    elif batch:
+                        # break out and submit partial batch
+                        break
+                    else:
+                        # batch is empty. Block until we have capacity
+                        await self.capacity_condition.wait_for(
+                            lambda: self._has_capacity(next_size, next_count)
+                        )
             # start mutate_rows rpc
-            batch_errors = self._execute_mutate_rows(batch, timeout)
+            batch_errors = await self._execute_mutate_rows(batch, timeout)
             errors.extend(batch_errors)
         # raise set of failed mutations on completion
         return errors
