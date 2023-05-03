@@ -106,7 +106,7 @@ class _FlowControl:
         except MutationsExceptionGroup as e:
             for subexc in e.exceptions:
                 subexc.index = None
-            return e.exceptions
+            return list(e.exceptions)
         return []
 
     async def process_mutations(
@@ -211,11 +211,13 @@ class MutationsBatcher:
         self._flush_limit_count = (
             flush_limit_count if flush_limit_count is not None else float("inf")
         )
-        self.exceptions = []
+        self.exceptions : list[FailedMutationEntryError] = []
         self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
             self._flush_timer(flush_interval)
         )
         self._flush_tasks: list[asyncio.Task[None]] = []
+        # MutationExceptionGroup reports number of successful entries along with failures
+        self._entries_processed_since_last_raise: int = 0
 
     async def _flush_timer(self, interval: float | None):
         """
@@ -273,17 +275,20 @@ class MutationsBatcher:
         """
         # reset queue
         entries, self._staged_mutations = self._staged_mutations, []
+        flush_count = self._staged_count
         self._staged_count, self._staged_size = 0, 0
         # perform flush
         if entries:
-            flush_errors = await self._flow_control.mutate_rows(
+            flush_errors = await self._flow_control.process_mutations(
                 entries, timeout=timeout
             )
             self.exceptions.extend(flush_errors)
+            self._entries_processed_since_last_raise += flush_count
             if raise_exceptions and self.exceptions:
                 # raise any exceptions from this or previous flushes
                 exc_list, self.exceptions = self.exceptions, []
-                raise MutationsExceptionGroup(exc_list)
+                raise_count, self._entries_processed_since_last_raise = self._entries_processed_since_last_raise, 0
+                raise MutationsExceptionGroup(exc_list, raise_count)
 
     async def __aenter__(self):
         """For context manager API"""
@@ -304,6 +309,6 @@ class MutationsBatcher:
         )
         self._flush_timer_task.cancel()
         # wait for all to finish
-        await asyncio.gather([final_flush, self._flush_timer_task, finalize_tasks])
+        await asyncio.gather(final_flush, self._flush_timer_task, finalize_tasks)
         if self.exceptions:
-            raise MutationsExceptionGroup(self.exceptions)
+            raise MutationsExceptionGroup(self.exceptions, self._entries_processed_since_last_raise)
