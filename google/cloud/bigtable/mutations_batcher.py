@@ -32,23 +32,22 @@ MB_SIZE = 1024 * 1024
 
 class _FlowControl:
     """
-    Manages underlying rpcs for MutationsBatcher. Ensures that in-flight requests
-    stay within the configured limits (max_mutation_count, max_mutation_bytes).
+    Manages flow control for batched mutations. Mutations are registered against
+    the FlowControl object before being sent, which will block if size or count
+    limits have reached capacity. When a mutation is complete, it is unregistered
+    from the FlowControl object, which will notify any blocked requests that there
+    is additional capacity.
     """
 
-    def __init__(
-        self, table, max_mutation_count: float | None, max_mutation_bytes: float | None
-    ):
+    def __init__(self, max_mutation_count: int | None, max_mutation_bytes: int | None):
         """
         Args:
-          - table: Table object that performs rpc calls
           - max_mutation_count: maximum number of mutations to send in a single rpc.
              This corresponds to individual mutations in a single BulkMutationsEntry.
              If None, no limit is enforced.
           - max_mutation_bytes: maximum number of bytes to send in a single rpc.
              If None, no limit is enforced.
         """
-        self.table = table
         self.max_mutation_count = (
             max_mutation_count if max_mutation_count is not None else float("inf")
         )
@@ -59,16 +58,17 @@ class _FlowControl:
         self.in_flight_mutation_count = 0
         self.in_flight_mutation_bytes = 0
 
-    def _has_capacity(self, additional_size: int, additional_count: int) -> bool:
+    def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
+        """
+        Checks if there is capacity to send a new mutation with the given size and count
+        """
         new_size = self.in_flight_mutation_bytes + additional_size
         new_count = self.in_flight_mutation_count + additional_count
         return (
             new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
         )
 
-    async def _on_mutation_entry_complete(
-        self, mutation_entry: BulkMutationsEntry, exception: Exception | None
-    ):
+    async def remove_from_flow(self, mutation_entry: BulkMutationsEntry, *args):
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
@@ -78,85 +78,52 @@ class _FlowControl:
         async with self.capacity_condition:
             self.capacity_condition.notify_all()
 
-    async def _execute_mutate_rows(
-        self, batch: list[BulkMutationsEntry], timeout: float | None
-    ) -> list[FailedMutationEntryError]:
+    async def add_to_flow(self, mutations: list[BulkMutationsEntry]):
         """
-        Helper to execute mutation operation on a batch
+        Breaks up list of mutations into batches that were registered to fit within
+        flow control limits. This method will block when the flow control limits are
+        reached.
 
         Args:
-          - batch: list of BulkMutationsEntry objects to send to server
-          - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
-              If not given, will use table defaults
-        Returns:
-          - list of FailedMutationEntryError objects for mutations that failed.
-              FailedMutationEntryError objects will not contain index information
+          - mutations: list mutations to break up into batches
+        Yields:
+          - list of mutations that have reserved space in the flow control.
+            Each batch contains at least one mutation.
+        Raises:
+          - ValueError if any mutation entry is larger than the flow control limits
         """
-        request = {"table_name": self.table.table_name}
-        if self.table.app_profile_id:
-            request["app_profile_id"] = self.table.app_profile_id
-        operation_timeout = timeout or self.table.default_operation_timeout
-        request_timeout = timeout or self.table.default_per_request_timeout
-        try:
-            await _mutate_rows_operation(
-                self.table.client._gapic_client,
-                request,
-                batch,
-                operation_timeout,
-                request_timeout,
-                self._on_mutation_entry_complete,
-            )
-        except MutationsExceptionGroup as e:
-            for subexc in e.exceptions:
-                subexc.index = None
-            return list(e.exceptions)
-        return []
-
-    async def process_mutations(
-        self, mutations: list[BulkMutationsEntry], timeout: float | None
-    ) -> list[FailedMutationEntryError]:
-        """
-        Ascynronously send the set of mutations to the server. This method will block
-        when the flow control limits are reached.
-
-        Returns:
-          - list of FailedMutationEntryError objects for mutations that failed
-        """
-        errors: list[FailedMutationEntryError] = []
-        while mutations:
-            batch: list[BulkMutationsEntry] = []
+        start_idx = 0
+        end_idx = 0
+        while end_idx < len(mutations):
+            start_idx = end_idx
             # fill up batch until we hit capacity
             async with self.capacity_condition:
-                while mutations:
-                    next_entry = mutations[0]
+                while end_idx < len(mutations):
+                    next_entry = mutations[end_idx]
                     next_size = next_entry.size()
                     next_count = len(next_entry.mutations)
                     # do extra sanity check to avoid blocking forever
                     if next_count > self.max_mutation_count:
                         raise ValueError(
-                            f"Mutation count {next_count} exceeds max mutation count {self.max_mutation_count}"
+                            f"Mutation count {next_count} exceeds maximum: {self.max_mutation_count}"
                         )
                     if next_size > self.max_mutation_bytes:
                         raise ValueError(
-                            f"Mutation size {next_size} exceeds max mutation size {self.max_mutation_bytes}"
+                            f"Mutation size {next_size} exceeds maximum: {self.max_mutation_bytes}"
                         )
-                    if self._has_capacity(next_size, next_count):
-                        batch.append(mutations.pop(0))
+                    if self._has_capacity(next_count, next_size):
+                        end_idx += 1
                         self.in_flight_mutation_bytes += next_size
                         self.in_flight_mutation_count += next_count
-                    elif batch:
-                        # break out and submit partial batch
+                    elif start_idx != end_idx:
+                        # we have at least one mutation in the batch, so send it
                         break
                     else:
                         # batch is empty. Block until we have capacity
                         await self.capacity_condition.wait_for(
-                            lambda: self._has_capacity(next_size, next_count)
+                            lambda: self._has_capacity(next_count, next_size)
                         )
-            # start mutate_rows rpc
-            batch_errors = await self._execute_mutate_rows(batch, timeout)
-            errors.extend(batch_errors)
-        # raise set of failed mutations on completion
-        return errors
+            yield mutations[start_idx:end_idx]
 
 
 class MutationsBatcher:
@@ -201,10 +168,11 @@ class MutationsBatcher:
               If None, this limit is ignored.
         """
         self.closed: bool = False
+        self._table = table
         self._staged_mutations: list[BulkMutationsEntry] = []
         self._staged_count, self._staged_size = 0, 0
         self._flow_control = _FlowControl(
-            table, flow_control_max_count, flow_control_max_bytes
+            flow_control_max_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = (
             flush_limit_bytes if flush_limit_bytes is not None else float("inf")
@@ -276,18 +244,51 @@ class MutationsBatcher:
         """
         # reset queue
         entries, self._staged_mutations = self._staged_mutations, []
-        flush_count = self._staged_count
         self._staged_count, self._staged_size = 0, 0
         # perform flush
-        if entries:
-            flush_errors = await self._flow_control.process_mutations(
-                entries, timeout=timeout
+        async for batch in self._flow_control.add_to_flow(entries):
+            batch_errors = await self._execute_mutate_rows(batch, timeout)
+            self.exceptions.extend(batch_errors)
+            self._entries_processed_since_last_raise += sum([
+                len(entry.mutations) for entry in batch
+            ])
+        # raise any exceptions from this or previous flushes
+        if raise_exceptions:
+            self._raise_exceptions()
+
+    async def _execute_mutate_rows(
+        self, batch: list[BulkMutationsEntry], timeout: float | None = None
+    ) -> list[FailedMutationEntryError]:
+        """
+        Helper to execute mutation operation on a batch
+
+        Args:
+          - batch: list of BulkMutationsEntry objects to send to server
+          - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
+              If not given, will use table defaults
+        Returns:
+          - list of FailedMutationEntryError objects for mutations that failed.
+              FailedMutationEntryError objects will not contain index information
+        """
+        request = {"table_name": self._table.table_name}
+        if self._table.app_profile_id:
+            request["app_profile_id"] = self._table.app_profile_id
+        operation_timeout = timeout or self._table.default_operation_timeout
+        request_timeout = timeout or self._table.default_per_request_timeout
+        try:
+            await _mutate_rows_operation(
+                self._table.client._gapic_client,
+                request,
+                batch,
+                operation_timeout,
+                request_timeout,
+                self._flow_control.remove_from_flow,
             )
-            self.exceptions.extend(flush_errors)
-            self._entries_processed_since_last_raise += flush_count
-            # raise any exceptions from this or previous flushes
-            if raise_exceptions:
-                self._raise_exceptions()
+        except MutationsExceptionGroup as e:
+            for subexc in e.exceptions:
+                subexc.index = None
+            return list(e.exceptions)
+        return []
 
     def _raise_exceptions(self):
         """

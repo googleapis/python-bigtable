@@ -129,7 +129,7 @@ async def _mutate_rows_operation(
                 )
                 # call on_terminal_state for each unreported failed mutation
                 if on_terminal_state and mutations_dict[idx] is not None:
-                    entry = cast(BulkMutationsEntry, mutations_dict[idx])
+                    entry = cast("BulkMutationsEntry", mutations_dict[idx])
                     output = on_terminal_state(entry, cause_exc)
                     if iscoroutine(output):
                         await output
