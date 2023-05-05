@@ -92,7 +92,7 @@ class _BatchInfo:
     mutations_size: int = 0
 
 
-class FlowControl(object):
+class _FlowControl(object):
     def __init__(
         self,
         max_mutations=MAX_OUTSTANDING_ELEMENTS,
@@ -131,7 +131,6 @@ class FlowControl(object):
         self.inflight_mutations += batch_info.mutations_count
         self.inflight_size += batch_info.mutations_size
         self.set_flow_control_status()
-        self.wait()
 
     def wait(self):
         """
@@ -210,7 +209,7 @@ class MutationsBatcher(object):
         atexit.register(self.close)
         self._timer = threading.Timer(flush_interval, self.flush)
         self._timer.start()
-        self.flow_control = FlowControl(
+        self.flow_control = _FlowControl(
             max_mutations=MAX_OUTSTANDING_ELEMENTS,
             max_mutation_bytes=MAX_OUTSTANDING_BYTES,
         )
@@ -321,6 +320,10 @@ class MutationsBatcher(object):
                 or mutations_size >= self.flow_control.max_mutation_bytes
                 or self._rows.empty()  # submit when it reached the end of the queue
             ):
+                # wait for resources to become available, before submitting any new batch
+                self.flow_control.wait()
+                # once unblocked, submit a batch
+                # event flag will be set by control_flow to block subsequent thread, but not blocking this one
                 self.flow_control.control_flow(batch_info)
                 future = self._executor.submit(self._flush_rows, rows_to_flush)
                 self.futures_mapping[future] = batch_info

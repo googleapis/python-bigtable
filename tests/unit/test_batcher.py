@@ -20,7 +20,7 @@ import pytest
 
 from google.cloud.bigtable.row import DirectRow
 from google.cloud.bigtable.batcher import (
-    FlowControl,
+    _FlowControl,
     MutationsBatcher,
     MutationsBatchError,
 )
@@ -202,14 +202,15 @@ def test_mutations_batcher_response_with_error_codes():
 
 
 def test_flow_control_event_is_set_when_not_blocked():
-    flow_control = FlowControl()
+    flow_control = _FlowControl()
 
     flow_control.set_flow_control_status()
     assert flow_control.event.is_set()
 
 
 def test_flow_control_event_is_not_set_when_blocked():
-    flow_control = FlowControl()
+    flow_control = _FlowControl()
+
     flow_control.inflight_mutations = flow_control.max_mutations
     flow_control.inflight_size = flow_control.max_mutation_bytes
 
