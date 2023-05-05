@@ -15,6 +15,8 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
+import warnings
 from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import BulkMutationsEntry
@@ -168,6 +170,7 @@ class MutationsBatcher:
           - flow_control_max_bytes: Maximum number of inflight bytes.
               If None, this limit is ignored.
         """
+        atexit.register(self._on_exit)
         self.closed: bool = False
         self._table = table
         self._staged_mutations: list[BulkMutationsEntry] = []
@@ -337,3 +340,14 @@ class MutationsBatcher:
         await self._prev_flush
         # raise unreported exceptions
         self._raise_exceptions()
+        atexit.unregister(self._on_exit)
+
+    def _on_exit(self):
+        """
+        Called when program is exited. Raises warning if unflushed mutations remain
+        """
+        if not self.closed and self._staged_mutations:
+            warnings.warn(
+                f"MutationsBatcher for table {self._table.table_name} was not closed. "
+                f"{len(self._staged_mutations)} Unflushed mutations will not be sent to the server."
+            )

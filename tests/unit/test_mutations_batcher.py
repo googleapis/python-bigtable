@@ -788,3 +788,41 @@ class TestMutationsBatcher:
                 assert str(expected_total) in str(exc)
             assert instance._entries_processed_since_last_raise == 0
             assert instance.exceptions == []
+
+    @pytest.mark.asyncio
+    async def test__on_exit(self, recwarn):
+        """Should raise warnings if unflushed mutations exist"""
+        async with self._make_one() as instance:
+            # calling without mutations is noop
+            instance._on_exit()
+            assert len(recwarn) == 0
+            # calling with existing mutations should raise warning
+            num_left = 4
+            instance._staged_mutations = [mock.Mock()] * num_left
+            with pytest.warns(UserWarning) as w:
+                instance._on_exit()
+                assert len(w) == 1
+                assert "unflushed mutations" in str(w[0].message).lower()
+                assert str(num_left) in str(w[0].message)
+            # calling while closed is noop
+            instance.closed = True
+            instance._on_exit()
+            assert len(recwarn) == 0
+            # reset staged mutations for cleanup
+            instance._staged_mutations = []
+
+    @pytest.mark.asyncio
+    async def test_atexit_registration(self):
+        """Should run _on_exit on program termination"""
+        import atexit
+
+        with mock.patch(
+            "google.cloud.bigtable.mutations_batcher.MutationsBatcher._on_exit"
+        ) as on_exit_mock:
+            async with self._make_one():
+                assert on_exit_mock.call_count == 0
+                atexit._run_exitfuncs()
+                assert on_exit_mock.call_count == 1
+        # should not call after close
+        atexit._run_exitfuncs()
+        assert on_exit_mock.call_count == 1
