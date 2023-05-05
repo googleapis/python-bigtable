@@ -148,6 +148,7 @@ class MutationsBatcher:
     def __init__(
         self,
         table: "Table",
+        *,
         flush_interval: float | None = 5,
         flush_limit_count: int | None = 100,
         flush_limit_bytes: int | None = 20 * MB_SIZE,
@@ -170,7 +171,7 @@ class MutationsBatcher:
         self.closed: bool = False
         self._table = table
         self._staged_mutations: list[BulkMutationsEntry] = []
-        self._staged_count, self._staged_size = 0, 0
+        self._staged_count, self._staged_bytes = 0, 0
         self._flow_control = _FlowControl(
             flow_control_max_count, flow_control_max_bytes
         )
@@ -219,10 +220,10 @@ class MutationsBatcher:
         self._staged_mutations.append(mutations)
         # start a new flush task if limits exceeded
         self._staged_count += len(mutations.mutations)
-        self._staged_size += size
+        self._staged_bytes += size
         if (
             self._staged_count >= self._flush_limit_count
-            or self._staged_size >= self._flush_limit_bytes
+            or self._staged_bytes >= self._flush_limit_bytes
         ):
             self._schedule_flush()
 
@@ -247,7 +248,7 @@ class MutationsBatcher:
         """Update the flush task to include the latest staged mutations"""
         if self._staged_mutations:
             entries, self._staged_mutations = self._staged_mutations, []
-            self._staged_count, self._staged_size = 0, 0
+            self._staged_count, self._staged_bytes = 0, 0
             self._prev_flush = asyncio.create_task(
                 self._flush_internal(entries, self._prev_flush)
             )
@@ -271,12 +272,12 @@ class MutationsBatcher:
         await prev_flush
         # flush new entries
         async for batch in self._flow_control.add_to_flow(new_entries):
-            batch_errors = await self._execute_mutate_rows(batch, None)
+            batch_errors = await self._execute_mutate_rows(batch)
             self.exceptions.extend(batch_errors)
-            self._entries_processed_since_last_raise += len(batch.mutations)
+            self._entries_processed_since_last_raise += len(batch)
 
     async def _execute_mutate_rows(
-        self, batch: list[BulkMutationsEntry], timeout: float | None = None
+        self, batch: list[BulkMutationsEntry]
     ) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
@@ -292,15 +293,13 @@ class MutationsBatcher:
         request = {"table_name": self._table.table_name}
         if self._table.app_profile_id:
             request["app_profile_id"] = self._table.app_profile_id
-        operation_timeout = timeout or self._table.default_operation_timeout
-        request_timeout = timeout or self._table.default_per_request_timeout
         try:
             await _mutate_rows_operation(
                 self._table.client._gapic_client,
                 request,
                 batch,
-                operation_timeout,
-                request_timeout,
+                self._table.default_operation_timeout,
+                self._table.default_per_request_timeout,
                 self._flow_control.remove_from_flow,
             )
         except MutationsExceptionGroup as e:
@@ -335,8 +334,7 @@ class MutationsBatcher:
         """
         self.closed = True
         self._flush_timer_task.cancel()
-        final_flush = self._schedule_flush()
-        # wait for all to finish
-        await asyncio.gather(final_flush, self._flush_timer_task)
+        self._schedule_flush()
+        await self._prev_flush
         # raise unreported exceptions
         self._raise_exceptions()
