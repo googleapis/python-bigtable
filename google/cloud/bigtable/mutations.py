@@ -120,7 +120,7 @@ class BulkMutationsEntry:
         if isinstance(mutations, Mutation):
             mutations = [mutations]
         self.row_key = row_key
-        self.mutations = mutations
+        self.mutations = tuple(mutations)
 
     def _to_dict(self) -> dict[str, Any]:
         return {
