@@ -144,7 +144,8 @@ class Test_MutateRowsRetryableAttempt:
         assert errors[2] == []
 
     @pytest.mark.asyncio
-    async def test_on_terminal_state_no_retries(self):
+    @pytest.mark.parametrize("is_coroutine_fn", [True, False])
+    async def test_on_terminal_state_no_retries(self, is_coroutine_fn):
         """
         Should call on_terminal_state for each successful or non-retryable mutation
         """
@@ -155,6 +156,8 @@ class Test_MutateRowsRetryableAttempt:
         failure_mutation = mock.Mock()
         mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
         callback = mock.Mock()
+        if is_coroutine_fn:
+            callback.side_effect = AsyncMock()
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
         # raise retryable error 3 times, then raise non-retryable error
@@ -168,6 +171,8 @@ class Test_MutateRowsRetryableAttempt:
             callback,
         )
         assert callback.call_count == 3
+        if is_coroutine_fn:
+            assert callback.side_effect.await_count == 3
         call_args = callback.call_args_list
         assert call_args[0][0][0] == success_mutation
         assert call_args[0][0][1] is None
@@ -177,7 +182,8 @@ class Test_MutateRowsRetryableAttempt:
         assert call_args[2][0][1] is None
 
     @pytest.mark.asyncio
-    async def test_on_terminal_state_with_retries(self):
+    @pytest.mark.parametrize("is_coroutine_fn", [True, False])
+    async def test_on_terminal_state_with_retries(self, is_coroutine_fn):
         """
         Should not call on_terminal_state for retryable mutations
         """
@@ -191,6 +197,8 @@ class Test_MutateRowsRetryableAttempt:
         failure_mutation = mock.Mock()
         mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
         callback = mock.Mock()
+        if is_coroutine_fn:
+            callback.side_effect = AsyncMock()
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
         # raise retryable error 3 times, then raise non-retryable error
@@ -210,3 +218,5 @@ class Test_MutateRowsRetryableAttempt:
         assert call_args[0][0][1] is None
         assert call_args[1][0][0] == success_mutation_2
         assert call_args[1][0][1] is None
+        if is_coroutine_fn:
+            assert callback.side_effect.await_count == 2

@@ -43,6 +43,16 @@ class TestBaseMutation:
         assert self_mock._to_dict.called
         assert str_value == str(self_mock._to_dict.return_value)
 
+    @pytest.mark.parametrize("test_dict", [{}, {"key": "value"}])
+    def test_size(self, test_dict):
+        from sys import getsizeof
+
+        """Size should return size of dict representation"""
+        self_mock = mock.Mock()
+        self_mock._to_dict.return_value = test_dict
+        size_value = self._target_class().size(self_mock)
+        assert size_value == getsizeof(test_dict)
+
 
 class TestSetCell:
     def _target_class(self):
@@ -344,3 +354,13 @@ class TestBulkMutationsEntry:
         with pytest.raises(ValueError) as e:
             self._make_one("row_key", [])
         assert "must not be empty" in str(e.value)
+
+    @pytest.mark.parametrize("test_dict", [{}, {"key": "value"}])
+    def test_size(self, test_dict):
+        from sys import getsizeof
+
+        """Size should return size of dict representation"""
+        self_mock = mock.Mock()
+        self_mock._to_dict.return_value = test_dict
+        size_value = self._target_class().size(self_mock)
+        assert size_value == getsizeof(test_dict)
