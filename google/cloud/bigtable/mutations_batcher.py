@@ -254,7 +254,6 @@ class MutationsBatcher:
             )
         return self._prev_flush
 
-
     async def _flush_internal(
         self,
         new_entries: list[BulkMutationsEntry],
