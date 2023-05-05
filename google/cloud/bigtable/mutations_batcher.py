@@ -184,7 +184,8 @@ class MutationsBatcher:
         self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
             self._flush_timer(flush_interval)
         )
-        self._flush_tasks: list[asyncio.Task[None]] = []
+        # create noop previous flush task to avoid None checks
+        self._prev_flush: asyncio.Task[None] = asyncio.create_task(asyncio.sleep(0))
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
 
@@ -197,11 +198,8 @@ class MutationsBatcher:
         while not self.closed:
             await asyncio.sleep(interval)
             # add new flush task to list
-            if not self.closed:
-                new_task = asyncio.create_task(
-                    self.flush(timeout=None, raise_exceptions=False)
-                )
-                self._flush_tasks.append(new_task)
+            if not self.closed and self._staged_mutations:
+                self._schedule_flush()
 
     def append(self, mutations: BulkMutationsEntry):
         """
@@ -226,35 +224,56 @@ class MutationsBatcher:
             self._staged_count >= self._flush_limit_count
             or self._staged_size >= self._flush_limit_bytes
         ):
-            self._flush_tasks.append(
-                asyncio.create_task(self.flush(timeout=None, raise_exceptions=False))
-            )
+            self._schedule_flush()
 
-    async def flush(self, *, timeout: float | None = 5.0, raise_exceptions=True):
+    async def flush(self, *, raise_exceptions=True):
         """
-        Send queue over network in as few calls as possible
+        Flush all staged mutations to the server
 
         Args:
-          - timeout: operation_timeout for underlying rpc, in seconds
           - raise_exceptions: if True, will raise any unreported exceptions from this or previous flushes.
               If False, exceptions will be stored in self.exceptions and raised on a future flush
               or when the batcher is closed.
         Raises:
           - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
         """
-        # reset queue
-        entries, self._staged_mutations = self._staged_mutations, []
-        self._staged_count, self._staged_size = 0, 0
-        # perform flush
-        async for batch in self._flow_control.add_to_flow(entries):
-            batch_errors = await self._execute_mutate_rows(batch, timeout)
-            self.exceptions.extend(batch_errors)
-            self._entries_processed_since_last_raise += sum([
-                len(entry.mutations) for entry in batch
-            ])
-        # raise any exceptions from this or previous flushes
+        # add recent staged mutations to flush task, and wait for flush to complete
+        await self._schedule_flush()
+        # raise any unreported exceptions from this or previous flushes
         if raise_exceptions:
             self._raise_exceptions()
+
+    def _schedule_flush(self) -> asyncio.Task[None]:
+        """Update the flush task to include the latest staged mutations"""
+        if self._staged_mutations:
+            entries, self._staged_mutations = self._staged_mutations, []
+            self._staged_count, self._staged_size = 0, 0
+            self._prev_flush = asyncio.create_task(
+                self._flush_internal(entries, self._prev_flush)
+            )
+        return self._prev_flush
+
+
+    async def _flush_internal(
+        self,
+        new_entries: list[BulkMutationsEntry],
+        prev_flush: asyncio.Task[None],
+    ):
+        """
+        Flushes a set of mutations to the server, and updates internal state
+
+        Args:
+          - new_entries: list of mutations to flush
+          - prev_flush: the previous flush task, which will be awaited before
+              a new flush is initiated
+        """
+        # wait for previous flush to complete
+        await prev_flush
+        # flush new entries
+        async for batch in self._flow_control.add_to_flow(new_entries):
+            batch_errors = await self._execute_mutate_rows(batch, None)
+            self.exceptions.extend(batch_errors)
+            self._entries_processed_since_last_raise += len(batch.mutations)
 
     async def _execute_mutate_rows(
         self, batch: list[BulkMutationsEntry], timeout: float | None = None
@@ -310,17 +329,14 @@ class MutationsBatcher:
         """For context manager API"""
         await self.close()
 
-    async def close(self, timeout: float = 5.0):
+    async def close(self):
         """
         Flush queue and clean up resources
         """
         self.closed = True
-        final_flush = self.flush(timeout=timeout, raise_exceptions=False)
-        finalize_tasks = asyncio.wait_for(
-            asyncio.gather(*self._flush_tasks), timeout=timeout
-        )
         self._flush_timer_task.cancel()
+        final_flush = self._schedule_flush()
         # wait for all to finish
-        await asyncio.gather(final_flush, self._flush_timer_task, finalize_tasks)
+        await asyncio.gather(final_flush, self._flush_timer_task)
         # raise unreported exceptions
         self._raise_exceptions()
