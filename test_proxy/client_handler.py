@@ -15,6 +15,7 @@
 This module contains the client handler process for proxy_server.py.
 """
 import os
+from contextlib import asynccontextmanager
 
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable import BigtableDataClient
@@ -57,6 +58,8 @@ class TestProxyClientHandler:
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
+        enable_timing=False,
+        enable_profiling=False,
         **kwargs,
     ):
         self.closed = False
@@ -66,9 +69,32 @@ class TestProxyClientHandler:
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
+        # track timing and profiling if enabled
+        self._enabled_timing = enable_timing
+        self.total_time = 0
+        self._enabled_profiling = enable_profiling
+        self._profiler = None
+        if self._enabled_profiling:
+            import yappi
+            self._profiler = yappi
 
     def close(self):
         self.closed = True
+
+    @asynccontextmanager
+    async def measure_call(self):
+        """Tracks the core part of the library call, for profiling purposes"""
+        if self._enabled_timing:
+            import timeit
+            starting_time = timeit.default_timer()
+        if self._enabled_profiling:
+            self._profiler.start()
+        yield
+        if self._enabled_profiling:
+            self._profiler.stop()
+        if self._enabled_timing:
+            elapsed_time = timeit.default_timer() - starting_time
+            self.total_time += elapsed_time
 
     @error_safe
     async def ReadRows(self, request, **kwargs):
@@ -76,7 +102,8 @@ class TestProxyClientHandler:
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        result_list = await table.read_rows(request, **kwargs)
+        async with self.measure_call():
+            result_list = await table.read_rows(request, **kwargs)
         # pack results back into protobuf-parsable format
         serialized_response = [row.to_dict() for row in result_list]
         return serialized_response
