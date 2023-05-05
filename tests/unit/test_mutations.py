@@ -292,14 +292,14 @@ class TestBulkMutationsEntry:
         expected_mutations = [mock.Mock()]
         instance = self._make_one(expected_key, expected_mutations)
         assert instance.row_key == expected_key
-        assert instance.mutations == expected_mutations
+        assert list(instance.mutations) == expected_mutations
 
     def test_ctor_str_key(self):
         expected_key = "row_key"
-        expected_mutations = [mock.Mock()]
+        expected_mutations = [mock.Mock(), mock.Mock()]
         instance = self._make_one(expected_key, expected_mutations)
         assert instance.row_key == b"row_key"
-        assert instance.mutations == expected_mutations
+        assert list(instance.mutations) == expected_mutations
 
     def test_ctor_single_mutation(self):
         from google.cloud.bigtable.mutations import DeleteAllFromRow
@@ -308,7 +308,7 @@ class TestBulkMutationsEntry:
         expected_mutations = DeleteAllFromRow()
         instance = self._make_one(expected_key, expected_mutations)
         assert instance.row_key == expected_key
-        assert instance.mutations == [expected_mutations]
+        assert instance.mutations == (expected_mutations,)
 
     def test__to_dict(self):
         expected_key = "row_key"

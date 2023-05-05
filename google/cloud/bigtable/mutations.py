@@ -129,7 +129,7 @@ class BulkMutationsEntry:
         if len(mutations) == 0:
             raise ValueError("mutations must not be empty")
         self.row_key = row_key
-        self.mutations = mutations
+        self.mutations = tuple(mutations)
 
     def _to_dict(self) -> dict[str, Any]:
         return {
