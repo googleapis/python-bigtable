@@ -37,7 +37,8 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
     ):
         self.closed = False
         # use emulator
-        os.environ[BIGTABLE_EMULATOR] = data_target
+        if data_target is not None:
+            os.environ[BIGTABLE_EMULATOR] = data_target
         self.client = Client(project=project_id)
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
