@@ -7,7 +7,7 @@ import client_handler_legacy
 
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-def simple_reads(num_rows=1e5, payload_size=10, chunks_per_response=100, server_latency=0):
+def simple_reads(*, num_rows=1e5, payload_size=10, chunks_per_response=100, server_latency=0):
     """
     A large number of simple row reads
     should test max throughput of read_rows
@@ -32,8 +32,11 @@ def simple_reads(num_rows=1e5, payload_size=10, chunks_per_response=100, server_
 
     async def server_response_fn(*args, **kwargs):
         async def inner():
-            for item in server_response_fn_sync(*args, **kwargs):
+            # pull latency out for async sleep
+            latency = kwargs.get("server_latency", 0)
+            for item in server_response_fn_sync(*args, server_latency=0, **kwargs):
                 yield item
+                await asyncio.sleep(latency)
         return inner()
 
     async def client_fn(proxy_handler):
@@ -52,9 +55,9 @@ def simple_reads(num_rows=1e5, payload_size=10, chunks_per_response=100, server_
 async def main():
     new_handler = client_handler.TestProxyClientHandler(enable_timing=True, per_operation_timeout=60*30)
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(enable_timing=True, per_operation_timeout=60*30)
-    benchmark_fn = simple_reads(num_rows=1e5)
-    await benchmark_fn(new_handler)
-    await benchmark_fn(legacy_handler)
+    benchmark_fn = simple_reads(num_rows=1e4, server_latency=0.05)
+    for handler in [new_handler, legacy_handler]:
+        await benchmark_fn(handler)
 
 if __name__ == "__main__":
     asyncio.run(main())
