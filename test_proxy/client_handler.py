@@ -97,6 +97,23 @@ class TestProxyClientHandler:
             elapsed_time = timeit.default_timer() - starting_time
             self.total_time += elapsed_time
 
+    def print_profile(self, profile_rows=25):
+        if not self._enabled_profiling:
+            raise RuntimeError("Profiling is not enabled")
+        import pandas as pd
+        import io
+        stats = self._profiler.convert2pstats(self._profiler.get_func_stats())
+        stats.strip_dirs()
+        result = io.StringIO()
+        stats.stream = result
+        stats.sort_stats("cumtime").print_stats()
+        result = result.getvalue()
+        result = "ncalls" + result.split("ncalls")[-1]
+        df = pd.DataFrame([x.split(maxsplit=5) for x in result.split("\n")])
+        df = df.rename(columns=df.iloc[0]).drop(df.index[0])
+        profile_df = df[:profile_rows]
+        print(profile_df)
+
     @error_safe
     async def ReadRows(self, request, **kwargs):
         table_id = request["table_name"].split("/")[-1]

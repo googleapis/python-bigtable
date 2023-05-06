@@ -36,7 +36,8 @@ def simple_reads(*, num_rows=1e5, payload_size=10, chunks_per_response=100, serv
             latency = kwargs.get("server_latency", 0)
             for item in server_response_fn_sync(*args, server_latency=0, **kwargs):
                 yield item
-                await asyncio.sleep(latency)
+                if latency:
+                    await asyncio.sleep(latency)
         return inner()
 
     async def client_fn(proxy_handler):
@@ -48,16 +49,20 @@ def simple_reads(*, num_rows=1e5, payload_size=10, chunks_per_response=100, serv
                 results = await proxy_handler.ReadRows(request)
                 if isinstance(results, dict) and results.get("error"):
                     print(results["error"])
-                print(f"Read {len(results)} rows in: {proxy_handler.total_time}s")
+                return results
 
     return client_fn
 
 async def main():
-    new_handler = client_handler.TestProxyClientHandler(enable_timing=True, per_operation_timeout=60*30)
-    legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(enable_timing=True, per_operation_timeout=60*30)
-    benchmark_fn = simple_reads(num_rows=1e4, server_latency=0.05)
+    kwargs = {"enable_profiling":True,   "enable_timing": True, "per_operation_timeout": 60*30}
+    new_handler = client_handler.TestProxyClientHandler(**kwargs)
+    legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
+    benchmark_fn = simple_reads(num_rows=1e4, server_latency=0)
     for handler in [new_handler, legacy_handler]:
-        await benchmark_fn(handler)
+        results = await benchmark_fn(handler)
+        print(f"Read {len(results)} rows in: {handler.total_time}s")
+        handler.print_profile()
+        breakpoint()
 
 if __name__ == "__main__":
     asyncio.run(main())
