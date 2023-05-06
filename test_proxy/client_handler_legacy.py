@@ -61,8 +61,8 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         end_inclusive = request.get("rows", {}).get("row_ranges", [{}])[-1].get("end_key_closed", True)
 
         row_list = []
-        with self.measure_call():
-            result_generator = table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive)
+        async with self.measure_call():
+            result_generator = list(table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive))
         for row in result_generator:
             # parse results into proto formatted dict
             dict_val = {"row_key": row.row_key}
