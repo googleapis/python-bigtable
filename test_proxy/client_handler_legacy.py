@@ -47,6 +47,10 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         self._enabled_timing = enable_timing
         self.total_time = 0
         self._enabled_profiling = enable_profiling
+        self._profiler = None
+        if self._enabled_profiling:
+            import yappi
+            self._profiler = yappi
 
     @client_handler.error_safe
     async def ReadRows(self, request, **kwargs):
@@ -81,3 +85,4 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
                 dict_val.setdefault("families", []).append(family_dict)
             row_list.append(dict_val)
         return row_list
+

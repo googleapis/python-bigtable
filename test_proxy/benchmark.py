@@ -7,13 +7,13 @@ import client_handler_legacy
 
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-def simple_reads(*, num_rows=1e5, payload_size=10, chunks_per_response=100, server_latency=0):
+def simple_reads(*, simulate_latency=0, num_rows=1e5, payload_size=10, chunks_per_response=100):
     """
     A large number of simple row reads
     should test max throughput of read_rows
     """
 
-    def server_response_fn_sync(*args, **kwargs):
+    def server_response_fn_sync(*args, latency_arg=None, **kwargs):
         sent_num = 0
         while sent_num < num_rows:
             batch_size = min(chunks_per_response, num_rows - sent_num)
@@ -26,18 +26,15 @@ def simple_reads(*, num_rows=1e5, payload_size=10, chunks_per_response=100, serv
                     commit_row=True
                 ) for i in range(batch_size)
             ]
-            sleep(server_latency)
+            sleep(latency_arg if latency_arg is not None else simulate_latency)
             yield ReadRowsResponse(chunks=chunks)
             sent_num += batch_size
 
     async def server_response_fn(*args, **kwargs):
         async def inner():
-            # pull latency out for async sleep
-            latency = kwargs.get("server_latency", 0)
-            for item in server_response_fn_sync(*args, server_latency=0, **kwargs):
-                yield item
-                if latency:
-                    await asyncio.sleep(latency)
+            for response in server_response_fn_sync(*args, **kwargs, latency_arg=0):
+                yield response
+                await asyncio.sleep(simulate_latency)
         return inner()
 
     async def client_fn(proxy_handler):
@@ -57,11 +54,12 @@ async def main():
     kwargs = {"enable_profiling":True,   "enable_timing": True, "per_operation_timeout": 60*30}
     new_handler = client_handler.TestProxyClientHandler(**kwargs)
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
-    benchmark_fn = simple_reads(num_rows=1e4, server_latency=0)
+    benchmark_fn = simple_reads(simulate_latency=0.1, num_rows=1e3)
     for handler in [new_handler, legacy_handler]:
         results = await benchmark_fn(handler)
         print(f"Read {len(results)} rows in: {handler.total_time}s")
         handler.print_profile()
+        handler._profiler.clear_stats()
         breakpoint()
 
 if __name__ == "__main__":

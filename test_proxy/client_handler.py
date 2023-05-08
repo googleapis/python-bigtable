@@ -78,6 +78,7 @@ class TestProxyClientHandler:
         if self._enabled_profiling:
             import yappi
             self._profiler = yappi
+            self._profiler.set_clock_type("cpu")
 
     def close(self):
         self.closed = True
@@ -113,6 +114,7 @@ class TestProxyClientHandler:
         df = df.rename(columns=df.iloc[0]).drop(df.index[0])
         profile_df = df[:profile_rows]
         print(profile_df)
+        self._profiler.get_func_stats().save("profile.prof", type="pstat")
 
     @error_safe
     async def ReadRows(self, request, **kwargs):
