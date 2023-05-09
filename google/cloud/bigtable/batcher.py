@@ -249,7 +249,7 @@ class MutationsBatcher(object):
         self._rows.put(row)
 
         if self._rows.full():
-            self.flush_async()
+            self._flush_async()
 
     def mutate_rows(self, rows):
         """Add multiple rows to the batch. If the current batch meets one of the size
@@ -290,7 +290,7 @@ class MutationsBatcher(object):
         response = self._flush_rows(rows_to_flush)
         return response
 
-    def flush_async(self):
+    def _flush_async(self):
         """Sends the current batch to Cloud Bigtable asynchronously.
 
         :raises:
