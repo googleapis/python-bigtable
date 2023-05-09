@@ -26,22 +26,50 @@ import mock
 
 
 class Benchmark(ABC):
+    """
+    base class for benchmarks used by Bigtable client
+    """
 
     def __init__(self, simulate_latency=0, max_time:float|None=None, purpose:str|None=None):
+        """
+        Args:
+          - simulate_latency: time to sleep between each server response, to simulate network latency
+          - max_time: If benchmark takes longer than max_time, it should count as failed, Used in assertion in test_benchmarks.py
+          - purpose: optional string describing purpose of benchmark, for use in printing results
+        """
         self.simulate_latency = simulate_latency
         self.max_time = max_time
         self.purpose = purpose
 
     @abstractmethod
     def server_responses(self, *args, **kwargs):
+        """
+        Subclasses implement server_responses generator to yield data from server
+        """
         raise NotImplementedError
 
+    @abstractmethod
+    async def client_setup(self, proxy_handler):
+        """
+        Implemented by subclasses to customize client-side behavior
+        """
+        raise NotImplementedError
+
+
+
     def _server_responses_with_latency(self, *args, **kwargs):
+        """
+        Attach synchronous sleep latency to server_responses generator
+        """
         for response in self.server_responses(*args, **kwargs):
             yield response
             sleep(self.simulate_latency)
 
     async def _server_responses_with_latency_async(self, *args, **kwargs):
+        """
+        Attach asynchronous sleep latency to server_responses generator,
+        and wrap in asyncio coroutine
+        """
         async def inner():
             for response in self.server_responses(*args, **kwargs):
                 yield response
@@ -49,6 +77,9 @@ class Benchmark(ABC):
         return inner()
 
     def _server_mock_decorator(self, func):
+        """
+        Wraps a function in mocked grpc calls
+        """
         async def inner(*args, **kwargs):
             with mock.patch("google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.read_rows") as mock_read_rows_async:
                 with mock.patch("google.cloud.bigtable_v2.services.bigtable.client.BigtableClient.read_rows") as mock_read_rows:
@@ -57,21 +88,22 @@ class Benchmark(ABC):
                     return await func(*args, **kwargs)
         return inner
 
-    @abstractmethod
-    async def client_setup(self, proxy_handler):
-        raise NotImplementedError
-
     async def run(self, proxy_handler):
+        """
+        Run a benchmark against a proxy handler, clearing any previous results
+        """
         # reset profiler
         proxy_handler.total_time = 0
-        if proxy_handler._profiler:
-            proxy_handler._profiler.clear_stats()
+        proxy_handler.reset_profile()
         # mock server responses
         wrapped = self._server_mock_decorator(self.client_setup)
         # run client code
         return await wrapped(proxy_handler)
 
-    async def compare_execution(self, new_client, baseline_client, show_profile=False) -> tuple[float, float]:
+    async def compare_execution(self, new_client, baseline_client) -> tuple[float, float]:
+        """
+        Run a benchmark against two clients, and compare their execution times
+        """
         await self.run(baseline_client)
         baseline_time = baseline_client.total_time
         await self.run(new_client)
@@ -83,9 +115,21 @@ class Benchmark(ABC):
         print(f"New: {new_time:0.2f}s")
         comparison_color = "green" if new_time < baseline_time else "red"
         rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
-        if show_profile:
-            print(f"\nProfile for New Client:\n{new_client.print_profile()}")
         return new_time, baseline_time
+
+    async def profile_execution(self, client, clock_type="cpu", save_path=None):
+        """
+        Run a benchmark with profiling enabled, and print results
+        """
+        import yappi
+        yappi.set_clock_type(clock_type)
+        old_settings = client._enabled_profiling, client._enabled_timing
+        await self.run(client)
+        client._enabled_profiling, client._enabled_timing = old_settings
+        profile_str = client.print_profile(save_path=save_path)
+        rich.print(Panel(f"[cyan]{self.__class__.__name__} benchmark results\n[/cyan]{docstring}", title="Benchmark Results"))
+        print(f"\nProfile for New Client:\n{profile_str}")
+        return profile_str
 
     def __str__(self):
         if self.purpose:

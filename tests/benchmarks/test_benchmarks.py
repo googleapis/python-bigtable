@@ -35,6 +35,6 @@ async def test_benchmark(test_case:Benchmark):
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
     new_time, old_time = await test_case.compare_execution(new_handler, legacy_handler)
     await new_handler.client.close()
-    assert new_time < old_time, "new handler is slower than legacy handler"
+    assert new_time <= old_time, f"new handler is slower than legacy handler: {new_time:0.2f} > {old_time:0.2f}"
     if test_case.max_time is not None:
-        assert newtime < test_case.max_time, f"new handler is slower than max time: {test_case.max_time}"
+        assert new_time < test_case.max_time, f"new handler is slower than max time: {test_case.max_time}"

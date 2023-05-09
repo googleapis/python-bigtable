@@ -79,11 +79,6 @@ class TestProxyClientHandler:
         self._enabled_timing = enable_timing
         self.total_time = 0
         self._enabled_profiling = enable_profiling
-        self._profiler = None
-        if self._enabled_profiling:
-            import yappi
-            self._profiler = yappi
-            self._profiler.set_clock_type("cpu")
 
     def close(self):
         self.closed = True
@@ -95,20 +90,23 @@ class TestProxyClientHandler:
             import timeit
             starting_time = timeit.default_timer()
         if self._enabled_profiling:
-            self._profiler.start()
+            import yappi
+            yappi.start()
         yield
         if self._enabled_profiling:
-            self._profiler.stop()
+            import yappi
+            yappi.stop()
         if self._enabled_timing:
             elapsed_time = timeit.default_timer() - starting_time
             self.total_time += elapsed_time
 
-    def print_profile(self, profile_rows=25) -> str:
+    def print_profile(self, profile_rows=25, save_path:str|None=None) -> str:
         if not self._enabled_profiling:
             raise RuntimeError("Profiling is not enabled")
         import pandas as pd
         import io
-        stats = self._profiler.convert2pstats(self._profiler.get_func_stats())
+        import yappi
+        stats = yappi.convert2pstats(yappi.get_func_stats())
         stats.strip_dirs()
         result = io.StringIO()
         stats.stream = result
@@ -118,8 +116,14 @@ class TestProxyClientHandler:
         df = pd.DataFrame([x.split(maxsplit=5) for x in result.split("\n")])
         df = df.rename(columns=df.iloc[0]).drop(df.index[0])
         profile_df = df[:profile_rows]
-        self._profiler.get_func_stats().save("profile.prof", type="pstat")
+        if save_path:
+            yappi.get_func_stats().save(save_path, type="pstat")
         return profile_df
+
+    def reset_profile(self):
+        if self._enabled_profiling:
+            import yappi
+            yappi.clear_stats()
 
     @error_safe
     async def ReadRows(self, request, **kwargs):
