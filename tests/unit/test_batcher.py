@@ -229,7 +229,7 @@ def test_flush_async_batch_count(mocked_executor_submit):
         row = DirectRow(row_key=f"row_key_{index}")
         row.set_cell("cf1", b"c1", max_value)
         mutation_batcher.mutate(row)
-    mutation_batcher.flush_async()
+    mutation_batcher._flush_async()
 
     # 3 batches submitted. 2 batches of 2 items, and the last one a single item batch.
     assert mocked_executor_submit.call_count == 3
