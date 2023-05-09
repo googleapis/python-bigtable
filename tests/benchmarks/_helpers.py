@@ -1,15 +1,28 @@
-from time import sleep
-import mock
-import asyncio
-from abc import ABC, abstractmethod
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Contains abstract base class used by other benchmarks.
+"""
 
 import rich
 from rich.panel import Panel
 
-import client_handler
-import client_handler_legacy
-
-from google.cloud.bigtable_v2.types import ReadRowsResponse
+from abc import ABC, abstractmethod
+from time import sleep
+import asyncio
+import mock
 
 
 class Benchmark(ABC):
@@ -33,7 +46,6 @@ class Benchmark(ABC):
                 await asyncio.sleep(self.simulate_latency)
         return inner()
 
-
     def _server_mock_decorator(self, func):
         async def inner(*args, **kwargs):
             with mock.patch("google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.read_rows") as mock_read_rows_async:
@@ -50,7 +62,8 @@ class Benchmark(ABC):
     async def run(self, proxy_handler):
         # reset profiler
         proxy_handler.total_time = 0
-        proxy_handler._profiler.clear_stats()
+        if proxy_handler._profiler:
+            proxy_handler._profiler.clear_stats()
         # mock server responses
         wrapped = self._server_mock_decorator(self.client_setup)
         # run client code
@@ -71,46 +84,3 @@ class Benchmark(ABC):
         if show_profile:
             print(f"\nProfile for New Client:\n{new_client.print_profile()}")
         return new_time, baseline_time
-
-class SimpleReads(Benchmark):
-    """
-    A large number of simple row reads.
-    should test max throughput of read_rows
-    """
-
-    def __init__(self, num_rows=1e5, chunks_per_response=100, payload_size=10, simulate_latency=0):
-        super().__init__(simulate_latency)
-        self.num_rows = num_rows
-        self.chunks_per_response = chunks_per_response
-        self.payload_size = payload_size
-
-    def server_responses(self, *args, **kwargs):
-        sent_num = 0
-        while sent_num < self.num_rows:
-            batch_size = min(self.chunks_per_response, self.num_rows - sent_num)
-            chunks = [
-                ReadRowsResponse.CellChunk(
-                    row_key=(sent_num + i).to_bytes(3, "big"),
-                    family_name="F",
-                    qualifier=b"Q",
-                    value=("a" * int(self.payload_size)).encode(),
-                    commit_row=True
-                ) for i in range(batch_size)
-            ]
-            yield ReadRowsResponse(chunks=chunks)
-            sent_num += batch_size
-
-    async def client_setup(self, proxy_handler):
-        request = {"table_name": "projects/project/instances/instance/tables/table"}
-        return await proxy_handler.ReadRows(request)
-
-
-async def main():
-    kwargs = {"enable_profiling":True, "enable_timing": True, "per_operation_timeout": 60*30, "raise_on_error": True}
-    new_handler = client_handler.TestProxyClientHandler(**kwargs)
-    legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
-    benchmark = SimpleReads(num_rows=1e3, simulate_latency=0)
-    await benchmark.compare_execution(new_handler, legacy_handler, True)
-
-if __name__ == "__main__":
-    asyncio.run(main())
