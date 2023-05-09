@@ -23,11 +23,11 @@ import pytest
 from _helpers import Benchmark
 import benchmarks
 
-benchmarks = [
-    benchmarks.SimpleReads(num_rows=1e4, simulate_latency=0),
+benchmark_instances = [
+    benchmarks.SimpleReads(num_rows=1e4, simulate_latency=0, purpose="test max throughput"),
 ]
 
-@pytest.mark.parametrize("test_case", benchmarks, ids=[x.__repr__() for x in benchmarks])
+@pytest.mark.parametrize("test_case", benchmark_instances, ids=[str(x) for x in benchmark_instances])
 @pytest.mark.asyncio
 async def test_benchmark(test_case:Benchmark):
     kwargs = {"enable_profiling":False, "enable_timing": True, "per_operation_timeout": 60*30, "raise_on_error": True}
@@ -35,4 +35,6 @@ async def test_benchmark(test_case:Benchmark):
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
     new_time, old_time = await test_case.compare_execution(new_handler, legacy_handler)
     await new_handler.client.close()
-    assert new_time < old_time
+    assert new_time < old_time, "new handler is slower than legacy handler"
+    if test_case.max_time is not None:
+        assert newtime < test_case.max_time, f"new handler is slower than max time: {test_case.max_time}"

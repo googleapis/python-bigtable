@@ -31,8 +31,8 @@ class SimpleReads(Benchmark):
     should test max throughput of read_rows
     """
 
-    def __init__(self, num_rows=1e5, chunks_per_response=100, payload_size=10, simulate_latency=0):
-        super().__init__(simulate_latency)
+    def __init__(self, num_rows=1e5, chunks_per_response=100, payload_size=10, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.num_rows = num_rows
         self.chunks_per_response = chunks_per_response
         self.payload_size = payload_size

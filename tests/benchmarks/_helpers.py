@@ -27,8 +27,10 @@ import mock
 
 class Benchmark(ABC):
 
-    def __init__(self, simulate_latency=0):
+    def __init__(self, simulate_latency=0, max_time:float|None=None, purpose:str|None=None):
         self.simulate_latency = simulate_latency
+        self.max_time = max_time
+        self.purpose = purpose
 
     @abstractmethod
     def server_responses(self, *args, **kwargs):
@@ -85,5 +87,8 @@ class Benchmark(ABC):
             print(f"\nProfile for New Client:\n{new_client.print_profile()}")
         return new_time, baseline_time
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}{self.__dict__}"
+    def __str__(self):
+        if self.purpose:
+            return f"{self.__class__.__name__} - {self.purpose}"
+        else:
+            return f"{self.__class__.__name__}({self.__dict__}"
