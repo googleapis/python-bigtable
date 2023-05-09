@@ -46,11 +46,26 @@ class Benchmark(ABC):
 
     async def run(self, proxy_handler):
         # reset profiler
+        proxy_handler.total_time = 0
         proxy_handler._profiler.clear_stats()
         # mock server responses
         wrapped = self._server_mock_decorator(self.client_setup)
         # run client code
         return await wrapped(proxy_handler)
+
+    async def compare_execution(self, handler_list, profile_for_index=None, names_list=None):
+        profile_strs = []
+        if names_list is None:
+            names_list = [handler.__class__.__name__ for handler in handler_list]
+            # names_list = [str(chr(ord('A') + i)) for i in range(len(handler_list))]
+        for handler in handler_list:
+            await self.run(handler)
+            profile_strs.append(handler.print_profile())
+        print(f"{self.__class__.__name__} benchmark:")
+        for idx, handler in enumerate(handler_list):
+            print(f"  {names_list[idx]}: {handler.total_time}s")
+        if profile_for_index is not None:
+            print(f"\nProfile for {names_list[profile_for_index]}:\n{profile_strs[profile_for_index]}")
 
 class SimpleReads(Benchmark):
     """
@@ -90,12 +105,7 @@ async def main():
     new_handler = client_handler.TestProxyClientHandler(**kwargs)
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
     benchmark = SimpleReads(num_rows=1e3, simulate_latency=0)
-    for handler in [new_handler, legacy_handler]:
-        results = await benchmark.run(handler)
-        print(f"Read {len(results)} rows in: {handler.total_time}s")
-        handler.print_profile()
-        handler._profiler.clear_stats()
-        breakpoint()
+    await benchmark.compare_execution([new_handler, legacy_handler], profile_for_index=0)
 
 if __name__ == "__main__":
     asyncio.run(main())
