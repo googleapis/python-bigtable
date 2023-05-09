@@ -3,6 +3,9 @@ import mock
 import asyncio
 from abc import ABC, abstractmethod
 
+import rich
+from rich.panel import Panel
+
 import client_handler
 import client_handler_legacy
 
@@ -53,23 +56,25 @@ class Benchmark(ABC):
         # run client code
         return await wrapped(proxy_handler)
 
-    async def compare_execution(self, handler_list, profile_for_index=None, names_list=None):
-        profile_strs = []
-        if names_list is None:
-            names_list = [handler.__class__.__name__ for handler in handler_list]
-            # names_list = [str(chr(ord('A') + i)) for i in range(len(handler_list))]
-        for handler in handler_list:
-            await self.run(handler)
-            profile_strs.append(handler.print_profile())
-        print(f"{self.__class__.__name__} benchmark:")
-        for idx, handler in enumerate(handler_list):
-            print(f"  {names_list[idx]}: {handler.total_time}s")
-        if profile_for_index is not None:
-            print(f"\nProfile for {names_list[profile_for_index]}:\n{profile_strs[profile_for_index]}")
+    async def compare_execution(self, new_client, baseline_client, show_profile=False) -> tuple[float, float]:
+        await self.run(baseline_client)
+        baseline_time = baseline_client.total_time
+        await self.run(new_client)
+        new_time = new_client.total_time
+        # print results
+        docstring = " ".join(self.__doc__.split())
+        rich.print(Panel(f"[cyan]{self.__class__.__name__} benchmark results\n[/cyan]{docstring}", title="Benchmark Results"))
+        print(f"Baseline: {baseline_time:0.2f}s")
+        print(f"New: {new_time:0.2f}s")
+        comparison_color = "green" if new_time < baseline_time else "red"
+        rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
+        if show_profile:
+            print(f"\nProfile for New Client:\n{new_client.print_profile()}")
+        return new_time, baseline_time
 
 class SimpleReads(Benchmark):
     """
-    A large number of simple row reads
+    A large number of simple row reads.
     should test max throughput of read_rows
     """
 
@@ -105,7 +110,7 @@ async def main():
     new_handler = client_handler.TestProxyClientHandler(**kwargs)
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
     benchmark = SimpleReads(num_rows=1e3, simulate_latency=0)
-    await benchmark.compare_execution([new_handler, legacy_handler], profile_for_index=0)
+    await benchmark.compare_execution(new_handler, legacy_handler, True)
 
 if __name__ == "__main__":
     asyncio.run(main())
