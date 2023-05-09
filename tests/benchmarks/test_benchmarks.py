@@ -27,7 +27,7 @@ benchmarks = [
     benchmarks.SimpleReads(num_rows=1e4, simulate_latency=0),
 ]
 
-@pytest.mark.parametrize("test_case", benchmarks)
+@pytest.mark.parametrize("test_case", benchmarks, ids=[x.__repr__() for x in benchmarks])
 @pytest.mark.asyncio
 async def test_benchmark(test_case:Benchmark):
     kwargs = {"enable_profiling":False, "enable_timing": True, "per_operation_timeout": 60*30, "raise_on_error": True}
