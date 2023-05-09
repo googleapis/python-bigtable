@@ -26,17 +26,20 @@ def error_safe(func):
     Catch and pass errors back to the grpc_server_process
     Also check if client is closed before processing requests
     """
-    async def wrapper(self, *args, **kwargs):
+    async def wrapper(self, *args, raise_on_error=False, **kwargs):
         try:
             if self.closed:
                 raise RuntimeError("client is closed")
             return await func(self, *args, **kwargs)
         except (Exception, NotImplementedError) as e:
-            error_msg = f"{type(e).__name__}: {e}"
-            if e.__cause__:
-                error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
-            # exceptions should be raised in grpc_server_process
-            return {"error": error_msg}
+            if raise_on_error or self._raise_on_error:
+                raise e
+            else:
+                error_msg = f"{type(e).__name__}: {e}"
+                if e.__cause__:
+                    error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
+                # exceptions should be raised in grpc_server_process
+                return {"error": error_msg}
 
     return wrapper
 
@@ -58,10 +61,12 @@ class TestProxyClientHandler:
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
+        raise_on_error=False,
         enable_timing=False,
         enable_profiling=False,
         **kwargs,
     ):
+        self._raise_on_error = raise_on_error
         self.closed = False
         # use emulator
         if data_target is not None:
