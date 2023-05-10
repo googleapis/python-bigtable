@@ -57,3 +57,62 @@ class SimpleReads(Benchmark):
         request = {"table_name": "projects/project/instances/instance/tables/table"}
         return await proxy_handler.ReadRows(request)
 
+
+class ComplexReads(Benchmark):
+    """
+    A more complex workload of rows, with multiple column families and qualifiers, and occasional dropped rows or retries
+    """
+
+    def __init__(self, num_rows=1e2, drop_every=None, cells_per_row=100, payload_size=10, continuation_num=1, *args, **kwargs):
+        """
+        Args:
+          - num_rows: number of rows to send
+          - drop_every: every nth row, send a reset_row to drop buffers
+          - cells_per_row: number of cells to send per row
+          - payload_size: size of each chunk payload value
+          - continuation_num: number of continuation chunks to send for each cell
+        """
+        super().__init__(*args, **kwargs)
+        self.num_rows = num_rows
+        self.cells_per_row = cells_per_row
+        self.payload_size = payload_size
+        self.continuation_num = continuation_num
+        self.drop_every = drop_every
+
+    def server_responses(self, *args, **kwargs):
+        for i in range(int(self.num_rows)):
+            for j in range(int(self.cells_per_row)):
+                # send initial chunk
+                yield ReadRowsResponse(chunks=[
+                    ReadRowsResponse.CellChunk(
+                        row_key=(i).to_bytes(3, "big") if j == 0 else None,
+                        family_name=f"{j}",
+                        qualifier=(j).to_bytes(3, "big"),
+                        value=("a" * int(self.payload_size)).encode(),
+                    )
+                ])
+                # send continuation of chunk
+                for k in range(int(self.continuation_num)):
+                    yield ReadRowsResponse(chunks=[
+                        ReadRowsResponse.CellChunk(
+                            value=("a" * int(self.payload_size)).encode(),
+                        )
+                    ])
+            if self.drop_every and i % self.drop_every == 0:
+                # send reset row
+                yield ReadRowsResponse(chunks=[
+                    ReadRowsResponse.CellChunk(
+                        reset_row=True,
+                    )
+                ])
+            else:
+                # send commit row
+                yield ReadRowsResponse(chunks=[
+                    ReadRowsResponse.CellChunk(
+                        commit_row=True
+                    )
+                ])
+
+    async def client_setup(self, proxy_handler):
+        request = {"table_name": "projects/project/instances/instance/tables/table"}
+        return await proxy_handler.ReadRows(request)

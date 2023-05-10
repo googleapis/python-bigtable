@@ -31,10 +31,12 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
+        raise_on_error=False,
         enable_timing=False,
         enable_profiling=False,
         **kwargs,
     ):
+        self._raise_on_error = raise_on_error
         self.closed = False
         # use emulator
         if data_target is not None:
@@ -51,6 +53,7 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         if self._enabled_profiling:
             import yappi
             self._profiler = yappi
+            self._profiler.set_clock_type("cpu")
 
     @client_handler.error_safe
     async def ReadRows(self, request, **kwargs):
