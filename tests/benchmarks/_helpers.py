@@ -110,6 +110,7 @@ class Benchmark(ABC):
         new_time = new_client.total_time
         # print results
         if print_results:
+            print()
             rich.print(Panel(f"[cyan]{self}", title="Timed Benchmark Results"))
             print(f"Baseline: {baseline_time:0.2f}s")
             print(f"New: {new_time:0.2f}s")
@@ -133,6 +134,7 @@ class Benchmark(ABC):
         profile_str = client.print_profile(save_path=save_path)
         rich.print(Panel(f"[cyan]{self}", title="Profile Results"))
         print(f"\nProfile for New Client:\n{profile_str}")
+        # yappi.get_func_stats().print_all()
         # reset settings to old values
         client._enabled_profiling, client._enabled_timing = old_settings
         return profile_str

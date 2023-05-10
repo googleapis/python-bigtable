@@ -34,6 +34,7 @@ import benchmarks
 
 benchmark_instances = [
     benchmarks.SimpleReads(num_rows=1e4, simulate_latency=0, purpose="test max throughput"),
+    benchmarks.SimpleReads(num_rows=1e3, simulate_latency=0.1, purpose="test throughput with server delays"),
 ]
 
 @pytest.fixture(scope="session")
@@ -54,5 +55,7 @@ async def test_benchmark(test_case:Benchmark, profile):
         filename = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F ]", "-", f"{test_case}.prof")
         await test_case.profile_execution(new_handler, save_path=filename)
     # process test results
-    assert new_time <= old_time, f"new handler took {(new_time/old_time)*100:0.2f}% longer than the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
+    assert new_time <= old_time, f"new handler was {(new_time/old_time)*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
     assert new_time < test_case.max_time, f"new handler is slower than max time: {test_case.max_time}"
+if __name__ == "__main__":
+    pytest.main(sys.argv + ["-s"])
