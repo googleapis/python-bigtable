@@ -24,6 +24,7 @@ from time import sleep
 import asyncio
 import mock
 
+import yappi
 
 class Benchmark(ABC):
     """
@@ -61,8 +62,21 @@ class Benchmark(ABC):
         """
         Attach synchronous sleep latency to server_responses generator
         """
-        for response in self.server_responses(*args, **kwargs):
-            yield response
+        profile_enabled = yappi.is_running()
+        if profile_enabled:
+            yappi.stop()
+        generator = self.server_responses(*args, **kwargs)
+        while True:
+            try:
+                next_item = next(generator)
+            except StopIteration:
+                break
+            finally:
+                if profile_enabled:
+                    yappi.start()
+            yield next_item
+            if profile_enabled:
+                yappi.stop()
             sleep(self.simulate_latency)
 
     async def _server_responses_with_latency_async(self, *args, **kwargs):
@@ -71,8 +85,19 @@ class Benchmark(ABC):
         and wrap in asyncio coroutine
         """
         async def inner():
-            for response in self.server_responses(*args, **kwargs):
-                yield response
+            generator = self.server_responses(*args, **kwargs)
+            profile_enabled = yappi.is_running()
+            while True:
+                try:
+                    if profile_enabled:
+                        yappi.stop()
+                    next_item = next(generator)
+                except StopIteration:
+                    break
+                finally:
+                    if profile_enabled:
+                        yappi.start()
+                yield next_item
                 await asyncio.sleep(self.simulate_latency)
         return inner()
 
@@ -122,7 +147,6 @@ class Benchmark(ABC):
         """
         Run a benchmark with profiling enabled, and print results
         """
-        import yappi
         yappi.set_clock_type(clock_type)
         yappi.clear_stats()
         # turn on profiling and off timing for this run

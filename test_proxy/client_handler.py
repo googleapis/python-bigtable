@@ -100,26 +100,17 @@ class TestProxyClientHandler:
             elapsed_time = timeit.default_timer() - starting_time
             self.total_time += elapsed_time
 
-    def print_profile(self, profile_rows=25, save_path:str|None=None) -> str:
+    def print_profile(self, save_path:str|None=None) -> str:
         if not self._enabled_profiling:
             raise RuntimeError("Profiling is not enabled")
-        import pandas as pd
         import io
         import yappi
-        pd.set_option("display.max_colwidth", None)
-        stats = yappi.convert2pstats(yappi.get_func_stats())
-        stats.strip_dirs()
         result = io.StringIO()
-        stats.stream = result
-        stats.sort_stats("cumtime").print_stats()
-        result = result.getvalue()
-        result = "ncalls" + result.split("ncalls")[-1]
-        df = pd.DataFrame([x.split(maxsplit=5) for x in result.split("\n")])
-        df = df.rename(columns=df.iloc[0]).drop(df.index[0])
-        profile_df = df[:profile_rows]
+        yappi.get_func_stats().print_all(out=result)
+        stats = yappi.convert2pstats(yappi.get_func_stats())
         if save_path:
             yappi.get_func_stats().save(save_path, type="pstat")
-        return profile_df
+        return result.getvalue()
 
     def reset_profile(self):
         if self._enabled_profiling:
