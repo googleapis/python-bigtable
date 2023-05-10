@@ -38,7 +38,7 @@ class Benchmark(ABC):
           - purpose: optional string describing purpose of benchmark, for use in printing results
         """
         self.simulate_latency = simulate_latency
-        self.max_time = max_time
+        self.max_time = max_time if max_time else float("inf")
         self.purpose = purpose
 
     @abstractmethod
@@ -100,7 +100,7 @@ class Benchmark(ABC):
         # run client code
         return await wrapped(proxy_handler)
 
-    async def compare_execution(self, new_client, baseline_client) -> tuple[float, float]:
+    async def compare_execution(self, new_client, baseline_client, print_results=True) -> tuple[float, float]:
         """
         Run a benchmark against two clients, and compare their execution times
         """
@@ -109,12 +109,12 @@ class Benchmark(ABC):
         await self.run(new_client)
         new_time = new_client.total_time
         # print results
-        docstring = " ".join(self.__doc__.split())
-        rich.print(Panel(f"[cyan]{self.__class__.__name__} benchmark results\n[/cyan]{docstring}", title="Benchmark Results"))
-        print(f"Baseline: {baseline_time:0.2f}s")
-        print(f"New: {new_time:0.2f}s")
-        comparison_color = "green" if new_time < baseline_time else "red"
-        rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
+        if print_results:
+            rich.print(Panel(f"[cyan]{self}", title="Timed Benchmark Results"))
+            print(f"Baseline: {baseline_time:0.2f}s")
+            print(f"New: {new_time:0.2f}s")
+            comparison_color = "green" if new_time < baseline_time else "red"
+            rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
         return new_time, baseline_time
 
     async def profile_execution(self, client, clock_type="cpu", save_path=None):
@@ -123,12 +123,18 @@ class Benchmark(ABC):
         """
         import yappi
         yappi.set_clock_type(clock_type)
+        yappi.clear_stats()
+        # turn on profiling and off timing for this run
         old_settings = client._enabled_profiling, client._enabled_timing
+        client._enabled_profiling, client._enabled_timing = True, False
+        # run benchmark
         await self.run(client)
-        client._enabled_profiling, client._enabled_timing = old_settings
+        # print and save results
         profile_str = client.print_profile(save_path=save_path)
-        rich.print(Panel(f"[cyan]{self.__class__.__name__} benchmark results\n[/cyan]{docstring}", title="Benchmark Results"))
+        rich.print(Panel(f"[cyan]{self}", title="Profile Results"))
         print(f"\nProfile for New Client:\n{profile_str}")
+        # reset settings to old values
+        client._enabled_profiling, client._enabled_timing = old_settings
         return profile_str
 
     def __str__(self):

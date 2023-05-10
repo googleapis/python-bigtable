@@ -106,6 +106,7 @@ class TestProxyClientHandler:
         import pandas as pd
         import io
         import yappi
+        pd.set_option("display.max_colwidth", None)
         stats = yappi.convert2pstats(yappi.get_func_stats())
         stats.strip_dirs()
         result = io.StringIO()
