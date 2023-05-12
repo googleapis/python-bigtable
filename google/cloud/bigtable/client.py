@@ -448,7 +448,9 @@ class Table:
         if per_request_timeout is not None and per_request_timeout <= 0:
             raise ValueError("per_request_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must not be greater than operation_timeout")
+            raise ValueError(
+                "per_request_timeout must not be greater than operation_timeout"
+            )
         if per_request_timeout is None:
             per_request_timeout = operation_timeout
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query

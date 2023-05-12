@@ -476,7 +476,9 @@ class _State:
     """
 
     @staticmethod
-    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> "_State":
+    def handle_chunk(
+        owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
+    ) -> Type["_State"]:
         raise NotImplementedError
 
 
@@ -489,7 +491,9 @@ class AWAITING_NEW_ROW(_State):
     """
 
     @staticmethod
-    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
+    def handle_chunk(
+        owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
+    ) -> Type["_State"]:
         if not chunk.row_key:
             raise InvalidChunk("New row is missing a row key")
         owner.adapter.start_row(chunk.row_key)
@@ -508,7 +512,9 @@ class AWAITING_NEW_CELL(_State):
     """
 
     @staticmethod
-    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
+    def handle_chunk(
+        owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
+    ) -> Type["_State"]:
         is_split = chunk.value_size > 0
         # track latest cell data. New chunks won't send repeated data
         has_family = _chunk_has_field(chunk, "family_name")
@@ -558,7 +564,9 @@ class AWAITING_CELL_VALUE(_State):
     """
 
     @staticmethod
-    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
+    def handle_chunk(
+        owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
+    ) -> Type["_State"]:
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("In progress cell had a row key")

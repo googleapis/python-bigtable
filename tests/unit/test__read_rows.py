@@ -38,7 +38,7 @@ class TestReadRowsOperation:
         assert instance.transient_errors == []
         assert instance._last_seen_row_key is None
         assert instance._emit_count == 0
-        assert instance.operation_timeout == None
+        assert instance.operation_timeout is None
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
@@ -933,9 +933,7 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 1)
         self.assertEqual(row_builder.completed_cells[0].family, TEST_FAMILY)
-        self.assertEqual(
-            row_builder.completed_cells[0].qualifier, TEST_QUALIFIER
-        )
+        self.assertEqual(row_builder.completed_cells[0].qualifier, TEST_QUALIFIER)
         self.assertEqual(
             row_builder.completed_cells[0].timestamp_micros, TEST_TIMESTAMP
         )
@@ -950,9 +948,7 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 2)
         self.assertEqual(row_builder.completed_cells[1].family, TEST_FAMILY)
-        self.assertEqual(
-            row_builder.completed_cells[1].qualifier, TEST_QUALIFIER
-        )
+        self.assertEqual(row_builder.completed_cells[1].qualifier, TEST_QUALIFIER)
         self.assertEqual(
             row_builder.completed_cells[1].timestamp_micros, TEST_TIMESTAMP
         )

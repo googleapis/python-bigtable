@@ -14,10 +14,8 @@
 #
 from __future__ import annotations
 
-from typing import (
-    cast,
-    AsyncIterable,
-)
+from typing import AsyncIterable
+
 import asyncio
 import time
 import sys

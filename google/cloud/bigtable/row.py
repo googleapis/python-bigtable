@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence, Generator, overload, Any, Set
+from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
 # Type aliases used internally for readability.
@@ -145,7 +145,7 @@ class Row(Sequence["Cell"]):
         for family, qualifier in self.get_column_components():
             cell_list = self[family, qualifier]
             repr_list = [cell.to_dict() for cell in cell_list]
-            cell_str_buffer.append(f"  ('{family}', {qualifier}): {repr_list},")
+            cell_str_buffer.append(f"  ('{family}', {qualifier!r}): {repr_list},")
         cell_str_buffer.append("}")
         cell_str = "\n".join(cell_str_buffer)
         output = f"Row(key={self.row_key!r}, cells={cell_str})"
