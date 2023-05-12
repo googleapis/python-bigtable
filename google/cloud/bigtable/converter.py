@@ -113,6 +113,8 @@ def transform_sync(in_obj, save_path=None):
     filename = inspect.getfile(in_obj)
     lines, lineno = inspect.getsourcelines(in_obj)
     ast_tree = ast.parse(textwrap.dedent(''.join(lines)), filename)
+    # update name
+    ast_tree.body[0].name = f"{ast_tree.body[0].name}_Sync"
     ast.increment_lineno(ast_tree, lineno - 1)
 
     transformer = AsyncToSync()
