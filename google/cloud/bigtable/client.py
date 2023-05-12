@@ -293,7 +293,6 @@ class BigtableDataClient(ClientWithProject):
         table_id: str,
         app_profile_id: str | None = None,
         default_operation_timeout: float = 60,
-        default_per_row_timeout: float | None = 10,
         default_per_request_timeout: float | None = None,
     ) -> Table:
         """
@@ -313,7 +312,6 @@ class BigtableDataClient(ClientWithProject):
             table_id,
             app_profile_id,
             default_operation_timeout=default_operation_timeout,
-            default_per_row_timeout=default_per_row_timeout,
             default_per_request_timeout=default_per_request_timeout,
         )
 
@@ -342,7 +340,6 @@ class Table:
         app_profile_id: str | None = None,
         *,
         default_operation_timeout: float = 60,
-        default_per_row_timeout: float | None = 10,
         default_per_request_timeout: float | None = None,
     ):
         """
@@ -359,8 +356,6 @@ class Table:
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_operation_timeout: (Optional) The default timeout, in seconds
-            default_per_row_timeout: (Optional) The default timeout for individual
-                rows in all read_rows requests, in seconds
             default_per_request_timeout: (Optional) The default timeout for individual
                 rpc requests, in seconds
         Raises:
@@ -369,8 +364,6 @@ class Table:
         # validate timeouts
         if default_operation_timeout <= 0:
             raise ValueError("default_operation_timeout must be greater than 0")
-        if default_per_row_timeout is not None and default_per_row_timeout <= 0:
-            raise ValueError("default_per_row_timeout must be greater than 0")
         if default_per_request_timeout is not None and default_per_request_timeout <= 0:
             raise ValueError("default_per_request_timeout must be greater than 0")
         if (
@@ -392,7 +385,6 @@ class Table:
         self.app_profile_id = app_profile_id
 
         self.default_operation_timeout = default_operation_timeout
-        self.default_per_row_timeout = default_per_row_timeout
         self.default_per_request_timeout = default_per_request_timeout
 
         # raises RuntimeError if called outside of an async context (no running event loop)
@@ -411,7 +403,6 @@ class Table:
         *,
         buffer_size: int = 0,
         operation_timeout: float | None = None,
-        per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ) -> ReadRowsIterator:
         """
@@ -434,11 +425,6 @@ class Table:
                  Completed and bufferd results can still be accessed after the deadline is complete,
                  with a DeadlineExceeded exception only raised after bufferd results are exhausted.
                  If None, defaults to the Table's default_operation_timeout
-            - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
-                longer than per_row_timeout to complete, the ongoing network request will be with a
-                DeadlineExceeded exception, and a retry may be attempted
-                Applies only to the underlying network call.
-                If None, defaults to the Table's default_per_row_timeout
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted.
@@ -455,17 +441,16 @@ class Table:
         """
 
         operation_timeout = operation_timeout or self.default_operation_timeout
-        per_row_timeout = per_row_timeout or self.default_per_row_timeout
         per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
-        if per_row_timeout is not None and per_row_timeout <= 0:
-            raise ValueError("per_row_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout <= 0:
             raise ValueError("per_request_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
+            raise ValueError("per_request_timeout must not be greater than operation_timeout")
+        if per_request_timeout is None:
+            per_request_timeout = operation_timeout
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_name
         if self.app_profile_id:
@@ -474,14 +459,13 @@ class Table:
         # read_rows smart retries is implemented using a series of iterators:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
         # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
-        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_row_timeout, per_row_timeout
+        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_request_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
         row_merger = _ReadRowsOperation(
             request,
             self.client._gapic_client,
             buffer_size=buffer_size,
             operation_timeout=operation_timeout,
-            per_row_timeout=per_row_timeout,
             per_request_timeout=per_request_timeout,
         )
         output_generator = ReadRowsIterator(row_merger)
@@ -495,7 +479,6 @@ class Table:
         query: ReadRowsQuery | dict[str, Any],
         *,
         operation_timeout: float | None = None,
-        per_row_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ) -> list[Row]:
         """
@@ -509,7 +492,6 @@ class Table:
         row_generator = await self.read_rows_stream(
             query,
             operation_timeout=operation_timeout,
-            per_row_timeout=per_row_timeout,
             per_request_timeout=per_request_timeout,
         )
         results = [row async for row in row_generator]
@@ -539,7 +521,6 @@ class Table:
         limit: int | None,
         buffer_size: int | None = None,
         operation_timeout: int | float | None = 60,
-        per_row_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:
         """

@@ -74,7 +74,7 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
                 cell_result = ReadRowsTest.Result(
                     row_key=cell.row_key,
                     family_name=cell.family,
-                    qualifier=cell.column_qualifier,
+                    qualifier=cell.qualifier,
                     timestamp_micros=cell.timestamp_micros,
                     value=cell.value,
                     label=cell.labels[0] if cell.labels else "",
@@ -114,7 +114,7 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
                     cell_result = ReadRowsTest.Result(
                         row_key=cell.row_key,
                         family_name=cell.family,
-                        qualifier=cell.column_qualifier,
+                        qualifier=cell.qualifier,
                         timestamp_micros=cell.timestamp_micros,
                         value=cell.value,
                         label=cell.labels[0] if cell.labels else "",

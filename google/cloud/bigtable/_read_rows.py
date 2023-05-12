@@ -24,7 +24,6 @@ from functools import partial
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 
-from abc import ABC, abstractmethod
 
 from typing import (
     List,
@@ -34,6 +33,7 @@ from typing import (
     AsyncGenerator,
     Callable,
     Awaitable,
+    Type,
 )
 
 """
@@ -69,10 +69,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
-        operation_timeout: float,
         *,
         buffer_size: int = 0,
-        per_row_timeout: float | None = None,
+        operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ):
         """
@@ -81,7 +80,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - client: the Bigtable client to use to make the request
           - buffer_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
-          - per_row_timeout: the timeout to use when waiting for each individual row, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
         """
         self._last_seen_row_key: bytes | None = None
@@ -95,7 +93,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             self._read_rows_retryable_attempt,
             client.read_rows,
             buffer_size,
-            per_row_timeout,
             per_request_timeout,
             row_limit,
         )
@@ -177,7 +174,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
         buffer_size: int,
-        per_row_timeout: float | None,
         per_request_timeout: float | None,
         total_row_limit: int,
     ) -> AsyncGenerator[Row | RequestStats, None]:
@@ -207,9 +203,15 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                     return
                 else:
                     self._request["rows_limit"] = new_limit
+        params_str = f'table_name={self._request.get("table_name", "")}'
+        if self._request.get("app_profile_id", None):
+            params_str = (
+                f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
+            )
         new_gapic_stream = await gapic_fn(
             self._request,
             timeout=per_request_timeout,
+            metadata=[("x-goog-request-params", params_str)],
         )
         buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
             maxsize=buffer_size
@@ -225,13 +227,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             )
             # run until we get a timeout or the stream is exhausted
             while True:
-                new_item = await asyncio.wait_for(
-                    stream.__anext__(), timeout=per_row_timeout
-                )
-                if isinstance(new_item, RequestStats):
-                    yield new_item
+                new_item = await stream.__anext__()
                 # ignore rows that have already been emitted
-                elif isinstance(new_item, Row) and (
+                if isinstance(new_item, Row) and (
                     self._last_seen_row_key is None
                     or new_item.row_key > self._last_seen_row_key
                 ):
@@ -243,11 +241,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                         self._emit_count += 1
                         if total_row_limit and self._emit_count >= total_row_limit:
                             return
-        except asyncio.TimeoutError:
-            # per_row_timeout from asyncio.wait_for
-            raise core_exceptions.DeadlineExceeded(
-                f"per_row_timeout of {per_row_timeout:0.1f}s exceeded"
-            )
+                elif isinstance(new_item, RequestStats):
+                    yield new_item
         except StopAsyncIteration:
             # end of stream
             return
@@ -380,7 +375,7 @@ class _StateMachine:
         """
         Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
         """
-        self.current_state: _State = AWAITING_NEW_ROW(self)
+        self.current_state: Type[_State] = AWAITING_NEW_ROW
         self.current_family: str | None = None
         self.current_qualifier: bytes | None = None
         self.adapter.reset()
@@ -392,7 +387,7 @@ class _StateMachine:
         At the end of the read_rows stream, if the state machine is not in a terminal
         state, an exception should be raised
         """
-        return isinstance(self.current_state, AWAITING_NEW_ROW)
+        return self.current_state == AWAITING_NEW_ROW
 
     def handle_last_scanned_row(self, last_scanned_row_key: bytes) -> Row:
         """
@@ -402,7 +397,7 @@ class _StateMachine:
         """
         if self.last_seen_row_key and self.last_seen_row_key >= last_scanned_row_key:
             raise InvalidChunk("Last scanned row key is out of order")
-        if not isinstance(self.current_state, AWAITING_NEW_ROW):
+        if not self.current_state == AWAITING_NEW_ROW:
             raise InvalidChunk("Last scanned row key received in invalid state")
         scan_marker = _LastScannedRow(last_scanned_row_key)
         self._handle_complete_row(scan_marker)
@@ -426,10 +421,10 @@ class _StateMachine:
             return None
 
         # process the chunk and update the state
-        self.current_state = self.current_state.handle_chunk(chunk)
+        self.current_state = self.current_state.handle_chunk(self, chunk)
         if chunk.commit_row:
             # check if row is complete, and return it if so
-            if not isinstance(self.current_state, AWAITING_NEW_CELL):
+            if not self.current_state == AWAITING_NEW_CELL:
                 raise InvalidChunk("Commit chunk received in invalid state")
             complete_row = self.adapter.finish_row()
             self._handle_complete_row(complete_row)
@@ -455,7 +450,7 @@ class _StateMachine:
         Called by StateMachine when a reset_row flag is set on a chunk
         """
         # ensure reset chunk matches expectations
-        if isinstance(self.current_state, AWAITING_NEW_ROW):
+        if self.current_state == AWAITING_NEW_ROW:
             raise InvalidChunk("Reset chunk received when not processing row")
         if chunk.row_key:
             raise InvalidChunk("Reset chunk has a row key")
@@ -472,7 +467,7 @@ class _StateMachine:
         self._reset_row()
 
 
-class _State(ABC):
+class _State:
     """
     Represents a state the state machine can be in
 
@@ -480,13 +475,8 @@ class _State(ABC):
     transitioning to the next state
     """
 
-    __slots__ = ("_owner",)
-
-    def __init__(self, owner: _StateMachine):
-        self._owner = owner
-
-    @abstractmethod
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
+    @staticmethod
+    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> "_State":
         raise NotImplementedError
 
 
@@ -498,13 +488,14 @@ class AWAITING_NEW_ROW(_State):
       - AWAITING_NEW_CELL: when a chunk with a row_key is received
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
+    @staticmethod
+    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
         if not chunk.row_key:
             raise InvalidChunk("New row is missing a row key")
-        self._owner.adapter.start_row(chunk.row_key)
+        owner.adapter.start_row(chunk.row_key)
         # the first chunk signals both the start of a new row and the start of a new cell, so
         # force the chunk processing in the AWAITING_CELL_VALUE.
-        return AWAITING_NEW_CELL(self._owner).handle_chunk(chunk)
+        return AWAITING_NEW_CELL.handle_chunk(owner, chunk)
 
 
 class AWAITING_NEW_CELL(_State):
@@ -516,42 +507,45 @@ class AWAITING_NEW_CELL(_State):
     - AWAITING_CELL_VALUE: when the value is split across multiple chunks
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
+    @staticmethod
+    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
         is_split = chunk.value_size > 0
         # track latest cell data. New chunks won't send repeated data
-        if _chunk_has_field(chunk, "family_name"):
-            self._owner.current_family = chunk.family_name.value
-            if not _chunk_has_field(chunk, "qualifier"):
+        has_family = _chunk_has_field(chunk, "family_name")
+        has_qualifier = _chunk_has_field(chunk, "qualifier")
+        if has_family:
+            owner.current_family = chunk.family_name.value
+            if not has_qualifier:
                 raise InvalidChunk("New family must specify qualifier")
-        if _chunk_has_field(chunk, "qualifier"):
-            self._owner.current_qualifier = chunk.qualifier.value
-            if self._owner.current_family is None:
+        if has_qualifier:
+            owner.current_qualifier = chunk.qualifier.value
+            if owner.current_family is None:
                 raise InvalidChunk("Family not found")
 
         # ensure that all chunks after the first one are either missing a row
         # key or the row is the same
-        if chunk.row_key and chunk.row_key != self._owner.adapter.current_key:
+        if chunk.row_key and chunk.row_key != owner.adapter.current_key:
             raise InvalidChunk("Row key changed mid row")
 
-        if self._owner.current_family is None:
+        if owner.current_family is None:
             raise InvalidChunk("Missing family for new cell")
-        if self._owner.current_qualifier is None:
+        if owner.current_qualifier is None:
             raise InvalidChunk("Missing qualifier for new cell")
 
-        self._owner.adapter.start_cell(
-            family=self._owner.current_family,
-            qualifier=self._owner.current_qualifier,
+        owner.adapter.start_cell(
+            family=owner.current_family,
+            qualifier=owner.current_qualifier,
             labels=list(chunk.labels),
             timestamp_micros=chunk.timestamp_micros,
         )
-        self._owner.adapter.cell_value(chunk.value)
+        owner.adapter.cell_value(chunk.value)
         # transition to new state
         if is_split:
-            return AWAITING_CELL_VALUE(self._owner)
+            return AWAITING_CELL_VALUE
         else:
             # cell is complete
-            self._owner.adapter.finish_cell()
-            return AWAITING_NEW_CELL(self._owner)
+            owner.adapter.finish_cell()
+            return AWAITING_NEW_CELL
 
 
 class AWAITING_CELL_VALUE(_State):
@@ -563,7 +557,8 @@ class AWAITING_CELL_VALUE(_State):
     - AWAITING_CELL_VALUE: when additional value chunks are required
     """
 
-    def handle_chunk(self, chunk: ReadRowsResponse.CellChunk) -> "_State":
+    @staticmethod
+    def handle_chunk(owner:_StateMachine, chunk: ReadRowsResponse.CellChunk) -> Type["_State"]:
         # ensure reset chunk matches expectations
         if chunk.row_key:
             raise InvalidChunk("In progress cell had a row key")
@@ -576,14 +571,14 @@ class AWAITING_CELL_VALUE(_State):
         if chunk.labels:
             raise InvalidChunk("In progress cell had labels")
         is_last = chunk.value_size == 0
-        self._owner.adapter.cell_value(chunk.value)
+        owner.adapter.cell_value(chunk.value)
         # transition to new state
         if not is_last:
-            return AWAITING_CELL_VALUE(self._owner)
+            return AWAITING_CELL_VALUE
         else:
             # cell is complete
-            self._owner.adapter.finish_cell()
-            return AWAITING_NEW_CELL(self._owner)
+            owner.adapter.finish_cell()
+            return AWAITING_NEW_CELL
 
 
 class _RowBuilder:

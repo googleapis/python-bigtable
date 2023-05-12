@@ -236,7 +236,7 @@ class TestReadRowsIterator:
         err = ZeroDivisionError("mock error")
         await iterator._finish_with_error(err)
         assert iterator.active is False
-        assert iterator._merger_or_error is err
+        assert iterator._error is err
         assert iterator._idle_timeout_task is None
         with pytest.raises(ZeroDivisionError) as exc:
             await iterator.__anext__()
@@ -254,7 +254,7 @@ class TestReadRowsIterator:
         assert iterator.active is True
         await iterator.aclose()
         assert iterator.active is False
-        assert isinstance(iterator._merger_or_error, StopAsyncIteration)
+        assert isinstance(iterator._error, StopAsyncIteration)
         assert iterator._idle_timeout_task is None
         with pytest.raises(StopAsyncIteration) as e:
             await iterator.__anext__()

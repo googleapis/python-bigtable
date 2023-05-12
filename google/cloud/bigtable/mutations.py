@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from google.cloud.bigtable.row import family_id, qualifier, row_key
 
 
 class Mutation:
@@ -24,23 +23,23 @@ class Mutation:
 
 @dataclass
 class SetCell(Mutation):
-    family: family_id
-    column_qualifier: qualifier
+    family: str
+    column_qualifier: bytes
     new_value: bytes | str | int
     timestamp_ms: int | None = None
 
 
 @dataclass
 class DeleteRangeFromColumn(Mutation):
-    family: family_id
-    column_qualifier: qualifier
+    family: str
+    column_qualifier: bytes
     start_timestamp_ms: int
     end_timestamp_ms: int
 
 
 @dataclass
 class DeleteAllFromFamily(Mutation):
-    family_to_delete: family_id
+    family_to_delete: str
 
 
 @dataclass
@@ -50,5 +49,5 @@ class DeleteAllFromRow(Mutation):
 
 @dataclass
 class BulkMutationsEntry:
-    row: row_key
+    row: bytes
     mutations: list[Mutation] | Mutation
