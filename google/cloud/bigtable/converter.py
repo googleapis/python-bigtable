@@ -5,16 +5,23 @@ import ast
 import copy
 import textwrap
 import time
+import queue
 
 asynciomap = {
     # asyncio function to (additional globals, replacement source) tuples
     "sleep": ({"time": time}, "time.sleep"),
     "InvalidStateError": ({ValueError: ValueError}, "ValueError"),
+    "Queue": ({"queue": queue}, "queue.Queue"),
 }
 
 name_map = {
     "__anext__": "__next__",
+    "__aiter__": "__iter__",
+    "aclose": "close",
+    "AsyncIterable": "Iterable",
     "AsyncIterator": "Iterator",
+    "AsyncGenerator": "Generator",
+    "StopAsyncIteration": "StopIteration",
 }
 
 
@@ -67,24 +74,25 @@ class AsyncToSync(ast.NodeTransformer):
         return node
 
 
-def transform_sync(f):
-    filename = inspect.getfile(f)
-    lines, lineno = inspect.getsourcelines(f)
+def transform_sync(in_obj, save_path=None):
+    filename = inspect.getfile(in_obj)
+    lines, lineno = inspect.getsourcelines(in_obj)
     ast_tree = ast.parse(textwrap.dedent(''.join(lines)), filename)
     ast.increment_lineno(ast_tree, lineno - 1)
 
     transformer = AsyncToSync()
     transformer.visit(ast_tree)
     str_tree = ast.unparse(ast_tree)
-    breakpoint()
-    print(str_tree)
+    if save_path:
+        with open(save_path, 'w') as f:
+            f.write(str_tree)
     # tranformed_globals = {**f.__globals__, **transformer.globals}
     # exec(compile(ast_tree, filename, 'exec'), tranformed_globals)
     # return tranformed_globals[f.__name__]
 
 if __name__ == "__main__":
     from google.cloud.bigtable._read_rows import _ReadRowsOperation
-    obj = transform_sync(_ReadRowsOperation.__anext__)
+    obj = transform_sync(_ReadRowsOperation, save_path='output.py')
 
     # transformable = [_ReadRowsOperation]
     # for cls in transformable:
