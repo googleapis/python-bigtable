@@ -125,20 +125,25 @@ class Benchmark(ABC):
         # run client code
         return await wrapped(proxy_handler)
 
-    async def compare_execution(self, new_client, baseline_client, print_results=True) -> tuple[float, float]:
+    async def compare_execution(self, new_client, baseline_client, num_loops=1, print_results=True) -> tuple[float, float]:
         """
         Run a benchmark against two clients, and compare their execution times
         """
-        await self.run(baseline_client)
-        baseline_time = baseline_client.total_time
-        await self.run(new_client)
-        new_time = new_client.total_time
+        baseline_time, new_time = 0, 0
+        for _ in range(num_loops):
+            await self.run(baseline_client)
+            baseline_time += baseline_client.total_time
+            await self.run(new_client)
+            new_time += new_client.total_time
+        # find averages
+        baseline_time /= num_loops
+        new_time /= num_loops
         # print results
         if print_results:
             print()
             rich.print(Panel(f"[cyan]{self}", title="Timed Benchmark Results"))
-            print(f"Baseline: {baseline_time:0.2f}s")
-            print(f"New: {new_time:0.2f}s")
+            print(f"Baseline: {baseline_time:0.3f}s")
+            print(f"New: {new_time:0.3f}s")
             comparison_color = "green" if new_time < baseline_time else "red"
             rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
         return new_time, baseline_time
