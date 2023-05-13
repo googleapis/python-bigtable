@@ -41,6 +41,14 @@ name_map = {
     "AsyncRetry": "Retry",
 }
 
+import_map = {
+    ("google.api_core", "retry_async"): ("google.api_core", "retry"),
+    ("google.cloud.bigtable_v2.services.bigtable.async_client", "BigtableAsyncClient"): ("google.cloud.bigtable_v2.services.bigtable.client", "BigtableClient"),
+    ("typing", "AsyncIterable"): ("typing", "Iterable"),
+    ("typing", "AsyncIterator"): ("typing", "Iterator"),
+    ("typing", "AsyncGenerator"): ("typing", "Generator"),
+}
+
 header = """# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -114,6 +122,13 @@ def get_imports(filename):
         full_tree = ast.parse(f.read(), filename)
         for node in ast.walk(full_tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    if isinstance(node, ast.Import):
+                        # import statments
+                        alias.name = import_map.get((alias.name), (alias.name))
+                    else:
+                        # import from statements
+                        node.module, alias.name = import_map.get((node.module, alias.name), (node.module, alias.name))
                 imports.append(node)
     return [ast.unparse(node) for node in imports]
 
