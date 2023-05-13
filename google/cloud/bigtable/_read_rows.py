@@ -130,7 +130,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         if self._stream is not None:
             return await self._stream.__anext__()
         else:
-            raise asyncio.InvalidStateError("stream is closed")
+            raise GeneratorExit
 
     async def aclose(self):
         """Close the stream and release resources"""
@@ -192,7 +192,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         """
         if self._last_seen_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
+            self._request["rows"] = self._revise_request_rowset(
                 row_set=self._request.get("rows", None),
                 last_seen_row_key=self._last_seen_row_key,
             )
@@ -213,16 +213,12 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             timeout=per_request_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
-            maxsize=buffer_size
+        buffered_stream, buffer_task = self._prepare_stream(
+            new_gapic_stream, buffer_size
         )
-        buffer_task = asyncio.create_task(
-            self._generator_to_buffer(buffer, new_gapic_stream)
-        )
-        buffered_stream = self._buffer_to_generator(buffer)
         state_machine = _StateMachine()
         try:
-            stream = _ReadRowsOperation.merge_row_response_stream(
+            stream = self.merge_row_response_stream(
                 buffered_stream, state_machine
             )
             # run until we get a timeout or the stream is exhausted
@@ -247,7 +243,19 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             # end of stream
             return
         finally:
-            buffer_task.cancel()
+            if buffer_task is not None:
+                buffer_task.cancel()
+
+    @staticmethod
+    async def _prepare_stream(gapic_stream, buffer_size=None):
+        buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
+            maxsize=buffer_size
+        )
+        buffer_task = asyncio.create_task(
+            _ReadRowsOperation._generator_to_buffer(buffer, gapic_stream)
+        )
+        buffered_stream = _ReadRowsOperation._buffer_to_generator(buffer)
+        return buffer_task, buffered_stream
 
     @staticmethod
     def _revise_request_rowset(
