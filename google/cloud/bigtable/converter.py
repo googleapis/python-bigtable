@@ -80,6 +80,21 @@ class AsyncToSync(ast.NodeTransformer):
     def visit_AsyncFunctionDef(self, node):
         docstring = self.update_docstring(ast.get_docstring(node))
         node.body[0].value.s = docstring
+        # check if the function contains non-replaced usage of asyncio
+        func_ast = ast.parse(ast.unparse(node))
+        has_asyncio_calls = any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == 'asyncio' and n.func.attr not in asynciomap for n in ast.walk(func_ast))
+        if has_asyncio_calls:
+            # replace function body with NotImplementedError
+            exc_node = ast.Call(
+                func=ast.Name(id='NotImplementedError', ctx=ast.Load()),
+                args=[ast.Str(s='Corresponding Async Function contains unhandled asyncio calls')],
+                keywords=[]
+            )
+            raise_node = ast.Raise(
+                exc=exc_node,
+                cause=None
+            )
+            node.body = [raise_node]
         return ast.copy_location(
             ast.FunctionDef(
                 name_map.get(node.name, node.name),
