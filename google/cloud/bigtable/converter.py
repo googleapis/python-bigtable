@@ -20,6 +20,7 @@ import ast
 import textwrap
 import time
 import queue
+import os
 
 from black import format_str, FileMode
 import autoflake
@@ -226,6 +227,12 @@ def transform_sync(in_obj, skip_methods=None):
     # add globals
     for g in transformer.globals:
         imports.add(ast.parse(f"import {g}").body[0])
+    # add locals from file, in case they are needed
+    file_basename = os.path.splitext(os.path.basename(filename))[0]
+    with open(filename, "r") as f:
+        for node in ast.walk(ast.parse(f.read(), filename)):
+            if isinstance(node, ast.ClassDef):
+                imports.add(ast.parse(f"from google.cloud.bigtable.{file_basename} import {node.name}").body[0])
     return ast_tree, imports
 
 
