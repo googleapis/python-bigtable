@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import inspect
 import ast
-import copy
 import textwrap
 import time
 import queue
+import os
 
 asynciomap = {
     # asyncio function to (additional globals, replacement source) tuples
@@ -175,6 +175,9 @@ def transform_sync(in_obj, save_path=None):
     ast_tree.body[0].bases.append(ast.Name(id=old_name, ctx=ast.Load()))
     # find imports
     imports = get_imports(filename)
+    # add async base class
+    file_basename = os.path.splitext(os.path.basename(filename))[0]
+    imports.append(f"from google.cloud.bigtable.{file_basename} import {old_name}")
 
     transformer = AsyncToSync()
     transformer.visit(ast_tree)
