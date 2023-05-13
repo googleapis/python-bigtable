@@ -22,6 +22,8 @@ import time
 import queue
 import os
 
+from black import format_str, FileMode
+
 asynciomap = {
     # asyncio function to (additional globals, replacement source) tuples
     "sleep": ({"time": time}, "time.sleep"),
@@ -218,9 +220,10 @@ if __name__ == "__main__":
             tree.body.extend(new_tree.body)
         imports.extend(new_imports)
     # write to disk
+    formatted_tree = format_str(ast.unparse(tree), mode=FileMode())
     with open('output.py', 'w') as f:
         f.write(header)
         f.write('\n\n')
         f.write('\n'.join(imports))
         f.write('\n\n\n')
-        f.write(ast.unparse(tree))
+        f.write(formatted_tree)
