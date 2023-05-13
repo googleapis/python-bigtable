@@ -144,7 +144,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         buffer: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
     ) -> None:
         """
-        Helper function to push items from an async generator into a buffer
+        Helper function to push items from input_generator into a buffer
         """
         try:
             async for item in input_generator:
@@ -159,7 +159,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         buffer: asyncio.Queue[Any],
     ) -> AsyncGenerator[Any, None]:
         """
-        Helper function to yield items from a buffer as an async generator
+        Helper function to yield items from a buffer as a generator
         """
         while True:
             item = await buffer.get()
