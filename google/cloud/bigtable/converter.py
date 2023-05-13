@@ -118,7 +118,9 @@ class AsyncToSync(ast.NodeTransformer):
             for n in ast.walk(func_ast)
         )
         if has_asyncio_calls:
-            self._create_error_node(node, "Corresponding Async Function contains unhandled asyncio calls")
+            self._create_error_node(
+                node, "Corresponding Async Function contains unhandled asyncio calls"
+            )
         return ast.copy_location(
             ast.FunctionDef(
                 name_map.get(node.name, node.name),
@@ -165,16 +167,39 @@ class AsyncToSync(ast.NodeTransformer):
             node,
         )
 
+    def visit_ListComp(self, node):
+        # replace [x async for ...] with [x for ...]
+        new_generators = []
+        for generator in node.generators:
+            if generator.is_async:
+                new_generators.append(
+                    ast.copy_location(
+                        ast.comprehension(
+                            self.visit(generator.target),
+                            self.visit(generator.iter),
+                            [self.visit(i) for i in generator.ifs],
+                            False,
+                        ),
+                        generator,
+                    )
+                )
+            else:
+                new_generators.append(generator)
+        node.generators = new_generators
+        return ast.copy_location(
+            ast.ListComp(
+                self.visit(node.elt),
+                [self.visit(gen) for gen in node.generators],
+            ),
+            node,
+        )
+
     @staticmethod
     def _create_error_node(node, error_msg):
         # replace function body with NotImplementedError
         exc_node = ast.Call(
             func=ast.Name(id="NotImplementedError", ctx=ast.Load()),
-            args=[
-                ast.Str(
-                    s=error_msg
-                )
-            ],
+            args=[ast.Str(s=error_msg)],
             keywords=[],
         )
         raise_node = ast.Raise(exc=exc_node, cause=None)
@@ -202,7 +227,11 @@ def get_imports(filename):
                         if module == ".":
                             continue
                         asname_str = f" as {alias.asname}" if alias.asname else ""
-                        imports.add(ast.parse(f"from {module} import {name}{asname_str}").body[0])
+                        imports.add(
+                            ast.parse(f"from {module} import {name}{asname_str}").body[
+                                0
+                            ]
+                        )
     return imports
 
 
@@ -232,7 +261,11 @@ def transform_sync(in_obj, skip_methods=None):
     with open(filename, "r") as f:
         for node in ast.walk(ast.parse(f.read(), filename)):
             if isinstance(node, ast.ClassDef):
-                imports.add(ast.parse(f"from google.cloud.bigtable.{file_basename} import {node.name}").body[0])
+                imports.add(
+                    ast.parse(
+                        f"from google.cloud.bigtable.{file_basename} import {node.name}"
+                    ).body[0]
+                )
     return ast_tree, imports
 
 

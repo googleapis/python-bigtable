@@ -218,9 +218,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         )
         state_machine = _StateMachine()
         try:
-            stream = self.merge_row_response_stream(
-                buffered_stream, state_machine
-            )
+            stream = self.merge_row_response_stream(buffered_stream, state_machine)
             # run until we get a timeout or the stream is exhausted
             while True:
                 new_item = await stream.__anext__()
