@@ -20,14 +20,13 @@ import ast
 import textwrap
 import time
 import queue
-import os
 
 from black import format_str, FileMode
+import autoflake
 
 asynciomap = {
     # asyncio function to (additional globals, replacement source) tuples
     "sleep": ({"time": time}, "time.sleep"),
-    "InvalidStateError": ({ValueError: ValueError}, "ValueError"),
     "Queue": ({"queue": queue}, "queue.Queue"),
 }
 
@@ -48,11 +47,20 @@ name_map = {
 
 import_map = {
     ("google.api_core", "retry_async"): ("google.api_core", "retry"),
-    ("google.cloud.bigtable_v2.services.bigtable.async_client", "BigtableAsyncClient"): ("google.cloud.bigtable_v2.services.bigtable.client", "BigtableClient"),
+    (
+        "google.cloud.bigtable_v2.services.bigtable.async_client",
+        "BigtableAsyncClient",
+    ): ("google.cloud.bigtable_v2.services.bigtable.client", "BigtableClient"),
     ("typing", "AsyncIterable"): ("typing", "Iterable"),
     ("typing", "AsyncIterator"): ("typing", "Iterator"),
     ("typing", "AsyncGenerator"): ("typing", "Generator"),
-    ("google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio", "PooledBigtableGrpcAsyncIOTransport"): ("google.cloud.bigtable_v2.services.bigtable.transports.grpc", "BigtableGrpcTransport"),
+    (
+        "google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio",
+        "PooledBigtableGrpcAsyncIOTransport",
+    ): (
+        "google.cloud.bigtable_v2.services.bigtable.transports.grpc",
+        "BigtableGrpcTransport",
+    ),
 }
 
 header = """# Copyright 2023 Google LLC
@@ -89,25 +97,34 @@ class AsyncToSync(ast.NodeTransformer):
         # replace any references to Async objects, even in sync functions
         return self.visit_AsyncFunctionDef(node)
 
-
     def visit_AsyncFunctionDef(self, node):
         docstring = self.update_docstring(ast.get_docstring(node))
-        if isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Str):
+        if isinstance(node.body[0], ast.Expr) and isinstance(
+            node.body[0].value, ast.Str
+        ):
             node.body[0].value.s = docstring
         # check if the function contains non-replaced usage of asyncio
         func_ast = ast.parse(ast.unparse(node))
-        has_asyncio_calls = any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == 'asyncio' and n.func.attr not in asynciomap for n in ast.walk(func_ast))
+        has_asyncio_calls = any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and isinstance(n.func.value, ast.Name)
+            and n.func.value.id == "asyncio"
+            and n.func.attr not in asynciomap
+            for n in ast.walk(func_ast)
+        )
         if has_asyncio_calls:
             # replace function body with NotImplementedError
             exc_node = ast.Call(
-                func=ast.Name(id='NotImplementedError', ctx=ast.Load()),
-                args=[ast.Str(s='Corresponding Async Function contains unhandled asyncio calls')],
-                keywords=[]
+                func=ast.Name(id="NotImplementedError", ctx=ast.Load()),
+                args=[
+                    ast.Str(
+                        s="Corresponding Async Function contains unhandled asyncio calls"
+                    )
+                ],
+                keywords=[],
             )
-            raise_node = ast.Raise(
-                exc=exc_node,
-                cause=None
-            )
+            raise_node = ast.Raise(exc=exc_node, cause=None)
             node.body = [raise_node]
         return ast.copy_location(
             ast.FunctionDef(
@@ -132,12 +149,11 @@ class AsyncToSync(ast.NodeTransformer):
         ):
             g, replacement = asynciomap[node.attr]
             self.globals.update(g)
-            return ast.copy_location(
-                ast.parse(replacement, mode="eval").body,
-                node
-            )
+            return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
         elif isinstance(node, ast.Attribute) and node.attr in name_map:
-            new_node = ast.copy_location(ast.Attribute(node.value, name_map[node.attr], node.ctx), node)
+            new_node = ast.copy_location(
+                ast.Attribute(node.value, name_map[node.attr], node.ctx), node
+            )
             return new_node
         return node
 
@@ -156,8 +172,10 @@ class AsyncToSync(ast.NodeTransformer):
             node,
         )
 
-def get_imports(filename):
-    imports = []
+
+def get_imports(filename, existing_imports=None):
+    imports = set()
+    existing_imports = existing_imports or set()
     with open(filename, "r") as f:
         full_tree = ast.parse(f.read(), filename)
         for node in ast.walk(full_tree):
@@ -165,17 +183,26 @@ def get_imports(filename):
                 for alias in node.names:
                     if isinstance(node, ast.Import):
                         # import statments
-                        alias.name = import_map.get((alias.name), (alias.name))
+                        new_import = import_map.get((alias.name), (alias.name))
+                        imports.add(ast.parse(f"import {new_import}").body[0])
                     else:
                         # import from statements
-                        node.module, alias.name = import_map.get((node.module, alias.name), (node.module, alias.name))
-                imports.append(node)
-    return [ast.unparse(node) for node in imports]
+                        # break into individual components
+                        module, name = import_map.get(
+                            (node.module, alias.name), (node.module, alias.name)
+                        )
+                        # don't import from same file
+                        if module == ".":
+                            continue
+                        asname_str = f" as {alias.asname}" if alias.asname else ""
+                        imports.add(ast.parse(f"from {module} import {name}{asname_str}").body[0])
+    return imports.union(existing_imports)
 
-def transform_sync(in_obj):
+
+def transform_sync(in_obj, existing_imports=None):
     filename = inspect.getfile(in_obj)
     lines, lineno = inspect.getsourcelines(in_obj)
-    ast_tree = ast.parse(textwrap.dedent(''.join(lines)), filename)
+    ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
     # update name
     old_name = ast_tree.body[0].name
     ast_tree.body[0].name = f"{old_name}_SyncAutoGenerated"
@@ -183,47 +210,54 @@ def transform_sync(in_obj):
     # add async version as subclass
     # ast_tree.body[0].bases.append(ast.Name(id=old_name, ctx=ast.Load()))
     # find imports
-    imports = get_imports(filename)
+    imports = get_imports(filename, existing_imports)
     # add async base class
-    file_basename = os.path.splitext(os.path.basename(filename))[0]
-    imports.append(f"from google.cloud.bigtable.{file_basename} import {old_name}")
+    # file_basename = os.path.splitext(os.path.basename(filename))[0]
+    # imports.add(f"from google.cloud.bigtable.{file_basename} import {old_name}")
 
     transformer = AsyncToSync()
     transformer.visit(ast_tree)
+    # add globals
+    for g in transformer.globals:
+        imports.add(ast.parse(f"import {g}").body[0])
     return ast_tree, imports
-    # str_tree = ast.unparse(ast_tree)
-    # if save_path:
-    #     with open(save_path, 'w') as f:
-    #         f.write(header)
-    #         f.write('\n\n')
-    #         f.write('\n'.join(imports))
-    #         f.write('\n\n\n')
-    #         f.write(str_tree)
-    # tranformed_globals = {**f.__globals__, **transformer.globals}
-    # exec(compile(ast_tree, filename, 'exec'), tranformed_globals)
-    # return tranformed_globals[f.__name__]
+
 
 if __name__ == "__main__":
     from google.cloud.bigtable._read_rows import _ReadRowsOperation
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
-    tree, imports = None, []
+
+    tree, imports = None, set()
+    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient]
+
     # register new sync versions
-    for cls in [_ReadRowsOperation, Table, BigtableDataClient]:
+    for cls in conversion_list:
         name_map[cls.__name__] = f"{cls.__name__}_SyncAutoGenerated"
-        import_map[(cls.__module__, cls.__name__)] = (".", f"{cls.__name__}_SyncAutoGenerated")
-    for cls in [Table, BigtableDataClient, _ReadRowsOperation]:
-        new_tree, new_imports = transform_sync(cls)
+        import_map[(cls.__module__, cls.__name__)] = (
+            ".",
+            f"{cls.__name__}_SyncAutoGenerated",
+        )
+    for cls in conversion_list:
+        new_tree, imports = transform_sync(cls, imports)
         if tree is None:
             tree = new_tree
         else:
             tree.body.extend(new_tree.body)
-        imports.extend(new_imports)
+    # add imports
+    import_unique = list(set([ast.unparse(i) for i in imports]))
+    import_unique.sort()
+    google, non_google = [], []
+    for i in import_unique:
+        if "google" in i:
+            google.append(i)
+        else:
+            non_google.append(i)
+    import_str = "\n".join(non_google + [""] + google)
+    # append clean tree
+    full_code = f"{header}\n\n{import_str}\n\n{ast.unparse(tree)}"
+    full_code = autoflake.fix_code(full_code, remove_all_unused_imports=True)
+    formatted_code = format_str(full_code, mode=FileMode())
     # write to disk
-    formatted_tree = format_str(ast.unparse(tree), mode=FileMode())
-    with open('output.py', 'w') as f:
-        f.write(header)
-        f.write('\n\n')
-        f.write('\n'.join(imports))
-        f.write('\n\n\n')
-        f.write(formatted_tree)
+    with open("output.py", "w") as f:
+        f.write(formatted_code)
