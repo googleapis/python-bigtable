@@ -116,6 +116,17 @@ class AsyncToSync(ast.NodeTransformer):
         node.id = name_map.get(node.id, node.id)
         return node
 
+    def visit_AsyncFor(self, node):
+        return ast.copy_location(
+            ast.For(
+                self.visit(node.target),
+                self.visit(node.iter),
+                [self.visit(stmt) for stmt in node.body],
+                [self.visit(stmt) for stmt in node.orelse],
+            ),
+            node,
+        )
+
 def get_imports(filename):
     imports = []
     with open(filename, "r") as f:
