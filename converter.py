@@ -96,12 +96,15 @@ class AsyncToSync(ast.NodeTransformer):
         self.pass_methods = pass_methods or []
         self.error_methods = error_methods or []
 
-    def update_docstring(self, orig_docstring):
-        if not orig_docstring:
-            return orig_docstring
-        orig_words = orig_docstring.split()
-        new_words = [self.name_replacements.get(word, word) for word in orig_words]
-        return " ".join(new_words)
+    def update_docstring(self, docstring):
+        if not docstring:
+            return docstring
+        for key_word, replacement in self.name_replacements.items():
+            docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
+        if "\n" in docstring:
+            # if multiline docstring, add linebreaks to put the """ on a separate line
+            docstring = "\n" + docstring + "\n\n"
+        return docstring
 
     def visit_FunctionDef(self, node):
         return self.visit_AsyncFunctionDef(node)
