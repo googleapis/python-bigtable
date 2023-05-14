@@ -354,9 +354,9 @@ if __name__ == "__main__":
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
     from google.cloud.bigtable.iterators import ReadRowsIterator
-    from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.mutations_batcher import _FlowControl
-    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+    # from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+    # from google.cloud.bigtable.mutations_batcher import _FlowControl
+    # from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 
     tree, imports = None, set()
     # conversion_list = [_FlowControl, MutationsBatcher, _MutateRowsOperation]
@@ -373,8 +373,9 @@ if __name__ == "__main__":
         imports.add(ast.parse(f"from {final_surface_path} import {cls.__name__}_Sync").body[0])
     for cls in conversion_list:
         new_tree, new_imports = transform_sync(cls, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-            pass_methods=["mutations_batcher", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
-            drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"])
+            pass_methods=["_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
+            drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"],
+            error_methods=["mutations_batcher"])
         if tree is None:
             tree = new_tree
         else:
