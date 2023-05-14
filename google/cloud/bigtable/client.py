@@ -89,10 +89,6 @@ class BigtableDataClient(ClientWithProject):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
-        # set up transport in registry
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
@@ -109,6 +105,7 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
+        transport_str = self.__init__transport__(pool_size)
         self._gapic_client = BigtableAsyncClient(
             transport=transport_str,
             credentials=credentials,
@@ -135,6 +132,13 @@ class BigtableDataClient(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
+
+    def __init__transport__(self, pool_size: int):
+        # set up transport in registry
+        transport_str = f"pooled_grpc_asyncio_{pool_size}"
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
+        return transport_str
 
     def start_background_channel_refresh(self) -> None:
         """
@@ -386,11 +390,14 @@ class Table:
 
         self.default_operation_timeout = default_operation_timeout
         self.default_per_request_timeout = default_per_request_timeout
+        self.__init__async__()
+
+    def __init__async__(self):
 
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
-                self.client._register_instance(instance_id, self)
+                self.client._register_instance(self.instance_id, self)
             )
         except RuntimeError as e:
             raise RuntimeError(
