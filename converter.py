@@ -185,6 +185,15 @@ class AsyncToSync(ast.NodeTransformer):
             node,
         )
 
+    def visit_AsyncWith(self, node):
+        return ast.copy_location(
+            ast.With(
+                [self.visit(item) for item in node.items],
+                [self.visit(stmt) for stmt in node.body],
+            ),
+            node,
+        )
+
     def visit_ListComp(self, node):
         # replace [x async for ...] with [x for ...]
         new_generators = []
