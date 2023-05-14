@@ -363,13 +363,14 @@ if __name__ == "__main__":
     conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator]
 
     # register new sync versions
+    final_surface_path = "google.cloud.bigtable._sync_customizations"
     for cls in conversion_list:
         name_map[cls.__name__] = f"{cls.__name__}_Sync"
         import_map[(cls.__module__, cls.__name__)] = (
-            "google.cloud.bigtable.sync",
+            final_surface_path,
             f"{cls.__name__}_Sync",
         )
-        imports.add(ast.parse(f"from google.cloud.bigtable.sync import {cls.__name__}_Sync").body[0])
+        imports.add(ast.parse(f"from {final_surface_path} import {cls.__name__}_Sync").body[0])
     for cls in conversion_list:
         new_tree, new_imports = transform_sync(cls, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
             pass_methods=["mutations_batcher", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],

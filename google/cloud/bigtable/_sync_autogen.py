@@ -38,6 +38,10 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable import RowKeySamples
 from google.cloud.bigtable._read_rows import _StateMachine
+from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync
+from google.cloud.bigtable._sync_customizations import ReadRowsIterator_Sync
+from google.cloud.bigtable._sync_customizations import Table_Sync
+from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.mutations import BulkMutationsEntry
@@ -48,10 +52,6 @@ from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.row import _LastScannedRow
 from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable.sync import BigtableDataClient_Sync
-from google.cloud.bigtable.sync import ReadRowsIterator_Sync
-from google.cloud.bigtable.sync import Table_Sync
-from google.cloud.bigtable.sync import _ReadRowsOperation_Sync
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
