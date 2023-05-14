@@ -307,13 +307,11 @@ class TestReadRowsOperation:
 
     @pytest.mark.asyncio
     async def test_aclose(self):
-        import asyncio
-
         instance = self._make_one({}, mock.Mock())
         await instance.aclose()
         assert instance._stream is None
         assert instance._last_seen_row_key is None
-        with pytest.raises(asyncio.InvalidStateError):
+        with pytest.raises(GeneratorExit):
             await instance.__anext__()
         # try calling a second time
         await instance.aclose()

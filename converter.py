@@ -364,5 +364,5 @@ if __name__ == "__main__":
     full_code = autoflake.fix_code(full_code, remove_all_unused_imports=True)
     formatted_code = format_str(full_code, mode=FileMode())
     # write to disk
-    with open("output.py", "w") as f:
+    with open("./google/cloud/bigtable/_sync_autogen.py", "w") as f:
         f.write(formatted_code)

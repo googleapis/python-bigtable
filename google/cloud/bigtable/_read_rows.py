@@ -213,7 +213,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             timeout=per_request_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        buffered_stream, buffer_task = self._prepare_stream(
+        buffered_stream, buffer_task = await self._prepare_stream(
             new_gapic_stream, buffer_size
         )
         state_machine = _StateMachine()
@@ -253,7 +253,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             _ReadRowsOperation._generator_to_buffer(buffer, gapic_stream)
         )
         buffered_stream = _ReadRowsOperation._buffer_to_generator(buffer)
-        return buffer_task, buffered_stream
+        return buffered_stream, buffer_task
 
     @staticmethod
     def _revise_request_rowset(
