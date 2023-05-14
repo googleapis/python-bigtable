@@ -86,12 +86,12 @@ class ReadRowsIterator(AsyncIterable[Row]):
                 )
 
     def __aiter__(self):
-        """Implement the async iterator protocol."""
+        """Implement the AsyncIterator protocol."""
         return self
 
     async def __anext__(self) -> Row:
         """
-        Implement the async iterator potocol.
+        Implement the AsyncIterator potocol.
 
         Return the next item in the stream if active, or
         raise an exception if the stream has been closed.

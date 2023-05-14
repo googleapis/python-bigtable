@@ -21,6 +21,7 @@ import textwrap
 import time
 import queue
 import os
+import threading
 
 from black import format_str, FileMode
 import autoflake
@@ -29,6 +30,7 @@ asynciomap = {
     # asyncio function to (additional globals, replacement source) tuples
     "sleep": ({"time": time}, "time.sleep"),
     "Queue": ({"queue": queue}, "queue.Queue"),
+    "Condition": ({"threading": threading}, "threading.Condition"),
 }
 
 name_map = {
@@ -85,15 +87,20 @@ header = """# Copyright 2023 Google LLC
 
 
 class AsyncToSync(ast.NodeTransformer):
-    def __init__(self, skip_methods=None):
-        self.skip_methods = skip_methods or []
+    def __init__(self, *, import_replacements=None, asyncio_replacements=None, name_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
         self.globals = {}
+        self.import_replacements = import_replacements or {}
+        self.asyncio_replacements = asyncio_replacements or {}
+        self.name_replacements = name_replacements or {}
+        self.drop_methods = drop_methods or []
+        self.pass_methods = pass_methods or []
+        self.error_methods = error_methods or []
 
     def update_docstring(self, orig_docstring):
         if not orig_docstring:
             return orig_docstring
         orig_words = orig_docstring.split()
-        new_words = [name_map.get(word, word) for word in orig_words]
+        new_words = [self.name_replacements.get(word, word) for word in orig_words]
         return " ".join(new_words)
 
     def visit_FunctionDef(self, node):
@@ -106,8 +113,13 @@ class AsyncToSync(ast.NodeTransformer):
         ):
             node.body[0].value.s = docstring
         # replace any references to Async objects, even in sync functions
-        if node.name in self.skip_methods:
-            self._create_error_node(node, "Method generation intentionally skipped")
+        if node.name in self.drop_methods:
+            return None
+        elif node.name in self.pass_methods:
+            # replace with pass
+            node.body = [ast.Expr(value=ast.Str(s="Implementation purposely removed in sync mode"))]
+        elif node.name in self.error_methods:
+            self._create_error_node(node, "Function marked as unsupported in sync mode")
         else:
             # check if the function contains non-replaced usage of asyncio
             func_ast = ast.parse(ast.unparse(node))
@@ -116,7 +128,7 @@ class AsyncToSync(ast.NodeTransformer):
                 and isinstance(n.func, ast.Attribute)
                 and isinstance(n.func.value, ast.Name)
                 and n.func.value.id == "asyncio"
-                and n.func.attr not in asynciomap
+                and n.func.attr not in self.asyncio_replacements
                 for n in ast.walk(func_ast)
             )
             if has_asyncio_calls:
@@ -126,7 +138,7 @@ class AsyncToSync(ast.NodeTransformer):
                 )
         return ast.copy_location(
             ast.FunctionDef(
-                name_map.get(node.name, node.name),
+                self.name_replacements.get(node.name, node.name),
                 self.visit(node.args),
                 [self.visit(stmt) for stmt in node.body],
                 [self.visit(stmt) for stmt in node.decorator_list],
@@ -136,11 +148,11 @@ class AsyncToSync(ast.NodeTransformer):
         )
 
     def visit_Call(self, node):
-        # namp_map replacement for class method calls
+        # name replacement for class method calls
         if isinstance(node.func, ast.Attribute) and isinstance(
             node.func.value, ast.Name
         ):
-            node.func.value.id = name_map.get(node.func.value.id, node.func.value.id)
+            node.func.value.id = self.name_replacements.get(node.func.value.id, node.func.value.id)
         return ast.copy_location(
             ast.Call(
                 self.visit(node.func),
@@ -158,20 +170,20 @@ class AsyncToSync(ast.NodeTransformer):
             isinstance(node.value, ast.Name)
             and isinstance(node.value.ctx, ast.Load)
             and node.value.id == "asyncio"
-            and node.attr in asynciomap
+            and node.attr in self.asyncio_replacements
         ):
-            g, replacement = asynciomap[node.attr]
+            g, replacement = self.asyncio_replacements[node.attr]
             self.globals.update(g)
             return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
-        elif isinstance(node, ast.Attribute) and node.attr in name_map:
+        elif isinstance(node, ast.Attribute) and node.attr in self.name_replacements:
             new_node = ast.copy_location(
-                ast.Attribute(node.value, name_map[node.attr], node.ctx), node
+                ast.Attribute(node.value, self.name_replacements[node.attr], node.ctx), node
             )
             return new_node
         return node
 
     def visit_Name(self, node):
-        node.id = name_map.get(node.id, node.id)
+        node.id = self.name_replacements.get(node.id, node.id)
         return node
 
     def visit_AsyncFor(self, node):
@@ -226,7 +238,7 @@ class AsyncToSync(ast.NodeTransformer):
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
             and node.value.id == "AsyncGenerator"
-            and name_map.get(node.value.id, "") == "Generator"
+            and self.name_replacements.get(node.value.id, "") == "Generator"
         ):
             # Generator has different argument signature than AsyncGenerator
             return ast.copy_location(
@@ -247,7 +259,7 @@ class AsyncToSync(ast.NodeTransformer):
         elif (
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
-            and name_map.get(node.value.id, False) is None
+            and self.name_replacements.get(node.value.id, False) is None
         ):
             # needed for Awaitable
             return self.visit(node.slice)
@@ -272,36 +284,36 @@ class AsyncToSync(ast.NodeTransformer):
         node.body = [raise_node]
 
 
-def get_imports(filename):
-    imports = set()
-    with open(filename, "r") as f:
-        full_tree = ast.parse(f.read(), filename)
-        for node in ast.walk(full_tree):
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    if isinstance(node, ast.Import):
-                        # import statments
-                        new_import = import_map.get((alias.name), (alias.name))
-                        imports.add(ast.parse(f"import {new_import}").body[0])
-                    else:
-                        # import from statements
-                        # break into individual components
-                        module, name = import_map.get(
-                            (node.module, alias.name), (node.module, alias.name)
-                        )
-                        # don't import from same file
-                        if module == ".":
-                            continue
-                        asname_str = f" as {alias.asname}" if alias.asname else ""
-                        imports.add(
-                            ast.parse(f"from {module} import {name}{asname_str}").body[
-                                0
-                            ]
-                        )
-    return imports
+    def get_imports(self, filename):
+        imports = set()
+        with open(filename, "r") as f:
+            full_tree = ast.parse(f.read(), filename)
+            for node in ast.walk(full_tree):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    for alias in node.names:
+                        if isinstance(node, ast.Import):
+                            # import statments
+                            new_import = self.import_replacements.get((alias.name), (alias.name))
+                            imports.add(ast.parse(f"import {new_import}").body[0])
+                        else:
+                            # import from statements
+                            # break into individual components
+                            module, name = self.import_replacements.get(
+                                (node.module, alias.name), (node.module, alias.name)
+                            )
+                            # don't import from same file
+                            if module == ".":
+                                continue
+                            asname_str = f" as {alias.asname}" if alias.asname else ""
+                            imports.add(
+                                ast.parse(f"from {module} import {name}{asname_str}").body[
+                                    0
+                                ]
+                            )
+        return imports
 
 
-def transform_sync(in_obj, skip_methods=None):
+def transform_sync(in_obj, **kwargs):
     filename = inspect.getfile(in_obj)
     lines, lineno = inspect.getsourcelines(in_obj)
     ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
@@ -309,16 +321,11 @@ def transform_sync(in_obj, skip_methods=None):
     old_name = ast_tree.body[0].name
     ast_tree.body[0].name = f"{old_name}_SyncAutoGenerated"
     ast.increment_lineno(ast_tree, lineno - 1)
-    # find imports
-    imports = get_imports(filename)
-    # add abc superclass
-    # ast_tree.body[0].bases.append(
-    #     ast.Name(id="abc.ABC", ctx=ast.Load(), lineno=lineno, col_offset=0)
-    # )
-    # imports.add(ast.parse("import abc").body[0])
     # transform
-    transformer = AsyncToSync(skip_methods=skip_methods)
+    transformer = AsyncToSync(**kwargs)
     transformer.visit(ast_tree)
+    # find imports
+    imports = transformer.get_imports(filename)
     # add globals
     for g in transformer.globals:
         imports.add(ast.parse(f"import {g}").body[0])
@@ -340,8 +347,12 @@ if __name__ == "__main__":
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
     from google.cloud.bigtable.iterators import ReadRowsIterator
+    from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+    from google.cloud.bigtable.mutations_batcher import _FlowControl
+    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 
     tree, imports = None, set()
+    # conversion_list = [_FlowControl, MutationsBatcher, _MutateRowsOperation]
     conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator]
 
     # register new sync versions
@@ -353,7 +364,9 @@ if __name__ == "__main__":
         )
         imports.add(ast.parse(f"from google.cloud.bigtable.sync import {cls.__name__}_Sync").body[0])
     for cls in conversion_list:
-        new_tree, new_imports = transform_sync(cls, skip_methods=["mutations_batcher", "_manage_channel", "_register_instance", "__init__transport__"])
+        new_tree, new_imports = transform_sync(cls, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
+            pass_methods=["mutations_batcher", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
+            drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"])
         if tree is None:
             tree = new_tree
         else:
