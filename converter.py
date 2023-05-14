@@ -65,6 +65,7 @@ import_map = {
         "google.cloud.bigtable_v2.services.bigtable.transports.grpc",
         "BigtableGrpcTransport",
     ),
+    ("grpc.aio", "Channel"): ("grpc", "Channel"),
 }
 
 header = """# Copyright 2023 Google LLC
