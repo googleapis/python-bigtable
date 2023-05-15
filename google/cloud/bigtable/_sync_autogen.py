@@ -17,6 +17,7 @@
 
 
 from __future__ import annotations
+from abc import ABC
 from functools import partial
 from grpc import Channel
 from typing import Any
@@ -63,7 +64,7 @@ import google.auth._default
 import google.auth.credentials
 
 
-class _ReadRowsOperation_Sync(Iterable[Row]):
+class _ReadRowsOperation_Sync(Iterable[Row], ABC):
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -293,7 +294,7 @@ class _ReadRowsOperation_Sync(Iterable[Row]):
             raise InvalidChunk("read_rows completed with partial state remaining")
 
 
-class Table_Sync:
+class Table_Sync(ABC):
     """
     Main Data API surface
 
@@ -713,7 +714,7 @@ class Table_Sync:
         self.close()
 
 
-class BigtableDataClient_Sync(ClientWithProject):
+class BigtableDataClient_Sync(ClientWithProject, ABC):
     def __init__(
         self,
         *,
@@ -875,7 +876,7 @@ class BigtableDataClient_Sync(ClientWithProject):
         self._gapic_client.__exit__(exc_type, exc_val, exc_tb)
 
 
-class ReadRowsIterator_Sync(Iterable[Row]):
+class ReadRowsIterator_Sync(Iterable[Row], ABC):
     """
     Async iterator for ReadRows responses.
     """

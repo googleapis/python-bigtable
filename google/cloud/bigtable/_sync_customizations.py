@@ -22,17 +22,17 @@ from google.cloud.bigtable._sync_autogen import BigtableDataClient_Sync
 from google.cloud.bigtable._sync_autogen import ReadRowsIterator_Sync
 
 
-class _ReadRowsOperation_Sync_Patched(_ReadRowsOperation_Sync):
+class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
     @staticmethod
     async def _prepare_stream(gapic_stream, *args, **kwargs):
         return gapic_stream
 
 
-class Table_Sync_Patched(Table_Sync):
+class Table_Sync_Concrete(Table_Sync):
     pass
 
 
-class BigtableDataClient_Sync_Patched(BigtableDataClient_Sync):
+class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
     def __init__transport__(self, *args, **kwargs):
         # use grpc transport for sync client
         return "grpc"
@@ -66,5 +66,5 @@ class BigtableDataClient_Sync_Patched(BigtableDataClient_Sync):
             self._ping_and_warm_instances(self.transport.grpc_channel)
 
 
-class ReadRowsIterator_Sync_Patched(ReadRowsIterator_Sync):
+class ReadRowsIterator_Sync_Concrete(ReadRowsIterator_Sync):
     pass
