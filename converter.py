@@ -88,11 +88,12 @@ header = """# Copyright 2023 Google LLC
 
 
 class AsyncToSync(ast.NodeTransformer):
-    def __init__(self, *, import_replacements=None, asyncio_replacements=None, name_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
+    def __init__(self, *, import_replacements=None, asyncio_replacements=None, name_replacements=None, final_class_names=None, drop_methods=None, pass_methods=None, error_methods=None):
         self.globals = {}
         self.import_replacements = import_replacements or {}
         self.asyncio_replacements = asyncio_replacements or {}
         self.name_replacements = name_replacements or {}
+        self.final_class_names = final_class_names or {}
         self.drop_methods = drop_methods or []
         self.pass_methods = pass_methods or []
         self.error_methods = error_methods or []
@@ -157,6 +158,9 @@ class AsyncToSync(ast.NodeTransformer):
             node.func.value, ast.Name
         ):
             node.func.value.id = self.name_replacements.get(node.func.value.id, node.func.value.id)
+        # when initializing an auto-generated sync class, replace the class name with the patched version
+        if isinstance(node.func, ast.Name) and node.func.id in self.final_class_names:
+            node.func.id = self.final_class_names[node.func.id]
         return ast.copy_location(
             ast.Call(
                 self.visit(node.func),
@@ -364,15 +368,20 @@ if __name__ == "__main__":
 
     # register new sync versions
     final_surface_path = "google.cloud.bigtable._sync_customizations"
+    final_class_names = {}
+    name_format = "{}_Sync"
+    final_format = "{}_Sync_Patched"
     for cls in conversion_list:
-        name_map[cls.__name__] = f"{cls.__name__}_Sync"
+        underscore_str = "_" if not cls.__name__.startswith("_") else ""
+        name_map[cls.__name__] = name_format.format(cls.__name__)
+        final_class_names[cls.__name__] = final_format.format(cls.__name__)
         import_map[(cls.__module__, cls.__name__)] = (
             final_surface_path,
-            f"{cls.__name__}_Sync",
+            final_format.format(cls.__name__),
         )
-        imports.add(ast.parse(f"from {final_surface_path} import {cls.__name__}_Sync").body[0])
+        imports.add(ast.parse(f"from {final_surface_path} import {final_format.format(cls.__name__)}").body[0])
     for cls in conversion_list:
-        new_tree, new_imports = transform_sync(cls, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
+        new_tree, new_imports = transform_sync(cls, new_class_name=name_format.format(cls.__name__), final_class_names=final_class_names, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
             pass_methods=["_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
             drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"],
             error_methods=["mutations_batcher"])
