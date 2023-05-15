@@ -25,7 +25,7 @@ from google.cloud.bigtable._sync_autogen import ReadRowsIterator_Sync
 class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
     @staticmethod
     async def _prepare_stream(gapic_stream, *args, **kwargs):
-        return gapic_stream
+        return gapic_stream, None
 
 
 class Table_Sync_Concrete(Table_Sync):
@@ -45,12 +45,12 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
     def _ping_and_warm_instances(
         self, channel: Channel
     ) -> list[GoogleAPICallError | None]:
-        results : list[GoogleAPICallError | None] = []
+        results: list[GoogleAPICallError | None] = []
         for instance_name in self._active_instances:
             try:
-                channel.unary_unary(
-                    "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
-                )({"name": instance_name})
+                channel.unary_unary("/google.bigtable.v2.Bigtable/PingAndWarmChannel")(
+                    {"name": instance_name}
+                )
                 results.append(None)
             except GoogleAPICallError as e:
                 # fail warm attempts silently

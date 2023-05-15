@@ -39,9 +39,9 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable import RowKeySamples
 from google.cloud.bigtable._read_rows import _StateMachine
-from google.cloud.bigtable._sync_customizations import ReadRowsIterator_Sync_Patched
-from google.cloud.bigtable._sync_customizations import Table_Sync_Patched
-from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Patched
+from google.cloud.bigtable._sync_customizations import ReadRowsIterator_Sync_Concrete
+from google.cloud.bigtable._sync_customizations import Table_Sync_Concrete
+from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.mutations import BulkMutationsEntry
@@ -218,9 +218,7 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
 
     @staticmethod
     def _prepare_stream(gapic_stream, buffer_size=None):
-        raise NotImplementedError(
-            "Corresponding Async Function contains unhandled asyncio calls"
-        )
+        """Implementation purposely removed in sync mode"""
 
     @staticmethod
     def _revise_request_rowset(
@@ -419,14 +417,14 @@ class Table_Sync(ABC):
         request["table_name"] = self.table_name
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
-        row_merger = _ReadRowsOperation_Sync_Patched(
+        row_merger = _ReadRowsOperation_Sync_Concrete(
             request,
             self.client._gapic_client,
             buffer_size=buffer_size,
             operation_timeout=operation_timeout,
             per_request_timeout=per_request_timeout,
         )
-        output_generator = ReadRowsIterator_Sync_Patched(row_merger)
+        output_generator = ReadRowsIterator_Sync_Concrete(row_merger)
         idle_timeout_seconds = 300
         output_generator._start_idle_timer(idle_timeout_seconds)
         return output_generator
@@ -858,7 +856,7 @@ class BigtableDataClient_Sync(ClientWithProject, ABC):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table_Sync_Patched(
+        return Table_Sync_Concrete(
             self,
             instance_id,
             table_id,
