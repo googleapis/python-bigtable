@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 from unittest import mock
 import pytest
@@ -6,6 +8,7 @@ from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable._read_rows import AWAITING_NEW_ROW
 from google.cloud.bigtable._read_rows import AWAITING_NEW_CELL
 from google.cloud.bigtable._read_rows import AWAITING_CELL_VALUE
+from google.api_core import exceptions as core_exceptions
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"qualifier"
@@ -16,8 +19,6 @@ TEST_LABELS = ["label1", "label2"]
 class TestReadRowsOperation_Sync_Concrete:
     """
     Tests for ReadRowsOperation_Sync_Concrete class
-
-    Tests should mirror the async ones
     """
 
     @staticmethod
@@ -682,3 +683,403 @@ class TestTable_Sync_Concrete:
         )
         client.close()
 
+
+class TestReadRows_Sync:
+    """
+    Tests for table.read_rows and related methods.
+    """
+
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync_Concrete
+
+        return BigtableDataClient_Sync_Concrete(*args, **kwargs)
+
+    def _make_stats(self):
+        from google.cloud.bigtable_v2.types import RequestStats
+        from google.cloud.bigtable_v2.types import FullReadStatsView
+        from google.cloud.bigtable_v2.types import ReadIterationStats
+
+        return RequestStats(
+            full_read_stats_view=FullReadStatsView(
+                read_iteration_stats=ReadIterationStats(
+                    rows_seen_count=1,
+                    rows_returned_count=2,
+                    cells_seen_count=3,
+                    cells_returned_count=4,
+                )
+            )
+        )
+
+    def _make_chunk(self, *args, **kwargs):
+        from google.cloud.bigtable_v2 import ReadRowsResponse
+
+        kwargs["row_key"] = kwargs.get("row_key", b"row_key")
+        kwargs["family_name"] = kwargs.get("family_name", "family_name")
+        kwargs["qualifier"] = kwargs.get("qualifier", b"qualifier")
+        kwargs["value"] = kwargs.get("value", b"value")
+        kwargs["commit_row"] = kwargs.get("commit_row", True)
+
+        return ReadRowsResponse.CellChunk(*args, **kwargs)
+
+    def _make_gapic_stream(
+        self,
+        chunk_list: list["ReadRowsResponse.CellChunk" | Exception],
+        request_stats: "RequestStats" | None = None,
+        sleep_time=0,
+    ):
+        from google.cloud.bigtable_v2 import ReadRowsResponse
+        import time
+
+        for chunk in chunk_list:
+            if sleep_time:
+                time.sleep(sleep_time)
+            if isinstance(chunk, Exception):
+                raise chunk
+            else:
+                yield ReadRowsResponse(chunks=[chunk])
+        if request_stats:
+            yield ReadRowsResponse(request_stats=request_stats)
+
+
+    def test_read_rows(self):
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            chunks = [
+                self._make_chunk(row_key=b"test_1"),
+                self._make_chunk(row_key=b"test_2"),
+            ]
+            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks
+                )
+                results = table.read_rows({}, operation_timeout=3)
+                assert len(results) == 2
+                assert results[0].row_key == b"test_1"
+                assert results[1].row_key == b"test_2"
+
+    def test_read_rows_stream(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [
+                self._make_chunk(row_key=b"test_1"),
+                self._make_chunk(row_key=b"test_2"),
+            ]
+            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks
+                )
+                gen = table.read_rows_stream(query, operation_timeout=3)
+                results = [row for row in gen]
+                assert len(results) == 2
+                assert results[0].row_key == b"test_1"
+                assert results[1].row_key == b"test_2"
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    def test_read_rows_query_matches_request(self, include_app_profile):
+        from google.cloud.bigtable import RowRange
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        with self._make_client() as client:
+            app_profile_id = "app_profile_id" if include_app_profile else None
+            table = client.get_table("instance", "table", app_profile_id=app_profile_id)
+            row_keys = [b"test_1", "test_2"]
+            row_ranges = RowRange("start", "end")
+            filter_ = {"test": "filter"}
+            limit = 99
+            query = ReadRowsQuery(
+                row_keys=row_keys,
+                row_ranges=row_ranges,
+                row_filter=filter_,
+                limit=limit,
+            )
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    []
+                )
+                results = table.read_rows(query, operation_timeout=3)
+                assert len(results) == 0
+                call_request = read_rows.call_args_list[0][0][0]
+                query_dict = query._to_dict()
+                if include_app_profile:
+                    assert set(call_request.keys()) == set(query_dict.keys()) | {
+                        "table_name",
+                        "app_profile_id",
+                    }
+                else:
+                    assert set(call_request.keys()) == set(query_dict.keys()) | {
+                        "table_name"
+                    }
+                assert call_request["rows"] == query_dict["rows"]
+                assert call_request["filter"] == filter_
+                assert call_request["rows_limit"] == limit
+                assert call_request["table_name"] == table.table_name
+                if include_app_profile:
+                    assert call_request["app_profile_id"] == app_profile_id
+
+    @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
+    def test_read_rows_timeout(self, operation_timeout):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [self._make_chunk(row_key=b"test_1")]
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks, sleep_time=1
+                )
+                try:
+                    table.read_rows(query, operation_timeout=operation_timeout)
+                except core_exceptions.DeadlineExceeded as e:
+                    assert (
+                        e.message
+                        == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+                    )
+
+    @pytest.mark.parametrize(
+        "per_request_t, operation_t, expected_num",
+        [
+            (0.05, 0.08, 2),
+            (0.05, 0.54, 11),
+            (0.05, 0.14, 3),
+            (0.05, 0.24, 5),
+        ],
+    )
+    def test_read_rows_per_request_timeout(
+        self, per_request_t, operation_t, expected_num
+    ):
+        """
+        Ensures that the per_request_timeout is respected and that the number of
+        requests is as expected.
+
+        operation_timeout does not cancel the request, so we expect the number of
+        requests to be the ceiling of operation_timeout / per_request_timeout.
+        """
+        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        # mocking uniform ensures there are no sleeps between retries
+        with mock.patch("random.uniform", side_effect=lambda a, b: 0):
+            with self._make_client() as client:
+                table = client.get_table("instance", "table")
+                query = ReadRowsQuery()
+                chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: self._make_gapic_stream(
+                            chunks, sleep_time=per_request_t
+                        )
+                    )
+                    try:
+                        table.read_rows(
+                            query,
+                            operation_timeout=operation_t,
+                            per_request_timeout=per_request_t,
+                        )
+                    except core_exceptions.DeadlineExceeded as e:
+                        retry_exc = e.__cause__
+                        if expected_num == 0:
+                            assert retry_exc is None
+                        else:
+                            assert type(retry_exc) == RetryExceptionGroup
+                            assert f"{expected_num} failed attempts" in str(retry_exc)
+                            assert len(retry_exc.exceptions) == expected_num
+                            for sub_exc in retry_exc.exceptions:
+                                assert sub_exc.message == "mock deadline"
+                    assert read_rows.call_count == expected_num
+                    called_kwargs = read_rows.call_args[1]
+                    assert called_kwargs["timeout"] == per_request_t
+
+    @pytest.mark.parametrize(
+        "exc_type",
+        [
+            core_exceptions.Aborted,
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    def test_read_rows_retryable_error(self, exc_type):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            expected_error = exc_type("mock error")
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    [expected_error]
+                )
+                try:
+                    table.read_rows(query, operation_timeout=0.1)
+                except core_exceptions.DeadlineExceeded as e:
+                    retry_exc = e.__cause__
+                    root_cause = retry_exc.exceptions[0]
+                    assert type(root_cause) == exc_type
+                    assert root_cause == expected_error
+
+    @pytest.mark.parametrize(
+        "exc_type",
+        [
+            core_exceptions.Cancelled,
+            core_exceptions.PreconditionFailed,
+            core_exceptions.NotFound,
+            core_exceptions.PermissionDenied,
+            core_exceptions.Conflict,
+            core_exceptions.InternalServerError,
+            core_exceptions.TooManyRequests,
+            core_exceptions.ResourceExhausted,
+            InvalidChunk,
+        ],
+    )
+    def test_read_rows_non_retryable_error(self, exc_type):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            expected_error = exc_type("mock error")
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    [expected_error]
+                )
+                try:
+                    table.read_rows(query, operation_timeout=0.1)
+                except exc_type as e:
+                    assert e == expected_error
+
+    def test_read_rows_request_stats(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [self._make_chunk(row_key=b"test_1")]
+            stats = self._make_stats()
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks, request_stats=stats
+                )
+                gen = table.read_rows_stream(query)
+                [row for row in gen]
+                assert gen.request_stats == stats
+
+    def test_read_rows_request_stats_missing(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            query = ReadRowsQuery()
+            chunks = [self._make_chunk(row_key=b"test_1")]
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks, request_stats=None
+                )
+                gen = table.read_rows_stream(query)
+                [row for row in gen]
+                assert gen.request_stats is None
+
+    def test_read_rows_revise_request(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+
+        with mock.patch.object(
+            _ReadRowsOperation, "_revise_request_rowset"
+        ) as revise_rowset:
+            with mock.patch.object(_ReadRowsOperation, "close"):
+                revise_rowset.side_effect = [
+                    "modified",
+                    core_exceptions.Cancelled("mock error"),
+                ]
+                with self._make_client() as client:
+                    table = client.get_table("instance", "table")
+                    row_keys = [b"test_1", b"test_2", b"test_3"]
+                    query = ReadRowsQuery(row_keys=row_keys)
+                    chunks = [
+                        self._make_chunk(row_key=b"test_1"),
+                        core_exceptions.Aborted("mock retryable error"),
+                    ]
+                    with mock.patch.object(
+                        table.client._gapic_client, "read_rows"
+                    ) as read_rows:
+                        read_rows.side_effect = (
+                            lambda *args, **kwargs: self._make_gapic_stream(
+                                chunks, request_stats=None
+                            )
+                        )
+                        try:
+                            table.read_rows(query)
+                        except core_exceptions.Cancelled:
+                            revise_rowset.assert_called()
+                            first_call_kwargs = revise_rowset.call_args_list[0].kwargs
+                            assert (
+                                first_call_kwargs["row_set"] == query._to_dict()["rows"]
+                            )
+                            assert first_call_kwargs["last_seen_row_key"] == b"test_1"
+                            second_call_kwargs = revise_rowset.call_args_list[1].kwargs
+                            assert second_call_kwargs["row_set"] == "modified"
+                            assert second_call_kwargs["last_seen_row_key"] == b"test_1"
+
+    def test_read_rows_default_timeouts(self):
+        """
+        Ensure that the default timeouts are set on the read rows operation when not overridden
+        """
+        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        operation_timeout = 8
+        per_request_timeout = 4
+        with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+            mock_op.side_effect = RuntimeError("mock error")
+            with self._make_client() as client:
+                with client.get_table(
+                    "instance",
+                    "table",
+                    default_operation_timeout=operation_timeout,
+                    default_per_request_timeout=per_request_timeout,
+                ) as table:
+                    try:
+                        table.read_rows(ReadRowsQuery())
+                    except RuntimeError:
+                        pass
+                    kwargs = mock_op.call_args_list[0].kwargs
+                    assert kwargs["operation_timeout"] == operation_timeout
+                    assert kwargs["per_request_timeout"] == per_request_timeout
+
+    def test_read_rows_default_timeout_override(self):
+        """
+        When timeouts are passed, they overwrite default values
+        """
+        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        operation_timeout = 8
+        per_request_timeout = 4
+        with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+            mock_op.side_effect = RuntimeError("mock error")
+            with self._make_client() as client:
+                with client.get_table(
+                    "instance",
+                    "table",
+                    default_operation_timeout=99,
+                    default_per_request_timeout=97,
+                ) as table:
+                    try:
+                        table.read_rows(
+                            ReadRowsQuery(),
+                            operation_timeout=operation_timeout,
+                            per_request_timeout=per_request_timeout,
+                        )
+                    except RuntimeError:
+                        pass
+                    kwargs = mock_op.call_args_list[0].kwargs
+                    assert kwargs["operation_timeout"] == operation_timeout
+                    assert kwargs["per_request_timeout"] == per_request_timeout

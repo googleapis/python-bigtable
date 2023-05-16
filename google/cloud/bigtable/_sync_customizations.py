@@ -29,11 +29,11 @@ class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
 
 
 class Table_Sync_Concrete(Table_Sync):
+    # TODO: buffer_size does not apply to sync surface
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # register table with client
         self.client._register_instance(self.instance_id, self)
-
 
 class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
 
