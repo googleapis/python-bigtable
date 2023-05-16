@@ -353,9 +353,7 @@ class Table_Sync(ABC):
         self.__init__async__()
 
     def __init__async__(self):
-        raise NotImplementedError(
-            "Corresponding Async Function contains unhandled asyncio calls"
-        )
+        """Implementation purposely removed in sync mode"""
 
     def read_rows_stream(
         self,

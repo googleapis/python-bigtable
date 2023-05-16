@@ -29,28 +29,41 @@ class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
 
 
 class Table_Sync_Concrete(Table_Sync):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # register table with client
+        self.client._register_instance(self.instance_id, self)
 
 
 class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
+
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        credentials: google.auth.credentials.Credentials | None = None,
+        client_options: dict[str, Any]
+        | "google.api_core.client_options.ClientOptions"
+        | None = None,
+    ):
+        # remove pool size option in sync client
+        super().__init__(project=project, credentials=credentials, client_options=client_options)
+
     def __init__transport__(self, *args, **kwargs):
         # use grpc transport for sync client
         return "grpc"
 
-    def close(self, timeout: float = 2.0):
+    def close(self):
         # TODO: Can this be auto-generated?
         self.transport.close()
         self._channel_refresh_tasks = []
 
-    def _ping_and_warm_instances(
-        self, channel: Channel
-    ) -> list[GoogleAPICallError | None]:
+    def _ping_and_warm_instances(self) -> list[GoogleAPICallError | None]:
+        from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
         results: list[GoogleAPICallError | None] = []
         for instance_name in self._active_instances:
             try:
-                channel.unary_unary("/google.bigtable.v2.Bigtable/PingAndWarmChannel")(
-                    {"name": instance_name}
-                )
+                self._gapic_client.ping_and_warm(name=instance_name)
                 results.append(None)
             except GoogleAPICallError as e:
                 # fail warm attempts silently
@@ -63,7 +76,7 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
         if instance_name not in self._active_instances:
             self._active_instances.add(instance_name)
             # warm channel for new instance
-            self._ping_and_warm_instances(self.transport.grpc_channel)
+            self._ping_and_warm_instances()
 
 
 class ReadRowsIterator_Sync_Concrete(ReadRowsIterator_Sync):

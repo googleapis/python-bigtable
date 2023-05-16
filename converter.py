@@ -440,7 +440,7 @@ if __name__ == "__main__":
     imports.add(ast.parse(f"import {final_surface_path} as sync_concrete").body[0])
     for cls in conversion_list:
         new_tree, new_imports = transform_sync(cls, new_class_name=name_format.format(cls.__name__), final_class_names=final_class_names, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-            pass_methods=["_prepare_stream", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
+            pass_methods=["__init__async__", "_prepare_stream", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
             drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"],
             error_methods=["mutations_batcher"])
         if tree is None:
