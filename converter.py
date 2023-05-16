@@ -431,16 +431,13 @@ if __name__ == "__main__":
     final_surface_path = "google.cloud.bigtable._sync_customizations"
     final_class_names = {}
     name_format = "{}_Sync"
-    final_format = "{}_Sync_Concrete"
+    final_format = "sync_concrete.{}_Sync_Concrete"
     for cls in conversion_list:
         underscore_str = "_" if not cls.__name__.startswith("_") else ""
         name_map[cls.__name__] = name_format.format(cls.__name__)
         final_class_names[cls.__name__] = final_format.format(cls.__name__)
-        import_map[(cls.__module__, cls.__name__)] = (
-            final_surface_path,
-            final_format.format(cls.__name__),
-        )
-        imports.add(ast.parse(f"from {final_surface_path} import {final_format.format(cls.__name__)}").body[0])
+
+    imports.add(ast.parse(f"import {final_surface_path} as sync_concrete").body[0])
     for cls in conversion_list:
         new_tree, new_imports = transform_sync(cls, new_class_name=name_format.format(cls.__name__), final_class_names=final_class_names, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
             pass_methods=["_prepare_stream", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"],
