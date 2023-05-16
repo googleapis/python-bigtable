@@ -398,7 +398,7 @@ def get_code_string(ast_tree:ast.Node, import_list:list[ast.Node]):
     Relies on black and autoflake for formatting
     """
     # add imports
-    import_unique = list(set([ast.unparse(i) for i in imports]))
+    import_unique = list(set([ast.unparse(i) for i in import_list]))
     import_unique.sort()
     google, non_google = [], []
     for i in import_unique:
@@ -408,13 +408,13 @@ def get_code_string(ast_tree:ast.Node, import_list:list[ast.Node]):
             non_google.append(i)
     import_str = "\n".join(non_google + [""] + google)
     # append clean tree
-    full_code = f"{header}\n\n{import_str}\n\n{ast.unparse(tree)}"
+    full_code = f"{header}\n\n{import_str}\n\n{ast.unparse(ast_tree)}"
     full_code = autoflake.fix_code(full_code, remove_all_unused_imports=True)
     formatted_code = format_str(full_code, mode=FileMode())
     return formatted_code
 
 
-if __name__ == "__main__":
+def main():
     from google.cloud.bigtable._read_rows import _ReadRowsOperation
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
@@ -450,6 +450,12 @@ if __name__ == "__main__":
         imports.update(new_imports)
     formatted_code = get_code_string(tree, imports)
     # write to disk
+    return formatted_code
+
+
+if __name__ == "__main__":
+    generated_code = main()
+
     output_path = "./google/cloud/bigtable/_sync_autogen.py"
     with open(output_path, "w") as f:
-        f.write(formatted_code)
+        f.write(generated_code)
