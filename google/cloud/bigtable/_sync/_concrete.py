@@ -16,10 +16,10 @@ from __future__ import annotations
 from google.api_core.exceptions import GoogleAPICallError
 from grpc import Channel
 
-from google.cloud.bigtable._sync_autogen import _ReadRowsOperation_Sync
-from google.cloud.bigtable._sync_autogen import Table_Sync
-from google.cloud.bigtable._sync_autogen import BigtableDataClient_Sync
-from google.cloud.bigtable._sync_autogen import ReadRowsIterator_Sync
+from google.cloud.bigtable._sync._autogen import _ReadRowsOperation_Sync
+from google.cloud.bigtable._sync._autogen import Table_Sync
+from google.cloud.bigtable._sync._autogen import BigtableDataClient_Sync
+from google.cloud.bigtable._sync._autogen import ReadRowsIterator_Sync
 
 
 class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):

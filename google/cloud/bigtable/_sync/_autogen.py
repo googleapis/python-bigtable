@@ -59,7 +59,6 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.client import ClientWithProject
 import google.auth._default
 import google.auth.credentials
-import google.cloud.bigtable._sync_autogen
 
 
 class _ReadRowsOperation_Sync(Iterable[Row], ABC):
@@ -414,7 +413,7 @@ class Table_Sync(ABC):
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
         row_merger = (
-            google.cloud.bigtable._sync_autogen._ReadRowsOperation_Sync_Concrete(
+            google.cloud.bigtable._sync._concrete._ReadRowsOperation_Sync_Concrete(
                 request,
                 self.client._gapic_client,
                 buffer_size=buffer_size,
@@ -423,7 +422,7 @@ class Table_Sync(ABC):
             )
         )
         output_generator = (
-            google.cloud.bigtable._sync_autogen.ReadRowsIterator_Sync_Concrete(
+            google.cloud.bigtable._sync._concrete.ReadRowsIterator_Sync_Concrete(
                 row_merger
             )
         )
@@ -858,7 +857,7 @@ class BigtableDataClient_Sync(ClientWithProject, ABC):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return google.cloud.bigtable._sync_autogen.Table_Sync_Concrete(
+        return google.cloud.bigtable._sync._concrete.Table_Sync_Concrete(
             self,
             instance_id,
             table_id,

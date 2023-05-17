@@ -22,16 +22,15 @@ class TestSyncUpToDate:
     def test_up_to_date(self):
         import sys
 
-        sys.path.append("../../../")
-        import converter
+        sys.path.append("../../../../")
+        import sync_surface_generator
         import inspect
-        from google.cloud.bigtable import _sync_customizations
-        from google.cloud.bigtable import _sync_autogen
+        from google.cloud.bigtable._sync import _autogen
 
         # generate a new copy of the sync surface
-        generated_code = converter.generate_full_surface()
+        generated_code = sync_surface_generator.generate_full_surface()
         # load the current saved sync surface
-        filename = inspect.getfile(_sync_autogen)
+        filename = inspect.getfile(_autogen)
         saved_code = open(filename, "r").read()
         # check if the surfaces differ
         assert (

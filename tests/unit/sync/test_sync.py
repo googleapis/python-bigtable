@@ -38,7 +38,7 @@ class TestReadRowsOperation_Sync_Concrete:
 
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             _ReadRowsOperation_Sync_Concrete,
         )
 
@@ -320,7 +320,7 @@ class TestReadRowsOperation_Sync_Concrete:
 
 class TestBigtableDataClient_Sync_Concrete:
     def _get_target_class(self):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             BigtableDataClient_Sync_Concrete,
         )
 
@@ -568,7 +568,7 @@ class TestBigtableDataClient_Sync_Concrete:
             assert len(client._instance_owners[instance_2_path]) == 0
 
     def test_get_table(self):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             Table_Sync_Concrete as Table,
         )
 
@@ -599,7 +599,7 @@ class TestBigtableDataClient_Sync_Concrete:
         client.close()
 
     def test_get_table_context_manager(self):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             Table_Sync_Concrete as Table,
         )
 
@@ -663,10 +663,10 @@ class TestBigtableDataClient_Sync_Concrete:
 
 class TestTable_Sync_Concrete:
     def test_table_ctor(self):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             Table_Sync_Concrete as Table,
         )
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             BigtableDataClient_Sync_Concrete as Client,
         )
 
@@ -696,10 +696,10 @@ class TestTable_Sync_Concrete:
         client.close()
 
     def test_table_ctor_bad_timeout_values(self):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             Table_Sync_Concrete as Table,
         )
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             BigtableDataClient_Sync_Concrete as Client,
         )
 
@@ -732,7 +732,7 @@ class TestReadRows_Sync:
     """
 
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             BigtableDataClient_Sync_Concrete,
         )
 
@@ -1044,7 +1044,7 @@ class TestReadRows_Sync:
 
     def test_read_rows_revise_request(self):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
         )
 
@@ -1089,7 +1089,7 @@ class TestReadRows_Sync:
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
         """
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
         )
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
@@ -1117,7 +1117,7 @@ class TestReadRows_Sync:
         """
         When timeouts are passed, they overwrite default values
         """
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
         )
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
@@ -1146,7 +1146,7 @@ class TestReadRows_Sync:
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
 
-from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete
+from google.cloud.bigtable._sync._concrete import _ReadRowsOperation_Sync_Concrete
 
 
 class MockStream(_ReadRowsOperation_Sync_Concrete):
@@ -1184,7 +1184,7 @@ class TestReadRowsIteratorSyncConcrete:
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable._sync_customizations import (
+        from google.cloud.bigtable._sync._concrete import (
             ReadRowsIterator_Sync_Concrete,
         )
 

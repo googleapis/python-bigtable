@@ -60,10 +60,10 @@ name_map = {
 
 # This maps classes to the final sync surface location, so they can be instantiated in generated code
 concrete_class_map = {
-    "_ReadRowsOperation": "google.cloud.bigtable._sync_autogen._ReadRowsOperation_Sync_Concrete",
-    "Table": "google.cloud.bigtable._sync_autogen.Table_Sync_Concrete",
-    "BigtableDataClient": "google.cloud.bigtable._sync_autogen.BigtableDataClient_Sync_Concrete",
-    "ReadRowsIterator": "google.cloud.bigtable._sync_autogen.ReadRowsIterator_Sync_Concrete",
+    "_ReadRowsOperation": "google.cloud.bigtable._sync._concrete._ReadRowsOperation_Sync_Concrete",
+    "Table": "google.cloud.bigtable._sync._concrete.Table_Sync_Concrete",
+    "BigtableDataClient": "google.cloud.bigtable._sync._concrete.BigtableDataClient_Sync_Concrete",
+    "ReadRowsIterator": "google.cloud.bigtable._sync._concrete.ReadRowsIterator_Sync_Concrete",
 }
 
 # This map defines import replacements for the generated code
@@ -400,9 +400,9 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", **kwargs):
         combined_tree.body.extend(ast_tree.body)
         combined_imports.update(imports)
     # add imports for concrete classes
-    for concrete_import in transformer.concrete_class_map.values():
-        module_path = ".".join(concrete_import.split(".")[:-1])
-        combined_imports.add(ast.parse(f"import {module_path}").body[0])
+    # for concrete_import in transformer.concrete_class_map.values():
+    #     module_path = ".".join(concrete_import.split(".")[:-1])
+    #     combined_imports.add(ast.parse(f"import {module_path}").body[0])
     # render tree as string of code
     import_unique = list(set([ast.unparse(i) for i in combined_imports]))
     import_unique.sort()
@@ -455,6 +455,6 @@ def generate_full_surface():
 if __name__ == "__main__":
     generated_code = generate_full_surface()
     # write to disk
-    output_path = "./google/cloud/bigtable/_sync_autogen.py"
+    output_path = "./google/cloud/bigtable/_sync/_autogen.py"
     with open(output_path, "w") as f:
         f.write(generated_code)
