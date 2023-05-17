@@ -58,7 +58,6 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
         return "grpc"
 
     def close(self):
-        # TODO: Can this be auto-generated?
         self.transport.close()
         self._channel_refresh_tasks = []
 
