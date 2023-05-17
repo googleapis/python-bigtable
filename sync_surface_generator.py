@@ -446,7 +446,7 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports
     return formatted_code
 
 
-def generate_full_surface():
+def generate_full_surface(save_path=None):
     """
     Generate a sync surface from all async classes
     """
@@ -456,12 +456,16 @@ def generate_full_surface():
     from google.cloud.bigtable.iterators import ReadRowsIterator
 
     conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator]
-    return transform_sync(conversion_list,
+    code = transform_sync(conversion_list,
         concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
         pass_methods=pass_methods, drop_methods=drop_methods, error_methods=error_methods
     )
+    if save_path is not None:
+        with open(save_path, "w") as f:
+            f.write(code)
+    return code
 
-def generate_tests():
+def generate_tests(save_path=None):
     from tests.system import test_system
     conversion_list = [test_system]
     code = transform_sync(conversion_list,
@@ -469,13 +473,11 @@ def generate_tests():
         drop_methods=["test_read_rows_stream_inactive_timer"],
         add_imports=["import google.cloud.bigtable"]
     )
+    if save_path is not None:
+        with open(save_path, "w") as f:
+            f.write(code)
     return code
 
 if __name__ == "__main__":
-    generated_code = generate_full_surface()
-    # generated_code = generate_tests()
-    # write to disk
-    output_path = "./google/cloud/bigtable/_sync/_autogen.py"
-    # output_path = "./tests/system/test_system_sync_autogen.py"
-    with open(output_path, "w") as f:
-        f.write(generated_code)
+    generate_full_surface(save_path="./google/cloud/bigtable/_sync/_autogen.py")
+    generate_tests("./tests/system/test_system_sync_autogen.py")
