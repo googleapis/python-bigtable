@@ -38,7 +38,9 @@ class TestReadRowsOperation_Sync_Concrete:
 
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete
+        from google.cloud.bigtable._sync_customizations import (
+            _ReadRowsOperation_Sync_Concrete,
+        )
 
         return _ReadRowsOperation_Sync_Concrete
 
@@ -234,7 +236,6 @@ class TestReadRowsOperation_Sync_Concrete:
                 attempt.__next__()
             assert request["rows_limit"] == expected_limit
 
-
     def test_close(self):
         instance = self._make_one({}, mock.Mock())
         instance.close()
@@ -319,7 +320,9 @@ class TestReadRowsOperation_Sync_Concrete:
 
 class TestBigtableDataClient_Sync_Concrete:
     def _get_target_class(self):
-        from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync_Concrete
+        from google.cloud.bigtable._sync_customizations import (
+            BigtableDataClient_Sync_Concrete,
+        )
 
         return BigtableDataClient_Sync_Concrete
 
@@ -328,6 +331,7 @@ class TestBigtableDataClient_Sync_Concrete:
 
     def test_ctor(self):
         from google.auth.credentials import AnonymousCredentials
+
         expected_project = "project-id"
         expected_credentials = AnonymousCredentials()
         client = self._make_one(
@@ -409,6 +413,7 @@ class TestBigtableDataClient_Sync_Concrete:
         # client_info should be populated with headers to
         # detect as a veneer client
         import re
+
         VENEER_HEADER_REGEX = re.compile(
             r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+ gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
         )
@@ -429,7 +434,6 @@ class TestBigtableDataClient_Sync_Concrete:
                 ), f"'{wrapped_user_agent_sorted}' does not match {VENEER_HEADER_REGEX}"
             client.close()
 
-
     def test__ping_and_warm_instances(self):
         # test with no instances
         client = self._make_one(project="project-id")
@@ -446,7 +450,9 @@ class TestBigtableDataClient_Sync_Concrete:
             ]
             results = client._ping_and_warm_instances()
             assert ping_mock.call_count == 4
-            warmed_instances = [call.kwargs["name"] for call in ping_mock.call_args_list]
+            warmed_instances = [
+                call.kwargs["name"] for call in ping_mock.call_args_list
+            ]
             for instance in ["instance-1", "instance-2", "instance-3", "instance-4"]:
                 assert instance in warmed_instances
             assert results == [None, None, None, None]
@@ -463,8 +469,12 @@ class TestBigtableDataClient_Sync_Concrete:
                 client._register_instance("instance-1", owner1)
                 assert ping_mock.call_count == 1
                 assert len(client._active_instances) == 1
-                assert client._active_instances == {"projects/project-id/instances/instance-1"}
-                assert client._instance_owners["projects/project-id/instances/instance-1"] == {id(owner1)}
+                assert client._active_instances == {
+                    "projects/project-id/instances/instance-1"
+                }
+                assert client._instance_owners[
+                    "projects/project-id/instances/instance-1"
+                ] == {id(owner1)}
                 owner2 = object()
                 client._register_instance("instance-2", owner2)
                 assert ping_mock.call_count == 2
@@ -473,8 +483,12 @@ class TestBigtableDataClient_Sync_Concrete:
                     "projects/project-id/instances/instance-1",
                     "projects/project-id/instances/instance-2",
                 }
-                assert client._instance_owners["projects/project-id/instances/instance-1"] == {id(owner1)}
-                assert client._instance_owners["projects/project-id/instances/instance-2"] == {id(owner2)}
+                assert client._instance_owners[
+                    "projects/project-id/instances/instance-1"
+                ] == {id(owner1)}
+                assert client._instance_owners[
+                    "projects/project-id/instances/instance-2"
+                ] == {id(owner2)}
 
     def test__remove_instance_registration(self):
         client = self._make_one(project="project-id")
@@ -554,7 +568,9 @@ class TestBigtableDataClient_Sync_Concrete:
             assert len(client._instance_owners[instance_2_path]) == 0
 
     def test_get_table(self):
-        from google.cloud.bigtable._sync_customizations import Table_Sync_Concrete as Table
+        from google.cloud.bigtable._sync_customizations import (
+            Table_Sync_Concrete as Table,
+        )
 
         client = self._make_one(project="project-id")
         assert not client._active_instances
@@ -583,7 +599,9 @@ class TestBigtableDataClient_Sync_Concrete:
         client.close()
 
     def test_get_table_context_manager(self):
-        from google.cloud.bigtable._sync_customizations import Table_Sync_Concrete as Table
+        from google.cloud.bigtable._sync_customizations import (
+            Table_Sync_Concrete as Table,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -615,11 +633,13 @@ class TestBigtableDataClient_Sync_Concrete:
 
     def test_close(self):
         from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
-            BigtableGrpcTransport
+            BigtableGrpcTransport,
         )
 
         client = self._make_one(project="project-id")
-        with mock.patch.object(BigtableGrpcTransport, "close", mock.Mock()) as close_mock:
+        with mock.patch.object(
+            BigtableGrpcTransport, "close", mock.Mock()
+        ) as close_mock:
             client.close()
             close_mock.assert_called_once()
         assert client._channel_refresh_tasks == []
@@ -642,10 +662,13 @@ class TestBigtableDataClient_Sync_Concrete:
 
 
 class TestTable_Sync_Concrete:
-
     def test_table_ctor(self):
-        from google.cloud.bigtable._sync_customizations import Table_Sync_Concrete as Table
-        from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync_Concrete as Client
+        from google.cloud.bigtable._sync_customizations import (
+            Table_Sync_Concrete as Table,
+        )
+        from google.cloud.bigtable._sync_customizations import (
+            BigtableDataClient_Sync_Concrete as Client,
+        )
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -673,8 +696,12 @@ class TestTable_Sync_Concrete:
         client.close()
 
     def test_table_ctor_bad_timeout_values(self):
-        from google.cloud.bigtable._sync_customizations import Table_Sync_Concrete as Table
-        from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync_Concrete as Client
+        from google.cloud.bigtable._sync_customizations import (
+            Table_Sync_Concrete as Table,
+        )
+        from google.cloud.bigtable._sync_customizations import (
+            BigtableDataClient_Sync_Concrete as Client,
+        )
 
         client = Client()
 
@@ -705,7 +732,9 @@ class TestReadRows_Sync:
     """
 
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable._sync_customizations import BigtableDataClient_Sync_Concrete
+        from google.cloud.bigtable._sync_customizations import (
+            BigtableDataClient_Sync_Concrete,
+        )
 
         return BigtableDataClient_Sync_Concrete(*args, **kwargs)
 
@@ -755,7 +784,6 @@ class TestReadRows_Sync:
         if request_stats:
             yield ReadRowsResponse(request_stats=request_stats)
 
-
     def test_read_rows(self):
         with self._make_client() as client:
             table = client.get_table("instance", "table")
@@ -763,7 +791,9 @@ class TestReadRows_Sync:
                 self._make_chunk(row_key=b"test_1"),
                 self._make_chunk(row_key=b"test_2"),
             ]
-            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
                 read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
                     chunks
                 )
@@ -774,6 +804,7 @@ class TestReadRows_Sync:
 
     def test_read_rows_stream(self):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -781,7 +812,9 @@ class TestReadRows_Sync:
                 self._make_chunk(row_key=b"test_1"),
                 self._make_chunk(row_key=b"test_2"),
             ]
-            with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+            with mock.patch.object(
+                table.client._gapic_client, "read_rows"
+            ) as read_rows:
                 read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
                     chunks
                 )
@@ -838,6 +871,7 @@ class TestReadRows_Sync:
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     def test_read_rows_timeout(self, operation_timeout):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -922,6 +956,7 @@ class TestReadRows_Sync:
     )
     def test_read_rows_retryable_error(self, exc_type):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -956,6 +991,7 @@ class TestReadRows_Sync:
     )
     def test_read_rows_non_retryable_error(self, exc_type):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -973,6 +1009,7 @@ class TestReadRows_Sync:
 
     def test_read_rows_request_stats(self):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -990,6 +1027,7 @@ class TestReadRows_Sync:
 
     def test_read_rows_request_stats_missing(self):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         with self._make_client() as client:
             table = client.get_table("instance", "table")
             query = ReadRowsQuery()
@@ -1006,7 +1044,9 @@ class TestReadRows_Sync:
 
     def test_read_rows_revise_request(self):
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+        from google.cloud.bigtable._sync_customizations import (
+            _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
+        )
 
         with mock.patch.object(
             _ReadRowsOperation, "_revise_request_rowset"
@@ -1049,8 +1089,11 @@ class TestReadRows_Sync:
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
         """
-        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+        from google.cloud.bigtable._sync_customizations import (
+            _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
+        )
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         operation_timeout = 8
         per_request_timeout = 4
         with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
@@ -1074,8 +1117,11 @@ class TestReadRows_Sync:
         """
         When timeouts are passed, they overwrite default values
         """
-        from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation
+        from google.cloud.bigtable._sync_customizations import (
+            _ReadRowsOperation_Sync_Concrete as _ReadRowsOperation,
+        )
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
         operation_timeout = 8
         per_request_timeout = 4
         with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
@@ -1101,6 +1147,8 @@ class TestReadRows_Sync:
 
 
 from google.cloud.bigtable._sync_customizations import _ReadRowsOperation_Sync_Concrete
+
+
 class MockStream(_ReadRowsOperation_Sync_Concrete):
     """
     Mock a _ReadRowsOperation stream for testing
@@ -1136,7 +1184,9 @@ class TestReadRowsIteratorSyncConcrete:
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable._sync_customizations import ReadRowsIterator_Sync_Concrete
+        from google.cloud.bigtable._sync_customizations import (
+            ReadRowsIterator_Sync_Concrete,
+        )
 
         stream = MockStream(*args, **kwargs)
         return ReadRowsIterator_Sync_Concrete(stream)
@@ -1188,7 +1238,7 @@ class TestReadRowsIteratorSyncConcrete:
         items = [1, core_exceptions.RetryError("retry error", None)]
         expected_timeout = 99
         iterator = self._make_one(items=items, operation_timeout=expected_timeout)
-        assert  iterator.__next__() == 1
+        assert iterator.__next__() == 1
         with pytest.raises(core_exceptions.DeadlineExceeded) as exc:
             iterator.__next__()
         assert f"operation_timeout of {expected_timeout:0.1f}s exceeded" in str(

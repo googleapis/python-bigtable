@@ -35,8 +35,8 @@ class Table_Sync_Concrete(Table_Sync):
         # register table with client
         self.client._register_instance(self.instance_id, self)
 
-class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
 
+class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
     def __init__(
         self,
         *,
@@ -47,7 +47,9 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
         | None = None,
     ):
         # remove pool size option in sync client
-        super().__init__(project=project, credentials=credentials, client_options=client_options)
+        super().__init__(
+            project=project, credentials=credentials, client_options=client_options
+        )
 
     def __init__transport__(self, *args, **kwargs):
         # use grpc transport for sync client
@@ -60,6 +62,7 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
 
     def _ping_and_warm_instances(self) -> list[GoogleAPICallError | None]:
         from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
+
         results: list[GoogleAPICallError | None] = []
         for instance_name in self._active_instances:
             try:
