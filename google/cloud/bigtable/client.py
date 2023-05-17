@@ -50,7 +50,6 @@ from google.cloud.bigtable.iterators import ReadRowsIterator
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
@@ -566,7 +565,7 @@ class Table:
         operation_timeout: int | float | None = 60,
         per_sample_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-    ) -> RowKeySamples:
+    ) -> google.cloud.bigtable.RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
         approximately equal size

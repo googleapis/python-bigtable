@@ -15,15 +15,12 @@
 
 from __future__ import annotations
 
-import unittest
 from unittest import mock
 import pytest
 
 from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable._read_rows import AWAITING_NEW_ROW
-from google.cloud.bigtable._read_rows import AWAITING_NEW_CELL
-from google.cloud.bigtable._read_rows import AWAITING_CELL_VALUE
 from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable._sync import _concrete as sync_concrete
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"qualifier"
@@ -356,7 +353,7 @@ class TestBigtableDataClient_Sync_Concrete:
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
-        transport_str = f"grpc"
+        transport_str = "grpc"
         with mock.patch.object(BigtableClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
@@ -767,8 +764,8 @@ class TestReadRows_Sync:
 
     def _make_gapic_stream(
         self,
-        chunk_list: list["ReadRowsResponse.CellChunk" | Exception],
-        request_stats: "RequestStats" | None = None,
+        chunk_list,
+        request_stats=None,
         sleep_time=0,
     ):
         from google.cloud.bigtable_v2 import ReadRowsResponse
@@ -1146,10 +1143,7 @@ class TestReadRows_Sync:
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
 
-from google.cloud.bigtable._sync._concrete import _ReadRowsOperation_Sync_Concrete
-
-
-class MockStream(_ReadRowsOperation_Sync_Concrete):
+class MockStream(sync_concrete._ReadRowsOperation_Sync_Concrete):
     """
     Mock a _ReadRowsOperation stream for testing
     """

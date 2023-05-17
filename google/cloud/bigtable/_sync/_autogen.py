@@ -37,7 +37,6 @@ from google.api_core import client_options as client_options_lib
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 from google.api_core.exceptions import GoogleAPICallError
-from google.cloud.bigtable import RowKeySamples
 from google.cloud.bigtable._read_rows import _StateMachine
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
@@ -513,7 +512,7 @@ class Table_Sync(ABC):
         operation_timeout: int | float | None = 60,
         per_sample_timeout: int | float | None = 10,
         per_request_timeout: int | float | None = None,
-    ) -> RowKeySamples:
+    ) -> google.cloud.bigtable.RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
         approximately equal size
