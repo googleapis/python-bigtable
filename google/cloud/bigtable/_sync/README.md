@@ -7,7 +7,7 @@ The auto-generated surface lives at `_sync/_autogen.py`, and can be generated wi
 
 ```
 # from repo root:
-python3.11 sync_surface_generator.py
+nox -s generate_sync
 ```
 
 The generator preforms ast transformations to replace all async API calls with

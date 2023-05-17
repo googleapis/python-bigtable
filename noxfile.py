@@ -482,3 +482,18 @@ def prerelease_deps(session):
             system_test_folder_path,
             *session.posargs,
         )
+
+
+@nox.session(python="3.9")
+def generate_sync(session):
+    """Generate the sync surface"""
+
+    session.install("-e", ".")
+    install_systemtest_dependencies(session)
+
+    session.install("autoflake", "black")
+
+    session.run(
+        "python",
+        "sync_surface_generator.py",
+    )

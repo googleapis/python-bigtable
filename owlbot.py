@@ -142,6 +142,31 @@ place_before(
     escape="()"
 )
 
+
+generate_sync_session = """
+@nox.session(python="3.9")
+def generate_sync(session):
+    # Generate the sync surface
+
+    session.install("-e", ".")
+    install_systemtest_dependencies(session)
+
+    session.install("autoflake", "black")
+
+    session.run(
+        "python",
+        "sync_surface_generator.py",
+    )
+"""
+
+place_before(
+    "noxfile.py",
+    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
+    "def prerelease_deps(session):",
+    generate_sync_session,
+    escape="()"
+)
+
 # add system_emulated nox session
 s.replace("noxfile.py",
     """nox.options.sessions = \[

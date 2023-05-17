@@ -19,7 +19,7 @@ class TestSyncUpToDate:
     Unit tests should fail if the sync surface is out of date from async
 
     To re-generate the sync surface, run the following command from the repo root:
-    python3 sync_surface_generator
+    nox -s generate_sync
     """
 
     def test_code_up_to_date(self):
@@ -39,8 +39,6 @@ class TestSyncUpToDate:
         assert (
             generated_code == saved_code
         ), "Sync surface is not up to date, and needs to be re-generated"
-
-
 
     def test_system_tests_up_to_date(self):
         import sys
