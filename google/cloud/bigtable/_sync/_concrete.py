@@ -13,9 +13,13 @@
 # limitations under the License.
 #
 from __future__ import annotations
-from google.api_core.exceptions import GoogleAPICallError
 from grpc import Channel
 
+from typing import Any
+
+import google.auth.credentials
+from google.api_core.exceptions import GoogleAPICallError
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.bigtable._sync._autogen import _ReadRowsOperation_Sync
 from google.cloud.bigtable._sync._autogen import Table_Sync
 from google.cloud.bigtable._sync._autogen import BigtableDataClient_Sync
@@ -61,8 +65,6 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
         self._channel_refresh_tasks = []
 
     def _ping_and_warm_instances(self) -> list[GoogleAPICallError | None]:
-        from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
-
         results: list[GoogleAPICallError | None] = []
         for instance_name in self._active_instances:
             try:

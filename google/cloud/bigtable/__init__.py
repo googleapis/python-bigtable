@@ -21,6 +21,9 @@ from google.cloud.bigtable import gapic_version as package_version
 from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
 
+from google.cloud.bigtable._sync._concrete import BigtableDataClient_Sync_Concrete as BigtableDataClientSync
+from google.cloud.bigtable._sync._concrete import Table_Sync_Concrete as TableSync
+
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.read_rows_query import RowRange
 from google.cloud.bigtable.row import Row
@@ -42,6 +45,8 @@ __version__: str = package_version.__version__
 __all__ = (
     "BigtableDataClient",
     "Table",
+    "BigtableDataClientSync",
+    "TableSync",
     "RowKeySamples",
     "ReadRowsQuery",
     "RowRange",
