@@ -385,6 +385,8 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports
             ast_tree.body[0].bases = ast_tree.body[0].bases + [
                 ast.Name("ABC", ast.Load()),
             ]
+        # remove top-level imports if any. Add them back later
+        ast_tree.body = [n for n in ast_tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
         # transform
         transformer = AsyncToSyncTransformer(**kwargs)
         transformer.visit(ast_tree)

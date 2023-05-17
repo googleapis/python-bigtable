@@ -21,9 +21,6 @@ import pytest
 
 import google.cloud.bigtable
 
-import pytest
-import os
-
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
