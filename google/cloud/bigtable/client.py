@@ -44,10 +44,11 @@ from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
 from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+from google.cloud.bigtable.row import Row
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.row import Row
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
@@ -796,7 +797,24 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        rules = rules if isinstance(rules, list) else [rules]
+        if len(rules) == 0 or rules == [None]:
+            raise ValueError("rules must contain at least one item")
+        # concert to dict representation
+        rules = [rule._to_dict() if isinstance(rule, ReadModifyWriteRule) else rule for rule in rules]
+        result = await self.client._gapic_client.read_modify_write_row(
+            table_name=self.table_name,
+            row_key=row_key,
+            rules=rules,
+            app_profile_id=self.app_profile_id,
+            timeout=operation_timeout
+        )
+        # construct Row from result
+        return Row._from_pb(result.row)
 
     async def close(self):
         """

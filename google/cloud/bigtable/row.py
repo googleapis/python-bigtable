@@ -18,6 +18,8 @@ from collections import OrderedDict
 from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
+from google.cloud.bigtable_v2.types import Row as RowPB
+
 # Type aliases used internally for readability.
 row_key = bytes
 family_id = str
@@ -59,6 +61,23 @@ class Row(Sequence["Cell"]):
                 self._cells_map[cell.family][cell.column_qualifier] = []
             self._cells_map[cell.family][cell.column_qualifier].append(cell)
             self._cells_list.append(cell)
+
+    @classmethod
+    def _from_pb(cls, row_pb:RowPB) -> Row:
+        """
+        Creates a row from a protobuf representation
+
+        Row objects are not intended to be created by users.
+        They are returned by the Bigtable backend.
+        """
+        row_key :bytes = row_pb.key
+        cell_list : list[Cell] = []
+        for family in row_pb.families:
+            for qualifier in family.columns:
+                for cell in qualifier.cells:
+                    new_cell = Cell(value=cell.value, row=row_key, family=family, column_qualifier=qualifier, timestamp_micros=cell.timestamp_micros, labels=cell.labels)
+                    cell_list.append(new_cell)
+        return cls(row_key, cells=cell_list)
 
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
