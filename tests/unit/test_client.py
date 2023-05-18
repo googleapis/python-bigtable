@@ -1389,6 +1389,16 @@ class TestReadRows:
                     "rows_limit": 1,
                 }
 
+    @pytest.mark.parametrize("input_row", [None, 5, object()])
+    @pytest.mark.asyncio
+    async def test_read_row_w_invalid_input(self, input_row):
+        """Should raise error when passed None"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            with pytest.raises(TypeError) as e:
+                await table.read_row(input_row)
+                assert "row_key must be bytes or string" in e
+
     @pytest.mark.parametrize(
         "return_value,expected_result",
         [
@@ -1432,3 +1442,14 @@ class TestReadRows:
                     "rows_limit": 1,
                     "filter": expected_filter,
                 }
+
+    @pytest.mark.parametrize("input_row", [None, 5, object()])
+    @pytest.mark.asyncio
+    async def test_row_exists_w_invalid_input(self, input_row):
+        """Should raise error when passed None"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            with pytest.raises(TypeError) as e:
+                await table.row_exists(input_row)
+                assert "row_key must be bytes or string" in e
+

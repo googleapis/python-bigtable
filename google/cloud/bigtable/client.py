@@ -521,6 +521,8 @@ class Table:
         Returns:
             - the individual row requested
         """
+        if not isinstance(row_key, bytes) and not isinstance(row_key, str):
+            raise TypeError("row_key must be bytes or string")
         kwargs = {
             "operation_timeout": operation_timeout,
             "per_request_timeout": per_request_timeout,
@@ -567,6 +569,8 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
+        if not isinstance(row_key, bytes) and not isinstance(row_key, str):
+            raise TypeError("row_key must be bytes or string")
         kwargs = {
             "operation_timeout": operation_timeout,
             "per_request_timeout": per_request_timeout,
