@@ -237,7 +237,7 @@ async def test_bulk_mutations_set_cell(client, table):
     (0, 3000, 3000),
     (10, 4, 14),
     (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
-    (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE+1),
+    (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
     (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
 ])
 @pytest.mark.asyncio
@@ -287,4 +287,26 @@ async def test_read_modify_write_row_append(client, table, temp_rows, start, app
     assert result[0].family == family
     assert result[0].column_qualifier == qualifier
     assert result[0].value == expected
+
+
+@pytest.mark.asyncio
+async def test_read_modify_write_row_chained(client, table, temp_rows):
+    """
+    test read_modify_write_row with multiple rules
+    """
+    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_amount = 1
+    increment_amount = 10
+    await temp_rows.add_row(row_key, value=start_amount.to_bytes(8, "big", signed=True), family=family, qualifier=qualifier)
+    rule = [IncrementRule(family, qualifier, increment_amount), AppendValueRule(family, qualifier, "hello"), AppendValueRule(family, qualifier, "world"), AppendValueRule(family, qualifier, "!")]
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert result[0].family == family
+    assert result[0].column_qualifier == qualifier
+    # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
+    assert result[0].value == (start_amount+increment_amount).to_bytes(8, "big", signed=True) +  b"helloworld!"
 
