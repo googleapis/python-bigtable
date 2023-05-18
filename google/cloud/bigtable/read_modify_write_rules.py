@@ -52,9 +52,10 @@ class IncrementRule(ReadModifyWriteRule):
 
 class AppendValueRule(ReadModifyWriteRule):
 
-    def __init__(self, family: str, qualifier: bytes | str, append_value: bytes):
+    def __init__(self, family: str, qualifier: bytes | str, append_value: bytes|str):
+        append_value = append_value.encode("utf-8") if isinstance(append_value, str) else append_value
         if not isinstance(append_value, bytes):
-            raise TypeError("append_value must be bytes")
+            raise TypeError("append_value must be bytes or str")
         super().__init__(family, qualifier)
         self.append_value = append_value
 

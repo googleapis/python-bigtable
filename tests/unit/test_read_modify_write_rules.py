@@ -106,6 +106,8 @@ class TestAppendValueRule:
             (("fam", b"qual", b"val"), ("fam", b"qual", b"val")),
             (("fam", "qual", b"val"), ("fam", b"qual", b"val")),
             (("", "", b""), ("", b"", b"")),
+            (("f", "q", "str_val"), ("f", b"q", b"str_val")),
+            (("f", "q", ""), ("f", b"q", b"")),
         ],
     )
     def test_ctor(self, args, expected):
@@ -114,11 +116,11 @@ class TestAppendValueRule:
         assert instance.qualifier == expected[1]
         assert instance.append_value == expected[2]
 
-    @pytest.mark.parametrize("input_val", [5, 1.1, None, "1", object(), ""])
+    @pytest.mark.parametrize("input_val", [5, 1.1, None, object()])
     def test_ctor_bad_input(self, input_val):
         with pytest.raises(TypeError) as e:
             self._target_class()("fam", b"qual", input_val)
-        assert "append_value must be bytes" in str(e.value)
+        assert "append_value must be bytes or str" in str(e.value)
 
     @pytest.mark.parametrize(
         "args,expected",
