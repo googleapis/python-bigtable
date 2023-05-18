@@ -17,12 +17,14 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass
 
+# value must fit in 64-bit signed integer
+MAX_INCREMENT_VALUE = (1 << 63) - 1
+
 
 class ReadModifyWriteRule(abc.ABC):
-    def __init__(self, family: str, qualifier: bytes | str):
-        qualifier = (
-            qualifier if isinstance(qualifier, bytes) else qualifier.encode("utf-8")
-        )
+
+    def __init__(self, family: str, qualifier: bytes|str):
+        qualifier = qualifier if isinstance(qualifier, bytes) else qualifier.encode("utf-8")
         self.family = family
         self.qualifier = qualifier
 
@@ -30,11 +32,13 @@ class ReadModifyWriteRule(abc.ABC):
     def _to_dict(self):
         raise NotImplementedError
 
-
 class IncrementRule(ReadModifyWriteRule):
+
     def __init__(self, family: str, qualifier: bytes | str, increment_amount: int = 1):
         if not isinstance(increment_amount, int):
             raise TypeError("increment_amount must be an integer")
+        if abs(increment_amount) > MAX_INCREMENT_VALUE:
+            raise ValueError("increment_amount too large. Value must fit in 64-bit signed integer")
         super().__init__(family, qualifier)
         self.increment_amount = increment_amount
 
@@ -47,6 +51,7 @@ class IncrementRule(ReadModifyWriteRule):
 
 
 class AppendValueRule(ReadModifyWriteRule):
+
     def __init__(self, family: str, qualifier: bytes | str, append_value: bytes):
         if not isinstance(append_value, bytes):
             raise TypeError("append_value must be bytes")

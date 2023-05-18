@@ -20,6 +20,7 @@ import asyncio
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -146,6 +147,51 @@ async def table(client, table_id, instance_id):
         yield table
 
 
+class TempRowBuilder:
+    """
+    Used to add rows to a table for testing purposes.
+    """
+
+    def __init__(self, table):
+        self.rows = []
+        self.table = table
+
+    async def add_row(
+        self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
+    ):
+        request = {
+            "table_name": self.table.table_name,
+            "row_key": row_key,
+            "mutations": [
+                {
+                    "set_cell": {
+                        "family_name": family,
+                        "column_qualifier": qualifier,
+                        "value": value,
+                    }
+                }
+            ],
+        }
+        await self.table.client._gapic_client.mutate_row(request)
+        self.rows.append(row_key)
+
+    async def delete_rows(self):
+        request = {
+            "table_name": self.table.table_name,
+            "entries": [
+                {"row_key": row, "mutations": [{"delete_from_row": {}}]}
+                for row in self.rows
+            ],
+        }
+        await self.table.client._gapic_client.mutate_rows(request)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def temp_rows(table):
+    builder = TempRowBuilder(table)
+    yield builder
+    await builder.delete_rows()
+
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -181,3 +227,35 @@ async def test_bulk_mutations_set_cell(client, table):
     )
     bulk_mutation = BulkMutationsEntry(b"abc", [mutation])
     await table.bulk_mutate_rows([bulk_mutation])
+
+@pytest.mark.parametrize("start,increment,expected", [
+    (0, 0, 0),
+    (0, 1, 1),
+    (0, -1, -1),
+    (1, 0, 1),
+    (0, -100, -100),
+    (0, 3000, 3000),
+    (10, 4, 14),
+    (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
+    (MAX_INCREMENT_VALUE, 100, 100),
+])
+@pytest.mark.asyncio
+async def test_read_modify_write_row_increment(client, table, temp_rows, start, increment, expected):
+    """
+    test read_modify_write_row
+    """
+    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    #TODO: make creating a cell with a value easier
+    await temp_rows.add_row(row_key, value=start.to_bytes(8, "big", signed=True), family=family, qualifier=qualifier)
+
+    rule = IncrementRule(family, qualifier, increment)
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert len(result) == 1
+    assert result[0].family == family
+    assert result[0].column_qualifier == qualifier
+    assert int(result[0]) == expected
+
