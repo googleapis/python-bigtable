@@ -38,6 +38,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
+from google.api_core.exceptions import NotFound
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
 import google.auth.credentials
@@ -515,10 +516,21 @@ class Table:
 
         See read_rows_stream
 
+        Raises:
+            - google.api_core.exceptions.NotFound: if the row does not exist
         Returns:
             - the individual row requested
         """
-        raise NotImplementedError
+        kwargs = {
+            "operation_timeout": operation_timeout,
+            "per_request_timeout": per_request_timeout,
+        }
+        row_key = row_key if isinstance(row_key, bytes) else row_key.encode()
+        query = ReadRowsQuery(row_keys=row_key, limit=1)
+        results = await self.read_rows(query, **kwargs)
+        if len(results) == 0:
+            raise NotFound(f"Row {row_key!r} not found")
+        return results[0]
 
     async def read_rows_sharded(
         self,
