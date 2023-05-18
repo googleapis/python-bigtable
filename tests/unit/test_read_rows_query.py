@@ -300,7 +300,7 @@ class TestReadRowsQuery(unittest.TestCase):
         output = query._to_dict()
         self.assertTrue(isinstance(output, dict))
         self.assertEqual(len(output.keys()), 1)
-        expected = {"rows": {"row_keys": [], "row_ranges": []}}
+        expected = {"rows": {}}
         self.assertEqual(output, expected)
 
         request_proto = ReadRowsRequest(**output)
