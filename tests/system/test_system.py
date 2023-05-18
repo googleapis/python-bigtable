@@ -311,17 +311,20 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
 
+
 @pytest.mark.asyncio
 async def test_read_row(table, temp_rows):
     """
     Test read_row (single row helper)
     """
     from google.cloud.bigtable import Row
+
     await temp_rows.add_row(b"row_key_1", value=b"value")
     row = await table.read_row(b"row_key_1")
     assert isinstance(row, Row)
     assert row.row_key == b"row_key_1"
     assert row.cells[0].value == b"value"
+
 
 @pytest.mark.asyncio
 async def test_read_row_missing(table):
@@ -329,17 +332,21 @@ async def test_read_row_missing(table):
     Test read_row when row does not exist
     """
     from google.api_core import exceptions
+    from google.cloud.bigtable.exceptions import RowNotFound
+
     row_key = "row_key_not_exist"
-    with pytest.raises(exceptions.NotFound) as e:
+    with pytest.raises(RowNotFound) as e:
         await table.read_row(row_key)
         assert str(e) == f"Row b'{row_key}' not found"
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.read_row("")
         assert "Row kest must be non-empty" in str(e)
 
+
 @pytest.mark.asyncio
 async def test_row_exists(table, temp_rows):
     from google.api_core import exceptions
+
     """Test row_exists with rows that exist and don't exist"""
     assert await table.row_exists(b"row_key_1") is False
     await temp_rows.add_row(b"row_key_1")
@@ -353,5 +360,3 @@ async def test_row_exists(table, temp_rows):
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.row_exists("")
         assert "Row kest must be non-empty" in str(e)
-
-

@@ -221,7 +221,7 @@ class ReadRowsQuery:
             row_ranges.append(dict_range)
         row_keys = list(self.row_keys)
         row_keys.sort()
-        row_set : dict[str, Any] = {}
+        row_set: dict[str, Any] = {}
         if row_keys:
             row_set["row_keys"] = row_keys
         if row_ranges:

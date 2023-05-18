@@ -1364,7 +1364,9 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_row_no_response(self):
-        """should raise NotFound if row does not exist"""
+        """should raise RowNotFound if row does not exist"""
+        from google.cloud.bigtable.exceptions import RowNotFound
+
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
             row_key = b"test_1"
@@ -1373,7 +1375,7 @@ class TestReadRows:
                 read_rows.side_effect = lambda *args, **kwargs: []
                 expected_op_timeout = 8
                 expected_req_timeout = 4
-                with pytest.raises(core_exceptions.NotFound):
+                with pytest.raises(RowNotFound):
                     await table.read_row(
                         row_key,
                         operation_timeout=expected_op_timeout,
@@ -1452,4 +1454,3 @@ class TestReadRows:
             with pytest.raises(TypeError) as e:
                 await table.row_exists(input_row)
                 assert "row_key must be bytes or string" in e
-
