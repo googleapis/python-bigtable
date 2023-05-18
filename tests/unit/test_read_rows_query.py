@@ -355,5 +355,10 @@ class TestReadRowsQuery(unittest.TestCase):
         filter_proto = request_proto.filter
         self.assertEqual(filter_proto, row_filter._to_pb())
 
+    def test_empty_row_set(self):
+        """Empty strings should be treated as keys inputs"""
+        query = self._make_one(row_keys="")
+        self.assertEqual(query.row_keys, {b""})
+
     def test_shard(self):
         pass

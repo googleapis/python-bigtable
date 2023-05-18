@@ -106,12 +106,12 @@ class ReadRowsQuery:
         """
         self.row_keys: set[bytes] = set()
         self.row_ranges: list[RowRange | dict[str, bytes]] = []
-        if row_ranges:
+        if row_ranges is not None:
             if isinstance(row_ranges, RowRange):
                 row_ranges = [row_ranges]
             for r in row_ranges:
                 self.add_range(r)
-        if row_keys:
+        if row_keys is not None:
             if not isinstance(row_keys, list):
                 row_keys = [row_keys]
             for k in row_keys:
@@ -221,7 +221,7 @@ class ReadRowsQuery:
             row_ranges.append(dict_range)
         row_keys = list(self.row_keys)
         row_keys.sort()
-        row_set = {}
+        row_set : dict[str, Any] = {}
         if row_keys:
             row_set["row_keys"] = row_keys
         if row_ranges:
