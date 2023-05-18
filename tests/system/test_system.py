@@ -237,7 +237,8 @@ async def test_bulk_mutations_set_cell(client, table):
     (0, 3000, 3000),
     (10, 4, 14),
     (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
-    (MAX_INCREMENT_VALUE, 100, 100),
+    (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE+1),
+    (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
 ])
 @pytest.mark.asyncio
 async def test_read_modify_write_row_increment(client, table, temp_rows, start, increment, expected):
@@ -258,4 +259,32 @@ async def test_read_modify_write_row_increment(client, table, temp_rows, start, 
     assert result[0].family == family
     assert result[0].column_qualifier == qualifier
     assert int(result[0]) == expected
+
+@pytest.mark.parametrize("start,append,expected", [
+    (b'', b'', b''),
+    ("", "", b""),
+    (b'abc', b'123', b'abc123'),
+    (b'abc', '123', b'abc123'),
+    ('', b'1', b'1'),
+    (b'abc', '', b'abc'),
+    (b"hello", b"world", b"helloworld"),
+])
+@pytest.mark.asyncio
+async def test_read_modify_write_row_append(client, table, temp_rows, start, append, expected):
+    """
+    test read_modify_write_row
+    """
+    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    await temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
+
+    rule = AppendValueRule(family, qualifier, append)
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert len(result) == 1
+    assert result[0].family == family
+    assert result[0].column_qualifier == qualifier
+    assert result[0].value == expected
 
