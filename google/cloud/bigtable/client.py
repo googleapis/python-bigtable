@@ -47,6 +47,10 @@ from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
 
+from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.row_filters import CellsRowLimitFilter
+from google.cloud.bigtable.row_filters import RowFilterChain
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -551,7 +555,16 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
-        raise NotImplementedError
+        kwargs = {
+            "operation_timeout": operation_timeout,
+            "per_request_timeout": per_request_timeout,
+        }
+        strip_filter = StripValueTransformerFilter(flag=True)
+        limit_filter = CellsRowLimitFilter(1)
+        chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
+        query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
+        results = await self.read_rows(query, **kwargs)
+        return len(results) > 0
 
     async def sample_keys(
         self,
