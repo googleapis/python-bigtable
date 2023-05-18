@@ -73,9 +73,9 @@ class Row(Sequence["Cell"]):
         row_key :bytes = row_pb.key
         cell_list : list[Cell] = []
         for family in row_pb.families:
-            for qualifier in family.columns:
-                for cell in qualifier.cells:
-                    new_cell = Cell(value=cell.value, row=row_key, family=family, column_qualifier=qualifier, timestamp_micros=cell.timestamp_micros, labels=cell.labels)
+            for column in family.columns:
+                for cell in column.cells:
+                    new_cell = Cell(value=cell.value, row=row_key, family=family.name, column_qualifier=column.qualifier, timestamp_micros=cell.timestamp_micros, labels=cell.labels)
                     cell_list.append(new_cell)
         return cls(row_key, cells=cell_list)
 

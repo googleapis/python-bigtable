@@ -24,6 +24,9 @@ import pytest
 from google.cloud.bigtable import mutations
 from google.api_core import exceptions as core_exceptions
 
+from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -1358,3 +1361,103 @@ class TestBulkMutateRows:
                     assert callback.call_count == 2
                     assert callback.call_args_list[0][0][0] == entries[0]
                     assert callback.call_args_list[1][0][0] == entries[2]
+
+class TestReadModifyWriteRow:
+
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    @pytest.mark.parametrize("call_rules,expected_rules", [
+        ({"name":"test-rule"}, [{"name":"test-rule"}]),
+        ([{"name":"test-rule"}], [{"name":"test-rule"}]),
+        (AppendValueRule("f","c",b"1"), [AppendValueRule("f","c",b"1")._to_dict()]),
+        ([AppendValueRule("f","c",b"1")], [AppendValueRule("f","c",b"1")._to_dict()]),
+        (IncrementRule("f","c",1), [IncrementRule("f","c",1)._to_dict()]),
+        ([AppendValueRule("f","c",b"1"), IncrementRule("f","c",1)], [AppendValueRule("f","c",b"1")._to_dict(), IncrementRule("f","c",1)._to_dict()]),
+    ])
+    @pytest.mark.asyncio
+    async def test_read_modify_write_call_rule_args(self, call_rules, expected_rules):
+        """
+        Test that the gapic call is called with given rules
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                    await table.read_modify_write_row('key', call_rules)
+                assert mock_gapic.call_count == 1
+                found_kwargs = mock_gapic.call_args_list[0][1]
+                assert found_kwargs["rules"] == expected_rules
+
+    @pytest.mark.parametrize("rules", [[], None])
+    @pytest.mark.asyncio
+    async def test_read_modify_write_no_rules(self, rules):
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as e:
+                    await table.read_modify_write_row('key', rules=rules)
+                    assert e.value.args[0] == "rules must contain at least one item"
+
+    @pytest.mark.asyncio
+    async def test_read_modify_write_call_defaults(self):
+        instance = "instance1"
+        table_id = "table1"
+        project = "project1"
+        row_key = "row_key1"
+        async with self._make_client(project=project) as client:
+            async with client.get_table(instance, table_id) as table:
+                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                    await table.read_modify_write_row(row_key, {"name":"test-rule"})
+                    assert mock_gapic.call_count == 1
+                    found_kwargs = mock_gapic.call_args_list[0][1]
+                    assert found_kwargs["table_name"] == f"projects/{project}/instances/{instance}/tables/{table_id}"
+                    assert found_kwargs["app_profile_id"] is None
+                    assert found_kwargs["row_key"] == row_key.encode()
+                    assert found_kwargs["timeout"] == table.default_operation_timeout
+
+    @pytest.mark.asyncio
+    async def test_read_modify_write_call_overrides(self):
+        row_key = b"row_key1"
+        expected_timeout = 12345
+        profile_id = "profile1"
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table_id", app_profile_id=profile_id) as table:
+                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                    await table.read_modify_write_row(row_key, {"name":"test-rule"}, operation_timeout=expected_timeout)
+                    assert mock_gapic.call_count == 1
+                    found_kwargs = mock_gapic.call_args_list[0][1]
+                    assert found_kwargs["app_profile_id"] is profile_id
+                    assert found_kwargs["row_key"] == row_key
+                    assert found_kwargs["timeout"] == expected_timeout
+
+    @pytest.mark.asyncio
+    async def test_read_modify_write_string_key(self):
+        row_key = "string_row_key1"
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table_id") as table:
+                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                    await table.read_modify_write_row(row_key, {"name":"test-rule"})
+                    assert mock_gapic.call_count == 1
+                    found_kwargs = mock_gapic.call_args_list[0][1]
+                    assert found_kwargs["row_key"] == row_key.encode()
+
+    @pytest.mark.asyncio
+    async def test_read_modify_write_row_building(self):
+        """
+        results from gapic call should be used to construct row
+        """
+        from google.cloud.bigtable.row import Row
+        from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+        from google.cloud.bigtable_v2.types import Row as RowPB
+        mock_response = ReadModifyWriteRowResponse(row=RowPB())
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table_id") as table:
+                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                    with mock.patch.object(Row, "_from_pb") as constructor_mock:
+                        mock_gapic.return_value = mock_response
+                        await table.read_modify_write_row("key", {"name":"test-rule"})
+                        assert constructor_mock.call_count == 1
+                        constructor_mock.assert_called_with(mock_response.row)
+
+
