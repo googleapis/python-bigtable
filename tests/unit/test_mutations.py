@@ -53,6 +53,22 @@ class TestSetCell:
     def _make_one(self, *args, **kwargs):
         return self._target_class()(*args, **kwargs)
 
+    @pytest.mark.parametrize("input_val", [-20, -1, 0, 1, 100, int(2**60)])
+    def test_ctor_int_value(self, input_val):
+        found = self._make_one(family="f", qualifier=b"b", new_value=input_val)
+        assert found.new_value == input_val.to_bytes(8, "big", signed=True)
+
+    @pytest.mark.parametrize("input_val", [2 ** 64, -2 ** 64])
+    def test_ctor_large_int(self, input_val):
+        with pytest.raises(ValueError) as e:
+            self._make_one(family="f", qualifier=b"b", new_value=input_val)
+        assert "int values must be between" in str(e.value)
+
+    @pytest.mark.parametrize("input_val", ["", "a", "abc", "hello world!"])
+    def test_ctor_str_value(self, input_val):
+        found = self._make_one(family="f", qualifier=b"b", new_value=input_val)
+        assert found.new_value == input_val.encode("utf-8")
+
     def test__to_dict(self):
         """Should be unimplemented in the base class"""
         expected_family = "test-family"

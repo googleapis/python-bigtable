@@ -19,6 +19,7 @@ from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 # Type aliases used internally for readability.
 row_key = bytes

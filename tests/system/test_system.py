@@ -159,6 +159,8 @@ class TempRowBuilder:
     async def add_row(
         self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
+        if isinstance(value, int):
+            value = value.to_bytes(8, byteorder="big", signed=True)
         request = {
             "table_name": self.table.table_name,
             "row_key": row_key,
@@ -249,8 +251,7 @@ async def test_read_modify_write_row_increment(client, table, temp_rows, start, 
     row_key = b"test-row-key"
     family = TEST_FAMILY
     qualifier = b"test-qualifier"
-    #TODO: make creating a cell with a value easier
-    await temp_rows.add_row(row_key, value=start.to_bytes(8, "big", signed=True), family=family, qualifier=qualifier)
+    await temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
 
     rule = IncrementRule(family, qualifier, increment)
     result = await table.read_modify_write_row(row_key, rule)
@@ -301,7 +302,7 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     qualifier = b"test-qualifier"
     start_amount = 1
     increment_amount = 10
-    await temp_rows.add_row(row_key, value=start_amount.to_bytes(8, "big", signed=True), family=family, qualifier=qualifier)
+    await temp_rows.add_row(row_key, value=start_amount, family=family, qualifier=qualifier)
     rule = [IncrementRule(family, qualifier, increment_amount), AppendValueRule(family, qualifier, "hello"), AppendValueRule(family, qualifier, "world"), AppendValueRule(family, qualifier, "!")]
     result = await table.read_modify_write_row(row_key, rule)
     assert result.row_key == row_key
@@ -309,4 +310,3 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     assert result[0].column_qualifier == qualifier
     # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
     assert result[0].value == (start_amount+increment_amount).to_bytes(8, "big", signed=True) +  b"helloworld!"
-
