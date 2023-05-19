@@ -292,7 +292,7 @@ class BigtableDataClient(ClientWithProject):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ) -> Table:
         """
@@ -339,7 +339,7 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ):
         """
@@ -521,7 +521,7 @@ class Table:
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        buffer_size: int | None = None,
+        buffer_size: int = 0,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:
