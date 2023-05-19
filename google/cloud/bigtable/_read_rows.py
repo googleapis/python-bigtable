@@ -82,7 +82,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
         """
-        self._last_seen_row_key: bytes | None = None
+        self._last_emitted_row_key: bytes | None = None
         self._emit_count = 0
         buffer_size = max(buffer_size, 0)
         self._request = request
@@ -137,7 +137,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         if self._stream is not None:
             await self._stream.aclose()
         self._stream = None
-        self._last_seen_row_key = None
+        self._emitted_seen_row_key = None
 
     @staticmethod
     async def _generator_to_buffer(
@@ -190,11 +190,11 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             duplicate rows are not emitted
           - request is stored and (optionally) modified on each retry
         """
-        if self._last_seen_row_key is not None:
+        if self._last_emitted_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
                 row_set=self._request.get("rows", None),
-                last_seen_row_key=self._last_seen_row_key,
+                last_seen_row_key=self._last_emitted_row_key,
             )
             # revise next request's row limit based on number emitted
             if total_row_limit:
@@ -229,18 +229,17 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             while True:
                 new_item = await stream.__anext__()
                 # ignore rows that have already been emitted
-                if isinstance(new_item, Row) and (
-                    self._last_seen_row_key is None
-                    or new_item.row_key > self._last_seen_row_key
-                ):
-                    self._last_seen_row_key = new_item.row_key
+                if isinstance(new_item, Row):
+                    if self._last_emitted_row_key is not None and new_item.row_key >= self._last_emitted_row_key:
+                        raise InvalidChunk("Last emitted row key out of order")
                     # don't yeild _LastScannedRow markers; they
                     # should only update last_seen_row_key
                     if not isinstance(new_item, _LastScannedRow):
                         yield new_item
                         self._emit_count += 1
-                        if total_row_limit and self._emit_count >= total_row_limit:
-                            return
+                    self._last_emitted_row_key = new_item.row_key
+                    if total_row_limit and self._emit_count >= total_row_limit:
+                        return
                 elif isinstance(new_item, RequestStats):
                     yield new_item
         except StopAsyncIteration:
