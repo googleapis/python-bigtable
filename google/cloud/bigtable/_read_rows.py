@@ -304,20 +304,20 @@ class _ReadRowsOperation(AsyncIterable[Row]):
 
     @staticmethod
     async def merge_row_response_stream(
-        request_generator: AsyncIterable[ReadRowsResponse], state_machine: _StateMachine
+        response_generator: AsyncIterable[ReadRowsResponse], state_machine: _StateMachine
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
         Args:
-          - request_generator: AsyncIterable of ReadRowsResponse objects. Typically
+          - response_generator: AsyncIterable of ReadRowsResponse objects. Typically
                 this is a stream of chunks from the Bigtable API
         Returns:
             - AsyncGenerator of Rows
         Raises:
             - InvalidChunk: if the chunk stream is invalid
         """
-        async for row_response in request_generator:
+        async for row_response in response_generator:
             # unwrap protoplus object for increased performance
             response_pb = row_response._pb
             last_scanned = response_pb.last_scanned_row_key
