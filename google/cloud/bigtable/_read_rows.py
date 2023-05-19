@@ -19,6 +19,7 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyn
 from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 from google.cloud.bigtable.exceptions import InvalidChunk
+from google.cloud.bigtable.exceptions import _RowSetComplete
 import asyncio
 from functools import partial
 from google.api_core import retry_async as retries
@@ -192,10 +193,14 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         """
         if self._last_emitted_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
-            self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
-                row_set=self._request.get("rows", None),
-                last_seen_row_key=self._last_emitted_row_key,
-            )
+            try:
+                self._request["rows"] = _ReadRowsOperation._revise_request_rowset(
+                    row_set=self._request.get("rows", None),
+                    last_seen_row_key=self._last_emitted_row_key,
+                )
+            except _RowSetComplete:
+                # if there are no rows left to process, we're done
+                return
             # revise next request's row limit based on number emitted
             if total_row_limit:
                 new_limit = total_row_limit - self._emit_count
@@ -298,7 +303,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             # if our modifications result in an empty row_set, return the
             # original row_set. This will avoid an unwanted full table scan
             if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
-                return row_set
+                raise _RowSetComplete()
             return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod

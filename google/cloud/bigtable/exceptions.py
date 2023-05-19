@@ -87,6 +87,14 @@ class InvalidChunk(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid chunk data from back-end."""
 
 
+class _RowSetComplete(Exception):
+    """
+    Internal exception for _ReadRowsOperation
+    Raised in revise_request_rowset when there are no rows left to process when starting a retry attempt
+    """
+    pass
+
+
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
     """
     Represents one or more exceptions that occur during a bulk Bigtable operation
