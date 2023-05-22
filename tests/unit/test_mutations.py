@@ -53,8 +53,59 @@ class TestSetCell:
     def _make_one(self, *args, **kwargs):
         return self._target_class()(*args, **kwargs)
 
+    def test_ctor(self):
+        """Ensure constructor sets expected values"""
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        expected_value = b"test-value"
+        expected_timestamp = 1234567890
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_value, expected_timestamp
+        )
+        assert instance.family == expected_family
+        assert instance.qualifier == expected_qualifier
+        assert instance.new_value == expected_value
+        assert instance.timestamp_micros == expected_timestamp
+
+    def test_ctor_str_inputs(self):
+        """Test with string qualifier and value"""
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        expected_value = b"test-value"
+        instance = self._make_one(expected_family, "test-qualifier", "test-value")
+        assert instance.family == expected_family
+        assert instance.qualifier == expected_qualifier
+        assert instance.new_value == expected_value
+
+    @pytest.mark.parametrize(
+        "int_value,expected_bytes",
+        [
+            (-42, b"\xff\xff\xff\xff\xff\xff\xff\xd6"),
+            (-2, b"\xff\xff\xff\xff\xff\xff\xff\xfe"),
+            (-1, b"\xff\xff\xff\xff\xff\xff\xff\xff"),
+            (0, b"\x00\x00\x00\x00\x00\x00\x00\x00"),
+            (1, b"\x00\x00\x00\x00\x00\x00\x00\x01"),
+            (2, b"\x00\x00\x00\x00\x00\x00\x00\x02"),
+            (100, b"\x00\x00\x00\x00\x00\x00\x00d"),
+        ],
+    )
+    def test_ctor_int_value(self, int_value, expected_bytes):
+        """Test with int value"""
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        instance = self._make_one(expected_family, expected_qualifier, int_value)
+        assert instance.family == expected_family
+        assert instance.qualifier == expected_qualifier
+        assert instance.new_value == expected_bytes
+
+    def test_ctor_no_timestamp(self):
+        """If no timestamp is given, should use current time"""
+        with mock.patch("time.time_ns", return_value=1234000):
+            instance = self._make_one("test-family", b"test-qualifier", b"test-value")
+            assert instance.timestamp_micros == 1234
+
     def test__to_dict(self):
-        """Should be unimplemented in the base class"""
+        """ensure dict representation is as expected"""
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
@@ -72,12 +123,14 @@ class TestSetCell:
         assert len(got_inner_dict.keys()) == 4
 
     def test__to_dict_server_timestamp(self):
-        """Should be unimplemented in the base class"""
+        """test with server side timestamp -1 value"""
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
         expected_timestamp = -1
-        instance = self._make_one(expected_family, expected_qualifier, expected_value)
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_value, expected_timestamp
+        )
         got_dict = instance._to_dict()
         assert list(got_dict.keys()) == ["set_cell"]
         got_inner_dict = got_dict["set_cell"]
@@ -94,7 +147,8 @@ class TestSetCell:
             (1, True),
             (0, True),
             (-1, False),
-            (None, False),
+            (-2, True),
+            (None, True),
         ],
     )
     def test_is_idempotent(self, timestamp, expected_value):

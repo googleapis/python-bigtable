@@ -18,6 +18,9 @@ import time
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
+# special value for SetCell mutation timestamps. If set, server will assign a timestamp
+SERVER_SIDE_TIMESTAMP = -1
+
 
 class Mutation(ABC):
     """Model class for mutations"""
@@ -85,7 +88,10 @@ class SetCell(Mutation):
 
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
-        return self.timestamp_micros is not None and self.timestamp_micros != -1
+        return (
+            self.timestamp_micros is not None
+            and self.timestamp_micros != SERVER_SIDE_TIMESTAMP
+        )
 
 
 @dataclass
