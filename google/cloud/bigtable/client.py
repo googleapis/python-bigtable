@@ -46,12 +46,12 @@ from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.row import Row
+from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
-    from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
@@ -330,7 +330,7 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_row_timeout: float | None = 10,
         default_per_request_timeout: float | None = None,
     ):
@@ -726,10 +726,11 @@ class Table:
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
-        predicate: RowFilter | None,
+        predicate: RowFilter | dict | None,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: int | float | None = 60,
+        *,
+        operation_timeout: int | float | None = 600,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -763,7 +764,25 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if isinstance(true_case_mutations, Mutation):
+            true_case_mutations = [true_case_mutations]
+        if isinstance(false_case_mutations, Mutation):
+            false_case_mutations = [false_case_mutations]
+        if predicate is not None and not isinstance(predicate, dict):
+            predicate = predicate._to_dict()
+        return await self.client._gapic_client.check_and_mutate_row(
+            table_name=self.table_name,
+            row_key=row_key,
+            predicate_filter=predicate,
+            true_mutations=true_case_mutations,
+            false_mutations=false_case_mutations,
+            app_profile_id=self.app_profile_id,
+            timeout=operation_timeout,
+        )
 
     async def read_modify_write_row(
         self,
@@ -773,7 +792,7 @@ class Table:
         | dict[str, Any]
         | list[dict[str, Any]],
         *,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = 600,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,

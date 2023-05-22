@@ -1362,21 +1362,137 @@ class TestBulkMutateRows:
                     assert callback.call_args_list[0][0][0] == entries[0]
                     assert callback.call_args_list[1][0][0] == entries[2]
 
-class TestReadModifyWriteRow:
 
+class TestCheckAndMutateRow:
     def _make_client(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient
 
         return BigtableDataClient(*args, **kwargs)
 
-    @pytest.mark.parametrize("call_rules,expected_rules", [
-        ({"name":"test-rule"}, [{"name":"test-rule"}]),
-        ([{"name":"test-rule"}], [{"name":"test-rule"}]),
-        (AppendValueRule("f","c",b"1"), [AppendValueRule("f","c",b"1")._to_dict()]),
-        ([AppendValueRule("f","c",b"1")], [AppendValueRule("f","c",b"1")._to_dict()]),
-        (IncrementRule("f","c",1), [IncrementRule("f","c",1)._to_dict()]),
-        ([AppendValueRule("f","c",b"1"), IncrementRule("f","c",1)], [AppendValueRule("f","c",b"1")._to_dict(), IncrementRule("f","c",1)._to_dict()]),
-    ])
+    @pytest.mark.parametrize("gapic_result", [True, False])
+    @pytest.mark.asyncio
+    async def test_check_and_mutate(self, gapic_result):
+        app_profile = "app_profile_id"
+        async with self._make_client() as client:
+            async with client.get_table(
+                "instance", "table", app_profile_id=app_profile
+            ) as table:
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = gapic_result
+                    row_key = b"row_key"
+                    predicate = None
+                    true_mutations = [object()]
+                    false_mutations = [object(), object()]
+                    operation_timeout = 0.2
+                    found = await table.check_and_mutate_row(
+                        row_key,
+                        predicate,
+                        true_mutations,
+                        false_mutations,
+                        operation_timeout=operation_timeout,
+                    )
+                    assert found == gapic_result
+                    kwargs = mock_gapic.call_args[1]
+                    assert kwargs["table_name"] == table.table_name
+                    assert kwargs["row_key"] == row_key
+                    assert kwargs["predicate_filter"] == predicate
+                    assert kwargs["true_mutations"] == true_mutations
+                    assert kwargs["false_mutations"] == false_mutations
+                    assert kwargs["app_profile_id"] == app_profile
+                    assert kwargs["timeout"] == operation_timeout
+
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_bad_timeout(self):
+        """Should raise error if operation_timeout < 0"""
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as e:
+                    await table.check_and_mutate_row(
+                        b"row_key",
+                        None,
+                        [],
+                        [],
+                        operation_timeout=-1,
+                    )
+                assert str(e.value) == "operation_timeout must be greater than 0"
+
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_single_mutations(self):
+        """if single mutations are passed, they should be internally wrapped in a list"""
+        from google.cloud.bigtable.mutations import SetCell
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = True
+                    true_mutation = SetCell("family", b"qualifier", b"value")
+                    false_mutation = SetCell("family", b"qualifier", b"value")
+                    await table.check_and_mutate_row(
+                        b"row_key",
+                        None,
+                        true_mutation,
+                        false_mutation,
+                    )
+                    kwargs = mock_gapic.call_args[1]
+                    assert kwargs["true_mutations"] == [true_mutation]
+                    assert kwargs["false_mutations"] == [false_mutation]
+
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_predicate_object(self):
+        """predicate object should be converted to dict"""
+        mock_predicate = mock.Mock()
+        fake_dict = {"fake": "dict"}
+        mock_predicate._to_dict.return_value = fake_dict
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = True
+                    await table.check_and_mutate_row(
+                        b"row_key",
+                        mock_predicate,
+                        None,
+                        [object(), object()],
+                    )
+                    kwargs = mock_gapic.call_args[1]
+                    assert kwargs["predicate_filter"] == fake_dict
+                    assert mock_predicate._to_dict.call_count == 1
+
+
+class TestReadModifyWriteRow:
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    @pytest.mark.parametrize(
+        "call_rules,expected_rules",
+        [
+            ({"name": "test-rule"}, [{"name": "test-rule"}]),
+            ([{"name": "test-rule"}], [{"name": "test-rule"}]),
+            (
+                AppendValueRule("f", "c", b"1"),
+                [AppendValueRule("f", "c", b"1")._to_dict()],
+            ),
+            (
+                [AppendValueRule("f", "c", b"1")],
+                [AppendValueRule("f", "c", b"1")._to_dict()],
+            ),
+            (IncrementRule("f", "c", 1), [IncrementRule("f", "c", 1)._to_dict()]),
+            (
+                [AppendValueRule("f", "c", b"1"), IncrementRule("f", "c", 1)],
+                [
+                    AppendValueRule("f", "c", b"1")._to_dict(),
+                    IncrementRule("f", "c", 1)._to_dict(),
+                ],
+            ),
+        ],
+    )
     @pytest.mark.asyncio
     async def test_read_modify_write_call_rule_args(self, call_rules, expected_rules):
         """
@@ -1384,8 +1500,10 @@ class TestReadModifyWriteRow:
         """
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
-                    await table.read_modify_write_row('key', call_rules)
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
+                    await table.read_modify_write_row("key", call_rules)
                 assert mock_gapic.call_count == 1
                 found_kwargs = mock_gapic.call_args_list[0][1]
                 assert found_kwargs["rules"] == expected_rules
@@ -1396,7 +1514,7 @@ class TestReadModifyWriteRow:
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with pytest.raises(ValueError) as e:
-                    await table.read_modify_write_row('key', rules=rules)
+                    await table.read_modify_write_row("key", rules=rules)
                     assert e.value.args[0] == "rules must contain at least one item"
 
     @pytest.mark.asyncio
@@ -1407,11 +1525,16 @@ class TestReadModifyWriteRow:
         row_key = "row_key1"
         async with self._make_client(project=project) as client:
             async with client.get_table(instance, table_id) as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
-                    await table.read_modify_write_row(row_key, {"name":"test-rule"})
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
+                    await table.read_modify_write_row(row_key, {"name": "test-rule"})
                     assert mock_gapic.call_count == 1
                     found_kwargs = mock_gapic.call_args_list[0][1]
-                    assert found_kwargs["table_name"] == f"projects/{project}/instances/{instance}/tables/{table_id}"
+                    assert (
+                        found_kwargs["table_name"]
+                        == f"projects/{project}/instances/{instance}/tables/{table_id}"
+                    )
                     assert found_kwargs["app_profile_id"] is None
                     assert found_kwargs["row_key"] == row_key.encode()
                     assert found_kwargs["timeout"] == table.default_operation_timeout
@@ -1422,9 +1545,17 @@ class TestReadModifyWriteRow:
         expected_timeout = 12345
         profile_id = "profile1"
         async with self._make_client() as client:
-            async with client.get_table("instance", "table_id", app_profile_id=profile_id) as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
-                    await table.read_modify_write_row(row_key, {"name":"test-rule"}, operation_timeout=expected_timeout)
+            async with client.get_table(
+                "instance", "table_id", app_profile_id=profile_id
+            ) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
+                    await table.read_modify_write_row(
+                        row_key,
+                        {"name": "test-rule"},
+                        operation_timeout=expected_timeout,
+                    )
                     assert mock_gapic.call_count == 1
                     found_kwargs = mock_gapic.call_args_list[0][1]
                     assert found_kwargs["app_profile_id"] is profile_id
@@ -1436,8 +1567,10 @@ class TestReadModifyWriteRow:
         row_key = "string_row_key1"
         async with self._make_client() as client:
             async with client.get_table("instance", "table_id") as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
-                    await table.read_modify_write_row(row_key, {"name":"test-rule"})
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
+                    await table.read_modify_write_row(row_key, {"name": "test-rule"})
                     assert mock_gapic.call_count == 1
                     found_kwargs = mock_gapic.call_args_list[0][1]
                     assert found_kwargs["row_key"] == row_key.encode()
@@ -1450,14 +1583,15 @@ class TestReadModifyWriteRow:
         from google.cloud.bigtable.row import Row
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
         from google.cloud.bigtable_v2.types import Row as RowPB
+
         mock_response = ReadModifyWriteRowResponse(row=RowPB())
         async with self._make_client() as client:
             async with client.get_table("instance", "table_id") as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
                     with mock.patch.object(Row, "_from_pb") as constructor_mock:
                         mock_gapic.return_value = mock_response
-                        await table.read_modify_write_row("key", {"name":"test-rule"})
+                        await table.read_modify_write_row("key", {"name": "test-rule"})
                         assert constructor_mock.call_count == 1
                         constructor_mock.assert_called_with(mock_response.row)
-
-
