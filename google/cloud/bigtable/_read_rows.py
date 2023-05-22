@@ -14,18 +14,6 @@
 #
 from __future__ import annotations
 
-from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable_v2.types import RequestStats
-from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
-from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable.exceptions import _RowSetComplete
-import asyncio
-from functools import partial
-from google.api_core import retry_async as retries
-from google.api_core import exceptions as core_exceptions
-
-
 from typing import (
     List,
     Any,
@@ -36,6 +24,19 @@ from typing import (
     Awaitable,
     Type,
 )
+
+import asyncio
+import time
+from functools import partial
+
+from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+from google.cloud.bigtable_v2.types import RequestStats
+from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
+from google.cloud.bigtable.exceptions import InvalidChunk
+from google.cloud.bigtable.exceptions import _RowSetComplete
+from google.api_core import retry_async as retries
+from google.api_core import exceptions as core_exceptions
 
 """
 This module provides a set of classes for merging ReadRowsResponse chunks
@@ -70,31 +71,36 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
+        operation_timeout: float = 600.0,
         *,
         buffer_size: int = 0,
-        operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ):
         """
         Args:
           - request: the request dict to send to the Bigtable API
           - client: the Bigtable client to use to make the request
-          - buffer_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
+          - buffer_size: the size of the buffer to use for caching rows from the network
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
+                If not specified, defaults to operation_timeout
         """
         self._last_emitted_row_key: bytes | None = None
         self._emit_count = 0
         buffer_size = max(buffer_size, 0)
         self._request = request
         self.operation_timeout = operation_timeout
+        deadline = operation_timeout + time.monotonic()
         row_limit = request.get("rows_limit", 0)
+        if per_request_timeout is None:
+            per_request_timeout = operation_timeout
         # lock in paramters for retryable wrapper
         self._partial_retryable = partial(
             self._read_rows_retryable_attempt,
             client.read_rows,
             buffer_size,
             per_request_timeout,
+            deadline,
             row_limit,
         )
         predicate = retries.if_exception_type(
@@ -175,7 +181,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
         buffer_size: int,
-        per_request_timeout: float | None,
+        per_request_timeout: float,
+        operation_deadline: float,
         total_row_limit: int,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
@@ -213,9 +220,11 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             params_str = (
                 f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
             )
+        time_to_deadline = operation_deadline - time.monotonic()
+        gapic_timeout = min(time_to_deadline, per_request_timeout)
         new_gapic_stream = await gapic_fn(
             self._request,
-            timeout=per_request_timeout,
+            timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
         buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
