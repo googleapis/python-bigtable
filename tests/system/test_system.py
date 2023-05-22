@@ -174,10 +174,10 @@ async def test_bulk_mutations_set_cell(client, table):
     """
     Ensure cells can be set properly
     """
-    from google.cloud.bigtable.mutations import SetCell, BulkMutationsEntry
+    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
 
     mutation = SetCell(
         family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
     )
-    bulk_mutation = BulkMutationsEntry(b"abc", [mutation])
+    bulk_mutation = RowMutationEntry(b"abc", [mutation])
     await table.bulk_mutate_rows([bulk_mutation])

@@ -156,7 +156,7 @@ class DeleteAllFromRow(Mutation):
         }
 
 
-class BulkMutationsEntry:
+class RowMutationEntry:
     def __init__(self, row_key: bytes | str, mutations: Mutation | list[Mutation]):
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")

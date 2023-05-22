@@ -354,11 +354,11 @@ class TestDeleteFromRow:
         assert instance.__str__() == "{'delete_from_row': {}}"
 
 
-class TestBulkMutationsEntry:
+class TestRowMutationEntry:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import BulkMutationsEntry
+        from google.cloud.bigtable.mutations import RowMutationEntry
 
-        return BulkMutationsEntry
+        return RowMutationEntry
 
     def _make_one(self, row_key, mutations):
         return self._target_class()(row_key, mutations)

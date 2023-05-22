@@ -1020,9 +1020,7 @@ class TestBulkMutateRows:
                     client._gapic_client, "mutate_rows"
                 ) as mock_gapic:
                     mock_gapic.return_value = self._mock_response([None])
-                    bulk_mutation = mutations.BulkMutationsEntry(
-                        b"row_key", mutation_arg
-                    )
+                    bulk_mutation = mutations.RowMutationEntry(b"row_key", mutation_arg)
                     await table.bulk_mutate_rows(
                         [bulk_mutation],
                         per_request_timeout=expected_per_request_timeout,
@@ -1047,8 +1045,8 @@ class TestBulkMutateRows:
                 ) as mock_gapic:
                     mock_gapic.return_value = self._mock_response([None, None])
                     mutation_list = [mutations.DeleteAllFromRow()]
-                    entry_1 = mutations.BulkMutationsEntry(b"row_key_1", mutation_list)
-                    entry_2 = mutations.BulkMutationsEntry(b"row_key_2", mutation_list)
+                    entry_1 = mutations.RowMutationEntry(b"row_key_1", mutation_list)
+                    entry_2 = mutations.RowMutationEntry(b"row_key_2", mutation_list)
                     await table.bulk_mutate_rows(
                         [entry_1, entry_2],
                     )
@@ -1091,7 +1089,7 @@ class TestBulkMutateRows:
                     )
                     with pytest.raises(MutationsExceptionGroup) as e:
                         mutation = mutations.DeleteAllFromRow()
-                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is True
                         await table.bulk_mutate_rows([entry], operation_timeout=0.05)
                     assert len(e.value.exceptions) == 1
@@ -1137,7 +1135,7 @@ class TestBulkMutateRows:
                     )
                     with pytest.raises(MutationsExceptionGroup) as e:
                         mutation = mutations.DeleteAllFromRow()
-                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is True
                         await table.bulk_mutate_rows([entry], operation_timeout=0.05)
                     assert len(e.value.exceptions) == 1
@@ -1177,7 +1175,7 @@ class TestBulkMutateRows:
                         mutation = mutations.SetCell(
                             "family", b"qualifier", b"value", timestamp_micros=123
                         )
-                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is True
                         await table.bulk_mutate_rows([entry], operation_timeout=0.05)
                     assert len(e.value.exceptions) == 1
@@ -1217,7 +1215,7 @@ class TestBulkMutateRows:
                         mutation = mutations.SetCell(
                             "family", b"qualifier", b"value", -1
                         )
-                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is False
                         await table.bulk_mutate_rows([entry], operation_timeout=0.2)
                     assert len(e.value.exceptions) == 1
@@ -1257,7 +1255,7 @@ class TestBulkMutateRows:
                         mutation = mutations.SetCell(
                             "family", b"qualifier", b"value", timestamp_micros=123
                         )
-                        entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is True
                         await table.bulk_mutate_rows([entry], operation_timeout=0.2)
                     assert len(e.value.exceptions) == 1
@@ -1299,7 +1297,7 @@ class TestBulkMutateRows:
                             "family", b"qualifier", b"value", timestamp_micros=123
                         )
                         entries = [
-                            mutations.BulkMutationsEntry(
+                            mutations.RowMutationEntry(
                                 (f"row_key_{i}").encode(), [mutation]
                             )
                             for i in range(3)
@@ -1347,7 +1345,7 @@ class TestBulkMutateRows:
                             "family", b"qualifier", b"value", timestamp_micros=123
                         )
                         entries = [
-                            mutations.BulkMutationsEntry(
+                            mutations.RowMutationEntry(
                                 (f"row_key_{i}").encode(), [mutation]
                             )
                             for i in range(3)

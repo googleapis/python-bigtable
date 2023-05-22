@@ -42,7 +42,7 @@ from google.api_core import client_options as client_options_lib
 
 from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
-from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 
 if TYPE_CHECKING:
@@ -654,16 +654,16 @@ class Table:
 
     async def bulk_mutate_rows(
         self,
-        mutation_entries: list[BulkMutationsEntry],
+        mutation_entries: list[RowMutationEntry],
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[BulkMutationsEntry], None] | None = None,
+        on_success: Callable[[RowMutationEntry], None] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
 
-        Each individual BulkMutationsEntry is applied atomically, but separate entries
+        Each individual RowMutationEntry is applied atomically, but separate entries
         may be applied in arbitrary order (even for entries targetting the same row)
         In total, the row_mutations can contain at most 100000 individual mutations
         across all entries
@@ -704,11 +704,11 @@ class Table:
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
-        callback: Callable[[BulkMutationsEntry, Exception | None], None] | None = None
+        callback: Callable[[RowMutationEntry, Exception | None], None] | None = None
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
-            def callback(entry: BulkMutationsEntry, exc: Exception | None):
+            def callback(entry: RowMutationEntry, exc: Exception | None):
                 if exc is None and on_success is not None:
                     on_success(entry)
 

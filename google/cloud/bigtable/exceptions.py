@@ -23,7 +23,7 @@ from google.api_core import exceptions as core_exceptions
 is_311_plus = sys.version_info >= (3, 11)
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.mutations import BulkMutationsEntry
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
 
 def _convert_retry_deadline(
@@ -113,14 +113,14 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
 
 class FailedMutationEntryError(Exception):
     """
-    Represents a single failed BulkMutationsEntry in a bulk_mutate_rows request.
+    Represents a single failed RowMutationEntry in a bulk_mutate_rows request.
     A collection of FailedMutationEntryErrors will be raised in a MutationsExceptionGroup
     """
 
     def __init__(
         self,
         failed_idx: int,
-        failed_mutation_entry: "BulkMutationsEntry",
+        failed_mutation_entry: "RowMutationEntry",
         cause: Exception,
     ):
         idempotent_msg = (

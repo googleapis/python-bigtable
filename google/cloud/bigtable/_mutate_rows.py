@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
-    from google.cloud.bigtable.mutations import BulkMutationsEntry
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
 
 class _MutateRowsIncomplete(RuntimeError):
@@ -38,10 +38,10 @@ class _MutateRowsIncomplete(RuntimeError):
 async def _mutate_rows_operation(
     gapic_client: "BigtableAsyncClient",
     request: dict[str, Any],
-    mutation_entries: list["BulkMutationsEntry"],
+    mutation_entries: list["RowMutationEntry"],
     operation_timeout: float,
     per_request_timeout: float | None,
-    on_terminal_state: Callable[["BulkMutationsEntry", Exception | None], None]
+    on_terminal_state: Callable[["RowMutationEntry", Exception | None], None]
     | None = None,
 ):
     """
@@ -50,14 +50,14 @@ async def _mutate_rows_operation(
     Args:
       - gapic_client: the client to use for the mutate_rows call
       - request: A request dict containing table name, app profile id, and other details to inclide in the request
-      - mutation_entries: a list of BulkMutationsEntry objects to send to the server
+      - mutation_entries: a list of RowMutationEntry objects to send to the server
       - operation_timeout: the timeout to use for the entire operation, in seconds.
       - per_request_timeout: the timeout to use for each mutate_rows attempt, in seconds.
           If not specified, the request will run until operation_timeout is reached.
       - on_terminal_state: If given, this function will be called as soon as a mutation entry
             reaches a terminal state (success or failure).
     """
-    mutations_dict: dict[int, BulkMutationsEntry | None] = {
+    mutations_dict: dict[int, RowMutationEntry | None] = {
         idx: mut for idx, mut in enumerate(mutation_entries)
     }
     error_dict: dict[int, list[Exception]] = {idx: [] for idx in mutations_dict.keys()}
@@ -135,10 +135,10 @@ async def _mutate_rows_retryable_attempt(
     gapic_client: "BigtableAsyncClient",
     request: dict[str, Any],
     per_request_timeout: float | None,
-    mutation_dict: dict[int, "BulkMutationsEntry" | None],
+    mutation_dict: dict[int, "RowMutationEntry" | None],
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
-    on_terminal_state: Callable[["BulkMutationsEntry", Exception | None], None]
+    on_terminal_state: Callable[["RowMutationEntry", Exception | None], None]
     | None = None,
 ):
     """
@@ -155,7 +155,7 @@ async def _mutate_rows_retryable_attempt(
       - request: the request to send to the server, populated with table name and app profile id
       - per_request_timeout: the timeout to use for each mutate_rows attempt
       - mutation_dict: a dictionary tracking which entries are outstanding
-            (stored as BulkMutationsEntry), and which have reached a terminal state (stored as None).
+            (stored as RowMutationEntry), and which have reached a terminal state (stored as None).
             At the start of the request, all entries are outstanding.
       - error_dict: a dictionary tracking errors associated with each entry index.
             Each retry will append a new error. Successful mutations will clear the error list.
