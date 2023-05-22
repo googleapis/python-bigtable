@@ -624,7 +624,6 @@ class Table:
             predicate = retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
                 core_exceptions.ServiceUnavailable,
-                core_exceptions.Aborted,
             )
         else:
             # mutations should not be retried

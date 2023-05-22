@@ -65,7 +65,6 @@ async def _mutate_rows_operation(
     predicate = retries.if_exception_type(
         core_exceptions.DeadlineExceeded,
         core_exceptions.ServiceUnavailable,
-        core_exceptions.Aborted,
         _MutateRowsIncomplete,
     )
 
