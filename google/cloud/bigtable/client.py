@@ -772,9 +772,11 @@ class Table:
             true_case_mutations = [true_case_mutations]
         if isinstance(false_case_mutations, Mutation):
             false_case_mutations = [false_case_mutations]
+        true_case_mutations = [m._to_dict() for m in true_case_mutations or []]
+        false_case_mutations = [m._to_dict() for m in false_case_mutations or []]
         if predicate is not None and not isinstance(predicate, dict):
-            predicate = predicate._to_dict()
-        return await self.client._gapic_client.check_and_mutate_row(
+            predicate = predicate.to_dict()
+        result = await self.client._gapic_client.check_and_mutate_row(
             table_name=self.table_name,
             row_key=row_key,
             predicate_filter=predicate,
@@ -783,6 +785,7 @@ class Table:
             app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
         )
+        return result.predicate_matched
 
     async def read_modify_write_row(
         self,

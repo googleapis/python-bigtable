@@ -1372,6 +1372,7 @@ class TestCheckAndMutateRow:
     @pytest.mark.parametrize("gapic_result", [True, False])
     @pytest.mark.asyncio
     async def test_check_and_mutate(self, gapic_result):
+        from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
         app_profile = "app_profile_id"
         async with self._make_client() as client:
             async with client.get_table(
@@ -1380,11 +1381,11 @@ class TestCheckAndMutateRow:
                 with mock.patch.object(
                     client._gapic_client, "check_and_mutate_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = gapic_result
+                    mock_gapic.return_value = CheckAndMutateRowResponse(predicate_matched=gapic_result)
                     row_key = b"row_key"
                     predicate = None
-                    true_mutations = [object()]
-                    false_mutations = [object(), object()]
+                    true_mutations = [{}]
+                    false_mutations = [{}, {}]
                     operation_timeout = 0.2
                     found = await table.check_and_mutate_row(
                         row_key,
@@ -1422,13 +1423,14 @@ class TestCheckAndMutateRow:
     async def test_check_and_mutate_single_mutations(self):
         """if single mutations are passed, they should be internally wrapped in a list"""
         from google.cloud.bigtable.mutations import SetCell
+        from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
 
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
                     client._gapic_client, "check_and_mutate_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = True
+                    mock_gapic.return_value = CheckAndMutateRowResponse(predicate_matched=True)
                     true_mutation = SetCell("family", b"qualifier", b"value")
                     false_mutation = SetCell("family", b"qualifier", b"value")
                     await table.check_and_mutate_row(
@@ -1438,30 +1440,57 @@ class TestCheckAndMutateRow:
                         false_mutation,
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["true_mutations"] == [true_mutation]
-                    assert kwargs["false_mutations"] == [false_mutation]
+                    assert kwargs["true_mutations"] == [true_mutation._to_dict()]
+                    assert kwargs["false_mutations"] == [false_mutation._to_dict()]
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_predicate_object(self):
         """predicate object should be converted to dict"""
+        from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
         mock_predicate = mock.Mock()
         fake_dict = {"fake": "dict"}
-        mock_predicate._to_dict.return_value = fake_dict
+        mock_predicate.to_dict.return_value = fake_dict
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
                     client._gapic_client, "check_and_mutate_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = True
+                    mock_gapic.return_value = CheckAndMutateRowResponse(predicate_matched=True)
                     await table.check_and_mutate_row(
                         b"row_key",
                         mock_predicate,
                         None,
-                        [object(), object()],
+                        [{}, {}],
                     )
                     kwargs = mock_gapic.call_args[1]
                     assert kwargs["predicate_filter"] == fake_dict
-                    assert mock_predicate._to_dict.call_count == 1
+                    assert mock_predicate.to_dict.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_mutations_parsing(self):
+        """mutations objects should be converted to dicts"""
+        from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
+        from google.cloud.bigtable.mutations import DeleteAllFromRow
+        mutations = [mock.Mock() for _ in range(5)]
+        for idx, mutation in enumerate(mutations):
+            mutation._to_dict.return_value = {"fake": idx}
+        mutations.append(DeleteAllFromRow())
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = CheckAndMutateRowResponse(predicate_matched=True)
+                    await table.check_and_mutate_row(
+                        b"row_key",
+                        None,
+                        mutations[0:2],
+                        mutations[2:],
+                    )
+                    kwargs = mock_gapic.call_args[1]
+                    assert kwargs["true_mutations"] == [{"fake": 0}, {"fake": 1}]
+                    assert kwargs["false_mutations"] == [{"fake": 2}, {"fake": 3}, {"fake": 4}, {"delete_from_row": {}}]
+                    assert all(mutation._to_dict.call_count == 1 for mutation in mutations[:5])
 
 
 class TestReadModifyWriteRow:

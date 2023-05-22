@@ -310,3 +310,35 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     assert result[0].column_qualifier == qualifier
     # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
     assert result[0].value == (start_amount+increment_amount).to_bytes(8, "big", signed=True) +  b"helloworld!"
+
+@pytest.mark.parametrize("start_val,predicate_range,expected_result", [
+    (1, (0,2), True),
+    (-1, (0,2), False),
+])
+@pytest.mark.asyncio
+async def test_check_and_mutate(client, table, temp_rows, start_val, predicate_range, expected_result):
+    """
+    test that check_and_mutate_row works applies the right mutations, and returns the right result
+    """
+    from google.cloud.bigtable.mutations import SetCell
+    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+
+    await temp_rows.add_row(row_key, value=start_val, family=family, qualifier=qualifier)
+
+    false_mutation_value = -99
+    false_mutation_result = SetCell(
+        family=TEST_FAMILY, qualifier=qualifier, new_value=false_mutation_value
+    )
+    true_mutation_value = 55
+    true_mutation_result = SetCell(
+        family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
+    )
+    predicate = ValueRangeFilter(predicate_range[0], predicate_range[1])
+    result = await table.check_and_mutate_row(
+        row_key, predicate, [false_mutation_result], [true_mutation_result]
+    )
+    assert result == expected_result
+    #TODO: add read_row assertions to verify the mutation was applied
