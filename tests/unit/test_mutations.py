@@ -58,7 +58,7 @@ class TestSetCell:
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
-        expected_timestamp = 1234567890
+        expected_timestamp = 1234567890000
         instance = self._make_one(
             expected_family, expected_qualifier, expected_value, expected_timestamp
         )
@@ -102,14 +102,47 @@ class TestSetCell:
         """If no timestamp is given, should use current time"""
         with mock.patch("time.time_ns", return_value=1234000):
             instance = self._make_one("test-family", b"test-qualifier", b"test-value")
-            assert instance.timestamp_micros == 1234
+            assert instance._timestamp_micros == 1234
+            assert instance.timestamp_micros == 1000
+
+    def test_ctor_negative_timestamp(self):
+        """Only positive or -1 timestamps are valid"""
+        with pytest.raises(ValueError) as e:
+            self._make_one("test-family", b"test-qualifier", b"test-value", -2)
+        assert (
+            "timestamp_micros must be positive (or -1 for server-side timestamp)"
+            in str(e.value)
+        )
+
+    @pytest.mark.parametrize(
+        "input_timestamp,expected_timestamp",
+        [
+            (-1, -1),
+            (0, 0),
+            (1, 0),
+            (123, 0),
+            (999, 0),
+            (1000, 1000),
+            (1234, 1000),
+            (1999, 1000),
+            (2000, 2000),
+            (1234567890, 1234567000),
+        ],
+    )
+    def test_timestamp_milli_precision(self, input_timestamp, expected_timestamp):
+        """timestamp_micros should have millisecond precision (3 trailing 0s)"""
+        instance = self._make_one(
+            "test-family", b"test-qualifier", b"test-value", input_timestamp
+        )
+        assert instance._timestamp_micros == input_timestamp
+        assert instance.timestamp_micros == expected_timestamp
 
     def test__to_dict(self):
         """ensure dict representation is as expected"""
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
-        expected_timestamp = 1234567890
+        expected_timestamp = 123456789000
         instance = self._make_one(
             expected_family, expected_qualifier, expected_value, expected_timestamp
         )
@@ -147,7 +180,6 @@ class TestSetCell:
             (1, True),
             (0, True),
             (-1, False),
-            (-2, True),
             (None, True),
         ],
     )

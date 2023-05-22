@@ -55,7 +55,8 @@ class SetCell(Mutation):
           - family: The name of the column family to which the new cell belongs.
           - qualifier: The column qualifier of the new cell.
           - new_value: The value of the new cell. str or int input will be converted to bytes
-          - timestamp_micros: The timestamp of the new cell. If None, the current timestamp will be used
+          - timestamp_micros: The timestamp of the new cell. If None, the current timestamp will be used.
+              Timestamps will be sent with milisecond-percision. Extra precision will be truncated.
               If -1, the server will assign a timestamp. Note that SetCell mutations with server-side
               timestamps are non-idempotent operations and will not be retried.
         """
@@ -69,11 +70,23 @@ class SetCell(Mutation):
         if not isinstance(new_value, bytes):
             raise TypeError("new_value must be bytes, str, or int")
         if timestamp_micros is None:
+            # use current timestamp
             timestamp_micros = time.time_ns() // 1000
+        if timestamp_micros < SERVER_SIDE_TIMESTAMP:
+            raise ValueError(
+                "timestamp_micros must be positive (or -1 for server-side timestamp)"
+            )
         self.family = family
         self.qualifier = qualifier
         self.new_value = new_value
-        self.timestamp_micros = timestamp_micros
+        self._timestamp_micros = timestamp_micros
+
+    @property
+    def timestamp_micros(self):
+        if self._timestamp_micros > 0:
+            # round to use milisecond precision
+            return (self._timestamp_micros // 1000) * 1000
+        return self._timestamp_micros
 
     def _to_dict(self) -> dict[str, Any]:
         """Convert the mutation to a dictionary representation"""
@@ -88,10 +101,7 @@ class SetCell(Mutation):
 
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
-        return (
-            self.timestamp_micros is not None
-            and self.timestamp_micros != SERVER_SIDE_TIMESTAMP
-        )
+        return self.timestamp_micros != SERVER_SIDE_TIMESTAMP
 
 
 @dataclass

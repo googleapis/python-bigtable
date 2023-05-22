@@ -876,7 +876,6 @@ class TestMutateRow:
         [
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
         ],
     )
     @pytest.mark.asyncio
@@ -905,7 +904,6 @@ class TestMutateRow:
         [
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
         ],
     )
     @pytest.mark.asyncio
@@ -922,7 +920,9 @@ class TestMutateRow:
                 ) as mock_gapic:
                     mock_gapic.side_effect = retryable_exception("mock")
                     with pytest.raises(retryable_exception):
-                        mutation = mutations.SetCell("family", b"qualifier", b"value")
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", -1
+                        )
                         assert mutation.is_idempotent() is False
                         await table.mutate_row(
                             "row_key", mutation, operation_timeout=0.2
@@ -936,6 +936,7 @@ class TestMutateRow:
             core_exceptions.FailedPrecondition,
             RuntimeError,
             ValueError,
+            core_exceptions.Aborted,
         ],
     )
     @pytest.mark.asyncio
@@ -1066,7 +1067,6 @@ class TestBulkMutateRows:
         [
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
         ],
     )
     async def test_bulk_mutate_rows_idempotent_mutation_error_retryable(
@@ -1113,6 +1113,7 @@ class TestBulkMutateRows:
             core_exceptions.OutOfRange,
             core_exceptions.NotFound,
             core_exceptions.FailedPrecondition,
+            core_exceptions.Aborted,
         ],
     )
     async def test_bulk_mutate_rows_idempotent_mutation_error_non_retryable(
@@ -1151,7 +1152,6 @@ class TestBulkMutateRows:
         [
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
         ],
     )
     @pytest.mark.asyncio
@@ -1194,7 +1194,6 @@ class TestBulkMutateRows:
         [
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
         ],
     )
     async def test_bulk_mutate_rows_non_idempotent_retryable_errors(
@@ -1215,7 +1214,9 @@ class TestBulkMutateRows:
                         [retryable_exception("mock")]
                     )
                     with pytest.raises(MutationsExceptionGroup) as e:
-                        mutation = mutations.SetCell("family", b"qualifier", b"value")
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", -1
+                        )
                         entry = mutations.BulkMutationsEntry(b"row_key", [mutation])
                         assert mutation.is_idempotent() is False
                         await table.bulk_mutate_rows([entry], operation_timeout=0.2)
@@ -1273,7 +1274,7 @@ class TestBulkMutateRows:
         """
         from google.api_core.exceptions import (
             DeadlineExceeded,
-            Aborted,
+            ServiceUnavailable,
             FailedPrecondition,
         )
         from google.cloud.bigtable.exceptions import (
@@ -1289,7 +1290,7 @@ class TestBulkMutateRows:
                 ) as mock_gapic:
                     # fail with retryable errors, then a non-retryable one
                     mock_gapic.side_effect = [
-                        self._mock_response([None, Aborted("mock"), None]),
+                        self._mock_response([None, ServiceUnavailable("mock"), None]),
                         self._mock_response([DeadlineExceeded("mock")]),
                         self._mock_response([FailedPrecondition("final")]),
                     ]
@@ -1313,7 +1314,7 @@ class TestBulkMutateRows:
                     cause = failed.__cause__
                     assert isinstance(cause, RetryExceptionGroup)
                     assert len(cause.exceptions) == 3
-                    assert isinstance(cause.exceptions[0], Aborted)
+                    assert isinstance(cause.exceptions[0], ServiceUnavailable)
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
