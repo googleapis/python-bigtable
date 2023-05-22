@@ -244,7 +244,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 new_item = await stream.__anext__()
                 # ignore rows that have already been emitted
                 if isinstance(new_item, Row):
-                    if self._last_emitted_row_key is not None and new_item.row_key >= self._last_emitted_row_key:
+                    if self._last_emitted_row_key is not None and new_item.row_key <= self._last_emitted_row_key:
                         raise InvalidChunk("Last emitted row key out of order")
                     # don't yeild _LastScannedRow markers; they
                     # should only update last_seen_row_key
