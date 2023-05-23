@@ -194,9 +194,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - buffer for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
-          - last_seen_row_key is used to ensure that
+          - _last_emitted_row_key is used to ensure that
             duplicate rows are not emitted
-          - request is stored and (optionally) modified on each retry
+          - request is stored and (potentially) modified on each retry
         """
         if self._last_emitted_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
