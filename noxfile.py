@@ -183,9 +183,13 @@ def install_unittest_dependencies(session, *constraints):
             "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
             DeprecationWarning,
         )
-        session.install("--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
-
-
+        session.install(
+            "--upgrade",
+            "--no-deps",
+            "--force-reinstall",
+            *UNIT_TEST_EXTERNAL_DEPENDENCIES,
+            *constraints,
+        )
 
 
 def default(session):
@@ -463,7 +467,9 @@ def prerelease_deps(session):
     session.run("python", "-c", "import grpc; print(grpc.__version__)")
 
     # TODO: remove adter merging api-core
-    session.install("--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES)
+    session.install(
+        "--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES
+    )
 
     session.run("py.test", "tests/unit")
 
