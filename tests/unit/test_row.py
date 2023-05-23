@@ -65,7 +65,14 @@ class TestRow(unittest.TestCase):
         from google.cloud.bigtable_v2.types import Cell as CellPB
 
         row_key = b"row_key"
-        cells = [CellPB(value=str(i).encode(), timestamp_micros=TEST_TIMESTAMP, labels=TEST_LABELS) for i in range(2)]
+        cells = [
+            CellPB(
+                value=str(i).encode(),
+                timestamp_micros=TEST_TIMESTAMP,
+                labels=TEST_LABELS,
+            )
+            for i in range(2)
+        ]
         column = ColumnPB(qualifier=TEST_QUALIFIER, cells=cells)
         families_pb = [FamilyPB(name=TEST_FAMILY_ID, columns=[column])]
         row_pb = RowPB(key=row_key, families=families_pb)
@@ -85,9 +92,6 @@ class TestRow(unittest.TestCase):
         Construct from minimal protobuf.
         """
         from google.cloud.bigtable_v2.types import Row as RowPB
-        from google.cloud.bigtable_v2.types import Family as FamilyPB
-        from google.cloud.bigtable_v2.types import Column as ColumnPB
-        from google.cloud.bigtable_v2.types import Cell as CellPB
 
         row_key = b"row_key"
         row_pb = RowPB(key=row_key)

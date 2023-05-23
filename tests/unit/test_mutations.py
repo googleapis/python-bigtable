@@ -58,7 +58,7 @@ class TestSetCell:
         found = self._make_one(family="f", qualifier=b"b", new_value=input_val)
         assert found.new_value == input_val.to_bytes(8, "big", signed=True)
 
-    @pytest.mark.parametrize("input_val", [2 ** 64, -2 ** 64])
+    @pytest.mark.parametrize("input_val", [2**64, -(2**64)])
     def test_ctor_large_int(self, input_val):
         with pytest.raises(ValueError) as e:
             self._make_one(family="f", qualifier=b"b", new_value=input_val)

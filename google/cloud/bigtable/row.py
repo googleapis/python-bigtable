@@ -19,7 +19,6 @@ from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 # Type aliases used internally for readability.
 row_key = bytes
@@ -64,19 +63,26 @@ class Row(Sequence["Cell"]):
             self._cells_list.append(cell)
 
     @classmethod
-    def _from_pb(cls, row_pb:RowPB) -> Row:
+    def _from_pb(cls, row_pb: RowPB) -> Row:
         """
         Creates a row from a protobuf representation
 
         Row objects are not intended to be created by users.
         They are returned by the Bigtable backend.
         """
-        row_key :bytes = row_pb.key
-        cell_list : list[Cell] = []
+        row_key: bytes = row_pb.key
+        cell_list: list[Cell] = []
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
-                    new_cell = Cell(value=cell.value, row=row_key, family=family.name, column_qualifier=column.qualifier, timestamp_micros=cell.timestamp_micros, labels=cell.labels)
+                    new_cell = Cell(
+                        value=cell.value,
+                        row=row_key,
+                        family=family.name,
+                        column_qualifier=column.qualifier,
+                        timestamp_micros=cell.timestamp_micros,
+                        labels=list(cell.labels) if cell.labels else None,
+                    )
                     cell_list.append(new_cell)
         return cls(row_key, cells=cell_list)
 

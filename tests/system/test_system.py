@@ -17,10 +17,11 @@ import pytest_asyncio
 import os
 import asyncio
 
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -194,6 +195,7 @@ async def temp_rows(table):
     yield builder
     await builder.delete_rows()
 
+
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -230,24 +232,31 @@ async def test_bulk_mutations_set_cell(client, table):
     bulk_mutation = BulkMutationsEntry(b"abc", [mutation])
     await table.bulk_mutate_rows([bulk_mutation])
 
-@pytest.mark.parametrize("start,increment,expected", [
-    (0, 0, 0),
-    (0, 1, 1),
-    (0, -1, -1),
-    (1, 0, 1),
-    (0, -100, -100),
-    (0, 3000, 3000),
-    (10, 4, 14),
-    (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
-    (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
-    (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
-])
+
+@pytest.mark.parametrize(
+    "start,increment,expected",
+    [
+        (0, 0, 0),
+        (0, 1, 1),
+        (0, -1, -1),
+        (1, 0, 1),
+        (0, -100, -100),
+        (0, 3000, 3000),
+        (10, 4, 14),
+        (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
+        (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
+        (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
+    ],
+)
 @pytest.mark.asyncio
-async def test_read_modify_write_row_increment(client, table, temp_rows, start, increment, expected):
+async def test_read_modify_write_row_increment(
+    client, table, temp_rows, start, increment, expected
+):
     """
     test read_modify_write_row
     """
     from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+
     row_key = b"test-row-key"
     family = TEST_FAMILY
     qualifier = b"test-qualifier"
@@ -261,21 +270,28 @@ async def test_read_modify_write_row_increment(client, table, temp_rows, start, 
     assert result[0].column_qualifier == qualifier
     assert int(result[0]) == expected
 
-@pytest.mark.parametrize("start,append,expected", [
-    (b'', b'', b''),
-    ("", "", b""),
-    (b'abc', b'123', b'abc123'),
-    (b'abc', '123', b'abc123'),
-    ('', b'1', b'1'),
-    (b'abc', '', b'abc'),
-    (b"hello", b"world", b"helloworld"),
-])
+
+@pytest.mark.parametrize(
+    "start,append,expected",
+    [
+        (b"", b"", b""),
+        ("", "", b""),
+        (b"abc", b"123", b"abc123"),
+        (b"abc", "123", b"abc123"),
+        ("", b"1", b"1"),
+        (b"abc", "", b"abc"),
+        (b"hello", b"world", b"helloworld"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_read_modify_write_row_append(client, table, temp_rows, start, append, expected):
+async def test_read_modify_write_row_append(
+    client, table, temp_rows, start, append, expected
+):
     """
     test read_modify_write_row
     """
     from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+
     row_key = b"test-row-key"
     family = TEST_FAMILY
     qualifier = b"test-qualifier"
@@ -297,36 +313,57 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     """
     from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
     from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+
     row_key = b"test-row-key"
     family = TEST_FAMILY
     qualifier = b"test-qualifier"
     start_amount = 1
     increment_amount = 10
-    await temp_rows.add_row(row_key, value=start_amount, family=family, qualifier=qualifier)
-    rule = [IncrementRule(family, qualifier, increment_amount), AppendValueRule(family, qualifier, "hello"), AppendValueRule(family, qualifier, "world"), AppendValueRule(family, qualifier, "!")]
+    await temp_rows.add_row(
+        row_key, value=start_amount, family=family, qualifier=qualifier
+    )
+    rule = [
+        IncrementRule(family, qualifier, increment_amount),
+        AppendValueRule(family, qualifier, "hello"),
+        AppendValueRule(family, qualifier, "world"),
+        AppendValueRule(family, qualifier, "!"),
+    ]
     result = await table.read_modify_write_row(row_key, rule)
     assert result.row_key == row_key
     assert result[0].family == family
     assert result[0].column_qualifier == qualifier
     # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
-    assert result[0].value == (start_amount+increment_amount).to_bytes(8, "big", signed=True) +  b"helloworld!"
+    assert (
+        result[0].value
+        == (start_amount + increment_amount).to_bytes(8, "big", signed=True)
+        + b"helloworld!"
+    )
 
-@pytest.mark.parametrize("start_val,predicate_range,expected_result", [
-    (1, (0,2), True),
-    (-1, (0,2), False),
-])
+
+@pytest.mark.parametrize(
+    "start_val,predicate_range,expected_result",
+    [
+        (1, (0, 2), True),
+        (-1, (0, 2), False),
+    ],
+)
 @pytest.mark.asyncio
-async def test_check_and_mutate(client, table, temp_rows, start_val, predicate_range, expected_result):
+async def test_check_and_mutate(
+    client, table, temp_rows, start_val, predicate_range, expected_result
+):
     """
     test that check_and_mutate_row works applies the right mutations, and returns the right result
     """
     from google.cloud.bigtable.mutations import SetCell
     from google.cloud.bigtable.row_filters import ValueRangeFilter
+
     row_key = b"test-row-key"
     family = TEST_FAMILY
     qualifier = b"test-qualifier"
 
-    await temp_rows.add_row(row_key, value=start_val, family=family, qualifier=qualifier)
+    await temp_rows.add_row(
+        row_key, value=start_val, family=family, qualifier=qualifier
+    )
 
     false_mutation_value = -99
     false_mutation_result = SetCell(
@@ -341,4 +378,4 @@ async def test_check_and_mutate(client, table, temp_rows, start_val, predicate_r
         row_key, predicate, [false_mutation_result], [true_mutation_result]
     )
     assert result == expected_result
-    #TODO: add read_row assertions to verify the mutation was applied
+    # TODO: add read_row assertions to verify the mutation was applied

@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 
 from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
+
 class Mutation(ABC):
     """Model class for mutations"""
 
@@ -38,17 +39,24 @@ class Mutation(ABC):
 
 
 class SetCell(Mutation):
-
-    def __init__(self, family:str, qualifier:bytes, new_value:bytes|str|int, timestamp_micros:int|None=None):
+    def __init__(
+        self,
+        family: str,
+        qualifier: bytes,
+        new_value: bytes | str | int,
+        timestamp_micros: int | None = None,
+    ):
         if isinstance(new_value, str):
             new_value = new_value.encode()
         elif isinstance(new_value, int):
             if abs(new_value) > MAX_INCREMENT_VALUE:
-                raise ValueError("int values must be between -2**63 and 2**63 (64-bit signed int)")
+                raise ValueError(
+                    "int values must be between -2**63 and 2**63 (64-bit signed int)"
+                )
             new_value = new_value.to_bytes(8, "big", signed=True)
         self.family = family
         self.qualifier = qualifier
-        self.new_value:bytes = new_value
+        self.new_value: bytes = new_value
         self.timestamp_micros = timestamp_micros
 
     def _to_dict(self) -> dict[str, Any]:
