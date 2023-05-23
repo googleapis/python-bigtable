@@ -1,11 +1,18 @@
 import unittest
-from unittest import mock
 import pytest
 
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable._read_rows import AWAITING_NEW_ROW
 from google.cloud.bigtable._read_rows import AWAITING_NEW_CELL
 from google.cloud.bigtable._read_rows import AWAITING_CELL_VALUE
+
+# try/except added for compatibility with python < 3.8
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock  # type: ignore
+except ImportError:  # pragma: NO COVER
+    import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"qualifier"

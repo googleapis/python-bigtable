@@ -13,8 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+import sys
 import asyncio
-
 import pytest
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
@@ -77,6 +77,9 @@ class TestReadRowsIterator:
         iterator = self._make_one()
         assert iterator.__aiter__() is iterator
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
+    )
     @pytest.mark.asyncio
     async def test__start_idle_timer(self):
         """Should start timer coroutine"""
@@ -90,6 +93,9 @@ class TestReadRowsIterator:
         assert iterator.last_interaction_time == 1
         assert iterator._idle_timeout_task is not None
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
+    )
     @pytest.mark.asyncio
     async def test__start_idle_timer_duplicate(self):
         """Multiple calls should replace task"""
