@@ -207,6 +207,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 )
             except _RowSetComplete:
                 # if there are no rows left to process, we're done
+                # This is not expected to happen often, but could occur if
+                # a retry is triggered quickly after the last row is emitted
                 return
             # revise next request's row limit based on number emitted
             if total_row_limit:
