@@ -275,6 +275,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         Args:
           - row_set: the row set from the request
           - last_seen_row_key: the last row key encountered
+        Raises:
+          - _RowSetComplete: if there are no rows left to process after the revision
         """
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None or (
@@ -286,36 +288,32 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 "row_keys": [],
                 "row_ranges": [{"start_key_open": last_seen}],
             }
-        else:
-            # remove seen keys from user-specific key list
-            row_keys: list[bytes] = row_set.get("row_keys", [])
-            adjusted_keys = []
-            for key in row_keys:
-                if key > last_seen_row_key:
-                    adjusted_keys.append(key)
-            # adjust ranges to ignore keys before last seen
-            row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-            adjusted_ranges = []
-            for row_range in row_ranges:
-                end_key = row_range.get("end_key_closed", None) or row_range.get(
-                    "end_key_open", None
-                )
-                if end_key is None or end_key > last_seen_row_key:
-                    # end range is after last seen key
-                    new_range = row_range.copy()
-                    start_key = row_range.get(
-                        "start_key_closed", None
-                    ) or row_range.get("start_key_open", None)
-                    if start_key is None or start_key <= last_seen_row_key:
-                        # replace start key with last seen
-                        new_range["start_key_open"] = last_seen_row_key
-                        new_range.pop("start_key_closed", None)
-                    adjusted_ranges.append(new_range)
-            # if our modifications result in an empty row_set, return the
-            # original row_set. This will avoid an unwanted full table scan
-            if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
-                raise _RowSetComplete()
-            return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
+        # remove seen keys from user-specific key list
+        row_keys: list[bytes] = row_set.get("row_keys", [])
+        adjusted_keys = [k for k in row_keys if k > last_seen_row_key]
+        # adjust ranges to ignore keys before last seen
+        row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
+        adjusted_ranges = []
+        for row_range in row_ranges:
+            end_key = row_range.get("end_key_closed", None) or row_range.get(
+                "end_key_open", None
+            )
+            if end_key is None or end_key > last_seen_row_key:
+                # end range is after last seen key
+                new_range = row_range.copy()
+                start_key = row_range.get(
+                    "start_key_closed", None
+                ) or row_range.get("start_key_open", None)
+                if start_key is None or start_key <= last_seen_row_key:
+                    # replace start key with last seen
+                    new_range["start_key_open"] = last_seen_row_key
+                    new_range.pop("start_key_closed", None)
+                adjusted_ranges.append(new_range)
+        if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
+            # if the query is empty after revision, raise an exception
+            # this will avoid an unwanted full table scan
+            raise _RowSetComplete()
+        return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod
     async def merge_row_response_stream(
