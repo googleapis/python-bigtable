@@ -12,7 +12,7 @@ try:
     from unittest.mock import AsyncMock  # type: ignore
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
-    from mock import AsyncMock  # type: ignore
+    from mock import AsyncMock  # type: ignore # noqa F401
 
 TEST_FAMILY = "family_name"
 TEST_QUALIFIER = b"qualifier"
