@@ -994,33 +994,6 @@ class TestReadRows:
                 if include_app_profile:
                     assert call_request["app_profile_id"] == app_profile_id
 
-    @pytest.mark.parametrize(
-        "input_buffer_size, expected_buffer_size",
-        [(-100, 0), (-1, 0), (0, 0), (1, 1), (2, 2), (100, 100), (101, 101)],
-    )
-    @pytest.mark.asyncio
-    async def test_read_rows_buffer_size(self, input_buffer_size, expected_buffer_size):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks
-                )
-                with mock.patch.object(asyncio, "Queue") as queue:
-                    queue.side_effect = asyncio.CancelledError
-                    try:
-                        gen = await table.read_rows_stream(
-                            query, operation_timeout=3, buffer_size=input_buffer_size
-                        )
-                        [row async for row in gen]
-                    except asyncio.CancelledError:
-                        pass
-                    queue.assert_called_once_with(maxsize=expected_buffer_size)
-
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     @pytest.mark.asyncio
     async def test_read_rows_timeout(self, operation_timeout):
@@ -1064,6 +1037,8 @@ class TestReadRows:
         """
         from google.cloud.bigtable.exceptions import RetryExceptionGroup
 
+        expected_last_timeout = operation_t - (expected_num - 1) * per_request_t
+
         # mocking uniform ensures there are no sleeps between retries
         with mock.patch("random.uniform", side_effect=lambda a, b: 0):
             async with self._make_client() as client:
@@ -1095,8 +1070,17 @@ class TestReadRows:
                             for sub_exc in retry_exc.exceptions:
                                 assert sub_exc.message == "mock deadline"
                     assert read_rows.call_count == expected_num
-                    called_kwargs = read_rows.call_args[1]
-                    assert called_kwargs["timeout"] == per_request_t
+                    # check timeouts
+                    for _, call_kwargs in read_rows.call_args_list[:-1]:
+                        assert call_kwargs["timeout"] == per_request_t
+                    # last timeout should be adjusted to account for the time spent
+                    assert (
+                        abs(
+                            read_rows.call_args_list[-1][1]["timeout"]
+                            - expected_last_timeout
+                        )
+                        < 0.05
+                    )
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
@@ -1239,16 +1223,17 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_rows_revise_request(self):
+        """
+        Ensure that _revise_request is called between retries
+        """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.exceptions import InvalidChunk
 
         with mock.patch.object(
             _ReadRowsOperation, "_revise_request_rowset"
         ) as revise_rowset:
             with mock.patch.object(_ReadRowsOperation, "aclose"):
-                revise_rowset.side_effect = [
-                    "modified",
-                    core_exceptions.Cancelled("mock error"),
-                ]
+                revise_rowset.return_value = "modified"
                 async with self._make_client() as client:
                     table = client.get_table("instance", "table")
                     row_keys = [b"test_1", b"test_2", b"test_3"]
@@ -1267,16 +1252,16 @@ class TestReadRows:
                         )
                         try:
                             await table.read_rows(query)
-                        except core_exceptions.Cancelled:
+                        except InvalidChunk:
                             revise_rowset.assert_called()
-                            first_call_kwargs = revise_rowset.call_args_list[0].kwargs
+                            revise_call_kwargs = revise_rowset.call_args_list[0].kwargs
                             assert (
-                                first_call_kwargs["row_set"] == query._to_dict()["rows"]
+                                revise_call_kwargs["row_set"]
+                                == query._to_dict()["rows"]
                             )
-                            assert first_call_kwargs["last_seen_row_key"] == b"test_1"
-                            second_call_kwargs = revise_rowset.call_args_list[1].kwargs
-                            assert second_call_kwargs["row_set"] == "modified"
-                            assert second_call_kwargs["last_seen_row_key"] == b"test_1"
+                            assert revise_call_kwargs["last_seen_row_key"] == b"test_1"
+                            read_rows_request = read_rows.call_args_list[1].args[0]
+                            assert read_rows_request["rows"] == "modified"
 
     @pytest.mark.asyncio
     async def test_read_rows_default_timeouts(self):

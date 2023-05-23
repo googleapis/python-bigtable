@@ -34,16 +34,19 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        instance = self._make_one(request, client)
+        start_time = 123
+        default_operation_timeout = 600
+        with mock.patch("time.monotonic", return_value=start_time):
+            instance = self._make_one(request, client)
         assert instance.transient_errors == []
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
-        assert instance.operation_timeout is None
+        assert instance.operation_timeout == default_operation_timeout
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == 0
-        assert retryable_fn.args[2] is None
+        assert retryable_fn.args[1] == default_operation_timeout
+        assert retryable_fn.args[2] == default_operation_timeout + start_time
         assert retryable_fn.args[3] == 0
         assert client.read_rows.call_count == 0
 
@@ -53,25 +56,25 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        expected_buffer_size = 21
         expected_operation_timeout = 42
         expected_request_timeout = 44
-        instance = self._make_one(
-            request,
-            client,
-            buffer_size=expected_buffer_size,
-            operation_timeout=expected_operation_timeout,
-            per_request_timeout=expected_request_timeout,
-        )
+        start_time = 123
+        with mock.patch("time.monotonic", return_value=start_time):
+            instance = self._make_one(
+                request,
+                client,
+                operation_timeout=expected_operation_timeout,
+                per_request_timeout=expected_request_timeout,
+            )
         assert instance.transient_errors == []
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
         assert instance.operation_timeout == expected_operation_timeout
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == expected_buffer_size
-        assert retryable_fn.args[2] == expected_request_timeout
+        assert retryable_fn.args[1] == expected_request_timeout
+        assert retryable_fn.args[2] == start_time + expected_operation_timeout
         assert retryable_fn.args[3] == row_limit
         assert client.read_rows.call_count == 0
 
@@ -179,14 +182,13 @@ class TestReadRowsOperation:
             assert revised["row_ranges"][0]["start_key_open"] == last_key
 
     def test_revise_to_empty_rowset(self):
-        # ensure that the _revise_to_empty_set method
-        # does not return a full table scan
+        """revising to an empty rowset should raise error"""
+        from google.cloud.bigtable.exceptions import _RowSetComplete
+
         row_keys = ["a", "b", "c"]
         row_set = {"row_keys": row_keys, "row_ranges": [{"end_key_open": "c"}]}
-        revised = self._get_target_class()._revise_request_rowset(row_set, "d")
-        assert revised == row_set
-        assert len(revised["row_keys"]) == 3
-        assert revised["row_keys"] == row_keys
+        with pytest.raises(_RowSetComplete):
+            self._get_target_class()._revise_request_rowset(row_set, "d")
 
     @pytest.mark.parametrize(
         "start_limit,emit_num,expected_limit",
@@ -205,11 +207,11 @@ class TestReadRowsOperation:
         request = {"rows_limit": start_limit}
         instance = self._make_one(request, mock.Mock())
         instance._emit_count = emit_num
-        instance._last_seen_row_key = "a"
+        instance._last_emitted_row_key = "a"
         gapic_mock = mock.Mock()
         gapic_mock.side_effect = [RuntimeError("stop_fn")]
         attempt = instance._read_rows_retryable_attempt(
-            gapic_mock, 0, None, start_limit
+            gapic_mock, 100, 100, start_limit
         )
         if start_limit != 0 and expected_limit == 0:
             # if we emitted the expected number of rows, we should receive a StopAsyncIteration
@@ -221,98 +223,13 @@ class TestReadRowsOperation:
             assert request["rows_limit"] == expected_limit
 
     @pytest.mark.asyncio
-    async def test__generator_to_buffer(self):
-        import asyncio
-
-        async def test_generator(n):
-            for i in range(n):
-                yield i
-
-        out_buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(
-            out_buffer, test_generator(10)
-        )
-        assert out_buffer.qsize() == 11
-        for i in range(10):
-            assert out_buffer.get_nowait() == i
-        assert out_buffer.get_nowait() == StopAsyncIteration
-        assert out_buffer.empty()
-
-    @pytest.mark.asyncio
-    async def test__generator_to_buffer_with_error(self):
-        import asyncio
-
-        async def test_generator(n, error_at=2):
-            for i in range(n):
-                if i == error_at:
-                    raise ValueError("test error")
-                else:
-                    yield i
-
-        out_buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(
-            out_buffer, test_generator(10, error_at=4)
-        )
-        assert out_buffer.qsize() == 5
-        for i in range(4):
-            assert out_buffer.get_nowait() == i
-        assert isinstance(out_buffer.get_nowait(), ValueError)
-        assert out_buffer.empty()
-
-    @pytest.mark.asyncio
-    async def test__buffer_to_generator(self):
-        import asyncio
-
-        buffer = asyncio.Queue()
-        for i in range(10):
-            buffer.put_nowait(i)
-        buffer.put_nowait(StopAsyncIteration)
-        gen = self._get_target_class()._buffer_to_generator(buffer)
-        for i in range(10):
-            assert await gen.__anext__() == i
-        with pytest.raises(StopAsyncIteration):
-            await gen.__anext__()
-
-    @pytest.mark.asyncio
-    async def test__buffer_to_generator_with_error(self):
-        import asyncio
-
-        buffer = asyncio.Queue()
-        for i in range(4):
-            buffer.put_nowait(i)
-        test_error = ValueError("test error")
-        buffer.put_nowait(test_error)
-        gen = self._get_target_class()._buffer_to_generator(buffer)
-        for i in range(4):
-            assert await gen.__anext__() == i
-        with pytest.raises(ValueError) as e:
-            await gen.__anext__()
-        assert e.value == test_error
-
-    @pytest.mark.asyncio
-    async def test_generator_to_buffer_to_generator(self):
-        import asyncio
-
-        async def test_generator():
-            for i in range(10):
-                yield i
-
-        buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(buffer, test_generator())
-        out_gen = self._get_target_class()._buffer_to_generator(buffer)
-
-        out_expected = [i async for i in test_generator()]
-        out_actual = [i async for i in out_gen]
-        assert out_expected == out_actual
-
-    @pytest.mark.asyncio
     async def test_aclose(self):
         import asyncio
 
         instance = self._make_one({}, mock.Mock())
         await instance.aclose()
         assert instance._stream is None
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         with pytest.raises(asyncio.InvalidStateError):
             await instance.__anext__()
         # try calling a second time
@@ -342,7 +259,7 @@ class TestReadRowsOperation:
 
             return gen()
 
-        gen = instance._read_rows_retryable_attempt(mock_gapic, 0, None, limit)
+        gen = instance._read_rows_retryable_attempt(mock_gapic, 100, 100, limit)
         # should yield values up to the limit
         for i in range(limit):
             await gen.__anext__()
@@ -353,16 +270,16 @@ class TestReadRowsOperation:
     @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
         """
-        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        Duplicate rows should cause an invalid chunk error
         """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.row import Row
+        from google.cloud.bigtable.exceptions import InvalidChunk
 
         async def mock_stream():
             while True:
                 yield Row(b"dup_key", cells=[])
                 yield Row(b"dup_key", cells=[])
-                yield Row(b"new", cells=[])
 
         with mock.patch.object(
             _ReadRowsOperation, "merge_row_response_stream"
@@ -371,13 +288,14 @@ class TestReadRowsOperation:
             instance = self._make_one({}, mock.AsyncMock())
             first_row = await instance.__anext__()
             assert first_row.row_key == b"dup_key"
-            second_row = await instance.__anext__()
-            assert second_row.row_key == b"new"
+            with pytest.raises(InvalidChunk) as exc:
+                await instance.__anext__()
+            assert "Last emitted row key out of order" in str(exc.value)
 
     @pytest.mark.asyncio
     async def test_retryable_ignore_last_scanned_rows(self):
         """
-        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        Last scanned rows should not be emitted
         """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.row import Row, _LastScannedRow
@@ -385,8 +303,8 @@ class TestReadRowsOperation:
         async def mock_stream():
             while True:
                 yield Row(b"key1", cells=[])
-                yield _LastScannedRow(b"ignored")
-                yield Row(b"key2", cells=[])
+                yield _LastScannedRow(b"key2_ignored")
+                yield Row(b"key3", cells=[])
 
         with mock.patch.object(
             _ReadRowsOperation, "merge_row_response_stream"
@@ -396,7 +314,7 @@ class TestReadRowsOperation:
             first_row = await instance.__anext__()
             assert first_row.row_key == b"key1"
             second_row = await instance.__anext__()
-            assert second_row.row_key == b"key2"
+            assert second_row.row_key == b"key3"
 
 
 class TestStateMachine(unittest.TestCase):

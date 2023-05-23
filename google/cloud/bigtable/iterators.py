@@ -39,7 +39,11 @@ class ReadRowsIterator(AsyncIterable[Row]):
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
         # wrap merger with a wrapper that properly formats exceptions
-        self._next_fn = _convert_retry_deadline(self._merger.__anext__, self._merger.operation_timeout, self._merger.transient_errors)
+        self._next_fn = _convert_retry_deadline(
+            self._merger.__anext__,
+            self._merger.operation_timeout,
+            self._merger.transient_errors,
+        )
 
     async def _start_idle_timer(self, idle_timeout: float):
         """

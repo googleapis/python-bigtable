@@ -92,6 +92,7 @@ class _RowSetComplete(Exception):
     Internal exception for _ReadRowsOperation
     Raised in revise_request_rowset when there are no rows left to process when starting a retry attempt
     """
+
     pass
 
 
