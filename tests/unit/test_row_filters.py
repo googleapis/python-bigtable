@@ -822,7 +822,7 @@ def test_value_regex_filter___repr__():
     assert eval(repr(row_filter)) == row_filter
 
 
-def test_exact_value_filter_to_pb_w_bytes():
+def test_literal_value_filter_to_pb_w_bytes():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     value = regex = b"value_regex"
@@ -832,7 +832,7 @@ def test_exact_value_filter_to_pb_w_bytes():
     assert pb_val == expected_pb
 
 
-def test_exact_value_filter_to_dict_w_bytes():
+def test_literal_value_filter_to_dict_w_bytes():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
@@ -844,7 +844,7 @@ def test_exact_value_filter_to_dict_w_bytes():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
-def test_exact_value_filter_to_pb_w_str():
+def test_literal_value_filter_to_pb_w_str():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     value = "value_regex"
@@ -855,7 +855,7 @@ def test_exact_value_filter_to_pb_w_str():
     assert pb_val == expected_pb
 
 
-def test_exact_value_filter_to_dict_w_str():
+def test_literal_value_filter_to_dict_w_str():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
@@ -868,7 +868,7 @@ def test_exact_value_filter_to_dict_w_str():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
-def test_exact_value_filter_to_pb_w_int():
+def test_literal_value_filter_to_pb_w_int():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     value = 1
@@ -880,7 +880,7 @@ def test_exact_value_filter_to_pb_w_int():
     assert pb_val == expected_pb
 
 
-def test_exact_value_filter_to_dict_w_int():
+def test_literal_value_filter_to_dict_w_int():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
@@ -894,7 +894,7 @@ def test_exact_value_filter_to_dict_w_int():
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
-def test_exact_value_filter___repr__():
+def test_literal_value_filter___repr__():
     from google.cloud.bigtable.row_filters import LiteralValueFilter
 
     value = "value_regex"
