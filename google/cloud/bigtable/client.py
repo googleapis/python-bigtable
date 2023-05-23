@@ -287,6 +287,7 @@ class BigtableDataClient(ClientWithProject):
         except KeyError:
             return False
 
+    # TODO: revisit timeouts https://github.com/googleapis/python-bigtable/issues/782
     def get_table(
         self,
         instance_id: str,
