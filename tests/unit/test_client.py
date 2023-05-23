@@ -1189,39 +1189,6 @@ class TestReadRows:
                     assert e == expected_error
 
     @pytest.mark.asyncio
-    async def test_read_rows_request_stats(self):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            stats = self._make_stats()
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks, request_stats=stats
-                )
-                gen = await table.read_rows_stream(query)
-                [row async for row in gen]
-                assert gen.request_stats == stats
-
-    @pytest.mark.asyncio
-    async def test_read_rows_request_stats_missing(self):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks, request_stats=None
-                )
-                gen = await table.read_rows_stream(query)
-                [row async for row in gen]
-                assert gen.request_stats is None
-
-    @pytest.mark.asyncio
     async def test_read_rows_revise_request(self):
         """
         Ensure that _revise_request is called between retries

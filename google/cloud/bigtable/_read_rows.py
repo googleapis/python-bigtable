@@ -31,7 +31,6 @@ from functools import partial
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import _RowSetComplete
@@ -118,17 +117,17 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             on_error=on_error_fn,
             is_stream=True,
         )
-        self._stream: AsyncGenerator[Row | RequestStats, None] | None = retry(
+        self._stream: AsyncGenerator[Row, None] | None = retry(
             self._partial_retryable
         )()
         # contains the list of errors that were retried
         self.transient_errors: List[Exception] = []
 
-    def __aiter__(self) -> AsyncIterator[Row | RequestStats]:
+    def __aiter__(self) -> AsyncIterator[Row]:
         """Implements the AsyncIterable interface"""
         return self
 
-    async def __anext__(self) -> Row | RequestStats:
+    async def __anext__(self) -> Row:
         """Implements the AsyncIterator interface"""
         if self._stream is not None:
             return await self._stream.__anext__()
@@ -148,7 +147,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         per_request_timeout: float,
         operation_deadline: float,
         total_row_limit: int,
-    ) -> AsyncGenerator[Row | RequestStats, None]:
+    ) -> AsyncGenerator[Row, None]:
         """
         Retryable wrapper for merge_rows. This function is called each time
         a retry is attempted.
@@ -198,23 +197,19 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         )
         # run until we get a timeout or the stream is exhausted
         async for new_item in stream:
-            # ignore rows that have already been emitted
-            if isinstance(new_item, Row):
-                if (
-                    self._last_emitted_row_key is not None
-                    and new_item.row_key <= self._last_emitted_row_key
-                ):
-                    raise InvalidChunk("Last emitted row key out of order")
-                # don't yeild _LastScannedRow markers; they
-                # should only update last_seen_row_key
-                if not isinstance(new_item, _LastScannedRow):
-                    yield new_item
-                    self._emit_count += 1
-                self._last_emitted_row_key = new_item.row_key
-                if total_row_limit and self._emit_count >= total_row_limit:
-                    return
-            elif isinstance(new_item, RequestStats):
+            if (
+                self._last_emitted_row_key is not None
+                and new_item.row_key <= self._last_emitted_row_key
+            ):
+                raise InvalidChunk("Last emitted row key out of order")
+            # don't yeild _LastScannedRow markers; they
+            # should only update last_seen_row_key
+            if not isinstance(new_item, _LastScannedRow):
                 yield new_item
+                self._emit_count += 1
+            self._last_emitted_row_key = new_item.row_key
+            if total_row_limit and self._emit_count >= total_row_limit:
+                return
 
     @staticmethod
     def _revise_request_rowset(
@@ -271,7 +266,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
     async def merge_row_response_stream(
         response_generator: AsyncIterable[ReadRowsResponse],
         state_machine: _StateMachine,
-    ) -> AsyncGenerator[Row | RequestStats, None]:
+    ) -> AsyncGenerator[Row, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
@@ -295,9 +290,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 complete_row = state_machine.handle_chunk(chunk)
                 if complete_row is not None:
                     yield complete_row
-            # yield request stats if present
-            if row_response.request_stats:
-                yield row_response.request_stats
+            # TODO: handle request stats
         if not state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")

@@ -71,7 +71,6 @@ class TestReadRowsIterator:
             iterator = self._make_one()
             assert iterator.last_interaction_time == 0
             assert iterator._idle_timeout_task is None
-            assert iterator.request_stats is None
             assert iterator.active is True
 
     def test___aiter__(self):
@@ -143,24 +142,6 @@ class TestReadRowsIterator:
             assert await iterator.__anext__() == i
         with pytest.raises(StopAsyncIteration):
             await iterator.__anext__()
-
-    @pytest.mark.asyncio
-    async def test___anext__with_request_stats(self):
-        """
-        Request stats should not be yielded, but should be set on the iterator object
-        """
-        from google.cloud.bigtable_v2.types import RequestStats
-
-        stats = RequestStats()
-        items = [1, 2, stats, 3]
-        iterator = self._make_one(items=items)
-        assert await iterator.__anext__() == 1
-        assert await iterator.__anext__() == 2
-        assert iterator.request_stats is None
-        assert await iterator.__anext__() == 3
-        with pytest.raises(StopAsyncIteration):
-            await iterator.__anext__()
-        assert iterator.request_stats == stats
 
     @pytest.mark.asyncio
     async def test___anext__with_deadline_error(self):

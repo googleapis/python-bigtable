@@ -21,7 +21,6 @@ import time
 import sys
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
-from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable.exceptions import IdleTimeout
 from google.cloud.bigtable.exceptions import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
@@ -35,7 +34,6 @@ class ReadRowsIterator(AsyncIterable[Row]):
     def __init__(self, merger: _ReadRowsOperation):
         self._merger: _ReadRowsOperation = merger
         self._error: Exception | None = None
-        self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
         # wrap merger with a wrapper that properly formats exceptions
@@ -105,12 +103,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             raise self._error
         try:
             self.last_interaction_time = time.time()
-            next_item = await self._next_fn()
-            if isinstance(next_item, RequestStats):
-                self.request_stats = next_item
-                return await self.__anext__()
-            else:
-                return next_item
+            return await self._next_fn()
         except Exception as e:
             await self._finish_with_error(e)
             raise e
