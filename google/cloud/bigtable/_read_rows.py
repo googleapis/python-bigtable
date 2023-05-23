@@ -223,7 +223,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                 f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
             )
         time_to_deadline = operation_deadline - time.monotonic()
-        gapic_timeout = min(time_to_deadline, per_request_timeout)
+        gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
         new_gapic_stream = await gapic_fn(
             self._request,
             timeout=gapic_timeout,
