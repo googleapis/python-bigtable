@@ -73,7 +73,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         client: BigtableAsyncClient,
         operation_timeout: float = 600.0,
         *,
-        buffer_size: int = 0,
         per_request_timeout: float | None = None,
     ):
         """
@@ -81,13 +80,11 @@ class _ReadRowsOperation(AsyncIterable[Row]):
           - request: the request dict to send to the Bigtable API
           - client: the Bigtable client to use to make the request
           - operation_timeout: the timeout to use for the entire operation, in seconds
-          - buffer_size: the size of the buffer to use for caching rows from the network
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
                 If not specified, defaults to operation_timeout
         """
         self._last_emitted_row_key: bytes | None = None
         self._emit_count = 0
-        buffer_size = max(buffer_size, 0)
         self._request = request
         self.operation_timeout = operation_timeout
         deadline = operation_timeout + time.monotonic()
@@ -98,7 +95,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self._partial_retryable = partial(
             self._read_rows_retryable_attempt,
             client.read_rows,
-            buffer_size,
             per_request_timeout,
             deadline,
             row_limit,
@@ -146,41 +142,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self._stream = None
         self._emitted_seen_row_key = None
 
-    @staticmethod
-    async def _generator_to_buffer(
-        buffer: asyncio.Queue[Any], input_generator: AsyncIterable[Any]
-    ) -> None:
-        """
-        Helper function to push items from an async generator into a buffer
-        """
-        try:
-            async for item in input_generator:
-                await buffer.put(item)
-                await asyncio.sleep(0)
-            await buffer.put(StopAsyncIteration)
-        except Exception as e:
-            await buffer.put(e)
-
-    @staticmethod
-    async def _buffer_to_generator(
-        buffer: asyncio.Queue[Any],
-    ) -> AsyncGenerator[Any, None]:
-        """
-        Helper function to yield items from a buffer as an async generator
-        """
-        while True:
-            item = await buffer.get()
-            if item is StopAsyncIteration:
-                return
-            if isinstance(item, Exception):
-                raise item
-            yield item
-            await asyncio.sleep(0)
-
     async def _read_rows_retryable_attempt(
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
-        buffer_size: int,
         per_request_timeout: float,
         operation_deadline: float,
         total_row_limit: int,
@@ -191,7 +155,6 @@ class _ReadRowsOperation(AsyncIterable[Row]):
 
         Some fresh state is created on each retry:
           - grpc network stream
-          - buffer for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
           - _last_emitted_row_key is used to ensure that
@@ -229,40 +192,29 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        buffer: asyncio.Queue[Row | RequestStats | Exception] = asyncio.Queue(
-            maxsize=buffer_size
-        )
-        buffer_task = asyncio.create_task(
-            self._generator_to_buffer(buffer, new_gapic_stream)
-        )
-        buffered_stream = self._buffer_to_generator(buffer)
         state_machine = _StateMachine()
-        try:
-            stream = _ReadRowsOperation.merge_row_response_stream(
-                buffered_stream, state_machine
-            )
-            # run until we get a timeout or the stream is exhausted
-            while True:
-                new_item = await stream.__anext__()
-                # ignore rows that have already been emitted
-                if isinstance(new_item, Row):
-                    if self._last_emitted_row_key is not None and new_item.row_key <= self._last_emitted_row_key:
-                        raise InvalidChunk("Last emitted row key out of order")
-                    # don't yeild _LastScannedRow markers; they
-                    # should only update last_seen_row_key
-                    if not isinstance(new_item, _LastScannedRow):
-                        yield new_item
-                        self._emit_count += 1
-                    self._last_emitted_row_key = new_item.row_key
-                    if total_row_limit and self._emit_count >= total_row_limit:
-                        return
-                elif isinstance(new_item, RequestStats):
+        stream = _ReadRowsOperation.merge_row_response_stream(
+            new_gapic_stream, state_machine
+        )
+        # run until we get a timeout or the stream is exhausted
+        async for new_item in stream:
+            # ignore rows that have already been emitted
+            if isinstance(new_item, Row):
+                if (
+                    self._last_emitted_row_key is not None
+                    and new_item.row_key <= self._last_emitted_row_key
+                ):
+                    raise InvalidChunk("Last emitted row key out of order")
+                # don't yeild _LastScannedRow markers; they
+                # should only update last_seen_row_key
+                if not isinstance(new_item, _LastScannedRow):
                     yield new_item
-        except StopAsyncIteration:
-            # end of stream
-            return
-        finally:
-            buffer_task.cancel()
+                    self._emit_count += 1
+                self._last_emitted_row_key = new_item.row_key
+                if total_row_limit and self._emit_count >= total_row_limit:
+                    return
+            elif isinstance(new_item, RequestStats):
+                yield new_item
 
     @staticmethod
     def _revise_request_rowset(
@@ -301,9 +253,9 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             if end_key is None or end_key > last_seen_row_key:
                 # end range is after last seen key
                 new_range = row_range.copy()
-                start_key = row_range.get(
-                    "start_key_closed", None
-                ) or row_range.get("start_key_open", None)
+                start_key = row_range.get("start_key_closed", None) or row_range.get(
+                    "start_key_open", None
+                )
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen
                     new_range["start_key_open"] = last_seen_row_key
@@ -317,7 +269,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
 
     @staticmethod
     async def merge_row_response_stream(
-        response_generator: AsyncIterable[ReadRowsResponse], state_machine: _StateMachine
+        response_generator: AsyncIterable[ReadRowsResponse],
+        state_machine: _StateMachine,
     ) -> AsyncGenerator[Row | RequestStats, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
