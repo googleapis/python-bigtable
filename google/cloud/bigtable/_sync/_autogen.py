@@ -20,6 +20,7 @@ from __future__ import annotations
 from abc import ABC
 from functools import partial
 from grpc import Channel
+from grpc.aio import RpcContext
 from typing import Any
 from typing import Callable
 from typing import Generator
@@ -39,7 +40,8 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable._read_rows import _StateMachine
 from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.exceptions import _RowSetComplete
+from google.cloud.bigtable.exceptions import _convert_retry_deadline
 from google.cloud.bigtable.mutations import BulkMutationsEntry
 from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -53,7 +55,6 @@ from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
     BigtableGrpcTransport,
 )
-from google.cloud.bigtable_v2.types import RequestStats
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.client import ClientWithProject
 import google.auth._default
@@ -78,29 +79,30 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
         request: dict[str, Any],
         client: BigtableClient,
         *,
-        buffer_size: int = 0,
-        operation_timeout: float | None = None,
+        operation_timeout: float = 600.0,
         per_request_timeout: float | None = None,
     ):
         """
         Args:
           - request: the request dict to send to the Bigtable API
           - client: the Bigtable client to use to make the request
-          - buffer_size: the size of the buffer to use for caching rows from the network
           - operation_timeout: the timeout to use for the entire operation, in seconds
           - per_request_timeout: the timeout to use when waiting for each individual grpc request, in seconds
+                If not specified, defaults to operation_timeout
         """
-        self._last_seen_row_key: bytes | None = None
+        self._last_emitted_row_key: bytes | None = None
         self._emit_count = 0
-        buffer_size = max(buffer_size, 0)
         self._request = request
         self.operation_timeout = operation_timeout
+        deadline = operation_timeout + time.monotonic()
         row_limit = request.get("rows_limit", 0)
+        if per_request_timeout is None:
+            per_request_timeout = operation_timeout
         self._partial_retryable = partial(
             self._read_rows_retryable_attempt,
             client.read_rows,
-            buffer_size,
             per_request_timeout,
+            deadline,
             row_limit,
         )
         predicate = retries.if_exception_type(
@@ -122,16 +124,16 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
             on_error=on_error_fn,
             is_stream=True,
         )
-        self._stream: Generator[Row | RequestStats, None, "Any"] | None = retry(
+        self._stream: Generator[Row, None, "Any"] | None = retry(
             self._partial_retryable
         )()
         self.transient_errors: List[Exception] = []
 
-    def __iter__(self) -> Iterator[Row | RequestStats]:
+    def __iter__(self) -> Iterator[Row]:
         """Implements the Iterable interface"""
         return self
 
-    def __next__(self) -> Row | RequestStats:
+    def __next__(self) -> Row:
         """Implements the Iterator interface"""
         if self._stream is not None:
             return self._stream.__next__()
@@ -143,78 +145,74 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
         if self._stream is not None:
             self._stream.close()
         self._stream = None
-        self._last_seen_row_key = None
+        self._emitted_seen_row_key = None
 
     def _read_rows_retryable_attempt(
         self,
         gapic_fn: Callable[..., Iterable[ReadRowsResponse]],
-        buffer_size: int,
-        per_request_timeout: float | None,
+        per_request_timeout: float,
+        operation_deadline: float,
         total_row_limit: int,
-    ) -> Generator[Row | RequestStats, None, "Any"]:
+    ) -> Generator[Row, None, "Any"]:
         """
         Retryable wrapper for merge_rows. This function is called each time
         a retry is attempted.
 
         Some fresh state is created on each retry:
           - grpc network stream
-          - buffer for the stream
           - state machine to hold merge chunks received from stream
         Some state is shared between retries:
-          - last_seen_row_key is used to ensure that
+          - _last_emitted_row_key is used to ensure that
             duplicate rows are not emitted
-          - request is stored and (optionally) modified on each retry
+          - request is stored and (potentially) modified on each retry
         """
-        if self._last_seen_row_key is not None:
-            self._request["rows"] = self._revise_request_rowset(
-                row_set=self._request.get("rows", None),
-                last_seen_row_key=self._last_seen_row_key,
-            )
+        if self._last_emitted_row_key is not None:
+            try:
+                self._request["rows"] = _ReadRowsOperation_Sync._revise_request_rowset(
+                    row_set=self._request.get("rows", None),
+                    last_seen_row_key=self._last_emitted_row_key,
+                )
+            except _RowSetComplete:
+                return
             if total_row_limit:
                 new_limit = total_row_limit - self._emit_count
-                if new_limit <= 0:
+                if new_limit == 0:
                     return
+                elif new_limit < 0:
+                    raise RuntimeError("unexpected state: emit count exceeds row limit")
                 else:
                     self._request["rows_limit"] = new_limit
         params_str = f"table_name={self._request.get('table_name', '')}"
-        if self._request.get("app_profile_id", None):
-            params_str = (
-                f"{params_str},app_profile_id={self._request.get('app_profile_id', '')}"
-            )
-        new_gapic_stream = gapic_fn(
+        app_profile_id = self._request.get("app_profile_id", None)
+        if app_profile_id:
+            params_str = f"{params_str},app_profile_id={app_profile_id}"
+        time_to_deadline = operation_deadline - time.monotonic()
+        gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
+        new_gapic_stream: RpcContext = gapic_fn(
             self._request,
-            timeout=per_request_timeout,
+            timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        (buffered_stream, buffer_task) = self._prepare_stream(
-            new_gapic_stream, buffer_size
-        )
-        state_machine = _StateMachine()
         try:
-            stream = self.merge_row_response_stream(buffered_stream, state_machine)
-            while True:
-                new_item = stream.__next__()
-                if isinstance(new_item, Row) and (
-                    self._last_seen_row_key is None
-                    or new_item.row_key > self._last_seen_row_key
+            state_machine = _StateMachine()
+            stream = _ReadRowsOperation_Sync.merge_row_response_stream(
+                new_gapic_stream, state_machine
+            )
+            for new_item in stream:
+                if (
+                    self._last_emitted_row_key is not None
+                    and new_item.row_key <= self._last_emitted_row_key
                 ):
-                    self._last_seen_row_key = new_item.row_key
-                    if not isinstance(new_item, _LastScannedRow):
-                        yield new_item
-                        self._emit_count += 1
-                        if total_row_limit and self._emit_count >= total_row_limit:
-                            return
-                elif isinstance(new_item, RequestStats):
+                    raise InvalidChunk("Last emitted row key out of order")
+                if not isinstance(new_item, _LastScannedRow):
                     yield new_item
-        except StopIteration:
-            return
-        finally:
-            if buffer_task is not None:
-                buffer_task.cancel()
-
-    @staticmethod
-    def _prepare_stream(gapic_stream, buffer_size=None):
-        """Implementation purposely removed in sync mode"""
+                    self._emit_count += 1
+                self._last_emitted_row_key = new_item.row_key
+                if total_row_limit and self._emit_count >= total_row_limit:
+                    return
+        except (Exception, GeneratorExit) as exc:
+            new_gapic_stream.cancel()
+            raise exc
 
     @staticmethod
     def _revise_request_rowset(
@@ -226,6 +224,8 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
         Args:
           - row_set: the row set from the request
           - last_seen_row_key: the last row key encountered
+        Raises:
+          - _RowSetComplete: if there are no rows left to process after the revision
         """
         if row_set is None or (
             len(row_set.get("row_ranges", [])) == 0
@@ -233,47 +233,43 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
         ):
             last_seen = last_seen_row_key
             return {"row_keys": [], "row_ranges": [{"start_key_open": last_seen}]}
-        else:
-            row_keys: list[bytes] = row_set.get("row_keys", [])
-            adjusted_keys = []
-            for key in row_keys:
-                if key > last_seen_row_key:
-                    adjusted_keys.append(key)
-            row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-            adjusted_ranges = []
-            for row_range in row_ranges:
-                end_key = row_range.get("end_key_closed", None) or row_range.get(
-                    "end_key_open", None
+        row_keys: list[bytes] = row_set.get("row_keys", [])
+        adjusted_keys = [k for k in row_keys if k > last_seen_row_key]
+        row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
+        adjusted_ranges = []
+        for row_range in row_ranges:
+            end_key = row_range.get("end_key_closed", None) or row_range.get(
+                "end_key_open", None
+            )
+            if end_key is None or end_key > last_seen_row_key:
+                new_range = row_range.copy()
+                start_key = row_range.get("start_key_closed", None) or row_range.get(
+                    "start_key_open", None
                 )
-                if end_key is None or end_key > last_seen_row_key:
-                    new_range = row_range.copy()
-                    start_key = row_range.get(
-                        "start_key_closed", None
-                    ) or row_range.get("start_key_open", None)
-                    if start_key is None or start_key <= last_seen_row_key:
-                        new_range["start_key_open"] = last_seen_row_key
-                        new_range.pop("start_key_closed", None)
-                    adjusted_ranges.append(new_range)
-            if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
-                return row_set
-            return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
+                if start_key is None or start_key <= last_seen_row_key:
+                    new_range["start_key_open"] = last_seen_row_key
+                    new_range.pop("start_key_closed", None)
+                adjusted_ranges.append(new_range)
+        if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
+            raise _RowSetComplete()
+        return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod
     def merge_row_response_stream(
-        request_generator: Iterable[ReadRowsResponse], state_machine: _StateMachine
-    ) -> Generator[Row | RequestStats, None, "Any"]:
+        response_generator: Iterable[ReadRowsResponse], state_machine: _StateMachine
+    ) -> Generator[Row, None, "Any"]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
 
         Args:
-          - request_generator: Iterable of ReadRowsResponse objects. Typically
+          - response_generator: Iterable of ReadRowsResponse objects. Typically
                 this is a stream of chunks from the Bigtable API
         Returns:
             - Generator of Rows
         Raises:
             - InvalidChunk: if the chunk stream is invalid
         """
-        for row_response in request_generator:
+        for row_response in response_generator:
             response_pb = row_response._pb
             last_scanned = response_pb.last_scanned_row_key
             if last_scanned:
@@ -282,8 +278,6 @@ class _ReadRowsOperation_Sync(Iterable[Row], ABC):
                 complete_row = state_machine.handle_chunk(chunk)
                 if complete_row is not None:
                     yield complete_row
-            if row_response.request_stats:
-                yield row_response.request_stats
         if not state_machine.is_terminal_state():
             raise InvalidChunk("read_rows completed with partial state remaining")
 
@@ -303,7 +297,7 @@ class Table_Sync(ABC):
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ):
         """
@@ -357,7 +351,6 @@ class Table_Sync(ABC):
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ) -> ReadRowsIterator_Sync:
@@ -366,20 +359,11 @@ class Table_Sync(ABC):
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully bufferd in memory
-        in the iterator, which can be consumed as needed. The size of the iterator buffer can
-        be configured with buffer_size. When the buffer is full, the read_rows_stream will pause
-        the network stream until space is available
-
         Args:
             - query: contains details about which rows to return
-            - buffer_size: the number of rows to buffer in memory. If less than
-                or equal to 0, buffer is unbounded. Defaults to 0 (unbounded)
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
-                 Completed and bufferd results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after bufferd results are exhausted.
                  If None, defaults to the Table's default_operation_timeout
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
@@ -415,7 +399,6 @@ class Table_Sync(ABC):
             google.cloud.bigtable._sync._concrete._ReadRowsOperation_Sync_Concrete(
                 request,
                 self.client._gapic_client,
-                buffer_size=buffer_size,
                 operation_timeout=operation_timeout,
                 per_request_timeout=per_request_timeout,
             )
@@ -474,7 +457,6 @@ class Table_Sync(ABC):
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        buffer_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator_Sync:
@@ -842,7 +824,7 @@ class BigtableDataClient_Sync(ClientWithProject, ABC):
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ) -> Table_Sync:
         """
@@ -882,9 +864,13 @@ class ReadRowsIterator_Sync(Iterable[Row], ABC):
     def __init__(self, merger: _ReadRowsOperation_Sync):
         self._merger: _ReadRowsOperation_Sync = merger
         self._error: Exception | None = None
-        self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
+        self._next_fn = _convert_retry_deadline(
+            self._merger.__next__,
+            self._merger.operation_timeout,
+            self._merger.transient_errors,
+        )
 
     def _start_idle_timer(self, idle_timeout: float):
         """Implementation purposely removed in sync mode"""
@@ -909,25 +895,7 @@ class ReadRowsIterator_Sync(Iterable[Row], ABC):
             raise self._error
         try:
             self.last_interaction_time = time.time()
-            next_item = self._merger.__next__()
-            if isinstance(next_item, RequestStats):
-                self.request_stats = next_item
-                return self.__next__()
-            else:
-                return next_item
-        except core_exceptions.RetryError:
-            new_exc = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {self._merger.operation_timeout:0.1f}s exceeded"
-            )
-            source_exc = None
-            if self._merger.transient_errors:
-                source_exc = RetryExceptionGroup(
-                    f"{len(self._merger.transient_errors)} failed attempts",
-                    self._merger.transient_errors,
-                )
-            new_exc.__cause__ = source_exc
-            self._finish_with_error(new_exc)
-            raise new_exc from source_exc
+            return self._next_fn()
         except Exception as e:
             self._finish_with_error(e)
             raise e

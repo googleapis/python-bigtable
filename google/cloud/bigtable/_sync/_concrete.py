@@ -25,9 +25,7 @@ from google.cloud.bigtable._sync._autogen import ReadRowsIterator_Sync
 
 
 class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
-    @staticmethod
-    def _prepare_stream(gapic_stream, *args, **kwargs):
-        return gapic_stream, None
+    pass
 
 
 class Table_Sync_Concrete(Table_Sync):

@@ -16,6 +16,8 @@ import pytest
 import pytest_asyncio
 import os
 import asyncio
+from google.api_core import retry
+from google.api_core.exceptions import ClientError
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
@@ -193,6 +195,7 @@ async def temp_rows(table):
     await builder.delete_rows()
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -203,6 +206,7 @@ async def test_ping_and_warm_gapic(client, table):
     await client._gapic_client.ping_and_warm(request)
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_stream(table, temp_rows):
     """
@@ -221,6 +225,7 @@ async def test_read_rows_stream(table, temp_rows):
         await generator.__anext__()
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows(table, temp_rows):
     """
@@ -235,6 +240,7 @@ async def test_read_rows(table, temp_rows):
     assert row_list[1].row_key == b"row_key_2"
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_range_query(table, temp_rows):
     """
@@ -255,6 +261,7 @@ async def test_read_rows_range_query(table, temp_rows):
     assert row_list[1].row_key == b"c"
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_key_query(table, temp_rows):
     """
@@ -293,6 +300,7 @@ async def test_read_rows_stream_close(table, temp_rows):
         assert "closed" in str(e)
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_stream_inactive_timer(table, temp_rows):
     """

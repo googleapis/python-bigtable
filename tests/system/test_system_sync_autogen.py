@@ -19,6 +19,8 @@
 import os
 import pytest
 
+from google.api_core import retry
+from google.api_core.exceptions import ClientError
 import google.cloud.bigtable
 
 TEST_FAMILY = "test-family"
@@ -187,6 +189,7 @@ def temp_rows(table):
     builder.delete_rows()
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_ping_and_warm_gapic(client, table):
     """
     Simple ping rpc test
@@ -196,6 +199,7 @@ def test_ping_and_warm_gapic(client, table):
     client._gapic_client.ping_and_warm(request)
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_read_rows_stream(table, temp_rows):
     """Ensure that the read_rows_stream method works"""
     temp_rows.add_row(b"row_key_1")
@@ -209,6 +213,7 @@ def test_read_rows_stream(table, temp_rows):
         generator.__next__()
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_read_rows(table, temp_rows):
     """Ensure that the read_rows method works"""
     temp_rows.add_row(b"row_key_1")
@@ -219,6 +224,7 @@ def test_read_rows(table, temp_rows):
     assert row_list[1].row_key == b"row_key_2"
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_read_rows_range_query(table, temp_rows):
     """Ensure that the read_rows method works"""
     from google.cloud.bigtable import ReadRowsQuery
@@ -235,6 +241,7 @@ def test_read_rows_range_query(table, temp_rows):
     assert row_list[1].row_key == b"c"
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_read_rows_key_query(table, temp_rows):
     """Ensure that the read_rows method works"""
     from google.cloud.bigtable import ReadRowsQuery

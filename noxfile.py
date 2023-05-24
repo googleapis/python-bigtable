@@ -162,14 +162,6 @@ def install_unittest_dependencies(session, *constraints):
     standard_deps = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_DEPENDENCIES
     session.install(*standard_deps, *constraints)
 
-    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
-        warnings.warn(
-            "'unit_test_external_dependencies' is deprecated. Instead, please "
-            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
-            DeprecationWarning,
-        )
-        session.install(*UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
-
     if UNIT_TEST_LOCAL_DEPENDENCIES:
         session.install("-e", *UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
 
@@ -184,6 +176,20 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
+
+    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
+        warnings.warn(
+            "'unit_test_external_dependencies' is deprecated. Instead, please "
+            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
+            DeprecationWarning,
+        )
+        session.install(
+            "--upgrade",
+            "--no-deps",
+            "--force-reinstall",
+            *UNIT_TEST_EXTERNAL_DEPENDENCIES,
+            *constraints,
+        )
 
 
 def default(session):
@@ -459,6 +465,11 @@ def prerelease_deps(session):
         "python", "-c", "import google.protobuf; print(google.protobuf.__version__)"
     )
     session.run("python", "-c", "import grpc; print(grpc.__version__)")
+
+    # TODO: remove adter merging api-core
+    session.install(
+        "--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES
+    )
 
     session.run("py.test", "tests/unit")
 

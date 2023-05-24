@@ -23,7 +23,6 @@ import pytest
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable_v2.types import RequestStats
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import InvalidChunk
 
@@ -893,23 +892,35 @@ class TestReadRows:
     async def _make_gapic_stream(
         self,
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
-        request_stats: RequestStats | None = None,
         sleep_time=0,
     ):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
-        async def inner():
-            for chunk in chunk_list:
-                if sleep_time:
-                    await asyncio.sleep(sleep_time)
-                if isinstance(chunk, Exception):
-                    raise chunk
-                else:
-                    yield ReadRowsResponse(chunks=[chunk])
-            if request_stats:
-                yield ReadRowsResponse(request_stats=request_stats)
+        class mock_stream:
+            def __init__(self, chunk_list, sleep_time):
+                self.chunk_list = chunk_list
+                self.idx = -1
+                self.sleep_time = sleep_time
 
-        return inner()
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                self.idx += 1
+                if len(self.chunk_list) > self.idx:
+                    if sleep_time:
+                        await asyncio.sleep(self.sleep_time)
+                    chunk = self.chunk_list[self.idx]
+                    if isinstance(chunk, Exception):
+                        raise chunk
+                    else:
+                        return ReadRowsResponse(chunks=[chunk])
+                raise StopAsyncIteration
+
+            def cancel(self):
+                pass
+
+        return mock_stream(chunk_list, sleep_time)
 
     @pytest.mark.asyncio
     async def test_read_rows(self):
@@ -994,33 +1005,6 @@ class TestReadRows:
                 if include_app_profile:
                     assert call_request["app_profile_id"] == app_profile_id
 
-    @pytest.mark.parametrize(
-        "input_buffer_size, expected_buffer_size",
-        [(-100, 0), (-1, 0), (0, 0), (1, 1), (2, 2), (100, 100), (101, 101)],
-    )
-    @pytest.mark.asyncio
-    async def test_read_rows_buffer_size(self, input_buffer_size, expected_buffer_size):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks
-                )
-                with mock.patch.object(asyncio, "Queue") as queue:
-                    queue.side_effect = asyncio.CancelledError
-                    try:
-                        gen = await table.read_rows_stream(
-                            query, operation_timeout=3, buffer_size=input_buffer_size
-                        )
-                        [row async for row in gen]
-                    except asyncio.CancelledError:
-                        pass
-                    queue.assert_called_once_with(maxsize=expected_buffer_size)
-
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     @pytest.mark.asyncio
     async def test_read_rows_timeout(self, operation_timeout):
@@ -1064,6 +1048,8 @@ class TestReadRows:
         """
         from google.cloud.bigtable.exceptions import RetryExceptionGroup
 
+        expected_last_timeout = operation_t - (expected_num - 1) * per_request_t
+
         # mocking uniform ensures there are no sleeps between retries
         with mock.patch("random.uniform", side_effect=lambda a, b: 0):
             async with self._make_client() as client:
@@ -1095,8 +1081,17 @@ class TestReadRows:
                             for sub_exc in retry_exc.exceptions:
                                 assert sub_exc.message == "mock deadline"
                     assert read_rows.call_count == expected_num
-                    called_kwargs = read_rows.call_args[1]
-                    assert called_kwargs["timeout"] == per_request_t
+                    # check timeouts
+                    for _, call_kwargs in read_rows.call_args_list[:-1]:
+                        assert call_kwargs["timeout"] == per_request_t
+                    # last timeout should be adjusted to account for the time spent
+                    assert (
+                        abs(
+                            read_rows.call_args_list[-1][1]["timeout"]
+                            - expected_last_timeout
+                        )
+                        < 0.05
+                    )
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
@@ -1205,50 +1200,18 @@ class TestReadRows:
                     assert e == expected_error
 
     @pytest.mark.asyncio
-    async def test_read_rows_request_stats(self):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            stats = self._make_stats()
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks, request_stats=stats
-                )
-                gen = await table.read_rows_stream(query)
-                [row async for row in gen]
-                assert gen.request_stats == stats
-
-    @pytest.mark.asyncio
-    async def test_read_rows_request_stats_missing(self):
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks, request_stats=None
-                )
-                gen = await table.read_rows_stream(query)
-                [row async for row in gen]
-                assert gen.request_stats is None
-
-    @pytest.mark.asyncio
     async def test_read_rows_revise_request(self):
+        """
+        Ensure that _revise_request is called between retries
+        """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.exceptions import InvalidChunk
 
         with mock.patch.object(
             _ReadRowsOperation, "_revise_request_rowset"
         ) as revise_rowset:
             with mock.patch.object(_ReadRowsOperation, "aclose"):
-                revise_rowset.side_effect = [
-                    "modified",
-                    core_exceptions.Cancelled("mock error"),
-                ]
+                revise_rowset.return_value = "modified"
                 async with self._make_client() as client:
                     table = client.get_table("instance", "table")
                     row_keys = [b"test_1", b"test_2", b"test_3"]
@@ -1261,22 +1224,20 @@ class TestReadRows:
                         table.client._gapic_client, "read_rows"
                     ) as read_rows:
                         read_rows.side_effect = (
-                            lambda *args, **kwargs: self._make_gapic_stream(
-                                chunks, request_stats=None
-                            )
+                            lambda *args, **kwargs: self._make_gapic_stream(chunks)
                         )
                         try:
                             await table.read_rows(query)
-                        except core_exceptions.Cancelled:
+                        except InvalidChunk:
                             revise_rowset.assert_called()
-                            first_call_kwargs = revise_rowset.call_args_list[0].kwargs
+                            revise_call_kwargs = revise_rowset.call_args_list[0].kwargs
                             assert (
-                                first_call_kwargs["row_set"] == query._to_dict()["rows"]
+                                revise_call_kwargs["row_set"]
+                                == query._to_dict()["rows"]
                             )
-                            assert first_call_kwargs["last_seen_row_key"] == b"test_1"
-                            second_call_kwargs = revise_rowset.call_args_list[1].kwargs
-                            assert second_call_kwargs["row_set"] == "modified"
-                            assert second_call_kwargs["last_seen_row_key"] == b"test_1"
+                            assert revise_call_kwargs["last_seen_row_key"] == b"test_1"
+                            read_rows_request = read_rows.call_args_list[1].args[0]
+                            assert read_rows_request["rows"] == "modified"
 
     @pytest.mark.asyncio
     async def test_read_rows_default_timeouts(self):
