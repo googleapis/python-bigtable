@@ -17,4 +17,6 @@ def pytest_addoption(parser):
     """
     Allows us to run with --profile option to save profiles of benchmarks run
     """
-    parser.addoption("--profile", action="store_true", help="Save profiles of failed benchmarks")
+    parser.addoption(
+        "--profile", action="store_true", help="Save profiles of failed benchmarks"
+    )

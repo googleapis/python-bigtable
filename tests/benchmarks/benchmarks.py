@@ -19,11 +19,6 @@ the v3 client compared to the v2 client.
 from _helpers import Benchmark
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-# import test proxy handlers
-import sys
-sys.path.append("../../test_proxy")
-import client_handler
-import client_handler_legacy
 
 class SimpleReads(Benchmark):
     """
@@ -31,7 +26,9 @@ class SimpleReads(Benchmark):
     should test max throughput of read_rows
     """
 
-    def __init__(self, num_rows=1e5, chunks_per_response=100, payload_size=10, *args, **kwargs):
+    def __init__(
+        self, num_rows=1e5, chunks_per_response=100, payload_size=10, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.num_rows = num_rows
         self.chunks_per_response = chunks_per_response
@@ -47,8 +44,9 @@ class SimpleReads(Benchmark):
                     family_name="F",
                     qualifier=b"Q",
                     value=("a" * int(self.payload_size)).encode(),
-                    commit_row=True
-                ) for i in range(batch_size)
+                    commit_row=True,
+                )
+                for i in range(batch_size)
             ]
             yield ReadRowsResponse(chunks=chunks)
             sent_num += batch_size
@@ -63,7 +61,16 @@ class ComplexReads(Benchmark):
     A more complex workload of rows, with multiple column families and qualifiers, and occasional dropped rows or retries
     """
 
-    def __init__(self, num_rows=1e2, drop_every=None, cells_per_row=100, payload_size=10, continuation_num=1, *args, **kwargs):
+    def __init__(
+        self,
+        num_rows=1e2,
+        drop_every=None,
+        cells_per_row=100,
+        payload_size=10,
+        continuation_num=1,
+        *args,
+        **kwargs,
+    ):
         """
         Args:
           - num_rows: number of rows to send
@@ -83,35 +90,39 @@ class ComplexReads(Benchmark):
         for i in range(int(self.num_rows)):
             for j in range(int(self.cells_per_row)):
                 # send initial chunk
-                yield ReadRowsResponse(chunks=[
-                    ReadRowsResponse.CellChunk(
-                        row_key=(i).to_bytes(3, "big") if j == 0 else None,
-                        family_name=f"{j}",
-                        qualifier=(j).to_bytes(3, "big"),
-                        value=("a" * int(self.payload_size)).encode(),
-                    )
-                ])
-                # send continuation of chunk
-                for k in range(int(self.continuation_num)):
-                    yield ReadRowsResponse(chunks=[
+                yield ReadRowsResponse(
+                    chunks=[
                         ReadRowsResponse.CellChunk(
+                            row_key=(i).to_bytes(3, "big") if j == 0 else None,
+                            family_name=f"{j}",
+                            qualifier=(j).to_bytes(3, "big"),
                             value=("a" * int(self.payload_size)).encode(),
                         )
-                    ])
+                    ]
+                )
+                # send continuation of chunk
+                for k in range(int(self.continuation_num)):
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(
+                                value=("a" * int(self.payload_size)).encode(),
+                            )
+                        ]
+                    )
             if self.drop_every and i % self.drop_every == 0:
                 # send reset row
-                yield ReadRowsResponse(chunks=[
-                    ReadRowsResponse.CellChunk(
-                        reset_row=True,
-                    )
-                ])
+                yield ReadRowsResponse(
+                    chunks=[
+                        ReadRowsResponse.CellChunk(
+                            reset_row=True,
+                        )
+                    ]
+                )
             else:
                 # send commit row
-                yield ReadRowsResponse(chunks=[
-                    ReadRowsResponse.CellChunk(
-                        commit_row=True
-                    )
-                ])
+                yield ReadRowsResponse(
+                    chunks=[ReadRowsResponse.CellChunk(commit_row=True)]
+                )
 
     async def client_setup(self, proxy_handler):
         request = {"table_name": "projects/project/instances/instance/tables/table"}

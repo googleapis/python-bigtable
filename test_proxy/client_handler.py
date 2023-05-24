@@ -14,6 +14,7 @@
 """
 This module contains the client handler process for proxy_server.py.
 """
+from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 

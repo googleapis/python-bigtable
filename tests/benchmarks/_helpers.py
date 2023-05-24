@@ -15,6 +15,7 @@
 """
 Contains abstract base class used by other benchmarks.
 """
+from __future__ import annotations
 
 import rich
 from rich.panel import Panel
@@ -26,12 +27,18 @@ import mock
 
 import yappi
 
+
 class Benchmark(ABC):
     """
     base class for benchmarks used by Bigtable client
     """
 
-    def __init__(self, simulate_latency=0, max_time:float|None=None, purpose:str|None=None):
+    def __init__(
+        self,
+        simulate_latency=0,
+        max_time: float | None = None,
+        purpose: str | None = None,
+    ):
         """
         Args:
           - simulate_latency: time to sleep between each server response, to simulate network latency
@@ -55,8 +62,6 @@ class Benchmark(ABC):
         Implemented by subclasses to customize client-side behavior
         """
         raise NotImplementedError
-
-
 
     def _server_responses_with_latency(self, *args, **kwargs):
         """
@@ -84,6 +89,7 @@ class Benchmark(ABC):
         Attach asynchronous sleep latency to server_responses generator,
         and wrap in asyncio coroutine
         """
+
         async def inner():
             generator = self.server_responses(*args, **kwargs)
             profile_enabled = yappi.is_running()
@@ -99,18 +105,27 @@ class Benchmark(ABC):
                         yappi.start()
                 yield next_item
                 await asyncio.sleep(self.simulate_latency)
+
         return inner()
 
     def _server_mock_decorator(self, func):
         """
         Wraps a function in mocked grpc calls
         """
+
         async def inner(*args, **kwargs):
-            with mock.patch("google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.read_rows") as mock_read_rows_async:
-                with mock.patch("google.cloud.bigtable_v2.services.bigtable.client.BigtableClient.read_rows") as mock_read_rows:
-                    mock_read_rows_async.side_effect = self._server_responses_with_latency_async
+            with mock.patch(
+                "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.read_rows"
+            ) as mock_read_rows_async:
+                with mock.patch(
+                    "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient.read_rows"
+                ) as mock_read_rows:
+                    mock_read_rows_async.side_effect = (
+                        self._server_responses_with_latency_async
+                    )
                     mock_read_rows.side_effect = self._server_responses_with_latency
                     return await func(*args, **kwargs)
+
         return inner
 
     async def run(self, proxy_handler):
@@ -125,7 +140,9 @@ class Benchmark(ABC):
         # run client code
         return await wrapped(proxy_handler)
 
-    async def compare_execution(self, new_client, baseline_client, num_loops=1, print_results=True) -> tuple[float, float]:
+    async def compare_execution(
+        self, new_client, baseline_client, num_loops=1, print_results=True
+    ) -> tuple[float, float]:
         """
         Run a benchmark against two clients, and compare their execution times
         """
@@ -145,7 +162,9 @@ class Benchmark(ABC):
             print(f"Baseline: {baseline_time:0.3f}s")
             print(f"New: {new_time:0.3f}s")
             comparison_color = "green" if new_time < baseline_time else "red"
-            rich.print(f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%")
+            rich.print(
+                f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%"
+            )
         return new_time, baseline_time
 
     async def profile_execution(self, client, clock_type="cpu", save_path=None):

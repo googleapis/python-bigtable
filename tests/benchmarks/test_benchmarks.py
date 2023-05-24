@@ -19,35 +19,60 @@ Benchmarks are always compared against the v2 client, and sometimes contain an a
 Running benchmark with `python -m pytest test_benchmarks.py --profile` will save a profile for
 all failed benchmarks in the current directory, which can be visualized with `snakeviz`.
 """
-
-
 # import test proxy handlers
 import re
 import pytest
 import sys
-sys.path.append("../../test_proxy")
-import client_handler
-import client_handler_legacy
+import os
 
 from _helpers import Benchmark
 import benchmarks
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+test_proxy_dir = os.path.join(script_dir, "../../test_proxy")
+sys.path.append(test_proxy_dir)
+import client_handler  # noqa: E402
+import client_handler_legacy  # noqa: E402
+
+
 benchmark_instances = [
-    benchmarks.SimpleReads(num_rows=1e4, simulate_latency=0, purpose="test max throughput"),
-    benchmarks.SimpleReads(num_rows=1e3, simulate_latency=0.1, purpose="test throughput with server delays"),
-    benchmarks.ComplexReads(num_rows=100, drop_every=101, simulate_latency=0, purpose="test with more heterogeneous data"),
-    benchmarks.ComplexReads(num_rows=10, cells_per_row=10, simulate_latency=0.01, purpose="test complex payloads with server delay"),
+    benchmarks.SimpleReads(
+        num_rows=1e4, simulate_latency=0, purpose="test max throughput"
+    ),
+    benchmarks.SimpleReads(
+        num_rows=1e3, simulate_latency=0.1, purpose="test throughput with server delays"
+    ),
+    benchmarks.ComplexReads(
+        num_rows=100,
+        drop_every=101,
+        simulate_latency=0,
+        purpose="test with more heterogeneous data",
+    ),
+    benchmarks.ComplexReads(
+        num_rows=10,
+        cells_per_row=10,
+        simulate_latency=0.01,
+        purpose="test complex payloads with server delay",
+    ),
 ]
+
 
 @pytest.fixture(scope="session")
 def profile(pytestconfig):
     return pytestconfig.getoption("profile")
 
 
-@pytest.mark.parametrize("test_case", benchmark_instances, ids=[str(x) for x in benchmark_instances])
+@pytest.mark.parametrize(
+    "test_case", benchmark_instances, ids=[str(x) for x in benchmark_instances]
+)
 @pytest.mark.asyncio
-async def test_benchmark(test_case:Benchmark, profile):
-    kwargs = {"enable_profiling":False, "enable_timing": True, "per_operation_timeout": 60*30, "raise_on_error": True}
+async def test_benchmark(test_case: Benchmark, profile):
+    kwargs = {
+        "enable_profiling": False,
+        "enable_timing": True,
+        "per_operation_timeout": 60 * 30,
+        "raise_on_error": True,
+    }
     new_handler = client_handler.TestProxyClientHandler(**kwargs)
     legacy_handler = client_handler_legacy.LegacyTestProxyClientHandler(**kwargs)
     new_time, old_time = await test_case.compare_execution(new_handler, legacy_handler)
@@ -57,7 +82,13 @@ async def test_benchmark(test_case:Benchmark, profile):
         filename = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F ]", "-", f"{test_case}.prof")
         await test_case.profile_execution(new_handler, save_path=filename)
     # process test results
-    assert new_time <= old_time, f"new handler was {(new_time/old_time)*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
-    assert new_time < test_case.max_time, f"new handler is slower than max time: {test_case.max_time}"
+    assert (
+        new_time <= old_time
+    ), f"new handler was {(new_time/old_time)*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
+    assert (
+        new_time < test_case.max_time
+    ), f"new handler is slower than max time: {test_case.max_time}"
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv + ["-s"])
