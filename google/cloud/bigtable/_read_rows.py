@@ -71,8 +71,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
-        operation_timeout: float = 600.0,
         *,
+        operation_timeout: float = 600.0,
         per_request_timeout: float | None = None,
     ):
         """
@@ -176,15 +176,17 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             # revise next request's row limit based on number emitted
             if total_row_limit:
                 new_limit = total_row_limit - self._emit_count
-                if new_limit <= 0:
+                if new_limit == 0:
+                    # we have hit the row limit, so we're done
                     return
+                elif new_limit < 0:
+                    raise RuntimeError("unexpected state: emit count exceeds row limit")
                 else:
                     self._request["rows_limit"] = new_limit
         params_str = f'table_name={self._request.get("table_name", "")}'
-        if self._request.get("app_profile_id", None):
-            params_str = (
-                f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
-            )
+        app_profile_id = self._request.get("app_profile_id", None)
+        if app_profile_id:
+            params_str = f"{params_str},app_profile_id={app_profile_id}"
         time_to_deadline = operation_deadline - time.monotonic()
         gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
         new_gapic_stream: RpcContext = await gapic_fn(

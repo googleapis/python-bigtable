@@ -206,17 +206,23 @@ class TestReadRowsOperation:
             (0, 10, 0),
             (0, 0, 0),
             (4, 2, 2),
-            (3, 9, 0),
         ],
     )
     @pytest.mark.asyncio
     async def test_revise_limit(self, start_limit, emit_num, expected_limit):
+        """
+        revise_limit should revise the request's limit field
+        - if limit is 0 (unlimited), it should never be revised
+        - if start_limit-emit_num == 0, the request should end early
+        - if the number emitted exceeds the new limit, an exception should
+          should be raised (tested in test_revise_limit_over_limit)
+        """
         request = {"rows_limit": start_limit}
         instance = self._make_one(request, mock.Mock())
         instance._emit_count = emit_num
         instance._last_emitted_row_key = "a"
         gapic_mock = mock.Mock()
-        gapic_mock.side_effect = [RuntimeError("stop_fn")]
+        gapic_mock.side_effect = [GeneratorExit("stop_fn")]
         attempt = instance._read_rows_retryable_attempt(
             gapic_mock, 100, 100, start_limit
         )
@@ -225,9 +231,27 @@ class TestReadRowsOperation:
             with pytest.raises(StopAsyncIteration):
                 await attempt.__anext__()
         else:
-            with pytest.raises(RuntimeError):
+            with pytest.raises(GeneratorExit):
                 await attempt.__anext__()
             assert request["rows_limit"] == expected_limit
+
+    @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
+    @pytest.mark.asyncio
+    async def test_revise_limit_over_limit(self, start_limit, emit_num):
+        """
+        Should raise runtime error if we get in state where emit_num > start_num
+        (unless start_num == 0, which represents unlimited)
+        """
+        request = {"rows_limit": start_limit}
+        instance = self._make_one(request, mock.Mock())
+        instance._emit_count = emit_num
+        instance._last_emitted_row_key = "a"
+        attempt = instance._read_rows_retryable_attempt(
+            mock.Mock(), 100, 100, start_limit
+        )
+        with pytest.raises(RuntimeError) as e:
+            await attempt.__anext__()
+        assert "emit count exceeds row limit" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_aclose(self):
