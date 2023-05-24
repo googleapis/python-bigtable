@@ -53,6 +53,7 @@ from google.cloud.bigtable_v2.types import request_stats
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
+from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
 
@@ -67,6 +68,7 @@ class BigtableClientMeta(type):
     _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
     _transport_registry["grpc"] = BigtableGrpcTransport
     _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
+    _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
     _transport_registry["rest"] = BigtableRestTransport
 
     def get_transport_class(
