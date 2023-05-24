@@ -16,6 +16,8 @@ import pytest
 import pytest_asyncio
 import os
 import asyncio
+from google.api_core import retry
+from google.api_core.exceptions import ClientError
 
 from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
@@ -196,6 +198,7 @@ async def temp_rows(table):
     await builder.delete_rows()
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -206,8 +209,9 @@ async def test_ping_and_warm_gapic(client, table):
     await client._gapic_client.ping_and_warm(request)
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_mutation_set_cell(client, table):
+async def test_mutation_set_cell(table, temp_rows):
     """
     Ensure cells can be set properly
     """
@@ -219,17 +223,18 @@ async def test_mutation_set_cell(client, table):
     await table.mutate_row("abc", mutation)
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_bulk_mutations_set_cell(client, table):
     """
     Ensure cells can be set properly
     """
-    from google.cloud.bigtable.mutations import SetCell, BulkMutationsEntry
+    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
 
     mutation = SetCell(
         family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
     )
-    bulk_mutation = BulkMutationsEntry(b"abc", [mutation])
+    bulk_mutation = RowMutationEntry(b"abc", [mutation])
     await table.bulk_mutate_rows([bulk_mutation])
 
 
@@ -267,7 +272,7 @@ async def test_read_modify_write_row_increment(
     assert result.row_key == row_key
     assert len(result) == 1
     assert result[0].family == family
-    assert result[0].column_qualifier == qualifier
+    assert result[0].qualifier == qualifier
     assert int(result[0]) == expected
 
 
@@ -302,7 +307,7 @@ async def test_read_modify_write_row_append(
     assert result.row_key == row_key
     assert len(result) == 1
     assert result[0].family == family
-    assert result[0].column_qualifier == qualifier
+    assert result[0].qualifier == qualifier
     assert result[0].value == expected
 
 
@@ -331,7 +336,7 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     result = await table.read_modify_write_row(row_key, rule)
     assert result.row_key == row_key
     assert result[0].family == family
-    assert result[0].column_qualifier == qualifier
+    assert result[0].qualifier == qualifier
     # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
     assert (
         result[0].value
@@ -379,3 +384,118 @@ async def test_check_and_mutate(
     )
     assert result == expected_result
     # TODO: add read_row assertions to verify the mutation was applied
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_stream(table, temp_rows):
+    """
+    Ensure that the read_rows_stream method works
+    """
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    # full table scan
+    generator = await table.read_rows_stream({})
+    first_row = await generator.__anext__()
+    second_row = await generator.__anext__()
+    assert first_row.row_key == b"row_key_1"
+    assert second_row.row_key == b"row_key_2"
+    with pytest.raises(StopAsyncIteration):
+        await generator.__anext__()
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+    # full table scan
+    row_list = await table.read_rows({})
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"row_key_1"
+    assert row_list[1].row_key == b"row_key_2"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_range_query(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable import RowRange
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    # full table scan
+    query = ReadRowsQuery(row_ranges=RowRange(start_key=b"b", end_key=b"d"))
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"b"
+    assert row_list[1].row_key == b"c"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_key_query(table, temp_rows):
+    """
+    Ensure that the read_rows method works
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    # full table scan
+    query = ReadRowsQuery(row_keys=[b"a", b"c"])
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 2
+    assert row_list[0].row_key == b"a"
+    assert row_list[1].row_key == b"c"
+
+
+@pytest.mark.asyncio
+async def test_read_rows_stream_close(table, temp_rows):
+    """
+    Ensure that the read_rows_stream can be closed
+    """
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    # full table scan
+    generator = await table.read_rows_stream({})
+    first_row = await generator.__anext__()
+    assert first_row.row_key == b"row_key_1"
+    await generator.aclose()
+    assert generator.active is False
+    with pytest.raises(StopAsyncIteration) as e:
+        await generator.__anext__()
+        assert "closed" in str(e)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_stream_inactive_timer(table, temp_rows):
+    """
+    Ensure that the read_rows_stream method works
+    """
+    from google.cloud.bigtable.exceptions import IdleTimeout
+
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    generator = await table.read_rows_stream({})
+    await generator._start_idle_timer(0.05)
+    await asyncio.sleep(0.2)
+    assert generator.active is False
+    with pytest.raises(IdleTimeout) as e:
+        await generator.__anext__()
+        assert "inactivity" in str(e)
+        assert "idle_timeout=0.1" in str(e)

@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import sys
+from inspect import iscoroutinefunction
 
 from typing import Callable, Any, TYPE_CHECKING
 
@@ -23,42 +24,77 @@ from google.api_core import exceptions as core_exceptions
 is_311_plus = sys.version_info >= (3, 11)
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.mutations import BulkMutationsEntry
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
 
 def _convert_retry_deadline(
     func: Callable[..., Any],
-    timeout_value: float,
+    timeout_value: float | None = None,
     retry_errors: list[Exception] | None = None,
 ):
     """
     Decorator to convert RetryErrors raised by api_core.retry into
     DeadlineExceeded exceptions, indicating that the underlying retries have
     exhaused the timeout value.
-
     Optionally attaches a RetryExceptionGroup to the DeadlineExceeded.__cause__,
     detailing the failed exceptions associated with each retry.
+
+    Supports both sync and async function wrapping.
 
     Args:
       - func: The function to decorate
       - timeout_value: The timeout value to display in the DeadlineExceeded error message
       - retry_errors: An optional list of exceptions to attach as a RetryExceptionGroup to the DeadlineExceeded.__cause__
     """
+    timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
+    error_str = f"operation_timeout{timeout_str} exceeded"
 
-    async def wrapper(*args, **kwargs):
+    def handle_error():
+        new_exc = core_exceptions.DeadlineExceeded(
+            error_str,
+        )
+        source_exc = None
+        if retry_errors:
+            source_exc = RetryExceptionGroup(retry_errors)
+        new_exc.__cause__ = source_exc
+        raise new_exc from source_exc
+
+    # separate wrappers for async and sync functions
+    async def wrapper_async(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
         except core_exceptions.RetryError:
-            new_exc = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {timeout_value:0.1f}s exceeded"
-            )
-            source_exc = None
-            if retry_errors:
-                source_exc = RetryExceptionGroup(retry_errors)
-            new_exc.__cause__ = source_exc
-            raise new_exc from source_exc
+            handle_error()
 
-    return wrapper
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except core_exceptions.RetryError:
+            handle_error()
+
+    return wrapper_async if iscoroutinefunction(func) else wrapper
+
+
+class IdleTimeout(core_exceptions.DeadlineExceeded):
+    """
+    Exception raised by ReadRowsIterator when the generator
+    has been idle for longer than the internal idle_timeout.
+    """
+
+    pass
+
+
+class InvalidChunk(core_exceptions.GoogleAPICallError):
+    """Exception raised to invalid chunk data from back-end."""
+
+
+class _RowSetComplete(Exception):
+    """
+    Internal exception for _ReadRowsOperation
+    Raised in revise_request_rowset when there are no rows left to process when starting a retry attempt
+    """
+
+    pass
 
 
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
@@ -113,14 +149,14 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
 
 class FailedMutationEntryError(Exception):
     """
-    Represents a single failed BulkMutationsEntry in a bulk_mutate_rows request.
+    Represents a single failed RowMutationEntry in a bulk_mutate_rows request.
     A collection of FailedMutationEntryErrors will be raised in a MutationsExceptionGroup
     """
 
     def __init__(
         self,
         failed_idx: int,
-        failed_mutation_entry: "BulkMutationsEntry",
+        failed_mutation_entry: "RowMutationEntry",
         cause: Exception,
     ):
         idempotent_msg = (
