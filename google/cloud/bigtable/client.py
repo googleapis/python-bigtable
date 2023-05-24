@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, AsyncIterable, Set, Callable, TYPE_CHECKING
+from typing import cast, Any, Optional, Set, Callable, TYPE_CHECKING
 
 import asyncio
 import grpc
@@ -34,21 +34,22 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
-
+from google.cloud.bigtable.row import Row
+from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.iterators import ReadRowsIterator
 
 from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
-from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
+from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.row import Row
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
@@ -286,11 +287,14 @@ class BigtableDataClient(ClientWithProject):
         except KeyError:
             return False
 
+    # TODO: revisit timeouts https://github.com/googleapis/python-bigtable/issues/782
     def get_table(
         self,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
+        default_operation_timeout: float = 600,
+        default_per_request_timeout: float | None = None,
     ) -> Table:
         """
         Returns a table instance for making data API requests
@@ -303,7 +307,14 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(self, instance_id, table_id, app_profile_id)
+        return Table(
+            self,
+            instance_id,
+            table_id,
+            app_profile_id,
+            default_operation_timeout=default_operation_timeout,
+            default_per_request_timeout=default_per_request_timeout,
+        )
 
     async def __aenter__(self):
         self.start_background_channel_refresh()
@@ -329,8 +340,7 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 60,
-        default_per_row_timeout: float | None = 10,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ):
         """
@@ -347,8 +357,6 @@ class Table:
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_operation_timeout: (Optional) The default timeout, in seconds
-            default_per_row_timeout: (Optional) The default timeout for individual
-                rows in all read_rows requests, in seconds
             default_per_request_timeout: (Optional) The default timeout for individual
                 rpc requests, in seconds
         Raises:
@@ -357,8 +365,6 @@ class Table:
         # validate timeouts
         if default_operation_timeout <= 0:
             raise ValueError("default_operation_timeout must be greater than 0")
-        if default_per_row_timeout is not None and default_per_row_timeout <= 0:
-            raise ValueError("default_per_row_timeout must be greater than 0")
         if default_per_request_timeout is not None and default_per_request_timeout <= 0:
             raise ValueError("default_per_request_timeout must be greater than 0")
         if (
@@ -378,9 +384,10 @@ class Table:
             self.client.project, instance_id, table_id
         )
         self.app_profile_id = app_profile_id
+
         self.default_operation_timeout = default_operation_timeout
-        self.default_per_row_timeout = default_per_row_timeout
         self.default_per_request_timeout = default_per_request_timeout
+
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
@@ -395,68 +402,76 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        shard: bool = False,
-        limit: int | None,
-        cache_size_limit: int | None = None,
-        operation_timeout: int | float | None = 60,
-        per_row_timeout: int | float | None = 10,
-        idle_timeout: int | float | None = 300,
-        per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[Row]:
+        operation_timeout: float | None = None,
+        per_request_timeout: float | None = None,
+    ) -> ReadRowsIterator:
         """
-        Returns a generator to asynchronously stream back row data.
+        Returns an iterator to asynchronously stream back row data.
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully cached in memory
-        in the generator, which can be consumed as needed. The size of the generator cache can
-        be configured with cache_size_limit. When the cache is full, the read_rows_stream will pause
-        the network stream until space is available
-
         Args:
             - query: contains details about which rows to return
-            - shard: if True, will attempt to split up and distribute query to multiple
-                 backend nodes in parallel
-            - limit: a limit on the number of rows to return. Actual limit will be
-                 min(limit, query.limit)
-            - cache_size: the number of rows to cache in memory. If None, no limits.
-                 Defaults to None
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
-                 Completed and cached results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after cached results are exhausted
-            - per_row_timeout: the time budget for a single row read, in seconds. If a row takes
-                longer than per_row_timeout to complete, the ongoing network request will be with a
-                DeadlineExceeded exception, and a retry may be attempted
-                Applies only to the underlying network call.
-            - idle_timeout: the number of idle seconds before an active generator is marked as
-                stale and the cache is drained. The idle count is reset each time the generator
-                is yielded from
-                raises DeadlineExceeded on future yields
+                 If None, defaults to the Table's default_operation_timeout
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_per_request_timeout
 
         Returns:
-            - an asynchronous generator that yields rows returned by the query
+            - an asynchronous iterator that yields rows returned by the query
         Raises:
             - DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            - IdleTimeout: if generator was abandoned
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
+            - IdleTimeout: if iterator was abandoned
         """
-        raise NotImplementedError
+
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError(
+                "per_request_timeout must not be greater than operation_timeout"
+            )
+        if per_request_timeout is None:
+            per_request_timeout = operation_timeout
+        request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
+        request["table_name"] = self.table_name
+        if self.app_profile_id:
+            request["app_profile_id"] = self.app_profile_id
+
+        # read_rows smart retries is implemented using a series of iterators:
+        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
+        # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
+        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_request_timeout
+        # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
+        row_merger = _ReadRowsOperation(
+            request,
+            self.client._gapic_client,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        output_generator = ReadRowsIterator(row_merger)
+        # add idle timeout to clear resources if generator is abandoned
+        idle_timeout_seconds = 300
+        await output_generator._start_idle_timer(idle_timeout_seconds)
+        return output_generator
 
     async def read_rows(
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        shard: bool = False,
-        limit: int | None,
-        operation_timeout: int | float | None = 60,
-        per_row_timeout: int | float | None = 10,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = None,
+        per_request_timeout: float | None = None,
     ) -> list[Row]:
         """
         Helper function that returns a full list instead of a generator
@@ -466,7 +481,13 @@ class Table:
         Returns:
             - a list of the rows returned by the query
         """
-        raise NotImplementedError
+        row_generator = await self.read_rows_stream(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        results = [row async for row in row_generator]
+        return results
 
     async def read_row(
         self,
@@ -490,12 +511,9 @@ class Table:
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        cache_size_limit: int | None = None,
         operation_timeout: int | float | None = 60,
-        per_row_timeout: int | float | None = 10,
-        idle_timeout: int | float | None = 300,
         per_request_timeout: int | float | None = None,
-    ) -> AsyncIterable[Row]:
+    ) -> ReadRowsIterator:
         """
         Runs a sharded query in parallel
 
@@ -624,7 +642,6 @@ class Table:
             predicate = retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
                 core_exceptions.ServiceUnavailable,
-                core_exceptions.Aborted,
             )
         else:
             # mutations should not be retried
@@ -655,16 +672,16 @@ class Table:
 
     async def bulk_mutate_rows(
         self,
-        mutation_entries: list[BulkMutationsEntry],
+        mutation_entries: list[RowMutationEntry],
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[BulkMutationsEntry], None] | None = None,
+        on_success: Callable[[RowMutationEntry], None] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
 
-        Each individual BulkMutationsEntry is applied atomically, but separate entries
+        Each individual RowMutationEntry is applied atomically, but separate entries
         may be applied in arbitrary order (even for entries targetting the same row)
         In total, the row_mutations can contain at most 100000 individual mutations
         across all entries
@@ -705,11 +722,11 @@ class Table:
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
-        callback: Callable[[BulkMutationsEntry, Exception | None], None] | None = None
+        callback: Callable[[RowMutationEntry, Exception | None], None] | None = None
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
-            def callback(entry: BulkMutationsEntry, exc: Exception | None):
+            def callback(entry: RowMutationEntry, exc: Exception | None):
                 if exc is None and on_success is not None:
                     on_success(entry)
 

@@ -19,7 +19,7 @@ import atexit
 import warnings
 from typing import TYPE_CHECKING
 
-from google.cloud.bigtable.mutations import BulkMutationsEntry
+from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
@@ -45,7 +45,7 @@ class _FlowControl:
         """
         Args:
           - max_mutation_count: maximum number of mutations to send in a single rpc.
-             This corresponds to individual mutations in a single BulkMutationsEntry.
+             This corresponds to individual mutations in a single RowMutationEntry.
              If None, no limit is enforced.
           - max_mutation_bytes: maximum number of bytes to send in a single rpc.
              If None, no limit is enforced.
@@ -70,7 +70,7 @@ class _FlowControl:
             new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
         )
 
-    async def remove_from_flow(self, mutation_entry: BulkMutationsEntry, *args):
+    async def remove_from_flow(self, mutation_entry: RowMutationEntry, *args):
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
@@ -80,7 +80,7 @@ class _FlowControl:
         async with self.capacity_condition:
             self.capacity_condition.notify_all()
 
-    async def add_to_flow(self, mutations: list[BulkMutationsEntry]):
+    async def add_to_flow(self, mutations: list[RowMutationEntry]):
         """
         Breaks up list of mutations into batches that were registered to fit within
         flow control limits. This method will block when the flow control limits are
@@ -173,7 +173,7 @@ class MutationsBatcher:
         atexit.register(self._on_exit)
         self.closed: bool = False
         self._table = table
-        self._staged_mutations: list[BulkMutationsEntry] = []
+        self._staged_mutations: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
         self._flow_control = _FlowControl(
             flow_control_max_count, flow_control_max_bytes
@@ -205,7 +205,7 @@ class MutationsBatcher:
             if not self.closed and self._staged_mutations:
                 self._schedule_flush()
 
-    def append(self, mutations: BulkMutationsEntry):
+    def append(self, mutations: RowMutationEntry):
         """
         Add a new set of mutations to the internal queue
         """
@@ -259,7 +259,7 @@ class MutationsBatcher:
 
     async def _flush_internal(
         self,
-        new_entries: list[BulkMutationsEntry],
+        new_entries: list[RowMutationEntry],
         prev_flush: asyncio.Task[None],
     ):
         """
@@ -279,13 +279,13 @@ class MutationsBatcher:
             self._entries_processed_since_last_raise += len(batch)
 
     async def _execute_mutate_rows(
-        self, batch: list[BulkMutationsEntry]
+        self, batch: list[RowMutationEntry]
     ) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
 
         Args:
-          - batch: list of BulkMutationsEntry objects to send to server
+          - batch: list of RowMutationEntry objects to send to server
           - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
               If not given, will use table defaults
         Returns:
