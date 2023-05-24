@@ -323,7 +323,6 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
 
-
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.parametrize("cell_value,filter_input", [
     (b"abc", b"abc"),

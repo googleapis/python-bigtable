@@ -28,6 +28,7 @@ from typing import (
 import asyncio
 import time
 from functools import partial
+from grpc.aio import RpcContext
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -70,8 +71,8 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self,
         request: dict[str, Any],
         client: BigtableAsyncClient,
-        operation_timeout: float = 600.0,
         *,
+        operation_timeout: float = 600.0,
         per_request_timeout: float | None = None,
     ):
         """
@@ -175,41 +176,48 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             # revise next request's row limit based on number emitted
             if total_row_limit:
                 new_limit = total_row_limit - self._emit_count
-                if new_limit <= 0:
+                if new_limit == 0:
+                    # we have hit the row limit, so we're done
                     return
+                elif new_limit < 0:
+                    raise RuntimeError("unexpected state: emit count exceeds row limit")
                 else:
                     self._request["rows_limit"] = new_limit
         params_str = f'table_name={self._request.get("table_name", "")}'
-        if self._request.get("app_profile_id", None):
-            params_str = (
-                f'{params_str},app_profile_id={self._request.get("app_profile_id", "")}'
-            )
+        app_profile_id = self._request.get("app_profile_id", None)
+        if app_profile_id:
+            params_str = f"{params_str},app_profile_id={app_profile_id}"
         time_to_deadline = operation_deadline - time.monotonic()
         gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
-        new_gapic_stream = await gapic_fn(
+        new_gapic_stream: RpcContext = await gapic_fn(
             self._request,
             timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        state_machine = _StateMachine()
-        stream = _ReadRowsOperation.merge_row_response_stream(
-            new_gapic_stream, state_machine
-        )
-        # run until we get a timeout or the stream is exhausted
-        async for new_item in stream:
-            if (
-                self._last_emitted_row_key is not None
-                and new_item.row_key <= self._last_emitted_row_key
-            ):
-                raise InvalidChunk("Last emitted row key out of order")
-            # don't yeild _LastScannedRow markers; they
-            # should only update last_seen_row_key
-            if not isinstance(new_item, _LastScannedRow):
-                yield new_item
-                self._emit_count += 1
-            self._last_emitted_row_key = new_item.row_key
-            if total_row_limit and self._emit_count >= total_row_limit:
-                return
+        try:
+            state_machine = _StateMachine()
+            stream = _ReadRowsOperation.merge_row_response_stream(
+                new_gapic_stream, state_machine
+            )
+            # run until we get a timeout or the stream is exhausted
+            async for new_item in stream:
+                if (
+                    self._last_emitted_row_key is not None
+                    and new_item.row_key <= self._last_emitted_row_key
+                ):
+                    raise InvalidChunk("Last emitted row key out of order")
+                # don't yeild _LastScannedRow markers; they
+                # should only update last_seen_row_key
+                if not isinstance(new_item, _LastScannedRow):
+                    yield new_item
+                    self._emit_count += 1
+                self._last_emitted_row_key = new_item.row_key
+                if total_row_limit and self._emit_count >= total_row_limit:
+                    return
+        except (Exception, GeneratorExit) as exc:
+            # ensure grpc stream is closed
+            new_gapic_stream.cancel()
+            raise exc
 
     @staticmethod
     def _revise_request_rowset(

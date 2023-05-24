@@ -23,7 +23,6 @@ import pytest
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable_v2.types import RequestStats
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import InvalidChunk
 
@@ -893,23 +892,35 @@ class TestReadRows:
     async def _make_gapic_stream(
         self,
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
-        request_stats: RequestStats | None = None,
         sleep_time=0,
     ):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
-        async def inner():
-            for chunk in chunk_list:
-                if sleep_time:
-                    await asyncio.sleep(sleep_time)
-                if isinstance(chunk, Exception):
-                    raise chunk
-                else:
-                    yield ReadRowsResponse(chunks=[chunk])
-            if request_stats:
-                yield ReadRowsResponse(request_stats=request_stats)
+        class mock_stream:
+            def __init__(self, chunk_list, sleep_time):
+                self.chunk_list = chunk_list
+                self.idx = -1
+                self.sleep_time = sleep_time
 
-        return inner()
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                self.idx += 1
+                if len(self.chunk_list) > self.idx:
+                    if sleep_time:
+                        await asyncio.sleep(self.sleep_time)
+                    chunk = self.chunk_list[self.idx]
+                    if isinstance(chunk, Exception):
+                        raise chunk
+                    else:
+                        return ReadRowsResponse(chunks=[chunk])
+                raise StopAsyncIteration
+
+            def cancel(self):
+                pass
+
+        return mock_stream(chunk_list, sleep_time)
 
     @pytest.mark.asyncio
     async def test_read_rows(self):
@@ -1213,9 +1224,7 @@ class TestReadRows:
                         table.client._gapic_client, "read_rows"
                     ) as read_rows:
                         read_rows.side_effect = (
-                            lambda *args, **kwargs: self._make_gapic_stream(
-                                chunks, request_stats=None
-                            )
+                            lambda *args, **kwargs: self._make_gapic_stream(chunks)
                         )
                         try:
                             await table.read_rows(query)
