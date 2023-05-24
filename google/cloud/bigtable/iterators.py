@@ -14,19 +14,15 @@
 #
 from __future__ import annotations
 
-from typing import (
-    cast,
-    AsyncIterable,
-)
+from typing import AsyncIterable
+
 import asyncio
 import time
 import sys
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
-from google.cloud.bigtable_v2.types import RequestStats
-from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.exceptions import IdleTimeout
+from google.cloud.bigtable.exceptions import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
 
 
@@ -36,10 +32,16 @@ class ReadRowsIterator(AsyncIterable[Row]):
     """
 
     def __init__(self, merger: _ReadRowsOperation):
-        self._merger_or_error: _ReadRowsOperation | Exception = merger
-        self.request_stats: RequestStats | None = None
+        self._merger: _ReadRowsOperation = merger
+        self._error: Exception | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
+        # wrap merger with a wrapper that properly formats exceptions
+        self._next_fn = _convert_retry_deadline(
+            self._merger.__anext__,
+            self._merger.operation_timeout,
+            self._merger.transient_errors,
+        )
 
     async def _start_idle_timer(self, idle_timeout: float):
         """
@@ -65,7 +67,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
         """
         Returns True if the iterator is still active and has not been closed
         """
-        return not isinstance(self._merger_or_error, Exception)
+        return self._error is None
 
     async def _idle_timeout_coroutine(self, idle_timeout: float):
         """
@@ -97,35 +99,14 @@ class ReadRowsIterator(AsyncIterable[Row]):
         Return the next item in the stream if active, or
         raise an exception if the stream has been closed.
         """
-        if isinstance(self._merger_or_error, Exception):
-            raise self._merger_or_error
-        else:
-            merger = cast(_ReadRowsOperation, self._merger_or_error)
-            try:
-                self.last_interaction_time = time.time()
-                next_item = await merger.__anext__()
-                if isinstance(next_item, RequestStats):
-                    self.request_stats = next_item
-                    return await self.__anext__()
-                else:
-                    return next_item
-            except core_exceptions.RetryError:
-                # raised by AsyncRetry after operation deadline exceeded
-                new_exc = core_exceptions.DeadlineExceeded(
-                    f"operation_timeout of {merger.operation_timeout:0.1f}s exceeded"
-                )
-                source_exc = None
-                if merger.transient_errors:
-                    source_exc = RetryExceptionGroup(
-                        f"{len(merger.transient_errors)} failed attempts",
-                        merger.transient_errors,
-                    )
-                new_exc.__cause__ = source_exc
-                await self._finish_with_error(new_exc)
-                raise new_exc from source_exc
-            except Exception as e:
-                await self._finish_with_error(e)
-                raise e
+        if self._error is not None:
+            raise self._error
+        try:
+            self.last_interaction_time = time.time()
+            return await self._next_fn()
+        except Exception as e:
+            await self._finish_with_error(e)
+            raise e
 
     async def _finish_with_error(self, e: Exception):
         """
@@ -133,9 +114,8 @@ class ReadRowsIterator(AsyncIterable[Row]):
         after an error has occurred.
         """
         if self.active:
-            merger = cast(_ReadRowsOperation, self._merger_or_error)
-            await merger.aclose()
-            self._merger_or_error = e
+            await self._merger.aclose()
+            self._error = e
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
             self._idle_timeout_task = None
