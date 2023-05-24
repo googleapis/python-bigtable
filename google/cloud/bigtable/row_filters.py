@@ -487,15 +487,15 @@ class LiteralValueFilter(ValueRegexFilter):
 
     :type value: bytes or str or int
     :param value:
-        a literal string encodable as ASCII, or the
-        equivalent bytes, or an integer (which will be packed into 8-bytes).
+        a literal string, integer, or the equivalent bytes.
+        Integer values will be packed into signed 8-bytes.
     """
 
     def __init__(self, value: bytes | str | int):
         if isinstance(value, int):
             value = _PACK_I64(value)
         elif isinstance(value, str):
-            value = value.encode("ascii")
+            value = value.encode("utf-8")
         value = self._write_literal_regex(value)
         super(LiteralValueFilter, self).__init__(value)
 
