@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 import pytest
 
 from google.cloud.bigtable.exceptions import InvalidChunk
@@ -7,8 +6,16 @@ from google.cloud.bigtable._read_rows import AWAITING_NEW_ROW
 from google.cloud.bigtable._read_rows import AWAITING_NEW_CELL
 from google.cloud.bigtable._read_rows import AWAITING_CELL_VALUE
 
+# try/except added for compatibility with python < 3.8
+try:
+    from unittest import mock
+    from unittest.mock import AsyncMock  # type: ignore
+except ImportError:  # pragma: NO COVER
+    import mock  # type: ignore
+    from mock import AsyncMock  # type: ignore # noqa F401
+
 TEST_FAMILY = "family_name"
-TEST_QUALIFIER = b"column_qualifier"
+TEST_QUALIFIER = b"qualifier"
 TEST_TIMESTAMP = 123456789
 TEST_LABELS = ["label1", "label2"]
 
@@ -34,17 +41,20 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        instance = self._make_one(request, client)
+        start_time = 123
+        default_operation_timeout = 600
+        with mock.patch("time.monotonic", return_value=start_time):
+            instance = self._make_one(request, client)
         assert instance.transient_errors == []
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
+        assert instance.operation_timeout == default_operation_timeout
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == 0
-        assert retryable_fn.args[2] is None
-        assert retryable_fn.args[3] is None
-        assert retryable_fn.args[4] == 0
+        assert retryable_fn.args[1] == default_operation_timeout
+        assert retryable_fn.args[2] == default_operation_timeout + start_time
+        assert retryable_fn.args[3] == 0
         assert client.read_rows.call_count == 0
 
     def test_ctor(self):
@@ -53,29 +63,26 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        expected_buffer_size = 21
         expected_operation_timeout = 42
-        expected_row_timeout = 43
         expected_request_timeout = 44
-        instance = self._make_one(
-            request,
-            client,
-            buffer_size=expected_buffer_size,
-            operation_timeout=expected_operation_timeout,
-            per_row_timeout=expected_row_timeout,
-            per_request_timeout=expected_request_timeout,
-        )
+        start_time = 123
+        with mock.patch("time.monotonic", return_value=start_time):
+            instance = self._make_one(
+                request,
+                client,
+                operation_timeout=expected_operation_timeout,
+                per_request_timeout=expected_request_timeout,
+            )
         assert instance.transient_errors == []
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
         assert instance.operation_timeout == expected_operation_timeout
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == expected_buffer_size
-        assert retryable_fn.args[2] == expected_row_timeout
-        assert retryable_fn.args[3] == expected_request_timeout
-        assert retryable_fn.args[4] == row_limit
+        assert retryable_fn.args[1] == expected_request_timeout
+        assert retryable_fn.args[2] == start_time + expected_operation_timeout
+        assert retryable_fn.args[3] == row_limit
         assert client.read_rows.call_count == 0
 
     def test___aiter__(self):
@@ -182,14 +189,13 @@ class TestReadRowsOperation:
             assert revised["row_ranges"][0]["start_key_open"] == last_key
 
     def test_revise_to_empty_rowset(self):
-        # ensure that the _revise_to_empty_set method
-        # does not return a full table scan
+        """revising to an empty rowset should raise error"""
+        from google.cloud.bigtable.exceptions import _RowSetComplete
+
         row_keys = ["a", "b", "c"]
         row_set = {"row_keys": row_keys, "row_ranges": [{"end_key_open": "c"}]}
-        revised = self._get_target_class()._revise_request_rowset(row_set, "d")
-        assert revised == row_set
-        assert len(revised["row_keys"]) == 3
-        assert revised["row_keys"] == row_keys
+        with pytest.raises(_RowSetComplete):
+            self._get_target_class()._revise_request_rowset(row_set, "d")
 
     @pytest.mark.parametrize(
         "start_limit,emit_num,expected_limit",
@@ -200,113 +206,52 @@ class TestReadRowsOperation:
             (0, 10, 0),
             (0, 0, 0),
             (4, 2, 2),
-            (3, 9, 0),
         ],
     )
     @pytest.mark.asyncio
     async def test_revise_limit(self, start_limit, emit_num, expected_limit):
+        """
+        revise_limit should revise the request's limit field
+        - if limit is 0 (unlimited), it should never be revised
+        - if start_limit-emit_num == 0, the request should end early
+        - if the number emitted exceeds the new limit, an exception should
+          should be raised (tested in test_revise_limit_over_limit)
+        """
         request = {"rows_limit": start_limit}
         instance = self._make_one(request, mock.Mock())
         instance._emit_count = emit_num
-        instance._last_seen_row_key = "a"
+        instance._last_emitted_row_key = "a"
         gapic_mock = mock.Mock()
-        gapic_mock.side_effect = [RuntimeError("stop_fn")]
+        gapic_mock.side_effect = [GeneratorExit("stop_fn")]
         attempt = instance._read_rows_retryable_attempt(
-            gapic_mock, 0, None, None, start_limit
+            gapic_mock, 100, 100, start_limit
         )
         if start_limit != 0 and expected_limit == 0:
             # if we emitted the expected number of rows, we should receive a StopAsyncIteration
             with pytest.raises(StopAsyncIteration):
                 await attempt.__anext__()
         else:
-            with pytest.raises(RuntimeError):
+            with pytest.raises(GeneratorExit):
                 await attempt.__anext__()
             assert request["rows_limit"] == expected_limit
 
+    @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
     @pytest.mark.asyncio
-    async def test__generator_to_buffer(self):
-        import asyncio
-
-        async def test_generator(n):
-            for i in range(n):
-                yield i
-
-        out_buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(
-            out_buffer, test_generator(10)
+    async def test_revise_limit_over_limit(self, start_limit, emit_num):
+        """
+        Should raise runtime error if we get in state where emit_num > start_num
+        (unless start_num == 0, which represents unlimited)
+        """
+        request = {"rows_limit": start_limit}
+        instance = self._make_one(request, mock.Mock())
+        instance._emit_count = emit_num
+        instance._last_emitted_row_key = "a"
+        attempt = instance._read_rows_retryable_attempt(
+            mock.Mock(), 100, 100, start_limit
         )
-        assert out_buffer.qsize() == 11
-        for i in range(10):
-            assert out_buffer.get_nowait() == i
-        assert out_buffer.get_nowait() == StopAsyncIteration
-        assert out_buffer.empty()
-
-    @pytest.mark.asyncio
-    async def test__generator_to_buffer_with_error(self):
-        import asyncio
-
-        async def test_generator(n, error_at=2):
-            for i in range(n):
-                if i == error_at:
-                    raise ValueError("test error")
-                else:
-                    yield i
-
-        out_buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(
-            out_buffer, test_generator(10, error_at=4)
-        )
-        assert out_buffer.qsize() == 5
-        for i in range(4):
-            assert out_buffer.get_nowait() == i
-        assert isinstance(out_buffer.get_nowait(), ValueError)
-        assert out_buffer.empty()
-
-    @pytest.mark.asyncio
-    async def test__buffer_to_generator(self):
-        import asyncio
-
-        buffer = asyncio.Queue()
-        for i in range(10):
-            buffer.put_nowait(i)
-        buffer.put_nowait(StopAsyncIteration)
-        gen = self._get_target_class()._buffer_to_generator(buffer)
-        for i in range(10):
-            assert await gen.__anext__() == i
-        with pytest.raises(StopAsyncIteration):
-            await gen.__anext__()
-
-    @pytest.mark.asyncio
-    async def test__buffer_to_generator_with_error(self):
-        import asyncio
-
-        buffer = asyncio.Queue()
-        for i in range(4):
-            buffer.put_nowait(i)
-        test_error = ValueError("test error")
-        buffer.put_nowait(test_error)
-        gen = self._get_target_class()._buffer_to_generator(buffer)
-        for i in range(4):
-            assert await gen.__anext__() == i
-        with pytest.raises(ValueError) as e:
-            await gen.__anext__()
-        assert e.value == test_error
-
-    @pytest.mark.asyncio
-    async def test_generator_to_buffer_to_generator(self):
-        import asyncio
-
-        async def test_generator():
-            for i in range(10):
-                yield i
-
-        buffer = asyncio.Queue()
-        await self._get_target_class()._generator_to_buffer(buffer, test_generator())
-        out_gen = self._get_target_class()._buffer_to_generator(buffer)
-
-        out_expected = [i async for i in test_generator()]
-        out_actual = [i async for i in out_gen]
-        assert out_expected == out_actual
+        with pytest.raises(RuntimeError) as e:
+            await attempt.__anext__()
+        assert "emit count exceeds row limit" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_aclose(self):
@@ -315,7 +260,7 @@ class TestReadRowsOperation:
         instance = self._make_one({}, mock.Mock())
         await instance.aclose()
         assert instance._stream is None
-        assert instance._last_seen_row_key is None
+        assert instance._last_emitted_row_key is None
         with pytest.raises(asyncio.InvalidStateError):
             await instance.__anext__()
         # try calling a second time
@@ -345,7 +290,7 @@ class TestReadRowsOperation:
 
             return gen()
 
-        gen = instance._read_rows_retryable_attempt(mock_gapic, 0, None, None, limit)
+        gen = instance._read_rows_retryable_attempt(mock_gapic, 100, 100, limit)
         # should yield values up to the limit
         for i in range(limit):
             await gen.__anext__()
@@ -356,16 +301,16 @@ class TestReadRowsOperation:
     @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
         """
-        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        Duplicate rows should cause an invalid chunk error
         """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.row import Row
+        from google.cloud.bigtable.exceptions import InvalidChunk
 
         async def mock_stream():
             while True:
                 yield Row(b"dup_key", cells=[])
                 yield Row(b"dup_key", cells=[])
-                yield Row(b"new", cells=[])
 
         with mock.patch.object(
             _ReadRowsOperation, "merge_row_response_stream"
@@ -374,13 +319,14 @@ class TestReadRowsOperation:
             instance = self._make_one({}, mock.AsyncMock())
             first_row = await instance.__anext__()
             assert first_row.row_key == b"dup_key"
-            second_row = await instance.__anext__()
-            assert second_row.row_key == b"new"
+            with pytest.raises(InvalidChunk) as exc:
+                await instance.__anext__()
+            assert "Last emitted row key out of order" in str(exc.value)
 
     @pytest.mark.asyncio
     async def test_retryable_ignore_last_scanned_rows(self):
         """
-        Duplicate rows emitted by stream should be ignored by _read_rows_retryable_attempt
+        Last scanned rows should not be emitted
         """
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.row import Row, _LastScannedRow
@@ -388,8 +334,8 @@ class TestReadRowsOperation:
         async def mock_stream():
             while True:
                 yield Row(b"key1", cells=[])
-                yield _LastScannedRow(b"ignored")
-                yield Row(b"key2", cells=[])
+                yield _LastScannedRow(b"key2_ignored")
+                yield Row(b"key3", cells=[])
 
         with mock.patch.object(
             _ReadRowsOperation, "merge_row_response_stream"
@@ -399,7 +345,29 @@ class TestReadRowsOperation:
             first_row = await instance.__anext__()
             assert first_row.row_key == b"key1"
             second_row = await instance.__anext__()
-            assert second_row.row_key == b"key2"
+            assert second_row.row_key == b"key3"
+
+    @pytest.mark.asyncio
+    async def test_retryable_cancel_on_close(self):
+        """Underlying gapic call should be cancelled when stream is closed"""
+        from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.row import Row
+
+        async def mock_stream():
+            while True:
+                yield Row(b"key1", cells=[])
+
+        with mock.patch.object(
+            _ReadRowsOperation, "merge_row_response_stream"
+        ) as mock_stream_fn:
+            mock_stream_fn.return_value = mock_stream()
+            mock_gapic = mock.AsyncMock()
+            mock_call = await mock_gapic.read_rows()
+            instance = self._make_one({}, mock_gapic)
+            await instance.__anext__()
+            assert mock_call.cancel.call_count == 0
+            await instance.aclose()
+            assert mock_call.cancel.call_count == 1
 
 
 class TestStateMachine(unittest.TestCase):
@@ -417,7 +385,7 @@ class TestStateMachine(unittest.TestCase):
 
         instance = self._make_one()
         assert instance.last_seen_row_key is None
-        assert isinstance(instance.current_state, AWAITING_NEW_ROW)
+        assert instance.current_state == AWAITING_NEW_ROW
         assert instance.current_family is None
         assert instance.current_qualifier is None
         assert isinstance(instance.adapter, _RowBuilder)
@@ -430,11 +398,11 @@ class TestStateMachine(unittest.TestCase):
 
         instance = self._make_one()
         assert instance.is_terminal_state() is True
-        instance.current_state = AWAITING_NEW_ROW(None)
+        instance.current_state = AWAITING_NEW_ROW
         assert instance.is_terminal_state() is True
-        instance.current_state = AWAITING_NEW_CELL(None)
+        instance.current_state = AWAITING_NEW_CELL
         assert instance.is_terminal_state() is False
-        instance.current_state = AWAITING_CELL_VALUE(None)
+        instance.current_state = AWAITING_CELL_VALUE
         assert instance.is_terminal_state() is False
 
     def test__reset_row(self):
@@ -444,7 +412,7 @@ class TestStateMachine(unittest.TestCase):
         instance.current_qualifier = "qualifier"
         instance.adapter = mock.Mock()
         instance._reset_row()
-        assert isinstance(instance.current_state, AWAITING_NEW_ROW)
+        assert instance.current_state == AWAITING_NEW_ROW
         assert instance.current_family is None
         assert instance.current_qualifier is None
         assert instance.adapter.reset.call_count == 1
@@ -453,11 +421,11 @@ class TestStateMachine(unittest.TestCase):
         from google.cloud.bigtable.exceptions import InvalidChunk
 
         instance = self._make_one()
-        instance.current_state = AWAITING_NEW_CELL(None)
+        instance.current_state = AWAITING_NEW_CELL
         with pytest.raises(InvalidChunk) as e:
             instance.handle_last_scanned_row("row_key")
         assert e.value.args[0] == "Last scanned row key received in invalid state"
-        instance.current_state = AWAITING_CELL_VALUE(None)
+        instance.current_state = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             instance.handle_last_scanned_row("row_key")
         assert e.value.args[0] == "Last scanned row key received in invalid state"
@@ -484,7 +452,7 @@ class TestStateMachine(unittest.TestCase):
         assert instance.last_seen_row_key == b"b"
         assert isinstance(output_row, _LastScannedRow)
         assert output_row.row_key == b"b"
-        assert isinstance(instance.current_state, AWAITING_NEW_ROW)
+        assert instance.current_state == AWAITING_NEW_ROW
         assert instance.current_family is None
         assert instance.current_qualifier is None
         assert instance.adapter.reset.call_count == 1
@@ -499,7 +467,7 @@ class TestStateMachine(unittest.TestCase):
         instance.adapter = mock.Mock()
         instance._handle_complete_row(Row(b"row_key", {}))
         assert instance.last_seen_row_key == b"row_key"
-        assert isinstance(instance.current_state, AWAITING_NEW_ROW)
+        assert instance.current_state == AWAITING_NEW_ROW
         assert instance.current_family is None
         assert instance.current_qualifier is None
         assert instance.adapter.reset.call_count == 1
@@ -579,8 +547,8 @@ class TestStateMachine(unittest.TestCase):
             mock_state_handle.return_value = state(mock.Mock())
             with pytest.raises(InvalidChunk) as e:
                 chunk = ReadRowsResponse.CellChunk(commit_row=True)._pb
-                instance.handle_chunk(chunk)
-            assert isinstance(instance.current_state, state)
+                instance.handle_chunk(mock.Mock(), chunk)
+            assert instance.current_state == state
             assert e.value.args[0] == "Commit chunk received with in invalid state"
 
     def test_handle_chunk_with_commit(self):
@@ -596,7 +564,7 @@ class TestStateMachine(unittest.TestCase):
             assert isinstance(output, Row)
             assert output.row_key == b"row_key"
             assert output[0].family == "f"
-            assert output[0].column_qualifier == b"q"
+            assert output[0].qualifier == b"q"
             assert instance.last_seen_row_key == b"row_key"
         assert mock_reset.call_count == 1
 
@@ -613,7 +581,7 @@ class TestStateMachine(unittest.TestCase):
             assert isinstance(output, Row)
             assert output.row_key == b"row_key"
             assert output[0].family == ""
-            assert output[0].column_qualifier == b""
+            assert output[0].qualifier == b""
             assert instance.last_seen_row_key == b"row_key"
         assert mock_reset.call_count == 1
 
@@ -635,14 +603,14 @@ class TestState(unittest.TestCase):
     def test_AWAITING_NEW_ROW_empty_key(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
-        instance = AWAITING_NEW_ROW(mock.Mock())
+        instance = AWAITING_NEW_ROW
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(row_key=b"")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(mock.Mock(), chunk)
         assert "missing a row key" in e.value.args[0]
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk()._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(mock.Mock(), chunk)
         assert "missing a row key" in e.value.args[0]
 
     def test_AWAITING_NEW_ROW(self):
@@ -652,13 +620,14 @@ class TestState(unittest.TestCase):
         """
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
-        instance = AWAITING_NEW_ROW(mock.Mock())
+        instance = AWAITING_NEW_ROW
+        state_machine = mock.Mock()
         with mock.patch.object(AWAITING_NEW_CELL, "handle_chunk") as mock_delegate:
             chunk = ReadRowsResponse.CellChunk(row_key=b"row_key")._pb
-            instance.handle_chunk(chunk)
-            assert instance._owner.adapter.start_row.call_count == 1
-            assert instance._owner.adapter.start_row.call_args[0][0] == b"row_key"
-        mock_delegate.assert_called_once_with(chunk)
+            instance.handle_chunk(state_machine, chunk)
+            assert state_machine.adapter.start_row.call_count == 1
+            assert state_machine.adapter.start_row.call_args[0][0] == b"row_key"
+        mock_delegate.assert_called_once_with(state_machine, chunk)
 
     def test_AWAITING_NEW_CELL_family_without_qualifier(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
@@ -666,10 +635,10 @@ class TestState(unittest.TestCase):
 
         state_machine = _StateMachine()
         state_machine.current_qualifier = b"q"
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(family_name="fam")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "New family must specify qualifier" in e.value.args[0]
 
     def test_AWAITING_NEW_CELL_qualifier_without_family(self):
@@ -677,10 +646,10 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(qualifier=b"q")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "Family not found" in e.value.args[0]
 
     def test_AWAITING_NEW_CELL_no_row_state(self):
@@ -688,15 +657,15 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk()._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "Missing family for new cell" in e.value.args[0]
         state_machine.current_family = "fam"
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk()._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "Missing qualifier for new cell" in e.value.args[0]
 
     def test_AWAITING_NEW_CELL_invalid_row_key(self):
@@ -704,11 +673,11 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         state_machine.adapter.current_key = b"abc"
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(row_key=b"123")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "Row key changed mid row" in e.value.args[0]
 
     def test_AWAITING_NEW_CELL_success_no_split(self):
@@ -717,7 +686,7 @@ class TestState(unittest.TestCase):
 
         state_machine = _StateMachine()
         state_machine.adapter = mock.Mock()
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         row_key = b"row_key"
         family = "fam"
         qualifier = b"q"
@@ -733,7 +702,7 @@ class TestState(unittest.TestCase):
             labels=labels,
         )._pb
         state_machine.adapter.current_key = row_key
-        new_state = instance.handle_chunk(chunk)
+        new_state = instance.handle_chunk(state_machine, chunk)
         assert state_machine.adapter.start_cell.call_count == 1
         kwargs = state_machine.adapter.start_cell.call_args[1]
         assert kwargs["family"] == family
@@ -743,7 +712,7 @@ class TestState(unittest.TestCase):
         assert state_machine.adapter.cell_value.call_count == 1
         assert state_machine.adapter.cell_value.call_args[0][0] == value
         assert state_machine.adapter.finish_cell.call_count == 1
-        assert isinstance(new_state, AWAITING_NEW_CELL)
+        assert new_state == AWAITING_NEW_CELL
 
     def test_AWAITING_NEW_CELL_success_with_split(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
@@ -751,7 +720,7 @@ class TestState(unittest.TestCase):
 
         state_machine = _StateMachine()
         state_machine.adapter = mock.Mock()
-        instance = AWAITING_NEW_CELL(state_machine)
+        instance = AWAITING_NEW_CELL
         row_key = b"row_key"
         family = "fam"
         qualifier = b"q"
@@ -768,7 +737,7 @@ class TestState(unittest.TestCase):
             labels=labels,
         )._pb
         state_machine.adapter.current_key = row_key
-        new_state = instance.handle_chunk(chunk)
+        new_state = instance.handle_chunk(state_machine, chunk)
         assert state_machine.adapter.start_cell.call_count == 1
         kwargs = state_machine.adapter.start_cell.call_args[1]
         assert kwargs["family"] == family
@@ -778,17 +747,17 @@ class TestState(unittest.TestCase):
         assert state_machine.adapter.cell_value.call_count == 1
         assert state_machine.adapter.cell_value.call_args[0][0] == value
         assert state_machine.adapter.finish_cell.call_count == 0
-        assert isinstance(new_state, AWAITING_CELL_VALUE)
+        assert new_state == AWAITING_CELL_VALUE
 
     def test_AWAITING_CELL_VALUE_w_row_key(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(row_key=b"123")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "In progress cell had a row key" in e.value.args[0]
 
     def test_AWAITING_CELL_VALUE_w_family(self):
@@ -796,10 +765,10 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(family_name="")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "In progress cell had a family name" in e.value.args[0]
 
     def test_AWAITING_CELL_VALUE_w_qualifier(self):
@@ -807,10 +776,10 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(qualifier=b"")._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "In progress cell had a qualifier" in e.value.args[0]
 
     def test_AWAITING_CELL_VALUE_w_timestamp(self):
@@ -818,10 +787,10 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(timestamp_micros=123)._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "In progress cell had a timestamp" in e.value.args[0]
 
     def test_AWAITING_CELL_VALUE_w_labels(self):
@@ -829,10 +798,10 @@ class TestState(unittest.TestCase):
         from google.cloud.bigtable._read_rows import _StateMachine
 
         state_machine = _StateMachine()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         with pytest.raises(InvalidChunk) as e:
             chunk = ReadRowsResponse.CellChunk(labels=[""])._pb
-            instance.handle_chunk(chunk)
+            instance.handle_chunk(state_machine, chunk)
         assert "In progress cell had labels" in e.value.args[0]
 
     def test_AWAITING_CELL_VALUE_continuation(self):
@@ -841,14 +810,14 @@ class TestState(unittest.TestCase):
 
         state_machine = _StateMachine()
         state_machine.adapter = mock.Mock()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         value = b"value"
         chunk = ReadRowsResponse.CellChunk(value=value, value_size=1)._pb
-        new_state = instance.handle_chunk(chunk)
+        new_state = instance.handle_chunk(state_machine, chunk)
         assert state_machine.adapter.cell_value.call_count == 1
         assert state_machine.adapter.cell_value.call_args[0][0] == value
         assert state_machine.adapter.finish_cell.call_count == 0
-        assert isinstance(new_state, AWAITING_CELL_VALUE)
+        assert new_state == AWAITING_CELL_VALUE
 
     def test_AWAITING_CELL_VALUE_final_chunk(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
@@ -856,14 +825,14 @@ class TestState(unittest.TestCase):
 
         state_machine = _StateMachine()
         state_machine.adapter = mock.Mock()
-        instance = AWAITING_CELL_VALUE(state_machine)
+        instance = AWAITING_CELL_VALUE
         value = b"value"
         chunk = ReadRowsResponse.CellChunk(value=value, value_size=0)._pb
-        new_state = instance.handle_chunk(chunk)
+        new_state = instance.handle_chunk(state_machine, chunk)
         assert state_machine.adapter.cell_value.call_count == 1
         assert state_machine.adapter.cell_value.call_args[0][0] == value
         assert state_machine.adapter.finish_cell.call_count == 1
-        assert isinstance(new_state, AWAITING_NEW_CELL)
+        assert new_state == AWAITING_NEW_CELL
 
 
 class TestRowBuilder(unittest.TestCase):
@@ -910,7 +879,7 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.start_row(b"row_key")
         row_builder.start_cell(TEST_FAMILY, TEST_QUALIFIER, TEST_TIMESTAMP, TEST_LABELS)
         self.assertEqual(row_builder.working_cell.family, TEST_FAMILY)
-        self.assertEqual(row_builder.working_cell.column_qualifier, TEST_QUALIFIER)
+        self.assertEqual(row_builder.working_cell.qualifier, TEST_QUALIFIER)
         self.assertEqual(row_builder.working_cell.timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(row_builder.working_cell.labels, TEST_LABELS)
         self.assertEqual(row_builder.working_value, b"")
@@ -935,9 +904,7 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 1)
         self.assertEqual(row_builder.completed_cells[0].family, TEST_FAMILY)
-        self.assertEqual(
-            row_builder.completed_cells[0].column_qualifier, TEST_QUALIFIER
-        )
+        self.assertEqual(row_builder.completed_cells[0].qualifier, TEST_QUALIFIER)
         self.assertEqual(
             row_builder.completed_cells[0].timestamp_micros, TEST_TIMESTAMP
         )
@@ -952,9 +919,7 @@ class TestRowBuilder(unittest.TestCase):
         row_builder.finish_cell()
         self.assertEqual(len(row_builder.completed_cells), 2)
         self.assertEqual(row_builder.completed_cells[1].family, TEST_FAMILY)
-        self.assertEqual(
-            row_builder.completed_cells[1].column_qualifier, TEST_QUALIFIER
-        )
+        self.assertEqual(row_builder.completed_cells[1].qualifier, TEST_QUALIFIER)
         self.assertEqual(
             row_builder.completed_cells[1].timestamp_micros, TEST_TIMESTAMP
         )
@@ -992,7 +957,7 @@ class TestRowBuilder(unittest.TestCase):
         self.assertEqual(len(output), 3)
         for i in range(3):
             self.assertEqual(output[i].family, str(i))
-            self.assertEqual(output[i].column_qualifier, TEST_QUALIFIER)
+            self.assertEqual(output[i].qualifier, TEST_QUALIFIER)
             self.assertEqual(output[i].timestamp_micros, TEST_TIMESTAMP)
             self.assertEqual(output[i].labels, TEST_LABELS)
             self.assertEqual(output[i].value, b"cell_value: " + str(i).encode("utf-8"))
