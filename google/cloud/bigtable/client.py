@@ -292,12 +292,13 @@ class BigtableDataClient(ClientWithProject):
         except KeyError:
             return False
 
+    # TODO: revisit timeouts https://github.com/googleapis/python-bigtable/issues/782
     def get_table(
         self,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ) -> Table:
         """
@@ -344,7 +345,7 @@ class Table:
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 60,
+        default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
     ):
         """
@@ -406,7 +407,6 @@ class Table:
         self,
         query: ReadRowsQuery | dict[str, Any],
         *,
-        buffer_size: int = 0,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
     ) -> ReadRowsIterator:
@@ -415,20 +415,11 @@ class Table:
 
         Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        By default, row data is streamed eagerly over the network, and fully bufferd in memory
-        in the iterator, which can be consumed as needed. The size of the iterator buffer can
-        be configured with buffer_size. When the buffer is full, the read_rows_stream will pause
-        the network stream until space is available
-
         Args:
             - query: contains details about which rows to return
-            - buffer_size: the number of rows to buffer in memory. If less than
-                or equal to 0, buffer is unbounded. Defaults to 0 (unbounded)
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
                  time is only counted while actively waiting on the network.
-                 Completed and bufferd results can still be accessed after the deadline is complete,
-                 with a DeadlineExceeded exception only raised after bufferd results are exhausted.
                  If None, defaults to the Table's default_operation_timeout
             - per_request_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
@@ -471,7 +462,6 @@ class Table:
         row_merger = _ReadRowsOperation(
             request,
             self.client._gapic_client,
-            buffer_size=buffer_size,
             operation_timeout=operation_timeout,
             per_request_timeout=per_request_timeout,
         )
@@ -539,7 +529,6 @@ class Table:
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
         limit: int | None,
-        buffer_size: int | None = None,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
     ) -> ReadRowsIterator:

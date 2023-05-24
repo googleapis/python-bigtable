@@ -21,10 +21,8 @@ import time
 import sys
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
-from google.cloud.bigtable_v2.types import RequestStats
-from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.exceptions import IdleTimeout
+from google.cloud.bigtable.exceptions import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
 
 
@@ -36,9 +34,14 @@ class ReadRowsIterator(AsyncIterable[Row]):
     def __init__(self, merger: _ReadRowsOperation):
         self._merger: _ReadRowsOperation = merger
         self._error: Exception | None = None
-        self.request_stats: RequestStats | None = None
         self.last_interaction_time = time.time()
         self._idle_timeout_task: asyncio.Task[None] | None = None
+        # wrap merger with a wrapper that properly formats exceptions
+        self._next_fn = _convert_retry_deadline(
+            self._merger.__anext__,
+            self._merger.operation_timeout,
+            self._merger.transient_errors,
+        )
 
     async def _start_idle_timer(self, idle_timeout: float):
         """
@@ -100,26 +103,7 @@ class ReadRowsIterator(AsyncIterable[Row]):
             raise self._error
         try:
             self.last_interaction_time = time.time()
-            next_item = await self._merger.__anext__()
-            if isinstance(next_item, RequestStats):
-                self.request_stats = next_item
-                return await self.__anext__()
-            else:
-                return next_item
-        except core_exceptions.RetryError:
-            # raised by AsyncRetry after operation deadline exceeded
-            new_exc = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {self._merger.operation_timeout:0.1f}s exceeded"
-            )
-            source_exc = None
-            if self._merger.transient_errors:
-                source_exc = RetryExceptionGroup(
-                    f"{len(self._merger.transient_errors)} failed attempts",
-                    self._merger.transient_errors,
-                )
-            new_exc.__cause__ = source_exc
-            await self._finish_with_error(new_exc)
-            raise new_exc from source_exc
+            return await self._next_fn()
         except Exception as e:
             await self._finish_with_error(e)
             raise e

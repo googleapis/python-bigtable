@@ -96,11 +96,25 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
     async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
-        async def inner():
-            for chunk in chunk_list:
-                yield ReadRowsResponse(chunks=[chunk])
+        class mock_stream:
+            def __init__(self, chunk_list):
+                self.chunk_list = chunk_list
+                self.idx = -1
 
-        return inner()
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                self.idx += 1
+                if len(self.chunk_list) > self.idx:
+                    chunk = self.chunk_list[self.idx]
+                    return ReadRowsResponse(chunks=[chunk])
+                raise StopAsyncIteration
+
+            def cancel(self):
+                pass
+
+        return mock_stream(chunk_list)
 
     try:
         client = BigtableDataClient()
