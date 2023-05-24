@@ -1920,6 +1920,7 @@ def test_conditional_row_filter___str__():
         (b'""', b'\\"\\"'),
         (b"[xyz]", b"\\[xyz\\]"),
         (b"\xe2\x98\xba\xef\xb8\x8f", b"\xe2\x98\xba\xef\xb8\x8f"),
+        (r"\C☃", b"\C\xe2\x98\x83"),
     ],
 )
 def test_literal_value__write_literal_regex(input_arg, expected_bytes):

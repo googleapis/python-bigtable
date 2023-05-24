@@ -160,6 +160,10 @@ class TempRowBuilder:
     async def add_row(
         self, row_key, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        elif isinstance(value, int):
+            value = value.to_bytes(8, byteorder="big", signed=True)
         request = {
             "table_name": self.table.table_name,
             "row_key": row_key,
@@ -318,3 +322,34 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         await generator.__anext__()
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.parametrize("cell_value,filter_input", [
+    (b"abc", b"abc"),
+    (b"abc", "abc"),
+    (b".", "."),
+    (".*", ".*"),
+    (".*", b".*"),
+    (b".*", b".*"),
+    (r"\a", r"\a"),
+    (b"\xe2\x98\x83", "☃"),
+    ("\C☃", "\C☃"),
+    (1, 1),
+])
+@pytest.mark.asyncio
+async def test_literal_value_filter(table, temp_rows, cell_value, filter_input):
+    """
+    Literal value filter does complex escaping on re2 strings.
+    Make sure inputs are properly interpreted by the server
+    """
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
+    from google.cloud.bigtable import ReadRowsQuery
+
+    f = LiteralValueFilter(filter_input)
+    await temp_rows.add_row(b"row_key_1", value=cell_value)
+    query = ReadRowsQuery(row_filter=f)
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 1, f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
+
+
