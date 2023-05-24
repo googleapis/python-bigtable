@@ -375,7 +375,7 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports
         filename = inspect.getfile(in_obj)
         lines, lineno = inspect.getsourcelines(in_obj)
         ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
-        if isinstance(ast_tree.body[0], ast.ClassDef):
+        if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
             # update name
             old_name = ast_tree.body[0].name
             new_name = new_name_format.format(old_name)
@@ -397,7 +397,7 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports
         for g in transformer.globals:
             imports.add(ast.parse(f"import {g}").body[0])
         # add locals from file, in case they are needed
-        if isinstance(ast_tree.body[0], ast.ClassDef):
+        if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
             file_basename = os.path.splitext(os.path.basename(filename))[0]
             with open(filename, "r") as f:
                 for node in ast.walk(ast.parse(f.read(), filename)):
@@ -467,7 +467,7 @@ def generate_full_surface(save_path=None):
             f.write(code)
     return code
 
-def generate_tests(save_path=None):
+def generate_system_tests(save_path=None):
     from tests.system import test_system
     conversion_list = [test_system]
     code = transform_sync(conversion_list,
@@ -480,6 +480,33 @@ def generate_tests(save_path=None):
             f.write(code)
     return code
 
+def generate_unit_tests(test_path="./tests/unit", save_path=None):
+    """
+    Unit tests should typically not be generated using this script.
+    But this is useful to generate a starting point.
+    """
+    import importlib
+    if save_path is None:
+        save_path = os.path.join(test_path, "sync")
+    updated_list = []
+    # find files in test_path
+    conversion_list = [f for f in os.listdir(test_path) if f.endswith(".py")]
+    # attempt tp convert each file
+    for f in conversion_list:
+        old_code = open(os.path.join(test_path, f), "r").read()
+        obj = importlib.import_module(f"tests.unit.{f[:-3]}")
+        new_code = transform_sync([obj],
+            concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
+            add_imports=["import google.cloud.bigtable"]
+        )
+        # only save files with async code
+        if any([a in new_code for a in asynciomap]) or "async def" in old_code:
+            with open(os.path.join(save_path, f), "w") as out:
+                out.write(new_code)
+            updated_list.append(f)
+    print(f"Updated {len(updated_list)} files: {updated_list}")
+    return updated_list
+
 if __name__ == "__main__":
     generate_full_surface(save_path="./google/cloud/bigtable/_sync/_autogen.py")
-    generate_tests("./tests/system/test_system_sync_autogen.py")
+    generate_system_tests("./tests/system/test_system_sync_autogen.py")

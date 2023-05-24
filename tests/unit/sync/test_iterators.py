@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import annotations
 
+
+from __future__ import annotations
 from unittest import mock
 import pytest
 
-from google.cloud.bigtable._sync import _concrete as sync_concrete
+import google.cloud.bigtable
+from google.cloud.bigtable._sync._autogen import _ReadRowsOperation_Sync
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
-class MockStream(sync_concrete._ReadRowsOperation_Sync_Concrete):
+class MockStream(_ReadRowsOperation_Sync):
     """
     Mock a _ReadRowsOperation stream for testing
     """
@@ -49,55 +56,36 @@ class MockStream(sync_concrete._ReadRowsOperation_Sync_Concrete):
         pass
 
 
-class TestReadRowsIteratorSyncConcrete:
+class TestReadRowsIterator:
     def mock_stream(self, size=10):
         for i in range(size):
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable._sync._concrete import (
-            ReadRowsIterator_Sync_Concrete,
-        )
-
         stream = MockStream(*args, **kwargs)
-        return ReadRowsIterator_Sync_Concrete(stream)
+        return google.cloud.bigtable._sync._concrete.ReadRowsIterator_Sync_Concrete(
+            stream
+        )
 
     def test_ctor(self):
         with mock.patch("time.time", return_value=0):
             iterator = self._make_one()
             assert iterator.last_interaction_time == 0
             assert iterator._idle_timeout_task is None
-            assert iterator.request_stats is None
             assert iterator.active is True
 
-    def test___iter__(self):
+    def test___aiter__(self):
         iterator = self._make_one()
         assert iterator.__iter__() is iterator
 
-    def test___next__(self):
+
+    def test___anext__(self):
         num_rows = 10
         iterator = self._make_one(items=list(range(num_rows)))
         for i in range(num_rows):
             assert iterator.__next__() == i
         with pytest.raises(StopIteration):
             iterator.__next__()
-
-    def test___next__with_request_stats(self):
-        """
-        Request stats should not be yielded, but should be set on the iterator object
-        """
-        from google.cloud.bigtable_v2.types import RequestStats
-
-        stats = RequestStats()
-        items = [1, 2, stats, 3]
-        iterator = self._make_one(items=items)
-        assert iterator.__next__() == 1
-        assert iterator.__next__() == 2
-        assert iterator.request_stats is None
-        assert iterator.__next__() == 3
-        with pytest.raises(StopIteration):
-            iterator.__next__()
-        assert iterator.request_stats == stats
 
     def test___anext__with_deadline_error(self):
         """
@@ -117,10 +105,8 @@ class TestReadRowsIteratorSyncConcrete:
         )
         assert exc.value.__cause__ is None
 
-    def test___next__with_deadline_error_with_cause(self):
-        """
-        Transient errors should be exposed as an error group
-        """
+    def test___anext__with_deadline_error_with_cause(self):
+        """Transient errors should be exposed as an error group"""
         from google.api_core import exceptions as core_exceptions
         from google.cloud.bigtable.exceptions import RetryExceptionGroup
 
@@ -143,10 +129,8 @@ class TestReadRowsIteratorSyncConcrete:
         assert error_group.exceptions[1] is errors[1]
         assert "2 failed attempts" in str(error_group)
 
-    def test___next__with_error(self):
-        """
-        Other errors should be raised as-is
-        """
+    def test___anext__with_error(self):
+        """Other errors should be raised as-is"""
         from google.api_core import exceptions as core_exceptions
 
         items = [1, core_exceptions.InternalServerError("mock error")]
@@ -156,7 +140,6 @@ class TestReadRowsIteratorSyncConcrete:
             iterator.__next__()
         assert exc.value is items[1]
         assert iterator.active is False
-        # next call should raise same error
         with pytest.raises(core_exceptions.InternalServerError) as exc:
             iterator.__next__()
 
@@ -169,11 +152,12 @@ class TestReadRowsIteratorSyncConcrete:
         iterator._finish_with_error(err)
         assert iterator.active is False
         assert iterator._error is err
+        assert iterator._idle_timeout_task is None
         with pytest.raises(ZeroDivisionError) as exc:
             iterator.__next__()
             assert exc.value is err
 
-    def test_close(self):
+    def test_aclose(self):
         iterator = self._make_one()
         iterator._start_idle_timer(10)
         assert iterator.__next__() == 0

@@ -49,7 +49,7 @@ class TestSyncUpToDate:
         from tests.system import test_system_sync_autogen
 
         # generate a new copy of the sync tests
-        generated_code = sync_surface_generator.generate_tests()
+        generated_code = sync_surface_generator.generate_system_tests()
         # load the current saved sync tests
         filename = inspect.getfile(test_system_sync_autogen)
         saved_code = open(filename, "r").read()
