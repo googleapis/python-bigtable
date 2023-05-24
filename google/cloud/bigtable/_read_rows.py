@@ -28,6 +28,7 @@ from typing import (
 import asyncio
 import time
 from functools import partial
+from grpc.aio import RpcContext
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -186,7 +187,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             )
         time_to_deadline = operation_deadline - time.monotonic()
         gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
-        new_gapic_stream = await gapic_fn(
+        new_gapic_stream: RpcContext = await gapic_fn(
             self._request,
             timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],

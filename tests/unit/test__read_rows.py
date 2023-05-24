@@ -328,9 +328,11 @@ class TestReadRowsOperation:
         """Underlying gapic call should be cancelled when stream is closed"""
         from google.cloud.bigtable._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.row import Row
+
         async def mock_stream():
             while True:
                 yield Row(b"key1", cells=[])
+
         with mock.patch.object(
             _ReadRowsOperation, "merge_row_response_stream"
         ) as mock_stream_fn:
