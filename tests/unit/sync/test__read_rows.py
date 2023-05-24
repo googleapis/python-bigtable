@@ -24,6 +24,7 @@ from google.cloud.bigtable._read_rows import AWAITING_NEW_ROW
 from google.cloud.bigtable.exceptions import InvalidChunk
 
 from google.cloud.bigtable._sync._autogen import _ReadRowsOperation_Sync
+
 try:
     from unittest import mock
 except ImportError:
@@ -43,7 +44,10 @@ class TestReadRowsOperation:
 
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable._sync._concrete import _ReadRowsOperation_Sync_Concrete
+        from google.cloud.bigtable._sync._concrete import (
+            _ReadRowsOperation_Sync_Concrete,
+        )
+
         return _ReadRowsOperation_Sync_Concrete
 
     def _make_one(self, *args, **kwargs):

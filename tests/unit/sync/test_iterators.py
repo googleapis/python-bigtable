@@ -78,7 +78,6 @@ class TestReadRowsIterator:
         iterator = self._make_one()
         assert iterator.__iter__() is iterator
 
-
     def test___anext__(self):
         num_rows = 10
         iterator = self._make_one(items=list(range(num_rows)))

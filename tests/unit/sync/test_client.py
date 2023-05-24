@@ -47,7 +47,10 @@ VENEER_HEADER_REGEX = re.compile(
 
 class TestBigtableDataClient:
     def _get_target_class(self):
-        from google.cloud.bigtable._sync._concrete import BigtableDataClient_Sync_Concrete
+        from google.cloud.bigtable._sync._concrete import (
+            BigtableDataClient_Sync_Concrete,
+        )
+
         return BigtableDataClient_Sync_Concrete
 
     def _make_one(self, *args, **kwargs):
@@ -325,9 +328,7 @@ class TestBigtableDataClient:
         tasks_list = list(client._channel_refresh_tasks)
         for task in client._channel_refresh_tasks:
             assert not task.done()
-        with mock.patch.object(
-            BigtableGrpcTransport, "close"
-        ) as close_mock:
+        with mock.patch.object(BigtableGrpcTransport, "close") as close_mock:
             client.close()
             close_mock.assert_called_once()
         for task in tasks_list:
@@ -645,7 +646,7 @@ class TestReadRows:
             with mock.patch.object(
                 table.client._gapic_client, "read_rows"
             ) as read_rows:
-           
+
                 read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
                     [expected_error]
                 )
