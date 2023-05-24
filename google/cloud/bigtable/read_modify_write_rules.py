@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from google.cloud.bigtable.row import family_id, qualifier
-
 
 class ReadModifyWriteRule:
     pass
@@ -26,12 +24,12 @@ class ReadModifyWriteRule:
 @dataclass
 class IncrementRule(ReadModifyWriteRule):
     increment_amount: int
-    family: family_id
-    column_qualifier: qualifier
+    family: str
+    qualifier: bytes
 
 
 @dataclass
 class AppendValueRule(ReadModifyWriteRule):
-    append_value: bytes | str
-    family: family_id
-    column_qualifier: qualifier
+    append_value: bytes
+    family: str
+    qualifier: bytes

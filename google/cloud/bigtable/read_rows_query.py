@@ -15,7 +15,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import bisect
-from .row import row_key
 from dataclasses import dataclass
 from google.cloud.bigtable.row_filters import RowFilter
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 class _RangePoint:
     """Model class for a point in a row range"""
 
-    key: row_key
+    key: bytes
     is_inclusive: bool
 
     def __hash__(self) -> int:

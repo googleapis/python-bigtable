@@ -18,11 +18,13 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import Mutation
-from google.cloud.bigtable.row import row_key
 from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
+
+# Type alias used internally for readability.
+_row_key_type = bytes
 
 
 class MutationsBatcher:
@@ -44,7 +46,7 @@ class MutationsBatcher:
          batcher.add(row, mut)
     """
 
-    queue: asyncio.Queue[tuple[row_key, list[Mutation]]]
+    queue: asyncio.Queue[tuple[_row_key_type, list[Mutation]]]
     conditional_queues: dict[RowFilter, tuple[list[Mutation], list[Mutation]]]
 
     MB_SIZE = 1024 * 1024
