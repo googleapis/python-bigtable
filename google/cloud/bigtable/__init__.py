@@ -22,9 +22,9 @@ from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
 
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.read_rows_query import RowRange
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.row import Cell
-from google.cloud.bigtable.read_rows_query import RowRange
 
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.mutations import Mutation

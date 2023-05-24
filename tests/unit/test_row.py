@@ -76,7 +76,7 @@ class TestRow(unittest.TestCase):
             output = row_response.get_cells(family="1", qualifier=q)
             self.assertEqual(len(output), 1)
             self.assertEqual(output[0].family, "1")
-            self.assertEqual(output[0].column_qualifier, b"a")
+            self.assertEqual(output[0].qualifier, b"a")
             self.assertEqual(output[0], cell_list[0])
         # calling with just qualifier should raise an error
         with self.assertRaises(ValueError):
@@ -90,7 +90,6 @@ class TestRow(unittest.TestCase):
             row_response.get_cells(family="1", qualifier=b"c")
 
     def test___repr__(self):
-
         cell_str = (
             "{'value': b'1234', 'timestamp_micros': %d, 'labels': ['label1', 'label2']}"
             % (TEST_TIMESTAMP)
@@ -180,7 +179,6 @@ class TestRow(unittest.TestCase):
         self.assertEqual(column.cells[1].labels, TEST_LABELS)
 
     def test_iteration(self):
-        from types import GeneratorType
         from google.cloud.bigtable.row import Cell
 
         # should be able to iterate over the Row as a list
@@ -189,8 +187,6 @@ class TestRow(unittest.TestCase):
         cell3 = self._make_cell(value=b"3")
         row_response = self._make_one(TEST_ROW_KEY, [cell1, cell2, cell3])
         self.assertEqual(len(row_response), 3)
-        # should create generator object
-        self.assertIsInstance(iter(row_response), GeneratorType)
         result_list = list(row_response)
         self.assertEqual(len(result_list), 3)
         # should be able to iterate over all cells
@@ -487,7 +483,7 @@ class TestCell(unittest.TestCase):
         self.assertEqual(cell.value, TEST_VALUE)
         self.assertEqual(cell.row_key, TEST_ROW_KEY)
         self.assertEqual(cell.family, TEST_FAMILY_ID)
-        self.assertEqual(cell.column_qualifier, TEST_QUALIFIER)
+        self.assertEqual(cell.qualifier, TEST_QUALIFIER)
         self.assertEqual(cell.timestamp_micros, TEST_TIMESTAMP)
         self.assertEqual(cell.labels, TEST_LABELS)
 
@@ -587,8 +583,8 @@ class TestCell(unittest.TestCase):
 
         cell = self._make_one()
         expected = (
-            "Cell(value=b'1234', row=b'row', "
-            + "family='cf1', column_qualifier=b'col', "
+            "Cell(value=b'1234', row_key=b'row', "
+            + "family='cf1', qualifier=b'col', "
             + f"timestamp_micros={TEST_TIMESTAMP}, labels=['label1', 'label2'])"
         )
         self.assertEqual(repr(cell), expected)
@@ -608,8 +604,8 @@ class TestCell(unittest.TestCase):
             None,
         )
         expected = (
-            "Cell(value=b'1234', row=b'row', "
-            + "family='cf1', column_qualifier=b'col', "
+            "Cell(value=b'1234', row_key=b'row', "
+            + "family='cf1', qualifier=b'col', "
             + f"timestamp_micros={TEST_TIMESTAMP}, labels=[])"
         )
         self.assertEqual(repr(cell_no_labels), expected)
