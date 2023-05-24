@@ -191,25 +191,30 @@ class _ReadRowsOperation(AsyncIterable[Row]):
             timeout=gapic_timeout,
             metadata=[("x-goog-request-params", params_str)],
         )
-        state_machine = _StateMachine()
-        stream = _ReadRowsOperation.merge_row_response_stream(
-            new_gapic_stream, state_machine
-        )
-        # run until we get a timeout or the stream is exhausted
-        async for new_item in stream:
-            if (
-                self._last_emitted_row_key is not None
-                and new_item.row_key <= self._last_emitted_row_key
-            ):
-                raise InvalidChunk("Last emitted row key out of order")
-            # don't yeild _LastScannedRow markers; they
-            # should only update last_seen_row_key
-            if not isinstance(new_item, _LastScannedRow):
-                yield new_item
-                self._emit_count += 1
-            self._last_emitted_row_key = new_item.row_key
-            if total_row_limit and self._emit_count >= total_row_limit:
-                return
+        try:
+            state_machine = _StateMachine()
+            stream = _ReadRowsOperation.merge_row_response_stream(
+                new_gapic_stream, state_machine
+            )
+            # run until we get a timeout or the stream is exhausted
+            async for new_item in stream:
+                if (
+                    self._last_emitted_row_key is not None
+                    and new_item.row_key <= self._last_emitted_row_key
+                ):
+                    raise InvalidChunk("Last emitted row key out of order")
+                # don't yeild _LastScannedRow markers; they
+                # should only update last_seen_row_key
+                if not isinstance(new_item, _LastScannedRow):
+                    yield new_item
+                    self._emit_count += 1
+                self._last_emitted_row_key = new_item.row_key
+                if total_row_limit and self._emit_count >= total_row_limit:
+                    return
+        except (Exception, GeneratorExit) as exc:
+            # ensure grpc stream is closed
+            new_gapic_stream.cancel()
+            raise exc
 
     @staticmethod
     def _revise_request_rowset(

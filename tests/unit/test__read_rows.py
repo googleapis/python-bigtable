@@ -323,6 +323,26 @@ class TestReadRowsOperation:
             second_row = await instance.__anext__()
             assert second_row.row_key == b"key3"
 
+    @pytest.mark.asyncio
+    async def test_retryable_cancel_on_close(self):
+        """Underlying gapic call should be cancelled when stream is closed"""
+        from google.cloud.bigtable._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.row import Row
+        async def mock_stream():
+            while True:
+                yield Row(b"key1", cells=[])
+        with mock.patch.object(
+            _ReadRowsOperation, "merge_row_response_stream"
+        ) as mock_stream_fn:
+            mock_stream_fn.return_value = mock_stream()
+            mock_gapic = mock.AsyncMock()
+            mock_call = await mock_gapic.read_rows()
+            instance = self._make_one({}, mock_gapic)
+            await instance.__anext__()
+            assert mock_call.cancel.call_count == 0
+            await instance.aclose()
+            assert mock_call.cancel.call_count == 1
+
 
 class TestStateMachine(unittest.TestCase):
     @staticmethod
