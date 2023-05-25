@@ -110,6 +110,9 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
             elif client is None:
                 out_q.put(RuntimeError("client not found"))
             elif fn_name == "CloseClient":
+                # TODO: link this to actual client closing functionality
+                # current implementation happens at test_proxy level
+                # see TestMutateRows_Generic_CloseClient
                 client.close()
                 out_q.put(True)
             elif fn_name == "RemoveClient":
@@ -163,7 +166,7 @@ if __name__ == "__main__":
 
     # uncomment to run proxy in foreground instead
     # client = multiprocessing.Process(
-    #     target=client_handler.client_handler_process,
+    #     target=client_handler_process,
     #     args=(
     #         request_q,
     #         response_queue_pool,

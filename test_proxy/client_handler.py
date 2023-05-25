@@ -17,6 +17,7 @@ This module contains the client handler process for proxy_server.py.
 from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
+import mock
 
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable import BigtableDataClient
@@ -36,14 +37,40 @@ def error_safe(func):
             if raise_on_error or self._raise_on_error:
                 raise e
             else:
-                error_msg = f"{type(e).__name__}: {e}"
-                if e.__cause__:
-                    error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
                 # exceptions should be raised in grpc_server_process
-                return {"error": error_msg}
+                return encode_exception(e)
 
     return wrapper
 
+def encode_exception(exc):
+    """
+    Encode an exception or chain of exceptions to pass back to grpc_handler
+    """
+    from google.api_core.exceptions import GoogleAPICallError
+    error_msg = f"{type(exc).__name__}: {exc}"
+    result = {"error": error_msg}
+    if exc.__cause__:
+        result["cause"] = encode_exception(exc.__cause__)
+    if hasattr(exc, "exceptions"):
+        result["subexceptions"] = [encode_exception(e) for e in exc.exceptions]
+    if hasattr(exc, "index"):
+        result["index"] = exc.index
+    if isinstance(exc, GoogleAPICallError):
+        if  exc.grpc_status_code is not None:
+            result["code"] = exc.grpc_status_code.value[0]
+        elif exc.code is not None:
+            result["code"] = int(exc.code)
+        else:
+            result["code"] = -1
+    elif result.get("cause", {}).get("code", None):
+        # look for code code in cause
+        result["code"] = result["cause"]["code"]
+    elif result.get("subexceptions", None):
+        # look for code in subexceptions
+        for subexc in result["subexceptions"]:
+            if subexc.get("code", None):
+                result["code"] = subexc["code"]
+    return result
 
 class TestProxyClientHandler:
     """
@@ -129,3 +156,39 @@ class TestProxyClientHandler:
         # pack results back into protobuf-parsable format
         serialized_response = [row.to_dict() for row in result_list]
         return serialized_response
+
+    @error_safe
+    async def MutateRow(self, request, **kwargs):
+        import base64
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        row_key = base64.b64decode(request["row_key"])
+        mutations = []
+        for m_dict in request["mutations"]:
+            new_mutation = mock.Mock()
+            new_mutation._to_dict.return_value = m_dict
+            mutations.append(new_mutation)
+        await table.mutate_row(row_key, mutations, **kwargs)
+        return "OK"
+
+    @error_safe
+    async def BulkMutateRows(self, request, **kwargs):
+        from google.cloud.bigtable.mutations import RowMutationEntry
+        import base64
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        entry_list = []
+        for entry in request["entries"]:
+            row_key = base64.b64decode(entry["row_key"])
+            mutations = []
+            for m_dict in entry["mutations"]:
+                new_mutation = mock.Mock()
+                new_mutation._to_dict.return_value = m_dict
+                mutations.append(new_mutation)
+            entry_list.append(RowMutationEntry(row_key, mutations))
+        await table.bulk_mutate_rows(entry_list, **kwargs)
+        return "OK"
