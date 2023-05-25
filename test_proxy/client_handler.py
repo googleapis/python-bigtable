@@ -41,6 +41,7 @@ def encode_exception(exc):
     """
     Encode an exception or chain of exceptions to pass back to grpc_handler
     """
+    from google.api_core.exceptions import GoogleAPICallError
     error_msg = f"{type(exc).__name__}: {exc}"
     result = {"error": error_msg}
     if exc.__cause__:
@@ -49,7 +50,7 @@ def encode_exception(exc):
         result["subexceptions"] = [encode_exception(e) for e in exc.exceptions]
     if hasattr(exc, "index"):
         result["index"] = exc.index
-    if hasattr(exc, "code"):
+    if isinstance(exc, GoogleAPICallError) and exc.code is not None:
         result["code"] = int(exc.code)
     elif result.get("cause", {}).get("code", None):
         # look for code code in cause
@@ -104,11 +105,12 @@ class TestProxyClientHandler:
 
     @error_safe
     async def MutateRow(self, request, **kwargs):
+        import base64
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        row_key = request["row_key"]
+        row_key = base64.b64decode(request["row_key"])
         mutations = []
         for m_dict in request["mutations"]:
             new_mutation = mock.Mock()
@@ -120,13 +122,14 @@ class TestProxyClientHandler:
     @error_safe
     async def BulkMutateRows(self, request, **kwargs):
         from google.cloud.bigtable.mutations import RowMutationEntry
+        import base64
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         entry_list = []
         for entry in request["entries"]:
-            row_key = entry["row_key"]
+            row_key = base64.b64decode(entry["row_key"])
             mutations = []
             for m_dict in entry["mutations"]:
                 new_mutation = mock.Mock()
