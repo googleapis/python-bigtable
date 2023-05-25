@@ -19,6 +19,7 @@ from typing import Callable, Any, TYPE_CHECKING
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
 import google.cloud.bigtable.exceptions as bt_exceptions
+from google.cloud.bigtable._helpers import _make_metadata
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -176,8 +177,13 @@ async def _mutate_rows_retryable_attempt(
             index_map[len(request_entries)] = index
             request_entries.append(entry._to_dict())
     new_request["entries"] = request_entries
+    metadata = _make_metadata(
+        request.get("table_name", None), request.get("app_profile_id", None)
+    )
     async for result_list in await gapic_client.mutate_rows(
-        new_request, timeout=per_request_timeout
+        new_request,
+        timeout=per_request_timeout,
+        metadata=metadata,
     ):
         for result in result_list.entries:
             # convert sub-request index to global index

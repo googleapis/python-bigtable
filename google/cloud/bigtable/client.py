@@ -47,6 +47,7 @@ from google.cloud.bigtable.exceptions import _convert_retry_deadline
 
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+from google.cloud.bigtable._helpers import _make_metadata
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -667,8 +668,9 @@ class Table:
         deadline_wrapped = _convert_retry_deadline(
             retry_wrapped, operation_timeout, transient_errors
         )
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
-        await deadline_wrapped(request, timeout=per_request_timeout)
+        await deadline_wrapped(request, timeout=per_request_timeout, metadata=metadata)
 
     async def bulk_mutate_rows(
         self,

@@ -37,6 +37,7 @@ from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import _RowSetComplete
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable._helpers import _make_metadata
 
 """
 This module provides a set of classes for merging ReadRowsResponse chunks
@@ -183,16 +184,16 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                     raise RuntimeError("unexpected state: emit count exceeds row limit")
                 else:
                     self._request["rows_limit"] = new_limit
-        params_str = f'table_name={self._request.get("table_name", "")}'
-        app_profile_id = self._request.get("app_profile_id", None)
-        if app_profile_id:
-            params_str = f"{params_str},app_profile_id={app_profile_id}"
         time_to_deadline = operation_deadline - time.monotonic()
         gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
+        metadata = _make_metadata(
+            self._request.get("table_name", None),
+            self._request.get("app_profile_id", None),
+        )
         new_gapic_stream: RpcContext = await gapic_fn(
             self._request,
             timeout=gapic_timeout,
-            metadata=[("x-goog-request-params", params_str)],
+            metadata=metadata,
         )
         try:
             state_machine = _StateMachine()

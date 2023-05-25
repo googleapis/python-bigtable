@@ -1296,6 +1296,30 @@ class TestReadRows:
                     assert kwargs["operation_timeout"] == operation_timeout
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_read_rows_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_rows", AsyncMock()
+                ) as read_rows:
+                    await table.read_rows(ReadRowsQuery())
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
 
 class TestMutateRow:
     def _make_client(self, *args, **kwargs):
@@ -1438,6 +1462,30 @@ class TestMutateRow:
                         await table.mutate_row(
                             "row_key", mutation, operation_timeout=0.2
                         )
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row", AsyncMock()
+                ) as read_rows:
+                    await table.mutate_row("rk", {})
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
 
 
 class TestBulkMutateRows:
@@ -1837,3 +1885,32 @@ class TestBulkMutateRows:
                     assert callback.call_count == 2
                     assert callback.call_args_list[0][0][0] == entries[0]
                     assert callback.call_args_list[1][0][0] == entries[2]
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows", AsyncMock()
+                ) as read_rows:
+                    read_rows.side_effect = core_exceptions.Aborted("mock")
+                    try:
+                        await table.bulk_mutate_rows([mock.Mock()])
+                    except Exception:
+                        # exception used to end early
+                        pass
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
