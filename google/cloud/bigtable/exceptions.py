@@ -17,11 +17,14 @@ from __future__ import annotations
 import sys
 from inspect import iscoroutinefunction
 
-from typing import Callable, Any
+from typing import Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 
 is_311_plus = sys.version_info >= (3, 11)
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
 
 def _convert_retry_deadline(
@@ -52,9 +55,7 @@ def _convert_retry_deadline(
         )
         source_exc = None
         if retry_errors:
-            source_exc = RetryExceptionGroup(
-                f"{len(retry_errors)} failed attempts", retry_errors
-            )
+            source_exc = RetryExceptionGroup(retry_errors)
         new_exc.__cause__ = source_exc
         raise new_exc from source_exc
 
@@ -109,9 +110,23 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         if is_311_plus:
             super().__init__(message, excs)
         else:
-            self.exceptions = excs
-            revised_message = f"{message} ({len(excs)} sub-exceptions)"
-            super().__init__(revised_message)
+            if len(excs) == 0:
+                raise ValueError("exceptions must be a non-empty sequence")
+            self.exceptions = tuple(excs)
+            super().__init__(message)
+
+    def __new__(cls, message, excs):
+        if is_311_plus:
+            return super().__new__(cls, message, excs)
+        else:
+            return super().__new__(cls)
+
+    def __str__(self):
+        """
+        String representation doesn't display sub-exceptions. Subexceptions are
+        described in message
+        """
+        return self.args[0]
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
@@ -119,10 +134,55 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     Represents one or more exceptions that occur during a bulk mutation operation
     """
 
-    pass
+    @staticmethod
+    def _format_message(excs: list[FailedMutationEntryError], total_entries: int):
+        entry_str = "entry" if total_entries == 1 else "entries"
+        plural_str = "" if len(excs) == 1 else "s"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
+
+    def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
+        super().__init__(self._format_message(excs, total_entries), excs)
+
+    def __new__(cls, excs: list[FailedMutationEntryError], total_entries: int):
+        return super().__new__(cls, cls._format_message(excs, total_entries), excs)
+
+
+class FailedMutationEntryError(Exception):
+    """
+    Represents a single failed RowMutationEntry in a bulk_mutate_rows request.
+    A collection of FailedMutationEntryErrors will be raised in a MutationsExceptionGroup
+    """
+
+    def __init__(
+        self,
+        failed_idx: int,
+        failed_mutation_entry: "RowMutationEntry",
+        cause: Exception,
+    ):
+        idempotent_msg = (
+            "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
+        )
+        message = f"Failed {idempotent_msg} mutation entry at index {failed_idx} with cause: {cause!r}"
+        super().__init__(message)
+        self.index = failed_idx
+        self.entry = failed_mutation_entry
+        self.__cause__ = cause
 
 
 class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
-    pass
+    @staticmethod
+    def _format_message(excs: list[Exception]):
+        if len(excs) == 0:
+            return "No exceptions"
+        if len(excs) == 1:
+            return f"1 failed attempt: {type(excs[0]).__name__}"
+        else:
+            return f"{len(excs)} failed attempts. Latest: {type(excs[-1]).__name__}"
+
+    def __init__(self, excs: list[Exception]):
+        super().__init__(self._format_message(excs), excs)
+
+    def __new__(cls, excs: list[Exception]):
+        return super().__new__(cls, cls._format_message(excs), excs)
