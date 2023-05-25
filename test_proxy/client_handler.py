@@ -50,8 +50,13 @@ def encode_exception(exc):
         result["subexceptions"] = [encode_exception(e) for e in exc.exceptions]
     if hasattr(exc, "index"):
         result["index"] = exc.index
-    if isinstance(exc, GoogleAPICallError) and exc.code is not None:
-        result["code"] = int(exc.code)
+    if isinstance(exc, GoogleAPICallError):
+        if  exc.grpc_status_code is not None:
+            result["code"] = exc.grpc_status_code.value[0]
+        elif exc.code is not None:
+            result["code"] = int(exc.code)
+        else:
+            result["code"] = -1
     elif result.get("cause", {}).get("code", None):
         # look for code code in cause
         result["code"] = result["cause"]["code"]
