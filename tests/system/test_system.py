@@ -324,20 +324,22 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         assert "idle_timeout=0.1" in str(e)
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
-@pytest.mark.parametrize("cell_value,filter_input", [
-    (b"abc", b"abc"),
-    (b"abc", "abc"),
-    (b".", "."),
-    (".*", ".*"),
-    (".*", b".*"),
-    (b".*", b".*"),
-    (r"\a", r"\a"),
-    (b"\xe2\x98\x83", "☃"),
-    ("\C☃", "\C☃"),
-    (1, 1),
+@pytest.mark.parametrize("cell_value,filter_input,expect_match", [
+    (b"abc", b"abc", True),
+    (b"abc", "abc", True),
+    (b".", ".", True),
+    (".*", ".*", True),
+    (".*", b".*", True),
+    ("a", ".*", False),
+    (b".*", b".*", True),
+    (r"\a", r"\a", True),
+    (b"\xe2\x98\x83", "☃", True),
+    (r"\C☃", r"\C☃", True),
+    (1, 1, True),
+    (2, 1, False),
 ])
 @pytest.mark.asyncio
-async def test_literal_value_filter(table, temp_rows, cell_value, filter_input):
+async def test_literal_value_filter(table, temp_rows, cell_value, filter_input, expect_match):
     """
     Literal value filter does complex escaping on re2 strings.
     Make sure inputs are properly interpreted by the server
@@ -349,6 +351,7 @@ async def test_literal_value_filter(table, temp_rows, cell_value, filter_input):
     await temp_rows.add_row(b"row_key_1", value=cell_value)
     query = ReadRowsQuery(row_filter=f)
     row_list = await table.read_rows(query)
-    assert len(row_list) == 1, f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
+    assert len(row_list) == bool(expect_match), \
+        f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
 
 
