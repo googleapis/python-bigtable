@@ -89,18 +89,20 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
     def MutateRow(self, request, context, client_response=None):
         status = Status()
         if isinstance(client_response, dict) and "error" in client_response:
-            error = client_response["error"]
             status = Status(code=client_response.get("code", 5), message=client_response["error"])
         return test_proxy_pb2.MutateRowResult(status=status)
 
     @delegate_to_client_handler
     def BulkMutateRows(self, request, context, client_response=None):
         status = Status()
+        entries = []
         if isinstance(client_response, dict) and "error" in client_response:
             # status = Status(code=client_response.get("code", 5), message=client_response["error"])
             entries = [bigtable_pb2.MutateRowsResponse.Entry(index=exc_dict.get("index",1), status=Status(code=exc_dict.get("code", 5)))
                             for exc_dict in client_response.get("subexceptions", [])]
-        return test_proxy_pb2.MutateRowsResult(status=status, entries=entries)
+        # TODO: protos were updated. entry is now entries: https://github.com/googleapis/cndb-client-testing-protos/commit/e6205a2bba04acc10d12421a1402870b4a525fb3
+        response = test_proxy_pb2.MutateRowsResult(status=status, entry=entries)
+        return response
 
     def CheckAndMutateRow(self, request, context):
         return test_proxy_pb2.CheckAndMutateRowResult()
