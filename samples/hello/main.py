@@ -102,24 +102,15 @@ def main(project_id, instance_id, table_id):
     # [END bigtable_hw_get_by_key]
     # [END bigtable_hw_get_with_filter]
 
-    # [START bigtable_hw_scan_all]
-    print("Reading entire table:")
-    table = instance.table(table_id)
-    rows = table.read_rows()
-    for row in rows:
-        print(f"Row Key: {row.row_key}")
-        for cell in row.cells:
-            print(cell)
-    # [END bigtable_hw_scan_all]
-    print("Table read complete.")
-
     # [START bigtable_hw_scan_with_filter]
+    # [START bigtable_hw_scan_all]
     print("Scanning for all greetings:")
     partial_rows = table.read_rows(filter_=row_filter)
 
     for row in partial_rows:
         cell = row.cells[column_family_id][column][0]
         print(cell.value.decode("utf-8"))
+    # [END bigtable_hw_scan_all]
     # [END bigtable_hw_scan_with_filter]
 
     # [START bigtable_hw_delete_table]
