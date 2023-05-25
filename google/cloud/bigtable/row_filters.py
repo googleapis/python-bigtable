@@ -520,13 +520,13 @@ class LiteralValueFilter(ValueRegexFilter):
                 and byte != ord("_")
                 and utf8_latin1_check
             ):
-                if byte == "\0":
+                if byte == 0:
                     # Special handling for null chars.
                     # Note that this special handling is not strictly required for RE2,
                     # but this quoting is required for other regexp libraries such as
                     # PCRE.
                     # Can't use "\\0" since the next character might be a digit.
-                    result.append(ord(b"\\x00"))
+                    result.extend([ord("\\"), ord("x"), ord("0"), ord("0")])
                     continue
                 result.append(ord(b"\\"))
             result.append(byte)
