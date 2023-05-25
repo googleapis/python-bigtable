@@ -18,6 +18,7 @@ from typing import Callable, Any
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
+
 """
 Helper functions used in various places in the library.
 """
