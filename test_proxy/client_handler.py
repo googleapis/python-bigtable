@@ -15,6 +15,7 @@
 This module contains the client handler process for proxy_server.py.
 """
 import os
+import mock
 
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable import BigtableDataClient
@@ -80,3 +81,37 @@ class TestProxyClientHandler:
         # pack results back into protobuf-parsable format
         serialized_response = [row.to_dict() for row in result_list]
         return serialized_response
+
+    @error_safe
+    async def MutateRow(self, request, **kwargs):
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        row_key = request["row_key"]
+        mutations = []
+        for m_dict in request["mutations"]:
+            new_mutation = mock.Mock()
+            new_mutation._to_dict.return_value = m_dict
+            mutations.append(new_mutation)
+        await table.mutate_row(row_key, mutations, **kwargs)
+        return "OK"
+
+    @error_safe
+    async def BulkMutateRows(self, request, **kwargs):
+        from google.cloud.bigtable.mutations import RowMutationEntry
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        entry_list = []
+        for entry in request["entries"]:
+            row_key = entry["row_key"]
+            mutations = []
+            for m_dict in entry["mutations"]:
+                new_mutation = mock.Mock()
+                new_mutation._to_dict.return_value = m_dict
+                mutations.append(new_mutation)
+            entry_list.append(RowMutationEntry(row_key, mutations))
+        await table.bulk_mutate_rows(entry_list, **kwargs)
+        return "OK"

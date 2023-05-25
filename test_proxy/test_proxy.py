@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     # uncomment to run proxy in foreground instead
     # client = multiprocessing.Process(
-    #     target=client_handler.client_handler_process,
+    #     target=client_handler_process,
     #     args=(
     #         request_q,
     #         response_queue_pool,

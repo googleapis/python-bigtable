@@ -84,14 +84,19 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
     def ReadRow(self, request, context):
         return test_proxy_pb2.RowResult()
 
-    def MutateRow(self, request, context):
-        return test_proxy_pb2.MutateRowResult()
+    @delegate_to_client_handler
+    def MutateRow(self, request, context, client_response=None):
+        status = Status()
+        if isinstance(client_response, dict) and "error" in client_response:
+            status = Status(code=5, message=client_response["error"])
+        return test_proxy_pb2.MutateRowResult(status=status)
 
-    def MutateRows(self, request, context):
-        return test_proxy_pb2.MutateRowsResult()
-
-    def BulkMutateRows(self, request, context):
-        return test_proxy_pb2.MutateRowsResult()
+    @delegate_to_client_handler
+    def BulkMutateRows(self, request, context, client_response=None):
+        status = Status()
+        if isinstance(client_response, dict) and "error" in client_response:
+            status = Status(code=5, message=client_response["error"])
+        return test_proxy_pb2.MutateRowsResult(status=status)
 
     def CheckAndMutateRow(self, request, context):
         return test_proxy_pb2.CheckAndMutateRowResult()
