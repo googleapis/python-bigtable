@@ -13,41 +13,164 @@
 # limitations under the License.
 #
 from __future__ import annotations
-
+from typing import Any
+import time
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
+
+# special value for SetCell mutation timestamps. If set, server will assign a timestamp
+SERVER_SIDE_TIMESTAMP = -1
 
 
-class Mutation:
-    pass
+class Mutation(ABC):
+    """Model class for mutations"""
+
+    @abstractmethod
+    def _to_dict(self) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def is_idempotent(self) -> bool:
+        """
+        Check if the mutation is idempotent
+        If false, the mutation will not be retried
+        """
+        return True
+
+    def __str__(self) -> str:
+        return str(self._to_dict())
 
 
-@dataclass
 class SetCell(Mutation):
-    family: str
-    column_qualifier: bytes
-    new_value: bytes | str | int
-    timestamp_ms: int | None = None
+    def __init__(
+        self,
+        family: str,
+        qualifier: bytes | str,
+        new_value: bytes | str | int,
+        timestamp_micros: int | None = None,
+    ):
+        """
+        Mutation to set the value of a cell
+
+        Args:
+          - family: The name of the column family to which the new cell belongs.
+          - qualifier: The column qualifier of the new cell.
+          - new_value: The value of the new cell. str or int input will be converted to bytes
+          - timestamp_micros: The timestamp of the new cell. If None, the current timestamp will be used.
+              Timestamps will be sent with milisecond-percision. Extra precision will be truncated.
+              If -1, the server will assign a timestamp. Note that SetCell mutations with server-side
+              timestamps are non-idempotent operations and will not be retried.
+        """
+        qualifier = qualifier.encode() if isinstance(qualifier, str) else qualifier
+        if not isinstance(qualifier, bytes):
+            raise TypeError("qualifier must be bytes or str")
+        if isinstance(new_value, str):
+            new_value = new_value.encode()
+        elif isinstance(new_value, int):
+            new_value = new_value.to_bytes(8, "big", signed=True)
+        if not isinstance(new_value, bytes):
+            raise TypeError("new_value must be bytes, str, or int")
+        if timestamp_micros is None:
+            # use current timestamp
+            timestamp_micros = time.time_ns() // 1000
+        if timestamp_micros < SERVER_SIDE_TIMESTAMP:
+            raise ValueError(
+                "timestamp_micros must be positive (or -1 for server-side timestamp)"
+            )
+        self.family = family
+        self.qualifier = qualifier
+        self.new_value = new_value
+        self._timestamp_micros = timestamp_micros
+
+    @property
+    def timestamp_micros(self):
+        if self._timestamp_micros > 0:
+            # round to use milisecond precision
+            return (self._timestamp_micros // 1000) * 1000
+        return self._timestamp_micros
+
+    def _to_dict(self) -> dict[str, Any]:
+        """Convert the mutation to a dictionary representation"""
+        return {
+            "set_cell": {
+                "family_name": self.family,
+                "column_qualifier": self.qualifier,
+                "timestamp_micros": self.timestamp_micros,
+                "value": self.new_value,
+            }
+        }
+
+    def is_idempotent(self) -> bool:
+        """Check if the mutation is idempotent"""
+        return self.timestamp_micros != SERVER_SIDE_TIMESTAMP
 
 
 @dataclass
 class DeleteRangeFromColumn(Mutation):
     family: str
-    column_qualifier: bytes
-    start_timestamp_ms: int
-    end_timestamp_ms: int
+    qualifier: bytes
+    # None represents 0
+    start_timestamp_micros: int | None = None
+    # None represents infinity
+    end_timestamp_micros: int | None = None
+
+    def __post_init__(self):
+        if (
+            self.start_timestamp_micros is not None
+            and self.end_timestamp_micros is not None
+            and self.start_timestamp_micros > self.end_timestamp_micros
+        ):
+            raise ValueError("start_timestamp_micros must be <= end_timestamp_micros")
+
+    def _to_dict(self) -> dict[str, Any]:
+        timestamp_range = {}
+        if self.start_timestamp_micros is not None:
+            timestamp_range["start_timestamp_micros"] = self.start_timestamp_micros
+        if self.end_timestamp_micros is not None:
+            timestamp_range["end_timestamp_micros"] = self.end_timestamp_micros
+        return {
+            "delete_from_column": {
+                "family_name": self.family,
+                "column_qualifier": self.qualifier,
+                "time_range": timestamp_range,
+            }
+        }
 
 
 @dataclass
 class DeleteAllFromFamily(Mutation):
     family_to_delete: str
 
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "delete_from_family": {
+                "family_name": self.family_to_delete,
+            }
+        }
+
 
 @dataclass
 class DeleteAllFromRow(Mutation):
-    pass
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "delete_from_row": {},
+        }
 
 
-@dataclass
-class BulkMutationsEntry:
-    row: bytes
-    mutations: list[Mutation] | Mutation
+class RowMutationEntry:
+    def __init__(self, row_key: bytes | str, mutations: Mutation | list[Mutation]):
+        if isinstance(row_key, str):
+            row_key = row_key.encode("utf-8")
+        if isinstance(mutations, Mutation):
+            mutations = [mutations]
+        self.row_key = row_key
+        self.mutations = tuple(mutations)
+
+    def _to_dict(self) -> dict[str, Any]:
+        return {
+            "row_key": self.row_key,
+            "mutations": [mutation._to_dict() for mutation in self.mutations],
+        }
+
+    def is_idempotent(self) -> bool:
+        """Check if the mutation is idempotent"""
+        return all(mutation.is_idempotent() for mutation in self.mutations)

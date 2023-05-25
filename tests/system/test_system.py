@@ -207,6 +207,35 @@ async def test_ping_and_warm_gapic(client, table):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
+async def test_mutation_set_cell(table, temp_rows):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell
+
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    )
+    await table.mutate_row("abc", mutation)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_bulk_mutations_set_cell(client, table):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
+
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    )
+    bulk_mutation = RowMutationEntry(b"abc", [mutation])
+    await table.bulk_mutate_rows([bulk_mutation])
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
 async def test_read_rows_stream(table, temp_rows):
     """
     Ensure that the read_rows_stream method works
