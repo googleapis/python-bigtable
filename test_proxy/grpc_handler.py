@@ -4,6 +4,7 @@ import time
 import test_proxy_pb2
 import test_proxy_pb2_grpc
 import data_pb2
+import bigtable_pb2
 from google.rpc.status_pb2 import Status
 from google.protobuf import json_format
 
@@ -88,15 +89,18 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
     def MutateRow(self, request, context, client_response=None):
         status = Status()
         if isinstance(client_response, dict) and "error" in client_response:
-            status = Status(code=5, message=client_response["error"])
+            error = client_response["error"]
+            status = Status(code=client_response.get("code", 5), message=client_response["error"])
         return test_proxy_pb2.MutateRowResult(status=status)
 
     @delegate_to_client_handler
     def BulkMutateRows(self, request, context, client_response=None):
         status = Status()
         if isinstance(client_response, dict) and "error" in client_response:
-            status = Status(code=5, message=client_response["error"])
-        return test_proxy_pb2.MutateRowsResult(status=status)
+            # status = Status(code=client_response.get("code", 5), message=client_response["error"])
+            entries = [bigtable_pb2.MutateRowsResponse.Entry(index=exc_dict.get("index",1), status=Status(code=exc_dict.get("code", 5)))
+                            for exc_dict in client_response.get("subexceptions", [])]
+        return test_proxy_pb2.MutateRowsResult(status=status, entries=entries)
 
     def CheckAndMutateRow(self, request, context):
         return test_proxy_pb2.CheckAndMutateRowResult()

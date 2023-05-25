@@ -32,14 +32,34 @@ def error_safe(func):
                 raise RuntimeError("client is closed")
             return await func(self, *args, **kwargs)
         except (Exception, NotImplementedError) as e:
-            error_msg = f"{type(e).__name__}: {e}"
-            if e.__cause__:
-                error_msg += f" {type(e.__cause__).__name__}: {e.__cause__}"
             # exceptions should be raised in grpc_server_process
-            return {"error": error_msg}
+            return encode_exception(e)
 
     return wrapper
 
+def encode_exception(exc):
+    """
+    Encode an exception or chain of exceptions to pass back to grpc_handler
+    """
+    error_msg = f"{type(exc).__name__}: {exc}"
+    result = {"error": error_msg}
+    if exc.__cause__:
+        result["cause"] = encode_exception(exc.__cause__)
+    if hasattr(exc, "exceptions"):
+        result["subexceptions"] = [encode_exception(e) for e in exc.exceptions]
+    if hasattr(exc, "index"):
+        result["index"] = exc.index
+    if hasattr(exc, "code"):
+        result["code"] = int(exc.code)
+    elif result.get("cause", {}).get("code", None):
+        # look for code code in cause
+        result["code"] = result["cause"]["code"]
+    elif result.get("subexceptions", None):
+        # look for code in subexceptions
+        for subexc in result["subexceptions"]:
+            if subexc.get("code", None):
+                result["code"] = subexc["code"]
+    return result
 
 class TestProxyClientHandler:
     """
