@@ -42,12 +42,10 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
-
-from google.cloud.bigtable.exceptions import _convert_retry_deadline
-
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
 from google.cloud.bigtable._helpers import _make_metadata
+from google.cloud.bigtable._helpers import _convert_retry_deadline
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher

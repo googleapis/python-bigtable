@@ -20,6 +20,7 @@ from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
 import google.cloud.bigtable.exceptions as bt_exceptions
 from google.cloud.bigtable._helpers import _make_metadata
+from google.cloud.bigtable._helpers import _convert_retry_deadline
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -91,9 +92,7 @@ async def _mutate_rows_operation(
     # wrap attempt in retry logic
     retry_wrapped = retry(_mutate_rows_retryable_attempt)
     # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-    deadline_wrapped = bt_exceptions._convert_retry_deadline(
-        retry_wrapped, operation_timeout
-    )
+    deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout)
     try:
         # trigger mutate_rows
         await deadline_wrapped(
