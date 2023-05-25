@@ -33,6 +33,7 @@ def test_main(capsys):
     assert "Writing some greetings to the table." in out
     assert "Getting a single greeting by row key." in out
     assert "Hello World!" in out
+    assert "Table read complete." in out
     assert "Scanning for all greetings" in out
     assert "Hello Cloud Bigtable!" in out
     assert "Deleting the {} table.".format(table_name) in out
