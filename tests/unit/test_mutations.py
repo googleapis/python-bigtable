@@ -58,7 +58,7 @@ class TestSetCell:
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
-        expected_timestamp = 1234567890000
+        expected_timestamp = 1234567890
         instance = self._make_one(
             expected_family, expected_qualifier, expected_value, expected_timestamp
         )
@@ -98,13 +98,6 @@ class TestSetCell:
         assert instance.qualifier == expected_qualifier
         assert instance.new_value == expected_bytes
 
-    def test_ctor_no_timestamp(self):
-        """If no timestamp is given, should use current time"""
-        with mock.patch("time.time_ns", return_value=1234000):
-            instance = self._make_one("test-family", b"test-qualifier", b"test-value")
-            assert instance._timestamp_micros == 1234
-            assert instance.timestamp_micros == 1000
-
     def test_ctor_negative_timestamp(self):
         """Only positive or -1 timestamps are valid"""
         with pytest.raises(ValueError) as e:
@@ -115,34 +108,32 @@ class TestSetCell:
         )
 
     @pytest.mark.parametrize(
-        "input_timestamp,expected_timestamp",
+        "timestamp_ns,expected_timestamp_micros",
         [
-            (-1, -1),
             (0, 0),
             (1, 0),
             (123, 0),
             (999, 0),
-            (1000, 1000),
-            (1234, 1000),
-            (1999, 1000),
-            (2000, 2000),
-            (1234567890, 1234567000),
+            (999_999, 0),
+            (1_000_000, 1000),
+            (1_234_567, 1000),
+            (1_999_999, 1000),
+            (2_000_000, 2000),
+            (1_234_567_890_123, 1_234_567_000),
         ],
     )
-    def test_timestamp_milli_precision(self, input_timestamp, expected_timestamp):
-        """timestamp_micros should have millisecond precision (3 trailing 0s)"""
-        instance = self._make_one(
-            "test-family", b"test-qualifier", b"test-value", input_timestamp
-        )
-        assert instance._timestamp_micros == input_timestamp
-        assert instance.timestamp_micros == expected_timestamp
+    def test_ctor_no_timestamp(self, timestamp_ns, expected_timestamp_micros):
+        """If no timestamp is given, should use current time with millisecond precision"""
+        with mock.patch("time.time_ns", return_value=timestamp_ns):
+            instance = self._make_one("test-family", b"test-qualifier", b"test-value")
+            assert instance.timestamp_micros == expected_timestamp_micros
 
     def test__to_dict(self):
         """ensure dict representation is as expected"""
         expected_family = "test-family"
         expected_qualifier = b"test-qualifier"
         expected_value = b"test-value"
-        expected_timestamp = 123456789000
+        expected_timestamp = 123456789
         instance = self._make_one(
             expected_family, expected_qualifier, expected_value, expected_timestamp
         )

@@ -70,8 +70,9 @@ class SetCell(Mutation):
         if not isinstance(new_value, bytes):
             raise TypeError("new_value must be bytes, str, or int")
         if timestamp_micros is None:
-            # use current timestamp
+            # use current timestamp, with milisecond precision
             timestamp_micros = time.time_ns() // 1000
+            timestamp_micros = timestamp_micros - (timestamp_micros % 1000)
         if timestamp_micros < SERVER_SIDE_TIMESTAMP:
             raise ValueError(
                 "timestamp_micros must be positive (or -1 for server-side timestamp)"
@@ -79,14 +80,7 @@ class SetCell(Mutation):
         self.family = family
         self.qualifier = qualifier
         self.new_value = new_value
-        self._timestamp_micros = timestamp_micros
-
-    @property
-    def timestamp_micros(self):
-        if self._timestamp_micros > 0:
-            # round to use milisecond precision
-            return (self._timestamp_micros // 1000) * 1000
-        return self._timestamp_micros
+        self.timestamp_micros = timestamp_micros
 
     def _to_dict(self) -> dict[str, Any]:
         """Convert the mutation to a dictionary representation"""
