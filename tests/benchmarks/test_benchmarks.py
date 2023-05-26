@@ -39,20 +39,12 @@ benchmark_instances = [
     benchmarks.SimpleReads(
         num_rows=1e4, simulate_latency=0, purpose="test max throughput"
     ),
-    benchmarks.SimpleReads(
-        num_rows=1e3, simulate_latency=0.1, purpose="test throughput with server delays"
-    ),
     benchmarks.ComplexReads(
         num_rows=100,
         drop_every=101,
         simulate_latency=0,
         purpose="test with more heterogeneous data",
     ),
-    benchmarks.ComplexReads(
-        num_rows=10,
-        cells_per_row=10,
-        simulate_latency=0.01,
-        purpose="test complex payloads with server delay",
     benchmarks.SimpleBulkMutations(5e4, 5e4, purpose="test throughput with a single large response"),
     benchmarks.SimpleBulkMutations(5e4, 1, purpose="test throughput with a large number of responses in stream"),
 ]
