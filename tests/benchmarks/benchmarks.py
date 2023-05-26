@@ -135,20 +135,23 @@ class SimpleBulkMutations(Benchmark):
     """
 
     def __init__(
-        self, num_mutations=1e5, num_per_response=100, payload_size=10, *args, **kwargs
+        self, num_mutations=1e5, num_per_response=1e5, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.num_mutations = num_mutations
-        self.payload_size = payload_size
+        self.num_per_response = num_per_response
 
     def server_responses(self, *args, **kwargs):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
         sent_num = 0
         while sent_num < self.num_mutations:
-            entries = [MutateRowsResponse.Entry(index=i) for i in range(self.num_per_response)]
+            batch_num = int(min(self.num_per_response, self.num_mutations - sent_num))
+            entries = [MutateRowsResponse.Entry(index=sent_num+i) for i in range(batch_num)]
             yield MutateRowsResponse(entries=entries)
             sent_num += self.num_per_response
 
     async def client_setup(self, proxy_handler):
         request = {"table_name": "projects/project/instances/instance/tables/table"}
+        mutation = {"delete_from_row": {}}
+        request["entries"] = [{"row_key": (i).to_bytes(8, "big"), "mutations": [mutation]} for i in range(int(self.num_mutations))]
         return await proxy_handler.BulkMutateRows(request)

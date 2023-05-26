@@ -114,17 +114,33 @@ class Benchmark(ABC):
         """
 
         async def inner(*args, **kwargs):
-            with mock.patch(
-                "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.read_rows"
-            ) as mock_read_rows_async:
-                with mock.patch(
-                    "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient.read_rows"
-                ) as mock_read_rows:
-                    mock_read_rows_async.side_effect = (
-                        self._server_responses_with_latency_async
-                    )
-                    mock_read_rows.side_effect = self._server_responses_with_latency
-                    return await func(*args, **kwargs)
+            api_list = ["read_rows", "mutate_rows"]
+            # start mocks
+            patch_list = []
+            for api in api_list:
+                mock_call_async = mock.AsyncMock()
+                mock_call_async.side_effect = self._server_responses_with_latency_async
+                patch_async = mock.patch(
+                    f"google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient.{api}",
+                    mock_call_async,
+                )
+                patch_async.start()
+                patch_list.append(patch_async)
+
+                mock_call = mock.Mock()
+                mock_call.side_effect = self._server_responses_with_latency
+                patch = mock.patch(
+                    f"google.cloud.bigtable_v2.services.bigtable.client.BigtableClient.{api}",
+                    mock_call,
+                )
+                patch.start()
+                patch_list.append(patch)
+
+            result = await func(*args, **kwargs)
+            # stop mocks
+            for patch in patch_list:
+                patch.stop()
+            return result
 
         return inner
 

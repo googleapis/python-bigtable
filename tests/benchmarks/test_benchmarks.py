@@ -53,9 +53,8 @@ benchmark_instances = [
         cells_per_row=10,
         simulate_latency=0.01,
         purpose="test complex payloads with server delay",
-    benchmarks.SimpleBulkMutations(
-        purpose="test max throughput"
-    ),
+    benchmarks.SimpleBulkMutations(5e4, 5e4, purpose="test throughput with a single large response"),
+    benchmarks.SimpleBulkMutations(5e4, 1, purpose="test throughput with a large number of responses in stream"),
 ]
 
 
@@ -84,12 +83,12 @@ async def test_benchmark(test_case: Benchmark, profile):
         filename = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F ]", "-", f"{test_case}.prof")
         await test_case.profile_execution(new_handler, save_path=filename)
     # process test results
-    assert (
-        new_time <= old_time
-    ), f"new handler was {(new_time/(old_time+1e-9))*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
+    results_string = f"new handler was {(new_time/(old_time+1e-9))*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
+    assert new_time <= old_time, results_string
     assert (
         new_time < test_case.max_time
     ), f"new handler is slower than max time: {test_case.max_time}"
+    print(results_string)
 
 
 if __name__ == "__main__":
