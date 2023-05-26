@@ -40,7 +40,7 @@ class _MutateRowsIncomplete(RuntimeError):
 
 async def _mutate_rows_operation(
     gapic_client: "BigtableAsyncClient",
-    request: dict[str, Any],
+    table: "Table",
     mutation_entries: list["RowMutationEntry"],
     operation_timeout: float,
     per_request_timeout: float | None,
@@ -102,7 +102,7 @@ async def _mutate_rows_operation(
         # trigger mutate_rows
         await deadline_wrapped(
             gapic_client,
-            request,
+            table,
             attempt_timeout_gen,
             mutations_dict,
             error_dict,
@@ -138,7 +138,7 @@ async def _mutate_rows_operation(
 
 async def _mutate_rows_retryable_attempt(
     gapic_client: "BigtableAsyncClient",
-    request: dict[str, Any],
+    table: "Table",
     timeout_generator: Iterator[float],
     mutation_dict: dict[int, "RowMutationEntry" | None],
     error_dict: dict[int, list[Exception]],
@@ -171,21 +171,19 @@ async def _mutate_rows_retryable_attempt(
       - _MutateRowsIncomplete: if one or more retryable mutations remain incomplete at the end of the function
       - GoogleAPICallError: if the server returns an error on the grpc call
     """
-    new_request = request.copy()
-    # keep map between sub-request indices and global entry indices
+    # keep map between sub-request indices and global mutation_dict indices
     index_map: dict[int, int] = {}
-    # continue to retry until timeout, or all mutations are complete (success or failure)
     request_entries: list[dict[str, Any]] = []
-    for index, entry in mutation_dict.items():
+    for request_idx, dict_key, entry in enumerate(mutation_dict.items()):
         if entry is not None:
-            index_map[len(request_entries)] = index
+            index_map[request_idx] = dict_key
             request_entries.append(entry._to_dict())
-    new_request["entries"] = request_entries
-    metadata = _make_metadata(
-        request.get("table_name", None), request.get("app_profile_id", None)
-    )
+    # make gapic request
+    metadata = _make_metadata(table.table_name, table.app_profile_id)
     async for result_list in await gapic_client.mutate_rows(
-        new_request,
+        table_name=table.table_name,
+        app_profile_id=table.app_profile_id,
+        entries=request_entries,
         timeout=next(timeout_generator),
         metadata=metadata,
     ):
@@ -223,3 +221,4 @@ async def _mutate_rows_retryable_attempt(
     if any(mutation is not None for mutation in mutation_dict.values()):
         # unfinished work; raise exception to trigger retry
         raise _MutateRowsIncomplete()
+

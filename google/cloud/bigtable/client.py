@@ -718,10 +718,6 @@ class Table:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        request = {"table_name": self.table_name}
-        if self.app_profile_id:
-            request["app_profile_id"] = self.app_profile_id
-
         callback: Callable[[RowMutationEntry, Exception | None], None] | None = None
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
@@ -732,7 +728,7 @@ class Table:
 
         await _mutate_rows_operation(
             self.client._gapic_client,
-            request,
+            self,
             mutation_entries,
             operation_timeout,
             per_request_timeout,
