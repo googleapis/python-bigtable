@@ -14,6 +14,8 @@
 
 import pytest
 
+import google.cloud.bigtable.mutations as mutations
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -42,6 +44,121 @@ class TestBaseMutation:
         str_value = self._target_class().__str__(self_mock)
         assert self_mock._to_dict.called
         assert str_value == str(self_mock._to_dict.return_value)
+
+    @pytest.mark.parametrize(
+        "expected_class,input_dict",
+        [
+            (
+                mutations.SetCell,
+                {
+                    "set_cell": {
+                        "family_name": "foo",
+                        "column_qualifier": b"bar",
+                        "value": b"test",
+                        "timestamp_micros": 12345,
+                    }
+                },
+            ),
+            (
+                mutations.DeleteRangeFromColumn,
+                {
+                    "delete_from_column": {
+                        "family_name": "foo",
+                        "column_qualifier": b"bar",
+                        "time_range": {},
+                    }
+                },
+            ),
+            (
+                mutations.DeleteRangeFromColumn,
+                {
+                    "delete_from_column": {
+                        "family_name": "foo",
+                        "column_qualifier": b"bar",
+                        "time_range": {"start_timestamp_micros": 123456789},
+                    }
+                },
+            ),
+            (
+                mutations.DeleteRangeFromColumn,
+                {
+                    "delete_from_column": {
+                        "family_name": "foo",
+                        "column_qualifier": b"bar",
+                        "time_range": {"end_timestamp_micros": 123456789},
+                    }
+                },
+            ),
+            (
+                mutations.DeleteRangeFromColumn,
+                {
+                    "delete_from_column": {
+                        "family_name": "foo",
+                        "column_qualifier": b"bar",
+                        "time_range": {
+                            "start_timestamp_micros": 123,
+                            "end_timestamp_micros": 123456789,
+                        },
+                    }
+                },
+            ),
+            (
+                mutations.DeleteAllFromFamily,
+                {"delete_from_family": {"family_name": "foo"}},
+            ),
+            (mutations.DeleteAllFromRow, {"delete_from_row": {}}),
+        ],
+    )
+    def test__from_dict(self, expected_class, input_dict):
+        """Should be able to create instance from dict"""
+        instance = self._target_class()._from_dict(input_dict)
+        assert isinstance(instance, expected_class)
+        found_dict = instance._to_dict()
+        assert found_dict == input_dict
+
+    @pytest.mark.parametrize(
+        "input_dict",
+        [
+            {"set_cell": {}},
+            {
+                "set_cell": {
+                    "column_qualifier": b"bar",
+                    "value": b"test",
+                    "timestamp_micros": 12345,
+                }
+            },
+            {
+                "set_cell": {
+                    "family_name": "f",
+                    "column_qualifier": b"bar",
+                    "value": b"test",
+                }
+            },
+            {"delete_from_family": {}},
+            {"delete_from_column": {}},
+            {"fake-type"},
+            {},
+        ],
+    )
+    def test__from_dict_missing_fields(self, input_dict):
+        """If dict is malformed or fields are missing, should raise ValueError"""
+        with pytest.raises(ValueError):
+            self._target_class()._from_dict(input_dict)
+
+    def test__from_dict_wrong_subclass(self):
+        """You shouldn't be able to instantiate one mutation type using the dict of another"""
+        subclasses = [
+            mutations.SetCell("foo", b"bar", b"test"),
+            mutations.DeleteRangeFromColumn("foo", b"bar"),
+            mutations.DeleteAllFromFamily("foo"),
+            mutations.DeleteAllFromRow(),
+        ]
+        for instance in subclasses:
+            others = [other for other in subclasses if other != instance]
+            for other in others:
+                with pytest.raises(ValueError) as e:
+                    type(other)._from_dict(instance._to_dict())
+                assert "Mutation type mismatch" in str(e.value)
 
 
 class TestSetCell:
@@ -417,3 +534,36 @@ class TestRowMutationEntry:
     def test_is_idempotent(self, mutations, result):
         instance = self._make_one("row_key", mutations)
         assert instance.is_idempotent() == result
+
+    def test__from_dict_mock(self):
+        """
+        test creating instance from entry dict, with mocked mutation._from_dict
+        """
+        expected_key = b"row_key"
+        expected_mutations = [mock.Mock(), mock.Mock()]
+        input_dict = {
+            "row_key": expected_key,
+            "mutations": [{"test": "data"}, {"another": "data"}],
+        }
+        with mock.patch.object(mutations.Mutation, "_from_dict") as inner_from_dict:
+            inner_from_dict.side_effect = expected_mutations
+            instance = self._target_class()._from_dict(input_dict)
+        assert instance.row_key == b"row_key"
+        assert inner_from_dict.call_count == 2
+        assert len(instance.mutations) == 2
+        assert instance.mutations[0] == expected_mutations[0]
+        assert instance.mutations[1] == expected_mutations[1]
+
+    def test__from_dict(self):
+        """
+        test creating end-to-end with a real mutation instance
+        """
+        input_dict = {
+            "row_key": b"row_key",
+            "mutations": [{"delete_from_family": {"family_name": "test_family"}}],
+        }
+        instance = self._target_class()._from_dict(input_dict)
+        assert instance.row_key == b"row_key"
+        assert len(instance.mutations) == 1
+        assert isinstance(instance.mutations[0], mutations.DeleteAllFromFamily)
+        assert instance.mutations[0].family_to_delete == "test_family"
