@@ -15,7 +15,6 @@
 This module contains the client handler process for proxy_server.py.
 """
 import os
-import mock
 
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable import BigtableDataClient
@@ -111,17 +110,20 @@ class TestProxyClientHandler:
     @error_safe
     async def MutateRow(self, request, **kwargs):
         import base64
+        from google.cloud.bigtable.mutations import Mutation
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        row_key = base64.b64decode(request["row_key"])
-        mutations = []
-        for m_dict in request["mutations"]:
-            new_mutation = mock.Mock()
-            new_mutation._to_dict.return_value = m_dict
-            mutations.append(new_mutation)
-        await table.mutate_row(row_key, mutations, **kwargs)
+        row_key = request["row_key"]
+        try:
+            # conformance tests send row keys as base64 encoded strings
+            row_key = base64.b64decode(row_key)
+        except Exception:
+            pass
+        mutations = [Mutation._from_dict(d) for d in request["mutations"]]
+        async with self.measure_call():
+            await table.mutate_row(row_key, mutations, **kwargs)
         return "OK"
 
     @error_safe
@@ -132,14 +134,13 @@ class TestProxyClientHandler:
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        entry_list = []
+        # conformance tests send row keys as base64 encoded strings
         for entry in request["entries"]:
-            row_key = base64.b64decode(entry["row_key"])
-            mutations = []
-            for m_dict in entry["mutations"]:
-                new_mutation = mock.Mock()
-                new_mutation._to_dict.return_value = m_dict
-                mutations.append(new_mutation)
-            entry_list.append(RowMutationEntry(row_key, mutations))
-        await table.bulk_mutate_rows(entry_list, **kwargs)
+            try:
+                entry["row_key"] = base64.b64decode(entry["row_key"])
+            except Exception:
+                pass
+        entry_list = [RowMutationEntry._from_dict(entry) for entry in request["entries"]]
+        async with self.measure_call():
+            await table.bulk_mutate_rows(entry_list, **kwargs)
         return "OK"

@@ -21,6 +21,10 @@ from google.cloud.bigtable.deprecated.client import Client
 
 import client_handler
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
 class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
 
@@ -72,3 +76,55 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
                 dict_val.setdefault("families", []).append(family_dict)
             row_list.append(dict_val)
         return row_list
+
+    @client_handler.error_safe
+    async def MutateRow(self, request, **kwargs):
+        from google.cloud.bigtable.deprecated.row import DirectRow
+        table_id = request["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+        row_key = request["row_key"]
+        new_row = DirectRow(row_key, table)
+        for m_dict in request.get("mutations", []):
+            if m_dict.get("set_cell"):
+                details = m_dict["set_cell"]
+                new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=details["timestamp_micros"])
+            elif m_dict.get("delete_from_column"):
+                details = m_dict["delete_from_column"]
+                new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=details["timestamp_micros"])
+            elif m_dict.get("delete_from_family"):
+                details = m_dict["delete_from_family"]
+                new_row.delete_cells(details["family_name"], timestamp=details["timestamp_micros"])
+            elif m_dict.get("delete_from_row"):
+                new_row.delete()
+        async with self.measure_call():
+            table.mutate_rows([new_row])
+        return "OK"
+
+    @client_handler.error_safe
+    async def BulkMutateRows(self, request, **kwargs):
+        from google.cloud.bigtable.deprecated.row import DirectRow
+        table_id = request["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+        rows = []
+        for entry in request.get("entries", []):
+            row_key = entry["row_key"]
+            new_row = DirectRow(row_key, table)
+            for m_dict in entry.get("mutations", {}):
+                if m_dict.get("set_cell"):
+                    details = m_dict["set_cell"]
+                    new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=details.get("timestamp_micros",None))
+                elif m_dict.get("delete_from_column"):
+                    details = m_dict["delete_from_column"]
+                    new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=details["timestamp_micros"])
+                elif m_dict.get("delete_from_family"):
+                    details = m_dict["delete_from_family"]
+                    new_row.delete_cells(details["family_name"], timestamp=details["timestamp_micros"])
+                elif m_dict.get("delete_from_row"):
+                    new_row.delete()
+            rows.append(new_row)
+        async with self.measure_call():
+            table.mutate_rows(rows)
+        return "OK"
+
