@@ -13,8 +13,9 @@
 #
 from __future__ import annotations
 
-from inspect import iscoroutinefunction
 from typing import Callable, Any
+from inspect import iscoroutinefunction
+import time
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.exceptions import RetryExceptionGroup
@@ -37,6 +38,30 @@ def _make_metadata(
         params.append(f"app_profile_id={app_profile_id}")
     params_str = ",".join(params)
     return [("x-goog-request-params", params_str)]
+
+
+def _attempt_timeout_generator(
+    per_request_timeout: float | None, operation_timeout: float
+):
+    """
+    Generator that yields the timeout value for each attempt of a retry loop.
+
+    Will return per_request_timeout until the operation_timeout is approached,
+    at which point it will return the remaining time in the operation_timeout.
+
+    Args:
+      - per_request_timeout: The timeout value to use for each request. If None,
+            the operation_timeout will be used for each request.
+      - operation_timeout: The timeout value to use for the entire operation.
+    Yields:
+      - The timeout value to use for the next request.
+    """
+    per_request_timeout = (
+        per_request_timeout if per_request_timeout is not None else operation_timeout
+    )
+    deadline = operation_timeout + time.monotonic()
+    while True:
+        yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
 
 def _convert_retry_deadline(

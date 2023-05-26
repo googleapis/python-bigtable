@@ -52,6 +52,7 @@ class Test_MutateRowsRetryableAttempt:
     async def test_single_entry_success(self):
         """Test mutating a single entry"""
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+        import itertools
 
         mutation = mock.Mock()
         mutations = {0: mutation}
@@ -59,10 +60,11 @@ class Test_MutateRowsRetryableAttempt:
         errors = {0: []}
         expected_request = {"test": "data"}
         expected_timeout = 9
+        mock_timeout_gen = itertools.repeat(expected_timeout)
         await _mutate_rows_retryable_attempt(
             client,
             expected_request,
-            expected_timeout,
+            mock_timeout_gen,
             mutations,
             errors,
             lambda x: False,
@@ -81,7 +83,9 @@ class Test_MutateRowsRetryableAttempt:
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
 
         client = self._make_mock_client({})
-        await _mutate_rows_retryable_attempt(client, {}, None, {}, {}, lambda x: False)
+        await _mutate_rows_retryable_attempt(
+            client, {}, iter([0]), {}, {}, lambda x: False
+        )
         assert client.mutate_rows.call_count == 1
 
     @pytest.mark.asyncio
@@ -105,7 +109,7 @@ class Test_MutateRowsRetryableAttempt:
             await _mutate_rows_retryable_attempt(
                 client,
                 expected_request,
-                expected_timeout,
+                iter([expected_timeout]),
                 mutations,
                 errors,
                 lambda x: True,
@@ -132,7 +136,7 @@ class Test_MutateRowsRetryableAttempt:
         await _mutate_rows_retryable_attempt(
             client,
             expected_request,
-            expected_timeout,
+            iter([expected_timeout]),
             mutations,
             errors,
             lambda x: False,
@@ -161,7 +165,7 @@ class Test_MutateRowsRetryableAttempt:
         await _mutate_rows_retryable_attempt(
             client,
             {},
-            9,
+            iter([9]),
             mutations,
             errors,
             lambda x: False,
@@ -198,7 +202,7 @@ class Test_MutateRowsRetryableAttempt:
             await _mutate_rows_retryable_attempt(
                 client,
                 {},
-                9,
+                iter([9]),
                 mutations,
                 errors,
                 lambda x: True,

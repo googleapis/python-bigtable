@@ -14,13 +14,14 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Any, TYPE_CHECKING
+from typing import Iterator, Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
 import google.cloud.bigtable.exceptions as bt_exceptions
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
+from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -89,6 +90,10 @@ async def _mutate_rows_operation(
         multiplier=2,
         maximum=60,
     )
+    # use generator to lower per-attempt timeout as we approach operation_timeout deadline
+    attempt_timeout_gen = _attempt_timeout_generator(
+        per_request_timeout, operation_timeout
+    )
     # wrap attempt in retry logic
     retry_wrapped = retry(_mutate_rows_retryable_attempt)
     # convert RetryErrors from retry wrapper into DeadlineExceeded errors
@@ -98,7 +103,7 @@ async def _mutate_rows_operation(
         await deadline_wrapped(
             gapic_client,
             request,
-            per_request_timeout,
+            attempt_timeout_gen,
             mutations_dict,
             error_dict,
             predicate,
@@ -134,7 +139,7 @@ async def _mutate_rows_operation(
 async def _mutate_rows_retryable_attempt(
     gapic_client: "BigtableAsyncClient",
     request: dict[str, Any],
-    per_request_timeout: float | None,
+    timeout_generator: Iterator[float],
     mutation_dict: dict[int, "RowMutationEntry" | None],
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
@@ -181,7 +186,7 @@ async def _mutate_rows_retryable_attempt(
     )
     async for result_list in await gapic_client.mutate_rows(
         new_request,
-        timeout=per_request_timeout,
+        timeout=next(timeout_generator),
         metadata=metadata,
     ):
         for result in result_list.entries:

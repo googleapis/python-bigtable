@@ -20,13 +20,13 @@ from typing import (
     AsyncIterable,
     AsyncIterator,
     AsyncGenerator,
+    Iterator,
     Callable,
     Awaitable,
     Type,
 )
 
 import asyncio
-import time
 from functools import partial
 from grpc.aio import RpcContext
 
@@ -38,6 +38,7 @@ from google.cloud.bigtable.exceptions import _RowSetComplete
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable._helpers import _make_metadata
+from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
 """
 This module provides a set of classes for merging ReadRowsResponse chunks
@@ -88,16 +89,16 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         self._emit_count = 0
         self._request = request
         self.operation_timeout = operation_timeout
-        deadline = operation_timeout + time.monotonic()
+        # use generator to lower per-attempt timeout as we approach operation_timeout deadline
+        attempt_timeout_gen = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
         row_limit = request.get("rows_limit", 0)
-        if per_request_timeout is None:
-            per_request_timeout = operation_timeout
         # lock in paramters for retryable wrapper
         self._partial_retryable = partial(
             self._read_rows_retryable_attempt,
             client.read_rows,
-            per_request_timeout,
-            deadline,
+            attempt_timeout_gen,
             row_limit,
         )
         predicate = retries.if_exception_type(
@@ -146,8 +147,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
     async def _read_rows_retryable_attempt(
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
-        per_request_timeout: float,
-        operation_deadline: float,
+        timeout_generator: Iterator[float],
         total_row_limit: int,
     ) -> AsyncGenerator[Row, None]:
         """
@@ -184,15 +184,13 @@ class _ReadRowsOperation(AsyncIterable[Row]):
                     raise RuntimeError("unexpected state: emit count exceeds row limit")
                 else:
                     self._request["rows_limit"] = new_limit
-        time_to_deadline = operation_deadline - time.monotonic()
-        gapic_timeout = max(0, min(time_to_deadline, per_request_timeout))
         metadata = _make_metadata(
             self._request.get("table_name", None),
             self._request.get("app_profile_id", None),
         )
         new_gapic_stream: RpcContext = await gapic_fn(
             self._request,
-            timeout=gapic_timeout,
+            timeout=next(timeout_generator),
             metadata=metadata,
         )
         try:
