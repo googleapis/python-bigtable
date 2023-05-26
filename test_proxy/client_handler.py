@@ -170,7 +170,8 @@ class TestProxyClientHandler:
             new_mutation = mock.Mock()
             new_mutation._to_dict.return_value = m_dict
             mutations.append(new_mutation)
-        await table.mutate_row(row_key, mutations, **kwargs)
+        async with self.measure_call():
+            await table.mutate_row(row_key, mutations, **kwargs)
         return "OK"
 
     @error_safe
@@ -182,7 +183,7 @@ class TestProxyClientHandler:
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         entry_list = []
-        for entry in request["entries"]:
+        for entry in request.get("entries", []):
             row_key = base64.b64decode(entry["row_key"])
             mutations = []
             for m_dict in entry["mutations"]:
@@ -190,5 +191,6 @@ class TestProxyClientHandler:
                 new_mutation._to_dict.return_value = m_dict
                 mutations.append(new_mutation)
             entry_list.append(RowMutationEntry(row_key, mutations))
-        await table.bulk_mutate_rows(entry_list, **kwargs)
+        async with self.measure_call():
+            await table.bulk_mutate_rows(entry_list, **kwargs)
         return "OK"

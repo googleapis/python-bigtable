@@ -163,7 +163,7 @@ class Benchmark(ABC):
             print(f"New: {new_time:0.3f}s")
             comparison_color = "green" if new_time < baseline_time else "red"
             rich.print(
-                f"[{comparison_color}]Change: {(new_time / baseline_time)*100:0.2f}%"
+                f"[{comparison_color}]Change: {(new_time / (baseline_time+1e-9))*100:0.2f}%"
             )
         return new_time, baseline_time
 

@@ -127,3 +127,28 @@ class ComplexReads(Benchmark):
     async def client_setup(self, proxy_handler):
         request = {"table_name": "projects/project/instances/instance/tables/table"}
         return await proxy_handler.ReadRows(request)
+
+
+class SimpleBulkMutations(Benchmark):
+    """
+    A large number of successful mutations
+    """
+
+    def __init__(
+        self, num_mutations=1e5, num_per_response=100, payload_size=10, *args, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.num_mutations = num_mutations
+        self.payload_size = payload_size
+
+    def server_responses(self, *args, **kwargs):
+        from google.cloud.bigtable_v2.types import MutateRowsResponse
+        sent_num = 0
+        while sent_num < self.num_mutations:
+            entries = [MutateRowsResponse.Entry(index=i) for i in range(self.num_per_response)]
+            yield MutateRowsResponse(entries=entries)
+            sent_num += self.num_per_response
+
+    async def client_setup(self, proxy_handler):
+        request = {"table_name": "projects/project/instances/instance/tables/table"}
+        return await proxy_handler.BulkMutateRows(request)

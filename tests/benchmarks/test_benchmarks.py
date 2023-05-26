@@ -53,6 +53,8 @@ benchmark_instances = [
         cells_per_row=10,
         simulate_latency=0.01,
         purpose="test complex payloads with server delay",
+    benchmarks.SimpleBulkMutations(
+        purpose="test max throughput"
     ),
 ]
 
@@ -84,7 +86,7 @@ async def test_benchmark(test_case: Benchmark, profile):
     # process test results
     assert (
         new_time <= old_time
-    ), f"new handler was {(new_time/old_time)*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
+    ), f"new handler was {(new_time/(old_time+1e-9))*100:0.2f}% the speed of the legacy handler: {new_time:0.2f} > {old_time:0.2f}"
     assert (
         new_time < test_case.max_time
     ), f"new handler is slower than max time: {test_case.max_time}"
