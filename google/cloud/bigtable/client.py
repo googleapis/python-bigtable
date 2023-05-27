@@ -676,7 +676,7 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[RowMutationEntry], None] | None = None,
+        on_success: Callable[[int, RowMutationEntry], None] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -703,7 +703,8 @@ class Table:
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
             - on_success: a callback function that will be called when each mutation
-                entry is confirmed to be applied successfully.
+                entry is confirmed to be applied successfully. Will be passed the
+                index and the entry itself.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -722,9 +723,9 @@ class Table:
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
-            def callback(entry: RowMutationEntry, exc: Exception | None):
+            def callback(idx:int, entry: RowMutationEntry, exc: Exception | None):
                 if exc is None and on_success is not None:
-                    on_success(entry)
+                    on_success(idx, entry)
 
         await _mutate_rows_operation(
             self.client._gapic_client,
