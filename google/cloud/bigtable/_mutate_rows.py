@@ -67,11 +67,6 @@ async def _mutate_rows_operation(
         idx: mut for idx, mut in enumerate(mutation_entries)
     }
 
-    async def updated_callback(idx, entry, exc):
-        mutations_dict[idx] = entry
-        if on_terminal_state is not None:
-            await on_terminal_state(idx, entry, exc)
-
     error_dict: dict[int, list[Exception]] = {idx: [] for idx in mutations_dict.keys()}
 
     predicate = retries.if_exception_type(
@@ -116,7 +111,7 @@ async def _mutate_rows_operation(
             mutations_dict,
             error_dict,
             predicate,
-            updated_callback,
+            on_terminal_state,
         )
     except Exception as exc:
         # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
@@ -155,7 +150,8 @@ async def _mutate_rows_retryable_attempt(
     on_terminal_state: Callable[
         [int, "RowMutationEntry", Exception | None],
         Coroutine[None, None, None],
-    ],
+    ]
+    | None = None,
 ):
     """
     Helper function for managing a single mutate_rows attempt.
@@ -182,6 +178,15 @@ async def _mutate_rows_retryable_attempt(
       - _MutateRowsIncomplete: if one or more retryable mutations remain incomplete at the end of the function
       - GoogleAPICallError: if the server returns an error on the grpc call
     """
+    # update on_terminal_state to remove completed mutations from mutation_dict
+    input_callback = on_terminal_state
+
+    async def on_terminal_patched(idx, entry, exc):
+        mutation_dict.pop(idx)
+        if input_callback is not None:
+            await input_callback(idx, entry, exc)
+
+    on_terminal_state = on_terminal_patched
     # keep map between sub-request indices and global mutation_dict indices
     index_map: dict[int, int] = {}
     request_entries: list[dict[str, Any]] = []
