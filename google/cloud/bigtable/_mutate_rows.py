@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Iterator, Callable, Any, TYPE_CHECKING
+from typing import Iterator, Callable, Any, Awaitable, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
@@ -44,7 +44,9 @@ async def _mutate_rows_operation(
     mutation_entries: list["RowMutationEntry"],
     operation_timeout: float,
     per_request_timeout: float | None,
-    on_terminal_state: Callable[[int, "RowMutationEntry", Exception | None], None]
+    on_terminal_state: Callable[
+        [int, "RowMutationEntry", Exception | None], Awaitable[None]
+    ]
     | None = None,
 ):
     """
@@ -63,7 +65,12 @@ async def _mutate_rows_operation(
     mutations_dict: dict[int, RowMutationEntry | None] = {
         idx: mut for idx, mut in enumerate(mutation_entries)
     }
-    updated_callback = lambda idx, entry, exc: mutations_dict.pop(idx); on_terminal_state(idx, entry, exc)
+
+    async def updated_callback(idx, entry, exc):
+        mutations_dict[idx] = entry
+        if on_terminal_state is not None:
+            await on_terminal_state(idx, entry, exc)
+
     error_dict: dict[int, list[Exception]] = {idx: [] for idx in mutations_dict.keys()}
 
     predicate = retries.if_exception_type(
@@ -144,8 +151,9 @@ async def _mutate_rows_retryable_attempt(
     mutation_dict: dict[int, "RowMutationEntry"],
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
-    on_terminal_state: Callable[[int, "RowMutationEntry", Exception | None], None]
-    | None = None,
+    on_terminal_state: Callable[
+        [int, "RowMutationEntry", Exception | None], Awaitable[None]
+    ],
 ):
     """
     Helper function for managing a single mutate_rows attempt.
@@ -199,7 +207,7 @@ async def _mutate_rows_retryable_attempt(
             if result.status.code == 0:
                 # mutation succeeded
                 error_dict[idx] = []
-                on_terminal_state(idx, entry, None)
+                await on_terminal_state(idx, entry, None)
             else:
                 # mutation failed
                 exc = core_exceptions.from_grpc_status(
@@ -211,7 +219,7 @@ async def _mutate_rows_retryable_attempt(
                 # if mutation is non-idempotent or the error is not retryable,
                 # mark the mutation as terminal
                 if not predicate(exc) or not entry.is_idempotent():
-                    on_terminal_state(idx, entry, exc)
+                    await on_terminal_state(idx, entry, exc)
     # check if attempt succeeded, or needs to be retried
     if mutation_dict:
         # unfinished work; raise exception to trigger retry

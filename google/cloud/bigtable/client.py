@@ -723,7 +723,9 @@ class Table:
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
-            def callback(idx:int, entry: RowMutationEntry, exc: Exception | None):
+            async def callback(
+                idx: int, entry: RowMutationEntry, exc: Exception | None
+            ):
                 if exc is None and on_success is not None:
                     on_success(idx, entry)
 

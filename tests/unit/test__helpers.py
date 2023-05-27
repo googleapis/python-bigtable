@@ -87,6 +87,7 @@ class TestAttemptTimeoutGenerator:
     def test_attempt_timeout_w_sleeps(self):
         """use real sleep values to make sure it matches expectations"""
         from time import sleep
+
         operation_timeout = 1
         generator = _helpers._attempt_timeout_generator(None, operation_timeout)
         expected_value = operation_timeout
@@ -96,6 +97,7 @@ class TestAttemptTimeoutGenerator:
             assert abs(found_value - expected_value) < 0.001
             sleep(sleep_time)
             expected_value -= sleep_time
+
 
 class TestConvertRetryDeadline:
     """
