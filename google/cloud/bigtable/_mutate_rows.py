@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Iterator, Callable, Any, Awaitable, TYPE_CHECKING
+from typing import Iterator, Callable, Any, Coroutine, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
+    from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.mutations import RowMutationEntry
 
 
@@ -45,7 +46,7 @@ async def _mutate_rows_operation(
     operation_timeout: float,
     per_request_timeout: float | None,
     on_terminal_state: Callable[
-        [int, "RowMutationEntry", Exception | None], Awaitable[None]
+        [int, "RowMutationEntry", Exception | None], Coroutine[None, None, None]
     ]
     | None = None,
 ):
@@ -62,7 +63,7 @@ async def _mutate_rows_operation(
       - on_terminal_state: If given, this function will be called as soon as a mutation entry
             reaches a terminal state (success or failure).
     """
-    mutations_dict: dict[int, RowMutationEntry | None] = {
+    mutations_dict: dict[int, RowMutationEntry] = {
         idx: mut for idx, mut in enumerate(mutation_entries)
     }
 
@@ -137,7 +138,7 @@ async def _mutate_rows_operation(
                 )
                 # call on_terminal_state for each unreported failed mutation
                 if on_terminal_state and idx in mutations_dict:
-                    on_terminal_state(entry, cause_exc)
+                    await on_terminal_state(idx, entry, cause_exc)
         if all_errors:
             raise bt_exceptions.MutationsExceptionGroup(
                 all_errors, len(mutation_entries)
@@ -152,7 +153,8 @@ async def _mutate_rows_retryable_attempt(
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
     on_terminal_state: Callable[
-        [int, "RowMutationEntry", Exception | None], Awaitable[None]
+        [int, "RowMutationEntry", Exception | None],
+        Coroutine[None, None, None],
     ],
 ):
     """
@@ -183,23 +185,24 @@ async def _mutate_rows_retryable_attempt(
     # keep map between sub-request indices and global mutation_dict indices
     index_map: dict[int, int] = {}
     request_entries: list[dict[str, Any]] = []
-    for request_idx, global_idx, entry in enumerate(mutation_dict.items()):
-        if entry is not None:
-            index_map[request_idx] = global_idx
-            request_entries.append(entry._to_dict())
+    for request_idx, (global_idx, m) in enumerate(mutation_dict.items()):
+        index_map[request_idx] = global_idx
+        request_entries.append(m._to_dict())
     # make gapic request
     metadata = _make_metadata(table.table_name, table.app_profile_id)
     async for result_list in await gapic_client.mutate_rows(
-        table_name=table.table_name,
-        app_profile_id=table.app_profile_id,
-        entries=request_entries,
+        request={
+            "table_name": table.table_name,
+            "app_profile_id": table.app_profile_id,
+            "entries": request_entries,
+        },
         timeout=next(timeout_generator),
         metadata=metadata,
     ):
         for result in result_list.entries:
             # convert sub-request index to global index
             idx = index_map[result.index]
-            entry = mutation_dict.get(idx, None)
+            entry = mutation_dict[idx] if idx in mutation_dict else None
             exc = None
             if entry is None:
                 # this entry has already reached a terminal state

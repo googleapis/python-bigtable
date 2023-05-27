@@ -15,7 +15,16 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, Set, Callable, TYPE_CHECKING
+from typing import (
+    cast,
+    Any,
+    Optional,
+    Set,
+    Callable,
+    Awaitable,
+    Coroutine,
+    TYPE_CHECKING,
+)
 
 import asyncio
 import grpc
@@ -23,6 +32,7 @@ import time
 import warnings
 import sys
 import random
+from inspect import iscoroutine
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -676,7 +686,8 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[int, RowMutationEntry], None] | None = None,
+        on_success: Callable[[int, RowMutationEntry], None | Awaitable[None]]
+        | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -719,7 +730,9 @@ class Table:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        callback: Callable[[RowMutationEntry, Exception | None], None] | None = None
+        callback: Callable[
+            [int, RowMutationEntry, Exception | None], Coroutine[None, None, None]
+        ] | None = None
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
@@ -727,7 +740,9 @@ class Table:
                 idx: int, entry: RowMutationEntry, exc: Exception | None
             ):
                 if exc is None and on_success is not None:
-                    on_success(idx, entry)
+                    output = on_success(idx, entry)
+                    if iscoroutine(output):
+                        await output
 
         await _mutate_rows_operation(
             self.client._gapic_client,
