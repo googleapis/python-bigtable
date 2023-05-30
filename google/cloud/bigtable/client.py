@@ -517,8 +517,7 @@ class Table:
         self,
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
-        limit: int | None,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = None,
         per_request_timeout: int | float | None = None,
     ) -> list[Row]:
         """
@@ -540,7 +539,7 @@ class Table:
             )
             for query in query_list
         ]
-        results_lists = asyncio.gather(*routine_list)
+        results_lists = await asyncio.gather(*routine_list)
         final_results = list(chain.from_iterable(results_lists))
         return final_results
 
