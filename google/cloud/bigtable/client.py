@@ -526,13 +526,19 @@ class Table:
         Args:
             - query_list: a list of queries to run in parallel
         """
-        kwargs = {
-            "operation_timeout": operation_timeout,
-            "per_request_timeout": per_request_timeout,
-        }
-        routine_list = [self.read_rows(query, **kwargs) for query in query_list]
+        if not query_list:
+            raise ValueError("query_list must contain at least one query")
+        routine_list = [
+            self.read_rows(
+                query,
+                operation_timeout=operation_timeout,
+                per_request_timeout=per_request_timeout,
+            )
+            for query in query_list
+        ]
         results_lists = asyncio.gather(*routine_list)
-        return list(chain.from_iterable(results_lists))
+        final_results = list(chain.from_iterable(results_lists))
+        return final_results
 
     async def row_exists(
         self,
