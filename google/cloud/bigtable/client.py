@@ -37,6 +37,7 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import exceptions as core_exceptions
@@ -182,10 +183,13 @@ class BigtableDataClient(ClientWithProject):
             - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+            "/google.bigtable.v2.Bigtable/PingAndWarm",
+            request_serializer=PingAndWarmRequest.serialize,
         )
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        result = await asyncio.gather(*tasks, return_exceptions=True)
+        # return None in place of empty successful responses
+        return [r or None for r in result]
 
     async def _manage_channel(
         self,
@@ -781,16 +785,17 @@ class Table:
         """
         Called to close the Table instance and release any resources held by it.
         """
+        self._register_instance_task.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
         """
         Implement async context manager protocol
 
-        Register this instance with the client, so that
+        Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        await self.client._register_instance(self.instance_id, self)
+        await self._register_instance_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
