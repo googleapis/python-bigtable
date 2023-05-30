@@ -121,7 +121,9 @@ async def _mutate_rows_operation(
         all_errors = []
         for idx, exc_list in error_dict.items():
             if len(exc_list) == 0:
-                continue
+                raise core_exceptions.ClientError(
+                    f"Mutation {idx} failed with no associated errors"
+                )
             elif len(exc_list) == 1:
                 cause_exc = exc_list[0]
             else:
