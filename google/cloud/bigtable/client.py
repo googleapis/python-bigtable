@@ -530,7 +530,7 @@ class Table:
         This function is intended to be run on the results on a query.shard() call:
 
         ```
-        table_shard_keys = table.sample_keys()
+        table_shard_keys = await table.sample_keys()
         query = ReadRowsQuery(...)
         shard_queries = query.shard(table_shard_keys)
         results = await table.read_rows_sharded(shard_queries)
