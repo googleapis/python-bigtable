@@ -79,9 +79,8 @@ async def _mutate_rows_operation(
         if predicate(exc) and not isinstance(exc, _MutateRowsIncomplete):
             # add this exception to list for each active mutation
             for idx in error_dict.keys():
-                if idx in mutations_dict:
-                    error_dict[idx].append(exc)
-            # remove non-idempotent mutations from mutations_dict, so they are not retriedi
+                error_dict[idx].append(exc)
+            # remove non-idempotent mutations from mutations_dict, so they are not retried
             for idx, mut in list(mutations_dict.items()):
                 if not mut.is_idempotent():
                     mutations_dict.pop(idx)
