@@ -120,18 +120,19 @@ async def _mutate_rows_operation(
         # raise exception detailing incomplete mutations
         all_errors = []
         for idx, exc_list in error_dict.items():
-            if exc_list:
-                if len(exc_list) == 1:
-                    cause_exc = exc_list[0]
-                else:
-                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
-                entry = mutation_entries[idx]
-                all_errors.append(
-                    bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
-                )
-                # call on_terminal_state for each unreported failed mutation
-                if on_terminal_state:
-                    await on_terminal_state(idx, entry, cause_exc)
+            if len(exc_list) == 0:
+                continue
+            elif len(exc_list) == 1:
+                cause_exc = exc_list[0]
+            else:
+                cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
+            entry = mutation_entries[idx]
+            all_errors.append(
+                bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
+            )
+            # call on_terminal_state for each unreported failed mutation
+            if on_terminal_state:
+                await on_terminal_state(idx, entry, cause_exc)
         if all_errors:
             raise bt_exceptions.MutationsExceptionGroup(
                 all_errors, len(mutation_entries)
@@ -142,7 +143,7 @@ async def _mutate_rows_retryable_attempt(
     gapic_client: "BigtableAsyncClient",
     table: "Table",
     timeout_generator: Iterator[float],
-    mutation_dict: dict[int, "RowMutationEntry"],
+    active_dict: dict[int, "RowMutationEntry"],
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
     on_terminal_state: Callable[
@@ -164,7 +165,7 @@ async def _mutate_rows_retryable_attempt(
       - gapic_client: the client to use for the mutate_rows call
       - request: the request to send to the server, populated with table name and app profile id
       - per_request_timeout: the timeout to use for each mutate_rows attempt
-      - mutation_dict: a dictionary tracking unfinalized mutations. At the start of the request,
+      - active_dict: a dictionary tracking unfinalized mutations. At the start of the request,
             all entries are outstanding. As mutations are finalized, they are removed from the dict.
       - error_dict: a dictionary tracking errors associated with each entry index.
             Each retry will append a new error. Successful mutations will remove their index from the dict.
@@ -175,11 +176,14 @@ async def _mutate_rows_retryable_attempt(
       - _MutateRowsIncomplete: if one or more retryable mutations remain incomplete at the end of the function
       - GoogleAPICallError: if the server returns an error on the grpc call
     """
-    # update on_terminal_state to remove completed mutations from mutation_dict
+    # update on_terminal_state to remove finalized mutations from active_dict,
+    # and successful mutations from error_dict
     input_callback = on_terminal_state
 
     async def on_terminal_patched(idx, entry, exc):
-        mutation_dict.pop(idx)
+        active_dict.pop(idx)
+        if exc is None:
+            error_dict.pop(idx)
         if input_callback is not None:
             await input_callback(idx, entry, exc)
 
@@ -187,7 +191,7 @@ async def _mutate_rows_retryable_attempt(
     # keep map between sub-request indices and global mutation_dict indices
     index_map: dict[int, int] = {}
     request_entries: list[dict[str, Any]] = []
-    for request_idx, (global_idx, m) in enumerate(mutation_dict.items()):
+    for request_idx, (global_idx, m) in enumerate(active_dict.items()):
         index_map[request_idx] = global_idx
         request_entries.append(m._to_dict())
     # make gapic request
@@ -204,14 +208,14 @@ async def _mutate_rows_retryable_attempt(
         for result in result_list.entries:
             # convert sub-request index to global index
             idx = index_map[result.index]
-            entry = mutation_dict[idx] if idx in mutation_dict else None
+            if idx not in active_dict:
+                raise core_exceptions.ClientError(
+                    f"Received result for already finalized mutation at index {idx}"
+                )
+            entry = active_dict[idx]
             exc = None
-            if entry is None:
-                # this entry has already reached a terminal state
-                continue
             if result.status.code == 0:
                 # mutation succeeded
-                error_dict.pop(idx)
                 await on_terminal_state(idx, entry, None)
             else:
                 # mutation failed
@@ -226,6 +230,6 @@ async def _mutate_rows_retryable_attempt(
                 if not predicate(exc) or not entry.is_idempotent():
                     await on_terminal_state(idx, entry, exc)
     # check if attempt succeeded, or needs to be retried
-    if mutation_dict:
+    if active_dict:
         # unfinished work; raise exception to trigger retry
         raise _MutateRowsIncomplete()
