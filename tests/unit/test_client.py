@@ -1317,7 +1317,6 @@ class TestReadRows:
 
 
 class TestReadRowsSharded:
-
     def _make_client(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient
 
@@ -1423,4 +1422,91 @@ class TestReadRowsSharded:
 
 
 class TestSampleKeys:
-    pass
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
+        from google.cloud.bigtable_v2.types import SampleRowKeysResponse
+
+        for value in sample_list:
+            yield SampleRowKeysResponse(row_key=value[0], offset_bytes=value[1])
+
+    @pytest.mark.asyncio
+    async def test_sample_keys(self):
+        """
+        Test that method returns the expected key samples
+        """
+        samples = [
+            (b"test_1", 0),
+            (b"test_2", 100),
+            (b"test_3", 200),
+        ]
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream(samples)
+                    result = await table.sample_keys()
+                    assert len(result) == 3
+                    assert all(isinstance(r, tuple) for r in result)
+                    assert all(isinstance(r[0], bytes) for r in result)
+                    assert all(isinstance(r[1], int) for r in result)
+                    assert result[0] == samples[0]
+                    assert result[1] == samples[1]
+                    assert result[2] == samples[2]
+
+    @pytest.mark.asyncio
+    async def test_sample_keys_bad_timeout(self):
+        """
+        should raise error if timeout is negative
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as e:
+                    await table.sample_keys(operation_timeout=-1)
+                assert "operation_timeout must be greater than 0" in str(e.value)
+
+    @pytest.mark.asyncio
+    async def test_sample_keys_default_timeout(self):
+        """Should fallback to using table default operation_timeout"""
+        expected_timeout = 99
+        async with self._make_client() as client:
+            async with client.get_table(
+                "i", "t", default_operation_timeout=expected_timeout
+            ) as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream([])
+                    result = await table.sample_keys()
+                    _, kwargs = sample_row_keys.call_args
+                    assert kwargs["timeout"] == expected_timeout
+                    assert result == []
+
+    @pytest.mark.asyncio
+    async def test_sample_keys_gapic_params(self):
+        """
+        make sure arguments are propagated to gapic call as expected
+        """
+        expected_timeout = 10
+        expected_profile = "test1"
+        instance = "instance_name"
+        table_id = "my_table"
+        async with self._make_client() as client:
+            async with client.get_table(
+                instance, table_id, app_profile_id=expected_profile
+            ) as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream([])
+                    await table.sample_keys(operation_timeout=expected_timeout)
+                    args, kwargs = sample_row_keys.call_args
+                    assert len(args) == 0
+                    assert len(kwargs) == 3
+                    assert kwargs["timeout"] == expected_timeout
+                    assert kwargs["app_profile_id"] == expected_profile
+                    assert kwargs["table_name"] == table.table_name

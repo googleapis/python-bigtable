@@ -20,6 +20,7 @@ from typing import (
     Any,
     Optional,
     Set,
+    AsyncIterable,
     TYPE_CHECKING,
 )
 
@@ -40,8 +41,6 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-from google.api_core import exceptions as core_exceptions
-from google.api_core import retry_async as retries
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
 
 import google.auth.credentials
@@ -60,6 +59,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+    from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
 
 class BigtableDataClient(ClientWithProject):
@@ -525,8 +525,7 @@ class Table:
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
-        List of queries must be non-overlapping. Results will be returned in the order
-        of the input queries.
+        Results will be returned in the order of the input queries.
 
         This function is intended to be run on the results on a query.shard() call:
 
@@ -585,8 +584,7 @@ class Table:
     async def sample_keys(
         self,
         *,
-        operation_timeout: int | float | None = 60,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: int | float | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -607,36 +605,19 @@ class Table:
                 exceptions from any retries that failed
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
-        retry = retries.AsyncRetry(
-            predicate=retries.if_exception_type(
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
-                core_exceptions.Aborted,
-            ),
+
+        # TODO: add metadata
+
+        result_generator: AsyncIterable["SampleRowKeysResponse"]
+        result_generator = await self.client._gapic_client.sample_row_keys(
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
         )
-
-        async def _get_rows():
-            gen = await self.client._gapic_client.sample_row_keys(
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                timeout=per_request_timeout,
-            )
-            return [(s.row_key, s.offset_bytes) async for s in gen]
-
-        wrapped_call = retry(_get_rows)
-        return wrapped_call()
+        return [(s.row_key, s.offset_bytes) async for s in result_generator]
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
         """
