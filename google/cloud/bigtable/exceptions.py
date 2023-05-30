@@ -17,11 +17,14 @@ from __future__ import annotations
 import sys
 from inspect import iscoroutinefunction
 
-from typing import Callable, Any
+from typing import Callable, Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
 
 is_311_plus = sys.version_info >= (3, 11)
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
 
 def _convert_retry_deadline(
@@ -109,9 +112,23 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         if is_311_plus:
             super().__init__(message, excs)
         else:
-            self.exceptions = excs
-            revised_message = f"{message} ({len(excs)} sub-exceptions)"
-            super().__init__(revised_message)
+            if len(excs) == 0:
+                raise ValueError("exceptions must be a non-empty sequence")
+            self.exceptions = tuple(excs)
+            super().__init__(message)
+
+    def __new__(cls, message, excs):
+        if is_311_plus:
+            return super().__new__(cls, message, excs)
+        else:
+            return super().__new__(cls)
+
+    def __str__(self):
+        """
+        String representation doesn't display sub-exceptions. Subexceptions are
+        described in message
+        """
+        return self.args[0]
 
 
 class MutationsExceptionGroup(BigtableExceptionGroup):
@@ -126,3 +143,39 @@ class RetryExceptionGroup(BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
     pass
+
+
+class ShardedReadRowsExceptionGroup(BigtableExceptionGroup):
+    """
+    Represents one or more exceptions that occur during a sharded read rows operation
+    """
+
+    @staticmethod
+    def _format_message(excs: list[FailedQueryShardError], total_queries: int):
+        query_str = "query" if total_queries == 1 else "queries"
+        plural_str = "" if len(excs) == 1 else "s"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_queries} {query_str} attempted)"
+
+    def __init__(self, excs: list[FailedQueryShardError], total_queries: int):
+        super().__init__(self._format_message(excs, total_queries), excs)
+
+    def __new__(cls, excs: list[FailedQueryShardError], total_queries: int):
+        return super().__new__(cls, cls._format_message(excs, total_queries), excs)
+
+
+class FailedQueryShardError(Exception):
+    """
+    Represents an individual failed query in a sharded read rows operation
+    """
+
+    def __init__(
+        self,
+        failed_index: int,
+        failed_query: "ReadRowsQuery" | dict[str, Any],
+        cause: Exception,
+    ):
+        message = f"Failed query at index {failed_index} with cause: {cause!r}"
+        super().__init__(message)
+        self.index = failed_index
+        self.query = failed_query
+        self.__cause__ = cause

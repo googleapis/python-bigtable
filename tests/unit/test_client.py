@@ -1316,17 +1316,6 @@ class TestReadRows:
 
 
 class TestReadRowsSharded(TestReadRows):
-    """
-    read_rows_sharded inherits all tests for standard read_rows
-    """
-
-    async def execute_fn(self, table, *args, **kwargs):
-        if "query" in kwargs:
-            query = kwargs.pop("query")
-        else:
-            query = args[0]
-        return await table.read_rows_sharded([query], **kwargs)
-
     @pytest.mark.asyncio
     async def test_read_rows_sharded_empty_query(self):
         async with self._make_client() as client:
@@ -1334,6 +1323,72 @@ class TestReadRowsSharded(TestReadRows):
                 with pytest.raises(ValueError) as exc:
                     await table.read_rows_sharded([])
                 assert "query_list must contain at least one query" in str(exc.value)
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_multiple_queries(self):
+        """
+        Test with multiple queries. Should return results from both
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: self._make_gapic_stream(
+                            [
+                                self._make_chunk(row_key=k)
+                                for k in args[0]["rows"]["row_keys"]
+                            ]
+                        )
+                    )
+                    query_1 = ReadRowsQuery(b"test_1")
+                    query_2 = ReadRowsQuery(b"test_2")
+                    result = await table.read_rows_sharded([query_1, query_2])
+                    assert len(result) == 2
+                    assert result[0].row_key == b"test_1"
+                    assert result[1].row_key == b"test_2"
+
+    @pytest.mark.parametrize("n_queries", [1, 2, 5, 20])
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_multiple_queries_calls(self, n_queries):
+        """
+        Each query should trigger a separate read_rows call
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    query_list = [ReadRowsQuery() for _ in range(n_queries)]
+                    await table.read_rows_sharded(query_list)
+                    assert read_rows.call_count == n_queries
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_errors(self):
+        """
+        Errors should be exposed as ShardedReadRowsExceptionGroups
+        """
+        from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.exceptions import FailedQueryShardError
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = RuntimeError("mock error")
+                    query_1 = ReadRowsQuery(b"test_1")
+                    query_2 = ReadRowsQuery(b"test_2")
+                    with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
+                        await table.read_rows_sharded([query_1, query_2])
+                    exc_group = exc.value
+                    assert isinstance(exc_group, ShardedReadRowsExceptionGroup)
+                    assert len(exc.value.exceptions) == 2
+                    assert isinstance(exc.value.exceptions[0], FailedQueryShardError)
+                    assert isinstance(exc.value.exceptions[0].__cause__, RuntimeError)
+                    assert exc.value.exceptions[0].index == 0
+                    assert exc.value.exceptions[0].query == query_1
+                    assert isinstance(exc.value.exceptions[1], FailedQueryShardError)
+                    assert isinstance(exc.value.exceptions[1].__cause__, RuntimeError)
+                    assert exc.value.exceptions[1].index == 1
+                    assert exc.value.exceptions[1].query == query_2
 
 
 class TestSampleKeys:

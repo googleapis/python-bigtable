@@ -50,6 +50,9 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
+from google.cloud.bigtable.exceptions import FailedQueryShardError
+from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import Mutation, BulkMutationsEntry
@@ -521,13 +524,24 @@ class Table:
         per_request_timeout: int | float | None = None,
     ) -> list[Row]:
         """
-        Runs a sharded query in parallel
+        Runs a sharded query in parallel, then return the results in a single list.
+        List of queries must be non-overlapping. Results will be returned in the order
+        of the input queries.
 
-        Each query in query list will be run concurrently, with results yielded as they are ready
-        yielded results may be out of order
+        This function is intended to be run on the results on a query.shard() call:
+
+        ```
+        table_shard_keys = table.sample_keys()
+        query = ReadRowsQuery(...)
+        shard_queries = query.shard(table_shard_keys)
+        results = await table.read_rows_sharded(shard_queries)
+        ```
 
         Args:
             - query_list: a list of queries to run in parallel
+        Raises:
+            - ShardedReadRowsExceptionGroup: if any of the queries failed
+            - ValueError: if the query_list is empty
         """
         if not query_list:
             raise ValueError("query_list must contain at least one query")
@@ -539,9 +553,17 @@ class Table:
             )
             for query in query_list
         ]
-        results_lists = await asyncio.gather(*routine_list)
-        final_results = list(chain.from_iterable(results_lists))
-        return final_results
+        results_lists = await asyncio.gather(*routine_list, return_exceptions=True)
+        exception_list = [
+            FailedQueryShardError(idx, query_list[idx], e)
+            for idx, e in enumerate(results_lists)
+            if isinstance(e, Exception)
+        ]
+        if exception_list:
+            # if any sub-request failed, raise an exception instead of returning results
+            raise ShardedReadRowsExceptionGroup(exception_list, len(query_list))
+        combined_list = list(chain.from_iterable(results_lists))
+        return combined_list
 
     async def row_exists(
         self,
