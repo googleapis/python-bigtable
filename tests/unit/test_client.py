@@ -1390,6 +1390,30 @@ class TestReadRowsSharded(TestReadRows):
                     assert exc.value.exceptions[1].index == 1
                     assert exc.value.exceptions[1].query == query_2
 
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_concurrent(self):
+        """
+        Ensure sharded requests are concurrent
+        """
+        import time
+
+        async def mock_call(*args, **kwargs):
+            await asyncio.sleep(0.1)
+            return [mock.Mock()]
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(10)]
+                    start_time = time.monotonic()
+                    result = await table.read_rows_sharded(queries)
+                    call_time = time.monotonic() - start_time
+                    assert read_rows.call_count == 10
+                    assert len(result) == 10
+                    # if run in sequence, we would expect this to take 1 second
+                    assert call_time < 0.2
+
 
 class TestSampleKeys:
     pass
