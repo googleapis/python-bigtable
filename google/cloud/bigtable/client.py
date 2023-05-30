@@ -21,7 +21,6 @@ from typing import (
     Optional,
     Set,
     Callable,
-    Awaitable,
     Coroutine,
     TYPE_CHECKING,
 )
@@ -686,7 +685,9 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[int, RowMutationEntry], None | Awaitable[None]]
+        on_success: Callable[
+            [int, RowMutationEntry], None | Coroutine[None, None, None]
+        ]
         | None = None,
     ):
         """
@@ -731,15 +732,15 @@ class Table:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
         callback: Callable[
-            [int, RowMutationEntry, Exception | None], Coroutine[None, None, None]
+            [int, RowMutationEntry, list[Exception] | None], Coroutine[None, None, None]
         ] | None = None
         if on_success is not None:
             # convert on_terminal_state callback to callback for successful results only
             # failed results will be rasied as exceptions
             async def callback(
-                idx: int, entry: RowMutationEntry, exc: Exception | None
+                idx: int, entry: RowMutationEntry, excs: list[Exception] | None
             ):
-                if exc is None and on_success is not None:
+                if excs is None and on_success is not None:
                     output = on_success(idx, entry)
                     if iscoroutine(output):
                         await output

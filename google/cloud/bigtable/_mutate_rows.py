@@ -46,7 +46,7 @@ async def _mutate_rows_operation(
     operation_timeout: float,
     per_request_timeout: float | None,
     on_terminal_state: Callable[
-        [int, "RowMutationEntry", Exception | None], Coroutine[None, None, None]
+        [int, "RowMutationEntry", list[Exception] | None], Coroutine[None, None, None]
     ]
     | None = None,
 ):
@@ -132,7 +132,7 @@ async def _mutate_rows_operation(
             )
             # call on_terminal_state for each unreported failed mutation
             if on_terminal_state:
-                await on_terminal_state(idx, entry, cause_exc)
+                await on_terminal_state(idx, entry, exc_list)
         if all_errors:
             raise bt_exceptions.MutationsExceptionGroup(
                 all_errors, len(mutation_entries)
@@ -147,7 +147,7 @@ async def _mutate_rows_retryable_attempt(
     error_dict: dict[int, list[Exception]],
     predicate: Callable[[Exception], bool],
     on_terminal_state: Callable[
-        [int, "RowMutationEntry", Exception | None],
+        [int, "RowMutationEntry", list[Exception] | None],
         Coroutine[None, None, None],
     ]
     | None = None,
@@ -180,12 +180,14 @@ async def _mutate_rows_retryable_attempt(
     # and successful mutations from error_dict
     input_callback = on_terminal_state
 
-    async def on_terminal_patched(idx, entry, exc):
+    async def on_terminal_patched(
+        idx: int, entry: "RowMutationEntry", exc_list: list[Exception] | None
+    ):
         active_dict.pop(idx)
-        if exc is None:
+        if exc_list is None:
             error_dict.pop(idx)
         if input_callback is not None:
-            await input_callback(idx, entry, exc)
+            await input_callback(idx, entry, exc_list)
 
     on_terminal_state = on_terminal_patched
     # keep map between sub-request indices and global mutation_dict indices
@@ -228,7 +230,7 @@ async def _mutate_rows_retryable_attempt(
                 # if mutation is non-idempotent or the error is not retryable,
                 # mark the mutation as terminal
                 if not predicate(exc) or not entry.is_idempotent():
-                    await on_terminal_state(idx, entry, exc)
+                    await on_terminal_state(idx, entry, error_dict[idx])
     # check if attempt succeeded, or needs to be retried
     if active_dict:
         # unfinished work; raise exception to trigger retry

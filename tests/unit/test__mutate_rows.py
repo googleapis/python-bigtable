@@ -184,7 +184,9 @@ class Test_MutateRowsRetryableAttempt:
         assert call_args[0][0][2] is None
         assert call_args[1][0][0] == 1  # index
         assert call_args[1][0][1] == failure_mutation
-        assert call_args[1][0][2].grpc_status_code == 300
+        error_list = call_args[1][0][2]
+        assert len(error_list) == 1
+        assert error_list[0].grpc_status_code == 300
         assert call_args[2][0][0] == 2  # index
         assert call_args[2][0][1] == success_mutation_2
         assert call_args[2][0][2] is None
