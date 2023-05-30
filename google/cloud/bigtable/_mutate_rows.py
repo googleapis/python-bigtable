@@ -114,10 +114,9 @@ async def _mutate_rows_operation(
             on_terminal_state,
         )
     except Exception as exc:
-        # exceptions raised by retryable are added to the list of exceptions for all unprocessed mutations
-        for idx in error_dict.keys():
-            if idx in mutations_dict:
-                error_dict[idx].append(exc)
+        # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
+        for error_list in error_dict.values():
+            error_list.append(exc)
     finally:
         # raise exception detailing incomplete mutations
         all_errors = []
@@ -132,7 +131,7 @@ async def _mutate_rows_operation(
                     bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
                 )
                 # call on_terminal_state for each unreported failed mutation
-                if on_terminal_state and idx in mutations_dict:
+                if on_terminal_state:
                     await on_terminal_state(idx, entry, cause_exc)
         if all_errors:
             raise bt_exceptions.MutationsExceptionGroup(
@@ -166,11 +165,10 @@ async def _mutate_rows_retryable_attempt(
       - gapic_client: the client to use for the mutate_rows call
       - request: the request to send to the server, populated with table name and app profile id
       - per_request_timeout: the timeout to use for each mutate_rows attempt
-      - mutation_dict: a dictionary tracking which entries are outstanding
-            (stored as RowMutationEntry), and which have reached a terminal state (stored as None).
-            At the start of the request, all entries are outstanding.
+      - mutation_dict: a dictionary tracking unfinalized mutations. At the start of the request,
+            all entries are outstanding. As mutations are finalized, they are removed from the dict.
       - error_dict: a dictionary tracking errors associated with each entry index.
-            Each retry will append a new error. Successful mutations will clear the error list.
+            Each retry will append a new error. Successful mutations will remove their index from the dict.
       - predicate: a function that takes an exception and returns True if the exception is retryable.
       - on_terminal_state: If given, this function will be called as soon as a mutation entry
             reaches a terminal state (success or failure).
@@ -214,7 +212,7 @@ async def _mutate_rows_retryable_attempt(
                 continue
             if result.status.code == 0:
                 # mutation succeeded
-                error_dict[idx] = []
+                error_dict.pop(idx)
                 await on_terminal_state(idx, entry, None)
             else:
                 # mutation failed

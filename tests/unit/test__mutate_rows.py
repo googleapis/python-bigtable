@@ -71,7 +71,7 @@ class Test_MutateRowsRetryableAttempt:
             lambda x: False,
         )
         assert len(mutations) == 0
-        assert errors[0] == []
+        assert 0 not in errors
         assert client.mutate_rows.call_count == 1
         _, kwargs = client.mutate_rows.call_args
         assert kwargs["timeout"] == expected_timeout
@@ -119,10 +119,10 @@ class Test_MutateRowsRetryableAttempt:
                 lambda x: True,
             )
         assert mutations == {1: failure_mutation}
-        assert errors[0] == []
+        assert 0 not in errors
         assert len(errors[1]) == 1
         assert errors[1][0].grpc_status_code == 300
-        assert errors[2] == []
+        assert 2 not in errors
 
     @pytest.mark.asyncio
     async def test_partial_success_non_retryable(self):
@@ -146,10 +146,10 @@ class Test_MutateRowsRetryableAttempt:
             lambda x: False,
         )
         assert len(mutations) == 0
-        assert errors[0] == []
+        assert 0 not in errors
         assert len(errors[1]) == 1
         assert errors[1][0].grpc_status_code == 300
-        assert errors[2] == []
+        assert 2 not in errors
 
     @pytest.mark.asyncio
     async def test_on_terminal_state_no_retries(self):
