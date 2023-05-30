@@ -158,6 +158,64 @@ class TestRowRange:
             assert found_end.key == expected_end
             assert found_end.is_inclusive == end_is_inclusive
 
+    @pytest.mark.parametrize(
+        "dict_repr",
+        [
+            {"start_key_closed": "test_row", "end_key_open": "test_row2"},
+            {"start_key_closed": b"test_row", "end_key_open": b"test_row2"},
+            {"start_key_open": "test_row", "end_key_closed": "test_row2"},
+            {"start_key_open": b"a"},
+            {"end_key_closed": b"b"},
+            {"start_key_closed": "a"},
+            {"end_key_open": b"b"},
+            {},
+        ],
+    )
+    def test__from_points(self, dict_repr):
+        from google.cloud.bigtable.read_rows_query import RowRange
+
+        row_range_from_dict = RowRange._from_dict(dict_repr)
+        row_range_from_points = RowRange._from_points(
+            row_range_from_dict.start, row_range_from_dict.end
+        )
+        assert row_range_from_points._to_dict() == row_range_from_dict._to_dict()
+
+    @pytest.mark.parametrize(
+        "first_dict,second_dict,should_match",
+        [
+            (
+                {"start_key_closed": "a", "end_key_open": "b"},
+                {"start_key_closed": "a", "end_key_open": "b"},
+                True,
+            ),
+            (
+                {"start_key_closed": "a", "end_key_open": "b"},
+                {"start_key_closed": "a", "end_key_open": "c"},
+                False,
+            ),
+            (
+                {"start_key_closed": "a", "end_key_open": "b"},
+                {"start_key_closed": "a", "end_key_closed": "b"},
+                False,
+            ),
+            (
+                {"start_key_closed": b"a", "end_key_open": b"b"},
+                {"start_key_closed": "a", "end_key_open": "b"},
+                True,
+            ),
+            ({}, {}, True),
+            ({"start_key_closed": "a"}, {}, False),
+            ({"start_key_closed": "a"}, {"start_key_closed": "a"}, True),
+            ({"start_key_closed": "a"}, {"start_key_open": "a"}, False),
+        ],
+    )
+    def test___hash__(self, first_dict, second_dict, should_match):
+        from google.cloud.bigtable.read_rows_query import RowRange
+
+        row_range1 = RowRange._from_dict(first_dict)
+        row_range2 = RowRange._from_dict(second_dict)
+        assert (hash(row_range1) == hash(row_range2)) == should_match
+
 
 class TestReadRowsQuery:
     @staticmethod
@@ -520,3 +578,47 @@ class TestReadRowsQuery:
         assert sharded_queries[1] == self._parse_query_string(
             "7_row_key_1,[8_range_1_start-9_range_1_end)"
         )
+
+    @pytest.mark.parametrize(
+        "first_args,second_args,expected",
+        [
+            ((), (), True),
+            ((), ("a",), False),
+            (("a",), (), False),
+            (("a",), ("a",), True),
+            (("a",), (b"a",), True),
+            (("a",), ("b",), False),
+            (("a",), ("a", ["b"]), False),
+            (("a", ["b"]), ("a", ["b"]), True),
+            (("a", ["b"]), ("a", ["b", "c"]), False),
+            (("a", ["b", "c"]), ("a", [b"b", "c"]), True),
+            (("a", ["b", "c"], 1), ("a", ["b", b"c"], 1), True),
+            (("a", ["b"], 1), ("a", ["b"], 2), False),
+            (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1, {"a": "b"}), True),
+            (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1), False),
+        ],
+    )
+    def test___eq__(self, first_args, second_args, expected):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.read_rows_query import RowRange
+
+        # replace row_range placeholders with a RowRange object
+        if len(first_args) > 1:
+            first_args = list(first_args)
+            first_args[1] = [RowRange(c) for c in first_args[1]]
+        if len(second_args) > 1:
+            second_args = list(second_args)
+            second_args[1] = [RowRange(c) for c in second_args[1]]
+        first = ReadRowsQuery(*first_args)
+        second = ReadRowsQuery(*second_args)
+        assert (first == second) == expected
+
+    def test___repr__(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        instance = self._make_one(row_keys=["a", "b"], row_filter={}, limit=10)
+        # should be able to recreate the instance from the repr
+        repr_str = repr(instance)
+        recreated = eval(repr_str)
+        assert isinstance(recreated, ReadRowsQuery)
+        assert recreated == instance

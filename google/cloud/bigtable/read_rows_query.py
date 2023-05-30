@@ -115,19 +115,6 @@ class RowRange:
             kwargs["end_is_inclusive"] = end.is_inclusive
         return cls(**kwargs)
 
-    def __str__(self) -> str:
-        if self.start is None:
-            start_str = "-inf"
-        else:
-            start_char = "[" if self.start.is_inclusive else "("
-            start_str = f"{start_char}{self.start.key!r}"
-        if self.end is None:
-            end_str = "inf"
-        else:
-            end_char = "]" if self.end.is_inclusive else ")"
-            end_str = f"{end_char}{self.end.key!r}"
-        return f"{start_str}, {end_str}"
-
 
 class ReadRowsQuery:
     """
@@ -352,4 +339,4 @@ class ReadRowsQuery:
         )
 
     def __repr__(self):
-        return f"ReadRowsQuery(row_keys={self.row_keys}, row_ranges={self.row_ranges}, filter={self.filter}, limit={self.limit})"
+        return f"ReadRowsQuery(row_keys={list(self.row_keys)}, row_ranges={list(self.row_ranges)}, row_filter={self.filter}, limit={self.limit})"
