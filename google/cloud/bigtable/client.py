@@ -511,15 +511,14 @@ class Table:
         Returns:
             - the individual row requested
         """
-        if not isinstance(row_key, bytes) and not isinstance(row_key, str):
-            raise TypeError("row_key must be bytes or string")
-        kwargs = {
-            "operation_timeout": operation_timeout,
-            "per_request_timeout": per_request_timeout,
-        }
-        row_key = row_key if isinstance(row_key, bytes) else row_key.encode()
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
         query = ReadRowsQuery(row_keys=row_key, limit=1)
-        results = await self.read_rows(query, **kwargs)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
         if len(results) == 0:
             raise RowNotFound(f"Row {row_key!r} not found")
         return results[0]
@@ -558,17 +557,17 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
-        if not isinstance(row_key, bytes) and not isinstance(row_key, str):
-            raise TypeError("row_key must be bytes or string")
-        kwargs = {
-            "operation_timeout": operation_timeout,
-            "per_request_timeout": per_request_timeout,
-        }
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
         strip_filter = StripValueTransformerFilter(flag=True)
         limit_filter = CellsRowLimitFilter(1)
         chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
         query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
-        results = await self.read_rows(query, **kwargs)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
         return len(results) > 0
 
     async def sample_keys(

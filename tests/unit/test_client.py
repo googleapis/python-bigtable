@@ -1358,9 +1358,9 @@ class TestReadRows:
         """Should raise error when passed None"""
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
-            with pytest.raises(TypeError) as e:
+            with pytest.raises(ValueError) as e:
                 await table.read_row(input_row)
-                assert "row_key must be bytes or string" in e
+                assert "must be string or bytes" in e
 
     @pytest.mark.parametrize(
         "return_value,expected_result",
@@ -1412,6 +1412,6 @@ class TestReadRows:
         """Should raise error when passed None"""
         async with self._make_client() as client:
             table = client.get_table("instance", "table")
-            with pytest.raises(TypeError) as e:
+            with pytest.raises(ValueError) as e:
                 await table.row_exists(input_row)
-                assert "row_key must be bytes or string" in e
+                assert "must be string or butes" in e
