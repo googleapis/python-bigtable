@@ -878,7 +878,8 @@ class TestReadRows:
             )
         )
 
-    def _make_chunk(self, *args, **kwargs):
+    @staticmethod
+    def _make_chunk(*args, **kwargs):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
         kwargs["row_key"] = kwargs.get("row_key", b"row_key")
@@ -889,8 +890,8 @@ class TestReadRows:
 
         return ReadRowsResponse.CellChunk(*args, **kwargs)
 
+    @staticmethod
     async def _make_gapic_stream(
-        self,
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
         sleep_time=0,
     ):
@@ -1315,7 +1316,13 @@ class TestReadRows:
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
 
-class TestReadRowsSharded(TestReadRows):
+class TestReadRowsSharded:
+
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
     @pytest.mark.asyncio
     async def test_read_rows_sharded_empty_query(self):
         async with self._make_client() as client:
@@ -1335,9 +1342,9 @@ class TestReadRowsSharded(TestReadRows):
                     table.client._gapic_client, "read_rows"
                 ) as read_rows:
                     read_rows.side_effect = (
-                        lambda *args, **kwargs: self._make_gapic_stream(
+                        lambda *args, **kwargs: TestReadRows._make_gapic_stream(
                             [
-                                self._make_chunk(row_key=k)
+                                TestReadRows._make_chunk(row_key=k)
                                 for k in args[0]["rows"]["row_keys"]
                             ]
                         )
