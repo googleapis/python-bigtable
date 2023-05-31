@@ -689,14 +689,11 @@ class TestMutationsBatcher:
             assert mutate_rows.await_count == 1
             args, _ = mutate_rows.call_args
             assert args[0] == table.client._gapic_client
+            assert args[1] == table
             assert args[2] == batch
             assert args[3] == 17
             assert args[4] == 13
             assert args[5] == instance._flow_control.remove_from_flow
-            request = args[1]
-            assert request["table_name"] == "test-table"
-            assert request["app_profile_id"] == "test-app-profile"
-            assert len(request.keys()) == 2
             assert result == []
 
     @pytest.mark.asyncio

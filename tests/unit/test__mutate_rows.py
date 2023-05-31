@@ -28,7 +28,8 @@ except ImportError:  # pragma: NO COVER
 
 class Test_MutateRowsRetryableAttempt:
     async def _mock_stream(self, mutation_dict, error_dict):
-        for idx, entry in mutation_dict.items():
+        items = list(mutation_dict.items())
+        for idx, entry in items:
             code = error_dict.get(idx, 0)
             yield MutateRowsResponse(
                 entries=[
@@ -52,28 +53,32 @@ class Test_MutateRowsRetryableAttempt:
     async def test_single_entry_success(self):
         """Test mutating a single entry"""
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
+        import itertools
 
         mutation = mock.Mock()
         mutations = {0: mutation}
         client = self._make_mock_client(mutations)
         errors = {0: []}
-        expected_request = {"test": "data"}
+        expected_table = mock.Mock()
         expected_timeout = 9
+        mock_timeout_gen = itertools.repeat(expected_timeout)
         await _mutate_rows_retryable_attempt(
             client,
-            expected_request,
-            expected_timeout,
+            expected_table,
+            mock_timeout_gen,
             mutations,
             errors,
             lambda x: False,
         )
-        assert mutations[0] is None
-        assert errors[0] == []
+        assert len(mutations) == 0
+        assert 0 not in errors
         assert client.mutate_rows.call_count == 1
-        args, kwargs = client.mutate_rows.call_args
+        _, kwargs = client.mutate_rows.call_args
         assert kwargs["timeout"] == expected_timeout
-        assert args[0]["test"] == "data"
-        assert args[0]["entries"] == [mutation._to_dict()]
+        request = kwargs["request"]
+        assert request["table_name"] == expected_table.table_name
+        assert request["app_profile_id"] == expected_table.app_profile_id
+        assert request["entries"] == [mutation._to_dict()]
 
     @pytest.mark.asyncio
     async def test_empty_request(self):
@@ -81,7 +86,10 @@ class Test_MutateRowsRetryableAttempt:
         from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
 
         client = self._make_mock_client({})
-        await _mutate_rows_retryable_attempt(client, {}, None, {}, {}, lambda x: False)
+        expected_table = mock.Mock()
+        await _mutate_rows_retryable_attempt(
+            client, expected_table, iter([0]), {}, {}, lambda x: False
+        )
         assert client.mutate_rows.call_count == 1
 
     @pytest.mark.asyncio
@@ -99,22 +107,22 @@ class Test_MutateRowsRetryableAttempt:
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
         # raise retryable error 3 times, then raise non-retryable error
-        expected_request = {}
+        expected_table = mock.Mock()
         expected_timeout = 9
         with pytest.raises(_MutateRowsIncomplete):
             await _mutate_rows_retryable_attempt(
                 client,
-                expected_request,
-                expected_timeout,
+                expected_table,
+                iter([expected_timeout]),
                 mutations,
                 errors,
                 lambda x: True,
             )
-        assert mutations == {0: None, 1: failure_mutation, 2: None}
-        assert errors[0] == []
+        assert mutations == {1: failure_mutation}
+        assert 0 not in errors
         assert len(errors[1]) == 1
         assert errors[1][0].grpc_status_code == 300
-        assert errors[2] == []
+        assert 2 not in errors
 
     @pytest.mark.asyncio
     async def test_partial_success_non_retryable(self):
@@ -127,21 +135,21 @@ class Test_MutateRowsRetryableAttempt:
         mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
-        expected_request = {}
         expected_timeout = 9
+        expected_table = mock.Mock()
         await _mutate_rows_retryable_attempt(
             client,
-            expected_request,
-            expected_timeout,
+            expected_table,
+            iter([expected_timeout]),
             mutations,
             errors,
             lambda x: False,
         )
-        assert mutations == {0: None, 1: None, 2: None}
-        assert errors[0] == []
+        assert len(mutations) == 0
+        assert 0 not in errors
         assert len(errors[1]) == 1
         assert errors[1][0].grpc_status_code == 300
-        assert errors[2] == []
+        assert 2 not in errors
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("is_coroutine_fn", [True, False])
@@ -155,31 +163,34 @@ class Test_MutateRowsRetryableAttempt:
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
         mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
-        callback = mock.Mock()
-        if is_coroutine_fn:
-            callback.side_effect = AsyncMock()
+        callback = AsyncMock()
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
+        expected_table = mock.Mock()
         # raise retryable error 3 times, then raise non-retryable error
         await _mutate_rows_retryable_attempt(
             client,
-            {},
-            9,
+            expected_table,
+            iter([9]),
             mutations,
             errors,
             lambda x: False,
             callback,
         )
         assert callback.call_count == 3
-        if is_coroutine_fn:
-            assert callback.side_effect.await_count == 3
+        assert callback.await_count == 3
         call_args = callback.call_args_list
         assert call_args[0][0][0] == success_mutation
-        assert call_args[0][0][1] is None
+        assert call_args[0][0][1] == 0  # index
+        assert call_args[0][0][2] is None
         assert call_args[1][0][0] == failure_mutation
-        assert call_args[1][0][1].grpc_status_code == 300
+        assert call_args[1][0][1] == 1  # index
+        error_list = call_args[1][0][2]
+        assert len(error_list) == 1
+        assert error_list[0].grpc_status_code == 300
         assert call_args[2][0][0] == success_mutation_2
-        assert call_args[2][0][1] is None
+        assert call_args[2][0][1] == 2  # index
+        assert call_args[2][0][2] is None
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("is_coroutine_fn", [True, False])
@@ -196,27 +207,27 @@ class Test_MutateRowsRetryableAttempt:
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
         mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
-        callback = mock.Mock()
-        if is_coroutine_fn:
-            callback.side_effect = AsyncMock()
+        callback = AsyncMock()
         errors = {0: [], 1: [], 2: []}
         client = self._make_mock_client(mutations, error_dict={1: 300})
+        expected_table = mock.Mock()
         # raise retryable error 3 times, then raise non-retryable error
         with pytest.raises(_MutateRowsIncomplete):
             await _mutate_rows_retryable_attempt(
                 client,
-                {},
-                9,
+                expected_table,
+                iter([9]),
                 mutations,
                 errors,
                 lambda x: True,
                 callback,
             )
         assert callback.call_count == 2
+        assert callback.await_count == 2
         call_args = callback.call_args_list
         assert call_args[0][0][0] == success_mutation
-        assert call_args[0][0][1] is None
+        assert call_args[0][0][1] == 0  # index
+        assert call_args[0][0][2] is None
         assert call_args[1][0][0] == success_mutation_2
-        assert call_args[1][0][1] is None
-        if is_coroutine_fn:
-            assert callback.side_effect.await_count == 2
+        assert call_args[1][0][1] == 2  # index
+        assert call_args[1][0][2] is None

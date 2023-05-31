@@ -70,7 +70,7 @@ class _FlowControl:
             new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
         )
 
-    async def remove_from_flow(self, mutation_entry: RowMutationEntry, *args):
+    async def remove_from_flow(self, mutation_entry: RowMutationEntry, *args) -> None:
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
@@ -298,7 +298,7 @@ class MutationsBatcher:
         try:
             await _mutate_rows_operation(
                 self._table.client._gapic_client,
-                request,
+                self._table,
                 batch,
                 self._table.default_operation_timeout,
                 self._table.default_per_request_timeout,
