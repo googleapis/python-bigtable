@@ -15,6 +15,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import bisect
+from collections import defaultdict
 from dataclasses import dataclass
 from google.cloud.bigtable.row_filters import RowFilter
 
@@ -126,7 +127,7 @@ class ReadRowsQuery:
         row_keys: list[str | bytes] | str | bytes | None = None,
         row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
-        row_filter: RowFilter | None = None,
+        row_filter: RowFilter | dict[str, Any] | None = None,
     ):
         """
         Create a new ReadRowsQuery
@@ -141,13 +142,13 @@ class ReadRowsQuery:
         """
         self.row_keys: set[bytes] = set()
         self.row_ranges: set[RowRange] = set()
-        if row_ranges:
+        if row_ranges is not None:
             if isinstance(row_ranges, RowRange):
                 row_ranges = [row_ranges]
             for r in row_ranges:
                 self.add_range(r)
-        if row_keys:
-            if not isinstance(row_keys, list):
+        if row_keys is not None:
+            if isinstance(row_keys, (str, bytes)):
                 row_keys = [row_keys]
             for k in row_keys:
                 self.add_key(k)
@@ -249,12 +250,14 @@ class ReadRowsQuery:
             raise AttributeError("Cannot shard a query with a limit")
 
         split_points = [sample[0] for sample in shard_keys if sample[0]]
-        sharded_queries: dict[int, ReadRowsQuery] = {}
+        sharded_queries: dict[int, ReadRowsQuery] = defaultdict(
+            lambda: ReadRowsQuery(row_filter=self.filter)
+        )
 
         # use binary search to find split point segments for each row key in original query
         for this_key in list(self.row_keys):
             index = bisect.bisect_right(split_points, this_key)
-            sharded_queries.setdefault(index, ReadRowsQuery()).add_key(this_key)
+            sharded_queries[index].add_key(this_key)
 
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
@@ -275,30 +278,24 @@ class ReadRowsQuery:
             # create new ranges for each segment
             if start_index == end_index:
                 # range is contained in a single segment
-                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(
-                    this_range
-                )
+                sharded_queries[start_index].add_range(this_range)
             else:
                 # range spans multiple segments
                 # create start and end ranges
                 start_range = RowRange._from_points(
                     this_range.start, _RangePoint(split_points[start_index], False)
                 )
+                sharded_queries[start_index].add_range(start_range)
                 end_range = RowRange._from_points(
                     _RangePoint(split_points[end_index - 1], True), this_range.end
                 )
-                sharded_queries.setdefault(start_index, ReadRowsQuery()).add_range(
-                    start_range
-                )
-                sharded_queries.setdefault(end_index, ReadRowsQuery()).add_range(
-                    end_range
-                )
+                sharded_queries[end_index].add_range(end_range)
                 # put the middle of the range in all segments in between
                 for i in range(start_index + 1, end_index):
                     mid_range = RowRange(
                         split_points[i], split_points[i + 1], True, False
                     )
-                    sharded_queries.setdefault(i, ReadRowsQuery()).add_range(mid_range)
+                    sharded_queries[i].add_range(mid_range)
         # return a list of queries, sorted by segment index
         keys = list(sharded_queries.keys())
         keys.sort()

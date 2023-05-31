@@ -520,10 +520,20 @@ class TestReadRowsQuery:
         assert len(sharded_queries) == 1
         assert initial_query == sharded_queries[0]
 
-    def test_shard_full_table_scan(self):
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery, RowRange
+    def test_shard_full_table_scan_empty_split(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
-        full_scan_query = ReadRowsQuery(row_ranges=[RowRange()])
+        full_scan_query = ReadRowsQuery()
+        split_points = []
+        sharded_queries = full_scan_query.shard(split_points)
+        assert len(sharded_queries) == 1
+        result_query = sharded_queries[0]
+        assert result_query == full_scan_query
+
+    def test_shard_full_table_scan_with_split(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        full_scan_query = ReadRowsQuery()
         split_points = [(b"a", None)]
         sharded_queries = full_scan_query.shard(split_points)
         assert len(sharded_queries) == 2

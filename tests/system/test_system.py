@@ -220,6 +220,7 @@ async def test_ping_and_warm(client, table):
     assert len(results) == 1
     assert results[0] is None
 
+
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_sample_keys(client, table, temp_rows):
@@ -234,6 +235,7 @@ async def test_sample_keys(client, table, temp_rows):
     sample = results[0]
     assert isinstance(sample[0], bytes)
     assert isinstance(sample[1], int)
+
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
@@ -268,6 +270,7 @@ async def test_read_rows(table, temp_rows):
     assert row_list[0].row_key == b"row_key_1"
     assert row_list[1].row_key == b"row_key_2"
 
+
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_simple(table, temp_rows):
@@ -275,6 +278,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
     Test read rows sharded with two queries
     """
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
@@ -288,6 +292,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
     assert row_list[2].row_key == b"b"
     assert row_list[3].row_key == b"d"
 
+
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_from_sample(table, temp_rows):
@@ -296,6 +301,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     """
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable.read_rows_query import RowRange
+
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
@@ -310,6 +316,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     assert row_list[1].row_key == b"c"
     assert row_list[2].row_key == b"d"
 
+
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_filters_limits(table, temp_rows):
@@ -318,6 +325,7 @@ async def test_read_rows_sharded_filters_limits(table, temp_rows):
     """
     from google.cloud.bigtable.read_rows_query import ReadRowsQuery
     from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
