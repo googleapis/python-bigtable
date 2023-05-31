@@ -230,7 +230,8 @@ class MutationsBatcher:
         ):
             self._schedule_flush()
 
-    async def flush(self, *, raise_exceptions=True):
+    # TODO: add tests for timeout
+    async def flush(self, *, raise_exceptions=True, timeout=30):
         """
         Flush all staged mutations to the server
 
@@ -240,9 +241,13 @@ class MutationsBatcher:
               or when the batcher is closed.
         Raises:
           - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
+          - asyncio.TimeoutError if timeout is reached
         """
         # add recent staged mutations to flush task, and wait for flush to complete
-        await self._schedule_flush()
+        flush_task = self._schedule_flush()
+        # wait timeout seconds for flush to complete
+        # if timeout is exceeded, flush task will still be running in the background
+        await asyncio.wait_for(asyncio.shield(flush_task), timeout=timeout)
         # raise any unreported exceptions from this or previous flushes
         if raise_exceptions:
             self._raise_exceptions()
