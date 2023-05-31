@@ -239,6 +239,8 @@ class MutationsBatcher:
           - raise_exceptions: if True, will raise any unreported exceptions from this or previous flushes.
               If False, exceptions will be stored in self.exceptions and raised on a future flush
               or when the batcher is closed.
+          - timeout: maximum time to wait for flush to complete. If exceeded, flush will
+              continue in the background and exceptions will be raised on a future flush
         Raises:
           - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
           - asyncio.TimeoutError if timeout is reached
