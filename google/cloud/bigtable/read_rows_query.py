@@ -116,6 +116,13 @@ class RowRange:
             kwargs["end_is_inclusive"] = end.is_inclusive
         return cls(**kwargs)
 
+    def __bool__(self) -> bool:
+        """
+        Empty RowRanges (representing a full table scan) are falsy, because
+        they can be substituted with None. Non-empty RowRanges are truthy.
+        """
+        return self.start is not None or self.end is not None
+
 
 class ReadRowsQuery:
     """
@@ -245,9 +252,18 @@ class ReadRowsQuery:
         Returns:
             - a list of queries that represent a sharded version of the original
               query (if possible)
+        Raises:
+            - AttributeError if the query contains a limit
         """
         if self.limit is not None:
-            raise AttributeError("Cannot shard a query with a limit")
+            raise AttributeError("Cannot shard query with a limit")
+        if len(self.row_keys) == 0 and len(self.row_ranges) == 0:
+            # empty query represents full scan
+            # ensure that we have at least one key or range
+            full_scan_query = ReadRowsQuery(
+                row_ranges=RowRange(), row_filter=self.filter
+            )
+            return full_scan_query.shard(shard_keys)
 
         split_points = [sample[0] for sample in shard_keys if sample[0]]
         sharded_queries: dict[int, ReadRowsQuery] = defaultdict(
@@ -328,6 +344,16 @@ class ReadRowsQuery:
     def __eq__(self, other):
         if not isinstance(other, ReadRowsQuery):
             return False
+        # empty queries are equal
+        if len(self.row_keys) == 0 and len(other.row_keys) == 0:
+            this_range_empty = len(self.row_ranges) == 0 or all(
+                [bool(r) is False for r in self.row_ranges]
+            )
+            other_range_empty = len(other.row_ranges) == 0 or all(
+                [bool(r) is False for r in other.row_ranges]
+            )
+            if this_range_empty and other_range_empty:
+                return self.filter == other.filter and self.limit == other.limit
         return (
             self.row_keys == other.row_keys
             and self.row_ranges == other.row_ranges

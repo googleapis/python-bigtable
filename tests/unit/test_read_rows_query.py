@@ -216,6 +216,28 @@ class TestRowRange:
         row_range2 = RowRange._from_dict(second_dict)
         assert (hash(row_range1) == hash(row_range2)) == should_match
 
+    @pytest.mark.parametrize(
+        "dict_repr,expected",
+        [
+            ({"start_key_closed": "test_row", "end_key_open": "test_row2"}, True),
+            ({"start_key_closed": b"test_row", "end_key_open": b"test_row2"}, True),
+            ({"start_key_open": "test_row", "end_key_closed": "test_row2"}, True),
+            ({"start_key_open": b"a"}, True),
+            ({"end_key_closed": b"b"}, True),
+            ({"start_key_closed": "a"}, True),
+            ({"end_key_open": b"b"}, True),
+            ({}, False),
+        ],
+    )
+    def test___bool__(self, dict_repr, expected):
+        """
+        Only row range with both points empty should be falsy
+        """
+        from google.cloud.bigtable.read_rows_query import RowRange
+
+        row_range = RowRange._from_dict(dict_repr)
+        assert bool(row_range) is expected
+
 
 class TestReadRowsQuery:
     @staticmethod
@@ -590,6 +612,41 @@ class TestReadRowsQuery:
         )
 
     @pytest.mark.parametrize(
+        "query_string,shard_points",
+        [
+            ("a,[p-q)", []),
+            ("0_key,[1_range_start-2_range_end)", ["3_split"]),
+            ("-1_range_end)", ["5_split"]),
+            ("0_key,[1_range_start-2_range_end)", ["2_range_end"]),
+            ("9_row_key,(5_range_start-7_range_end)", ["3_split"]),
+            ("(5_range_start-", ["3_split"]),
+            ("3_split,[3_split-5_split)", ["3_split", "5_split"]),
+            ("[3_split-", ["3_split"]),
+            ("", []),
+            ("", ["3_split"]),
+            ("", ["3_split", "5_split"]),
+            ("1,2,3,4,5,6,7,8,9", ["3_split"]),
+        ],
+    )
+    def test_shard_keeps_filter(self, query_string, shard_points):
+        initial_query = self._parse_query_string(query_string)
+        expected_filter = {"test": "filter"}
+        initial_query.filter = expected_filter
+        row_samples = [(point.encode(), None) for point in shard_points]
+        sharded_queries = initial_query.shard(row_samples)
+        assert len(sharded_queries) > 0
+        for query in sharded_queries:
+            assert query.filter == expected_filter
+
+    def test_shard_limit_exception(self):
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        query = ReadRowsQuery(limit=10)
+        with pytest.raises(AttributeError) as e:
+            query.shard([])
+        assert "Cannot shard query with a limit" in str(e.value)
+
+    @pytest.mark.parametrize(
         "first_args,second_args,expected",
         [
             ((), (), True),
@@ -606,6 +663,13 @@ class TestReadRowsQuery:
             (("a", ["b"], 1), ("a", ["b"], 2), False),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1, {"a": "b"}), True),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1), False),
+            (
+                (),
+                (None, [None], None, None),
+                True,
+            ),  # empty query is equal to empty row range
+            ((), (None, [None], 1, None), False),
+            ((), (None, [None], None, {"a": "b"}), False),
         ],
     )
     def test___eq__(self, first_args, second_args, expected):
