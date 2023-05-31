@@ -1554,14 +1554,13 @@ class TestBulkMutateRows:
                         per_request_timeout=expected_per_request_timeout,
                     )
                     assert mock_gapic.call_count == 1
-                    request = mock_gapic.call_args[1]["request"]
+                    kwargs = mock_gapic.call_args[1]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert request["entries"] == [bulk_mutation._to_dict()]
-                    found_per_request_timeout = mock_gapic.call_args[1]["timeout"]
-                    assert found_per_request_timeout == expected_per_request_timeout
+                    assert kwargs["entries"] == [bulk_mutation._to_dict()]
+                    assert kwargs["timeout"] == expected_per_request_timeout
 
     @pytest.mark.asyncio
     async def test_bulk_mutate_rows_multiple_entries(self):
@@ -1579,13 +1578,13 @@ class TestBulkMutateRows:
                         [entry_1, entry_2],
                     )
                     assert mock_gapic.call_count == 1
-                    request = mock_gapic.call_args[1]["request"]
+                    kwargs = mock_gapic.call_args[1]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert request["entries"][0] == entry_1._to_dict()
-                    assert request["entries"][1] == entry_2._to_dict()
+                    assert kwargs["entries"][0] == entry_1._to_dict()
+                    assert kwargs["entries"][1] == entry_2._to_dict()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

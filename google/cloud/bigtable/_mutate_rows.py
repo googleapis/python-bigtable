@@ -14,7 +14,8 @@
 #
 from __future__ import annotations
 
-from typing import Iterator, Callable, TYPE_CHECKING
+from typing import Iterator, Callable, Awaitable, AsyncIterable, TYPE_CHECKING
+import functools
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     )
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable_v2.types.bigtable import MutateRowsResponse
 
 
 class _MutateRowsIncomplete(RuntimeError):
@@ -75,10 +77,18 @@ async def _mutate_rows_operation(
     attempt_timeout_gen = _attempt_timeout_generator(
         per_request_timeout, operation_timeout
     )
+    # create partial function to pass to trigger rpc call
+    metadata = _make_metadata(table.table_name, table.app_profile_id)
+    gapic_fn = functools.partial(
+        gapic_client.mutate_rows,
+        table_name=table.table_name,
+        app_profile_id=table.app_profile_id,
+        metadata=metadata,
+    )
+
     # wrap attempt in retry logic
     manager = _MutateRowsAttemptManager(
-        gapic_client,
-        table,
+        gapic_fn,
         mutation_entries,
         attempt_timeout_gen,
         predicate,
@@ -118,20 +128,17 @@ async def _mutate_rows_operation(
 class _MutateRowsAttemptManager:
     def __init__(
         self,
-        gapic_client: "BigtableAsyncClient",
-        table: "Table",
+        gapic_fn: Callable[..., Awaitable[AsyncIterable["MutateRowsResponse"]]],
         mutations: list["RowMutationEntry"],
         timeout_generator: Iterator[float],
         is_retryable_predicate: Callable[[Exception], bool],
     ):
-        self.gapic_client = gapic_client
-        self.table = table
+        self.gapic_fn = gapic_fn
         self.mutations = mutations
         self.remaining_indices = list(range(len(mutations)))
         self.timeout_generator = timeout_generator
         self.is_retryable = is_retryable_predicate
         self.errors : dict[int, list[Exception]] = {}
-        self.metadata = _make_metadata(self.table.table_name, self.table.app_profile_id)
 
     async def run(self):
         request_entries = [
@@ -140,14 +147,9 @@ class _MutateRowsAttemptManager:
         new_remaining_indices : list[int] = []
         # make gapic request
         try:
-            result_generator = await self.gapic_client.mutate_rows(
-                request={
-                    "table_name": self.table.table_name,
-                    "app_profile_id": self.table.app_profile_id,
-                    "entries": request_entries,
-                },
+            result_generator = await self.gapic_fn(
                 timeout=next(self.timeout_generator),
-                metadata=self.metadata,
+                entries=request_entries,
             )
             async for result_list in result_generator:
                 for result in result_list.entries:
