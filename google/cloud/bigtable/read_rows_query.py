@@ -342,6 +342,11 @@ class ReadRowsQuery:
         return final_dict
 
     def __eq__(self, other):
+        """
+        RowRanges are equal if they have the same row keys, row ranges,
+        filter and limit, or if they both represent a full scan with the
+        same filter and limit
+        """
         if not isinstance(other, ReadRowsQuery):
             return False
         # empty queries are equal
