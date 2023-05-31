@@ -223,14 +223,14 @@ async def test_ping_and_warm(client, table):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_sample_keys(client, table, temp_rows):
+async def test_sample_row_keys(client, table, temp_rows):
     """
     Sample keys should return a single sample in small test tables
     """
     await temp_rows.add_row(b"row_key_1")
     await temp_rows.add_row(b"row_key_2")
 
-    results = await table.sample_keys()
+    results = await table.sample_row_keys()
     assert len(results) == 1
     sample = results[0]
     assert isinstance(sample[0], bytes)
@@ -307,7 +307,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     await temp_rows.add_row(b"c")
     await temp_rows.add_row(b"d")
 
-    table_shard_keys = await table.sample_keys()
+    table_shard_keys = await table.sample_row_keys()
     query = ReadRowsQuery(row_ranges=[RowRange(start_key=b"b", end_key=b"z")])
     shard_queries = query.shard(table_shard_keys)
     row_list = await table.read_rows_sharded(shard_queries)

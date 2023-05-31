@@ -1434,7 +1434,7 @@ class TestSampleKeys:
             yield SampleRowKeysResponse(row_key=value[0], offset_bytes=value[1])
 
     @pytest.mark.asyncio
-    async def test_sample_keys(self):
+    async def test_sample_row_keys(self):
         """
         Test that method returns the expected key samples
         """
@@ -1449,7 +1449,7 @@ class TestSampleKeys:
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream(samples)
-                    result = await table.sample_keys()
+                    result = await table.sample_row_keys()
                     assert len(result) == 3
                     assert all(isinstance(r, tuple) for r in result)
                     assert all(isinstance(r[0], bytes) for r in result)
@@ -1459,18 +1459,18 @@ class TestSampleKeys:
                     assert result[2] == samples[2]
 
     @pytest.mark.asyncio
-    async def test_sample_keys_bad_timeout(self):
+    async def test_sample_row_keys_bad_timeout(self):
         """
         should raise error if timeout is negative
         """
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with pytest.raises(ValueError) as e:
-                    await table.sample_keys(operation_timeout=-1)
+                    await table.sample_row_keys(operation_timeout=-1)
                 assert "operation_timeout must be greater than 0" in str(e.value)
 
     @pytest.mark.asyncio
-    async def test_sample_keys_default_timeout(self):
+    async def test_sample_row_keys_default_timeout(self):
         """Should fallback to using table default operation_timeout"""
         expected_timeout = 99
         async with self._make_client() as client:
@@ -1481,13 +1481,13 @@ class TestSampleKeys:
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
-                    result = await table.sample_keys()
+                    result = await table.sample_row_keys()
                     _, kwargs = sample_row_keys.call_args
                     assert kwargs["timeout"] == expected_timeout
                     assert result == []
 
     @pytest.mark.asyncio
-    async def test_sample_keys_gapic_params(self):
+    async def test_sample_row_keys_gapic_params(self):
         """
         make sure arguments are propagated to gapic call as expected
         """
@@ -1503,7 +1503,7 @@ class TestSampleKeys:
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
-                    await table.sample_keys(operation_timeout=expected_timeout)
+                    await table.sample_row_keys(operation_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
                     assert len(kwargs) == 3

@@ -530,7 +530,7 @@ class Table:
         This function is intended to be run on the results on a query.shard() call:
 
         ```
-        table_shard_keys = await table.sample_keys()
+        table_shard_keys = await table.sample_row_keys()
         query = ReadRowsQuery(...)
         shard_queries = query.shard(table_shard_keys)
         results = await table.read_rows_sharded(shard_queries)
@@ -581,7 +581,7 @@ class Table:
         """
         raise NotImplementedError
 
-    async def sample_keys(
+    async def sample_row_keys(
         self,
         *,
         operation_timeout: int | float | None = None,
@@ -592,7 +592,7 @@ class Table:
 
         RowKeySamples output can be used with ReadRowsQuery.shard() to create a sharded query that
         can be parallelized across multiple backend nodes read_rows and read_rows_stream
-        requests will call sample_keys internally for this purpose when sharding is enabled
+        requests will call sample_row_keys internally for this purpose when sharding is enabled
 
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
@@ -600,7 +600,7 @@ class Table:
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - GoogleAPICallError: if the sample_keys request fails
+            - GoogleAPICallError: if the sample_row_keys request fails
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
 
