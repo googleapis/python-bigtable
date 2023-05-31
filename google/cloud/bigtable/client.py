@@ -600,9 +600,7 @@ class Table:
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing all GoogleAPIError
-                exceptions from any retries that failed
+            - GoogleAPICallError: if the sample_keys request fails
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
 
