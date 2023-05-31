@@ -87,13 +87,13 @@ async def _mutate_rows_operation(
     )
 
     # wrap attempt in retry logic
-    manager = _MutateRowsAttemptManager(
+    attempt_context = _MutateRowsAttemptContext(
         gapic_fn,
         mutation_entries,
         attempt_timeout_gen,
         predicate,
     )
-    retry_wrapped = retry(manager.run)
+    retry_wrapped = retry(attempt_context.run_attempt)
     # convert RetryErrors from retry wrapper into DeadlineExceeded errors
     deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout)
     try:
@@ -101,12 +101,12 @@ async def _mutate_rows_operation(
         await deadline_wrapped()
     except Exception as exc:
         # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
-        for idx in manager.remaining_indices:
-            manager._append_error(idx, exc)
+        for idx in attempt_context.remaining_indices:
+            attempt_context.append_error(idx, exc)
     finally:
         # raise exception detailing incomplete mutations
         all_errors = []
-        for idx, exc_list in manager.errors.items():
+        for idx, exc_list in attempt_context.errors.items():
             if len(exc_list) == 0:
                 raise core_exceptions.ClientError(
                     f"Mutation {idx} failed with no associated errors"
@@ -125,7 +125,7 @@ async def _mutate_rows_operation(
             )
 
 
-class _MutateRowsAttemptManager:
+class _MutateRowsAttemptContext:
     def __init__(
         self,
         gapic_fn: Callable[..., Awaitable[AsyncIterable["MutateRowsResponse"]]],
@@ -138,13 +138,16 @@ class _MutateRowsAttemptManager:
         self.remaining_indices = list(range(len(mutations)))
         self.timeout_generator = timeout_generator
         self.is_retryable = is_retryable_predicate
-        self.errors : dict[int, list[Exception]] = {}
+        self.errors: dict[int, list[Exception]] = {}
 
-    async def run(self):
+    async def run_attempt(self):
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
         ]
-        new_remaining_indices : list[int] = []
+        if not request_entries:
+            # no more mutations. return early
+            return
+        new_remaining_indices: list[int] = []
         # make gapic request
         try:
             result_generator = await self.gapic_fn(
@@ -156,16 +159,18 @@ class _MutateRowsAttemptManager:
                     # convert sub-request index to global index
                     orig_idx = self.remaining_indices[result.index]
                     entry_error = core_exceptions.from_grpc_status(
-                        result.status.code, result.status.message, details=result.status.details
+                        result.status.code,
+                        result.status.message,
+                        details=result.status.details,
                     )
                     if result.status.code == 0:
                         continue
                     else:
-                        self._append_error(orig_idx, entry_error, new_remaining_indices)
+                        self.append_error(orig_idx, entry_error, new_remaining_indices)
         except Exception as exc:
             # add this exception to list for each active mutation
             for idx in self.remaining_indices:
-                self._append_error(idx, exc, new_remaining_indices)
+                self.append_error(idx, exc, new_remaining_indices)
                 # bubble up exception to be handled by retry wrapper
                 raise
         finally:
@@ -175,7 +180,7 @@ class _MutateRowsAttemptManager:
             # unfinished work; raise exception to trigger retry
             raise _MutateRowsIncomplete
 
-    def _append_error(
+    def append_error(
         self, idx: int, exc: Exception, retry_index_list: list[int] | None = None
     ):
         entry = self.mutations[idx]

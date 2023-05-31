@@ -26,10 +26,14 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
-class Test_MutateRowsRetryableAttempt:
-    async def _mock_stream(self, mutation_dict, error_dict):
-        items = list(mutation_dict.items())
-        for idx, entry in items:
+class TestMutateRowsAttemptContext:
+    def _make_one(self, *args, **kwargs):
+        from google.cloud.bigtable._mutate_rows import _MutateRowsAttemptContext
+
+        return _MutateRowsAttemptContext(*args, **kwargs)
+
+    async def _mock_stream(self, mutation_list, error_dict):
+        for idx, entry in enumerate(mutation_list):
             code = error_dict.get(idx, 0)
             yield MutateRowsResponse(
                 entries=[
@@ -39,114 +43,113 @@ class Test_MutateRowsRetryableAttempt:
                 ]
             )
 
-    def _make_mock_client(self, mutation_dict, error_dict=None):
-        client = mock.Mock()
-        client.mutate_rows = AsyncMock()
+    def _make_mock_gapic(self, mutation_list, error_dict=None):
+        mock_fn = AsyncMock()
         if error_dict is None:
             error_dict = {}
-        client.mutate_rows.side_effect = lambda *args, **kwargs: self._mock_stream(
-            mutation_dict, error_dict
+        mock_fn.side_effect = lambda *args, **kwargs: self._mock_stream(
+            mutation_list, error_dict
         )
-        return client
+        return mock_fn
+
+    def test_ctor(self):
+        mock_gapic = mock.Mock()
+        mutations = list(range(10))
+        timeout_gen = mock.Mock()
+        predicate = mock.Mock()
+        instance = self._make_one(
+            mock_gapic,
+            mutations,
+            timeout_gen,
+            predicate,
+        )
+        assert instance.gapic_fn == mock_gapic
+        assert instance.mutations == mutations
+        assert instance.remaining_indices == list(range(10))
+        assert instance.timeout_generator == timeout_gen
+        assert instance.is_retryable == predicate
+        assert instance.errors == {}
 
     @pytest.mark.asyncio
     async def test_single_entry_success(self):
         """Test mutating a single entry"""
-        from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
         import itertools
 
         mutation = mock.Mock()
         mutations = {0: mutation}
-        client = self._make_mock_client(mutations)
-        errors = {0: []}
-        expected_table = mock.Mock()
         expected_timeout = 9
         mock_timeout_gen = itertools.repeat(expected_timeout)
-        await _mutate_rows_retryable_attempt(
-            client,
-            expected_table,
-            mock_timeout_gen,
+        mock_gapic_fn = self._make_mock_gapic(mutations)
+        instance = self._make_one(
+            mock_gapic_fn,
             mutations,
-            errors,
+            mock_timeout_gen,
             lambda x: False,
         )
-        assert len(mutations) == 0
-        assert 0 not in errors
-        assert client.mutate_rows.call_count == 1
-        _, kwargs = client.mutate_rows.call_args
+        await instance.run_attempt()
+        assert len(instance.remaining_indices) == 0
+        assert mock_gapic_fn.call_count == 1
+        _, kwargs = mock_gapic_fn.call_args
         assert kwargs["timeout"] == expected_timeout
-        request = kwargs["request"]
-        assert request["table_name"] == expected_table.table_name
-        assert request["app_profile_id"] == expected_table.app_profile_id
-        assert request["entries"] == [mutation._to_dict()]
+        assert kwargs["entries"] == [mutation._to_dict()]
 
     @pytest.mark.asyncio
     async def test_empty_request(self):
-        """Calling with no mutations should result in a single API call"""
-        from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
-
-        client = self._make_mock_client({})
-        expected_table = mock.Mock()
-        await _mutate_rows_retryable_attempt(
-            client, expected_table, iter([0]), {}, {}, lambda x: False
+        """Calling with no mutations should result in no API calls"""
+        mock_timeout_gen = iter([0] * 10)
+        mock_gapic_fn = self._make_mock_gapic([])
+        instance = self._make_one(
+            mock_gapic_fn,
+            [],
+            mock_timeout_gen,
+            lambda x: False,
         )
-        assert client.mutate_rows.call_count == 1
+        await instance.run_attempt()
+        assert mock_gapic_fn.call_count == 0
 
     @pytest.mark.asyncio
     async def test_partial_success_retryable(self):
         """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
-        from google.cloud.bigtable._mutate_rows import (
-            _mutate_rows_retryable_attempt,
-            _MutateRowsIncomplete,
-        )
+        from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
 
         success_mutation = mock.Mock()
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
-        mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
-        errors = {0: [], 1: [], 2: []}
-        client = self._make_mock_client(mutations, error_dict={1: 300})
-        # raise retryable error 3 times, then raise non-retryable error
-        expected_table = mock.Mock()
-        expected_timeout = 9
+        mutations = [success_mutation, failure_mutation, success_mutation_2]
+        mock_timeout_gen = iter([0] * 10)
+        mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
+        instance = self._make_one(
+            mock_gapic_fn,
+            mutations,
+            mock_timeout_gen,
+            lambda x: True,
+        )
         with pytest.raises(_MutateRowsIncomplete):
-            await _mutate_rows_retryable_attempt(
-                client,
-                expected_table,
-                iter([expected_timeout]),
-                mutations,
-                errors,
-                lambda x: True,
-            )
-        assert mutations == {1: failure_mutation}
-        assert 0 not in errors
-        assert len(errors[1]) == 1
-        assert errors[1][0].grpc_status_code == 300
-        assert 2 not in errors
+            await instance.run_attempt()
+        assert instance.remaining_indices == [1]
+        assert 0 not in instance.errors
+        assert len(instance.errors[1]) == 1
+        assert instance.errors[1][0].grpc_status_code == 300
+        assert 2 not in instance.errors
 
     @pytest.mark.asyncio
     async def test_partial_success_non_retryable(self):
         """Some entries succeed, but one fails. Exception marked as non-retryable. Do not raise incomplete error"""
-        from google.cloud.bigtable._mutate_rows import _mutate_rows_retryable_attempt
-
         success_mutation = mock.Mock()
         success_mutation_2 = mock.Mock()
         failure_mutation = mock.Mock()
-        mutations = {0: success_mutation, 1: failure_mutation, 2: success_mutation_2}
-        errors = {0: [], 1: [], 2: []}
-        client = self._make_mock_client(mutations, error_dict={1: 300})
-        expected_timeout = 9
-        expected_table = mock.Mock()
-        await _mutate_rows_retryable_attempt(
-            client,
-            expected_table,
-            iter([expected_timeout]),
+        mutations = [success_mutation, failure_mutation, success_mutation_2]
+        mock_timeout_gen = iter([0] * 10)
+        mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
+        instance = self._make_one(
+            mock_gapic_fn,
             mutations,
-            errors,
+            mock_timeout_gen,
             lambda x: False,
         )
-        assert len(mutations) == 0
-        assert 0 not in errors
-        assert len(errors[1]) == 1
-        assert errors[1][0].grpc_status_code == 300
-        assert 2 not in errors
+        await instance.run_attempt()
+        assert instance.remaining_indices == []
+        assert 0 not in instance.errors
+        assert len(instance.errors[1]) == 1
+        assert instance.errors[1][0].grpc_status_code == 300
+        assert 2 not in instance.errors
