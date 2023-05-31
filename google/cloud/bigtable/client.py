@@ -31,7 +31,6 @@ import time
 import warnings
 import sys
 import random
-from inspect import iscoroutine
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -731,27 +730,12 @@ class Table:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        callback: Callable[
-            [int, RowMutationEntry, list[Exception] | None], Coroutine[None, None, None]
-        ] | None = None
-        if on_success is not None:
-            # convert on_terminal_state callback to callback for successful results only
-            # failed results will be rasied as exceptions
-            async def callback(
-                idx: int, entry: RowMutationEntry, excs: list[Exception] | None
-            ):
-                if excs is None and on_success is not None:
-                    output = on_success(idx, entry)
-                    if iscoroutine(output):
-                        await output
-
         await _mutate_rows_operation(
             self.client._gapic_client,
             self,
             mutation_entries,
             operation_timeout,
             per_request_timeout,
-            on_terminal_state=callback,
         )
 
     async def check_and_mutate_row(

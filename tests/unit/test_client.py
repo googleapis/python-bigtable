@@ -1844,50 +1844,6 @@ class TestBulkMutateRows:
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
-    @pytest.mark.asyncio
-    async def test_bulk_mutate_rows_on_success(self):
-        """
-        on_success should be called for each successful mutation
-        """
-        from google.api_core.exceptions import (
-            Aborted,
-            FailedPrecondition,
-        )
-        from google.cloud.bigtable.exceptions import (
-            MutationsExceptionGroup,
-        )
-
-        callback = mock.Mock()
-        async with self._make_client(project="project") as client:
-            async with client.get_table("instance", "table") as table:
-                with mock.patch.object(
-                    client._gapic_client, "mutate_rows"
-                ) as mock_gapic:
-                    # fail with retryable errors, then a non-retryable one
-                    mock_gapic.side_effect = [
-                        self._mock_response([None, Aborted("mock"), None]),
-                        self._mock_response([FailedPrecondition("final")]),
-                    ]
-                    with pytest.raises(MutationsExceptionGroup):
-                        mutation = mutations.SetCell(
-                            "family", b"qualifier", b"value", timestamp_micros=123
-                        )
-                        entries = [
-                            mutations.RowMutationEntry(
-                                (f"row_key_{i}").encode(), [mutation]
-                            )
-                            for i in range(3)
-                        ]
-                        assert mutation.is_idempotent() is True
-                        await table.bulk_mutate_rows(
-                            entries, operation_timeout=1000, on_success=callback
-                        )
-                    assert callback.call_count == 2
-                    assert callback.call_args_list[0][0][0] == 0  # index
-                    assert callback.call_args_list[0][0][1] == entries[0]
-                    assert callback.call_args_list[1][0][0] == 2  # index
-                    assert callback.call_args_list[1][0][1] == entries[2]
-
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
     async def test_bulk_mutate_row_metadata(self, include_app_profile):
