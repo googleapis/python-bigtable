@@ -53,7 +53,7 @@ async def _mutate_rows_operation(
 
     Args:
       - gapic_client: the client to use for the mutate_rows call
-      - request: A request dict containing table name, app profile id, and other details to inclide in the request
+      - table: the table associated with the request
       - mutation_entries: a list of RowMutationEntry objects to send to the server
       - operation_timeout: the timeout to use for the entire operation, in seconds.
       - per_request_timeout: the timeout to use for each mutate_rows attempt, in seconds.
@@ -133,6 +133,16 @@ class _MutateRowsAttemptContext:
         timeout_generator: Iterator[float],
         is_retryable_predicate: Callable[[Exception], bool],
     ):
+        """
+        Helper class for managing saved state between mutate_rows attempts.
+
+        Args:
+          - gapic_fn: the function to call to trigger a mutate_rows rpc
+          - mutations: the list of mutations to send to the server
+          - timeout_generator: an iterator that yields values to use for the rpc timeout
+          - is_retryable_predicate: a function that returns True if an exception is retryable
+              should be the same predicate used by the retry wrapper
+        """
         self.gapic_fn = gapic_fn
         self.mutations = mutations
         self.remaining_indices = list(range(len(mutations)))
@@ -141,6 +151,14 @@ class _MutateRowsAttemptContext:
         self.errors: dict[int, list[Exception]] = {}
 
     async def run_attempt(self):
+        """
+        Run a single attempt of the mutate_rows rpc.
+
+        Raises:
+          - _MutateRowsIncomplete: if there are failed mutations eligible for
+              retry after the attempt is complete
+          - GoogleAPICallError: if the gapic rpc fails
+        """
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
         ]
@@ -183,6 +201,15 @@ class _MutateRowsAttemptContext:
     def append_error(
         self, idx: int, exc: Exception, retry_index_list: list[int] | None = None
     ):
+        """
+        Add an exception to the list of exceptions for a given mutation index,
+        and optionally add it to a working list of indices to retry.
+
+        Args:
+          - idx: the index of the mutation that failed
+          - exc: the exception to add to the list
+          - retry_index_list: a list to add the index to, if the mutation should be retried.
+        """
         entry = self.mutations[idx]
         self.errors.setdefault(idx, []).append(exc)
         if (
