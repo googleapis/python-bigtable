@@ -16,6 +16,7 @@ import pytest
 
 from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.rpc import status_pb2
+import google.api_core.exceptions as core_exceptions
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -24,6 +25,175 @@ try:
 except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
     from mock import AsyncMock  # type: ignore
+
+
+class TestMutateRowsOperation:
+    @pytest.mark.asyncio
+    async def test_mutate_rows_operation(self):
+        """
+        Test successful case of mutate_rows_operation
+        """
+        from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [mock.Mock(), mock.Mock()]
+        operation_timeout = 0.05
+        with mock.patch(
+            "google.cloud.bigtable._mutate_rows._MutateRowsAttemptContext.run_attempt",
+            AsyncMock(),
+        ) as attempt_mock:
+            attempt_mock.return_value = None
+            await _mutate_rows_operation(
+                client, table, entries, operation_timeout, operation_timeout
+            )
+            assert attempt_mock.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_mutate_rows_operation_args(self):
+        """
+        Test the args passed down to _MutateRowsAttemptContext
+        """
+        from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+        from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.api_core.exceptions import ServiceUnavailable
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [mock.Mock(), mock.Mock()]
+        operation_timeout = 0.05
+        attempt_timeout = 0.01
+        with mock.patch(
+            "google.cloud.bigtable._mutate_rows._MutateRowsAttemptContext.__init__"
+        ) as attempt_mock:
+            attempt_mock.side_effect = RuntimeError("abort")
+            try:
+                await _mutate_rows_operation(
+                    client, table, entries, operation_timeout, attempt_timeout
+                )
+            except RuntimeError:
+                pass
+            args, kwargs = attempt_mock.call_args
+            found_fn = args[0]
+            found_entries = args[1]
+            found_timeout_gen = args[2]
+            found_predicate = args[3]
+            # running found_fn should trigger a client call
+            assert client.mutate_rows.call_count == 0
+            found_fn()
+            assert client.mutate_rows.call_count == 1
+            # found_fn should call with table details
+            inner_kwargs = client.mutate_rows.call_args[1]
+            assert len(inner_kwargs) == 3
+            assert inner_kwargs["table_name"] == table.table_name
+            assert inner_kwargs["app_profile_id"] == table.app_profile_id
+            metadata = inner_kwargs["metadata"]
+            assert len(metadata) == 1
+            assert metadata[0][0] == "x-goog-request-params"
+            assert str(table.table_name) in metadata[0][1]
+            assert str(table.app_profile_id) in metadata[0][1]
+            # entries should be passed down
+            assert found_entries == entries
+            # timeout_gen should generate per-attempt timeout
+            assert next(found_timeout_gen) == attempt_timeout
+            # ensure predicate is set
+            assert found_predicate is not None
+            assert found_predicate(DeadlineExceeded("")) is True
+            assert found_predicate(ServiceUnavailable("")) is True
+            assert found_predicate(_MutateRowsIncomplete("")) is True
+            assert found_predicate(RuntimeError("")) is False
+
+    @pytest.mark.parametrize(
+        "exc_type", [RuntimeError, ZeroDivisionError, core_exceptions.Forbidden]
+    )
+    @pytest.mark.asyncio
+    async def test_mutate_rows_exception(self, exc_type):
+        """
+        exceptions raised from retryable should be raised in MutationsExceptionGroup
+        """
+        from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+        from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+        from google.cloud.bigtable.exceptions import FailedMutationEntryError
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [mock.Mock()]
+        operation_timeout = 0.05
+        expected_cause = exc_type("abort")
+        with mock.patch(
+            "google.cloud.bigtable._mutate_rows._MutateRowsAttemptContext.run_attempt",
+            AsyncMock(),
+        ) as attempt_mock:
+            attempt_mock.side_effect = expected_cause
+            found_exc = None
+            try:
+                await _mutate_rows_operation(
+                    client, table, entries, operation_timeout, operation_timeout
+                )
+            except MutationsExceptionGroup as e:
+                found_exc = e
+            assert attempt_mock.call_count == 1
+            assert len(found_exc.exceptions) == 1
+            assert isinstance(found_exc.exceptions[0], FailedMutationEntryError)
+            assert found_exc.exceptions[0].__cause__ == expected_cause
+
+    @pytest.mark.parametrize(
+        "exc_type",
+        [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+    )
+    @pytest.mark.asyncio
+    async def test_mutate_rows_exception_retryable_eventually_pass(self, exc_type):
+        """
+        If an exception fails but eventually passes, it should not raise an exception
+        """
+        from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [mock.Mock()]
+        operation_timeout = 1
+        expected_cause = exc_type("retry")
+        num_retries = 2
+        with mock.patch(
+            "google.cloud.bigtable._mutate_rows._MutateRowsAttemptContext.run_attempt",
+            AsyncMock(),
+        ) as attempt_mock:
+            attempt_mock.side_effect = [expected_cause] * num_retries + [None]
+            await _mutate_rows_operation(
+                client, table, entries, operation_timeout, operation_timeout
+            )
+            assert attempt_mock.call_count == num_retries + 1
+
+    @pytest.mark.asyncio
+    async def test_mutate_rows_incomplete_ignored(self):
+        """
+        MutateRowsIncomplete exceptions should not be added to error list
+        """
+        from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+        from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
+        from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [mock.Mock()]
+        operation_timeout = 0.05
+        with mock.patch(
+            "google.cloud.bigtable._mutate_rows._MutateRowsAttemptContext.run_attempt",
+            AsyncMock(),
+        ) as attempt_mock:
+            attempt_mock.side_effect = _MutateRowsIncomplete("ignored")
+            found_exc = None
+            try:
+                await _mutate_rows_operation(
+                    client, table, entries, operation_timeout, operation_timeout
+                )
+            except MutationsExceptionGroup as e:
+                found_exc = e
+            assert attempt_mock.call_count > 0
+            assert len(found_exc.exceptions) == 1
+            assert isinstance(found_exc.exceptions[0].__cause__, DeadlineExceeded)
 
 
 class TestMutateRowsAttemptContext:
