@@ -72,10 +72,6 @@ class _MutateRowsOperation:
             core_exceptions.ServiceUnavailable,
             _MutateRowsIncomplete,
         )
-        # use generator to lower per-attempt timeout as we approach operation_timeout deadline
-        self.timeout_generator = _attempt_timeout_generator(
-            per_request_timeout, operation_timeout
-        )
         # build retryable operation
         retry = retries.AsyncRetry(
             predicate=self.is_retryable,
@@ -87,6 +83,9 @@ class _MutateRowsOperation:
         retry_wrapped = retry(self._run_attempt)
         self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
         # initialize state
+        self.timeout_generator = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
         self.mutations = mutation_entries
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
@@ -97,8 +96,9 @@ class _MutateRowsOperation:
             await self._operation()
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
-            for idx in self.remaining_indices:
-                self._append_error(idx, exc)
+            incomplete_indices = self.remaining_indices.copy()
+            for idx in incomplete_indices:
+                self._handle_entry_error(idx, exc)
         finally:
             # raise exception detailing incomplete mutations
             all_errors = []
@@ -132,10 +132,12 @@ class _MutateRowsOperation:
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
         ]
+        # track mutations in this request that have not been finalized yet
+        active_request_indices = {req_idx:orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)}
+        self.remaining_indices = []
         if not request_entries:
             # no more mutations. return early
             return
-        new_remaining_indices: list[int] = []
         # make gapic request
         try:
             result_generator = await self.gapic_fn(
@@ -145,7 +147,7 @@ class _MutateRowsOperation:
             async for result_list in result_generator:
                 for result in result_list.entries:
                     # convert sub-request index to global index
-                    orig_idx = self.remaining_indices[result.index]
+                    orig_idx = active_request_indices.pop(result.index)
                     entry_error = core_exceptions.from_grpc_status(
                         result.status.code,
                         result.status.message,
@@ -154,37 +156,34 @@ class _MutateRowsOperation:
                     if result.status.code == 0:
                         continue
                     else:
-                        self._append_error(orig_idx, entry_error, new_remaining_indices)
+                        self._handle_entry_error(orig_idx, entry_error)
         except Exception as exc:
-            # add this exception to list for each active mutation
-            for idx in self.remaining_indices:
-                self._append_error(idx, exc, new_remaining_indices)
+            # add this exception to list for each mutation that wasn't
+            # already handled
+            for idx in active_request_indices.values():
+                self._handle_entry_error(idx, exc)
                 # bubble up exception to be handled by retry wrapper
                 raise
-        finally:
-            self.remaining_indices = new_remaining_indices
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
             raise _MutateRowsIncomplete
 
-    def _append_error(
-        self, idx: int, exc: Exception, retry_index_list: list[int] | None = None
-    ):
+    def _handle_entry_error(self, idx: int, exc: Exception):
         """
         Add an exception to the list of exceptions for a given mutation index,
-        and optionally add it to a working list of indices to retry.
+        and add the index to the list of remaining indices if the exception is
+        retryable.
 
         Args:
           - idx: the index of the mutation that failed
           - exc: the exception to add to the list
-          - retry_index_list: a list to add the index to, if the mutation should be retried.
         """
         entry = self.mutations[idx]
         self.errors.setdefault(idx, []).append(exc)
         if (
             entry.is_idempotent()
             and self.is_retryable(exc)
-            and retry_index_list is not None
+            and idx not in self.remaining_indices
         ):
-            retry_index_list.append(idx)
+            self.remaining_indices.append(idx)
