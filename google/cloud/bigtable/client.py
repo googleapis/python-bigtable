@@ -51,7 +51,7 @@ from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 
@@ -730,13 +730,14 @@ class Table:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        await _mutate_rows_operation(
+        operation = _MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,
             operation_timeout,
             per_request_timeout,
         )
+        await operation.start()
 
     async def check_and_mutate_row(
         self,

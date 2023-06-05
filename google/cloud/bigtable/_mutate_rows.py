@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Iterator, Callable, Awaitable, AsyncIterable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 import functools
 
 from google.api_core import exceptions as core_exceptions
@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     )
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.mutations import RowMutationEntry
-    from google.cloud.bigtable_v2.types.bigtable import MutateRowsResponse
 
 
 class _MutateRowsIncomplete(RuntimeError):
@@ -41,116 +40,87 @@ class _MutateRowsIncomplete(RuntimeError):
     pass
 
 
-async def _mutate_rows_operation(
-    gapic_client: "BigtableAsyncClient",
-    table: "Table",
-    mutation_entries: list["RowMutationEntry"],
-    operation_timeout: float,
-    per_request_timeout: float | None,
-):
-    """
-    Helper function for managing a single mutate_rows operation, end-to-end.
-
-    Args:
-      - gapic_client: the client to use for the mutate_rows call
-      - table: the table associated with the request
-      - mutation_entries: a list of RowMutationEntry objects to send to the server
-      - operation_timeout: the timeout to use for the entire operation, in seconds.
-      - per_request_timeout: the timeout to use for each mutate_rows attempt, in seconds.
-          If not specified, the request will run until operation_timeout is reached.
-    """
-
-    predicate = retries.if_exception_type(
-        core_exceptions.DeadlineExceeded,
-        core_exceptions.ServiceUnavailable,
-        _MutateRowsIncomplete,
-    )
-
-    retry = retries.AsyncRetry(
-        predicate=predicate,
-        timeout=operation_timeout,
-        initial=0.01,
-        multiplier=2,
-        maximum=60,
-    )
-    # use generator to lower per-attempt timeout as we approach operation_timeout deadline
-    attempt_timeout_gen = _attempt_timeout_generator(
-        per_request_timeout, operation_timeout
-    )
-    # create partial function to pass to trigger rpc call
-    metadata = _make_metadata(table.table_name, table.app_profile_id)
-    gapic_fn = functools.partial(
-        gapic_client.mutate_rows,
-        table_name=table.table_name,
-        app_profile_id=table.app_profile_id,
-        metadata=metadata,
-    )
-
-    # wrap attempt in retry logic
-    attempt_context = _MutateRowsAttemptContext(
-        gapic_fn,
-        mutation_entries,
-        attempt_timeout_gen,
-        predicate,
-    )
-    retry_wrapped = retry(attempt_context.run_attempt)
-    # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-    deadline_wrapped = _convert_retry_deadline(retry_wrapped, operation_timeout)
-    try:
-        # trigger mutate_rows
-        await deadline_wrapped()
-    except Exception as exc:
-        # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
-        for idx in attempt_context.remaining_indices:
-            attempt_context.append_error(idx, exc)
-    finally:
-        # raise exception detailing incomplete mutations
-        all_errors = []
-        for idx, exc_list in attempt_context.errors.items():
-            if len(exc_list) == 0:
-                raise core_exceptions.ClientError(
-                    f"Mutation {idx} failed with no associated errors"
-                )
-            elif len(exc_list) == 1:
-                cause_exc = exc_list[0]
-            else:
-                cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
-            entry = mutation_entries[idx]
-            all_errors.append(
-                bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
-            )
-        if all_errors:
-            raise bt_exceptions.MutationsExceptionGroup(
-                all_errors, len(mutation_entries)
-            )
-
-
-class _MutateRowsAttemptContext:
+class _MutateRowsOperation:
     def __init__(
         self,
-        gapic_fn: Callable[..., Awaitable[AsyncIterable["MutateRowsResponse"]]],
-        mutations: list["RowMutationEntry"],
-        timeout_generator: Iterator[float],
-        is_retryable_predicate: Callable[[Exception], bool],
+        gapic_client: "BigtableAsyncClient",
+        table: "Table",
+        mutation_entries: list["RowMutationEntry"],
+        operation_timeout: float,
+        per_request_timeout: float | None,
     ):
         """
-        Helper class for managing saved state between mutate_rows attempts.
-
         Args:
-          - gapic_fn: the function to call to trigger a mutate_rows rpc
-          - mutations: the list of mutations to send to the server
-          - timeout_generator: an iterator that yields values to use for the rpc timeout
-          - is_retryable_predicate: a function that returns True if an exception is retryable
-              should be the same predicate used by the retry wrapper
+          - gapic_client: the client to use for the mutate_rows call
+          - table: the table associated with the request
+          - mutation_entries: a list of RowMutationEntry objects to send to the server
+          - operation_timeout: the timeout t o use for the entire operation, in seconds.
+          - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
+              If not specified, the request will run until operation_timeout is reached.
         """
-        self.gapic_fn = gapic_fn
-        self.mutations = mutations
-        self.remaining_indices = list(range(len(mutations)))
-        self.timeout_generator = timeout_generator
-        self.is_retryable = is_retryable_predicate
+        # create partial function to pass to trigger rpc call
+        metadata = _make_metadata(table.table_name, table.app_profile_id)
+        self.gapic_fn = functools.partial(
+            gapic_client.mutate_rows,
+            table_name=table.table_name,
+            app_profile_id=table.app_profile_id,
+            metadata=metadata,
+        )
+        # create predicate for determining which errors are retryable
+        self.is_retryable = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+            _MutateRowsIncomplete,
+        )
+        # use generator to lower per-attempt timeout as we approach operation_timeout deadline
+        self.timeout_generator = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
+        # build retryable operation
+        retry = retries.AsyncRetry(
+            predicate=self.is_retryable,
+            timeout=operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+        )
+        retry_wrapped = retry(self._run_attempt)
+        self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
+        # initialize state
+        self.mutations = mutation_entries
+        self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
 
-    async def run_attempt(self):
+    async def start(self):
+        try:
+            # trigger mutate_rows
+            await self._operation()
+        except Exception as exc:
+            # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
+            for idx in self.remaining_indices:
+                self._append_error(idx, exc)
+        finally:
+            # raise exception detailing incomplete mutations
+            all_errors = []
+            for idx, exc_list in self.errors.items():
+                if len(exc_list) == 0:
+                    raise core_exceptions.ClientError(
+                        f"Mutation {idx} failed with no associated errors"
+                    )
+                elif len(exc_list) == 1:
+                    cause_exc = exc_list[0]
+                else:
+                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
+                entry = self.mutations[idx]
+                all_errors.append(
+                    bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
+                )
+            if all_errors:
+                raise bt_exceptions.MutationsExceptionGroup(
+                    all_errors, len(self.mutations)
+                )
+
+    async def _run_attempt(self):
         """
         Run a single attempt of the mutate_rows rpc.
 
@@ -184,11 +154,11 @@ class _MutateRowsAttemptContext:
                     if result.status.code == 0:
                         continue
                     else:
-                        self.append_error(orig_idx, entry_error, new_remaining_indices)
+                        self._append_error(orig_idx, entry_error, new_remaining_indices)
         except Exception as exc:
             # add this exception to list for each active mutation
             for idx in self.remaining_indices:
-                self.append_error(idx, exc, new_remaining_indices)
+                self._append_error(idx, exc, new_remaining_indices)
                 # bubble up exception to be handled by retry wrapper
                 raise
         finally:
@@ -198,7 +168,7 @@ class _MutateRowsAttemptContext:
             # unfinished work; raise exception to trigger retry
             raise _MutateRowsIncomplete
 
-    def append_error(
+    def _append_error(
         self, idx: int, exc: Exception, retry_index_list: list[int] | None = None
     ):
         """
