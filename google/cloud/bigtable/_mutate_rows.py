@@ -60,7 +60,7 @@ class _MutateRowsOperation:
         """
         # create partial function to pass to trigger rpc call
         metadata = _make_metadata(table.table_name, table.app_profile_id)
-        self.gapic_fn = functools.partial(
+        self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
             table_name=table.table_name,
             app_profile_id=table.app_profile_id,
@@ -140,7 +140,7 @@ class _MutateRowsOperation:
             return
         # make gapic request
         try:
-            result_generator = await self.gapic_fn(
+            result_generator = await self._gapic_fn(
                 timeout=next(self.timeout_generator),
                 entries=request_entries,
             )
