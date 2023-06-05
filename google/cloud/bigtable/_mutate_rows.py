@@ -41,6 +41,16 @@ class _MutateRowsIncomplete(RuntimeError):
 
 
 class _MutateRowsOperation:
+    """
+    MutateRowsOperation manages the logic of sending a set of row mutations,
+    and retrying on failed entries. It manages this using the _run_attempt
+    function, which attempts to mutate all outstanding entries, and raises
+    _MutateRowsIncomplete if any retryable errors are encountered.
+
+    Errors are exposed as a MutationsExceptionGroup, which contains a list of
+    exceptions organized by the related failed mutation entries.
+    """
+
     def __init__(
         self,
         gapic_client: "BigtableAsyncClient",
@@ -91,6 +101,12 @@ class _MutateRowsOperation:
         self.errors: dict[int, list[Exception]] = {}
 
     async def start(self):
+        """
+        Start the operation, and run until completion
+
+        Raises:
+          - MutationsExceptionGroup: if any mutations failed
+        """
         try:
             # trigger mutate_rows
             await self._operation()
@@ -133,7 +149,9 @@ class _MutateRowsOperation:
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
         ]
         # track mutations in this request that have not been finalized yet
-        active_request_indices = {req_idx:orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)}
+        active_request_indices = {
+            req_idx: orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)
+        }
         self.remaining_indices = []
         if not request_entries:
             # no more mutations. return early

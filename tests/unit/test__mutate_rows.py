@@ -28,7 +28,6 @@ except ImportError:  # pragma: NO COVER
 
 
 class TestMutateRowsOperation:
-
     def _target_class(self):
         from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 
@@ -168,6 +167,7 @@ class TestMutateRowsOperation:
         If an exception fails but eventually passes, it should not raise an exception
         """
         from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+
         client = mock.Mock()
         table = mock.Mock()
         entries = [mock.Mock()]
