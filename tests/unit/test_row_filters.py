@@ -822,84 +822,90 @@ def test_value_regex_filter___repr__():
     assert eval(repr(row_filter)) == row_filter
 
 
-def test_exact_value_filter_to_pb_w_bytes():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+def test_literal_value_filter_to_pb_w_bytes():
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = regex = b"value-regex"
-    row_filter = ExactValueFilter(value)
+    value = regex = b"value_regex"
+    row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
 
-def test_exact_value_filter_to_dict_w_bytes():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+def test_literal_value_filter_to_dict_w_bytes():
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    value = regex = b"value-regex"
-    row_filter = ExactValueFilter(value)
+    value = regex = b"value_regex"
+    row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
-def test_exact_value_filter_to_pb_w_str():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+def test_literal_value_filter_to_pb_w_str():
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = "value-regex"
+    value = "value_regex"
     regex = value.encode("ascii")
-    row_filter = ExactValueFilter(value)
+    row_filter = LiteralValueFilter(value)
     pb_val = row_filter._to_pb()
     expected_pb = _RowFilterPB(value_regex_filter=regex)
     assert pb_val == expected_pb
 
 
-def test_exact_value_filter_to_dict_w_str():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+def test_literal_value_filter_to_dict_w_str():
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    value = "value-regex"
+    value = "value_regex"
     regex = value.encode("ascii")
-    row_filter = ExactValueFilter(value)
+    row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
     assert row_filter.to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
 
-def test_exact_value_filter_to_pb_w_int():
-    import struct
-    from google.cloud.bigtable.row_filters import ExactValueFilter
-
-    value = 1
-    regex = struct.Struct(">q").pack(value)
-    row_filter = ExactValueFilter(value)
-    pb_val = row_filter._to_pb()
-    expected_pb = _RowFilterPB(value_regex_filter=regex)
-    assert pb_val == expected_pb
-
-
-def test_exact_value_filter_to_dict_w_int():
-    import struct
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+@pytest.mark.parametrize(
+    "value,expected_byte_string",
+    [
+        # null bytes are encoded as "\x00" in ascii characters
+        # others are just prefixed with "\"
+        (0, b"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00"),
+        (1, b"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\\x01"),
+        (
+            68,
+            b"\\x00\\x00\\x00\\x00\\x00\\x00\\x00D",
+        ),  # bytes that encode to alphanum are not escaped
+        (570, b"\\x00\\x00\\x00\\x00\\x00\\x00\\\x02\\\x3a"),
+        (2852126720, b"\\x00\\x00\\x00\\x00\xaa\\x00\\x00\\x00"),
+        (-1, b"\xff\xff\xff\xff\xff\xff\xff\xff"),
+        (-1096642724096, b"\xff\xff\xff\\x00\xaa\xff\xff\\x00"),
+    ],
+)
+def test_literal_value_filter_w_int(value, expected_byte_string):
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-    value = 1
-    regex = struct.Struct(">q").pack(value)
-    row_filter = ExactValueFilter(value)
-    expected_dict = {"value_regex_filter": regex}
+    row_filter = LiteralValueFilter(value)
+    # test pb
+    pb_val = row_filter._to_pb()
+    expected_pb = _RowFilterPB(value_regex_filter=expected_byte_string)
+    assert pb_val == expected_pb
+    # test dict
+    expected_dict = {"value_regex_filter": expected_byte_string}
     assert row_filter.to_dict() == expected_dict
-    expected_pb_value = row_filter._to_pb()
-    assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
+    assert data_v2_pb2.RowFilter(**expected_dict) == pb_val
 
 
-def test_exact_value_filter___repr__():
-    from google.cloud.bigtable.row_filters import ExactValueFilter
+def test_literal_value_filter___repr__():
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
 
-    value = "value-regex"
-    row_filter = ExactValueFilter(value)
-    expected = "ExactValueFilter(value=b'value-regex')"
+    value = "value_regex"
+    row_filter = LiteralValueFilter(value)
+    expected = "LiteralValueFilter(value=b'value_regex')"
     assert repr(row_filter) == expected
     assert repr(row_filter) == str(row_filter)
     assert eval(repr(row_filter)) == row_filter
@@ -1907,6 +1913,30 @@ def test_conditional_row_filter___str__():
     assert str(row_filter4) == expected
 
 
+@pytest.mark.parametrize(
+    "input_arg, expected_bytes",
+    [
+        (b"abc", b"abc"),
+        ("abc", b"abc"),
+        (1, b"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\\x01"),  # null bytes are ascii
+        (b"*", b"\\*"),
+        (".", b"\\."),
+        (b"\\", b"\\\\"),
+        (b"h.*i", b"h\\.\\*i"),
+        (b'""', b'\\"\\"'),
+        (b"[xyz]", b"\\[xyz\\]"),
+        (b"\xe2\x98\xba\xef\xb8\x8f", b"\xe2\x98\xba\xef\xb8\x8f"),
+        ("☃", b"\xe2\x98\x83"),
+        (r"\C☃", b"\\\\C\xe2\x98\x83"),
+    ],
+)
+def test_literal_value__write_literal_regex(input_arg, expected_bytes):
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
+
+    filter_ = LiteralValueFilter(input_arg)
+    assert filter_.regex == expected_bytes
+
+
 def _ColumnRangePB(*args, **kw):
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
@@ -1955,7 +1985,7 @@ def _get_regex_filters():
         FamilyNameRegexFilter,
         ColumnQualifierRegexFilter,
         ValueRegexFilter,
-        ExactValueFilter,
+        LiteralValueFilter,
     )
 
     return [
@@ -1963,7 +1993,7 @@ def _get_regex_filters():
         FamilyNameRegexFilter,
         ColumnQualifierRegexFilter,
         ValueRegexFilter,
-        ExactValueFilter,
+        LiteralValueFilter,
     ]
 
 
