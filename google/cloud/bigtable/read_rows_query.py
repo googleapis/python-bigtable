@@ -247,7 +247,7 @@ class ReadRowsQuery:
     def shard(self, shard_keys: RowKeySamples) -> list[ReadRowsQuery]:
         """
         Split this query into multiple queries that can be evenly distributed
-        across nodes and be run in parallel
+        across nodes and run in parallel
 
         Returns:
             - a list of queries that represent a sharded version of the original
@@ -271,45 +271,47 @@ class ReadRowsQuery:
         )
 
         # use binary search to find split point segments for each row key in original query
+        # each split point represents the inclusive end key for that segment
         for this_key in list(self.row_keys):
-            index = bisect.bisect_right(split_points, this_key)
-            sharded_queries[index].add_key(this_key)
+            segment_index = bisect.bisect_left(split_points, this_key)
+            sharded_queries[segment_index].add_key(this_key)
 
         # use binary search to find start and end segments for each row range in original query
         # if range spans multiple segments, split it into multiple ranges
         for this_range in self.row_ranges:
-            # start index always bisects right, since points define the left side of the range
-            start_index = (
-                bisect.bisect_right(split_points, this_range.start.key)
-                if this_range.start is not None
-                else 0
-            )
-            # end index can bisect left or right, depending on whether the range is inclusive
-            if this_range.end is None:
-                end_index = len(split_points)
-            elif this_range.end.is_inclusive:
-                end_index = bisect.bisect_right(split_points, this_range.end.key)
+            # start either bisects left or right, depending on whether the range start is inclusive
+            if this_range.start is None:
+                start_segment = 0
+            elif this_range.start.is_inclusive:
+                start_segment = bisect.bisect_left(split_points, this_range.start.key)
             else:
-                end_index = bisect.bisect_left(split_points, this_range.end.key)
+                start_segment = bisect.bisect_right(split_points, this_range.start.key)
+            # split points represent end of range; always bisect left
+            end_segment = (
+                bisect.bisect_left(split_points, this_range.end.key)
+                if this_range.end is not None
+                else len(split_points)
+            )
+
             # create new ranges for each segment
-            if start_index == end_index:
+            if start_segment == end_segment:
                 # range is contained in a single segment
-                sharded_queries[start_index].add_range(this_range)
+                sharded_queries[start_segment].add_range(this_range)
             else:
                 # range spans multiple segments
                 # create start and end ranges
                 start_range = RowRange._from_points(
-                    this_range.start, _RangePoint(split_points[start_index], False)
+                    this_range.start, _RangePoint(split_points[start_segment], True)
                 )
-                sharded_queries[start_index].add_range(start_range)
+                sharded_queries[start_segment].add_range(start_range)
                 end_range = RowRange._from_points(
-                    _RangePoint(split_points[end_index - 1], True), this_range.end
+                    _RangePoint(split_points[end_segment - 1], False), this_range.end
                 )
-                sharded_queries[end_index].add_range(end_range)
-                # put the middle of the range in all segments in between
-                for i in range(start_index + 1, end_index):
+                sharded_queries[end_segment].add_range(end_range)
+                # put a spanning range in all segments in betweeni
+                for i in range(start_segment + 1, end_segment):
                     mid_range = RowRange(
-                        split_points[i], split_points[i + 1], True, False
+                        split_points[i], split_points[i + 1], False, True
                     )
                     sharded_queries[i].add_range(mid_range)
         # return a list of queries, sorted by segment index

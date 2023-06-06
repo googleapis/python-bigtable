@@ -1586,7 +1586,6 @@ class TestSampleRowKeys:
                     assert "app_profile_id=" not in goog_metadata
 
 
-
 class TestMutateRow:
     def _make_client(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient

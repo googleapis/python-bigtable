@@ -526,16 +526,20 @@ class TestReadRowsQuery:
         [
             ("a,[p-q)", []),
             ("0_key,[1_range_start-2_range_end)", ["3_split"]),
-            ("-1_range_end)", ["5_split"]),
             ("0_key,[1_range_start-2_range_end)", ["2_range_end"]),
+            ("0_key,[1_range_start-2_range_end]", ["2_range_end"]),
+            ("-1_range_end)", ["5_split"]),
+            ("8_key,(1_range_start-2_range_end]", ["1_range_start"]),
             ("9_row_key,(5_range_start-7_range_end)", ["3_split"]),
-            ("(5_range_start-", ["3_split"]),
-            ("3_split,[3_split-5_split)", ["3_split", "5_split"]),
-            ("[3_split-", ["3_split"]),
+            ("3_row_key,(5_range_start-7_range_end)", ["2_row_key"]),
+            ("4_split,4_split,(3_split-5_split]", ["3_split", "5_split"]),
+            ("(3_split-", ["3_split"]),
         ],
     )
     def test_shard_no_split(self, query_string, shard_points):
-        # these queries should not be sharded
+        """
+        Test sharding with a set of queries that should not result in any splits.
+        """
         initial_query = self._parse_query_string(query_string)
         row_samples = [(point.encode(), None) for point in shard_points]
         sharded_queries = initial_query.shard(row_samples)
@@ -543,6 +547,9 @@ class TestReadRowsQuery:
         assert initial_query == sharded_queries[0]
 
     def test_shard_full_table_scan_empty_split(self):
+        """
+        Sharding a full table scan with no split should return another full table scan.
+        """
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
         full_scan_query = ReadRowsQuery()
@@ -553,24 +560,33 @@ class TestReadRowsQuery:
         assert result_query == full_scan_query
 
     def test_shard_full_table_scan_with_split(self):
+        """
+        Test splitting a full table scan into two queries
+        """
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
         full_scan_query = ReadRowsQuery()
         split_points = [(b"a", None)]
         sharded_queries = full_scan_query.shard(split_points)
         assert len(sharded_queries) == 2
-        assert sharded_queries[0] == self._parse_query_string("-a)")
-        assert sharded_queries[1] == self._parse_query_string("[a-")
+        assert sharded_queries[0] == self._parse_query_string("-a]")
+        assert sharded_queries[1] == self._parse_query_string("(a-")
 
     def test_shard_multiple_keys(self):
+        """
+        Test splitting multiple individual keys into separate queries
+        """
         initial_query = self._parse_query_string("1_beforeSplit,2_onSplit,3_afterSplit")
         split_points = [(b"2_onSplit", None)]
         sharded_queries = initial_query.shard(split_points)
         assert len(sharded_queries) == 2
-        assert sharded_queries[0] == self._parse_query_string("1_beforeSplit")
-        assert sharded_queries[1] == self._parse_query_string("2_onSplit,3_afterSplit")
+        assert sharded_queries[0] == self._parse_query_string("1_beforeSplit,2_onSplit")
+        assert sharded_queries[1] == self._parse_query_string("3_afterSplit")
 
     def test_shard_keys_empty_left(self):
+        """
+        Test with the left-most split point empty
+        """
         initial_query = self._parse_query_string("5_test,8_test")
         split_points = [(b"0_split", None), (b"6_split", None)]
         sharded_queries = initial_query.shard(split_points)
@@ -579,6 +595,9 @@ class TestReadRowsQuery:
         assert sharded_queries[1] == self._parse_query_string("8_test")
 
     def test_shard_keys_empty_right(self):
+        """
+        Test with the right-most split point empty
+        """
         initial_query = self._parse_query_string("0_test,2_test")
         split_points = [(b"1_split", None), (b"5_split", None)]
         sharded_queries = initial_query.shard(split_points)
@@ -587,17 +606,23 @@ class TestReadRowsQuery:
         assert sharded_queries[1] == self._parse_query_string("2_test")
 
     def test_shard_mixed_split(self):
+        """
+        Test splitting a complex query with multiple split points
+        """
         initial_query = self._parse_query_string("0,a,c,-a],-b],(c-e],(d-f],(m-")
         split_points = [(s.encode(), None) for s in ["a", "d", "j", "o"]]
         sharded_queries = initial_query.shard(split_points)
         assert len(sharded_queries) == 5
-        assert sharded_queries[0] == self._parse_query_string("0,-a)")
-        assert sharded_queries[1] == self._parse_query_string("a,c,[a-a],[a-b],(c-d)")
-        assert sharded_queries[2] == self._parse_query_string("[d-e],(d-f]")
-        assert sharded_queries[3] == self._parse_query_string("(m-o)")
-        assert sharded_queries[4] == self._parse_query_string("[o-")
+        assert sharded_queries[0] == self._parse_query_string("0,a,-a]")
+        assert sharded_queries[1] == self._parse_query_string("c,(a-b],(c-d]")
+        assert sharded_queries[2] == self._parse_query_string("(d-e],(d-f]")
+        assert sharded_queries[3] == self._parse_query_string("(m-o]")
+        assert sharded_queries[4] == self._parse_query_string("(o-")
 
     def test_shard_unsorted_request(self):
+        """
+        Test with a query that contains rows and queries in a random order
+        """
         initial_query = self._parse_query_string(
             "7_row_key_1,2_row_key_2,[8_range_1_start-9_range_1_end),[3_range_2_start-4_range_2_end)"
         )
@@ -629,6 +654,9 @@ class TestReadRowsQuery:
         ],
     )
     def test_shard_keeps_filter(self, query_string, shard_points):
+        """
+        sharded queries should keep the filter from the original query
+        """
         initial_query = self._parse_query_string(query_string)
         expected_filter = {"test": "filter"}
         initial_query.filter = expected_filter
@@ -639,6 +667,9 @@ class TestReadRowsQuery:
             assert query.filter == expected_filter
 
     def test_shard_limit_exception(self):
+        """
+        queries with a limit should raise an exception when a shard is attempted
+        """
         from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
         query = ReadRowsQuery(limit=10)
