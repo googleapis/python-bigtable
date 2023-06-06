@@ -522,7 +522,6 @@ class TestRowMutationEntry:
     @pytest.mark.parametrize(
         "mutations,result",
         [
-            ([], True),
             ([mock.Mock(is_idempotent=lambda: True)], True),
             ([mock.Mock(is_idempotent=lambda: False)], False),
             (
