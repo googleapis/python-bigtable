@@ -24,9 +24,7 @@ class TestMakeMetadata:
         "table,profile,expected",
         [
             ("table", "profile", "table_name=table,app_profile_id=profile"),
-            (None, "profile", "app_profile_id=profile"),
             ("table", None, "table_name=table"),
-            (None, None, ""),
         ],
     )
     def test__make_metadata(self, table, profile, expected):

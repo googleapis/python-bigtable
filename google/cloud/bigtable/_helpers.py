@@ -26,14 +26,13 @@ Helper functions used in various places in the library.
 
 
 def _make_metadata(
-    table_name: str | None, app_profile_id: str | None
+    table_name: str, app_profile_id: str | None
 ) -> list[tuple[str, str]]:
     """
     Create properly formatted gRPC metadata for requests.
     """
     params = []
-    if table_name is not None:
-        params.append(f"table_name={table_name}")
+    params.append(f"table_name={table_name}")
     if app_profile_id is not None:
         params.append(f"app_profile_id={app_profile_id}")
     params_str = ",".join(params)
@@ -50,11 +49,11 @@ def _attempt_timeout_generator(
     at which point it will return the remaining time in the operation_timeout.
 
     Args:
-      - per_request_timeout: The timeout value to use for each request. If None,
-            the operation_timeout will be used for each request.
-      - operation_timeout: The timeout value to use for the entire operation.
+      - per_request_timeout: The timeout value to use for each request, in seconds.
+            If None, the operation_timeout will be used for each request.
+      - operation_timeout: The timeout value to use for the entire operationm in seconds.
     Yields:
-      - The timeout value to use for the next request.
+      - The timeout value to use for the next request, in seonds
     """
     per_request_timeout = (
         per_request_timeout if per_request_timeout is not None else operation_timeout
