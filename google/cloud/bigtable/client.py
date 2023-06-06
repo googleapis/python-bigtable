@@ -20,6 +20,8 @@ from typing import (
     Any,
     Optional,
     Set,
+    Callable,
+    Coroutine,
     TYPE_CHECKING,
 )
 
