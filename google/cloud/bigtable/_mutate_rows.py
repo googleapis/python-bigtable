@@ -78,8 +78,10 @@ class _MutateRowsOperation:
         )
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
+            # RPC level errors
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
+            # Entry level errors
             _MutateRowsIncomplete,
         )
         # build retryable operation
