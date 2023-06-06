@@ -23,7 +23,7 @@ from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
-from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
@@ -70,12 +70,14 @@ class _FlowControl:
             new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
         )
 
-    async def remove_from_flow(self, mutation_entry: RowMutationEntry, *args) -> None:
+    async def remove_from_flow(self, mutations: list[RowMutationEntry]) -> None:
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
-        self.in_flight_mutation_count -= len(mutation_entry.mutations)
-        self.in_flight_mutation_bytes -= mutation_entry.size()
+        total_count = sum(len(entry.mutations) for entry in mutations)
+        total_size = sum(entry.size() for entry in mutations)
+        self.in_flight_mutation_count -= total_count
+        self.in_flight_mutation_bytes -= total_size
         # notify any blocked requests that there is additional capacity
         async with self.capacity_condition:
             self.capacity_condition.notify_all()
@@ -284,6 +286,7 @@ class MutationsBatcher:
             batch_errors = await self._execute_mutate_rows(batch)
             self.exceptions.extend(batch_errors)
             self._entries_processed_since_last_raise += len(batch)
+            await self._flow_control.remove_from_flow(batch)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -303,14 +306,14 @@ class MutationsBatcher:
         if self._table.app_profile_id:
             request["app_profile_id"] = self._table.app_profile_id
         try:
-            await _mutate_rows_operation(
+            operation = _MutateRowsOperation(
                 self._table.client._gapic_client,
                 self._table,
                 batch,
                 self._table.default_operation_timeout,
                 self._table.default_per_request_timeout,
-                self._flow_control.remove_from_flow,
             )
+            await operation.start()
         except MutationsExceptionGroup as e:
             for subexc in e.exceptions:
                 subexc.index = None

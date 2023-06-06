@@ -120,7 +120,7 @@ class Test_FlowControl:
         instance.in_flight_mutation_count = existing_count
         instance.in_flight_mutation_bytes = existing_size
         mutation = _make_mutation(added_count, added_size)
-        await instance.remove_from_flow(mutation)
+        await instance.remove_from_flow([mutation])
         assert instance.in_flight_mutation_count == new_count
         assert instance.in_flight_mutation_bytes == new_size
 
@@ -143,7 +143,7 @@ class Test_FlowControl:
         assert task.done() is False
         # try changing size
         mutation = _make_mutation(count=0, size=5)
-        await instance.remove_from_flow(mutation)
+        await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance.in_flight_mutation_count == 10
         assert instance.in_flight_mutation_bytes == 5
@@ -151,7 +151,7 @@ class Test_FlowControl:
         # try changing count
         instance.in_flight_mutation_bytes = 10
         mutation = _make_mutation(count=5, size=0)
-        await instance.remove_from_flow(mutation)
+        await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance.in_flight_mutation_count == 5
         assert instance.in_flight_mutation_bytes == 10
@@ -159,7 +159,7 @@ class Test_FlowControl:
         # try changing both
         instance.in_flight_mutation_count = 10
         mutation = _make_mutation(count=5, size=5)
-        await instance.remove_from_flow(mutation)
+        await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance.in_flight_mutation_count == 5
         assert instance.in_flight_mutation_bytes == 5
@@ -203,8 +203,7 @@ class Test_FlowControl:
                 # check sizes
                 assert batch[j].size() == expected_batch[j][1]
             # update lock
-            for entry in batch:
-                await instance.remove_from_flow(entry)
+            await instance.remove_from_flow(batch)
             i += 1
         assert i == len(expected_results)
 
@@ -674,9 +673,11 @@ class TestMutationsBatcher:
 
     @pytest.mark.asyncio
     @unittest.mock.patch(
-        "google.cloud.bigtable.mutations_batcher._mutate_rows_operation"
+        "google.cloud.bigtable.mutations_batcher._MutateRowsOperation",
     )
     async def test__execute_mutate_rows(self, mutate_rows):
+        mutate_rows.return_value = AsyncMock()
+        start_operation = mutate_rows().start
         table = mock.Mock()
         table.table_name = "test-table"
         table.app_profile_id = "test-app-profile"
@@ -685,20 +686,18 @@ class TestMutationsBatcher:
         async with self._make_one(table) as instance:
             batch = [mock.Mock()]
             result = await instance._execute_mutate_rows(batch)
-            assert mutate_rows.call_count == 1
-            assert mutate_rows.await_count == 1
+            assert start_operation.call_count == 1
             args, _ = mutate_rows.call_args
             assert args[0] == table.client._gapic_client
             assert args[1] == table
             assert args[2] == batch
             assert args[3] == 17
             assert args[4] == 13
-            assert args[5] == instance._flow_control.remove_from_flow
             assert result == []
 
     @pytest.mark.asyncio
     @unittest.mock.patch(
-        "google.cloud.bigtable.mutations_batcher._mutate_rows_operation"
+        "google.cloud.bigtable.mutations_batcher._MutateRowsOperation.start"
     )
     async def test__execute_mutate_rows_returns_errors(self, mutate_rows):
         """Errors from operation should be retruned as list"""
@@ -711,6 +710,7 @@ class TestMutationsBatcher:
         err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
         mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
         table = mock.Mock()
+        table.default_operation_timeout = 17
         async with self._make_one(table) as instance:
             batch = [mock.Mock()]
             result = await instance._execute_mutate_rows(batch)
