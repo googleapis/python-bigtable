@@ -165,19 +165,20 @@ class _MutateRowsOperation:
             async for result_list in result_generator:
                 for result in result_list.entries:
                     # convert sub-request index to global index
-                    orig_idx = active_request_indices.pop(result.index)
+                    orig_idx = active_request_indices[result.index]
                     entry_error = core_exceptions.from_grpc_status(
                         result.status.code,
                         result.status.message,
                         details=result.status.details,
                     )
-                    if result.status.code == 0:
-                        continue
-                    else:
+                    if result.status.code != 0:
+                        # mutation failed; update error list (and remaining_indices if retryable)
                         self._handle_entry_error(orig_idx, entry_error)
+                    # remove processed entry from active list
+                    del active_request_indices[result.index]
         except Exception as exc:
             # add this exception to list for each mutation that wasn't
-            # already handled
+            # already handled, and update remaining_indices if mutation is retryable
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
                 # bubble up exception to be handled by retry wrapper
