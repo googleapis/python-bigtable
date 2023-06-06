@@ -187,6 +187,19 @@ class TempRowBuilder:
         await self.table.client._gapic_client.mutate_rows(request)
 
 
+async def _retrieve_cell_value(table, row_key):
+    """
+    Helper to read an individual row
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+
+    row_list = await table.read_rows(ReadRowsQuery(row_keys=row_key))
+    assert len(row_list) == 1
+    row = row_list[0]
+    cell = row.cells[0]
+    return cell.value
+
+
 @pytest_asyncio.fixture(scope="function")
 async def temp_rows(table):
     builder = TempRowBuilder(table)
@@ -203,6 +216,66 @@ async def test_ping_and_warm_gapic(client, table):
     """
     request = {"name": table.instance_name}
     await client._gapic_client.ping_and_warm(request)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutation_set_cell(table, temp_rows):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell
+
+    row_key = b"mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
+    )
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+
+    await table.mutate_row(row_key, mutation)
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_bulk_mutations_set_cell(client, table, temp_rows):
+    """
+    Ensure cells can be set properly
+    """
+    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
+
+    row_key = b"bulk_mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
+    )
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    await table.bulk_mutate_rows([bulk_mutation])
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
