@@ -1470,7 +1470,7 @@ class TestReadRowsSharded:
                     assert "app_profile_id=" not in goog_metadata
 
 
-class TestSampleKeys:
+class TestSampleRowKeys:
     def _make_client(self, *args, **kwargs):
         from google.cloud.bigtable.client import BigtableDataClient
 
@@ -1555,10 +1555,36 @@ class TestSampleKeys:
                     await table.sample_row_keys(operation_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
-                    assert len(kwargs) == 3
+                    assert len(kwargs) == 4
                     assert kwargs["timeout"] == expected_timeout
                     assert kwargs["app_profile_id"] == expected_profile
                     assert kwargs["table_name"] == table.table_name
+                    assert kwargs["metadata"] is not None
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as read_rows:
+                    await table.sample_row_keys()
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
 
 
 class TestMutateRow:

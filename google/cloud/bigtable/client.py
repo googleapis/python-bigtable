@@ -614,13 +614,14 @@ class Table:
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
 
-        # TODO: add metadata
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
 
         result_generator: AsyncIterable["SampleRowKeysResponse"]
         result_generator = await self.client._gapic_client.sample_row_keys(
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=operation_timeout,
+            metadata=metadata,
         )
         return [(s.row_key, s.offset_bytes) async for s in result_generator]
 
