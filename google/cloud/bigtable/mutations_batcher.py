@@ -39,6 +39,9 @@ class _FlowControl:
     limits have reached capacity. When a mutation is complete, it is unregistered
     from the FlowControl object, which will notify any blocked requests that there
     is additional capacity.
+
+    Flow limits are not hard limits. If a single mutation exceeds the configured
+    limits, it will be sent in a single batch when the capacity is available.
     """
 
     def __init__(self, max_mutation_count: int | None, max_mutation_bytes: int | None):
@@ -63,11 +66,18 @@ class _FlowControl:
     def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
         """
         Checks if there is capacity to send a new mutation with the given size and count
+
+        FlowControl limits are not hard limits. If a single mutation exceeds
+        the configured limits, it can be sent in a single batch.
         """
+        # adjust limits to allow overly large mutations
+        acceptable_size = max(self.max_mutation_bytes, additional_size)
+        acceptable_count = max(self.max_mutation_count, additional_count)
+        # check if we have capacity for new mutation
         new_size = self.in_flight_mutation_bytes + additional_size
         new_count = self.in_flight_mutation_count + additional_count
         return (
-            new_size <= self.max_mutation_bytes and new_count <= self.max_mutation_count
+            new_size <= acceptable_size and new_count <= acceptable_count
         )
 
     async def remove_from_flow(self, mutations: list[RowMutationEntry]) -> None:
@@ -106,15 +116,6 @@ class _FlowControl:
                     next_entry = mutations[end_idx]
                     next_size = next_entry.size()
                     next_count = len(next_entry.mutations)
-                    # do extra sanity check to avoid blocking forever
-                    if next_count > self.max_mutation_count:
-                        raise ValueError(
-                            f"Mutation count {next_count} exceeds maximum: {self.max_mutation_count}"
-                        )
-                    if next_size > self.max_mutation_bytes:
-                        raise ValueError(
-                            f"Mutation size {next_size} exceeds maximum: {self.max_mutation_bytes}"
-                        )
                     if self._has_capacity(next_count, next_size):
                         end_idx += 1
                         self.in_flight_mutation_bytes += next_size
@@ -213,19 +214,10 @@ class MutationsBatcher:
         """
         if self.closed:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
-        size = mutations.size()
-        if size > self._flow_control.max_mutation_bytes:
-            raise ValueError(
-                f"Mutation size {size} exceeds flow_control_max_bytes: {self._flow_control.max_mutation_bytes}"
-            )
-        if len(mutations.mutations) > self._flow_control.max_mutation_count:
-            raise ValueError(
-                f"Mutation count {len(mutations.mutations)} exceeds flow_control_max_count: {self._flow_control.max_mutation_count}"
-            )
         self._staged_mutations.append(mutations)
         # start a new flush task if limits exceeded
         self._staged_count += len(mutations.mutations)
-        self._staged_bytes += size
+        self._staged_bytes += mutations.size()
         if (
             self._staged_count >= self._flush_limit_count
             or self._staged_bytes >= self._flush_limit_bytes

@@ -61,12 +61,16 @@ class Test_FlowControl:
             (0, 0, 1, 1, 1, 1, False),
             (10, 10, 0, 0, 0, 0, True),
             (10, 10, 0, 0, 9, 9, True),
-            (10, 10, 0, 0, 11, 9, False),
-            (10, 10, 0, 0, 9, 11, False),
+            (10, 10, 0, 0, 11, 9, True),
+            (10, 10, 0, 1, 11, 9, True),
+            (10, 10, 1, 0, 11, 9, False),
+            (10, 10, 0, 0, 9, 11, True),
+            (10, 10, 1, 0, 9, 11, True),
+            (10, 10, 0, 1, 9, 11, False),
             (10, 1, 0, 0, 1, 0, True),
             (1, 10, 0, 0, 0, 8, True),
             (float("inf"), float("inf"), 0, 0, 1e10, 1e10, True),
-            (8, 8, 0, 0, 1e10, 1e10, False),
+            (8, 8, 0, 0, 1e10, 1e10, True),
             (12, 12, 6, 6, 5, 5, True),
             (12, 12, 5, 5, 6, 6, True),
             (12, 12, 6, 6, 6, 6, True),
@@ -208,21 +212,18 @@ class Test_FlowControl:
         assert i == len(expected_results)
 
     @pytest.mark.asyncio
-    async def test_add_to_flow_invalid_mutation(self):
+    async def test_add_to_flow_oversize(self):
         """
-        batching should raise exception for mutations larger than limits to avoid deadlock
+        mutations over the flow control limits should still be accepted
         """
         instance = self._make_one(2, 3)
         large_size_mutation = _make_mutation(count=1, size=10)
         large_count_mutation = _make_mutation(count=10, size=1)
-        with pytest.raises(ValueError) as e:
-            async for _ in instance.add_to_flow([large_size_mutation]):
-                pass
-        assert "Mutation size 10 exceeds maximum: 3" in str(e.value)
-        with pytest.raises(ValueError) as e:
-            async for _ in instance.add_to_flow([large_count_mutation]):
-                pass
-        assert "Mutation count 10 exceeds maximum: 2" in str(e.value)
+        results = [out async for out in instance.add_to_flow([large_size_mutation])]
+        assert len(results) == 1
+        await instance.remove_from_flow(results[0])
+        count_results = [out async for out in instance.add_to_flow([large_count_mutation])]
+        assert len(count_results) == 1
 
 
 class TestMutationsBatcher:
@@ -231,6 +232,8 @@ class TestMutationsBatcher:
 
         if table is None:
             table = mock.Mock()
+            table.default_operation_timeout = 10
+            table.default_per_request_timeout = 10
 
         return MutationsBatcher(table, **kwargs)
 
@@ -416,18 +419,25 @@ class TestMutationsBatcher:
 
     @pytest.mark.asyncio
     async def test_append_outside_flow_limits(self):
-        """entries larger than mutation limits are rejected"""
+        """entries larger than mutation limits are still processed"""
         async with self._make_one(
             flow_control_max_count=1, flow_control_max_bytes=1
         ) as instance:
             oversized_entry = _make_mutation(count=0, size=2)
+            instance.append(oversized_entry)
+            assert instance._staged_mutations == [oversized_entry]
+            assert instance._staged_count == 0
+            assert instance._staged_bytes == 2
+            instance._staged_mutations = []
+        async with self._make_one(
+            flow_control_max_count=1, flow_control_max_bytes=1
+        ) as instance:
             overcount_entry = _make_mutation(count=2, size=0)
-            with pytest.raises(ValueError) as e:
-                instance.append(oversized_entry)
-            assert "Mutation size 2 exceeds flow_control_max_bytes: 1" in str(e.value)
-            with pytest.raises(ValueError) as e:
-                instance.append(overcount_entry)
-            assert "Mutation count 2 exceeds flow_control_max_count: 1" in str(e.value)
+            instance.append(overcount_entry)
+            assert instance._staged_mutations == [overcount_entry]
+            assert instance._staged_count == 2
+            assert instance._staged_bytes == 0
+            instance._staged_mutations = []
 
     @pytest.mark.parametrize(
         "flush_count,flush_bytes,mutation_count,mutation_bytes,expect_flush",
@@ -628,7 +638,6 @@ class TestMutationsBatcher:
     @pytest.mark.asyncio
     async def test_manual_flush_end_to_end(self):
         """Test full flush process with minimal mocking"""
-
         num_nutations = 10
         mutations = [_make_mutation(count=2, size=2)] * num_nutations
 
