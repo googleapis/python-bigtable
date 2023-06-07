@@ -446,6 +446,7 @@ async def test_row_exists(table, temp_rows):
         await table.row_exists("")
         assert "Row kest must be non-empty" in str(e)
 
+
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.parametrize(
     "cell_value,filter_input,expect_match",
