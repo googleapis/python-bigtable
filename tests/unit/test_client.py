@@ -1906,8 +1906,8 @@ class TestCheckAndMutateRow:
                     found = await table.check_and_mutate_row(
                         row_key,
                         predicate,
-                        true_mutations,
-                        false_mutations,
+                        true_case_mutations=true_mutations,
+                        false_case_mutations=false_mutations,
                         operation_timeout=operation_timeout,
                     )
                     assert found == gapic_result
@@ -1934,11 +1934,28 @@ class TestCheckAndMutateRow:
                     await table.check_and_mutate_row(
                         b"row_key",
                         None,
-                        [],
-                        [],
+                        true_case_mutations=[mock.Mock()],
+                        false_case_mutations=[],
                         operation_timeout=-1,
                     )
                 assert str(e.value) == "operation_timeout must be greater than 0"
+
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_no_mutations(self):
+        """Requests require either true_case_mutations or false_case_mutations"""
+        from google.api_core.exceptions import InvalidArgument
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(InvalidArgument) as e:
+                    await table.check_and_mutate_row(
+                        b"row_key",
+                        None,
+                        true_case_mutations=None,
+                        false_case_mutations=None,
+                    )
+                assert "No mutations provided" in str(e.value)
+
+
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_single_mutations(self):
@@ -1959,8 +1976,8 @@ class TestCheckAndMutateRow:
                     await table.check_and_mutate_row(
                         b"row_key",
                         None,
-                        true_mutation,
-                        false_mutation,
+                        true_case_mutations=true_mutation,
+                        false_case_mutations=false_mutation,
                     )
                     kwargs = mock_gapic.call_args[1]
                     request = kwargs["request"]
@@ -1986,8 +2003,7 @@ class TestCheckAndMutateRow:
                     await table.check_and_mutate_row(
                         b"row_key",
                         mock_predicate,
-                        None,
-                        [mock.Mock()],
+                        false_case_mutations=[mock.Mock()],
                     )
                     kwargs = mock_gapic.call_args[1]
                     assert kwargs["request"]["predicate_filter"] == fake_dict
@@ -2014,8 +2030,8 @@ class TestCheckAndMutateRow:
                     await table.check_and_mutate_row(
                         b"row_key",
                         None,
-                        mutations[0:2],
-                        mutations[2:],
+                        true_case_mutations=mutations[0:2],
+                        false_case_mutations=mutations[2:],
                     )
                     kwargs = mock_gapic.call_args[1]["request"]
                     assert kwargs["true_mutations"] == [{"fake": 0}, {"fake": 1}]

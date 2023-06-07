@@ -319,6 +319,8 @@ async def test_read_modify_write_row_increment(
     assert result[0].family == family
     assert result[0].qualifier == qualifier
     assert int(result[0]) == expected
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
 @pytest.mark.parametrize(
@@ -354,6 +356,8 @@ async def test_read_modify_write_row_append(
     assert result[0].family == family
     assert result[0].qualifier == qualifier
     assert result[0].value == expected
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
 @pytest.mark.asyncio
@@ -388,6 +392,8 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
         == (start_amount + increment_amount).to_bytes(8, "big", signed=True)
         + b"helloworld!"
     )
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
 @pytest.mark.parametrize(
@@ -415,20 +421,22 @@ async def test_check_and_mutate(
         row_key, value=start_val, family=family, qualifier=qualifier
     )
 
-    false_mutation_value = -99
-    false_mutation_result = SetCell(
+    false_mutation_value = b"false-mutation-value"
+    false_mutation = SetCell(
         family=TEST_FAMILY, qualifier=qualifier, new_value=false_mutation_value
     )
-    true_mutation_value = 55
-    true_mutation_result = SetCell(
+    true_mutation_value = b"true-mutation-value"
+    true_mutation = SetCell(
         family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
     )
     predicate = ValueRangeFilter(predicate_range[0], predicate_range[1])
     result = await table.check_and_mutate_row(
-        row_key, predicate, [false_mutation_result], [true_mutation_result]
+        row_key, predicate, true_case_mutations=true_mutation, false_case_mutations=false_mutation
     )
     assert result == expected_result
-    # TODO: add read_row assertions to verify the mutation was applied
+    # ensure cell is updated
+    expected_value = true_mutation_value if expected_result else false_mutation_value
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)

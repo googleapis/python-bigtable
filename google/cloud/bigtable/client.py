@@ -744,9 +744,9 @@ class Table:
         self,
         row_key: str | bytes,
         predicate: RowFilter | dict[str, Any] | None,
+        *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        *,
         operation_timeout: int | float | None = 600,
     ) -> bool:
         """
