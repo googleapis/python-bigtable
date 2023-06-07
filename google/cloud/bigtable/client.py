@@ -20,7 +20,6 @@ from typing import (
     Any,
     Optional,
     Set,
-    AsyncIterable,
     Callable,
     Coroutine,
     TYPE_CHECKING,
@@ -60,13 +59,13 @@ from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
+from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
-    from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 CONCURRENCY_LIMIT = 10
@@ -604,7 +603,8 @@ class Table:
     async def sample_row_keys(
         self,
         *,
-        operation_timeout: int | float | None = None,
+        operation_timeout: float | None = None,
+        per_request_timeout: float | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -622,21 +622,59 @@ class Table:
         Raises:
             - GoogleAPICallError: if the sample_row_keys request fails
         """
+        # prepare timeouts
         operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
 
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
-
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
-
-        result_generator: AsyncIterable["SampleRowKeysResponse"]
-        result_generator = await self.client._gapic_client.sample_row_keys(
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            timeout=operation_timeout,
-            metadata=metadata,
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError(
+                "per_request_timeout must not be greater than operation_timeout"
+            )
+        attempt_timeout_gen = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
         )
-        return [(s.row_key, s.offset_bytes) async for s in result_generator]
+        # prepare retryable
+        predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        )
+        transient_errors = []
+
+        def on_error_fn(exc):
+            # add errors to list if retryable
+            if predicate(exc):
+                transient_errors.append(exc)
+
+        retry = retries.AsyncRetry(
+            predicate=predicate,
+            timeout=operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+            on_error=on_error_fn,
+            is_stream=False,
+        )
+
+        # prepare request
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        async def execute_rpc():
+            results = await self.client._gapic_client.sample_row_keys(
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=next(attempt_timeout_gen),
+                metadata=metadata,
+            )
+            return [(s.row_key, s.offset_bytes) async for s in results]
+
+        wrapped_fn = _convert_retry_deadline(
+            retry(execute_rpc),
+            operation_timeout, transient_errors
+        )
+        return await wrapped_fn()
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
         """

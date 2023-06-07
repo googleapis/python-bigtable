@@ -1536,7 +1536,18 @@ class TestSampleRowKeys:
             async with client.get_table("instance", "table") as table:
                 with pytest.raises(ValueError) as e:
                     await table.sample_row_keys(operation_timeout=-1)
-                assert "operation_timeout must be greater than 0" in str(e.value)
+                    assert "operation_timeout must be greater than 0" in str(e.value)
+                with pytest.raises(ValueError) as e:
+                    await table.sample_row_keys(per_request_timeout=-1)
+                    assert "per_request_timeout must be greater than 0" in str(e.value)
+                with pytest.raises(ValueError) as e:
+                    await table.sample_row_keys(
+                        operation_timeout=10, per_request_timeout=20
+                    )
+                    assert (
+                        "per_request_timeout must not be greater than operation_timeout"
+                        in str(e.value)
+                    )
 
     @pytest.mark.asyncio
     async def test_sample_row_keys_default_timeout(self):
@@ -1552,7 +1563,7 @@ class TestSampleRowKeys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
                     result = await table.sample_row_keys()
                     _, kwargs = sample_row_keys.call_args
-                    assert kwargs["timeout"] == expected_timeout
+                    assert abs(kwargs["timeout"] - expected_timeout) < 0.1
                     assert result == []
 
     @pytest.mark.asyncio
@@ -1572,7 +1583,7 @@ class TestSampleRowKeys:
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as sample_row_keys:
                     sample_row_keys.return_value = self._make_gapic_stream([])
-                    await table.sample_row_keys(operation_timeout=expected_timeout)
+                    await table.sample_row_keys(per_request_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
                     assert len(kwargs) == 4
@@ -1604,6 +1615,59 @@ class TestSampleRowKeys:
                     assert "app_profile_id=profile" in goog_metadata
                 else:
                     assert "app_profile_id=" not in goog_metadata
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_retryable_errors(self, retryable_exception):
+        """
+        retryable errors should be retried until timeout
+        """
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.side_effect = retryable_exception("mock")
+                    with pytest.raises(DeadlineExceeded) as e:
+                        await table.sample_row_keys(operation_timeout=0.05)
+                    cause = e.value.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert len(cause.exceptions) > 0
+                    assert isinstance(cause.exceptions[0], retryable_exception)
+
+    @pytest.mark.parametrize(
+        "non_retryable_exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+            RuntimeError,
+            ValueError,
+            core_exceptions.Aborted,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_non_retryable_errors(self, non_retryable_exception):
+        """
+        non-retryable errors should cause a raise
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.side_effect = non_retryable_exception("mock")
+                    with pytest.raises(non_retryable_exception):
+                        await table.sample_row_keys()
 
 
 class TestMutateRow:
