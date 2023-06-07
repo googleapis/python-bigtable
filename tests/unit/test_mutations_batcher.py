@@ -574,20 +574,35 @@ class TestMutationsBatcher:
 
     @pytest.mark.parametrize("raise_exceptions", [True, False])
     @pytest.mark.asyncio
-    async def test_flush(self, raise_exceptions):
+    async def test_flush_no_timeout(self, raise_exceptions):
         """flush should internally call _schedule_flush"""
         mock_obj = AsyncMock()
         async with self._make_one() as instance:
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 with mock.patch.object(instance, "_raise_exceptions") as raise_mock:
                     flush_mock.return_value = mock_obj.__call__()
-                    if not raise_exceptions:
-                        await instance.flush(raise_exceptions=False)
-                    else:
-                        await instance.flush()
+                    await instance.flush(raise_exceptions=raise_exceptions, timeout=None)
                     assert flush_mock.call_count == 1
                     assert mock_obj.await_count == 1
                     assert raise_mock.call_count == int(raise_exceptions)
+
+    @pytest.mark.asyncio
+    async def test_flush_w_timeout(self):
+        """
+        flush should raise TimeoutError if incomplete by timeline, but flush
+        task should continue internally
+        """
+        async with self._make_one() as instance:
+            # create mock internal flush job
+            instance._prev_flush = asyncio.create_task(asyncio.sleep(0.5))
+            with pytest.raises(asyncio.TimeoutError):
+                await instance.flush(timeout=0.01)
+            # ensure that underlying flush task is still running
+            assert not instance._prev_flush.done()
+            # ensure flush task can complete without error
+            await instance._prev_flush
+            assert instance._prev_flush.done()
+            assert instance._prev_flush.exception() is None
 
     @pytest.mark.asyncio
     async def test_schedule_flush_no_mutations(self):

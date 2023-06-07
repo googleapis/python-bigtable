@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import atexit
 import warnings
-from typing import TYPE_CHECKING
+from typing import Awaitable, TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
@@ -261,26 +261,28 @@ class MutationsBatcher:
         ):
             self._schedule_flush()
 
-    # TODO: add tests for timeout
-    async def flush(self, *, raise_exceptions=True, timeout=30):
+    async def flush(self, *, raise_exceptions: bool = True, timeout: float | None = 60):
         """
-        Flush all staged mutations to the server
+        Flush all staged mutations
 
         Args:
           - raise_exceptions: if True, will raise any unreported exceptions from this or previous flushes.
               If False, exceptions will be stored in self.exceptions and raised on a future flush
               or when the batcher is closed.
-          - timeout: maximum time to wait for flush to complete. If exceeded, flush will
-              continue in the background and exceptions will be raised on a future flush
+          - timeout: maximum time to wait for flush to complete, in seconds.
+              If exceeded, flush will continue in the background and exceptions
+              will be surfaced on the next flush
         Raises:
           - MutationsExceptionGroup if raise_exceptions is True and any mutations fail
-          - asyncio.TimeoutError if timeout is reached
+          - asyncio.TimeoutError if timeout is reached before flush task completes.
         """
         # add recent staged mutations to flush task, and wait for flush to complete
-        flush_task = self._schedule_flush()
-        # wait timeout seconds for flush to complete
-        # if timeout is exceeded, flush task will still be running in the background
-        await asyncio.wait_for(asyncio.shield(flush_task), timeout=timeout)
+        flush_job : Awaitable[None] = self._schedule_flush()
+        if timeout is not None:
+            # wait `timeout seconds for flush to complete
+            # if timeout is exceeded, flush task will still be running in the background
+            flush_job = asyncio.wait_for(asyncio.shield(flush_job), timeout=timeout)
+        await flush_job
         # raise any unreported exceptions from this or previous flushes
         if raise_exceptions:
             self._raise_exceptions()
