@@ -1380,7 +1380,7 @@ class TestReadRowsSharded:
                     assert result[0].row_key == b"test_1"
                     assert result[1].row_key == b"test_2"
 
-    @pytest.mark.parametrize("n_queries", [1, 2, 5, 20])
+    @pytest.mark.parametrize("n_queries", [1, 2, 5, 11, 24])
     @pytest.mark.asyncio
     async def test_read_rows_sharded_multiple_queries_calls(self, n_queries):
         """
@@ -1468,6 +1468,26 @@ class TestReadRowsSharded:
                     assert "app_profile_id=profile" in goog_metadata
                 else:
                     assert "app_profile_id=" not in goog_metadata
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_batching(self):
+        """
+        Large queries should be processed in batches to limit concurrency
+        """
+        n_queries = 90
+        expected_batch_size = 10
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows"):
+                    with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:
+                        query_list = [ReadRowsQuery() for _ in range(n_queries)]
+                        await table.read_rows_sharded(query_list)
+                        assert (
+                            gather_mock.call_count == n_queries // expected_batch_size
+                        )
+                        assert (
+                            len(gather_mock.call_args_list[0][0]) == expected_batch_size
+                        )
 
 
 class TestSampleRowKeys:

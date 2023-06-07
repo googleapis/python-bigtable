@@ -68,6 +68,9 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
     from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
+# used by read_rows_sharded to limit how many requests are attempted in parallel
+CONCURRENCY_LIMIT = 10
+
 
 class BigtableDataClient(ClientWithProject):
     def __init__(
@@ -559,16 +562,26 @@ class Table:
             )
             for query in query_list
         ]
-        results_lists = await asyncio.gather(*routine_list, return_exceptions=True)
+        # submit requests in batches to limit concurrency
+        batched_routines = [
+            routine_list[i : i + CONCURRENCY_LIMIT]
+            for i in range(0, len(routine_list), CONCURRENCY_LIMIT)
+        ]
+        # run batches and collect results
+        results_list = []
+        for batch in batched_routines:
+            batch_result = await asyncio.gather(*batch, return_exceptions=True)
+            results_list.extend(batch_result)
+        # collect exceptions
         exception_list = [
             FailedQueryShardError(idx, query_list[idx], e)
-            for idx, e in enumerate(results_lists)
+            for idx, e in enumerate(results_list)
             if isinstance(e, Exception)
         ]
         if exception_list:
             # if any sub-request failed, raise an exception instead of returning results
             raise ShardedReadRowsExceptionGroup(exception_list, len(query_list))
-        combined_list = list(chain.from_iterable(results_lists))
+        combined_list = list(chain.from_iterable(results_list))
         return combined_list
 
     async def row_exists(
