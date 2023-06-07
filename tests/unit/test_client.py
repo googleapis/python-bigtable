@@ -1299,6 +1299,30 @@ class TestReadRows:
                     assert kwargs["operation_timeout"] == operation_timeout
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_read_rows_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_rows", AsyncMock()
+                ) as read_rows:
+                    await table.read_rows(ReadRowsQuery())
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
 
 class TestMutateRow:
     def _make_client(self, *args, **kwargs):
@@ -1442,6 +1466,30 @@ class TestMutateRow:
                             "row_key", mutation, operation_timeout=0.2
                         )
 
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row", AsyncMock()
+                ) as read_rows:
+                    await table.mutate_row("rk", {})
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
 
 class TestBulkMutateRows:
     def _make_client(self, *args, **kwargs):
@@ -1509,14 +1557,13 @@ class TestBulkMutateRows:
                         per_request_timeout=expected_per_request_timeout,
                     )
                     assert mock_gapic.call_count == 1
-                    request = mock_gapic.call_args[0][0]
+                    kwargs = mock_gapic.call_args[1]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert request["entries"] == [bulk_mutation._to_dict()]
-                    found_per_request_timeout = mock_gapic.call_args[1]["timeout"]
-                    assert found_per_request_timeout == expected_per_request_timeout
+                    assert kwargs["entries"] == [bulk_mutation._to_dict()]
+                    assert kwargs["timeout"] == expected_per_request_timeout
 
     @pytest.mark.asyncio
     async def test_bulk_mutate_rows_multiple_entries(self):
@@ -1534,13 +1581,13 @@ class TestBulkMutateRows:
                         [entry_1, entry_2],
                     )
                     assert mock_gapic.call_count == 1
-                    request = mock_gapic.call_args[0][0]
+                    kwargs = mock_gapic.call_args[1]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert request["entries"][0] == entry_1._to_dict()
-                    assert request["entries"][1] == entry_2._to_dict()
+                    assert kwargs["entries"][0] == entry_1._to_dict()
+                    assert kwargs["entries"][1] == entry_2._to_dict()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1799,47 +1846,34 @@ class TestBulkMutateRows:
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
+    @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
-    async def test_bulk_mutate_rows_on_success(self):
-        """
-        on_success should be called for each successful mutation
-        """
-        from google.api_core.exceptions import (
-            Aborted,
-            FailedPrecondition,
-        )
-        from google.cloud.bigtable.exceptions import (
-            MutationsExceptionGroup,
-        )
-
-        callback = mock.Mock()
-        async with self._make_client(project="project") as client:
-            async with client.get_table("instance", "table") as table:
+    async def test_bulk_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
                 with mock.patch.object(
-                    client._gapic_client, "mutate_rows"
-                ) as mock_gapic:
-                    # fail with retryable errors, then a non-retryable one
-                    mock_gapic.side_effect = [
-                        self._mock_response([None, Aborted("mock"), None]),
-                        self._mock_response([FailedPrecondition("final")]),
-                    ]
-                    with pytest.raises(MutationsExceptionGroup):
-                        mutation = mutations.SetCell(
-                            "family", b"qualifier", b"value", timestamp_micros=123
-                        )
-                        entries = [
-                            mutations.RowMutationEntry(
-                                (f"row_key_{i}").encode(), [mutation]
-                            )
-                            for i in range(3)
-                        ]
-                        assert mutation.is_idempotent() is True
-                        await table.bulk_mutate_rows(
-                            entries, operation_timeout=1000, on_success=callback
-                        )
-                    assert callback.call_count == 2
-                    assert callback.call_args_list[0][0][0] == entries[0]
-                    assert callback.call_args_list[1][0][0] == entries[2]
+                    client._gapic_client, "mutate_rows", AsyncMock()
+                ) as read_rows:
+                    read_rows.side_effect = core_exceptions.Aborted("mock")
+                    try:
+                        await table.bulk_mutate_rows([mock.Mock()])
+                    except Exception:
+                        # exception used to end early
+                        pass
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
 
 
 class TestCheckAndMutateRow:

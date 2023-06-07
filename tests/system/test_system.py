@@ -162,7 +162,9 @@ class TempRowBuilder:
     async def add_row(
         self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
-        if isinstance(value, int):
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        elif isinstance(value, int):
             value = value.to_bytes(8, byteorder="big", signed=True)
         request = {
             "table_name": self.table.table_name,
@@ -191,6 +193,19 @@ class TempRowBuilder:
         await self.table.client._gapic_client.mutate_rows(request)
 
 
+async def _retrieve_cell_value(table, row_key):
+    """
+    Helper to read an individual row
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+
+    row_list = await table.read_rows(ReadRowsQuery(row_keys=row_key))
+    assert len(row_list) == 1
+    row = row_list[0]
+    cell = row.cells[0]
+    return cell.value
+
+
 @pytest_asyncio.fixture(scope="function")
 async def temp_rows(table):
     builder = TempRowBuilder(table)
@@ -217,25 +232,55 @@ async def test_mutation_set_cell(table, temp_rows):
     """
     from google.cloud.bigtable.mutations import SetCell
 
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    row_key = b"mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
     )
-    await table.mutate_row("abc", mutation)
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+    await table.mutate_row(row_key, mutation)
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_bulk_mutations_set_cell(client, table):
+async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
     Ensure cells can be set properly
     """
     from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
 
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    row_key = b"bulk_mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
     )
-    bulk_mutation = RowMutationEntry(b"abc", [mutation])
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
     await table.bulk_mutate_rows([bulk_mutation])
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @pytest.mark.parametrize(
@@ -499,3 +544,49 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         await generator.__anext__()
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.parametrize(
+    "cell_value,filter_input,expect_match",
+    [
+        (b"abc", b"abc", True),
+        (b"abc", "abc", True),
+        (b".", ".", True),
+        (".*", ".*", True),
+        (".*", b".*", True),
+        ("a", ".*", False),
+        (b".*", b".*", True),
+        (r"\a", r"\a", True),
+        (b"\xe2\x98\x83", "☃", True),
+        ("☃", "☃", True),
+        (r"\C☃", r"\C☃", True),
+        (1, 1, True),
+        (2, 1, False),
+        (68, 68, True),
+        ("D", 68, False),
+        (68, "D", False),
+        (-1, -1, True),
+        (2852126720, 2852126720, True),
+        (-1431655766, -1431655766, True),
+        (-1431655766, -1, False),
+    ],
+)
+@pytest.mark.asyncio
+async def test_literal_value_filter(
+    table, temp_rows, cell_value, filter_input, expect_match
+):
+    """
+    Literal value filter does complex escaping on re2 strings.
+    Make sure inputs are properly interpreted by the server
+    """
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
+    from google.cloud.bigtable import ReadRowsQuery
+
+    f = LiteralValueFilter(filter_input)
+    await temp_rows.add_row(b"row_key_1", value=cell_value)
+    query = ReadRowsQuery(row_filter=f)
+    row_list = await table.read_rows(query)
+    assert len(row_list) == bool(
+        expect_match
+    ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"

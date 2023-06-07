@@ -15,7 +15,15 @@
 
 from __future__ import annotations
 
-from typing import cast, Any, Optional, Set, Callable, TYPE_CHECKING
+from typing import (
+    cast,
+    Any,
+    Optional,
+    Set,
+    Callable,
+    Coroutine,
+    TYPE_CHECKING,
+)
 
 import asyncio
 import grpc
@@ -42,11 +50,11 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
-
-from google.cloud.bigtable.exceptions import _convert_retry_deadline
-
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable._mutate_rows import _mutate_rows_operation
+from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable._helpers import _make_metadata
+from google.cloud.bigtable._helpers import _convert_retry_deadline
+
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.row_filters import RowFilter
 
@@ -667,8 +675,9 @@ class Table:
         deadline_wrapped = _convert_retry_deadline(
             retry_wrapped, operation_timeout, transient_errors
         )
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
-        await deadline_wrapped(request, timeout=per_request_timeout)
+        await deadline_wrapped(request, timeout=per_request_timeout, metadata=metadata)
 
     async def bulk_mutate_rows(
         self,
@@ -676,7 +685,10 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[[RowMutationEntry], None] | None = None,
+        on_success: Callable[
+            [int, RowMutationEntry], None | Coroutine[None, None, None]
+        ]
+        | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -703,7 +715,8 @@ class Table:
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
             - on_success: a callback function that will be called when each mutation
-                entry is confirmed to be applied successfully.
+                entry is confirmed to be applied successfully. Will be passed the
+                index and the entry itself.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -718,26 +731,14 @@ class Table:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        request = {"table_name": self.table_name}
-        if self.app_profile_id:
-            request["app_profile_id"] = self.app_profile_id
-
-        callback: Callable[[RowMutationEntry, Exception | None], None] | None = None
-        if on_success is not None:
-            # convert on_terminal_state callback to callback for successful results only
-            # failed results will be rasied as exceptions
-            def callback(entry: RowMutationEntry, exc: Exception | None):
-                if exc is None and on_success is not None:
-                    on_success(entry)
-
-        await _mutate_rows_operation(
+        operation = _MutateRowsOperation(
             self.client._gapic_client,
-            request,
+            self,
             mutation_entries,
             operation_timeout,
             per_request_timeout,
-            on_terminal_state=callback,
         )
+        await operation.start()
 
     async def check_and_mutate_row(
         self,

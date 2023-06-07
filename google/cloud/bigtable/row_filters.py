@@ -481,20 +481,56 @@ class ValueRegexFilter(_RegexFilter):
         return {"value_regex_filter": self.regex}
 
 
-class ExactValueFilter(ValueRegexFilter):
+class LiteralValueFilter(ValueRegexFilter):
     """Row filter for an exact value.
 
 
     :type value: bytes or str or int
     :param value:
-        a literal string encodable as ASCII, or the
-        equivalent bytes, or an integer (which will be packed into 8-bytes).
+        a literal string, integer, or the equivalent bytes.
+        Integer values will be packed into signed 8-bytes.
     """
 
     def __init__(self, value: bytes | str | int):
         if isinstance(value, int):
             value = _PACK_I64(value)
-        super(ExactValueFilter, self).__init__(value)
+        elif isinstance(value, str):
+            value = value.encode("utf-8")
+        value = self._write_literal_regex(value)
+        super(LiteralValueFilter, self).__init__(value)
+
+    @staticmethod
+    def _write_literal_regex(input_bytes: bytes) -> bytes:
+        """
+        Escape re2 special characters from literal bytes.
+
+        Extracted from: re2 QuoteMeta:
+        https://github.com/google/re2/blob/70f66454c255080a54a8da806c52d1f618707f8a/re2/re2.cc#L456
+        """
+        result = bytearray()
+        for byte in input_bytes:
+            # If this is the part of a UTF8 or Latin1 character, we need \
+            # to copy this byte without escaping.  Experimentally this is \
+            # what works correctly with the regexp library. \
+            utf8_latin1_check = (byte & 128) == 0
+            if (
+                (byte < ord("a") or byte > ord("z"))
+                and (byte < ord("A") or byte > ord("Z"))
+                and (byte < ord("0") or byte > ord("9"))
+                and byte != ord("_")
+                and utf8_latin1_check
+            ):
+                if byte == 0:
+                    # Special handling for null chars.
+                    # Note that this special handling is not strictly required for RE2,
+                    # but this quoting is required for other regexp libraries such as
+                    # PCRE.
+                    # Can't use "\\0" since the next character might be a digit.
+                    result.extend([ord("\\"), ord("x"), ord("0"), ord("0")])
+                    continue
+                result.append(ord(b"\\"))
+            result.append(byte)
+        return bytes(result)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(value={self.regex!r})"
