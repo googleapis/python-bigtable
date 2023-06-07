@@ -20,6 +20,7 @@ import sys
 
 import pytest
 
+from google.cloud.bigtable import mutations
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
@@ -1414,4 +1415,580 @@ class TestReadRows:
             table = client.get_table("instance", "table")
             with pytest.raises(ValueError) as e:
                 await table.row_exists(input_row)
-                assert "must be string or butes" in e
+                assert "must be string or bytes" in e
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_read_rows_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_rows", AsyncMock()
+                ) as read_rows:
+                    await table.read_rows(ReadRowsQuery())
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
+
+class TestMutateRow:
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "mutation_arg",
+        [
+            mutations.SetCell("family", b"qualifier", b"value"),
+            mutations.SetCell(
+                "family", b"qualifier", b"value", timestamp_micros=1234567890
+            ),
+            mutations.DeleteRangeFromColumn("family", b"qualifier"),
+            mutations.DeleteAllFromFamily("family"),
+            mutations.DeleteAllFromRow(),
+            [mutations.SetCell("family", b"qualifier", b"value")],
+            [
+                mutations.DeleteRangeFromColumn("family", b"qualifier"),
+                mutations.DeleteAllFromRow(),
+            ],
+        ],
+    )
+    async def test_mutate_row(self, mutation_arg):
+        """Test mutations with no errors"""
+        expected_per_request_timeout = 19
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = None
+                    await table.mutate_row(
+                        "row_key",
+                        mutation_arg,
+                        per_request_timeout=expected_per_request_timeout,
+                    )
+                    assert mock_gapic.call_count == 1
+                    request = mock_gapic.call_args[0][0]
+                    assert (
+                        request["table_name"]
+                        == "projects/project/instances/instance/tables/table"
+                    )
+                    assert request["row_key"] == b"row_key"
+                    formatted_mutations = (
+                        [mutation._to_dict() for mutation in mutation_arg]
+                        if isinstance(mutation_arg, list)
+                        else [mutation_arg._to_dict()]
+                    )
+                    assert request["mutations"] == formatted_mutations
+                    found_per_request_timeout = mock_gapic.call_args[1]["timeout"]
+                    assert found_per_request_timeout == expected_per_request_timeout
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_mutate_row_retryable_errors(self, retryable_exception):
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = retryable_exception("mock")
+                    with pytest.raises(DeadlineExceeded) as e:
+                        mutation = mutations.DeleteAllFromRow()
+                        assert mutation.is_idempotent() is True
+                        await table.mutate_row(
+                            "row_key", mutation, operation_timeout=0.05
+                        )
+                    cause = e.value.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert isinstance(cause.exceptions[0], retryable_exception)
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_mutate_row_non_idempotent_retryable_errors(
+        self, retryable_exception
+    ):
+        """
+        Non-idempotent mutations should not be retried
+        """
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = retryable_exception("mock")
+                    with pytest.raises(retryable_exception):
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", -1
+                        )
+                        assert mutation.is_idempotent() is False
+                        await table.mutate_row(
+                            "row_key", mutation, operation_timeout=0.2
+                        )
+
+    @pytest.mark.parametrize(
+        "non_retryable_exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+            RuntimeError,
+            ValueError,
+            core_exceptions.Aborted,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_mutate_row_non_retryable_errors(self, non_retryable_exception):
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = non_retryable_exception("mock")
+                    with pytest.raises(non_retryable_exception):
+                        mutation = mutations.SetCell(
+                            "family",
+                            b"qualifier",
+                            b"value",
+                            timestamp_micros=1234567890,
+                        )
+                        assert mutation.is_idempotent() is True
+                        await table.mutate_row(
+                            "row_key", mutation, operation_timeout=0.2
+                        )
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row", AsyncMock()
+                ) as read_rows:
+                    await table.mutate_row("rk", {})
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
+
+class TestBulkMutateRows:
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    async def _mock_response(self, response_list):
+        from google.cloud.bigtable_v2.types import MutateRowsResponse
+        from google.rpc import status_pb2
+
+        statuses = []
+        for response in response_list:
+            if isinstance(response, core_exceptions.GoogleAPICallError):
+                statuses.append(
+                    status_pb2.Status(
+                        message=str(response), code=response.grpc_status_code.value[0]
+                    )
+                )
+            else:
+                statuses.append(status_pb2.Status(code=0))
+        entries = [
+            MutateRowsResponse.Entry(index=i, status=statuses[i])
+            for i in range(len(response_list))
+        ]
+
+        async def generator():
+            yield MutateRowsResponse(entries=entries)
+
+        return generator()
+
+    @pytest.mark.asyncio
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "mutation_arg",
+        [
+            [mutations.SetCell("family", b"qualifier", b"value")],
+            [
+                mutations.SetCell(
+                    "family", b"qualifier", b"value", timestamp_micros=1234567890
+                )
+            ],
+            [mutations.DeleteRangeFromColumn("family", b"qualifier")],
+            [mutations.DeleteAllFromFamily("family")],
+            [mutations.DeleteAllFromRow()],
+            [mutations.SetCell("family", b"qualifier", b"value")],
+            [
+                mutations.DeleteRangeFromColumn("family", b"qualifier"),
+                mutations.DeleteAllFromRow(),
+            ],
+        ],
+    )
+    async def test_bulk_mutate_rows(self, mutation_arg):
+        """Test mutations with no errors"""
+        expected_per_request_timeout = 19
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.return_value = self._mock_response([None])
+                    bulk_mutation = mutations.RowMutationEntry(b"row_key", mutation_arg)
+                    await table.bulk_mutate_rows(
+                        [bulk_mutation],
+                        per_request_timeout=expected_per_request_timeout,
+                    )
+                    assert mock_gapic.call_count == 1
+                    kwargs = mock_gapic.call_args[1]
+                    assert (
+                        kwargs["table_name"]
+                        == "projects/project/instances/instance/tables/table"
+                    )
+                    assert kwargs["entries"] == [bulk_mutation._to_dict()]
+                    assert kwargs["timeout"] == expected_per_request_timeout
+
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_rows_multiple_entries(self):
+        """Test mutations with no errors"""
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.return_value = self._mock_response([None, None])
+                    mutation_list = [mutations.DeleteAllFromRow()]
+                    entry_1 = mutations.RowMutationEntry(b"row_key_1", mutation_list)
+                    entry_2 = mutations.RowMutationEntry(b"row_key_2", mutation_list)
+                    await table.bulk_mutate_rows(
+                        [entry_1, entry_2],
+                    )
+                    assert mock_gapic.call_count == 1
+                    kwargs = mock_gapic.call_args[1]
+                    assert (
+                        kwargs["table_name"]
+                        == "projects/project/instances/instance/tables/table"
+                    )
+                    assert kwargs["entries"][0] == entry_1._to_dict()
+                    assert kwargs["entries"][1] == entry_2._to_dict()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    async def test_bulk_mutate_rows_idempotent_mutation_error_retryable(
+        self, exception
+    ):
+        """
+        Individual idempotent mutations should be retried if they fail with a retryable error
+        """
+        from google.cloud.bigtable.exceptions import (
+            RetryExceptionGroup,
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = lambda *a, **k: self._mock_response(
+                        [exception("mock")]
+                    )
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.DeleteAllFromRow()
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.05)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert "non-idempotent" not in str(failed_exception)
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert isinstance(cause.exceptions[0], exception)
+                    # last exception should be due to retry timeout
+                    assert isinstance(
+                        cause.exceptions[-1], core_exceptions.DeadlineExceeded
+                    )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+            core_exceptions.Aborted,
+        ],
+    )
+    async def test_bulk_mutate_rows_idempotent_mutation_error_non_retryable(
+        self, exception
+    ):
+        """
+        Individual idempotent mutations should not be retried if they fail with a non-retryable error
+        """
+        from google.cloud.bigtable.exceptions import (
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = lambda *a, **k: self._mock_response(
+                        [exception("mock")]
+                    )
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.DeleteAllFromRow()
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.05)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert "non-idempotent" not in str(failed_exception)
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, exception)
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_idempotent_retryable_request_errors(
+        self, retryable_exception
+    ):
+        """
+        Individual idempotent mutations should be retried if the request fails with a retryable error
+        """
+        from google.cloud.bigtable.exceptions import (
+            RetryExceptionGroup,
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = retryable_exception("mock")
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", timestamp_micros=123
+                        )
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.05)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    assert "non-idempotent" not in str(failed_exception)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert isinstance(cause.exceptions[0], retryable_exception)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    async def test_bulk_mutate_rows_non_idempotent_retryable_errors(
+        self, retryable_exception
+    ):
+        """Non-Idempotent mutations should never be retried"""
+        from google.cloud.bigtable.exceptions import (
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = lambda *a, **k: self._mock_response(
+                        [retryable_exception("mock")]
+                    )
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", -1
+                        )
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is False
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.2)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    assert "non-idempotent" in str(failed_exception)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, retryable_exception)
+
+    @pytest.mark.parametrize(
+        "non_retryable_exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+            RuntimeError,
+            ValueError,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_rows_non_retryable_errors(self, non_retryable_exception):
+        """
+        If the request fails with a non-retryable error, mutations should not be retried
+        """
+        from google.cloud.bigtable.exceptions import (
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    mock_gapic.side_effect = non_retryable_exception("mock")
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", timestamp_micros=123
+                        )
+                        entry = mutations.RowMutationEntry(b"row_key", [mutation])
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows([entry], operation_timeout=0.2)
+                    assert len(e.value.exceptions) == 1
+                    failed_exception = e.value.exceptions[0]
+                    assert isinstance(failed_exception, FailedMutationEntryError)
+                    assert "non-idempotent" not in str(failed_exception)
+                    cause = failed_exception.__cause__
+                    assert isinstance(cause, non_retryable_exception)
+
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_error_index(self):
+        """
+        Test partial failure, partial success. Errors should be associated with the correct index
+        """
+        from google.api_core.exceptions import (
+            DeadlineExceeded,
+            ServiceUnavailable,
+            FailedPrecondition,
+        )
+        from google.cloud.bigtable.exceptions import (
+            RetryExceptionGroup,
+            FailedMutationEntryError,
+            MutationsExceptionGroup,
+        )
+
+        async with self._make_client(project="project") as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows"
+                ) as mock_gapic:
+                    # fail with retryable errors, then a non-retryable one
+                    mock_gapic.side_effect = [
+                        self._mock_response([None, ServiceUnavailable("mock"), None]),
+                        self._mock_response([DeadlineExceeded("mock")]),
+                        self._mock_response([FailedPrecondition("final")]),
+                    ]
+                    with pytest.raises(MutationsExceptionGroup) as e:
+                        mutation = mutations.SetCell(
+                            "family", b"qualifier", b"value", timestamp_micros=123
+                        )
+                        entries = [
+                            mutations.RowMutationEntry(
+                                (f"row_key_{i}").encode(), [mutation]
+                            )
+                            for i in range(3)
+                        ]
+                        assert mutation.is_idempotent() is True
+                        await table.bulk_mutate_rows(entries, operation_timeout=1000)
+                    assert len(e.value.exceptions) == 1
+                    failed = e.value.exceptions[0]
+                    assert isinstance(failed, FailedMutationEntryError)
+                    assert failed.index == 1
+                    assert failed.entry == entries[1]
+                    cause = failed.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert len(cause.exceptions) == 3
+                    assert isinstance(cause.exceptions[0], ServiceUnavailable)
+                    assert isinstance(cause.exceptions[1], DeadlineExceeded)
+                    assert isinstance(cause.exceptions[2], FailedPrecondition)
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_row_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_rows", AsyncMock()
+                ) as read_rows:
+                    read_rows.side_effect = core_exceptions.Aborted("mock")
+                    try:
+                        await table.bulk_mutate_rows([mock.Mock()])
+                    except Exception:
+                        # exception used to end early
+                        pass
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
