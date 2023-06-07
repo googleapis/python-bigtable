@@ -25,6 +25,7 @@ from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
+from google.cloud.bigtable.mutations import Mutation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
@@ -231,16 +232,29 @@ class MutationsBatcher:
             if not self.closed and self._staged_mutations:
                 self._schedule_flush()
 
-    def append(self, mutations: RowMutationEntry):
+    def append(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
         Add a new set of mutations to the internal queue
+
+        Args:
+          - mutations: entries to add to flush queue
+        Raises:
+          - RuntimeError if batcher is closed
+          - ValueError if an invalid mutation type is added
         """
         if self.closed:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
-        self._staged_mutations.append(mutations)
+        if not isinstance(mutations, list):
+            mutations = [mutations]
+        for m in mutations:
+            if isinstance(m, Mutation):  # type: ignore
+                raise ValueError(
+                    f"invalid mutation type: {type(m).__name__}. Only RowMutationEntry objects are supported by batcher"
+                )
+        self._staged_mutations.extend(mutations)
         # start a new flush task if limits exceeded
-        self._staged_count += len(mutations.mutations)
-        self._staged_bytes += mutations.size()
+        self._staged_count += sum([len(m.mutations) for m in mutations])
+        self._staged_bytes += sum([m.size() for m in mutations])
         if (
             self._staged_count >= self._flush_limit_count
             or self._staged_bytes >= self._flush_limit_bytes

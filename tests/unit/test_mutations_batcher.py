@@ -457,7 +457,24 @@ class TestMutationsBatcher:
         with pytest.raises(RuntimeError):
             instance = self._make_one()
             await instance.close()
-            instance.append([mock.Mock()])
+            instance.append(mock.Mock())
+
+    @pytest.mark.asyncio
+    async def test_append_wrong_mutation(self):
+        """
+        Mutation objects should raise an exception.
+        Only support RowMutationEntry
+        """
+        from google.cloud.bigtable.mutations import DeleteAllFromRow
+
+        instance = self._make_one()
+        expected_error = "invalid mutation type: DeleteAllFromRow. Only RowMutationEntry objects are supported by batcher"
+        with pytest.raises(ValueError) as e:
+            instance.append(DeleteAllFromRow())
+        assert str(e.value) == expected_error
+        with pytest.raises(ValueError) as e:
+            instance.append([DeleteAllFromRow(), DeleteAllFromRow()])
+        assert str(e.value) == expected_error
 
     @pytest.mark.asyncio
     async def test_append_outside_flow_limits(self):
@@ -514,7 +531,7 @@ class TestMutationsBatcher:
             instance._staged_mutations = []
 
     @pytest.mark.asyncio
-    async def test_append_multiple(self):
+    async def test_append_multiple_sequentially(self):
         """Append multiple mutations"""
         async with self._make_one(flush_limit_count=8, flush_limit_bytes=8) as instance:
             assert instance._staged_count == 0
@@ -533,6 +550,22 @@ class TestMutationsBatcher:
                 assert instance._staged_bytes == 6
                 assert len(instance._staged_mutations) == 2
                 instance.append(mutation)
+                assert flush_mock.call_count == 1
+                assert instance._staged_count == 6
+                assert instance._staged_bytes == 9
+                assert len(instance._staged_mutations) == 3
+            instance._staged_mutations = []
+
+    @pytest.mark.asyncio
+    async def test_append_multiple_single_call(self):
+        """Append multiple mutations in a single append call"""
+        async with self._make_one(flush_limit_count=8, flush_limit_bytes=8) as instance:
+            assert instance._staged_count == 0
+            assert instance._staged_bytes == 0
+            assert instance._staged_mutations == []
+            mutation_list = [_make_mutation(count=2, size=3) for _ in range(3)]
+            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
+                instance.append(mutation_list)
                 assert flush_mock.call_count == 1
                 assert instance._staged_count == 6
                 assert instance._staged_bytes == 9

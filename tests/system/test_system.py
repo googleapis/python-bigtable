@@ -233,7 +233,7 @@ async def temp_rows(table):
     await builder.delete_rows()
 
 
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -290,14 +290,18 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     """
     from google.cloud.bigtable.mutations import RowMutationEntry
 
-    new_value = uuid.uuid4().hex.encode()
+    new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
     row_key, mutation = await _create_row_and_mutation(
         table, temp_rows, new_value=new_value
     )
+    row_key2, mutation2 = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
     bulk_mutation = RowMutationEntry(row_key, [mutation])
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
     async with table.mutations_batcher() as batcher:
-        batcher.append(bulk_mutation)
+        batcher.append([bulk_mutation, bulk_mutation2])
     # ensure cell is updated
     assert (await _retrieve_cell_value(table, row_key)) == new_value
     assert len(batcher._staged_mutations) == 0
