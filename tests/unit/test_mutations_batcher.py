@@ -33,32 +33,58 @@ def _make_mutation(count=1, size=1):
 
 
 class Test_FlowControl:
-    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
+    def _make_one(
+        self, max_mutation_count=10, max_mutation_bytes=100, max_entry_count=100_000
+    ):
         from google.cloud.bigtable.mutations_batcher import _FlowControl
 
-        return _FlowControl(max_mutation_count, max_mutation_bytes)
+        return _FlowControl(max_mutation_count, max_mutation_bytes, max_entry_count)
 
     def test_ctor(self):
         max_mutation_count = 9
         max_mutation_bytes = 19
-        instance = self._make_one(max_mutation_count, max_mutation_bytes)
+        max_entry_count = 29
+        instance = self._make_one(
+            max_mutation_count, max_mutation_bytes, max_entry_count
+        )
         assert instance.max_mutation_count == max_mutation_count
         assert instance.max_mutation_bytes == max_mutation_bytes
+        assert instance.max_entry_count == max_entry_count
         assert instance.in_flight_mutation_count == 0
         assert instance.in_flight_mutation_bytes == 0
         assert isinstance(instance.capacity_condition, asyncio.Condition)
 
     def test_ctor_empty_values(self):
         """Test constructor with None count and bytes"""
+        from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
+
         instance = self._make_one(None, None)
         assert instance.max_mutation_count == float("inf")
         assert instance.max_mutation_bytes == float("inf")
+        assert instance.max_entry_count == MAX_MUTATE_ROWS_ENTRY_COUNT
+
+    def test_ctor_invalid_values(self):
+        """Test that values are positive, and fit within expected limits"""
+        from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
+
+        with pytest.raises(ValueError) as e:
+            self._make_one(0, 1)
+            assert "max_mutation_count must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(1, 0)
+            assert "max_mutation_bytes must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(1, 1, 0)
+            assert "max_entry_count must be between 1 and 100000" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(1, 1, MAX_MUTATE_ROWS_ENTRY_COUNT + 1)
+            assert "max_entry_count must be between 1 and" in str(e.value)
 
     @pytest.mark.parametrize(
         "max_count,max_size,existing_count,existing_size,new_count,new_size,expected",
         [
-            (0, 0, 0, 0, 0, 0, True),
-            (0, 0, 1, 1, 1, 1, False),
+            (1, 1, 0, 0, 0, 0, True),
+            (1, 1, 1, 1, 1, 1, False),
             (10, 10, 0, 0, 0, 0, True),
             (10, 10, 0, 0, 9, 9, True),
             (10, 10, 0, 0, 11, 9, True),
@@ -75,6 +101,14 @@ class Test_FlowControl:
             (12, 12, 5, 5, 6, 6, True),
             (12, 12, 6, 6, 6, 6, True),
             (12, 12, 6, 6, 7, 7, False),
+            # allow capacity check if new_count or new_size exceeds limits
+            (12, 12, 0, 0, 13, 13, True),
+            (12, 12, 12, 0, 0, 13, True),
+            (12, 12, 0, 12, 13, 0, True),
+            # but not if there's already values in flight
+            (12, 12, 1, 1, 13, 13, False),
+            (12, 12, 1, 1, 0, 13, False),
+            (12, 12, 1, 1, 13, 0, False),
         ],
     )
     def test__has_capacity(
@@ -172,31 +206,37 @@ class Test_FlowControl:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mutations,count_cap,size_cap,expected_results",
+        "mutations,count_cap,size_cap,entry_cap,expected_results",
         [
             # high capacity results in no batching
-            ([(5, 5), (1, 1), (1, 1)], 10, 10, [[(5, 5), (1, 1), (1, 1)]]),
+            ([(5, 5), (1, 1), (1, 1)], 10, 10, 100, [[(5, 5), (1, 1), (1, 1)]]),
             # low capacity splits up into batches
-            ([(1, 1), (1, 1), (1, 1)], 1, 1, [[(1, 1)], [(1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 1, 1, 100, [[(1, 1)], [(1, 1)], [(1, 1)]]),
             # test count as limiting factor
-            ([(1, 1), (1, 1), (1, 1)], 2, 10, [[(1, 1), (1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 2, 10, 100, [[(1, 1), (1, 1)], [(1, 1)]]),
             # test size as limiting factor
-            ([(1, 1), (1, 1), (1, 1)], 10, 2, [[(1, 1), (1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 10, 2, 100, [[(1, 1), (1, 1)], [(1, 1)]]),
             # test with some bloackages and some flows
             (
                 [(1, 1), (5, 5), (4, 1), (1, 4), (1, 1)],
                 5,
                 5,
+                100,
                 [[(1, 1)], [(5, 5)], [(4, 1), (1, 4)], [(1, 1)]],
             ),
+            # flows with entry count above max request limit should be batched
+            ([(1, 1)] * 11, 100, 100, 10, [[(1, 1)] * 10, [(1, 1)]]),
+            ([(1, 1)] * 10, 100, 100, 1, [[(1, 1)] for _ in range(10)]),
         ],
     )
-    async def test_add_to_flow(self, mutations, count_cap, size_cap, expected_results):
+    async def test_add_to_flow(
+        self, mutations, count_cap, size_cap, entry_cap, expected_results
+    ):
         """
         Test batching with various flow control settings
         """
         mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
-        instance = self._make_one(count_cap, size_cap)
+        instance = self._make_one(count_cap, size_cap, entry_cap)
         i = 0
         async for batch in instance.add_to_flow(mutation_objs):
             expected_batch = expected_results[i]
@@ -222,7 +262,9 @@ class Test_FlowControl:
         results = [out async for out in instance.add_to_flow([large_size_mutation])]
         assert len(results) == 1
         await instance.remove_from_flow(results[0])
-        count_results = [out async for out in instance.add_to_flow([large_count_mutation])]
+        count_results = [
+            out async for out in instance.add_to_flow([large_count_mutation])
+        ]
         assert len(count_results) == 1
 
 

@@ -488,6 +488,19 @@ class TestRowMutationEntry:
         assert instance.row_key == expected_key
         assert list(instance.mutations) == expected_mutations
 
+    def test_ctor_over_limit(self):
+        """Should raise error if mutations exceed MAX_MUTATIONS_PER_ENTRY"""
+        from google.cloud.bigtable.mutations import MAX_MUTATIONS_PER_ENTRY
+
+        assert MAX_MUTATIONS_PER_ENTRY == 100_000
+        # no errors at limit
+        expected_mutations = [None for _ in range(MAX_MUTATIONS_PER_ENTRY)]
+        self._make_one(b"row_key", expected_mutations)
+        # error if over limit
+        with pytest.raises(ValueError) as e:
+            self._make_one("key", expected_mutations + [mock.Mock()])
+        assert "entries must have <= 100000 mutations" in str(e.value)
+
     def test_ctor_str_key(self):
         expected_key = "row_key"
         expected_mutations = [mock.Mock(), mock.Mock()]

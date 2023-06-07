@@ -24,6 +24,7 @@ from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table  # pragma: no cover
@@ -36,15 +37,20 @@ class _FlowControl:
     """
     Manages flow control for batched mutations. Mutations are registered against
     the FlowControl object before being sent, which will block if size or count
-    limits have reached capacity. When a mutation is complete, it is unregistered
-    from the FlowControl object, which will notify any blocked requests that there
+    limits have reached capacity. As mutations completed, they are removed from
+    the FlowControl object, which will notify any blocked requests that there
     is additional capacity.
 
     Flow limits are not hard limits. If a single mutation exceeds the configured
-    limits, it will be sent in a single batch when the capacity is available.
+    limits, it will be allowed as a single batch when the capacity is available.
     """
 
-    def __init__(self, max_mutation_count: int | None, max_mutation_bytes: int | None):
+    def __init__(
+        self,
+        max_mutation_count: int | None,
+        max_mutation_bytes: int | None,
+        max_entry_count: int = MAX_MUTATE_ROWS_ENTRY_COUNT,
+    ):
         """
         Args:
           - max_mutation_count: maximum number of mutations to send in a single rpc.
@@ -52,6 +58,8 @@ class _FlowControl:
              If None, no limit is enforced.
           - max_mutation_bytes: maximum number of bytes to send in a single rpc.
              If None, no limit is enforced.
+          - max_entry_count: maximum number of entries to send in a single rpc.
+             Limited to 100,000 by the MutateRows API.
         """
         self.max_mutation_count = (
             max_mutation_count if max_mutation_count is not None else float("inf")
@@ -59,6 +67,18 @@ class _FlowControl:
         self.max_mutation_bytes = (
             max_mutation_bytes if max_mutation_bytes is not None else float("inf")
         )
+        self.max_entry_count = max_entry_count
+        if (
+            self.max_entry_count > MAX_MUTATE_ROWS_ENTRY_COUNT
+            or self.max_entry_count < 1
+        ):
+            raise ValueError(
+                f"max_entry_count must be between 1 and {MAX_MUTATE_ROWS_ENTRY_COUNT}"
+            )
+        if self.max_mutation_count < 1:
+            raise ValueError("max_mutation_count must be greater than 0")
+        if self.max_mutation_bytes < 1:
+            raise ValueError("max_mutation_bytes must be greater than 0")
         self.capacity_condition = asyncio.Condition()
         self.in_flight_mutation_count = 0
         self.in_flight_mutation_bytes = 0
@@ -76,9 +96,7 @@ class _FlowControl:
         # check if we have capacity for new mutation
         new_size = self.in_flight_mutation_bytes + additional_size
         new_count = self.in_flight_mutation_count + additional_count
-        return (
-            new_size <= acceptable_size and new_count <= acceptable_count
-        )
+        return new_size <= acceptable_size and new_count <= acceptable_count
 
     async def remove_from_flow(self, mutations: list[RowMutationEntry]) -> None:
         """
@@ -116,7 +134,12 @@ class _FlowControl:
                     next_entry = mutations[end_idx]
                     next_size = next_entry.size()
                     next_count = len(next_entry.mutations)
-                    if self._has_capacity(next_count, next_size):
+                    num_in_batch = end_idx - start_idx
+                    if (
+                        self._has_capacity(next_count, next_size)
+                        and num_in_batch < self.max_entry_count
+                    ):
+                        # room for new mutation; add to batch
                         end_idx += 1
                         self.in_flight_mutation_bytes += next_size
                         self.in_flight_mutation_count += next_count

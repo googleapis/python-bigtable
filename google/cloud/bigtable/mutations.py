@@ -22,6 +22,9 @@ from sys import getsizeof
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
 
+# mutation entries above this should be rejected
+MAX_MUTATIONS_PER_ENTRY = 100_000
+
 
 class Mutation(ABC):
     """Model class for mutations"""
@@ -198,6 +201,10 @@ class RowMutationEntry:
             mutations = [mutations]
         if len(mutations) == 0:
             raise ValueError("mutations must not be empty")
+        elif len(mutations) > MAX_MUTATIONS_PER_ENTRY:
+            raise ValueError(
+                f"entries must have <= {MAX_MUTATIONS_PER_ENTRY} mutations"
+            )
         self.row_key = row_key
         self.mutations = tuple(mutations)
 

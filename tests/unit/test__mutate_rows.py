@@ -105,6 +105,29 @@ class TestMutateRowsOperation:
         assert instance.remaining_indices == list(range(len(entries)))
         assert instance.errors == {}
 
+    def test_ctor_too_many_entries(self):
+        """
+        should raise an error if an operation is created with more than 100,000 entries
+        """
+        from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
+
+        assert MAX_MUTATE_ROWS_ENTRY_COUNT == 100000
+
+        client = mock.Mock()
+        table = mock.Mock()
+        entries = [None] * MAX_MUTATE_ROWS_ENTRY_COUNT
+        operation_timeout = 0.05
+        attempt_timeout = 0.01
+        # no errors if at limit
+        self._make_one(client, table, entries, operation_timeout, attempt_timeout)
+        # raise error after crossing
+        with pytest.raises(ValueError) as e:
+            self._make_one(
+                client, table, entries + [None], operation_timeout, attempt_timeout
+            )
+        assert "mutate_rows must contain at most 100000 entries" in str(e.value)
+        assert "Received 100001" in str(e.value)
+
     @pytest.mark.asyncio
     async def test_mutate_rows_operation(self):
         """
