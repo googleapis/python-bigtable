@@ -2045,6 +2045,30 @@ class TestCheckAndMutateRow:
                         mutation._to_dict.call_count == 1 for mutation in mutations[:5]
                     )
 
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_check_and_mutate_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row", AsyncMock()
+                ) as mock_gapic:
+                    await table.check_and_mutate_row(b'key', mock.Mock())
+                kwargs = mock_gapic.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
 
 class TestReadModifyWriteRow:
     def _make_client(self, *args, **kwargs):
@@ -2177,3 +2201,29 @@ class TestReadModifyWriteRow:
                         await table.read_modify_write_row("key", mock.Mock())
                         assert constructor_mock.call_count == 1
                         constructor_mock.assert_called_once_with(mock_response.row)
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_read_modify_write_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row", AsyncMock()
+                ) as mock_gapic:
+                    await table.read_modify_write_row("key", mock.Mock())
+                kwargs = mock_gapic.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
+

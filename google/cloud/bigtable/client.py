@@ -793,6 +793,7 @@ class Table:
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         if predicate is not None and not isinstance(predicate, dict):
             predicate = predicate.to_dict()
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
             request={
                 "predicate_filter": predicate,
@@ -802,6 +803,7 @@ class Table:
                 "row_key": row_key,
                 "app_profile_id": self.app_profile_id,
             },
+            metadata=metadata,
             timeout=operation_timeout,
         )
         return result.predicate_matched
@@ -845,6 +847,7 @@ class Table:
             raise ValueError("rules must contain at least one item")
         # concert to dict representation
         rules_dict = [rule._to_dict() for rule in rules]
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.read_modify_write_row(
             request={
                 "rules": rules_dict,
@@ -852,6 +855,7 @@ class Table:
                 "row_key": row_key,
                 "app_profile_id": self.app_profile_id,
             },
+            metadata=metadata,
             timeout=operation_timeout,
         )
         # construct Row from result
