@@ -581,10 +581,22 @@ class Table:
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
+        Kwargs:
+          - flush_interval: Automatically flush every flush_interval seconds. If None,
+              a table default will be used
+          - flush_limit_count: Flush immediately after flush_limit_count mutations are added.
+              If None, this limit is ignored.
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
+              If None, this limit is ignored.
+          - flow_control_max_count: Maximum number of inflight mutations.
+              If None, this limit is ignored.
+          - flow_control_max_bytes: Maximum number of inflight bytes.
+              If None, this limit is ignored.
         Returns:
             - a MutationsBatcher context manager that can batch requests
         """
-        return MutationsBatcher(self, **kwargs)
+        kwargs["table"] = self
+        return MutationsBatcher(**kwargs)
 
     async def mutate_row(
         self,
