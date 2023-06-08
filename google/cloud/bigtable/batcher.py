@@ -220,7 +220,7 @@ class MutationsBatcher(object):
         )
         self.futures_mapping = {}
         self.exceptions = queue.Queue()
-        self._batch_completed_callback = batch_completed_callback
+        self._user_batch_completed_callback = batch_completed_callback
 
     @property
     def flush_count(self):
@@ -333,7 +333,7 @@ class MutationsBatcher(object):
                 self.flow_control.control_flow(batch_info)
                 future = self._executor.submit(self._flush_rows, rows_to_flush)
                 self.futures_mapping[future] = batch_info
-                future.add_done_callback(self._batch_completed_clean_up_callback)
+                future.add_done_callback(self._batch_completed_callback)
 
                 # reset and start a new batch
                 rows_to_flush = []
@@ -342,8 +342,9 @@ class MutationsBatcher(object):
                 mutations_count = 0
                 batch_info = _BatchInfo()
 
-    def _batch_completed_clean_up_callback(self, future):
-        """Callback for when the mutation has finished to clean up the current batch and release items from the flow controller.
+    def _batch_completed_callback(self, future):
+        """Callback for when the mutation has finished to clean up the current batch
+        and release items from the flow controller.
 
         Raise exceptions if there's any.
         Release the resources locked by the flow control and allow enqueued tasks to be run.
@@ -363,8 +364,8 @@ class MutationsBatcher(object):
         if len(rows_to_flush) > 0:
             response = self.table.mutate_rows(rows_to_flush)
 
-            if self._batch_completed_callback:
-                self._batch_completed_callback(response)
+            if self._user_batch_completed_callback:
+                self._user_batch_completed_callback(response)
 
             for result in response:
                 if result.code != 0:
