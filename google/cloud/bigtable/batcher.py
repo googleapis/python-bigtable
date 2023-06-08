@@ -193,9 +193,10 @@ class MutationsBatcher(object):
     :param flush_interval: (Optional) The interval (in seconds) between asynchronous flush.
         Default is 1 second.
 
-    :type batch_completed_callback: Callable = None
+    :type batch_completed_callback: Callable[list:[`~google.rpc.status_pb2.Status`]] = None
     :param batch_completed_callback: (Optional) A callable for handling responses
-        after the current batch is sent.
+        after the current batch is sent. The callable function expect a list of grpc
+        Status.
     """
 
     def __init__(
