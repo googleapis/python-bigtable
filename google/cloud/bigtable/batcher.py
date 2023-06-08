@@ -195,7 +195,7 @@ class MutationsBatcher(object):
 
     :type batch_completed_callback: Callable = None
     :param batch_completed_callback: (Optional) A callable for handling responses
-        after the request is flushed.
+        after the current batch is sent.
     """
 
     def __init__(
