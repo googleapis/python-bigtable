@@ -431,7 +431,10 @@ async def test_check_and_mutate(
     )
     predicate = ValueRangeFilter(predicate_range[0], predicate_range[1])
     result = await table.check_and_mutate_row(
-        row_key, predicate, true_case_mutations=true_mutation, false_case_mutations=false_mutation
+        row_key,
+        predicate,
+        true_case_mutations=true_mutation,
+        false_case_mutations=false_mutation,
     )
     assert result == expected_result
     # ensure cell is updated

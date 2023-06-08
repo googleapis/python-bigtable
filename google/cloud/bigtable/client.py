@@ -785,10 +785,14 @@ class Table:
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
-        if isinstance(true_case_mutations, Mutation):
+        if true_case_mutations is not None and not isinstance(
+            true_case_mutations, list
+        ):
             true_case_mutations = [true_case_mutations]
         true_case_dict = [m._to_dict() for m in true_case_mutations or []]
-        if isinstance(false_case_mutations, Mutation):
+        if false_case_mutations is not None and not isinstance(
+            false_case_mutations, list
+        ):
             false_case_mutations = [false_case_mutations]
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         if predicate is not None and not isinstance(predicate, dict):

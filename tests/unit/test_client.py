@@ -1944,6 +1944,7 @@ class TestCheckAndMutateRow:
     async def test_check_and_mutate_no_mutations(self):
         """Requests require either true_case_mutations or false_case_mutations"""
         from google.api_core.exceptions import InvalidArgument
+
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with pytest.raises(InvalidArgument) as e:
@@ -1954,8 +1955,6 @@ class TestCheckAndMutateRow:
                         false_case_mutations=None,
                     )
                 assert "No mutations provided" in str(e.value)
-
-
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_single_mutations(self):
@@ -2055,7 +2054,7 @@ class TestCheckAndMutateRow:
                 with mock.patch.object(
                     client._gapic_client, "check_and_mutate_row", AsyncMock()
                 ) as mock_gapic:
-                    await table.check_and_mutate_row(b'key', mock.Mock())
+                    await table.check_and_mutate_row(b"key", mock.Mock())
                 kwargs = mock_gapic.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
@@ -2225,5 +2224,3 @@ class TestReadModifyWriteRow:
                     assert "app_profile_id=profile" in goog_metadata
                 else:
                     assert "app_profile_id=" not in goog_metadata
-
-

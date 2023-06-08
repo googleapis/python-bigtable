@@ -39,7 +39,7 @@ class IncrementRule(ReadModifyWriteRule):
             raise TypeError("increment_amount must be an integer")
         if abs(increment_amount) > MAX_INCREMENT_VALUE:
             raise ValueError(
-                "increment_amount too large. Value must fit in 64-bit signed integer"
+                "increment_amount must be between -2**63 and 2**63 (64-bit signed int)"
             )
         super().__init__(family, qualifier)
         self.increment_amount = increment_amount
