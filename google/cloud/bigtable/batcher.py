@@ -192,6 +192,10 @@ class MutationsBatcher(object):
     :type flush_interval: float
     :param flush_interval: (Optional) The interval (in seconds) between asynchronous flush.
         Default is 1 second.
+
+    :type flush_completed_callback: Callable = None
+    :param flush_completed_callback: (Optional) A callable funtion for handling responses 
+        after the request is flushed.
     """
 
     def __init__(
@@ -200,6 +204,7 @@ class MutationsBatcher(object):
         flush_count=FLUSH_COUNT,
         max_row_bytes=MAX_MUTATION_SIZE,
         flush_interval=1,
+        flush_completed_callback=None,
     ):
         self._rows = _MutationsBatchQueue(
             max_mutation_bytes=max_row_bytes, flush_count=flush_count
@@ -215,6 +220,7 @@ class MutationsBatcher(object):
         )
         self.futures_mapping = {}
         self.exceptions = queue.Queue()
+        self.flush_completed_callback = flush_completed_callback
 
     @property
     def flush_count(self):
@@ -356,6 +362,9 @@ class MutationsBatcher(object):
         responses = []
         if len(rows_to_flush) > 0:
             response = self.table.mutate_rows(rows_to_flush)
+
+            if self.flush_completed_callback:
+                self.flush(response)
 
             for result in response:
                 if result.code != 0:
