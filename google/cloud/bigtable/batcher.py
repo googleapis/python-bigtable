@@ -193,8 +193,8 @@ class MutationsBatcher(object):
     :param flush_interval: (Optional) The interval (in seconds) between asynchronous flush.
         Default is 1 second.
 
-    :type flush_completed_callback: Callable = None
-    :param flush_completed_callback: (Optional) A callable funtion for handling responses
+    :type batch_completed_callback: Callable = None
+    :param batch_completed_callback: (Optional) A callable for handling responses
         after the request is flushed.
     """
 
@@ -204,7 +204,7 @@ class MutationsBatcher(object):
         flush_count=FLUSH_COUNT,
         max_row_bytes=MAX_MUTATION_SIZE,
         flush_interval=1,
-        flush_completed_callback=None,
+        batch_completed_callback=None,
     ):
         self._rows = _MutationsBatchQueue(
             max_mutation_bytes=max_row_bytes, flush_count=flush_count
@@ -220,7 +220,7 @@ class MutationsBatcher(object):
         )
         self.futures_mapping = {}
         self.exceptions = queue.Queue()
-        self.flush_completed_callback = flush_completed_callback
+        self._batch_completed_callback = batch_completed_callback
 
     @property
     def flush_count(self):
@@ -333,7 +333,7 @@ class MutationsBatcher(object):
                 self.flow_control.control_flow(batch_info)
                 future = self._executor.submit(self._flush_rows, rows_to_flush)
                 self.futures_mapping[future] = batch_info
-                future.add_done_callback(self._batch_completed_callback)
+                future.add_done_callback(self._batch_completed_clean_up_callback)
 
                 # reset and start a new batch
                 rows_to_flush = []
@@ -342,8 +342,8 @@ class MutationsBatcher(object):
                 mutations_count = 0
                 batch_info = _BatchInfo()
 
-    def _batch_completed_callback(self, future):
-        """Callback for when the mutation has finished.
+    def _batch_completed_clean_up_callback(self, future):
+        """Callback for when the mutation has finished to clean up the current batch and release items from the flow controller.
 
         Raise exceptions if there's any.
         Release the resources locked by the flow control and allow enqueued tasks to be run.
@@ -363,8 +363,8 @@ class MutationsBatcher(object):
         if len(rows_to_flush) > 0:
             response = self.table.mutate_rows(rows_to_flush)
 
-            if self.flush_completed_callback:
-                self.flush(response)
+            if self._batch_completed_callback:
+                self._batch_completed_callback(response)
 
             for result in response:
                 if result.code != 0:
