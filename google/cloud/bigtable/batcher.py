@@ -194,7 +194,7 @@ class MutationsBatcher(object):
         Default is 1 second.
 
     :type flush_completed_callback: Callable = None
-    :param flush_completed_callback: (Optional) A callable funtion for handling responses 
+    :param flush_completed_callback: (Optional) A callable funtion for handling responses
         after the request is flushed.
     """
 
