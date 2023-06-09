@@ -127,6 +127,10 @@ class DynamicPooledChannel(PooledChannel):
                 new_channels = [self._create_channel() for _ in range(dampened_delta)]
                 self._pool.extend(new_channels)
             elif dampened_target < current_size:
+                # reset the next_idx if needed
+                if self._next_idx >= dampened_target:
+                    self._next_idx = 0
+                # trim pool to the right size
                 self._pool, remove = self._pool[:dampened_target], self._pool[dampened_target:]
                 # close channels gracefully
                 close_futures = [channel.close(self.options.close_grace_period) for channel in remove]
