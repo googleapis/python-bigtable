@@ -90,26 +90,36 @@ class PooledChannel(aio.Channel):
         scopes: Optional[Sequence[str]] = None,
         default_host: Optional[str] = None,
         insecure: bool = False,
+        channel_init_callback: Callable[[aio.Channel], Awaitable[None]] = None
         **kwargs,
     ):
         self._pool: List[aio.Channel] = []
         self._next_idx = 0
-        if insecure:
-            self._create_channel = partial(aio.insecure_channel, host)
-        else:
-            self._create_channel = partial(
-                grpc_helpers_async.create_channel,
-                target=host,
-                credentials=credentials,
-                credentials_file=credentials_file,
-                quota_project_id=quota_project_id,
-                default_scopes=default_scopes,
-                scopes=scopes,
-                default_host=default_host,
-                **kwargs,
-            )
+        self._insecure_channel = insecure
+        self._create_channel_kwargs = {
+            "target":host,
+            "credentials":credentials,
+            "credentials_file":credentials_file,
+            "quota_project_id":quota_project_id,
+            "default_scopes":default_scopes,
+            "scopes":scopes,
+            "default_host":default_host,
+            **kwargs,
+        }
         for i in range(pool_size):
             self._pool.append(self._create_channel())
+        # schedule init task on each channel
+        self.channel_init_callback = channel_init_callback
+        if channel_init_callback:
+            self._init_task = asyncio.gather(*[channel_init_callback(c) for c n self._pool])
+        else:
+            self._init_task = None
+
+    def _create_channel(self):
+        if self._insecure_channel:
+            return aio.insecure_channel(self._create_channel_kwargs["target"])
+        else:
+            return grpc_helpers_async.create_channel(**self._create_channel_kwargs)
 
     def next_channel(self) -> aio.Channel:
         channel = self._pool[self._next_idx]
@@ -137,6 +147,8 @@ class PooledChannel(aio.Channel):
         return asyncio.gather(*ready_fns)
 
     async def __aenter__(self):
+        if self._init_task:
+            await self._init_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -148,9 +160,7 @@ class PooledChannel(aio.Channel):
     async def wait_for_state_change(self, last_observed_state):
         raise NotImplementedError()
 
-    async def replace_channel(
-        self, channel_idx, grace=None, swap_sleep=1, new_channel=None
-    ) -> aio.Channel:
+    async def replace_channel(self, channel_idx) -> aio.Channel, aio.Channel:
         """
         Replaces a channel in the pool with a fresh one.
 
@@ -173,10 +183,10 @@ class PooledChannel(aio.Channel):
             )
         if new_channel is None:
             new_channel = self._create_channel()
+            if self.channel_init_callback:
+                await self.channel_init_callback(new_channel)
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
-        await asyncio.sleep(swap_sleep)
-        await old_channel.close(grace=grace)
-        return new_channel
+        return old_channel, new_channel
 
 

@@ -67,39 +67,22 @@ class DynamicPooledChannel(PooledChannel):
 
     def __init__(
         self,
-        host: str = "bigtable.googleapis.com",
-        credentials: Optional[ga_credentials.Credentials] = None,
-        credentials_file: Optional[str] = None,
-        quota_project_id: Optional[str] = None,
-        default_scopes: Optional[Sequence[str]] = None,
-        scopes: Optional[Sequence[str]] = None,
-        default_host: Optional[str] = None,
-        insecure: bool = False,
         pool_options: DynamicPoolOptions | None = None,
+        *args,
         **kwargs,
     ):
         self.pool_options = pool_options or DynamicPoolOptions()
         self._pool: List[TrackedChannel] = []
-        self._next_idx = 0
-        if insecure:
-            create_base_channel = partial(aio.insecure_channel, host)
-        else:
-            create_base_channel = partial(
-                grpc_helpers_async.create_channel,
-                target=host,
-                credentials=credentials,
-                credentials_file=credentials_file,
-                quota_project_id=quota_project_id,
-                default_scopes=default_scopes,
-                scopes=scopes,
-                default_host=default_host,
-                **kwargs,
-            )
-        self._create_channel = lambda: TrackedChannel(create_base_channel())
-        for i in range(pool_size):
-            self._pool.append(self._create_channel())
+        super.__init__(
+            pool_size=self.pool_options.start_size,
+            *args,
+            **kwargs,
+        )
         # start background resize task
         self._resize_task = asyncio.create_task(self.resize_routine())
+
+    def _create_channel(self):
+        return TrackedChannel(super()._create_channel())
 
     async def close(self, grace=None):
         self._resize_task.cancel()
@@ -109,20 +92,23 @@ class DynamicPooledChannel(PooledChannel):
         close_tasks = []
         while True:
             await asyncio.sleep(60)
-            removed_channels = self.attempt_resize()
-            # remove references to completed channel close tasks
+            added, removed = self.attempt_resize()
+            # clear completed tasks from list
             close_tasks = [t for t in close_tasks if not t.done()]
             # add new tasks to close unneeded channels in the background
-            for channel in removed_channels:
+            for channel in removed:
                 close_routine = channel.close(self.pool_options.close_grace_period)
                 close_tasks.append(asyncio.create_task(close_routine))
+            for channel in added:
+                if self.pool_options.channel_init_callback:
+                    await self.pool_options.channel_init_callback(channel)
 
-    def attempt_resize():
+    def attempt_resize() -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """
         Called periodically to resize the number of channels based on
         the number of active RPCs
         """
-        removed_list = []
+        added_list, removed_list = [], []
         # estimate the peak rpcs since last resize
         # peak finds max active value for each channel since last check
         estimated_peak = sum([channel.get_and_reset_max_active_rpcs() for channel in self._pool])
@@ -142,12 +128,12 @@ class DynamicPooledChannel(PooledChannel):
             dampened_delta = min(max(delta, -self.options.max_resize_delta), self.options.max_resize_delta)
             dampened_target = current_size + dampened_delta
             if dampened_target > current_size:
-                new_channels = [self._create_channel() for _ in range(dampened_delta)]
-                self._pool.extend(new_channels)
+                added_list = [self._create_channel() for _ in range(dampened_delta)]
+                self._pool.extend(added_list)
             elif dampened_target < current_size:
                 # reset the next_idx if needed
                 if self._next_idx >= dampened_target:
                     self._next_idx = 0
                 # trim pool to the right size
                 self._pool, removed_list = self._pool[:dampened_target], self._pool[dampened_target:]
-        return removed_list
+        return added_list, removed_list
