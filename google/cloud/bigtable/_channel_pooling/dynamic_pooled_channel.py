@@ -12,35 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import asyncio
-import warnings
-from functools import partialmethod
-from functools import partial
 from dataclasses import dataclass
-from typing import (
-    Awaitable,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    List,
-    Type,
-)
-
-from google.api_core import gapic_v1
-from google.api_core import grpc_helpers_async
-from google.auth import credentials as ga_credentials  # type: ignore
-from google.auth.transport.grpc import SslCredentials  # type: ignore
-
-import grpc  # type: ignore
-from grpc.experimental import aio  # type: ignore
-
-from google.cloud.bigtable_v2.types import bigtable
-from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 
 from .pooled_channel import PooledChannel
 from .tracked_channel import TrackedChannel
@@ -72,7 +47,7 @@ class DynamicPooledChannel(PooledChannel):
         **kwargs,
     ):
         self.pool_options = pool_options or DynamicPoolOptions()
-        self._pool: List[TrackedChannel] = []
+        self._pool: list[TrackedChannel] = []
         super.__init__(
             pool_size=self.pool_options.start_size,
             *args,
@@ -88,7 +63,7 @@ class DynamicPooledChannel(PooledChannel):
         self._resize_task.cancel()
         await super().close(grace)
 
-    async def resize_routine(self, interval=60):
+    async def resize_routine(self, interval: float = 60):
         close_tasks = []
         while True:
             await asyncio.sleep(60)
@@ -103,7 +78,7 @@ class DynamicPooledChannel(PooledChannel):
                 if self.pool_options.channel_init_callback:
                     await self.pool_options.channel_init_callback(channel)
 
-    def attempt_resize() -> tuple[list[TrackedChannel], list[TrackedChannel]]:
+    def attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """
         Called periodically to resize the number of channels based on
         the number of active RPCs

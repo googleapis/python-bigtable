@@ -13,34 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import asyncio
-import warnings
-from functools import partialmethod
-from functools import partial
+from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import (
-    Awaitable,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    List,
-    Type,
-)
-
-from google.api_core import gapic_v1
-from google.api_core import grpc_helpers_async
-from google.auth import credentials as ga_credentials  # type: ignore
-from google.auth.transport.grpc import SslCredentials  # type: ignore
-
+from functools import partial
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
-
-from google.cloud.bigtable_v2.types import bigtable
-from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 
 
 class TrackedChannel(aio.Channel):
@@ -65,7 +43,7 @@ class TrackedChannel(aio.Channel):
 
     def get_and_reset_max_active_rpcs(self) -> int:
         current_max, self.max_active_rpcs = self.max_active_rpcs, self.active_rpcs
-        return max_active_rpcs
+        return current_max
 
     async def _wrapped_unary(self, unary_call, *args, **kwargs):
         with self.track_rpc():
@@ -76,21 +54,21 @@ class TrackedChannel(aio.Channel):
             async for result in stream(*args, **kwargs):
                 yield result
 
-    def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
+    def unary_unary(self, *args, **kwargs) -> aio.UnaryUnaryMultiCallable:
         call = self._channel.unary_unary(*args, **kwargs)
-        return functools.partial(self._wrapped_unary, call)
+        return partial(self._wrapped_unary, call)
 
-    def unary_stream(self, *args, **kwargs) -> grpc.aio.UnaryStreamMultiCallable:
+    def unary_stream(self, *args, **kwargs) -> aio.UnaryStreamMultiCallable:
         stream = self._channel.unary_stream(*args, **kwargs)
-        return functools.partial(self._wrapped_stream, stream)
+        return partial(self._wrapped_stream, stream)
 
-    def stream_unary(self, *args, **kwargs) -> grpc.aio.StreamUnaryMultiCallable:
+    def stream_unary(self, *args, **kwargs) -> aio.StreamUnaryMultiCallable:
         call = self._channel.stream_unary(*args, **kwargs)
-        return functools.partial(self._wrapped_unary, call)
+        return partial(self._wrapped_unary, call)
 
-    def stream_stream(self, *args, **kwargs) -> grpc.aio.StreamStreamMultiCallable:
+    def stream_stream(self, *args, **kwargs) -> aio.StreamStreamMultiCallable:
         stream = self._channel.stream_stream(*args, **kwargs)
-        return functools.partial(self._wrapped_stream, stream)
+        return partial(self._wrapped_stream, stream)
 
     async def close(self, grace=None):
         return await self._channel.close(grace=grace)

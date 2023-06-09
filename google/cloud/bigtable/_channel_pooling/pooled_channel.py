@@ -12,34 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
-import asyncio
-import warnings
-from functools import partialmethod
-from functools import partial
 from typing import (
     Awaitable,
     Callable,
-    Dict,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
-    List,
-    Type,
 )
+import asyncio
+from dataclasses import dataclass
 
-from google.api_core import gapic_v1
 from google.api_core import grpc_helpers_async
 from google.auth import credentials as ga_credentials  # type: ignore
-from google.auth.transport.grpc import SslCredentials  # type: ignore
 
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
 
-from google.cloud.bigtable_v2.types import bigtable
-from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc_asyncio import BigtableGrpcAsyncIOTransport
+
+@dataclass
+class StaticPoolOptions:
+    pool_size: int = 3
 
 
 class PooledMultiCallable:
@@ -82,19 +74,19 @@ class PooledStreamStreamMultiCallable(
 class PooledChannel(aio.Channel):
     def __init__(
         self,
-        pool_size: int = 3,
-        host: str = "bigtable.googleapis.com",
-        credentials: Optional[ga_credentials.Credentials] = None,
-        credentials_file: Optional[str] = None,
-        quota_project_id: Optional[str] = None,
-        default_scopes: Optional[Sequence[str]] = None,
-        scopes: Optional[Sequence[str]] = None,
-        default_host: Optional[str] = None,
+        host: str,
+        credentials: ga_credentials.Credentials | None = None,
+        credentials_file: str | None = None,
+        quota_project_id: str | None = None,
+        default_scopes: Sequence[str] | None = None,
+        scopes: Sequence[str] | None = None,
+        default_host: str | None = None,
+        pool_options: StaticPoolOptions | None = None,
         insecure: bool = False,
-        channel_init_callback: Callable[[aio.Channel], Awaitable[None]] = None
-        ** kwargs,
+        channel_init_callback: Callable[[aio.Channel], Awaitable[None]] | None = None,
+        **kwargs,
     ):
-        self._pool: List[aio.Channel] = []
+        self._pool: list[aio.Channel] = []
         self._next_idx = 0
         self._insecure_channel = insecure
         self._create_channel_kwargs = {
@@ -107,7 +99,7 @@ class PooledChannel(aio.Channel):
             "default_host": default_host,
             **kwargs,
         }
-        for i in range(pool_size):
+        for i in range(pool_options.pool_size):
             self._pool.append(self._create_channel())
         # schedule init task on each channel
         self.channel_init_callback = channel_init_callback
@@ -184,10 +176,9 @@ class PooledChannel(aio.Channel):
             raise ValueError(
                 f"invalid channel_idx {channel_idx} for pool size {len(self._pool)}"
             )
-        if new_channel is None:
-            new_channel = self._create_channel()
-            if self.channel_init_callback:
-                await self.channel_init_callback(new_channel)
+        new_channel = self._create_channel()
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
+        if self.channel_init_callback:
+            await self.channel_init_callback(new_channel)
         return old_channel, new_channel
