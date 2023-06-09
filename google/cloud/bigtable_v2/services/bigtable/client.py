@@ -367,8 +367,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTransport, Callable[..., BigtableTransport]]] = None,
-        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]] = None,
+        transport: Optional[
+            Union[str, BigtableTransport, Callable[..., BigtableTransport]]
+        ] = None,
+        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]]] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -453,7 +455,11 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials = google.auth._default.get_api_key_credentials(
                     api_key_value
                 )
-            transport_init = type(self).get_transport_class(transport) if isinstance(transport, str) else transport
+            transport_init = (
+                type(self).get_transport_class(transport)
+                if isinstance(transport, str)
+                else transport
+            )
             self._transport = transport_init(
                 credentials=credentials,
                 credentials_file=client_options.credentials_file,
@@ -464,7 +470,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 client_info=client_info,
                 always_use_jwt_access=True,
                 api_audience=client_options.api_audience,
-                channel=channel
+                channel=channel,
             )
 
     def read_rows(
