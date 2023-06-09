@@ -88,7 +88,7 @@ class PooledChannel(aio.Channel):
         self._pool: list[aio.Channel] = []
         self._next_idx = 0
         self._insecure_channel = insecure
-        self._create_channel_kwargs = {
+        self.create_channel_kwargs = {
             "target": host,
             "credentials": credentials,
             "credentials_file": credentials_file,
@@ -100,16 +100,19 @@ class PooledChannel(aio.Channel):
         }
         pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
-            new_channel = self._create_channel()
-            if channel_init_callback:
-                channel_init_callback(new_channel)
-            self._pool.append(self._create_channel())
+            self._pool.append(self.create_channel())
 
-    def _create_channel(self):
+    def _create_channel_base(self):
         if self._insecure_channel:
-            return aio.insecure_channel(self._create_channel_kwargs["target"])
+            return aio.insecure_channel(self.create_channel_kwargs["target"])
         else:
-            return grpc_helpers_async.create_channel(**self._create_channel_kwargs)
+            return = grpc_helpers_async.create_channel(**self.create_channel_kwargs)
+
+    def create_channel(self):
+        channel = self._create_channel_base()
+        if self.channel_init_callback:
+            self.channel_init_callback(channel)
+        return channel
 
     def next_channel(self) -> aio.Channel:
         channel = self._pool[self._next_idx]
@@ -159,30 +162,3 @@ class PooledChannel(aio.Channel):
     @property
     def channels(self) -> list[aio.Channel]:
         return self._pool
-
-    def replace_channel(self, channel_idx) -> tuple[aio.Channel, aio.Channel]:
-        """
-        Replaces a channel in the pool with a fresh one.
-
-        The `new_channel` will start processing new requests immidiately,
-        but the old channel will continue serving existing clients for `grace` seconds
-
-        Args:
-          channel_idx(int): the channel index in the pool to replace
-          grace(Optional[float]): The time to wait until all active RPCs are
-            finished. If a grace period is not specified (by passing None for
-            grace), all existing RPCs are cancelled immediately.
-          swap_sleep(Optional[float]): The number of seconds to sleep in between
-            replacing channels and closing the old one
-          new_channel(grpc.aio.Channel): a new channel to insert into the pool
-            at `channel_idx`. If `None`, a new channel will be created.
-        """
-        if channel_idx >= len(self._pool) or channel_idx < 0:
-            raise ValueError(
-                f"invalid channel_idx {channel_idx} for pool size {len(self._pool)}"
-            )
-        new_channel = self._create_channel()
-        old_channel, self._pool[channel_idx] = self._pool[channel_idx], new_channel
-        if self.channel_init_callback:
-            self.channel_init_callback(new_channel)
-        return old_channel, new_channel

@@ -115,7 +115,7 @@ class BigtableDataClient(ClientWithProject):
                 options = DynamicPoolOptions()
             kwargs["pool_options"] = options
             kwargs["channel_init_callback"] = lambda channel: self._channel_refresh_tasks.append(
-                asyncio.create_task(self._manage_channel(channel))
+                asyncio.create_task(self._manage_channel_lifecycle(channel))
             )
             if isinstance(options, StaticPoolOptions):
                 return PooledChannel(*args, **kwargs)
@@ -192,7 +192,7 @@ class BigtableDataClient(ClientWithProject):
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _manage_channel(
+    async def _manage_channel_lifecycle(
         self,
         channel: aio.Channel,
         refresh_interval_min: float = 60 * 35,
@@ -225,7 +225,9 @@ class BigtableDataClient(ClientWithProject):
         # cycle channel out of use, with long grace window before closure
         channel_idx = self._pool.index_of(channel)
         if channel_idx >= 0:
-            self._pool.replace_channel(channel_idx)
+            new_channel = self._pool.create_channel()
+            await new_channel.channel_ready()
+            self._pool.channels[channel_idx] = new_channel
         # wait allow other tasks to run before starting close process
         await asyncio.sleep(10)
         await channel.close(grace=grace_period)

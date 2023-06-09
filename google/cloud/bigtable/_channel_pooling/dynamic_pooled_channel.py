@@ -60,8 +60,8 @@ class DynamicPooledChannel(PooledChannel):
         # start background resize task
         self._resize_task = asyncio.create_task(self.resize_routine())
 
-    def _create_channel(self):
-        return TrackedChannel(super()._create_channel())
+    def _create_channel_base(self):
+        return TrackedChannel(super()._create_channel_base())
 
     async def close(self, grace=None):
         self._resize_task.cancel()
@@ -71,16 +71,13 @@ class DynamicPooledChannel(PooledChannel):
         close_tasks : list[asyncio.Task[None]] = []
         while True:
             await asyncio.sleep(60)
-            added, removed = self.attempt_resize()
+            _, removed = self.attempt_resize()
             # clear completed tasks from list
             close_tasks = [t for t in close_tasks if not t.done()]
             # add new tasks to close unneeded channels in the background
             for channel in removed:
                 close_routine = channel.close(self.pool_options.close_grace_period)
                 close_tasks.append(asyncio.create_task(close_routine))
-            for channel in added:
-                if self.channel_init_callback:
-                    self.channel_init_callback(channel)
 
     def attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """
@@ -112,7 +109,7 @@ class DynamicPooledChannel(PooledChannel):
             )
             dampened_target = current_size + dampened_delta
             if dampened_target > current_size:
-                added_list = [self._create_channel() for _ in range(dampened_delta)]
+                added_list = [self.create_channel() for _ in range(dampened_delta)]
                 self._pool.extend(added_list)
             elif dampened_target < current_size:
                 # reset the next_idx if needed
