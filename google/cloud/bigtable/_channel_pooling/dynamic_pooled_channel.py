@@ -14,8 +14,12 @@
 # limitations under the License.
 from __future__ import annotations
 
+from typing import Callable
+
 import asyncio
 from dataclasses import dataclass
+
+from grpc.experimental import aio  # type: ignore
 
 from .pooled_channel import PooledChannel
 from .pooled_channel import StaticPoolOptions
@@ -43,25 +47,22 @@ class DynamicPoolOptions:
 class DynamicPooledChannel(PooledChannel):
     def __init__(
         self,
+        create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
-        *args,
-        **kwargs,
     ):
         if isinstance(pool_options, StaticPoolOptions):
             raise ValueError("DynamicPooledChannel cannot be initialized with StaticPoolOptions")
-        self.pool_options = pool_options or DynamicPoolOptions()
         self._pool: list[TrackedChannel] = []
-        start_options = StaticPoolOptions(pool_size=self.pool_options.start_size)
-        kwargs["pool_options"] = start_options
-        super.__init__(
-            *args,
-            **kwargs,
+        self.pool_options = pool_options or DynamicPoolOptions()
+        # create the pool
+        super().__init__(
+            # create options for starting pool
+            pool_options=StaticPoolOptions(pool_size=self.pool_options.start_size),
+            # all channels must be TrackChannels
+            create_channel_fn=lambda: TrackedChannel(create_channel_fn())
         )
         # start background resize task
         self._resize_task = asyncio.create_task(self.resize_routine())
-
-    def _create_channel_base(self):
-        return TrackedChannel(super()._create_channel_base())
 
     async def close(self, grace=None):
         self._resize_task.cancel()

@@ -16,13 +16,9 @@ from __future__ import annotations
 
 from typing import (
     Callable,
-    Sequence,
 )
 import asyncio
 from dataclasses import dataclass
-
-from google.api_core import grpc_helpers_async
-from google.auth import credentials as ga_credentials  # type: ignore
 
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
@@ -73,46 +69,15 @@ class PooledStreamStreamMultiCallable(
 class PooledChannel(aio.Channel):
     def __init__(
         self,
-        host: str,
-        credentials: ga_credentials.Credentials | None = None,
-        credentials_file: str | None = None,
-        quota_project_id: str | None = None,
-        default_scopes: Sequence[str] | None = None,
-        scopes: Sequence[str] | None = None,
-        default_host: str | None = None,
+        create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | None = None,
-        insecure: bool = False,
-        channel_init_callback: Callable[[aio.Channel], None] | None = None,
-        **kwargs,
     ):
         self._pool: list[aio.Channel] = []
         self._next_idx = 0
-        self._insecure_channel = insecure
-        self.create_channel_kwargs = {
-            "target": host,
-            "credentials": credentials,
-            "credentials_file": credentials_file,
-            "quota_project_id": quota_project_id,
-            "default_scopes": default_scopes,
-            "scopes": scopes,
-            "default_host": default_host,
-            **kwargs,
-        }
+        self._create_channel = create_channel_fn
         pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
             self._pool.append(self.create_channel())
-
-    def _create_channel_base(self):
-        if self._insecure_channel:
-            return aio.insecure_channel(self.create_channel_kwargs["target"])
-        else:
-            return = grpc_helpers_async.create_channel(**self.create_channel_kwargs)
-
-    def create_channel(self):
-        channel = self._create_channel_base()
-        if self.channel_init_callback:
-            self.channel_init_callback(channel)
-        return channel
 
     def next_channel(self) -> aio.Channel:
         channel = self._pool[self._next_idx]
@@ -140,8 +105,6 @@ class PooledChannel(aio.Channel):
         return asyncio.gather(*ready_fns)
 
     async def __aenter__(self):
-        if self._init_task:
-            await self._init_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

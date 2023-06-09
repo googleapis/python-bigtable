@@ -26,9 +26,8 @@ from typing import (
 )
 
 import asyncio
-import grpc
 from grpc.experimental import aio  # type: ignore
-import random
+from google.api_core import grpc_helpers_async
 from functools import partial
 
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -54,6 +53,9 @@ from google.cloud.bigtable._channel_pooling.dynamic_pooled_channel import (
 )
 from google.cloud.bigtable._channel_pooling.dynamic_pooled_channel import (
     DynamicPoolOptions,
+)
+from google.cloud.bigtable._channel_pooling.refreshable_channel import (
+    RefreshableChannel,
 )
 from google.cloud.bigtable._channel_pooling.pooled_channel import PooledChannel
 from google.cloud.bigtable._channel_pooling.pooled_channel import StaticPoolOptions
@@ -105,20 +107,26 @@ class BigtableDataClient(ClientWithProject):
           - ValueError if pool_size is less than 1
         """
         # set up channel pool
+        def create_refreshable_channel(*args, **kwargs) -> aio.Channel:
+            base_channel_fn = partial(
+                grpc_helpers_async.create_channel,
+                *args,
+                **kwargs,
+            )
+            return RefreshableChannel(create_channel_fn=base_channel_fn)
+
         def create_channel(
             self,
             *args,
-            options: DynamicPoolOptions | StaticPoolOptions | None = None,
+            pool_options: DynamicPoolOptions | StaticPoolOptions | None = channel_pool_options,
+            base_channel_fn: Callable[..., aio.Channel] = create_refreshable_channel,
             **kwargs,
         ):
-            if options is None:
-                options = DynamicPoolOptions()
-            kwargs["pool_options"] = options
-            kwargs["channel_init_callback"] = lambda channel: self._channel_refresh_tasks.append(
-                asyncio.create_task(self._manage_channel_lifecycle(channel))
-            )
-            if isinstance(options, StaticPoolOptions):
-                return PooledChannel(*args, **kwargs)
+            if pool_options is None:
+                pool_options = DynamicPoolOptions()
+            kwargs["pool_options"] = pool_options
+            if isinstance(pool_options, StaticPoolOptions):
+                return PooledChannel(**kwargs)
             else:
                 return DynamicPooledChannel(*args, **kwargs)
 
@@ -142,7 +150,7 @@ class BigtableDataClient(ClientWithProject):
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
-            channel=partial(create_channel, self, client_options=channel_pool_options),
+            channel=create_channel,
         )
         transport = cast("BigtableGrpcAsyncIOTransport", self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel())
@@ -174,7 +182,7 @@ class BigtableDataClient(ClientWithProject):
         self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
-        self, channel: grpc.aio.Channel
+        self, channel: aio.Channel
     ) -> list[GoogleAPICallError | None]:
         """
         Prepares the backend for requests on a channel
@@ -191,46 +199,6 @@ class BigtableDataClient(ClientWithProject):
         )
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
         return await asyncio.gather(*tasks, return_exceptions=True)
-
-    async def _manage_channel_lifecycle(
-        self,
-        channel: aio.Channel,
-        refresh_interval_min: float = 60 * 35,
-        refresh_interval_max: float = 60 * 45,
-        grace_period: float = 60 * 10,
-    ) -> None:
-        """
-        Background coroutine that periodically refreshes and warms a grpc channel
-
-        The backend will automatically close channels after 60 minutes, so
-        `refresh_interval` + `grace_period` should be < 60 minutes
-
-        Runs continuously until the client is closed
-
-        Args:
-            channel_idx: index of the channel in the transport's channel pool
-            refresh_interval_min: minimum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            refresh_interval_max: maximum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
-        await self._ping_and_warm_instances(channel)
-        sleep_time = random.uniform(refresh_interval_min, refresh_interval_max)
-        # let channel run for `sleep_time` seconds, then remove it from pool
-        await asyncio.sleep(sleep_time)
-        # cycle channel out of use, with long grace window before closure
-        channel_idx = self._pool.index_of(channel)
-        if channel_idx >= 0:
-            new_channel = self._pool.create_channel()
-            await new_channel.channel_ready()
-            self._pool.channels[channel_idx] = new_channel
-        # wait allow other tasks to run before starting close process
-        await asyncio.sleep(10)
-        await channel.close(grace=grace_period)
 
     async def _register_instance(self, instance_id: str, owner: Table) -> None:
         """
