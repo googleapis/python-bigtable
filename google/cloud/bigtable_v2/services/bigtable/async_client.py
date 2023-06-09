@@ -169,8 +169,10 @@ class BigtableAsyncClient:
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTransport, Callable[..., BigtableTransport]]] = None,
-        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]] = None,
+        transport: Optional[
+            Union[str, BigtableTransport, Callable[..., BigtableTransport]]
+        ] = None,
+        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]]] = None,
         client_options: Optional[ClientOptions] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:

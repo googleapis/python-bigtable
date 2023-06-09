@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from typing import (
-    Awaitable,
     Callable,
     Sequence,
 )
@@ -83,7 +82,7 @@ class PooledChannel(aio.Channel):
         default_host: str | None = None,
         pool_options: StaticPoolOptions | None = None,
         insecure: bool = False,
-        channel_init_callback: Callable[[aio.Channel], Awaitable[None]] | None = None,
+        channel_init_callback: Callable[[aio.Channel], None] | None = None,
         **kwargs,
     ):
         self._pool: list[aio.Channel] = []
@@ -99,16 +98,12 @@ class PooledChannel(aio.Channel):
             "default_host": default_host,
             **kwargs,
         }
+        pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
+            new_channel = self._create_channel()
+            if channel_init_callback:
+                channel_init_callback(new_channel)
             self._pool.append(self._create_channel())
-        # schedule init task on each channel
-        self.channel_init_callback = channel_init_callback
-        if channel_init_callback:
-            self._init_task = asyncio.gather(
-                [channel_init_callback(c) for c in self._pool]
-            )
-        else:
-            self._init_task = None
 
     def _create_channel(self):
         if self._insecure_channel:
@@ -155,7 +150,17 @@ class PooledChannel(aio.Channel):
     async def wait_for_state_change(self, last_observed_state):
         raise NotImplementedError()
 
-    async def replace_channel(self, channel_idx) -> tuple[aio.Channel, aio.Channel]:
+    def index_of(self, channel) -> int:
+        try:
+            return self._pool.index(channel)
+        except ValueError:
+            return -1
+
+    @property
+    def channels(self) -> list[aio.Channel]:
+        return self._pool
+
+    def replace_channel(self, channel_idx) -> tuple[aio.Channel, aio.Channel]:
         """
         Replaces a channel in the pool with a fresh one.
 
@@ -177,8 +182,7 @@ class PooledChannel(aio.Channel):
                 f"invalid channel_idx {channel_idx} for pool size {len(self._pool)}"
             )
         new_channel = self._create_channel()
-        old_channel = self._pool[channel_idx]
-        self._pool[channel_idx] = new_channel
+        old_channel, self._pool[channel_idx] = self._pool[channel_idx], new_channel
         if self.channel_init_callback:
-            await self.channel_init_callback(new_channel)
+            self.channel_init_callback(new_channel)
         return old_channel, new_channel

@@ -18,6 +18,7 @@ import asyncio
 from dataclasses import dataclass
 
 from .pooled_channel import PooledChannel
+from .pooled_channel import StaticPoolOptions
 from .tracked_channel import TrackedChannel
 
 
@@ -42,14 +43,17 @@ class DynamicPoolOptions:
 class DynamicPooledChannel(PooledChannel):
     def __init__(
         self,
-        pool_options: DynamicPoolOptions | None = None,
+        pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
         *args,
         **kwargs,
     ):
+        if isinstance(pool_options, StaticPoolOptions):
+            raise ValueError("DynamicPooledChannel cannot be initialized with StaticPoolOptions")
         self.pool_options = pool_options or DynamicPoolOptions()
         self._pool: list[TrackedChannel] = []
+        start_options = StaticPoolOptions(pool_size=self.pool_options.start_size)
+        kwargs["pool_options"] = start_options
         super.__init__(
-            pool_size=self.pool_options.start_size,
             *args,
             **kwargs,
         )
@@ -64,7 +68,7 @@ class DynamicPooledChannel(PooledChannel):
         await super().close(grace)
 
     async def resize_routine(self, interval: float = 60):
-        close_tasks = []
+        close_tasks : list[asyncio.Task[None]] = []
         while True:
             await asyncio.sleep(60)
             added, removed = self.attempt_resize()
@@ -75,8 +79,8 @@ class DynamicPooledChannel(PooledChannel):
                 close_routine = channel.close(self.pool_options.close_grace_period)
                 close_tasks.append(asyncio.create_task(close_routine))
             for channel in added:
-                if self.pool_options.channel_init_callback:
-                    await self.pool_options.channel_init_callback(channel)
+                if self.channel_init_callback:
+                    self.channel_init_callback(channel)
 
     def attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """
