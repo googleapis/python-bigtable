@@ -18,10 +18,10 @@ from __future__ import annotations
 from typing import (
     cast,
     Any,
+    Coroutine,
     Optional,
     Set,
     Callable,
-    Coroutine,
     TYPE_CHECKING,
 )
 
@@ -106,6 +106,10 @@ class BigtableDataClient(ClientWithProject):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
+        async def destroy_channel_gracefully(channel: aio.Channel):
+            await asyncio.sleep(10)
+            await channel.close(grace=600)
+
         # set up channel pool
         def create_refreshable_channel(*args, **kwargs) -> aio.Channel:
             base_channel_fn = partial(
@@ -113,20 +117,22 @@ class BigtableDataClient(ClientWithProject):
                 *args,
                 **kwargs,
             )
-            return RefreshableChannel(create_channel_fn=base_channel_fn)
+            return RefreshableChannel(create_channel_fn=base_channel_fn, on_replace=destroy_channel_gracefully)
 
         def create_channel(
             self,
             *args,
             pool_options: DynamicPoolOptions | StaticPoolOptions | None = channel_pool_options,
             base_channel_fn: Callable[..., aio.Channel] = create_refreshable_channel,
+            on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = destroy_channel_gracefully,
             **kwargs,
         ):
             if pool_options is None:
                 pool_options = DynamicPoolOptions()
             kwargs["pool_options"] = pool_options
+            kwargs["on_remove"] = on_remove
             if isinstance(pool_options, StaticPoolOptions):
-                return PooledChannel(**kwargs)
+                return PooledChannel(*args, **kwargs)
             else:
                 return DynamicPooledChannel(*args, **kwargs)
 

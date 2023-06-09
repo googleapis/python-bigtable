@@ -40,8 +40,6 @@ class DynamicPoolOptions:
     min_rpcs_per_channel: int = 50
     # how many channels to add/remove in a single resize event
     max_resize_delta: int = 2
-    # amount of time to let close channels drain before closing them, in seconds
-    close_grace_period: int = 600
 
 
 class DynamicPooledChannel(PooledChannel):
@@ -49,6 +47,7 @@ class DynamicPooledChannel(PooledChannel):
         self,
         create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
+        **kwargs,
     ):
         if isinstance(pool_options, StaticPoolOptions):
             raise ValueError("DynamicPooledChannel cannot be initialized with StaticPoolOptions")
@@ -59,7 +58,8 @@ class DynamicPooledChannel(PooledChannel):
             # create options for starting pool
             pool_options=StaticPoolOptions(pool_size=self.pool_options.start_size),
             # all channels must be TrackChannels
-            create_channel_fn=lambda: TrackedChannel(create_channel_fn())
+            create_channel_fn=lambda: TrackedChannel(create_channel_fn()),
+            **kwargs,
         )
         # start background resize task
         self._resize_task = asyncio.create_task(self.resize_routine())
@@ -76,9 +76,10 @@ class DynamicPooledChannel(PooledChannel):
             # clear completed tasks from list
             close_tasks = [t for t in close_tasks if not t.done()]
             # add new tasks to close unneeded channels in the background
-            for channel in removed:
-                close_routine = channel.close(self.pool_options.close_grace_period)
-                close_tasks.append(asyncio.create_task(close_routine))
+            if self._on_remove:
+                for channel in removed:
+                    close_routine = self._on_remove(channel)
+                    close_tasks.append(asyncio.create_task(close_routine))
 
     def attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """

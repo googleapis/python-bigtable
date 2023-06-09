@@ -15,7 +15,7 @@
 #
 from __future__ import annotations
 
-from typing import Awaitable, Callable
+from typing import Callable, Coroutine
 
 import asyncio
 import random
@@ -34,7 +34,7 @@ class RefreshableChannel(aio.Channel):
         create_channel_fn: Callable[[], aio.Channel],
         refresh_interval_min: float = 60 * 35,
         refresh_interval_max: float = 60 * 45,
-        on_replace: Callable[[aio.Channel], Awaitable[None]] | None = None,
+        on_replace: Callable[[aio.Channel], Coroutine[None, None, None]] | None = None,
     ):
         self._create_channel = create_channel_fn
         self._on_replace = on_replace

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import (
     Callable,
+    Coroutine,
 )
 import asyncio
 from dataclasses import dataclass
@@ -71,10 +72,12 @@ class PooledChannel(aio.Channel):
         self,
         create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | None = None,
+        on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = None,
     ):
         self._pool: list[aio.Channel] = []
         self._next_idx = 0
         self._create_channel = create_channel_fn
+        self._on_remove = on_remove
         pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
             self._pool.append(self.create_channel())
