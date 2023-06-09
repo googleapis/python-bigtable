@@ -47,7 +47,7 @@ from .tracked_channel import TrackedChannel
 
 
 @dataclass
-class DynamicPoolOptions():
+class DynamicPoolOptions:
     # starting channel count
     start_size: int = 3
     # maximum channels to keep in the pool
@@ -63,8 +63,8 @@ class DynamicPoolOptions():
     # amount of time to let close channels drain before closing them, in seconds
     close_grace_period: int = 600
 
-class DynamicPooledChannel(PooledChannel):
 
+class DynamicPooledChannel(PooledChannel):
     def __init__(
         self,
         pool_options: DynamicPoolOptions | None = None,
@@ -111,7 +111,9 @@ class DynamicPooledChannel(PooledChannel):
         added_list, removed_list = [], []
         # estimate the peak rpcs since last resize
         # peak finds max active value for each channel since last check
-        estimated_peak = sum([channel.get_and_reset_max_active_rpcs() for channel in self._pool])
+        estimated_peak = sum(
+            [channel.get_and_reset_max_active_rpcs() for channel in self._pool]
+        )
         # find the minimum number of channels to serve the peak
         min_channels = estimated_peak // self.pool_options.max_rpcs_per_channel
         # find the maxiumum channels we'd want to serve the peak
@@ -123,9 +125,12 @@ class DynamicPooledChannel(PooledChannel):
         current_size = len(self._pool)
         if current_size < min_channels or current_size > max_channels:
             # try to aim for the middle of the bound, but limit rate of change.
-            tentative_target = (max_channels + min_channels) // 2;
-            delta = tentative_target - current_size;
-            dampened_delta = min(max(delta, -self.options.max_resize_delta), self.options.max_resize_delta)
+            tentative_target = (max_channels + min_channels) // 2
+            delta = tentative_target - current_size
+            dampened_delta = min(
+                max(delta, -self.options.max_resize_delta),
+                self.options.max_resize_delta,
+            )
             dampened_target = current_size + dampened_delta
             if dampened_target > current_size:
                 added_list = [self._create_channel() for _ in range(dampened_delta)]
@@ -135,5 +140,8 @@ class DynamicPooledChannel(PooledChannel):
                 if self._next_idx >= dampened_target:
                     self._next_idx = 0
                 # trim pool to the right size
-                self._pool, removed_list = self._pool[:dampened_target], self._pool[dampened_target:]
+                self._pool, removed_list = (
+                    self._pool[:dampened_target],
+                    self._pool[dampened_target:],
+                )
         return added_list, removed_list

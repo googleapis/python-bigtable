@@ -41,6 +41,7 @@ from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 
+
 class PooledMultiCallable:
     def __init__(self, channel_pool: "PooledChannel", *args, **kwargs):
         self._init_args = args
@@ -91,19 +92,19 @@ class PooledChannel(aio.Channel):
         default_host: Optional[str] = None,
         insecure: bool = False,
         channel_init_callback: Callable[[aio.Channel], Awaitable[None]] = None
-        **kwargs,
+        ** kwargs,
     ):
         self._pool: List[aio.Channel] = []
         self._next_idx = 0
         self._insecure_channel = insecure
         self._create_channel_kwargs = {
-            "target":host,
-            "credentials":credentials,
-            "credentials_file":credentials_file,
-            "quota_project_id":quota_project_id,
-            "default_scopes":default_scopes,
-            "scopes":scopes,
-            "default_host":default_host,
+            "target": host,
+            "credentials": credentials,
+            "credentials_file": credentials_file,
+            "quota_project_id": quota_project_id,
+            "default_scopes": default_scopes,
+            "scopes": scopes,
+            "default_host": default_host,
             **kwargs,
         }
         for i in range(pool_size):
@@ -111,7 +112,9 @@ class PooledChannel(aio.Channel):
         # schedule init task on each channel
         self.channel_init_callback = channel_init_callback
         if channel_init_callback:
-            self._init_task = asyncio.gather(*[channel_init_callback(c) for c n self._pool])
+            self._init_task = asyncio.gather(
+                [channel_init_callback(c) for c in self._pool]
+            )
         else:
             self._init_task = None
 
@@ -160,7 +163,7 @@ class PooledChannel(aio.Channel):
     async def wait_for_state_change(self, last_observed_state):
         raise NotImplementedError()
 
-    async def replace_channel(self, channel_idx) -> aio.Channel, aio.Channel:
+    async def replace_channel(self, channel_idx) -> tuple[aio.Channel, aio.Channel]:
         """
         Replaces a channel in the pool with a fresh one.
 
@@ -188,5 +191,3 @@ class PooledChannel(aio.Channel):
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
         return old_channel, new_channel
-
-

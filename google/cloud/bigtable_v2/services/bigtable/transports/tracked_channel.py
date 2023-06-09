@@ -47,6 +47,7 @@ class TrackedChannel(aio.Channel):
     """
     A Channel that tracks the number of active RPCs
     """
+
     def __init__(self, channel: aio.Channel):
         self._channel = channel
         self.active_rpcs = 0
@@ -65,7 +66,6 @@ class TrackedChannel(aio.Channel):
     def get_and_reset_max_active_rpcs(self) -> int:
         current_max, self.max_active_rpcs = self.max_active_rpcs, self.active_rpcs
         return max_active_rpcs
-
 
     async def _wrapped_unary(self, unary_call, *args, **kwargs):
         with self.track_rpc():
@@ -109,5 +109,3 @@ class TrackedChannel(aio.Channel):
 
     async def wait_for_state_change(self, last_observed_state):
         return await self._channel.wait_for_state_change(last_observed_state)
-
-
