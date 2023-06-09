@@ -31,8 +31,8 @@ import time
 import warnings
 import sys
 import random
+from functools import partial
 
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
@@ -54,6 +54,11 @@ from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
+from google.cloud.bigtable._channel_pooling.dynamic_pooled_channel import DynamicPooledChannel
+from google.cloud.bigtable._channel_pooling.dynamic_pooled_channel import DynamicPoolOptions
+from google.cloud.bigtable._channel_pooling.pooled_channel import PooledChannel
+from google.cloud.bigtable._channel_pooling.pooled_channel import StaticPoolOptions
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -72,6 +77,7 @@ class BigtableDataClient(ClientWithProject):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
+        channel_pool_options: DynamicPoolOptions | StaticPoolOptions | None = None,
     ):
         """
         Create a client instance for the Bigtable Data API
@@ -96,10 +102,20 @@ class BigtableDataClient(ClientWithProject):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
-        # set up transport in registry
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
+        # set up channel pool
+        def create_channel(self, *args, options=None, **kwargs):
+            if options is None:
+                options = DynamicPoolOptions()
+            if isinstance(options, StaticPoolOptions):
+                cls = PooledChannel
+            else:
+                cls = DynamicPooledChannel
+            return cls(
+                *args,
+                **kwargs,
+                pool_options=channel_pool_options, 
+                channel_init_callback=lambda channel: self._ping_and_warm_instances(channel)
+            )
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
@@ -117,13 +133,13 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
         )
         self._gapic_client = BigtableAsyncClient(
-            transport=transport_str,
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
+            channel=partial(create_channel, self, client_options=channel_pool_options),
         )
-        self.transport = cast(
-            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+        self._pool = cast(
+            PooledChannel, self._gapic_client.transport._grpc_channel
         )
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
@@ -222,20 +238,18 @@ class BigtableDataClient(ClientWithProject):
         )
         next_sleep = max(first_refresh - time.time(), 0)
         if next_sleep > 0:
-            # warm the current channel immediately
-            channel = self.transport.channels[channel_idx]
-            await self._ping_and_warm_instances(channel)
+            # ensure that pool init task had a chance to complete
+            if self._pool._init_task is not None:
+                await self._pool._init_task
         # continuously refresh the channel every `refresh_interval` seconds
         while True:
             await asyncio.sleep(next_sleep)
-            # prepare new channel for use
-            new_channel = self.transport.grpc_channel._create_channel()
-            await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
-            await self.transport.replace_channel(
-                channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
-            )
+            old_channel, _ = await self._pool.replace_channel(channel_idx)
+            # wait allow other tasks to run before starting close process
+            await asyncio.sleep(10)
+            await old_channel.close(grace=grace_period)
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
