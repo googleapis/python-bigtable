@@ -17,6 +17,7 @@ import asyncio
 import warnings
 from functools import partialmethod
 from functools import partial
+from dataclasses import dataclass
 from typing import (
     Awaitable,
     Callable,
@@ -44,11 +45,28 @@ from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 from .pooled_channel import PooledChannel
 from .tracked_channel import TrackedChannel
 
+
+@dataclass
+class DynamicPoolOptions():
+    # starting channel count
+    start_size: int = 3
+    # maximum channels to keep in the pool
+    max_channels: int = 10
+    # minimum channels in pool
+    min_channels: int = 1
+    # if rpcs exceed this number, pool may expand
+    max_rpcs_per_channel: int = 100
+    # if rpcs exceed this number, pool may shrink
+    min_rpcs_per_channel: int = 50
+    # how many channels to add/remove in a single resize event
+    max_resize_delta: int = 2
+    # amount of time to let close channels drain before closing them, in seconds
+    close_grace_period: int = 600
+
 class DynamicPooledChannel(PooledChannel):
 
     def __init__(
         self,
-        start_pool_size: int = 3,
         host: str = "bigtable.googleapis.com",
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
@@ -57,8 +75,10 @@ class DynamicPooledChannel(PooledChannel):
         scopes: Optional[Sequence[str]] = None,
         default_host: Optional[str] = None,
         insecure: bool = False,
+        pool_options: DynamicPoolOptions | None = None,
         **kwargs,
     ):
+        self.pool_options = pool_options or DynamicPoolOptions()
         self._pool: List[TrackedChannel] = []
         self._next_idx = 0
         if insecure:
@@ -79,12 +99,6 @@ class DynamicPooledChannel(PooledChannel):
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
-        self.MAX_RPCS_PER_CHANNEL = 100
-        self.MIN_RPCS_PER_CHANNEL = 50
-        self.MAX_CHANNEL_COUNT = 20
-        self.MIN_CHANNEL_COUNT = 1
-        self.MAX_RESIZE_DELTA = 2 # how many to change in a single resize
-
     async def resize():
         """
         Called periodically to resize the number of channels based on
@@ -95,19 +109,19 @@ class DynamicPooledChannel(PooledChannel):
         # peak finds max active value for each channel since last check
         estimated_peak = sum([channel.get_and_reset_max_active_rpcs() for channel in self._pool])
         # find the minimum number of channels to serve the peak
-        min_channels = estimated_peak // self.MAX_RPCS_PER_CHANNEL
+        min_channels = estimated_peak // self.pool_options.max_rpcs_per_channel
         # find the maxiumum channels we'd want to serve the peak
-        max_channels = estimated_peak // max(self.MIN_RPCS_PER_CHANNEL, 1)
+        max_channels = estimated_peak // max(self.pool_options.min_rpcs_per_channel, 1)
         # clamp the number of channels to the min and max
-        min_channels = max(min_channels, self.MIN_CHANNEL_COUNT)
-        max_channels = min(max_channels, self.MAX_CHANNEL_COUNT)
+        min_channels = max(min_channels, self.options.min_channels)
+        max_channels = min(max_channels, self.options.max_channels)
         # Only resize the pool when thresholds are crossed
         current_size = len(self._pool)
         if current_size < min_channels or current_size > max_channels:
             # try to aim for the middle of the bound, but limit rate of change.
-            tentative_target = (maxChannels + minChannels) // 2;
+            tentative_target = (max_channels + min_channels) // 2;
             delta = tentative_target - current_size;
-            dampened_delta = min(max(delta, -self.MAX_RESIZE_DELTA), self.MAX_RESIZE_DELTA)
+            dampened_delta = min(max(delta, -self.options.max_resize_delta), self.options.max_resize_delta)
             dampened_target = current_size + dampened_delta
             if dampened_target > current_size:
                 new_channels = [self._create_channel() for _ in range(dampened_delta)]
@@ -115,9 +129,5 @@ class DynamicPooledChannel(PooledChannel):
             elif dampened_target < current_size:
                 self._pool, remove = self._pool[:dampened_target], self._pool[dampened_target:]
                 # close channels gracefully
-                # TODO: magic number?
-                await asyncio.gather(*[channel.close(grace=600) for channel in remove], return_exceptions=True)
-
-
-
-
+                close_futures = [channel.close(self.options.close_grace_period) for channel in remove]
+                await asyncio.gather(*close_futures, return_exceptions=True)
