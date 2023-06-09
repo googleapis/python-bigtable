@@ -17,6 +17,7 @@ from collections import OrderedDict
 import os
 import re
 from typing import (
+    Callable,
     Dict,
     Mapping,
     MutableMapping,
@@ -29,6 +30,7 @@ from typing import (
     Union,
     cast,
 )
+import grpc  # type: ignore
 
 from google.cloud.bigtable_v2 import gapic_version as package_version
 
@@ -53,7 +55,6 @@ from google.cloud.bigtable_v2.types import request_stats
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
-from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
 
@@ -68,7 +69,6 @@ class BigtableClientMeta(type):
     _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
     _transport_registry["grpc"] = BigtableGrpcTransport
     _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
-    _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
     _transport_registry["rest"] = BigtableRestTransport
 
     def get_transport_class(
@@ -370,7 +370,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         transport: Optional[
             Union[str, BigtableTransport, Callable[..., BigtableTransport]]
         ] = None,
-        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]]] = None,
+        channel: Optional[Union[grpc.Channel, Callable[..., grpc.Channel]]] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -385,7 +385,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
             transport (Union[str, BigtableTransport, Callable[..., BigtableTransport]]): The
                 transport to use, or a function that generates one from relevant arguments.
                 If set to None, a transport is chosen automatically.
-            channel (Union[aio.Channel, Callable[..., aio.Channel]]): The channel argument
+            channel (Union[grpc.Channel, Callable[..., grpc.Channel]]): The channel argument
                 to pass to the transport constructor. If None, a channel is
                 created automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
@@ -457,7 +457,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 )
             transport_init = (
                 type(self).get_transport_class(transport)
-                if isinstance(transport, str)
+                if (isinstance(transport, str) or transport is None)
                 else transport
             )
             self._transport = transport_init(

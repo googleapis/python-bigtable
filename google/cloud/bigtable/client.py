@@ -27,16 +27,15 @@ from typing import (
 
 import asyncio
 from grpc.experimental import aio  # type: ignore
-from google.api_core import grpc_helpers_async
 from functools import partial
 
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable._read_rows import _ReadRowsOperation
+
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 
 import google.auth.credentials
 import google.auth._default
@@ -44,6 +43,7 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
+from google.cloud.bigtable._read_rows import _ReadRowsOperation
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
@@ -59,16 +59,15 @@ from google.cloud.bigtable._channel_pooling.refreshable_channel import (
 )
 from google.cloud.bigtable._channel_pooling.pooled_channel import PooledChannel
 from google.cloud.bigtable._channel_pooling.pooled_channel import StaticPoolOptions
-
+from google.cloud.bigtable_v2.services.bigtable.transports import (
+    BigtableGrpcAsyncIOTransport,
+)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
     from google.cloud.bigtable.row_filters import RowFilter
     from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
-    from google.cloud.bigtable_v2.services.bigtable.transports import (
-        BigtableGrpcAsyncIOTransport,
-    )
 
 
 class BigtableDataClient(ClientWithProject):
@@ -106,6 +105,7 @@ class BigtableDataClient(ClientWithProject):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
+
         async def destroy_channel_gracefully(channel: aio.Channel):
             await asyncio.sleep(10)
             await channel.close(grace=600)
@@ -113,7 +113,7 @@ class BigtableDataClient(ClientWithProject):
         # set up channel pool
         def create_refreshable_channel(*args, **kwargs) -> aio.Channel:
             base_channel_fn = partial(
-                grpc_helpers_async.create_channel,
+                BigtableGrpcAsyncIOTransport.create_channel,
                 *args,
                 **kwargs,
             )
@@ -129,12 +129,15 @@ class BigtableDataClient(ClientWithProject):
         ):
             if pool_options is None:
                 pool_options = DynamicPoolOptions()
-            kwargs["pool_options"] = pool_options
-            kwargs["on_remove"] = on_remove
+            pool_kwargs = {
+                "create_channel_fn": partial(base_channel_fn, *args, **kwargs),
+                "pool_options": pool_options,
+                "on_remove": on_remove,
+            }
             if isinstance(pool_options, StaticPoolOptions):
-                return PooledChannel(*args, **kwargs)
+                return PooledChannel(**pool_kwargs)
             else:
-                return DynamicPooledChannel(*args, **kwargs)
+                return DynamicPooledChannel(**pool_kwargs)
 
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
@@ -156,10 +159,11 @@ class BigtableDataClient(ClientWithProject):
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
+            transport="grpc_asyncio",
             channel=create_channel,
         )
-        transport = cast("BigtableGrpcAsyncIOTransport", self._gapic_client.transport)
-        self._pool = cast(PooledChannel, transport.grpc_channel())
+        transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
+        self._pool = cast(PooledChannel, transport.grpc_channel)
         # keep track of active instances to for warmup on channel refresh
         self._active_instances: Set[str] = set()
         # keep track of table objects associated with each instance
@@ -397,7 +401,6 @@ class Table:
             - GoogleAPIError: raised if the request encounters an unrecoverable error
             - IdleTimeout: if iterator was abandoned
         """
-
         operation_timeout = operation_timeout or self.default_operation_timeout
         per_request_timeout = per_request_timeout or self.default_per_request_timeout
 

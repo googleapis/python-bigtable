@@ -80,7 +80,7 @@ class PooledChannel(aio.Channel):
         self._on_remove = on_remove
         pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
-            self._pool.append(self.create_channel())
+            self._pool.append(self._create_channel())
 
     def next_channel(self) -> aio.Channel:
         channel = self._pool[self._next_idx]

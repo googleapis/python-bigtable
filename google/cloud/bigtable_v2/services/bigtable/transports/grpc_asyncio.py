@@ -165,7 +165,6 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             warnings.warn("api_mtls_endpoint is deprecated", DeprecationWarning)
         if client_cert_source:
             warnings.warn("client_cert_source is deprecated", DeprecationWarning)
-
         if isinstance(channel, aio.Channel):
             # Ignore credentials if a channel was passed.
             credentials = False
