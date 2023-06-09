@@ -367,7 +367,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTransport]] = None,
+        transport: Optional[Union[str, BigtableTransport, Callable[..., BigtableTransport]]] = None,
+        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -379,9 +380,12 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, BigtableTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
+            transport (Union[str, BigtableTransport, Callable[..., BigtableTransport]]): The
+                transport to use, or a function that generates one from relevant arguments.
+                If set to None, a transport is chosen automatically.
+            channel (Union[aio.Channel, Callable[..., aio.Channel]]): The channel argument
+                to pass to the transport constructor. If None, a channel is
+                created automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
@@ -449,9 +453,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials = google.auth._default.get_api_key_credentials(
                     api_key_value
                 )
-
-            Transport = type(self).get_transport_class(transport)
-            self._transport = Transport(
+            transport_init = type(self).get_transport_class(transport) if isinstance(transport, str) else transport
+            self._transport = transport_init(
                 credentials=credentials,
                 credentials_file=client_options.credentials_file,
                 host=api_endpoint,
@@ -461,6 +464,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 client_info=client_info,
                 always_use_jwt_access=True,
                 api_audience=client_options.api_audience,
+                channel=channel
             )
 
     def read_rows(

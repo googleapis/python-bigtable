@@ -96,7 +96,7 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         credentials: Optional[ga_credentials.Credentials] = None,
         credentials_file: Optional[str] = None,
         scopes: Optional[Sequence[str]] = None,
-        channel: Optional[aio.Channel] = None,
+        channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]] = None,
         api_mtls_endpoint: Optional[str] = None,
         client_cert_source: Optional[Callable[[], Tuple[bytes, bytes]]] = None,
         ssl_channel_credentials: Optional[grpc.ChannelCredentials] = None,
@@ -123,8 +123,10 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             scopes (Optional[Sequence[str]]): A optional list of scopes needed for this
                 service. These are only used when credentials are not specified and
                 are passed to :func:`google.auth.default`.
-            channel (Optional[aio.Channel]): A ``Channel`` instance through
-                which to make calls.
+            channel (Optional[aio.Channel, Callable[..., aio.Channel]]): A ``Channel``
+                instance through which to make calls, or a function that returns
+                a channel from passed in arguments. If ``channel`` is not
+                provided, a new ``aio.Channel`` instance is created.
             api_mtls_endpoint (Optional[str]): Deprecated. The mutual TLS endpoint.
                 If provided, it overrides the ``host`` argument and tries to create
                 a mutual TLS channel with client SSL credentials from
@@ -164,7 +166,7 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         if client_cert_source:
             warnings.warn("client_cert_source is deprecated", DeprecationWarning)
 
-        if channel:
+        if isinstance(channel, aio.Channel):
             # Ignore credentials if a channel was passed.
             credentials = False
             # If a channel was explicitly provided, set it.
@@ -204,7 +206,8 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         )
 
         if not self._grpc_channel:
-            self._grpc_channel = type(self).create_channel(
+            channel_func = channel or type(self).create_channel
+            self._grpc_channel = channel_func(
                 self._host,
                 # use the credentials which are saved
                 credentials=self._credentials,
