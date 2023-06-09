@@ -98,13 +98,31 @@ class DynamicPooledChannel(PooledChannel):
         self._create_channel = lambda: TrackedChannel(create_base_channel())
         for i in range(pool_size):
             self._pool.append(self._create_channel())
+        # start background resize task
+        self._resize_task = asyncio.create_task(self.resize_routine())
 
-    async def resize():
+    async def close(self, grace=None):
+        self._resize_task.cancel()
+        await super().close(grace)
+
+    async def resize_routine(self, interval=60):
+        close_tasks = []
+        while True:
+            await asyncio.sleep(60)
+            removed_channels = self.attempt_resize()
+            # remove references to completed channel close tasks
+            close_tasks = [t for t in close_tasks if not t.done()]
+            # add new tasks to close unneeded channels in the background
+            for channel in removed_channels:
+                close_routine = channel.close(self.pool_options.close_grace_period)
+                close_tasks.append(asyncio.create_task(close_routine))
+
+    def attempt_resize():
         """
         Called periodically to resize the number of channels based on
         the number of active RPCs
         """
-        # TODO: add lock. share with replace_channel
+        removed_list = []
         # estimate the peak rpcs since last resize
         # peak finds max active value for each channel since last check
         estimated_peak = sum([channel.get_and_reset_max_active_rpcs() for channel in self._pool])
@@ -131,7 +149,5 @@ class DynamicPooledChannel(PooledChannel):
                 if self._next_idx >= dampened_target:
                     self._next_idx = 0
                 # trim pool to the right size
-                self._pool, remove = self._pool[:dampened_target], self._pool[dampened_target:]
-                # close channels gracefully
-                close_futures = [channel.close(self.options.close_grace_period) for channel in remove]
-                await asyncio.gather(*close_futures, return_exceptions=True)
+                self._pool, removed_list = self._pool[:dampened_target], self._pool[dampened_target:]
+        return removed_list
