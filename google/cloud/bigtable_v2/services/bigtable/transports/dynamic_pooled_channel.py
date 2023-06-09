@@ -42,7 +42,7 @@ from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .grpc_asyncio import BigtableGrpcAsyncIOTransport
 
 from .pooled_channel import PooledChannel
-from .tracked_channel import TrackedAioChannel
+from .tracked_channel import TrackedChannel
 
 class DynamicPooledChannel(PooledChannel):
 
@@ -59,7 +59,7 @@ class DynamicPooledChannel(PooledChannel):
         insecure: bool = False,
         **kwargs,
     ):
-        self._pool: List[TrackedAioChannel] = []
+        self._pool: List[TrackedChannel] = []
         self._next_idx = 0
         if insecure:
             create_base_channel = partial(aio.insecure_channel, host)
@@ -75,7 +75,7 @@ class DynamicPooledChannel(PooledChannel):
                 default_host=default_host,
                 **kwargs,
             )
-        self._create_channel = lambda: TrackedAioChannel(create_base_channel())
+        self._create_channel = lambda: TrackedChannel(create_base_channel())
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
