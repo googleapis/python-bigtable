@@ -111,34 +111,27 @@ class BigtableDataClient(ClientWithProject):
             await channel.close(grace=600)
 
         # set up channel pool
-        # TODO: clean up. Put in separate file?
-        def create_refreshable_channel(self, *args, **kwargs) -> RefreshableChannel:
-            create_channel_fn = partial(BigtableGrpcAsyncIOTransport.create_channel, *args, **kwargs)
-            return RefreshableChannel(
-                create_channel_fn=create_channel_fn,
-                on_replace=destroy_channel_gracefully,
-                warm_channel_fn=self._ping_and_warm_instances
+        warm_fn = self._ping_and_warm_instances
+        create_base_channel = lambda *args, **kwargs: BigtableGrpcAsyncIOTransport.create_channel(*args, **kwargs)
+        create_refreshable_channel = lambda *args, **kwargs: RefreshableChannel(
+            create_channel_fn=partial(create_base_channel, *args, **kwargs),
+            on_replace=destroy_channel_gracefully,
+            warm_channel_fn=warm_fn,
+        )
+        if channel_pool_options is None:
+            channel_pool_options = DynamicPoolOptions()
+        if isinstance(channel_pool_options, StaticPoolOptions):
+            create_pool_channel = lambda *args, **kwargs: PooledChannel(
+                create_channel_fn=partial(create_refreshable_channel, *args, **kwargs),
+                pool_options=channel_pool_options,
             )
-
-        def create_channel_pool(
-            self,
-            *args,
-            pool_options: DynamicPoolOptions | StaticPoolOptions | None = channel_pool_options,
-            base_channel_fn: Callable[..., aio.Channel] = create_refreshable_channel,
-            on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = destroy_channel_gracefully,
-            **kwargs,
-        ) -> PooledChannel:
-            if pool_options is None:
-                pool_options = DynamicPoolOptions()
-            pool_kwargs : dict[str, Any] = {
-                "create_channel_fn": partial(base_channel_fn, self, *args, **kwargs),
-                "pool_options": pool_options,
-            }
-            if isinstance(pool_options, StaticPoolOptions):
-                return PooledChannel(**pool_kwargs)
-            else:
-                return DynamicPooledChannel(**pool_kwargs, on_remove=on_remove, warm_channel_fn=self._ping_and_warm_instances)
-
+        else:
+            create_pool_channel = lambda *args, **kwargs: DynamicPooledChannel(
+                create_channel_fn=partial(create_refreshable_channel, *args, **kwargs),
+                pool_options=channel_pool_options,
+                on_remove=destroy_channel_gracefully,
+                warm_channel_fn=warm_fn,
+            )
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
@@ -160,7 +153,7 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
             transport="grpc_asyncio",
-            channel=partial(create_channel_pool,self),
+            channel=create_pool_channel,
         )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)
