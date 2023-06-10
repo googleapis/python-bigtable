@@ -110,26 +110,27 @@ class BigtableDataClient(ClientWithProject):
             await asyncio.sleep(10)
             await channel.close(grace=600)
 
-        # set up channel pool
-        def create_refreshable_channel(*args, **kwargs) -> aio.Channel:
-            base_channel_fn = partial(
-                BigtableGrpcAsyncIOTransport.create_channel,
-                *args,
-                **kwargs,
-            )
-            return RefreshableChannel(create_channel_fn=base_channel_fn, on_replace=destroy_channel_gracefully)
+        def create_warmed_channel(self, *args, **kwargs) -> aio.Channel:
+            base_channel = BigtableGrpcAsyncIOTransport.create_channel(*args, **kwargs)
+            self._ping_and_warm_instances(base_channel)
+            return base_channel
 
-        def create_channel(
+        # set up channel pool
+        def create_refreshable_channel(*args, **kwargs) -> RefreshableChannel:
+            warmed_channel_fn = partial(create_warmed_channel, self, *args, **kwargs)
+            return RefreshableChannel(create_channel_fn=warmed_channel_fn, on_replace=destroy_channel_gracefully)
+
+        def create_channel_pool(
             self,
             *args,
             pool_options: DynamicPoolOptions | StaticPoolOptions | None = channel_pool_options,
             base_channel_fn: Callable[..., aio.Channel] = create_refreshable_channel,
             on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = destroy_channel_gracefully,
             **kwargs,
-        ):
+        ) -> PooledChannel:
             if pool_options is None:
                 pool_options = DynamicPoolOptions()
-            pool_kwargs = {
+            pool_kwargs : dict[str, Any] = {
                 "create_channel_fn": partial(base_channel_fn, *args, **kwargs),
                 "pool_options": pool_options,
                 "on_remove": on_remove,
@@ -160,7 +161,7 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
             transport="grpc_asyncio",
-            channel=create_channel,
+            channel=create_channel_pool,
         )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)
