@@ -110,15 +110,15 @@ class BigtableDataClient(ClientWithProject):
             await asyncio.sleep(10)
             await channel.close(grace=600)
 
-        def create_warmed_channel(self, *args, **kwargs) -> aio.Channel:
-            base_channel = BigtableGrpcAsyncIOTransport.create_channel(*args, **kwargs)
-            self._ping_and_warm_instances(base_channel)
-            return base_channel
-
         # set up channel pool
-        def create_refreshable_channel(*args, **kwargs) -> RefreshableChannel:
-            warmed_channel_fn = partial(create_warmed_channel, self, *args, **kwargs)
-            return RefreshableChannel(create_channel_fn=warmed_channel_fn, on_replace=destroy_channel_gracefully)
+        # TODO: clean up. Put in separate file?
+        def create_refreshable_channel(self, *args, **kwargs) -> RefreshableChannel:
+            create_channel_fn = partial(BigtableGrpcAsyncIOTransport.create_channel, *args, **kwargs)
+            return RefreshableChannel(
+                create_channel_fn=create_channel_fn,
+                on_replace=destroy_channel_gracefully,
+                warm_channel_fn=self._ping_and_warm_instances
+            )
 
         def create_channel_pool(
             self,
@@ -131,14 +131,13 @@ class BigtableDataClient(ClientWithProject):
             if pool_options is None:
                 pool_options = DynamicPoolOptions()
             pool_kwargs : dict[str, Any] = {
-                "create_channel_fn": partial(base_channel_fn, *args, **kwargs),
+                "create_channel_fn": partial(base_channel_fn, self, *args, **kwargs),
                 "pool_options": pool_options,
-                "on_remove": on_remove,
             }
             if isinstance(pool_options, StaticPoolOptions):
                 return PooledChannel(**pool_kwargs)
             else:
-                return DynamicPooledChannel(**pool_kwargs)
+                return DynamicPooledChannel(**pool_kwargs, on_remove=on_remove, warm_channel_fn=self._ping_and_warm_instances)
 
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
@@ -161,7 +160,7 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
             transport="grpc_asyncio",
-            channel=create_channel_pool,
+            channel=partial(create_channel_pool,self),
         )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)

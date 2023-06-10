@@ -15,7 +15,7 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Coroutine
+from typing import Awaitable, Callable, Coroutine
 
 import asyncio
 import random
@@ -34,9 +34,11 @@ class RefreshableChannel(aio.Channel):
         create_channel_fn: Callable[[], aio.Channel],
         refresh_interval_min: float = 60 * 35,
         refresh_interval_max: float = 60 * 45,
+        warm_channel_fn: Callable[[aio.Channel], Awaitable[None]] | None = None,
         on_replace: Callable[[aio.Channel], Coroutine[None, None, None]] | None = None,
     ):
         self._create_channel = create_channel_fn
+        self._warm_channel = warm_channel_fn
         self._on_replace = on_replace
         self._channel = create_channel_fn()
         self._refresh_task = asyncio.create_task(
@@ -67,6 +69,8 @@ class RefreshableChannel(aio.Channel):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        if self._warm_channel:
+            await self._warm_channel(self._channel)
         next_sleep = random.uniform(refresh_interval_min, refresh_interval_max)
         while True:
             # let channel run for `sleep_time` seconds, then remove it from pool
@@ -74,6 +78,8 @@ class RefreshableChannel(aio.Channel):
             # cycle channel out of use, with long grace window before closure
             start_timestamp = monotonic()
             new_channel = self._create_channel()
+            if self._warm_channel:
+                await self._warm_channel(new_channel)
             await new_channel.channel_ready()
             old_channel, self._channel = self._channel, new_channel
             if self._on_replace:

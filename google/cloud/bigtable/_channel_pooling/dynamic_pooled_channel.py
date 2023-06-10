@@ -14,7 +14,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Awaitable, Coroutine
 
 import asyncio
 from dataclasses import dataclass
@@ -47,6 +47,8 @@ class DynamicPooledChannel(PooledChannel):
         self,
         create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
+        warm_channel_fn: Callable[[aio.Channel], Awaitable[None]] | None = None,
+        on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = None,
         **kwargs,
     ):
         if isinstance(pool_options, StaticPoolOptions):
@@ -61,6 +63,9 @@ class DynamicPooledChannel(PooledChannel):
             create_channel_fn=lambda: TrackedChannel(create_channel_fn()),
             **kwargs,
         )
+        # register callbacks
+        self._on_remove = on_remove
+        self._warm_channel = warm_channel_fn
         # start background resize task
         self._resize_task = asyncio.create_task(self.resize_routine())
 
@@ -72,7 +77,11 @@ class DynamicPooledChannel(PooledChannel):
         close_tasks : list[asyncio.Task[None]] = []
         while True:
             await asyncio.sleep(60)
-            _, removed = self.attempt_resize()
+            added, removed = self.attempt_resize()
+            # warm up new channels immediately
+            if self._warm_channel:
+                for channel in added:
+                    await self._warm_channel(channel)
             # clear completed tasks from list
             close_tasks = [t for t in close_tasks if not t.done()]
             # add new tasks to close unneeded channels in the background
