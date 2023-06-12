@@ -185,7 +185,7 @@ class BigtableDataClient(ClientWithProject):
         self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
-        self, channel: aio.Channel
+        self, channel: aio.Channel, instance_id: str | None = None
     ) -> list[GoogleAPICallError | None]:
         """
         Prepares the backend for requests on a channel
@@ -197,10 +197,11 @@ class BigtableDataClient(ClientWithProject):
         Returns:
             - sequence of results or exceptions from the ping requests
         """
+        instance_list = [instance_id] if instance_id else self._active_instances
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
         )
-        tasks = [ping_rpc({"name": n}) for n in self._active_instances]
+        tasks = [ping_rpc({"name": n}) for n in instance_list]
         return await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _register_instance(self, instance_id: str, owner: Table) -> None:
@@ -223,7 +224,7 @@ class BigtableDataClient(ClientWithProject):
             self._active_instances.add(instance_name)
             # call ping and warm on all existing channels
             for channel in self._pool.channels:
-                await self._ping_and_warm_instances(channel)
+                await self._ping_and_warm_instances(channel, instance_name)
 
     async def _remove_instance_registration(
         self, instance_id: str, owner: Table
