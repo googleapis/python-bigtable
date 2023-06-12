@@ -112,25 +112,31 @@ class BigtableDataClient(ClientWithProject):
 
         # set up channel pool
         warm_fn = self._ping_and_warm_instances
-        create_base_channel = lambda *args, **kwargs: BigtableGrpcAsyncIOTransport.create_channel(*args, **kwargs)
-        create_refreshable_channel = lambda *args, **kwargs: RefreshableChannel(
-            create_channel_fn=partial(create_base_channel, *args, **kwargs),
-            on_replace=destroy_channel_gracefully,
-            warm_channel_fn=warm_fn,
+        create_base_channel = (
+            lambda *args, **kwargs: BigtableGrpcAsyncIOTransport.create_channel(
+                *args, **kwargs
+            )
+        )
+        create_refreshable_channel = (
+            lambda *args, **kwargs: RefreshableChannel(  # noqa: E731
+                create_channel_fn=partial(create_base_channel, *args, **kwargs),
+                on_replace=destroy_channel_gracefully,
+                warm_channel_fn=warm_fn,
+            )
         )
         if channel_pool_options is None:
             channel_pool_options = DynamicPoolOptions()
         if isinstance(channel_pool_options, StaticPoolOptions):
-            create_pool_channel = lambda *args, **kwargs: PooledChannel(
+            create_pool_channel = lambda *args, **kwargs: PooledChannel(  # noqa: E731
                 create_channel_fn=partial(create_refreshable_channel, *args, **kwargs),
                 pool_options=channel_pool_options,
             )
         else:
-            create_pool_channel = lambda *args, **kwargs: DynamicPooledChannel(
+            create_pool_channel = lambda *args, **kwargs: DynamicPooledChannel(  # noqa: E731
                 create_channel_fn=partial(create_refreshable_channel, *args, **kwargs),
                 pool_options=channel_pool_options,
                 on_remove=destroy_channel_gracefully,
-                warm_channel_fn=warm_fn,
+                # warm_channel_fn=warm_fn, # refreshable channel already warms
             )
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO

@@ -14,7 +14,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Awaitable, Coroutine
+from typing import Any, Callable, Coroutine
 
 import asyncio
 from dataclasses import dataclass
@@ -47,12 +47,15 @@ class DynamicPooledChannel(PooledChannel):
         self,
         create_channel_fn: Callable[[], aio.Channel],
         pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
-        warm_channel_fn: Callable[[aio.Channel], Awaitable[None]] | None = None,
-        on_remove: Callable[[aio.Channel], Coroutine[None,None,None]] | None = None,
+        warm_channel_fn: Callable[[aio.Channel], Coroutine[Any, Any, Any]]
+        | None = None,
+        on_remove: Callable[[aio.Channel], Coroutine[Any, Any, Any]] | None = None,
         **kwargs,
     ):
         if isinstance(pool_options, StaticPoolOptions):
-            raise ValueError("DynamicPooledChannel cannot be initialized with StaticPoolOptions")
+            raise ValueError(
+                "DynamicPooledChannel cannot be initialized with StaticPoolOptions"
+            )
         self._pool: list[TrackedChannel] = []
         self.pool_options = pool_options or DynamicPoolOptions()
         # create the pool
@@ -74,7 +77,7 @@ class DynamicPooledChannel(PooledChannel):
         await super().close(grace)
 
     async def resize_routine(self, interval: float = 60):
-        close_tasks : list[asyncio.Task[None]] = []
+        close_tasks: list[asyncio.Task[None]] = []
         while True:
             await asyncio.sleep(60)
             added, removed = self.attempt_resize()
