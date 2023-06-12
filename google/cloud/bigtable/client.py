@@ -79,7 +79,6 @@ class BigtableDataClient(ClientWithProject):
         self,
         *,
         project: str | None = None,
-        pool_size: int = 3,
         credentials: google.auth.credentials.Credentials | None = None,
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
@@ -95,8 +94,6 @@ class BigtableDataClient(ClientWithProject):
             project: the project which the client acts on behalf of.
                 If not passed, falls back to the default inferred
                 from the environment.
-            pool_size: The number of grpc channels to maintain
-                in the internal channel pool.
             credentials:
                 Thehe OAuth2 Credentials to use for this
                 client. If not passed (and if no ``_http`` object is
@@ -166,7 +163,9 @@ class BigtableDataClient(ClientWithProject):
                 credentials=credentials,
                 client_options=client_options,
                 client_info=client_info,
-                transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(*args, **kwargs, channel=create_pool_channel),
+                transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(
+                    *args, **kwargs, channel=create_pool_channel
+                ),
             )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)
@@ -198,14 +197,18 @@ class BigtableDataClient(ClientWithProject):
         if isinstance(self._pool, DynamicPooledChannel):
             self._pool.start_background_task()
             # dynamic pooling wraps refreshable channel in TrackedChannel
-            refresh_channels = [channel.wrapped_channel for channel in self._pool.channels if isinstance(channel, TrackedChannel)]
+            refresh_channels = [
+                channel.wrapped_channel
+                for channel in self._pool.channels
+                if isinstance(channel, TrackedChannel)
+            ]
         else:
             refresh_channels = self._pool.channels
         # start refreshable channel tasks
         for channel in refresh_channels:
             channel.start_background_task()
 
-    async def close(self, timeout: float = 2.0):
+    async def close(self):
         """
         Cancel all background tasks
         """
@@ -237,7 +240,6 @@ class BigtableDataClient(ClientWithProject):
         for the instance
         The client will periodically refresh grpc channel pool used to make
         requests, and new channels will be warmed for each registered instance
-        Channels will not be refreshed unless at least one instance is registered
 
         Args:
           - instance_id: id of the instance to register.

@@ -52,7 +52,7 @@ class RefreshableChannel(aio.Channel):
         """
         returns True if the background task is currently running
         """
-        return self._refresh_task and not self._refresh_task.done()
+        return self._refresh_task is not None and not self._refresh_task.done()
 
     def start_background_task(self):
         """
@@ -133,11 +133,12 @@ class RefreshableChannel(aio.Channel):
         return self._channel.stream_stream(*args, **kwargs)
 
     async def close(self, grace=None):
-        self._refresh_task.cancel()
-        try:
-            await self._refresh_task
-        except asyncio.CancelledError:
-            pass
+        if self._refresh_task:
+            self._refresh_task.cancel()
+            try:
+                await self._refresh_task
+            except asyncio.CancelledError:
+                pass
         return await self._channel.close(grace=grace)
 
     async def channel_ready(self):

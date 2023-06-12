@@ -129,3 +129,6 @@ class PooledChannel(aio.Channel):
     @property
     def channels(self) -> list[aio.Channel]:
         return self._pool
+
+    def __getitem__(self, item: int) -> aio.Channel:
+        return self._pool[item]

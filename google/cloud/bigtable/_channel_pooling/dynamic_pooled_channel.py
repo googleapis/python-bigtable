@@ -78,7 +78,7 @@ class DynamicPooledChannel(PooledChannel):
         """
         returns True if the background task is currently running
         """
-        return self._resize_task and not self._resize_task.done()
+        return self._resize_task is not None and not self._resize_task.done()
 
     def start_background_task(self):
         """
@@ -100,11 +100,12 @@ class DynamicPooledChannel(PooledChannel):
             self._resize_task = None
 
     async def close(self, grace=None):
-        self._resize_task.cancel()
-        try:
-            await self._resize_task
-        except asyncio.CancelledError:
-            pass
+        if self._resize_task:
+            self._resize_task.cancel()
+            try:
+                await self._resize_task
+            except asyncio.CancelledError:
+                pass
         await super().close(grace)
 
     async def resize_routine(self, interval: float = 60):
