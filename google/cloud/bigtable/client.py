@@ -158,8 +158,7 @@ class BigtableDataClient(ClientWithProject):
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
-            transport="grpc_asyncio",
-            channel=create_pool_channel,
+            transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(*args, **kwargs, channel=create_pool_channel),
         )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)
