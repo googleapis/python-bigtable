@@ -17,8 +17,8 @@ from collections import OrderedDict
 import functools
 import re
 from typing import (
-    Callable,
     Dict,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -172,8 +172,7 @@ class BigtableAsyncClient:
         credentials: Optional[ga_credentials.Credentials] = None,
         transport: Optional[
             Union[str, BigtableTransport, Callable[..., BigtableTransport]]
-        ] = None,
-        channel: Optional[Union["aio.Channel", Callable[..., "aio.Channel"]]] = None,
+        ] = "grpc_asyncio",
         client_options: Optional[ClientOptions] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -185,13 +184,11 @@ class BigtableAsyncClient:
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, BigtableTransport, Callable[..., BigtableTransport]]): The
-                transport to use, or a function that generates one from relevant arguments.
+            transport (Optional[Union[str,BigtableTransport,Callable[..., BigtableTransport]]]):
+                The transport to use, or a callable that generates one with the
+                set of initialization arguments.
                 If set to None, a transport is chosen automatically.
-            channel (Union[aio.Channel, Callable[..., aio.Channel]]): The channel argument
-                to pass to the transport constructor. If None, a channel is
-                created automatically.
-            client_options (ClientOptions): Custom options for the client. It
+            client_options (Optional[ClientOptions]): Custom options for the client. It
                 won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
                 default endpoint provided by the client. GOOGLE_API_USE_MTLS_ENDPOINT
@@ -215,7 +212,6 @@ class BigtableAsyncClient:
         self._client = BigtableClient(
             credentials=credentials,
             transport=transport,
-            channel=channel,
             client_options=client_options,
             client_info=client_info,
         )

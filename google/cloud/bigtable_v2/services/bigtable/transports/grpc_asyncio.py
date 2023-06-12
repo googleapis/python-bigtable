@@ -123,10 +123,10 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             scopes (Optional[Sequence[str]]): A optional list of scopes needed for this
                 service. These are only used when credentials are not specified and
                 are passed to :func:`google.auth.default`.
-            channel (Optional[aio.Channel, Callable[..., aio.Channel]]): A ``Channel``
-                instance through which to make calls, or a function that returns
-                a channel from passed in arguments. If ``channel`` is not
-                provided, a new ``aio.Channel`` instance is created.
+            channel (Optional[Union[aio.Channel, Callable[..., aio.Channel]]):
+                A ``Channel`` instance through which to make calls, or a callable
+                that generates one with the set of initialization arguments.
+                If set to None, a channel is created automatically.
             api_mtls_endpoint (Optional[str]): Deprecated. The mutual TLS endpoint.
                 If provided, it overrides the ``host`` argument and tries to create
                 a mutual TLS channel with client SSL credentials from
@@ -165,6 +165,7 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             warnings.warn("api_mtls_endpoint is deprecated", DeprecationWarning)
         if client_cert_source:
             warnings.warn("client_cert_source is deprecated", DeprecationWarning)
+
         if isinstance(channel, aio.Channel):
             # Ignore credentials if a channel was passed.
             credentials = False
@@ -205,8 +206,8 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
         )
 
         if not self._grpc_channel:
-            channel_func = channel or type(self).create_channel
-            self._grpc_channel = channel_func(
+            channel_init = channel or type(self).create_channel
+            self._grpc_channel = channel_init(
                 self._host,
                 # use the credentials which are saved
                 credentials=self._credentials,
