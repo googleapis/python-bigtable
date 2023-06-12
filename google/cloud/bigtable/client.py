@@ -28,6 +28,7 @@ from typing import (
 import asyncio
 from grpc.experimental import aio  # type: ignore
 from functools import partial
+import warnings
 
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
@@ -56,6 +57,9 @@ from google.cloud.bigtable._channel_pooling.dynamic_pooled_channel import (
 )
 from google.cloud.bigtable._channel_pooling.refreshable_channel import (
     RefreshableChannel,
+)
+from google.cloud.bigtable._channel_pooling.tracked_channel import (
+    TrackedChannel,
 )
 from google.cloud.bigtable._channel_pooling.pooled_channel import PooledChannel
 from google.cloud.bigtable._channel_pooling.pooled_channel import StaticPoolOptions
@@ -154,12 +158,16 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableAsyncClient(
-            credentials=credentials,
-            client_options=client_options,
-            client_info=client_info,
-            transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(*args, **kwargs, channel=create_pool_channel),
-        )
+        # warnings will be raised by pool and channel if run outside of async context
+        with warnings.catch_warnings():
+            # filter to show a single warning, instead of one for each channel
+            warnings.simplefilter("module", RuntimeWarning)
+            self._gapic_client = BigtableAsyncClient(
+                credentials=credentials,
+                client_options=client_options,
+                client_info=client_info,
+                transport=lambda *args, **kwargs: BigtableGrpcAsyncIOTransport(*args, **kwargs, channel=create_pool_channel),
+            )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)
         # keep track of active instances to for warmup on channel refresh
@@ -167,27 +175,41 @@ class BigtableDataClient(ClientWithProject):
         # keep track of table objects associated with each instance
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[str, Set[int]] = {}
-        # attempt to start background tasks
-        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        # TODO: make sure this check is in place
-        # except RuntimeError:
-        #     warnings.warn(
-        #         f"{self.__class__.__name__} should be started in an "
-        #         "asyncio event loop. Channel refresh will not be started",
-        #         RuntimeWarning,
-        #         stacklevel=2,
-        #     )
+        # raise warning if not started in async context
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            warnings.warn(
+                f"{self.__class__.__name__} should be initialized in an "
+                "asyncio event loop. "
+                "Run start_pool_background_tasks() in an async "
+                "context to start grpc channel lifecycle management manually.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+    async def start_pool_background_tasks(self):
+        """
+        If client was initialized outside of an async context, async background
+        tasks will not be started automatically. This method can be called to
+        start the background tasks manually.
+        """
+        # start dynamic pool task
+        if isinstance(self._pool, DynamicPooledChannel):
+            self._pool.start_background_task()
+            # dynamic pooling wraps refreshable channel in TrackedChannel
+            refresh_channels = [channel.wrapped_channel for channel in self._pool.channels if isinstance(channel, TrackedChannel)]
+        else:
+            refresh_channels = self._pool.channels
+        # start refreshable channel tasks
+        for channel in refresh_channels:
+            channel.start_background_task()
 
     async def close(self, timeout: float = 2.0):
         """
         Cancel all background tasks
         """
-        for task in self._channel_refresh_tasks:
-            task.cancel()
-        group = asyncio.gather(*self._channel_refresh_tasks, return_exceptions=True)
-        await asyncio.wait_for(group, timeout=timeout)
         await self._gapic_client.transport.close()
-        self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
         self, channel: aio.Channel, instance_id: str | None = None

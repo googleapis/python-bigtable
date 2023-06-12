@@ -18,6 +18,7 @@ from typing import Any, Callable, Coroutine
 
 import asyncio
 from dataclasses import dataclass
+import warnings
 
 from grpc.experimental import aio  # type: ignore
 
@@ -70,10 +71,40 @@ class DynamicPooledChannel(PooledChannel):
         self._on_remove = on_remove
         self._warm_channel = warm_channel_fn
         # start background resize task
-        self._resize_task = asyncio.create_task(self.resize_routine())
+        self._resize_task: asyncio.Task[None] | None = None
+        self.start_background_task()
+
+    def background_task_is_active(self) -> bool:
+        """
+        returns True if the background task is currently running
+        """
+        return self._resize_task and not self._resize_task.done()
+
+    def start_background_task(self):
+        """
+        Start background task to manage channel lifecycle. If background
+        task is already running, do nothing. If run outside of an asyncio
+        event loop, print a warning and do nothing.
+        """
+        if self.background_task_is_active():
+            return
+        try:
+            asyncio.get_running_loop()
+            self._resize_task = asyncio.create_task(self.resize_routine())
+        except RuntimeError:
+            warnings.warn(
+                "No asyncio event loop detected. Dynamic channel pooling disabled.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            self._resize_task = None
 
     async def close(self, grace=None):
         self._resize_task.cancel()
+        try:
+            await self._resize_task
+        except asyncio.CancelledError:
+            pass
         await super().close(grace)
 
     async def resize_routine(self, interval: float = 60):
@@ -135,3 +166,11 @@ class DynamicPooledChannel(PooledChannel):
                     self._pool[dampened_target:],
                 )
         return added_list, removed_list
+
+    async def __aenter__(self):
+        self.start_background_task()
+        return super().__aenter__()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+        return await super().__aexit__(exc_type, exc_val, exc_tb)

@@ -105,10 +105,14 @@ class PooledChannel(aio.Channel):
         return asyncio.gather(*ready_fns)
 
     async def __aenter__(self):
+        for channel in self._pool:
+            await channel.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
+        for channel in self._pool:
+            await channel.__aexit__(exc_type, exc_val, exc_tb)
 
     def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
         raise NotImplementedError()

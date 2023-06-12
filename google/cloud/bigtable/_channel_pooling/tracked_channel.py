@@ -87,3 +87,7 @@ class TrackedChannel(aio.Channel):
 
     async def wait_for_state_change(self, last_observed_state):
         return await self._channel.wait_for_state_change(last_observed_state)
+
+    @property
+    def wrapped_channel(self):
+        return self._channel

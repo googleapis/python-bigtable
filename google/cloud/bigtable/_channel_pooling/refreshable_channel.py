@@ -20,6 +20,7 @@ from typing import Any, Callable, Coroutine
 import asyncio
 import random
 from time import monotonic
+import warnings
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
 
@@ -42,9 +43,39 @@ class RefreshableChannel(aio.Channel):
         self._warm_channel = warm_channel_fn
         self._on_replace = on_replace
         self._channel = create_channel_fn()
-        self._refresh_task = asyncio.create_task(
-            self._manage_channel_lifecycle(refresh_interval_min, refresh_interval_max)
-        )
+        self.refresh_interval_min = refresh_interval_min
+        self.refresh_interval_max = refresh_interval_max
+        self._refresh_task: asyncio.Task[None] | None = None
+        self.start_background_task()
+
+    def background_task_is_active(self) -> bool:
+        """
+        returns True if the background task is currently running
+        """
+        return self._refresh_task and not self._refresh_task.done()
+
+    def start_background_task(self):
+        """
+        Start background task to manage channel lifecycle. If background
+        task is already running, do nothing. If run outside of an asyncio
+        event loop, print a warning and do nothing.
+        """
+        if self.background_task_is_active():
+            return
+        try:
+            asyncio.get_running_loop()
+            self._refresh_task = asyncio.create_task(
+                self._manage_channel_lifecycle(
+                    self.refresh_interval_min, self.refresh_interval_max
+                )
+            )
+        except RuntimeError:
+            warnings.warn(
+                "No asyncio event loop detected. Grpc channel will not be refreshed.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            self._refresh_task = None
 
     async def _manage_channel_lifecycle(
         self,
@@ -103,15 +134,21 @@ class RefreshableChannel(aio.Channel):
 
     async def close(self, grace=None):
         self._refresh_task.cancel()
+        try:
+            await self._refresh_task
+        except asyncio.CancelledError:
+            pass
         return await self._channel.close(grace=grace)
 
     async def channel_ready(self):
         return await self._channel.channel_ready()
 
     async def __aenter__(self):
+        self.start_background_task()
         return await self._channel.__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
         return await self._channel.__aexit__(exc_type, exc_val, exc_tb)
 
     def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
@@ -119,3 +156,7 @@ class RefreshableChannel(aio.Channel):
 
     async def wait_for_state_change(self, last_observed_state):
         return await self._channel.wait_for_state_change(last_observed_state)
+
+    @property
+    def wrapped_channel(self):
+        return self._channel
