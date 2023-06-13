@@ -54,7 +54,6 @@ class _WrappedChannel(aio.Channel):
         return await self._channel.__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
         return await self._channel.__aexit__(exc_type, exc_val, exc_tb)
 
     def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
