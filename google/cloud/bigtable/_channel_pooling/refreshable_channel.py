@@ -20,11 +20,11 @@ from typing import Any, Callable, Coroutine
 import asyncio
 import random
 from time import monotonic
+from functools import partial
 from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable._channel_pooling.wrapped_channel import (
-    _WrappedChannel,
-    _BackgroundTaskMixin,
+    _WrappedChannel, _BackgroundTaskMixin
 )
 
 
@@ -35,14 +35,16 @@ class RefreshableChannel(_WrappedChannel, _BackgroundTaskMixin):
 
     def __init__(
         self,
-        create_channel_fn: Callable[[], aio.Channel],
+        *args,
+        create_channel_fn: Callable[..., aio.Channel] = lambda: None,
         refresh_interval_min: float = 60 * 35,
         refresh_interval_max: float = 60 * 45,
         warm_channel_fn: Callable[[aio.Channel], Coroutine[Any, Any, Any]]
         | None = None,
         on_replace: Callable[[aio.Channel], Coroutine[Any, Any, Any]] | None = None,
+        **kwargs,
     ):
-        self._create_channel = create_channel_fn
+        self._create_channel : Callable[[], aio.Channel] = partial(create_channel_fn, *args, **kwargs)
         self._warm_channel = warm_channel_fn
         self._on_replace = on_replace
         self._channel = create_channel_fn()

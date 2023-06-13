@@ -19,21 +19,14 @@ from typing import (
 )
 import asyncio
 from dataclasses import dataclass
+from functools import partial
 
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
-from google.cloud.bigtable._channel_pooling.wrapped_channel import (
-    WrappedUnaryUnaryMultiCallable,
-)
-from google.cloud.bigtable._channel_pooling.wrapped_channel import (
-    WrappedUnaryStreamMultiCallable,
-)
-from google.cloud.bigtable._channel_pooling.wrapped_channel import (
-    WrappedStreamUnaryMultiCallable,
-)
-from google.cloud.bigtable._channel_pooling.wrapped_channel import (
-    WrappedStreamStreamMultiCallable,
-)
+from google.cloud.bigtable._channel_pooling.wrapped_channel import WrappedUnaryUnaryMultiCallable
+from google.cloud.bigtable._channel_pooling.wrapped_channel import WrappedUnaryStreamMultiCallable
+from google.cloud.bigtable._channel_pooling.wrapped_channel import WrappedStreamUnaryMultiCallable
+from google.cloud.bigtable._channel_pooling.wrapped_channel import WrappedStreamStreamMultiCallable
 
 
 @dataclass
@@ -44,12 +37,14 @@ class StaticPoolOptions:
 class PooledChannel(aio.Channel):
     def __init__(
         self,
-        create_channel_fn: Callable[[], aio.Channel],
+        *args,
+        create_channel_fn: Callable[..., aio.Channel] = lambda: None,
         pool_options: StaticPoolOptions | None = None,
+        **kwargs,
     ):
         self._pool: list[aio.Channel] = []
         self._next_idx = 0
-        self._create_channel = create_channel_fn
+        self._create_channel : Callable[[], aio.Channel] = partial(create_channel_fn, *args, **kwargs)
         pool_options = pool_options or StaticPoolOptions()
         for i in range(pool_options.pool_size):
             self._pool.append(self._create_channel())
