@@ -16,9 +16,60 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from functools import partial
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
+from google.api_core.grpc_helpers_async import _WrappedUnaryResponseMixin
+from google.api_core.grpc_helpers_async import _WrappedStreamResponseMixin
+
+
+class _TrackedUnaryResponseMixin(_WrappedUnaryResponseMixin):
+    def __init__(self, call, channel):
+        super().__init__()
+        self._call: aio.UnaryUnaryCall | aio.StreamUnaryCall = call
+        self._channel = channel
+
+    def __await__(self):
+        with self._channel.track_rpc():
+            response = yield from self._call.__await__()
+            return response
+
+    def __getattr__(self, attr):
+        return getattr(self._call, attr)
+
+
+class _TrackedStreamResponseMixin(_WrappedStreamResponseMixin):
+    def __init__(self, call, channel):
+        super().__init__()
+        self._call: aio.UnaryStreamCall | aio.StreamStreamMultiCallable = call
+        self._channel = channel
+
+    async def read(self):
+        with self._channel.track_rpc():
+            return await self._call.read()
+
+    async def _wrapped_aiter(self):
+        with self._channel.track_rpc():
+            async for item in self._call:
+                yield item
+
+    def __getattr__(self, attr):
+        return getattr(self._call, attr)
+
+
+class TrackedUnaryUnaryCall(_TrackedUnaryResponseMixin, aio.UnaryUnaryCall):
+    pass
+
+
+class TrackedUnaryStreamCall(_TrackedStreamResponseMixin, aio.UnaryStreamCall):
+    pass
+
+
+class TrackedStreamUnaryCall(_TrackedUnaryResponseMixin, aio.StreamUnaryCall):
+    pass
+
+
+class TrackedStreamStreamCall(_TrackedStreamResponseMixin, aio.StreamStreamCall):
+    pass
 
 
 class TrackedChannel(aio.Channel):
@@ -39,36 +90,34 @@ class TrackedChannel(aio.Channel):
             yield
         finally:
             self.active_rpcs -= 1
-            self.release()
 
     def get_and_reset_max_active_rpcs(self) -> int:
         current_max, self.max_active_rpcs = self.max_active_rpcs, self.active_rpcs
         return current_max
 
-    async def _wrapped_unary(self, unary_call, *args, **kwargs):
-        with self.track_rpc():
-            return await unary_call(*args, **kwargs)
+    def unary_unary(self, *args, **kwargs):
+        multicallable = self._channel.unary_unary(*args, **kwargs)
+        return lambda *args, **kwargs: TrackedUnaryUnaryCall(
+            multicallable(*args, **kwargs), self
+        )
 
-    async def _wrapped_stream(self, stream, *args, **kwargs):
-        with self.track_rpc():
-            async for result in stream(*args, **kwargs):
-                yield result
+    def unary_stream(self, *args, **kwargs):
+        multicallable = self._channel.unary_stream(*args, **kwargs)
+        return lambda *args, **kwargs: TrackedUnaryStreamCall(
+            multicallable(*args, **kwargs), self
+        )
 
-    def unary_unary(self, *args, **kwargs) -> aio.UnaryUnaryMultiCallable:
-        call = self._channel.unary_unary(*args, **kwargs)
-        return partial(self._wrapped_unary, call)
+    def stream_unary(self, *args, **kwargs):
+        multicallable = self._channel.stream_unary(*args, **kwargs)
+        return lambda *args, **kwargs: TrackedStreamUnaryCall(
+            multicallable(*args, **kwargs), self
+        )
 
-    def unary_stream(self, *args, **kwargs) -> aio.UnaryStreamMultiCallable:
-        stream = self._channel.unary_stream(*args, **kwargs)
-        return partial(self._wrapped_stream, stream)
-
-    def stream_unary(self, *args, **kwargs) -> aio.StreamUnaryMultiCallable:
-        call = self._channel.stream_unary(*args, **kwargs)
-        return partial(self._wrapped_unary, call)
-
-    def stream_stream(self, *args, **kwargs) -> aio.StreamStreamMultiCallable:
-        stream = self._channel.stream_stream(*args, **kwargs)
-        return partial(self._wrapped_stream, stream)
+    def stream_stream(self, *args, **kwargs):
+        multicallable = self._channel.stream_stream(*args, **kwargs)
+        return lambda *args, **kwargs: TrackedStreamStreamCall(
+            multicallable(*args, **kwargs), self
+        )
 
     async def close(self, grace=None):
         return await self._channel.close(grace=grace)
