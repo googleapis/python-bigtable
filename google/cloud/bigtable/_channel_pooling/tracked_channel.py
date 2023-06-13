@@ -16,10 +16,11 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
 from google.api_core.grpc_helpers_async import _WrappedUnaryResponseMixin
 from google.api_core.grpc_helpers_async import _WrappedStreamResponseMixin
+
+from google.cloud.bigtable._channel_pooling.wrapped_channel import _WrappedChannel
 
 
 class _TrackedUnaryResponseMixin(_WrappedUnaryResponseMixin):
@@ -72,13 +73,13 @@ class TrackedStreamStreamCall(_TrackedStreamResponseMixin, aio.StreamStreamCall)
     pass
 
 
-class TrackedChannel(aio.Channel):
+class TrackedChannel(_WrappedChannel):
     """
     A Channel that tracks the number of active RPCs
     """
 
     def __init__(self, channel: aio.Channel):
-        self._channel = channel
+        super().__init__(channel)
         self.active_rpcs = 0
         self.max_active_rpcs = 0
 
@@ -118,25 +119,3 @@ class TrackedChannel(aio.Channel):
         return lambda *args, **kwargs: TrackedStreamStreamCall(
             multicallable(*args, **kwargs), self
         )
-
-    async def close(self, grace=None):
-        return await self._channel.close(grace=grace)
-
-    async def channel_ready(self):
-        return await self._channel.channel_ready()
-
-    async def __aenter__(self):
-        return await self._channel.__aenter__()
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return await self._channel.__aexit__(exc_type, exc_val, exc_tb)
-
-    def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
-        return self._channel.get_state(try_to_connect=try_to_connect)
-
-    async def wait_for_state_change(self, last_observed_state):
-        return await self._channel.wait_for_state_change(last_observed_state)
-
-    @property
-    def wrapped_channel(self):
-        return self._channel

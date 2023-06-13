@@ -18,13 +18,14 @@ from typing import Any, Callable, Coroutine
 
 import asyncio
 from dataclasses import dataclass
-import warnings
 
 from grpc.experimental import aio  # type: ignore
 
 from .pooled_channel import PooledChannel
 from .pooled_channel import StaticPoolOptions
 from .tracked_channel import TrackedChannel
+
+from google.cloud.bigtable._channel_pooling.wrapped_channel import _BackgroundTaskMixin
 
 
 @dataclass
@@ -41,9 +42,11 @@ class DynamicPoolOptions:
     min_rpcs_per_channel: int = 50
     # how many channels to add/remove in a single resize event
     max_resize_delta: int = 2
+    # how many seconds to wait between resize attempts
+    pool_refresh_interval: float = 60.0
 
 
-class DynamicPooledChannel(PooledChannel):
+class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
     def __init__(
         self,
         create_channel_fn: Callable[[], aio.Channel],
@@ -60,7 +63,8 @@ class DynamicPooledChannel(PooledChannel):
         self._pool: list[TrackedChannel] = []
         self.pool_options = pool_options or DynamicPoolOptions()
         # create the pool
-        super().__init__(
+        PooledChannel.__init__(
+            self,
             # create options for starting pool
             pool_options=StaticPoolOptions(pool_size=self.pool_options.start_size),
             # all channels must be TrackChannels
@@ -71,48 +75,21 @@ class DynamicPooledChannel(PooledChannel):
         self._on_remove = on_remove
         self._warm_channel = warm_channel_fn
         # start background resize task
-        self._resize_task: asyncio.Task[None] | None = None
+        self._background_task: asyncio.Task[None] | None = None
         self.start_background_task()
 
-    def background_task_is_active(self) -> bool:
-        """
-        returns True if the background task is currently running
-        """
-        return self._resize_task is not None and not self._resize_task.done()
+    def _background_coroutine(self) -> Coroutine[Any, Any, None]:
+        return self._resize_routine(interval=self.pool_options.pool_refresh_interval)
 
-    def start_background_task(self):
-        """
-        Start background task to manage channel lifecycle. If background
-        task is already running, do nothing. If run outside of an asyncio
-        event loop, print a warning and do nothing.
-        """
-        if self.background_task_is_active():
-            return
-        try:
-            asyncio.get_running_loop()
-            self._resize_task = asyncio.create_task(self.resize_routine())
-        except RuntimeError:
-            warnings.warn(
-                "No asyncio event loop detected. Dynamic channel pooling disabled.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            self._resize_task = None
+    @property
+    def _task_description(self) -> str:
+        return "Automatic channel pool resizing"
 
-    async def close(self, grace=None):
-        if self._resize_task:
-            self._resize_task.cancel()
-            try:
-                await self._resize_task
-            except asyncio.CancelledError:
-                pass
-        await super().close(grace)
-
-    async def resize_routine(self, interval: float = 60):
+    async def _resize_routine(self, interval: float = 60):
         close_tasks: list[asyncio.Task[None]] = []
         while True:
             await asyncio.sleep(60)
-            added, removed = self.attempt_resize()
+            added, removed = self._attempt_resize()
             # warm up new channels immediately
             if self._warm_channel:
                 for channel in added:
@@ -125,7 +102,7 @@ class DynamicPooledChannel(PooledChannel):
                     close_routine = self._on_remove(channel)
                     close_tasks.append(asyncio.create_task(close_routine))
 
-    def attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
+    def _attempt_resize(self) -> tuple[list[TrackedChannel], list[TrackedChannel]]:
         """
         Called periodically to resize the number of channels based on
         the number of active RPCs
@@ -169,9 +146,9 @@ class DynamicPooledChannel(PooledChannel):
         return added_list, removed_list
 
     async def __aenter__(self):
-        self.start_background_task()
-        return super().__aenter__()
+        await _BackgroundTaskMixin.__aenter__(self)
+        await PooledChannel.__aenter__(self)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-        return await super().__aexit__(exc_type, exc_val, exc_tb)
+    async def close(self, grace=None):
+        await _BackgroundTaskMixin.close(self, grace)
+        await PooledChannel.close(self, grace)

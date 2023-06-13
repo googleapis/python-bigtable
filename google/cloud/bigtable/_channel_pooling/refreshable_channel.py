@@ -20,12 +20,15 @@ from typing import Any, Callable, Coroutine
 import asyncio
 import random
 from time import monotonic
-import warnings
-import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
 
+from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+    _WrappedChannel,
+    _BackgroundTaskMixin,
+)
 
-class RefreshableChannel(aio.Channel):
+
+class RefreshableChannel(_WrappedChannel, _BackgroundTaskMixin):
     """
     A Channel that refreshes itself periodically.
     """
@@ -45,37 +48,17 @@ class RefreshableChannel(aio.Channel):
         self._channel = create_channel_fn()
         self.refresh_interval_min = refresh_interval_min
         self.refresh_interval_max = refresh_interval_max
-        self._refresh_task: asyncio.Task[None] | None = None
+        self._background_task: asyncio.Task[None] | None = None
         self.start_background_task()
 
-    def background_task_is_active(self) -> bool:
-        """
-        returns True if the background task is currently running
-        """
-        return self._refresh_task is not None and not self._refresh_task.done()
+    def _background_coroutine(self) -> Coroutine[Any, Any, None]:
+        return self._manage_channel_lifecycle(
+            self.refresh_interval_min, self.refresh_interval_max
+        )
 
-    def start_background_task(self):
-        """
-        Start background task to manage channel lifecycle. If background
-        task is already running, do nothing. If run outside of an asyncio
-        event loop, print a warning and do nothing.
-        """
-        if self.background_task_is_active():
-            return
-        try:
-            asyncio.get_running_loop()
-            self._refresh_task = asyncio.create_task(
-                self._manage_channel_lifecycle(
-                    self.refresh_interval_min, self.refresh_interval_max
-                )
-            )
-        except RuntimeError:
-            warnings.warn(
-                "No asyncio event loop detected. Grpc channel will not be refreshed.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            self._refresh_task = None
+    @property
+    def _task_description(self) -> str:
+        return "Background channel refresh"
 
     async def _manage_channel_lifecycle(
         self,
@@ -120,44 +103,10 @@ class RefreshableChannel(aio.Channel):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (monotonic() - start_timestamp)
 
-    def unary_unary(self, *args, **kwargs) -> aio.UnaryUnaryMultiCallable:
-        return self._channel.unary_unary(*args, **kwargs)
-
-    def unary_stream(self, *args, **kwargs) -> aio.UnaryStreamMultiCallable:
-        return self._channel.unary_stream(*args, **kwargs)
-
-    def stream_unary(self, *args, **kwargs) -> aio.StreamUnaryMultiCallable:
-        return self._channel.stream_unary(*args, **kwargs)
-
-    def stream_stream(self, *args, **kwargs) -> aio.StreamStreamMultiCallable:
-        return self._channel.stream_stream(*args, **kwargs)
+    async def __aenter__(self):
+        await _BackgroundTaskMixin.__aenter__(self)
+        await _WrappedChannel.__aenter__(self)
 
     async def close(self, grace=None):
-        if self._refresh_task:
-            self._refresh_task.cancel()
-            try:
-                await self._refresh_task
-            except asyncio.CancelledError:
-                pass
-        return await self._channel.close(grace=grace)
-
-    async def channel_ready(self):
-        return await self._channel.channel_ready()
-
-    async def __aenter__(self):
-        self.start_background_task()
-        return await self._channel.__aenter__()
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-        return await self._channel.__aexit__(exc_type, exc_val, exc_tb)
-
-    def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
-        return self._channel.get_state(try_to_connect=try_to_connect)
-
-    async def wait_for_state_change(self, last_observed_state):
-        return await self._channel.wait_for_state_change(last_observed_state)
-
-    @property
-    def wrapped_channel(self):
-        return self._channel
+        await _BackgroundTaskMixin.close(self, grace)
+        await _WrappedChannel.close(self, grace)
