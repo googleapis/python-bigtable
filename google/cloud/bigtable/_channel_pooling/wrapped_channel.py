@@ -15,6 +15,8 @@
 #
 from __future__ import annotations
 
+from typing import Callable
+
 import asyncio
 import warnings
 import grpc  # type: ignore
@@ -132,3 +134,49 @@ class _BackgroundTaskMixin:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
+
+
+class _WrappedMultiCallable:
+    """
+    Wrapper class that wraps a gRPC multi callable in a custom callable.
+    This allows us to prefrom custom logic when the callable is called.
+    """
+
+    def __init__(
+        self,
+        call_factory: Callable[
+            [],
+            aio.UnaryUnaryMultiCallable
+            | aio.UnaryStreamMultiCallable
+            | aio.StreamUnaryMultiCallable
+            | aio.StreamStreamMultiCallable,
+        ],
+    ):
+        self._call_factory = call_factory
+
+    def __call__(self, *args, **kwargs):
+        return self._call_factory()(*args, **kwargs)
+
+
+class WrappedUnaryUnaryMultiCallable(
+    _WrappedMultiCallable, aio.UnaryUnaryMultiCallable
+):
+    pass
+
+
+class WrappedUnaryStreamMultiCallable(
+    _WrappedMultiCallable, aio.UnaryStreamMultiCallable
+):
+    pass
+
+
+class WrappedStreamUnaryMultiCallable(
+    _WrappedMultiCallable, aio.StreamUnaryMultiCallable
+):
+    pass
+
+
+class WrappedStreamStreamMultiCallable(
+    _WrappedMultiCallable, aio.StreamStreamMultiCallable
+):
+    pass

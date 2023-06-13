@@ -22,48 +22,23 @@ from dataclasses import dataclass
 
 import grpc  # type: ignore
 from grpc.experimental import aio  # type: ignore
+from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+    WrappedUnaryUnaryMultiCallable,
+)
+from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+    WrappedUnaryStreamMultiCallable,
+)
+from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+    WrappedStreamUnaryMultiCallable,
+)
+from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+    WrappedStreamStreamMultiCallable,
+)
 
 
 @dataclass
 class StaticPoolOptions:
     pool_size: int = 3
-
-
-class PooledMultiCallable:
-    def __init__(self, channel_pool: "PooledChannel", *args, **kwargs):
-        self._init_args = args
-        self._init_kwargs = kwargs
-        self.next_channel_fn = channel_pool.next_channel
-
-
-class PooledUnaryUnaryMultiCallable(PooledMultiCallable, aio.UnaryUnaryMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.UnaryUnaryCall:
-        return self.next_channel_fn().unary_unary(
-            *self._init_args, **self._init_kwargs
-        )(*args, **kwargs)
-
-
-class PooledUnaryStreamMultiCallable(PooledMultiCallable, aio.UnaryStreamMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.UnaryStreamCall:
-        return self.next_channel_fn().unary_stream(
-            *self._init_args, **self._init_kwargs
-        )(*args, **kwargs)
-
-
-class PooledStreamUnaryMultiCallable(PooledMultiCallable, aio.StreamUnaryMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.StreamUnaryCall:
-        return self.next_channel_fn().stream_unary(
-            *self._init_args, **self._init_kwargs
-        )(*args, **kwargs)
-
-
-class PooledStreamStreamMultiCallable(
-    PooledMultiCallable, aio.StreamStreamMultiCallable
-):
-    def __call__(self, *args, **kwargs) -> aio.StreamStreamCall:
-        return self.next_channel_fn().stream_stream(
-            *self._init_args, **self._init_kwargs
-        )(*args, **kwargs)
 
 
 class PooledChannel(aio.Channel):
@@ -86,16 +61,24 @@ class PooledChannel(aio.Channel):
         return channel
 
     def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
-        return PooledUnaryUnaryMultiCallable(self, *args, **kwargs)
+        return WrappedUnaryUnaryMultiCallable(
+            lambda: self.next_channel().unary_unary(*args, **kwargs)
+        )
 
     def unary_stream(self, *args, **kwargs) -> grpc.aio.UnaryStreamMultiCallable:
-        return PooledUnaryStreamMultiCallable(self, *args, **kwargs)
+        return WrappedUnaryStreamMultiCallable(
+            lambda: self.next_channel().unary_stream(*args, **kwargs)
+        )
 
     def stream_unary(self, *args, **kwargs) -> grpc.aio.StreamUnaryMultiCallable:
-        return PooledStreamUnaryMultiCallable(self, *args, **kwargs)
+        return WrappedStreamUnaryMultiCallable(
+            lambda: self.next_channel().stream_unary(*args, **kwargs)
+        )
 
     def stream_stream(self, *args, **kwargs) -> grpc.aio.StreamStreamMultiCallable:
-        return PooledStreamStreamMultiCallable(self, *args, **kwargs)
+        return WrappedStreamStreamMultiCallable(
+            lambda: self.next_channel().stream_stream(*args, **kwargs)
+        )
 
     async def close(self, grace=None):
         close_fns = [channel.close(grace=grace) for channel in self._pool]
