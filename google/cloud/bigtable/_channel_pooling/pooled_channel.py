@@ -80,8 +80,9 @@ class PooledChannel(aio.Channel):
             self._pool.append(self._create_channel())
 
     def next_channel(self) -> aio.Channel:
-        channel = self._pool[self._next_idx]
-        self._next_idx = (self._next_idx + 1) % len(self._pool)
+        next_idx = self._next_idx if self._next_idx < len(self._pool) else 0
+        channel = self._pool[next_idx]
+        self._next_idx = (next_idx + 1) % len(self._pool)
         return channel
 
     def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
