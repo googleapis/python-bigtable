@@ -157,7 +157,9 @@ class BigtableDataClient(ClientWithProject):
                 credentials=credentials,
                 client_options=client_options,
                 client_info=client_info,
-                transport=partial(BigtableGrpcAsyncIOTransport, channel=create_pool_channel),
+                transport=partial(
+                    BigtableGrpcAsyncIOTransport, channel=create_pool_channel
+                ),
             )
         transport = cast(BigtableGrpcAsyncIOTransport, self._gapic_client.transport)
         self._pool = cast(PooledChannel, transport.grpc_channel)

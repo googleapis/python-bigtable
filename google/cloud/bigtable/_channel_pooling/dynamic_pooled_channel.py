@@ -50,13 +50,15 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
     def __init__(
         self,
         *args,
-        create_channel_fn: Callable[[], aio.Channel] = lambda: None,
+        create_channel_fn: Callable[..., aio.Channel] | None = None,
         pool_options: StaticPoolOptions | DynamicPoolOptions | None = None,
         warm_channel_fn: Callable[[aio.Channel], Coroutine[Any, Any, Any]]
         | None = None,
         on_remove: Callable[[aio.Channel], Coroutine[Any, Any, Any]] | None = None,
         **kwargs,
     ):
+        if create_channel_fn is None:
+            raise ValueError("create_channel_fn is required")
         if isinstance(pool_options, StaticPoolOptions):
             raise ValueError(
                 "DynamicPooledChannel cannot be initialized with StaticPoolOptions"
@@ -69,7 +71,7 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
             # create options for starting pool
             pool_options=StaticPoolOptions(pool_size=self.pool_options.start_size),
             # all channels must be TrackChannels
-            create_channel_fn=lambda: TrackedChannel(create_channel_fn(*args, **kwargs)),
+            create_channel_fn=lambda: TrackedChannel(create_channel_fn(*args, **kwargs)),  # type: ignore
         )
         # register callbacks
         self._on_remove = on_remove
