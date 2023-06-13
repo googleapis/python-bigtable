@@ -221,7 +221,9 @@ class BigtableDataClient(ClientWithProject):
         Returns:
             - sequence of results or exceptions from the ping requests
         """
-        instance_list = [instance_id] if instance_id else self._active_instances
+        instance_list = (
+            [instance_id] if instance_id is not None else self._active_instances
+        )
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
         )
@@ -306,6 +308,8 @@ class BigtableDataClient(ClientWithProject):
         )
 
     async def __aenter__(self):
+        # ensure wrapped grpc background tasks are running
+        await self.start_pool_background_tasks()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
