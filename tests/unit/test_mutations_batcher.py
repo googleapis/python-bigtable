@@ -158,7 +158,7 @@ class Test_FlowControl:
         instance.in_flight_mutation_count = existing_count
         instance.in_flight_mutation_bytes = existing_size
         mutation = _make_mutation(added_count, added_size)
-        await instance.remove_from_flow([mutation])
+        await instance.remove_from_flow(mutation)
         assert instance.in_flight_mutation_count == new_count
         assert instance.in_flight_mutation_bytes == new_size
 
@@ -263,7 +263,7 @@ class Test_FlowControl:
         assert len(results) == 1
         await instance.remove_from_flow(results[0])
         count_results = [
-            out async for out in instance.add_to_flow([large_count_mutation])
+            out async for out in instance.add_to_flow(large_count_mutation)
         ]
         assert len(count_results) == 1
 

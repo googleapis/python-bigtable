@@ -99,10 +99,14 @@ class _FlowControl:
         new_count = self.in_flight_mutation_count + additional_count
         return new_size <= acceptable_size and new_count <= acceptable_count
 
-    async def remove_from_flow(self, mutations: list[RowMutationEntry]) -> None:
+    async def remove_from_flow(
+        self, mutations: RowMutationEntry | list[RowMutationEntry]
+    ) -> None:
         """
         Every time an in-flight mutation is complete, release the flow control semaphore
         """
+        if not isinstance(mutations, list):
+            mutations = [mutations]
         total_count = sum(len(entry.mutations) for entry in mutations)
         total_size = sum(entry.size() for entry in mutations)
         self.in_flight_mutation_count -= total_count
@@ -111,7 +115,7 @@ class _FlowControl:
         async with self.capacity_condition:
             self.capacity_condition.notify_all()
 
-    async def add_to_flow(self, mutations: list[RowMutationEntry]):
+    async def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
         Breaks up list of mutations into batches that were registered to fit within
         flow control limits. This method will block when the flow control limits are
@@ -125,6 +129,8 @@ class _FlowControl:
         Raises:
           - ValueError if any mutation entry is larger than the flow control limits
         """
+        if not isinstance(mutations, list):
+            mutations = [mutations]
         start_idx = 0
         end_idx = 0
         while end_idx < len(mutations):
