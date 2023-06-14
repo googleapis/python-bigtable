@@ -277,7 +277,7 @@ class MutationsBatcher:
           - asyncio.TimeoutError if timeout is reached before flush task completes.
         """
         # add recent staged mutations to flush task, and wait for flush to complete
-        flush_job : Awaitable[None] = self._schedule_flush()
+        flush_job: Awaitable[None] = self._schedule_flush()
         if timeout is not None:
             # wait `timeout seconds for flush to complete
             # if timeout is exceeded, flush task will still be running in the background
@@ -310,14 +310,26 @@ class MutationsBatcher:
           - prev_flush: the previous flush task, which will be awaited before
               a new flush is initiated
         """
-        # wait for previous flush to complete
-        await prev_flush
         # flush new entries
+        in_process_requests: list[asyncio.Task[None]] = [prev_flush]
         async for batch in self._flow_control.add_to_flow(new_entries):
-            batch_errors = await self._execute_mutate_rows(batch)
-            self.exceptions.extend(batch_errors)
-            self._entries_processed_since_last_raise += len(batch)
-            await self._flow_control.remove_from_flow(batch)
+            batch_task = asyncio.create_task(
+                self._execute_mutate_rows_w_state_update(batch)
+            )
+            in_process_requests.append(batch_task)
+        # wait for all inflight requests to complete
+        await asyncio.gather(*in_process_requests)
+
+    async def _execute_mutate_rows_w_state_update(
+        self, batch: list[RowMutationEntry]
+    ) -> None:
+        """
+        Calls _execute_mutate_rows, and then updates internal flush state based on results
+        """
+        results = await self._execute_mutate_rows(batch)
+        self.exceptions.extend(results)
+        self._entries_processed_since_last_raise += len(batch)
+        await self._flow_control.remove_from_flow(batch)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -346,6 +358,7 @@ class MutationsBatcher:
             )
             await operation.start()
         except MutationsExceptionGroup as e:
+            # strip index information from exceptions, since it is not useful in a batch context
             for subexc in e.exceptions:
                 subexc.index = None
             return list(e.exceptions)
@@ -354,6 +367,9 @@ class MutationsBatcher:
     def _raise_exceptions(self):
         """
         Raise any unreported exceptions from background flush operations
+
+        Raises:
+          - MutationsExceptionGroup with all unreported exceptions
         """
         if self.exceptions:
             exc_list, self.exceptions = self.exceptions, []

@@ -581,7 +581,9 @@ class TestMutationsBatcher:
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 with mock.patch.object(instance, "_raise_exceptions") as raise_mock:
                     flush_mock.return_value = mock_obj.__call__()
-                    await instance.flush(raise_exceptions=raise_exceptions, timeout=None)
+                    await instance.flush(
+                        raise_exceptions=raise_exceptions, timeout=None
+                    )
                     assert flush_mock.call_count == 1
                     assert mock_obj.await_count == 1
                     assert raise_mock.call_count == int(raise_exceptions)
@@ -603,6 +605,80 @@ class TestMutationsBatcher:
             await instance._prev_flush
             assert instance._prev_flush.done()
             assert instance._prev_flush.exception() is None
+
+    @pytest.mark.asyncio
+    async def test_flush_concurrent_requests(self):
+        """
+        requests should happen in parallel if multiple flushes overlap
+        """
+        import time
+
+        num_flushes = 10
+        fake_mutations = [_make_mutation() for _ in range(num_flushes)]
+        async with self._make_one() as instance:
+            with mock.patch.object(
+                instance, "_execute_mutate_rows", AsyncMock()
+            ) as op_mock:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    await asyncio.sleep(0.1)
+                    return []
+
+                op_mock.side_effect = mock_call
+                start_time = time.monotonic()
+                # create a few concurrent flushes
+                for i in range(num_flushes):
+                    instance._staged_mutations = [fake_mutations[i]]
+                    try:
+                        await instance.flush(timeout=0.01)
+                    except asyncio.TimeoutError:
+                        pass
+                # allow flushes to complete
+                await instance.flush()
+                duration = time.monotonic() - start_time
+                # if flushes were sequential, total duration would be 1s
+                assert duration < 0.25
+                assert op_mock.call_count == num_flushes
+
+    @pytest.mark.asyncio
+    async def test_flush_flow_control_concurrent_requests(self):
+        """
+        requests should happen in parallel if flow control breaks up single flush into batches
+        """
+        import time
+
+        num_calls = 10
+        fake_mutations = [_make_mutation(count=1) for _ in range(num_calls)]
+        async with self._make_one(flow_control_max_count=1) as instance:
+            with mock.patch.object(
+                instance, "_execute_mutate_rows", AsyncMock()
+            ) as op_mock:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    await asyncio.sleep(0.1)
+                    return []
+
+                op_mock.side_effect = mock_call
+                start_time = time.monotonic()
+                # flush one large batch, that will be broken up into smaller batches
+                instance._staged_mutations = fake_mutations
+                try:
+                    await instance.flush(timeout=0.01)
+                except asyncio.TimeoutError:
+                    pass
+                # make room for new mutations
+                for i in range(num_calls):
+                    await instance._flow_control.remove_from_flow(
+                        [_make_mutation(count=1)]
+                    )
+                    await asyncio.sleep(0.01)
+                # allow flushes to complete
+                await instance.flush()
+                duration = time.monotonic() - start_time
+                # if flushes were sequential, total duration would be 1s
+                assert instance.exceptions == []
+                assert duration < 0.25
+                assert op_mock.call_count == num_calls
 
     @pytest.mark.asyncio
     async def test_schedule_flush_no_mutations(self):
