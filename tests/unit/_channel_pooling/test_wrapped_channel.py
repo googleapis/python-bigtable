@@ -63,7 +63,7 @@ class TestWrappedChannel:
         """
         mock_rpc = AsyncMock()
         call_mock = mock_rpc.call()
-        callable_mock = lambda: call_mock
+        callable_mock = lambda: call_mock  # noqa: E731
         instance, channel = self._make_one_with_channel_mock(async_mock=False)
         channel_method = getattr(channel, method_name)
         wrapper_method = getattr(instance, method_name)
