@@ -25,9 +25,10 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 from .test_wrapped_channel import TestWrappedChannel
+from .test_wrapped_channel import TestBackgroundTaskMixin
 
 
-class TestRefreshableChannel(TestWrappedChannel):
+class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
 
     def _make_one_with_channel_mock(self, *args, async_mock=True, **kwargs):
         channel = AsyncMock() if async_mock else mock.Mock()
@@ -40,14 +41,13 @@ class TestRefreshableChannel(TestWrappedChannel):
 
     def _make_one(self, *args, init_background_task=False, **kwargs):
         import warnings
-        kwargs.setdefault('create_channel_fn', lambda: mock.Mock())
+        kwargs.setdefault('create_channel_fn', lambda: AsyncMock())
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             if init_background_task:
                 return self._get_target()(*args, **kwargs)
             else:
-                with mock.patch.object(self._get_target(), "_manage_channel_lifecycle") as bg_mock:
-                    bg_mock.side_effect = RuntimeError("fake sync context")
+                with mock.patch.object(self._get_target(), "start_background_task") as bg_mock:
                     return self._get_target()(*args, **kwargs)
 
     def test_ctor(self):
@@ -63,7 +63,7 @@ class TestRefreshableChannel(TestWrappedChannel):
         extra_args = ['a', 'b']
         extra_kwargs = {'c': 'd'}
         with mock.patch.object(self._get_target(), "start_background_task") as start_background_task_mock:
-            instance = self._make_one(*extra_args, create_channel_fn=channel_fn, refresh_interval_min=min_refresh, refresh_interval_max=max_refresh, warm_channel_fn=warm_fn, on_replace=replace_fn, **extra_kwargs)
+            instance = self._make_one(*extra_args, init_background_task=True, create_channel_fn=channel_fn, refresh_interval_min=min_refresh, refresh_interval_max=max_refresh, warm_channel_fn=warm_fn, on_replace=replace_fn, **extra_kwargs)
             assert instance._create_channel.func == channel_fn
             assert instance._create_channel.args == tuple(extra_args)
             assert instance._create_channel.keywords == extra_kwargs
@@ -80,9 +80,9 @@ class TestRefreshableChannel(TestWrappedChannel):
         test with minimal arguments
         """
         expected_channel = mock.Mock()
-        channel_fn = lambda: expected_channel
+        channel_fn = lambda: expected_channel  # ignore: E731
         with mock.patch.object(self._get_target(), "start_background_task") as start_background_task_mock:
-            instance = self._make_one(create_channel_fn=channel_fn)
+            instance = self._make_one(create_channel_fn=channel_fn, init_background_task=True)
             assert instance._create_channel.func == channel_fn
             assert instance._create_channel.args == tuple()
             assert instance._create_channel.keywords == {}

@@ -114,6 +114,10 @@ class RefreshableChannel(_WrappedChannel, _BackgroundTaskMixin):
         await _BackgroundTaskMixin.__aenter__(self)
         return await _WrappedChannel.__aenter__(self)
 
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await _BackgroundTaskMixin.__aexit__(self, exc_type, exc_val, exc_tb)
+        return await _WrappedChannel.__aexit__(self, exc_type, exc_val, exc_tb)
+
     async def close(self, grace=None):
         await _BackgroundTaskMixin.close(self, grace)
         return await _WrappedChannel.close(self, grace)

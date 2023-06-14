@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from typing import Callable
+from abc import ABC, abstractmethod
 
 import asyncio
 import warnings
@@ -67,7 +68,7 @@ class _WrappedChannel(aio.Channel):
         return self._channel
 
 
-class _BackgroundTaskMixin:
+class _BackgroundTaskMixin(ABC):
     """
     A mixin that provides methods to manage a background task that
     is run throughout the lifetime of the object.
@@ -82,12 +83,13 @@ class _BackgroundTaskMixin:
         """
         return self._background_task is not None and not self._background_task.done()
 
+    @abstractmethod
     def _background_coroutine(self):
         """
         To be implemented by subclasses. Returns the coroutine that will
         be run in the background throughout the lifetime of the channel.
         """
-        raise NotImplementedError
+        pass
 
     @property
     def _task_description(self) -> str:

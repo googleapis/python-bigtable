@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
+import asyncio
 import pytest
 
 from grpc.experimental import aio  # type: ignore
@@ -97,7 +98,7 @@ class TestWrappedChannel:
         # assert that wrapped channel method was called
         channel_method.assert_called_once()
         channel_method.assert_awaited_once()
-        # combine args and kwargs
+        # combine args andkwargs
         all_args = list(channel_method.call_args.args) + list(channel_method.call_args.kwargs.values())
         assert all_args == args
         # assert that response was passed through
@@ -110,8 +111,117 @@ class TestWrappedChannel:
         instance, channel = self._make_one_with_channel_mock()
         assert instance.wrapped_channel is channel
 
-class TestBackgroundTaskMixin():
+class TestBackgroundTaskMixin:
 
     def _make_one(self, *args, **kwargs):
         from google.cloud.bigtable._channel_pooling.wrapped_channel import _BackgroundTaskMixin
-        return _BackgroundTaskMixin(*args, **kwargs)
+        class ConcreteBackgroundTask(_BackgroundTaskMixin):
+            @property
+            def _task_description(self):
+                return "Fake task"
+            def _background_coroutine(self):
+                return self._fake_background_coroutine()
+            async def _fake_background_coroutine(self):
+                await asyncio.sleep(0.1)
+                return "fake response"
+        return ConcreteBackgroundTask(*args, **kwargs)
+
+    def test_ctor(self):
+        """all _BackgroundTaskMixin classes should a _background_task attribute"""
+        instance = self._make_one()
+        assert hasattr(instance, "_background_task")
+
+    @pytest.mark.asyncio
+    async def test_aenter_starts_task(self):
+        """
+        Context manager should start background task
+        """
+        instance = self._make_one()
+        with mock.patch.object(instance, "start_background_task") as start_mock:
+            async with instance:
+                start_mock.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_aexit_stops_task(self):
+        """
+        Context manager should stop background task
+        """
+        instance = self._make_one()
+        async with instance:
+            assert instance._background_task is not None
+            assert instance._background_task.cancelled() is False
+        assert instance._background_task.cancelled() is True
+
+    @pytest.mark.asyncio
+    async def test_close_stops_task(self):
+        """Calling close directly should cancel background task"""
+        instance = self._make_one()
+        instance.start_background_task()
+        assert instance._background_task is not None
+        assert instance._background_task.cancelled() is False
+        await instance.close()
+        assert instance._background_task.cancelled() is True
+
+    @pytest.mark.asyncio
+    async def test_start_background_task(self):
+        """test that task can be started properly"""
+        instance = self._make_one()
+        assert instance._background_task is None
+        instance.start_background_task()
+        assert instance._background_task is not None
+        assert instance._background_task.done() is False
+        assert instance._background_task.cancelled() is False
+        assert isinstance(instance._background_task, asyncio.Task)
+        await instance.close()
+
+    @pytest.mark.asyncio
+    async def test_start_background_task_idempotent(self):
+        """Duplicate calls to start_background_task should be no-ops"""
+        with mock.patch("asyncio.get_running_loop") as get_loop_mock:
+            instance = self._make_one()
+            assert get_loop_mock.call_count == 0
+            instance.start_background_task()
+            assert get_loop_mock.call_count == 1
+            instance.start_background_task()
+            assert get_loop_mock.call_count == 1
+            await instance.close()
+
+    def test_start_background_task_sync(self):
+        """In sync context, should raise RuntimeWarning that routine can't be started"""
+        instance = self._make_one()
+        with pytest.warns(RuntimeWarning) as warnings:
+            instance.start_background_task()
+        assert instance._background_task is None
+        assert len(warnings) == 1
+        assert "No event loop detected." in str(warnings[0].message)
+        assert instance._task_description + " is disabled" in str(warnings[0].message)
+
+    def test__task_description(self):
+        """all _BackgroundTaskMixin classes should a _trask_description method"""
+        instance = self._make_one()
+        assert isinstance(instance._task_description, str)
+        # should start with a capital letter for proper formatting in start_background_task warning
+        assert instance._task_description[0].isupper()
+
+    @pytest.mark.parametrize("task,is_done,expected", [(None, None, False), (mock.Mock(), False, True), (mock.Mock(), True, False)])
+    def test_is_active_w_mock(self, task, is_done, expected):
+        """
+        test all possible branches in background_task_is_active with mocks
+        """
+        instance = self._make_one()
+        instance._background_task = task
+        if is_done is not None:
+            instance._background_task.done.return_value = is_done
+        assert instance.background_task_is_active() == expected
+
+    @pytest.mark.asyncio
+    async def test_is_active(self):
+        """
+        test background_task_is_active with real task
+        """
+        instance = self._make_one()
+        assert instance.background_task_is_active() is False
+        instance.start_background_task()
+        assert instance.background_task_is_active() is True
+        await instance.close()
+        assert instance.background_task_is_active() is False
