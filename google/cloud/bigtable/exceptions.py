@@ -39,10 +39,6 @@ class InvalidChunk(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid chunk data from back-end."""
 
 
-class RowNotFound(core_exceptions.NotFound):
-    """Exception raised when a row is not found on a read_row call."""
-
-
 class _RowSetComplete(Exception):
     """
     Internal exception for _ReadRowsOperation

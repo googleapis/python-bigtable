@@ -40,7 +40,6 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
 )
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
-from google.cloud.bigtable.exceptions import RowNotFound
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
@@ -505,9 +504,10 @@ class Table:
         self,
         row_key: str | bytes,
         *,
+        row_filter: RowFilter | None = None,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-    ) -> Row:
+    ) -> Row | None:
         """
         Helper function to return a single row
 
@@ -516,18 +516,18 @@ class Table:
         Raises:
             - google.cloud.bigtable.exceptions.RowNotFound: if the row does not exist
         Returns:
-            - the individual row requested
+            - the individual row requested, or None if it does not exist
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
-        query = ReadRowsQuery(row_keys=row_key, limit=1)
+        query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
             per_request_timeout=per_request_timeout,
         )
         if len(results) == 0:
-            raise RowNotFound(f"Row {row_key!r} not found")
+            return None
         return results[0]
 
     async def read_rows_sharded(
