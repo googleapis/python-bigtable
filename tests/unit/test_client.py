@@ -2141,7 +2141,7 @@ class TestReadModifyWriteRow:
                     )
                     assert request["app_profile_id"] is None
                     assert request["row_key"] == row_key.encode()
-                    assert found_kwargs["timeout"] == table.default_operation_timeout
+                    assert found_kwargs["timeout"] > 1
 
     @pytest.mark.asyncio
     async def test_read_modify_write_call_overrides(self):

@@ -747,7 +747,7 @@ class Table:
         *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: int | float | None = 600,
+        operation_timeout: int | float | None = 20,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -817,7 +817,7 @@ class Table:
         row_key: str | bytes,
         rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
         *,
-        operation_timeout: int | float | None = 600,
+        operation_timeout: int | float | None = 20,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
