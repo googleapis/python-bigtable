@@ -29,25 +29,33 @@ from .test_wrapped_channel import TestBackgroundTaskMixin
 
 
 class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
-
     def _make_one_with_channel_mock(self, *args, async_mock=True, **kwargs):
         channel = AsyncMock() if async_mock else mock.Mock()
         create_channel_fn = lambda: channel
-        return self._make_one(*args, create_channel_fn=create_channel_fn, **kwargs), channel
+        return (
+            self._make_one(*args, create_channel_fn=create_channel_fn, **kwargs),
+            channel,
+        )
 
     def _get_target(self):
-        from google.cloud.bigtable._channel_pooling.refreshable_channel import RefreshableChannel
+        from google.cloud.bigtable._channel_pooling.refreshable_channel import (
+            RefreshableChannel,
+        )
+
         return RefreshableChannel
 
     def _make_one(self, *args, init_background_task=False, **kwargs):
         import warnings
-        kwargs.setdefault('create_channel_fn', lambda: AsyncMock())
+
+        kwargs.setdefault("create_channel_fn", lambda: AsyncMock())
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             if init_background_task:
                 return self._get_target()(*args, **kwargs)
             else:
-                with mock.patch.object(self._get_target(), "start_background_task") as bg_mock:
+                with mock.patch.object(
+                    self._get_target(), "start_background_task"
+                ) as bg_mock:
                     return self._get_target()(*args, **kwargs)
 
     def test_ctor(self):
@@ -60,10 +68,21 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
         replace_fn = lambda: AsyncMock()
         min_refresh = 4
         max_refresh = 5
-        extra_args = ['a', 'b']
-        extra_kwargs = {'c': 'd'}
-        with mock.patch.object(self._get_target(), "start_background_task") as start_background_task_mock:
-            instance = self._make_one(*extra_args, init_background_task=True, create_channel_fn=channel_fn, refresh_interval_min=min_refresh, refresh_interval_max=max_refresh, warm_channel_fn=warm_fn, on_replace=replace_fn, **extra_kwargs)
+        extra_args = ["a", "b"]
+        extra_kwargs = {"c": "d"}
+        with mock.patch.object(
+            self._get_target(), "start_background_task"
+        ) as start_background_task_mock:
+            instance = self._make_one(
+                *extra_args,
+                init_background_task=True,
+                create_channel_fn=channel_fn,
+                refresh_interval_min=min_refresh,
+                refresh_interval_max=max_refresh,
+                warm_channel_fn=warm_fn,
+                on_replace=replace_fn,
+                **extra_kwargs,
+            )
             assert instance._create_channel.func == channel_fn
             assert instance._create_channel.args == tuple(extra_args)
             assert instance._create_channel.keywords == extra_kwargs
@@ -81,8 +100,12 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
         """
         expected_channel = mock.Mock()
         channel_fn = lambda: expected_channel  # ignore: E731
-        with mock.patch.object(self._get_target(), "start_background_task") as start_background_task_mock:
-            instance = self._make_one(create_channel_fn=channel_fn, init_background_task=True)
+        with mock.patch.object(
+            self._get_target(), "start_background_task"
+        ) as start_background_task_mock:
+            instance = self._make_one(
+                create_channel_fn=channel_fn, init_background_task=True
+            )
             assert instance._create_channel.func == channel_fn
             assert instance._create_channel.args == tuple()
             assert instance._create_channel.keywords == {}
@@ -132,7 +155,11 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
                     ]
                     try:
                         instance, _ = self._make_one_with_channel_mock()
-                        args = (refresh_interval, refresh_interval) if refresh_interval else tuple()
+                        args = (
+                            (refresh_interval, refresh_interval)
+                            if refresh_interval
+                            else tuple()
+                        )
                         await instance._manage_channel_lifecycle(*args)
                     except asyncio.CancelledError:
                         pass

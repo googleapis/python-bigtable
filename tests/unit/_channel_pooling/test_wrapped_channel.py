@@ -37,7 +37,10 @@ class TestWrappedChannel:
         return self._make_one(channel), channel
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable._channel_pooling.wrapped_channel import _WrappedChannel
+        from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+            _WrappedChannel,
+        )
+
         return _WrappedChannel(*args, **kwargs)
 
     def test_ctor(self):
@@ -52,7 +55,62 @@ class TestWrappedChannel:
         instance = self._make_one(mock.Mock())
         assert isinstance(instance, aio.Channel)
 
-    @pytest.mark.parametrize("method_name", ["unary_unary", "unary_stream", "stream_unary", "stream_stream", "get_state"])
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("method_name", ["unary_unary", "stream_unary"])
+    async def test_unary_call_api_passthrough(self, method_name):
+        """
+        rpc call methods should use underlying channel calls
+        """
+        mock_rpc = AsyncMock()
+        call_mock = mock_rpc.call()
+        callable_mock = lambda: call_mock
+        instance, channel = self._make_one_with_channel_mock(async_mock=False)
+        channel_method = getattr(channel, method_name)
+        wrapper_method = getattr(instance, method_name)
+        channel_method.return_value = callable_mock
+        # call rpc to get Multicallable
+        arg_mock = mock.Mock()
+        found_callable = wrapper_method(arg_mock)
+        # assert that response was passed through
+        found_call = found_callable()
+        await found_call
+        # assert that wrapped channel method was called
+        assert mock_rpc.call.await_count == 1
+        # combine args and kwargs
+        all_args = list(channel_method.call_args.args) + list(
+            channel_method.call_args.kwargs.values()
+        )
+        assert all_args == [arg_mock]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("method_name", ["unary_stream", "stream_stream"])
+    async def test_stream_call_api_passthrough(self, method_name):
+        """
+        rpc call methods should use underlying channel calls
+        """
+        expected_result = mock.Mock()
+
+        async def mock_stream():
+            yield expected_result
+
+        instance, channel = self._make_one_with_channel_mock(async_mock=False)
+        channel_method = getattr(channel, method_name)
+        wrapper_method = getattr(instance, method_name)
+        channel_method.return_value = lambda: mock_stream()
+        # call rpc to get Multicallable
+        arg_mock = mock.Mock()
+        found_callable = wrapper_method(arg_mock)
+        # assert that response was passed through
+        found_call = found_callable()
+        results = [item async for item in found_call]
+        assert results == [expected_result]
+        # combine args and kwargs
+        all_args = list(channel_method.call_args.args) + list(
+            channel_method.call_args.kwargs.values()
+        )
+        assert all_args == [arg_mock]
+
+    @pytest.mark.parametrize("method_name", ["get_state"])
     def test_sync_api_passthrough(self, method_name):
         """
         Wrapper should respond to full grpc Channel API, and pass through
@@ -67,20 +125,25 @@ class TestWrappedChannel:
         arg_mock = mock.Mock()
         found_response = wrapper_method(arg_mock)
         # assert that wrapped channel method was called
-        channel_method.assert_called_once()
+        assert channel_method.call_count == 1
         # combine args and kwargs
-        all_args = list(channel_method.call_args.args) + list(channel_method.call_args.kwargs.values())
+        all_args = list(channel_method.call_args.args) + list(
+            channel_method.call_args.kwargs.values()
+        )
         assert all_args == [arg_mock]
         # assert that response was passed through
         assert found_response == expected_response
 
-    @pytest.mark.parametrize("method_name,arg_num", [
-        ("close", 1),
-        ("channel_ready", 0),
-        ("__aenter__", 0),
-        ("__aexit__", 3),
-        ("wait_for_state_change", 1),
-    ])
+    @pytest.mark.parametrize(
+        "method_name,arg_num",
+        [
+            ("close", 1),
+            ("channel_ready", 0),
+            ("__aenter__", 0),
+            ("__aexit__", 3),
+            ("wait_for_state_change", 1),
+        ],
+    )
     @pytest.mark.asyncio
     async def test_async_api_passthrough(self, method_name, arg_num):
         """
@@ -99,7 +162,9 @@ class TestWrappedChannel:
         channel_method.assert_called_once()
         channel_method.assert_awaited_once()
         # combine args andkwargs
-        all_args = list(channel_method.call_args.args) + list(channel_method.call_args.kwargs.values())
+        all_args = list(channel_method.call_args.args) + list(
+            channel_method.call_args.kwargs.values()
+        )
         assert all_args == args
         # assert that response was passed through
         assert found_response == expected_response
@@ -111,19 +176,25 @@ class TestWrappedChannel:
         instance, channel = self._make_one_with_channel_mock()
         assert instance.wrapped_channel is channel
 
-class TestBackgroundTaskMixin:
 
+class TestBackgroundTaskMixin:
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable._channel_pooling.wrapped_channel import _BackgroundTaskMixin
+        from google.cloud.bigtable._channel_pooling.wrapped_channel import (
+            _BackgroundTaskMixin,
+        )
+
         class ConcreteBackgroundTask(_BackgroundTaskMixin):
             @property
             def _task_description(self):
                 return "Fake task"
+
             def _background_coroutine(self):
                 return self._fake_background_coroutine()
+
             async def _fake_background_coroutine(self):
                 await asyncio.sleep(0.1)
                 return "fake response"
+
         return ConcreteBackgroundTask(*args, **kwargs)
 
     def test_ctor(self):
@@ -203,7 +274,10 @@ class TestBackgroundTaskMixin:
         # should start with a capital letter for proper formatting in start_background_task warning
         assert instance._task_description[0].isupper()
 
-    @pytest.mark.parametrize("task,is_done,expected", [(None, None, False), (mock.Mock(), False, True), (mock.Mock(), True, False)])
+    @pytest.mark.parametrize(
+        "task,is_done,expected",
+        [(None, None, False), (mock.Mock(), False, True), (mock.Mock(), True, False)],
+    )
     def test_is_active_w_mock(self, task, is_done, expected):
         """
         test all possible branches in background_task_is_active with mocks
@@ -225,3 +299,27 @@ class TestBackgroundTaskMixin:
         assert instance.background_task_is_active() is True
         await instance.close()
         assert instance.background_task_is_active() is False
+
+
+class _WrappedMultiCallableBase:
+    """
+    Base class for testing wrapped multicallables
+    """
+
+    pass
+
+
+class TestWrappedUnaryUnaryMultiCallable(_WrappedMultiCallableBase):
+    pass
+
+
+class TestWrappedUnaryStreamMultiCallable(_WrappedMultiCallableBase):
+    pass
+
+
+class TestWrappedStreamUnaryMultiCallable(_WrappedMultiCallableBase):
+    pass
+
+
+class TestWrappedStreamStreamMultiCallable(_WrappedMultiCallableBase):
+    pass

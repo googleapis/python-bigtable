@@ -145,18 +145,32 @@ class _WrappedMultiCallable:
 
     def __init__(
         self,
-        call_factory: Callable[
+        multicall_factory: Callable[
             [],
             aio.UnaryUnaryMultiCallable
             | aio.UnaryStreamMultiCallable
             | aio.StreamUnaryMultiCallable
-            | aio.StreamStreamMultiCallable,
+            | aio.StreamStreamMultiCallable
+            | Callable[
+                ...,
+                aio.UnaryUnaryCall
+                | aio.UnaryStreamCall
+                | aio.StreamUnaryCall
+                | aio.StreamStreamCall,
+            ],
         ],
     ):
-        self._call_factory = call_factory
+        """
+        Args:
+            - call_factory (Callable): A function that returns a gRPC multi callable,
+                or a generic function that returns a grpc Call (as a multi callable would).
+        """
+        self._multicall_factory = multicall_factory
 
-    def __call__(self, *args, **kwargs):
-        return self._call_factory()(*args, **kwargs)
+    def __call__(self, *args, **kwargs) -> aio.Call:
+        multicallable = self._multicall_factory()
+        call = multicallable(*args, **kwargs)
+        return call
 
 
 class WrappedUnaryUnaryMultiCallable(

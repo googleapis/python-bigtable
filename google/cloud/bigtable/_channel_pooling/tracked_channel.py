@@ -20,6 +20,7 @@ from functools import partial
 from grpc.experimental import aio  # type: ignore
 from google.api_core.grpc_helpers_async import _WrappedUnaryResponseMixin
 from google.api_core.grpc_helpers_async import _WrappedStreamResponseMixin
+from google.api_core.grpc_helpers_async import _WrappedStreamRequestMixin
 
 from google.cloud.bigtable._channel_pooling.wrapped_channel import (
     WrappedUnaryUnaryMultiCallable,
@@ -79,11 +80,15 @@ class TrackedUnaryStreamCall(_TrackedStreamResponseMixin, aio.UnaryStreamCall):
     pass
 
 
-class TrackedStreamUnaryCall(_TrackedUnaryResponseMixin, aio.StreamUnaryCall):
+class TrackedStreamUnaryCall(
+    _TrackedUnaryResponseMixin, _WrappedStreamRequestMixin, aio.StreamUnaryCall
+):
     pass
 
 
-class TrackedStreamStreamCall(_TrackedStreamResponseMixin, aio.StreamStreamCall):
+class TrackedStreamStreamCall(
+    _TrackedStreamResponseMixin, _WrappedStreamRequestMixin, aio.StreamStreamCall
+):
     pass
 
 
@@ -111,21 +116,30 @@ class TrackedChannel(_WrappedChannel):
         return current_max
 
     def unary_unary(self, *args, **kwargs):
-        return WrappedUnaryUnaryMultiCallable(
-            partial(self._channel.unary_unary, *args, **kwargs)
+        multicallable = self._channel.unary_unary(*args, **kwargs)
+        tracked_multicallable = lambda *args, **kwargs: TrackedUnaryUnaryCall(
+            multicallable(*args, **kwargs), self
         )
+        # wrap so that tracked_multicallable passes isinstance checks for Multicallable types
+        return WrappedUnaryUnaryMultiCallable(lambda: tracked_multicallable)
 
     def unary_stream(self, *args, **kwargs):
-        return WrappedUnaryStreamMultiCallable(
-            partial(self._channel.unary_stream, *args, **kwargs)
+        multicallable = self._channel.unary_stream(*args, **kwargs)
+        tracked_multicallable = lambda *args, **kwargs: TrackedUnaryStreamCall(
+            multicallable(*args, **kwargs), self
         )
+        return WrappedUnaryStreamMultiCallable(lambda: tracked_multicallable)
 
     def stream_unary(self, *args, **kwargs):
-        return WrappedStreamUnaryMultiCallable(
-            partial(self._channel.stream_unary, *args, **kwargs)
+        multicallable = self._channel.stream_unary(*args, **kwargs)
+        tracked_multicallable = lambda *args, **kwargs: TrackedStreamUnaryCall(
+            multicallable(*args, **kwargs), self
         )
+        return WrappedStreamUnaryMultiCallable(lambda: tracked_multicallable)
 
     def stream_stream(self, *args, **kwargs):
-        return WrappedStreamStreamMultiCallable(
-            partial(self._channel.stream_stream, *args, **kwargs)
+        multicallable = self._channel.stream_stream(*args, **kwargs)
+        tracked_multicallable = lambda *args, **kwargs: TrackedStreamStreamCall(
+            multicallable(*args, **kwargs), self
         )
+        return WrappedStreamStreamMultiCallable(lambda: tracked_multicallable)
