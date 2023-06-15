@@ -33,52 +33,35 @@ def _make_mutation(count=1, size=1):
 
 
 class Test_FlowControl:
-    def _make_one(
-        self, max_mutation_count=10, max_mutation_bytes=100, max_entry_count=100_000
-    ):
+    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
         from google.cloud.bigtable.mutations_batcher import _FlowControl
 
-        return _FlowControl(max_mutation_count, max_mutation_bytes, max_entry_count)
+        return _FlowControl(max_mutation_count, max_mutation_bytes)
 
     def test_ctor(self):
         max_mutation_count = 9
         max_mutation_bytes = 19
-        max_entry_count = 29
-        instance = self._make_one(
-            max_mutation_count, max_mutation_bytes, max_entry_count
-        )
+        instance = self._make_one(max_mutation_count, max_mutation_bytes)
         assert instance._max_mutation_count == max_mutation_count
         assert instance._max_mutation_bytes == max_mutation_bytes
-        assert instance._max_entry_count == max_entry_count
         assert instance._in_flight_mutation_count == 0
         assert instance._in_flight_mutation_bytes == 0
         assert isinstance(instance._capacity_condition, asyncio.Condition)
 
     def test_ctor_empty_values(self):
         """Test constructor with None count and bytes"""
-        from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
-
         instance = self._make_one(None, None)
         assert instance._max_mutation_count == float("inf")
         assert instance._max_mutation_bytes == float("inf")
-        assert instance._max_entry_count == MAX_MUTATE_ROWS_ENTRY_COUNT
 
     def test_ctor_invalid_values(self):
         """Test that values are positive, and fit within expected limits"""
-        from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
-
         with pytest.raises(ValueError) as e:
             self._make_one(0, 1)
             assert "max_mutation_count must be greater than 0" in str(e.value)
         with pytest.raises(ValueError) as e:
             self._make_one(1, 0)
             assert "max_mutation_bytes must be greater than 0" in str(e.value)
-        with pytest.raises(ValueError) as e:
-            self._make_one(1, 1, 0)
-            assert "max_entry_count must be between 1 and 100000" in str(e.value)
-        with pytest.raises(ValueError) as e:
-            self._make_one(1, 1, MAX_MUTATE_ROWS_ENTRY_COUNT + 1)
-            assert "max_entry_count must be between 1 and" in str(e.value)
 
     @pytest.mark.parametrize(
         "max_count,max_size,existing_count,existing_size,new_count,new_size,expected",
@@ -206,37 +189,31 @@ class Test_FlowControl:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mutations,count_cap,size_cap,entry_cap,expected_results",
+        "mutations,count_cap,size_cap,expected_results",
         [
             # high capacity results in no batching
-            ([(5, 5), (1, 1), (1, 1)], 10, 10, 100, [[(5, 5), (1, 1), (1, 1)]]),
+            ([(5, 5), (1, 1), (1, 1)], 10, 10, [[(5, 5), (1, 1), (1, 1)]]),
             # low capacity splits up into batches
-            ([(1, 1), (1, 1), (1, 1)], 1, 1, 100, [[(1, 1)], [(1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 1, 1, [[(1, 1)], [(1, 1)], [(1, 1)]]),
             # test count as limiting factor
-            ([(1, 1), (1, 1), (1, 1)], 2, 10, 100, [[(1, 1), (1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 2, 10, [[(1, 1), (1, 1)], [(1, 1)]]),
             # test size as limiting factor
-            ([(1, 1), (1, 1), (1, 1)], 10, 2, 100, [[(1, 1), (1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 10, 2, [[(1, 1), (1, 1)], [(1, 1)]]),
             # test with some bloackages and some flows
             (
                 [(1, 1), (5, 5), (4, 1), (1, 4), (1, 1)],
                 5,
                 5,
-                100,
                 [[(1, 1)], [(5, 5)], [(4, 1), (1, 4)], [(1, 1)]],
             ),
-            # flows with entry count above max request limit should be batched
-            ([(1, 1)] * 11, 100, 100, 10, [[(1, 1)] * 10, [(1, 1)]]),
-            ([(1, 1)] * 10, 100, 100, 1, [[(1, 1)] for _ in range(10)]),
         ],
     )
-    async def test_add_to_flow(
-        self, mutations, count_cap, size_cap, entry_cap, expected_results
-    ):
+    async def test_add_to_flow(self, mutations, count_cap, size_cap, expected_results):
         """
         Test batching with various flow control settings
         """
         mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
-        instance = self._make_one(count_cap, size_cap, entry_cap)
+        instance = self._make_one(count_cap, size_cap)
         i = 0
         async for batch in instance.add_to_flow(mutation_objs):
             expected_batch = expected_results[i]
@@ -250,6 +227,43 @@ class Test_FlowControl:
             await instance.remove_from_flow(batch)
             i += 1
         assert i == len(expected_results)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "mutations,max_limit,expected_results",
+        [
+            ([(1, 1)] * 11, 10, [[(1, 1)] * 10, [(1, 1)]]),
+            ([(1, 1)] * 10, 1, [[(1, 1)] for _ in range(10)]),
+            ([(1, 1)] * 10, 2, [[(1, 1), (1, 1)] for _ in range(5)]),
+        ],
+    )
+    async def test_add_to_flow_max_mutation_limits(
+        self, mutations, max_limit, expected_results
+    ):
+        """
+        Test flow control running up against the max API limit
+        Should submit request early, even if the flow control has room for more
+        """
+        with mock.patch(
+            "google.cloud.bigtable.mutations_batcher.MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            max_limit,
+        ):
+            mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
+            # flow control has no limits except API restrictions
+            instance = self._make_one(None, None)
+            i = 0
+            async for batch in instance.add_to_flow(mutation_objs):
+                expected_batch = expected_results[i]
+                assert len(batch) == len(expected_batch)
+                for j in range(len(expected_batch)):
+                    # check counts
+                    assert len(batch[j].mutations) == expected_batch[j][0]
+                    # check sizes
+                    assert batch[j].size() == expected_batch[j][1]
+                # update lock
+                await instance.remove_from_flow(batch)
+                i += 1
+            assert i == len(expected_results)
 
     @pytest.mark.asyncio
     async def test_add_to_flow_oversize(self):
@@ -378,7 +392,9 @@ class TestMutationsBatcher:
         from google.cloud.bigtable.mutations_batcher import MutationsBatcher
         import inspect
 
-        get_batcher_signature = dict(inspect.signature(Table.mutations_batcher).parameters)
+        get_batcher_signature = dict(
+            inspect.signature(Table.mutations_batcher).parameters
+        )
         get_batcher_signature.pop("self")
         batcher_init_signature = dict(inspect.signature(MutationsBatcher).parameters)
         batcher_init_signature.pop("table")
@@ -556,7 +572,9 @@ class TestMutationsBatcher:
     @pytest.mark.asyncio
     async def test_append_multiple_sequentially(self):
         """Append multiple mutations"""
-        async with self._make_one(flush_limit_mutation_count=8, flush_limit_bytes=8) as instance:
+        async with self._make_one(
+            flush_limit_mutation_count=8, flush_limit_bytes=8
+        ) as instance:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
             assert instance._staged_mutations == []

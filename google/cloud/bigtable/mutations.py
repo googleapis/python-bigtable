@@ -19,11 +19,12 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
+# mutation entries above this should be rejected
+from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+
+
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
-
-# mutation entries above this should be rejected
-MAX_MUTATIONS_PER_ENTRY = 100_000
 
 
 class Mutation(ABC):
@@ -201,9 +202,9 @@ class RowMutationEntry:
             mutations = [mutations]
         if len(mutations) == 0:
             raise ValueError("mutations must not be empty")
-        elif len(mutations) > MAX_MUTATIONS_PER_ENTRY:
+        elif len(mutations) > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
             raise ValueError(
-                f"entries must have <= {MAX_MUTATIONS_PER_ENTRY} mutations"
+                f"entries must have <= {MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations"
             )
         self.row_key = row_key
         self.mutations = tuple(mutations)

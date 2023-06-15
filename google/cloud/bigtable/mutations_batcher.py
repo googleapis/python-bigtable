@@ -24,7 +24,7 @@ from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
-from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
+from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable.mutations import Mutation
 
 if TYPE_CHECKING:
@@ -50,7 +50,6 @@ class _FlowControl:
         self,
         max_mutation_count: int | None,
         max_mutation_bytes: int | None,
-        max_entry_count: int = MAX_MUTATE_ROWS_ENTRY_COUNT,
     ):
         """
         Args:
@@ -59,8 +58,6 @@ class _FlowControl:
              If None, no limit is enforced.
           - max_mutation_bytes: maximum number of bytes to send in a single rpc.
              If None, no limit is enforced.
-          - max_entry_count: maximum number of entries to send in a single rpc.
-             Limited to 100,000 by the MutateRows API.
         """
         self._max_mutation_count = (
             max_mutation_count if max_mutation_count is not None else float("inf")
@@ -68,14 +65,6 @@ class _FlowControl:
         self._max_mutation_bytes = (
             max_mutation_bytes if max_mutation_bytes is not None else float("inf")
         )
-        self._max_entry_count = max_entry_count
-        if (
-            self._max_entry_count > MAX_MUTATE_ROWS_ENTRY_COUNT
-            or self._max_entry_count < 1
-        ):
-            raise ValueError(
-                f"max_entry_count must be between 1 and {MAX_MUTATE_ROWS_ENTRY_COUNT}"
-            )
         if self._max_mutation_count < 1:
             raise ValueError("max_mutation_count must be greater than 0")
         if self._max_mutation_bytes < 1:
@@ -135,19 +124,22 @@ class _FlowControl:
         end_idx = 0
         while end_idx < len(mutations):
             start_idx = end_idx
+            batch_mutation_count = 0
             # fill up batch until we hit capacity
             async with self._capacity_condition:
                 while end_idx < len(mutations):
                     next_entry = mutations[end_idx]
                     next_size = next_entry.size()
                     next_count = len(next_entry.mutations)
-                    num_in_batch = end_idx - start_idx
                     if (
                         self._has_capacity(next_count, next_size)
-                        and num_in_batch < self._max_entry_count
+                        # make sure not to exceed per-request mutation count limits
+                        and (batch_mutation_count + next_count)
+                        <= MUTATE_ROWS_REQUEST_MUTATION_LIMIT
                     ):
                         # room for new mutation; add to batch
                         end_idx += 1
+                        batch_mutation_count += next_count
                         self._in_flight_mutation_bytes += next_size
                         self._in_flight_mutation_count += next_count
                     elif start_idx != end_idx:

@@ -358,7 +358,7 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
 @pytest.mark.asyncio
 async def test_mutations_batcher_count_flush(client, table, temp_rows):
     """
-    batch should flush after flush_limit_count mutations
+    batch should flush after flush_limit_mutation_count mutations
     """
     from google.cloud.bigtable.mutations import RowMutationEntry
 
@@ -372,7 +372,7 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
     )
     bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
-    async with table.mutations_batcher(flush_limit_count=2) as batcher:
+    async with table.mutations_batcher(flush_limit_mutation_count=2) as batcher:
         batcher.append(bulk_mutation)
         # should be noop; flush not scheduled
         await batcher._prev_flush
@@ -390,7 +390,7 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
 @pytest.mark.asyncio
 async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
     """
-    batch should flush after flush_limit_count mutations
+    batch should flush after flush_limit_bytes bytes
     """
     from google.cloud.bigtable.mutations import RowMutationEntry
 
@@ -441,7 +441,7 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
 
     size_limit = bulk_mutation.size() + bulk_mutation2.size() + 1
     async with table.mutations_batcher(
-        flush_limit_bytes=size_limit, flush_limit_count=3, flush_interval=1
+        flush_limit_bytes=size_limit, flush_limit_mutation_count=3, flush_interval=1
     ) as batcher:
         batcher.append(bulk_mutation)
         assert len(batcher._staged_mutations) == 1

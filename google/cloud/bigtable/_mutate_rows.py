@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import RowMutationEntry
 
 # mutate_rows requests are limited to this value
-MAX_MUTATE_ROWS_ENTRY_COUNT = 100_000
+MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
 
 
 class _MutateRowsIncomplete(RuntimeError):
@@ -72,10 +72,12 @@ class _MutateRowsOperation:
               If not specified, the request will run until operation_timeout is reached.
         """
         # check that mutations are within limits
-        if len(mutation_entries) > MAX_MUTATE_ROWS_ENTRY_COUNT:
+        total_mutations = sum(len(entry.mutations) for entry in mutation_entries)
+        if total_mutations > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
             raise ValueError(
-                "mutate_rows must contain at most "
-                f"{MAX_MUTATE_ROWS_ENTRY_COUNT} entries. Received {len(mutation_entries)}"
+                "mutate_rows requests can contain at most "
+                f"{MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
+                f"all entries. Found {total_mutations}."
             )
         # create partial function to pass to trigger rpc call
         metadata = _make_metadata(table.table_name, table.app_profile_id)
