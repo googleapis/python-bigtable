@@ -93,6 +93,7 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
 
     def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
         super().__init__(self._format_message(excs, total_entries), excs)
+        self.total_entries_attempted = total_entries
 
     def __new__(cls, excs: list[FailedMutationEntryError], total_entries: int):
         return super().__new__(cls, cls._format_message(excs, total_entries), excs)

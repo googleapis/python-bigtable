@@ -314,25 +314,23 @@ class MutationsBatcher:
               a new flush is initiated
         """
         # flush new entries
-        in_process_requests: list[asyncio.Task[None]] = [prev_flush]
+        in_process_requests: list[
+            asyncio.Task[None | list[FailedMutationEntryError]]
+        ] = [prev_flush]
         async for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = asyncio.create_task(
-                self._execute_mutate_rows_w_state_update(batch)
-            )
+            batch_task = asyncio.create_task(self._execute_mutate_rows(batch))
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
-        await asyncio.gather(*in_process_requests)
-
-    async def _execute_mutate_rows_w_state_update(
-        self, batch: list[RowMutationEntry]
-    ) -> None:
-        """
-        Calls _execute_mutate_rows, and then updates internal flush state based on results
-        """
-        results = await self._execute_mutate_rows(batch)
-        self.exceptions.extend(results)
-        self._entries_processed_since_last_raise += len(batch)
-        await self._flow_control.remove_from_flow(batch)
+        all_results = await asyncio.gather(*in_process_requests)
+        # allow previous flush tasks to finalize before adding new exceptions to list
+        await asyncio.sleep(0)
+        # collect exception data for next raise, after previous flush tasks have completed
+        self._entries_processed_since_last_raise += len(new_entries)
+        for exc_list in all_results:
+            if exc_list is not None and all(
+                isinstance(e, FailedMutationEntryError) for e in exc_list
+            ):
+                self.exceptions.extend(exc_list)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -365,6 +363,9 @@ class MutationsBatcher:
             for subexc in e.exceptions:
                 subexc.index = None
             return list(e.exceptions)
+        finally:
+            # mark batch as complete in flow control
+            await self._flow_control.remove_from_flow(batch)
         return []
 
     def _raise_exceptions(self):

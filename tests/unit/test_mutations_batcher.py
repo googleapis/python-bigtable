@@ -662,6 +662,54 @@ class TestMutationsBatcher:
                 assert op_mock.call_count == num_calls
 
     @pytest.mark.asyncio
+    async def test_overlapping_flush_requests(self):
+        """
+        Should allow multiple flushes to be scheduled concurrently, with
+        each flush raising the errors related to the mutations at flush time
+        """
+        from google.cloud.bigtable.exceptions import (
+            MutationsExceptionGroup,
+            FailedMutationEntryError,
+        )
+        exception1 = RuntimeError("test error1")
+        exception2 = ValueError("test error2")
+        wrapped_exception_list = [FailedMutationEntryError(2, mock.Mock(), exc) for exc in [exception1, exception2]]
+        # excpetion1 is flushed first, but finishes second
+        sleep_times = [0.1, 0.05]
+
+        async with self._make_one() as instance:
+            with mock.patch.object(
+                instance, "_execute_mutate_rows", AsyncMock()
+            ) as op_mock:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    time, exception = sleep_times.pop(0), wrapped_exception_list.pop(0)
+                    await asyncio.sleep(time)
+                    return [exception]
+                op_mock.side_effect = mock_call
+                # create a few concurrent flushes
+                instance._staged_mutations = [_make_mutation()]
+                flush_task1 = asyncio.create_task(instance.flush())
+                # let flush task initialize
+                await asyncio.sleep(0)
+                instance._staged_mutations = [_make_mutation()]
+                flush_task2 = asyncio.create_task(instance.flush())
+                # raise errors
+                with pytest.raises(MutationsExceptionGroup) as exc2:
+                    await flush_task2
+                assert len(exc2.value.exceptions) == 1
+                assert exc2.value.total_entries_attempted == 1
+                assert exc2.value.exceptions[0].__cause__ == exception2
+
+                # flushes should be finalized in order. flush_task1 should already be done
+                assert flush_task1.done()
+                with pytest.raises(MutationsExceptionGroup) as exc:
+                    await flush_task1
+                assert len(exc.value.exceptions) == 1
+                assert exc2.value.total_entries_attempted == 1
+                assert exc.value.exceptions[0].__cause__ == exception1
+
+    @pytest.mark.asyncio
     async def test_schedule_flush_no_mutations(self):
         """schedule flush should return prev_flush if no new mutations"""
         async with self._make_one() as instance:
@@ -840,7 +888,7 @@ class TestMutationsBatcher:
         table.default_operation_timeout = 17
         table.default_per_request_timeout = 13
         async with self._make_one(table) as instance:
-            batch = [mock.Mock()]
+            batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
             assert start_operation.call_count == 1
             args, _ = mutate_rows.call_args
@@ -868,7 +916,7 @@ class TestMutationsBatcher:
         table = mock.Mock()
         table.default_operation_timeout = 17
         async with self._make_one(table) as instance:
-            batch = [mock.Mock()]
+            batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
             assert len(result) == 2
             assert result[0] == err1
