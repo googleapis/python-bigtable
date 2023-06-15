@@ -301,12 +301,16 @@ class ReadRowsQuery:
                 # range spans multiple segments
                 # create start and end ranges
                 start_range = RowRange._from_points(
-                    this_range.start, _RangePoint(split_points[start_segment], True)
+                    start=this_range.start,
+                    end=_RangePoint(split_points[start_segment], is_inclusive=True),
+                )
+                end_range = RowRange._from_points(
+                    start=_RangePoint(
+                        split_points[end_segment - 1], is_inclusive=False
+                    ),
+                    end=this_range.end,
                 )
                 sharded_queries[start_segment].add_range(start_range)
-                end_range = RowRange._from_points(
-                    _RangePoint(split_points[end_segment - 1], False), this_range.end
-                )
                 sharded_queries[end_segment].add_range(end_range)
                 # put a spanning range in all segments in betweeni
                 for i in range(start_segment + 1, end_segment):

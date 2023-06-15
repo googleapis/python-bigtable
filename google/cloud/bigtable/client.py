@@ -661,6 +661,7 @@ class Table:
 
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
+
         async def execute_rpc():
             results = await self.client._gapic_client.sample_row_keys(
                 table_name=self.table_name,
@@ -671,8 +672,7 @@ class Table:
             return [(s.row_key, s.offset_bytes) async for s in results]
 
         wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc),
-            operation_timeout, transient_errors
+            retry(execute_rpc), operation_timeout, transient_errors
         )
         return await wrapped_fn()
 
