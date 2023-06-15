@@ -302,7 +302,7 @@ class TestMutationsBatcher:
         async with self._make_one(table) as instance:
             assert instance._table == table
             assert instance.closed is False
-            assert instance._staged_mutations == []
+            assert instance._staged_entries == []
             assert instance.exceptions == []
             assert instance._flow_control._max_mutation_count == 100000
             assert instance._flow_control._max_mutation_bytes == 104857600
@@ -336,7 +336,7 @@ class TestMutationsBatcher:
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
-            assert instance._staged_mutations == []
+            assert instance._staged_entries == []
             assert instance.exceptions == []
             assert instance._flow_control._max_mutation_count == flow_control_max_count
             assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
@@ -370,7 +370,7 @@ class TestMutationsBatcher:
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
-            assert instance._staged_mutations == []
+            assert instance._staged_entries == []
             assert instance.exceptions == []
             assert instance._flow_control._max_mutation_count == float("inf")
             assert instance._flow_control._max_mutation_bytes == float("inf")
@@ -443,7 +443,7 @@ class TestMutationsBatcher:
     async def test__flush_timer(self, flush_mock):
         """Timer should continue to call _schedule_flush in a loop"""
         async with self._make_one() as instance:
-            instance._staged_mutations = [mock.Mock()]
+            instance._staged_entries = [mock.Mock()]
             loop_num = 3
             expected_sleep = 12
             with mock.patch("asyncio.sleep") as sleep_mock:
@@ -523,19 +523,19 @@ class TestMutationsBatcher:
         ) as instance:
             oversized_entry = _make_mutation(count=0, size=2)
             instance.append(oversized_entry)
-            assert instance._staged_mutations == [oversized_entry]
+            assert instance._staged_entries == [oversized_entry]
             assert instance._staged_count == 0
             assert instance._staged_bytes == 2
-            instance._staged_mutations = []
+            instance._staged_entries = []
         async with self._make_one(
             flow_control_max_count=1, flow_control_max_bytes=1
         ) as instance:
             overcount_entry = _make_mutation(count=2, size=0)
             instance.append(overcount_entry)
-            assert instance._staged_mutations == [overcount_entry]
+            assert instance._staged_entries == [overcount_entry]
             assert instance._staged_count == 2
             assert instance._staged_bytes == 0
-            instance._staged_mutations = []
+            instance._staged_entries = []
 
     @pytest.mark.parametrize(
         "flush_count,flush_bytes,mutation_count,mutation_bytes,expect_flush",
@@ -559,15 +559,15 @@ class TestMutationsBatcher:
         ) as instance:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
-            assert instance._staged_mutations == []
+            assert instance._staged_entries == []
             mutation = _make_mutation(count=mutation_count, size=mutation_bytes)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 instance.append(mutation)
             assert flush_mock.call_count == bool(expect_flush)
             assert instance._staged_count == mutation_count
             assert instance._staged_bytes == mutation_bytes
-            assert instance._staged_mutations == [mutation]
-            instance._staged_mutations = []
+            assert instance._staged_entries == [mutation]
+            instance._staged_entries = []
 
     @pytest.mark.asyncio
     async def test_append_multiple_sequentially(self):
@@ -577,25 +577,25 @@ class TestMutationsBatcher:
         ) as instance:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
-            assert instance._staged_mutations == []
+            assert instance._staged_entries == []
             mutation = _make_mutation(count=2, size=3)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 instance.append(mutation)
                 assert flush_mock.call_count == 0
                 assert instance._staged_count == 2
                 assert instance._staged_bytes == 3
-                assert len(instance._staged_mutations) == 1
+                assert len(instance._staged_entries) == 1
                 instance.append(mutation)
                 assert flush_mock.call_count == 0
                 assert instance._staged_count == 4
                 assert instance._staged_bytes == 6
-                assert len(instance._staged_mutations) == 2
+                assert len(instance._staged_entries) == 2
                 instance.append(mutation)
                 assert flush_mock.call_count == 1
                 assert instance._staged_count == 6
                 assert instance._staged_bytes == 9
-                assert len(instance._staged_mutations) == 3
-            instance._staged_mutations = []
+                assert len(instance._staged_entries) == 3
+            instance._staged_entries = []
 
     @pytest.mark.parametrize("raise_exceptions", [True, False])
     @pytest.mark.asyncio
@@ -653,7 +653,7 @@ class TestMutationsBatcher:
                 start_time = time.monotonic()
                 # create a few concurrent flushes
                 for i in range(num_flushes):
-                    instance._staged_mutations = [fake_mutations[i]]
+                    instance._staged_entries = [fake_mutations[i]]
                     try:
                         await instance.flush(timeout=0.01)
                     except asyncio.TimeoutError:
@@ -686,7 +686,7 @@ class TestMutationsBatcher:
                 op_mock.side_effect = mock_call
                 start_time = time.monotonic()
                 # flush one large batch, that will be broken up into smaller batches
-                instance._staged_mutations = fake_mutations
+                instance._staged_entries = fake_mutations
                 try:
                     await instance.flush(timeout=0.01)
                 except asyncio.TimeoutError:
@@ -737,11 +737,11 @@ class TestMutationsBatcher:
 
                 op_mock.side_effect = mock_call
                 # create a few concurrent flushes
-                instance._staged_mutations = [_make_mutation()]
+                instance._staged_entries = [_make_mutation()]
                 flush_task1 = asyncio.create_task(instance.flush())
                 # let flush task initialize
                 await asyncio.sleep(0)
-                instance._staged_mutations = [_make_mutation()]
+                instance._staged_entries = [_make_mutation()]
                 flush_task2 = asyncio.create_task(instance.flush())
                 # raise errors
                 with pytest.raises(MutationsExceptionGroup) as exc2:
@@ -776,16 +776,16 @@ class TestMutationsBatcher:
             orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
                 flush_mock.side_effect = lambda *args, **kwargs: setattr(
-                    instance, "_next_flush_entries", []
+                    instance, "_scheduled_flush_entries", []
                 )
                 for i in range(1, 4):
                     mutation = mock.Mock()
-                    instance._staged_mutations = [mutation]
+                    instance._staged_entries = [mutation]
                     instance._schedule_flush()
-                    assert instance._next_flush_entries == [mutation]
+                    assert instance._scheduled_flush_entries == [mutation]
                     # let flush task run
                     await asyncio.sleep(0)
-                    assert instance._staged_mutations == []
+                    assert instance._staged_entries == []
                     assert instance._staged_count == 0
                     assert instance._staged_bytes == 0
                     assert flush_mock.call_count == i
@@ -810,16 +810,16 @@ class TestMutationsBatcher:
                 # append a bunch of entries back-to-back, without awaiting
                 num_entries = 10
                 for _ in range(num_entries):
-                    instance._staged_mutations.append(_make_mutation())
+                    instance._staged_entries.append(_make_mutation())
                     instance._schedule_flush()
-                    assert len(instance._staged_mutations) == 0
+                    assert len(instance._staged_entries) == 0
                 # await to let flush run
                 await asyncio.sleep(0)
                 # should have batched into a single request
                 assert op_mock.call_count == 1
                 sent_batch = op_mock.call_args[0][0]
                 assert len(sent_batch) == num_entries
-                assert instance._staged_mutations == []
+                assert instance._staged_entries == []
 
     @pytest.mark.asyncio
     async def test__flush_internal(self):
@@ -844,7 +844,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._next_flush_entries = mutations
+                    instance._scheduled_flush_entries = mutations
                     await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
@@ -891,7 +891,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._next_flush_entries = mutations
+                    instance._scheduled_flush_entries = mutations
                     await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
@@ -1086,7 +1086,7 @@ class TestMutationsBatcher:
             assert len(recwarn) == 0
             # calling with existing mutations should raise warning
             num_left = 4
-            instance._staged_mutations = [mock.Mock()] * num_left
+            instance._staged_entries = [mock.Mock()] * num_left
             with pytest.warns(UserWarning) as w:
                 instance._on_exit()
                 assert len(w) == 1
@@ -1097,7 +1097,7 @@ class TestMutationsBatcher:
             instance._on_exit()
             assert len(recwarn) == 0
             # reset staged mutations for cleanup
-            instance._staged_mutations = []
+            instance._staged_entries = []
 
     @pytest.mark.asyncio
     async def test_atexit_registration(self):
