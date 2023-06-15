@@ -327,13 +327,13 @@ class MutationsBatcher:
         await asyncio.sleep(0)
         # collect exception data for next raise, after previous flush tasks have completed
         self._entries_processed_since_last_raise += len(new_entries)
-        for exc_list in all_results:
-            if isinstance(exc_list, Exception):
-                self.exceptions.append(exc_list)
-            elif exc_list is not None and all(
-                isinstance(e, FailedMutationEntryError) for e in exc_list
-            ):
-                self.exceptions.extend(exc_list)
+        for request_result in all_results:
+            if isinstance(request_result, Exception):
+                # will receive direct Exception objects if request task fails
+                self.exceptions.append(request_result)
+            elif request_result is not None:
+                # completed requests will return a list of FailedMutationEntryError
+                self.exceptions.extend(request_result)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]

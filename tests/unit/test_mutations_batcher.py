@@ -715,6 +715,7 @@ class TestMutationsBatcher:
             MutationsExceptionGroup,
             FailedMutationEntryError,
         )
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 
         exception1 = RuntimeError("test error1")
         exception2 = ValueError("test error2")
@@ -724,11 +725,10 @@ class TestMutationsBatcher:
         ]
         # excpetion1 is flushed first, but finishes second
         sleep_times = [0.1, 0.05]
-
-        async with self._make_one() as instance:
-            with mock.patch.object(
-                instance, "_execute_mutate_rows", AsyncMock()
-            ) as op_mock:
+        with mock.patch.object(
+            MutationsBatcher, "_execute_mutate_rows", AsyncMock()
+        ) as op_mock:
+            async with self._make_one() as instance:
                 # mock network calls
                 async def mock_call(*args, **kwargs):
                     time, exception = sleep_times.pop(0), wrapped_exception_list.pop(0)
@@ -757,6 +757,68 @@ class TestMutationsBatcher:
                 assert len(exc.value.exceptions) == 1
                 assert exc2.value.total_entries_attempted == 1
                 assert exc.value.exceptions[0].__cause__ == exception1
+                # should have had two separate flush calls
+                assert op_mock.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_overlapping_flush_requests_background(self):
+        """
+        Test scheduling multiple background flushes without yielding the event loop in between.
+
+        Should result in first flush receiving both entries, and the second flush being an empty
+        request.
+        Entries added after a context switch should not be flushed until the next flush call.
+        """
+        from google.cloud.bigtable.exceptions import (
+            MutationsExceptionGroup,
+            FailedMutationEntryError,
+        )
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+
+        test_error = RuntimeError("test error")
+        with mock.patch.object(
+            MutationsBatcher, "_execute_mutate_rows", AsyncMock()
+        ) as op_mock:
+            # mock network calls
+            async def mock_call(*args, **kwargs):
+                return [FailedMutationEntryError(2, mock.Mock(), test_error)]
+
+            async with self._make_one() as instance:
+                mutations = [_make_mutation() for _ in range(4)]
+                op_mock.side_effect = mock_call
+                # create a few concurrent flushes
+                instance.append(mutations[0])
+                flush_task1 = asyncio.create_task(instance.flush())
+                instance.append(mutations[1])
+                flush_task2 = asyncio.create_task(instance.flush())
+                instance.append(mutations[2])
+                # should have mutations staged and ready
+                assert len(instance._staged_entries) == 3
+                assert len(instance._scheduled_flush_entries) == 0
+
+                # second task should be empty
+                await flush_task2
+                # mutations should have been flushed
+                assert len(instance._staged_entries) == 0
+                assert len(instance._scheduled_flush_entries) == 0
+                # mutations added after a context switch should not be in flush batch
+                await asyncio.sleep(0)
+                instance.append(mutations[3])
+
+                # flushes should be finalized in order. flush_task1 should already be done
+                assert flush_task1.done()
+                # first task should have sent all mutations and raise exception
+                with pytest.raises(MutationsExceptionGroup) as exc:
+                    await flush_task1
+                assert exc.value.total_entries_attempted == 3
+                assert len(exc.value.exceptions) == 1
+                assert exc.value.exceptions[0].__cause__ == test_error
+                # should have just one flush call
+                assert op_mock.call_count == 1
+                assert op_mock.call_args[0][0] == mutations[:3]
+                # final mutation should still be staged for next flush
+                assert instance._staged_entries == [mutations[3]]
+                instance._staged_entries = []
 
     @pytest.mark.asyncio
     async def test_schedule_flush_no_mutations(self):
