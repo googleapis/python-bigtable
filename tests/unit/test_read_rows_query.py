@@ -572,6 +572,20 @@ class TestReadRowsQuery:
         assert sharded_queries[0] == self._parse_query_string("-a]")
         assert sharded_queries[1] == self._parse_query_string("(a-")
 
+    def test_shard_full_table_scan_with_multiple_split(self):
+        """
+        Test splitting a full table scan into three queries
+        """
+        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+        full_scan_query = ReadRowsQuery()
+        split_points = [(b"a", None), (b"z", None)]
+        sharded_queries = full_scan_query.shard(split_points)
+        assert len(sharded_queries) == 3
+        assert sharded_queries[0] == self._parse_query_string("-a]")
+        assert sharded_queries[1] == self._parse_query_string("(a-z]")
+        assert sharded_queries[2] == self._parse_query_string("(z-")
+
     def test_shard_multiple_keys(self):
         """
         Test splitting multiple individual keys into separate queries
