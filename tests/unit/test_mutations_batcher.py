@@ -775,15 +775,51 @@ class TestMutationsBatcher:
         async with self._make_one() as instance:
             orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
+                flush_mock.side_effect = lambda *args, **kwargs: setattr(
+                    instance, "_next_flush_entries", []
+                )
                 for i in range(1, 4):
-                    instance._staged_mutations = [mock.Mock()]
+                    mutation = mock.Mock()
+                    instance._staged_mutations = [mutation]
                     instance._schedule_flush()
+                    assert instance._next_flush_entries == [mutation]
+                    # let flush task run
+                    await asyncio.sleep(0)
                     assert instance._staged_mutations == []
                     assert instance._staged_count == 0
                     assert instance._staged_bytes == 0
                     assert flush_mock.call_count == i
                     assert instance._prev_flush != orig_flush
                     orig_flush = instance._prev_flush
+
+    @pytest.mark.asyncio
+    async def test_schedule_flush_multiple_calls_single_flush(self):
+        """
+        If the user appends a bunch of entries above the flush limits back-to-back,
+        it should still flush in a single task
+        """
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+
+        with mock.patch.object(MutationsBatcher, "_execute_mutate_rows") as op_mock:
+            async with self._make_one(flush_limit_mutation_count=1) as instance:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    return []
+
+                op_mock.side_effect = mock_call
+                # append a bunch of entries back-to-back, without awaiting
+                num_entries = 10
+                for _ in range(num_entries):
+                    instance._staged_mutations.append(_make_mutation())
+                    instance._schedule_flush()
+                    assert len(instance._staged_mutations) == 0
+                # await to let flush run
+                await asyncio.sleep(0)
+                # should have batched into a single request
+                assert op_mock.call_count == 1
+                sent_batch = op_mock.call_args[0][0]
+                assert len(sent_batch) == num_entries
+                assert instance._staged_mutations == []
 
     @pytest.mark.asyncio
     async def test__flush_internal(self):
@@ -808,7 +844,8 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    await instance._flush_internal(mutations, prev_flush)
+                    instance._next_flush_entries = mutations
+                    await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
@@ -854,7 +891,8 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    await instance._flush_internal(mutations, prev_flush)
+                    instance._next_flush_entries = mutations
+                    await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
