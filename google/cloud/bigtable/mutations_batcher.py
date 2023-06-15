@@ -62,27 +62,27 @@ class _FlowControl:
           - max_entry_count: maximum number of entries to send in a single rpc.
              Limited to 100,000 by the MutateRows API.
         """
-        self.max_mutation_count = (
+        self._max_mutation_count = (
             max_mutation_count if max_mutation_count is not None else float("inf")
         )
-        self.max_mutation_bytes = (
+        self._max_mutation_bytes = (
             max_mutation_bytes if max_mutation_bytes is not None else float("inf")
         )
-        self.max_entry_count = max_entry_count
+        self._max_entry_count = max_entry_count
         if (
-            self.max_entry_count > MAX_MUTATE_ROWS_ENTRY_COUNT
-            or self.max_entry_count < 1
+            self._max_entry_count > MAX_MUTATE_ROWS_ENTRY_COUNT
+            or self._max_entry_count < 1
         ):
             raise ValueError(
                 f"max_entry_count must be between 1 and {MAX_MUTATE_ROWS_ENTRY_COUNT}"
             )
-        if self.max_mutation_count < 1:
+        if self._max_mutation_count < 1:
             raise ValueError("max_mutation_count must be greater than 0")
-        if self.max_mutation_bytes < 1:
+        if self._max_mutation_bytes < 1:
             raise ValueError("max_mutation_bytes must be greater than 0")
-        self.capacity_condition = asyncio.Condition()
-        self.in_flight_mutation_count = 0
-        self.in_flight_mutation_bytes = 0
+        self._capacity_condition = asyncio.Condition()
+        self._in_flight_mutation_count = 0
+        self._in_flight_mutation_bytes = 0
 
     def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
         """
@@ -92,11 +92,11 @@ class _FlowControl:
         the configured limits, it can be sent in a single batch.
         """
         # adjust limits to allow overly large mutations
-        acceptable_size = max(self.max_mutation_bytes, additional_size)
-        acceptable_count = max(self.max_mutation_count, additional_count)
+        acceptable_size = max(self._max_mutation_bytes, additional_size)
+        acceptable_count = max(self._max_mutation_count, additional_count)
         # check if we have capacity for new mutation
-        new_size = self.in_flight_mutation_bytes + additional_size
-        new_count = self.in_flight_mutation_count + additional_count
+        new_size = self._in_flight_mutation_bytes + additional_size
+        new_count = self._in_flight_mutation_count + additional_count
         return new_size <= acceptable_size and new_count <= acceptable_count
 
     async def remove_from_flow(
@@ -109,11 +109,11 @@ class _FlowControl:
             mutations = [mutations]
         total_count = sum(len(entry.mutations) for entry in mutations)
         total_size = sum(entry.size() for entry in mutations)
-        self.in_flight_mutation_count -= total_count
-        self.in_flight_mutation_bytes -= total_size
+        self._in_flight_mutation_count -= total_count
+        self._in_flight_mutation_bytes -= total_size
         # notify any blocked requests that there is additional capacity
-        async with self.capacity_condition:
-            self.capacity_condition.notify_all()
+        async with self._capacity_condition:
+            self._capacity_condition.notify_all()
 
     async def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
@@ -136,7 +136,7 @@ class _FlowControl:
         while end_idx < len(mutations):
             start_idx = end_idx
             # fill up batch until we hit capacity
-            async with self.capacity_condition:
+            async with self._capacity_condition:
                 while end_idx < len(mutations):
                     next_entry = mutations[end_idx]
                     next_size = next_entry.size()
@@ -144,18 +144,18 @@ class _FlowControl:
                     num_in_batch = end_idx - start_idx
                     if (
                         self._has_capacity(next_count, next_size)
-                        and num_in_batch < self.max_entry_count
+                        and num_in_batch < self._max_entry_count
                     ):
                         # room for new mutation; add to batch
                         end_idx += 1
-                        self.in_flight_mutation_bytes += next_size
-                        self.in_flight_mutation_count += next_count
+                        self._in_flight_mutation_bytes += next_size
+                        self._in_flight_mutation_count += next_count
                     elif start_idx != end_idx:
                         # we have at least one mutation in the batch, so send it
                         break
                     else:
                         # batch is empty. Block until we have capacity
-                        await self.capacity_condition.wait_for(
+                        await self._capacity_condition.wait_for(
                             lambda: self._has_capacity(next_count, next_size)
                         )
             yield mutations[start_idx:end_idx]

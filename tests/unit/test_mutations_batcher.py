@@ -47,21 +47,21 @@ class Test_FlowControl:
         instance = self._make_one(
             max_mutation_count, max_mutation_bytes, max_entry_count
         )
-        assert instance.max_mutation_count == max_mutation_count
-        assert instance.max_mutation_bytes == max_mutation_bytes
-        assert instance.max_entry_count == max_entry_count
-        assert instance.in_flight_mutation_count == 0
-        assert instance.in_flight_mutation_bytes == 0
-        assert isinstance(instance.capacity_condition, asyncio.Condition)
+        assert instance._max_mutation_count == max_mutation_count
+        assert instance._max_mutation_bytes == max_mutation_bytes
+        assert instance._max_entry_count == max_entry_count
+        assert instance._in_flight_mutation_count == 0
+        assert instance._in_flight_mutation_bytes == 0
+        assert isinstance(instance._capacity_condition, asyncio.Condition)
 
     def test_ctor_empty_values(self):
         """Test constructor with None count and bytes"""
         from google.cloud.bigtable._mutate_rows import MAX_MUTATE_ROWS_ENTRY_COUNT
 
         instance = self._make_one(None, None)
-        assert instance.max_mutation_count == float("inf")
-        assert instance.max_mutation_bytes == float("inf")
-        assert instance.max_entry_count == MAX_MUTATE_ROWS_ENTRY_COUNT
+        assert instance._max_mutation_count == float("inf")
+        assert instance._max_mutation_bytes == float("inf")
+        assert instance._max_entry_count == MAX_MUTATE_ROWS_ENTRY_COUNT
 
     def test_ctor_invalid_values(self):
         """Test that values are positive, and fit within expected limits"""
@@ -125,8 +125,8 @@ class Test_FlowControl:
         _has_capacity should return True if the new mutation will will not exceed the max count or size
         """
         instance = self._make_one(max_count, max_size)
-        instance.in_flight_mutation_count = existing_count
-        instance.in_flight_mutation_bytes = existing_size
+        instance._in_flight_mutation_count = existing_count
+        instance._in_flight_mutation_bytes = existing_size
         assert instance._has_capacity(new_count, new_size) == expected
 
     @pytest.mark.asyncio
@@ -155,23 +155,23 @@ class Test_FlowControl:
         completed mutations should lower the inflight values
         """
         instance = self._make_one()
-        instance.in_flight_mutation_count = existing_count
-        instance.in_flight_mutation_bytes = existing_size
+        instance._in_flight_mutation_count = existing_count
+        instance._in_flight_mutation_bytes = existing_size
         mutation = _make_mutation(added_count, added_size)
         await instance.remove_from_flow(mutation)
-        assert instance.in_flight_mutation_count == new_count
-        assert instance.in_flight_mutation_bytes == new_size
+        assert instance._in_flight_mutation_count == new_count
+        assert instance._in_flight_mutation_bytes == new_size
 
     @pytest.mark.asyncio
     async def test__remove_from_flow_unlock(self):
         """capacity condition should notify after mutation is complete"""
         instance = self._make_one(10, 10)
-        instance.in_flight_mutation_count = 10
-        instance.in_flight_mutation_bytes = 10
+        instance._in_flight_mutation_count = 10
+        instance._in_flight_mutation_bytes = 10
 
         async def task_routine():
-            async with instance.capacity_condition:
-                await instance.capacity_condition.wait_for(
+            async with instance._capacity_condition:
+                await instance._capacity_condition.wait_for(
                     lambda: instance._has_capacity(1, 1)
                 )
 
@@ -183,24 +183,24 @@ class Test_FlowControl:
         mutation = _make_mutation(count=0, size=5)
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
-        assert instance.in_flight_mutation_count == 10
-        assert instance.in_flight_mutation_bytes == 5
+        assert instance._in_flight_mutation_count == 10
+        assert instance._in_flight_mutation_bytes == 5
         assert task.done() is False
         # try changing count
-        instance.in_flight_mutation_bytes = 10
+        instance._in_flight_mutation_bytes = 10
         mutation = _make_mutation(count=5, size=0)
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
-        assert instance.in_flight_mutation_count == 5
-        assert instance.in_flight_mutation_bytes == 10
+        assert instance._in_flight_mutation_count == 5
+        assert instance._in_flight_mutation_bytes == 10
         assert task.done() is False
         # try changing both
-        instance.in_flight_mutation_count = 10
+        instance._in_flight_mutation_count = 10
         mutation = _make_mutation(count=5, size=5)
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
-        assert instance.in_flight_mutation_count == 5
-        assert instance.in_flight_mutation_bytes == 5
+        assert instance._in_flight_mutation_count == 5
+        assert instance._in_flight_mutation_bytes == 5
         # task should be complete
         assert task.done() is True
 
@@ -290,10 +290,10 @@ class TestMutationsBatcher:
             assert instance.closed is False
             assert instance._staged_mutations == []
             assert instance.exceptions == []
-            assert instance._flow_control.max_mutation_count == 100000
-            assert instance._flow_control.max_mutation_bytes == 104857600
-            assert instance._flow_control.in_flight_mutation_count == 0
-            assert instance._flow_control.in_flight_mutation_bytes == 0
+            assert instance._flow_control._max_mutation_count == 100000
+            assert instance._flow_control._max_mutation_bytes == 104857600
+            assert instance._flow_control._in_flight_mutation_count == 0
+            assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
@@ -324,10 +324,10 @@ class TestMutationsBatcher:
             assert instance.closed is False
             assert instance._staged_mutations == []
             assert instance.exceptions == []
-            assert instance._flow_control.max_mutation_count == flow_control_max_count
-            assert instance._flow_control.max_mutation_bytes == flow_control_max_bytes
-            assert instance._flow_control.in_flight_mutation_count == 0
-            assert instance._flow_control.in_flight_mutation_bytes == 0
+            assert instance._flow_control._max_mutation_count == flow_control_max_count
+            assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
+            assert instance._flow_control._in_flight_mutation_count == 0
+            assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
@@ -358,10 +358,10 @@ class TestMutationsBatcher:
             assert instance.closed is False
             assert instance._staged_mutations == []
             assert instance.exceptions == []
-            assert instance._flow_control.max_mutation_count == float("inf")
-            assert instance._flow_control.max_mutation_bytes == float("inf")
-            assert instance._flow_control.in_flight_mutation_count == 0
-            assert instance._flow_control.in_flight_mutation_bytes == 0
+            assert instance._flow_control._max_mutation_count == float("inf")
+            assert instance._flow_control._max_mutation_bytes == float("inf")
+            assert instance._flow_control._in_flight_mutation_count == 0
+            assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
