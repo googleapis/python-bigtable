@@ -472,9 +472,6 @@ class TestMutationsBatcher:
         with pytest.raises(ValueError) as e:
             instance.append(DeleteAllFromRow())
         assert str(e.value) == expected_error
-        with pytest.raises(ValueError) as e:
-            instance.append([DeleteAllFromRow(), DeleteAllFromRow()])
-        assert str(e.value) == expected_error
 
     @pytest.mark.asyncio
     async def test_append_outside_flow_limits(self):
@@ -550,22 +547,6 @@ class TestMutationsBatcher:
                 assert instance._staged_bytes == 6
                 assert len(instance._staged_mutations) == 2
                 instance.append(mutation)
-                assert flush_mock.call_count == 1
-                assert instance._staged_count == 6
-                assert instance._staged_bytes == 9
-                assert len(instance._staged_mutations) == 3
-            instance._staged_mutations = []
-
-    @pytest.mark.asyncio
-    async def test_append_multiple_single_call(self):
-        """Append multiple mutations in a single append call"""
-        async with self._make_one(flush_limit_count=8, flush_limit_bytes=8) as instance:
-            assert instance._staged_count == 0
-            assert instance._staged_bytes == 0
-            assert instance._staged_mutations == []
-            mutation_list = [_make_mutation(count=2, size=3) for _ in range(3)]
-            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
-                instance.append(mutation_list)
                 assert flush_mock.call_count == 1
                 assert instance._staged_count == 6
                 assert instance._staged_bytes == 9

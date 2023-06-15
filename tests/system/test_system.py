@@ -301,7 +301,8 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
     async with table.mutations_batcher() as batcher:
-        batcher.append([bulk_mutation, bulk_mutation2])
+        batcher.append(bulk_mutation)
+        batcher.append(bulk_mutation2)
     # ensure cell is updated
     assert (await _retrieve_cell_value(table, row_key)) == new_value
     assert len(batcher._staged_mutations) == 0

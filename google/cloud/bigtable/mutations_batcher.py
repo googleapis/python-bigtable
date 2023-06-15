@@ -238,29 +238,26 @@ class MutationsBatcher:
             if not self.closed and self._staged_mutations:
                 self._schedule_flush()
 
-    def append(self, mutations: RowMutationEntry | list[RowMutationEntry]):
+    def append(self, mutation_entry: RowMutationEntry):
         """
         Add a new set of mutations to the internal queue
 
         Args:
-          - mutations: entries to add to flush queue
+          - mutation_entry: new entry to add to flush queue
         Raises:
           - RuntimeError if batcher is closed
           - ValueError if an invalid mutation type is added
         """
         if self.closed:
             raise RuntimeError("Cannot append to closed MutationsBatcher")
-        if not isinstance(mutations, list):
-            mutations = [mutations]
-        for m in mutations:
-            if isinstance(m, Mutation):  # type: ignore
-                raise ValueError(
-                    f"invalid mutation type: {type(m).__name__}. Only RowMutationEntry objects are supported by batcher"
-                )
-        self._staged_mutations.extend(mutations)
+        if isinstance(mutation_entry, Mutation):  # type: ignore
+            raise ValueError(
+                f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
+            )
+        self._staged_mutations.append(mutation_entry)
         # start a new flush task if limits exceeded
-        self._staged_count += sum([len(m.mutations) for m in mutations])
-        self._staged_bytes += sum([m.size() for m in mutations])
+        self._staged_count += len(mutation_entry.mutations)
+        self._staged_bytes += mutation_entry.size()
         if (
             self._staged_count >= self._flush_limit_count
             or self._staged_bytes >= self._flush_limit_bytes
