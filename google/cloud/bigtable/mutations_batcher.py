@@ -217,7 +217,7 @@ class MutationsBatcher:
         self._flush_limit_count = (
             flush_limit_count if flush_limit_count is not None else float("inf")
         )
-        self.exceptions: list[FailedMutationEntryError] = []
+        self.exceptions: list[Exception] = []
         self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
             self._flush_timer(flush_interval)
         )
@@ -321,13 +321,17 @@ class MutationsBatcher:
             batch_task = asyncio.create_task(self._execute_mutate_rows(batch))
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
-        all_results = await asyncio.gather(*in_process_requests)
+        all_results: list[
+            list[FailedMutationEntryError] | Exception | None
+        ] = await asyncio.gather(*in_process_requests, return_exceptions=True)
         # allow previous flush tasks to finalize before adding new exceptions to list
         await asyncio.sleep(0)
         # collect exception data for next raise, after previous flush tasks have completed
         self._entries_processed_since_last_raise += len(new_entries)
         for exc_list in all_results:
-            if exc_list is not None and all(
+            if isinstance(exc_list, Exception):
+                self.exceptions.append(exc_list)
+            elif exc_list is not None and all(
                 isinstance(e, FailedMutationEntryError) for e in exc_list
             ):
                 self.exceptions.extend(exc_list)

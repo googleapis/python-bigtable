@@ -128,7 +128,7 @@ class _MutateRowsOperation:
                 self._handle_entry_error(idx, exc)
         finally:
             # raise exception detailing incomplete mutations
-            all_errors = []
+            all_errors: list[Exception] = []
             for idx, exc_list in self.errors.items():
                 if len(exc_list) == 0:
                     raise core_exceptions.ClientError(

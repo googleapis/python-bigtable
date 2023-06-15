@@ -671,9 +671,13 @@ class TestMutationsBatcher:
             MutationsExceptionGroup,
             FailedMutationEntryError,
         )
+
         exception1 = RuntimeError("test error1")
         exception2 = ValueError("test error2")
-        wrapped_exception_list = [FailedMutationEntryError(2, mock.Mock(), exc) for exc in [exception1, exception2]]
+        wrapped_exception_list = [
+            FailedMutationEntryError(2, mock.Mock(), exc)
+            for exc in [exception1, exception2]
+        ]
         # excpetion1 is flushed first, but finishes second
         sleep_times = [0.1, 0.05]
 
@@ -686,6 +690,7 @@ class TestMutationsBatcher:
                     time, exception = sleep_times.pop(0), wrapped_exception_list.pop(0)
                     await asyncio.sleep(time)
                     return [exception]
+
                 op_mock.side_effect = mock_call
                 # create a few concurrent flushes
                 instance._staged_mutations = [_make_mutation()]
