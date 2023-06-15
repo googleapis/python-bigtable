@@ -185,19 +185,18 @@ class MutationsBatcher:
         table: "Table",
         *,
         flush_interval: float | None = 5,
-        flush_limit_count: int | None = 100,
-        flush_limit_bytes: int | None = 20 * MB_SIZE,
-        flow_control_max_count: int | None = 100000,
+        flush_limit_mutation_count: int | None = 1000,
+        flush_limit_bytes: int = 20 * MB_SIZE,
+        flow_control_max_count: int | None = 100_000,
         flow_control_max_bytes: int | None = 100 * MB_SIZE,
     ):
         """
         Args:
           - table: Table to preform rpc calls
           - flush_interval: Automatically flush every flush_interval seconds
-          - flush_limit_count: Flush immediately after flush_limit_count mutations are added.
-              If None, this limit is ignored.
+          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
+              mutations are added across all entries. If None, this limit is ignored.
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-              If None, this limit is ignored.
           - flow_control_max_count: Maximum number of inflight mutations.
               If None, this limit is ignored.
           - flow_control_max_bytes: Maximum number of inflight bytes.
@@ -211,11 +210,11 @@ class MutationsBatcher:
         self._flow_control = _FlowControl(
             flow_control_max_count, flow_control_max_bytes
         )
-        self._flush_limit_bytes = (
-            flush_limit_bytes if flush_limit_bytes is not None else float("inf")
-        )
+        self._flush_limit_bytes = flush_limit_bytes
         self._flush_limit_count = (
-            flush_limit_count if flush_limit_count is not None else float("inf")
+            flush_limit_mutation_count
+            if flush_limit_mutation_count is not None
+            else float("inf")
         )
         self.exceptions: list[Exception] = []
         self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(

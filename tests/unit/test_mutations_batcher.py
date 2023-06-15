@@ -315,7 +315,7 @@ class TestMutationsBatcher:
         async with self._make_one(
             table,
             flush_interval=flush_interval,
-            flush_limit_count=flush_limit_count,
+            flush_limit_mutation_count=flush_limit_count,
             flush_limit_bytes=flush_limit_bytes,
             flow_control_max_count=flow_control_max_count,
             flow_control_max_bytes=flow_control_max_bytes,
@@ -349,7 +349,7 @@ class TestMutationsBatcher:
         async with self._make_one(
             table,
             flush_interval=flush_interval,
-            flush_limit_count=flush_limit_count,
+            flush_limit_mutation_count=flush_limit_count,
             flush_limit_bytes=flush_limit_bytes,
             flow_control_max_count=flow_control_max_count,
             flow_control_max_bytes=flow_control_max_bytes,
@@ -367,6 +367,32 @@ class TestMutationsBatcher:
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] is None
             assert isinstance(instance._flush_timer_task, asyncio.Task)
+
+    def test_default_argument_consistency(self):
+        """
+        We supply default arguments in MutationsBatcher.__init__, and in
+        table.mutations_batcher. Make sure any changes to defaults are applied to
+        both places
+        """
+        from google.cloud.bigtable.client import Table
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+        import inspect
+
+        get_batcher_signature = dict(inspect.signature(Table.mutations_batcher).parameters)
+        get_batcher_signature.pop("self")
+        batcher_init_signature = dict(inspect.signature(MutationsBatcher).parameters)
+        batcher_init_signature.pop("table")
+        # both should have same number of arguments
+        assert len(get_batcher_signature) == len(batcher_init_signature)
+        assert len(get_batcher_signature) == 5
+        # both should have same argument names
+        assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
+        # both should have same default values
+        for arg_name in get_batcher_signature.keys():
+            assert (
+                get_batcher_signature[arg_name].default
+                == batcher_init_signature[arg_name].default
+            )
 
     @unittest.mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
@@ -513,7 +539,7 @@ class TestMutationsBatcher:
     ):
         """test appending different mutations, and checking if it causes a flush"""
         async with self._make_one(
-            flush_limit_count=flush_count, flush_limit_bytes=flush_bytes
+            flush_limit_mutation_count=flush_count, flush_limit_bytes=flush_bytes
         ) as instance:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
@@ -530,7 +556,7 @@ class TestMutationsBatcher:
     @pytest.mark.asyncio
     async def test_append_multiple_sequentially(self):
         """Append multiple mutations"""
-        async with self._make_one(flush_limit_count=8, flush_limit_bytes=8) as instance:
+        async with self._make_one(flush_limit_mutation_count=8, flush_limit_bytes=8) as instance:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
             assert instance._staged_mutations == []
