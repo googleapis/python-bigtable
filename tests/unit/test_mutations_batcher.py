@@ -794,13 +794,13 @@ class TestMutationsBatcher:
                 instance.append(mutations[2])
                 # should have mutations staged and ready
                 assert len(instance._staged_entries) == 3
-                assert len(instance._scheduled_flush_entries) == 0
+                assert len(instance._pending_flush_entries) == 0
 
                 # second task should be empty
                 await flush_task2
                 # mutations should have been flushed
                 assert len(instance._staged_entries) == 0
-                assert len(instance._scheduled_flush_entries) == 0
+                assert len(instance._pending_flush_entries) == 0
                 # mutations added after a context switch should not be in flush batch
                 await asyncio.sleep(0)
                 instance.append(mutations[3])
@@ -838,13 +838,13 @@ class TestMutationsBatcher:
             orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
                 flush_mock.side_effect = lambda *args, **kwargs: setattr(
-                    instance, "_scheduled_flush_entries", []
+                    instance, "_pending_flush_entries", []
                 )
                 for i in range(1, 4):
                     mutation = mock.Mock()
                     instance._staged_entries = [mutation]
                     instance._schedule_flush()
-                    assert instance._scheduled_flush_entries == [mutation]
+                    assert instance._pending_flush_entries == [mutation]
                     # let flush task run
                     await asyncio.sleep(0)
                     assert instance._staged_entries == []
@@ -906,7 +906,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._scheduled_flush_entries = mutations
+                    instance._pending_flush_entries = mutations
                     await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
@@ -953,7 +953,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._scheduled_flush_entries = mutations
+                    instance._pending_flush_entries = mutations
                     await instance._flush_internal(prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries

@@ -217,7 +217,7 @@ class MutationsBatcher:
         self._entries_processed_since_last_raise: int = 0
         # keep track of entries that are set to be sent in next flush,
         # so we can add more before if mutations are added before flush task starts
-        self._scheduled_flush_entries: list[RowMutationEntry] = []
+        self._pending_flush_entries: list[RowMutationEntry] = []
 
     async def _flush_timer(self, interval: float | None):
         """
@@ -248,10 +248,10 @@ class MutationsBatcher:
             raise ValueError(
                 f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
             )
-        if self._scheduled_flush_entries:
+        if self._pending_flush_entries:
             # flush is already scheduled to run on next loop iteration
             # add new entries directly to flush list
-            self._scheduled_flush_entries.append(mutation_entry)
+            self._pending_flush_entries.append(mutation_entry)
         else:
             # add to staged list
             self._staged_entries.append(mutation_entry)
@@ -296,8 +296,8 @@ class MutationsBatcher:
             entries, self._staged_entries = self._staged_entries, []
             self._staged_count, self._staged_bytes = 0, 0
             # flush is scheduled to run on next loop iteration
-            # use _scheduled_flush_entries to add new extra entries before flush task starts
-            self._scheduled_flush_entries.extend(entries)
+            # use _pending_flush_entries to add new extra entries before flush task starts
+            self._pending_flush_entries.extend(entries)
             self._prev_flush = asyncio.create_task(
                 self._flush_internal(self._prev_flush)
             )
@@ -311,7 +311,7 @@ class MutationsBatcher:
           - prev_flush: the previous flush task, which will be awaited before
               a new flush is initiated
         """
-        new_entries, self._scheduled_flush_entries = self._scheduled_flush_entries, []
+        new_entries, self._pending_flush_entries = self._pending_flush_entries, []
         # flush new entries
         in_process_requests: list[
             asyncio.Task[None | list[FailedMutationEntryError]]
