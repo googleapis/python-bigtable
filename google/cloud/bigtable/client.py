@@ -55,6 +55,10 @@ from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 
+from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.row_filters import CellsRowLimitFilter
+from google.cloud.bigtable.row_filters import RowFilterChain
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
@@ -500,18 +504,31 @@ class Table:
         self,
         row_key: str | bytes,
         *,
+        row_filter: RowFilter | None = None,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-    ) -> Row:
+    ) -> Row | None:
         """
         Helper function to return a single row
 
         See read_rows_stream
 
+        Raises:
+            - google.cloud.bigtable.exceptions.RowNotFound: if the row does not exist
         Returns:
-            - the individual row requested
+            - the individual row requested, or None if it does not exist
         """
-        raise NotImplementedError
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
+        query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        if len(results) == 0:
+            return None
+        return results[0]
 
     async def read_rows_sharded(
         self,
@@ -547,7 +564,18 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
-        raise NotImplementedError
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
+        strip_filter = StripValueTransformerFilter(flag=True)
+        limit_filter = CellsRowLimitFilter(1)
+        chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
+        query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        return len(results) > 0
 
     async def sample_keys(
         self,

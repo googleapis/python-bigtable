@@ -1296,6 +1296,158 @@ class TestReadRows:
                     assert kwargs["operation_timeout"] == operation_timeout
                     assert kwargs["per_request_timeout"] == per_request_timeout
 
+    @pytest.mark.asyncio
+    async def test_read_row(self):
+        """Test reading a single row"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            row_key = b"test_1"
+            with mock.patch.object(table, "read_rows") as read_rows:
+                expected_result = object()
+                read_rows.side_effect = lambda *args, **kwargs: [expected_result]
+                expected_op_timeout = 8
+                expected_req_timeout = 4
+                row = await table.read_row(
+                    row_key,
+                    operation_timeout=expected_op_timeout,
+                    per_request_timeout=expected_req_timeout,
+                )
+                assert row == expected_result
+                assert read_rows.call_count == 1
+                args, kwargs = read_rows.call_args_list[0]
+                assert kwargs["operation_timeout"] == expected_op_timeout
+                assert kwargs["per_request_timeout"] == expected_req_timeout
+                assert len(args) == 1
+                assert isinstance(args[0], ReadRowsQuery)
+                assert args[0]._to_dict() == {
+                    "rows": {"row_keys": [row_key]},
+                    "rows_limit": 1,
+                }
+
+    @pytest.mark.asyncio
+    async def test_read_row_w_filter(self):
+        """Test reading a single row with an added filter"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            row_key = b"test_1"
+            with mock.patch.object(table, "read_rows") as read_rows:
+                expected_result = object()
+                read_rows.side_effect = lambda *args, **kwargs: [expected_result]
+                expected_op_timeout = 8
+                expected_req_timeout = 4
+                mock_filter = mock.Mock()
+                expected_filter = {"filter": "mock filter"}
+                mock_filter._to_dict.return_value = expected_filter
+                row = await table.read_row(
+                    row_key,
+                    operation_timeout=expected_op_timeout,
+                    per_request_timeout=expected_req_timeout,
+                    row_filter=expected_filter,
+                )
+                assert row == expected_result
+                assert read_rows.call_count == 1
+                args, kwargs = read_rows.call_args_list[0]
+                assert kwargs["operation_timeout"] == expected_op_timeout
+                assert kwargs["per_request_timeout"] == expected_req_timeout
+                assert len(args) == 1
+                assert isinstance(args[0], ReadRowsQuery)
+                assert args[0]._to_dict() == {
+                    "rows": {"row_keys": [row_key]},
+                    "rows_limit": 1,
+                    "filter": expected_filter,
+                }
+
+    @pytest.mark.asyncio
+    async def test_read_row_no_response(self):
+        """should return None if row does not exist"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            row_key = b"test_1"
+            with mock.patch.object(table, "read_rows") as read_rows:
+                # return no rows
+                read_rows.side_effect = lambda *args, **kwargs: []
+                expected_op_timeout = 8
+                expected_req_timeout = 4
+                result = await table.read_row(
+                    row_key,
+                    operation_timeout=expected_op_timeout,
+                    per_request_timeout=expected_req_timeout,
+                )
+                assert result is None
+                assert read_rows.call_count == 1
+                args, kwargs = read_rows.call_args_list[0]
+                assert kwargs["operation_timeout"] == expected_op_timeout
+                assert kwargs["per_request_timeout"] == expected_req_timeout
+                assert isinstance(args[0], ReadRowsQuery)
+                assert args[0]._to_dict() == {
+                    "rows": {"row_keys": [row_key]},
+                    "rows_limit": 1,
+                }
+
+    @pytest.mark.parametrize("input_row", [None, 5, object()])
+    @pytest.mark.asyncio
+    async def test_read_row_w_invalid_input(self, input_row):
+        """Should raise error when passed None"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            with pytest.raises(ValueError) as e:
+                await table.read_row(input_row)
+                assert "must be string or bytes" in e
+
+    @pytest.mark.parametrize(
+        "return_value,expected_result",
+        [
+            ([], False),
+            ([object()], True),
+            ([object(), object()], True),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_row_exists(self, return_value, expected_result):
+        """Test checking for row existence"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            row_key = b"test_1"
+            with mock.patch.object(table, "read_rows") as read_rows:
+                # return no rows
+                read_rows.side_effect = lambda *args, **kwargs: return_value
+                expected_op_timeout = 1
+                expected_req_timeout = 2
+                result = await table.row_exists(
+                    row_key,
+                    operation_timeout=expected_op_timeout,
+                    per_request_timeout=expected_req_timeout,
+                )
+                assert expected_result == result
+                assert read_rows.call_count == 1
+                args, kwargs = read_rows.call_args_list[0]
+                assert kwargs["operation_timeout"] == expected_op_timeout
+                assert kwargs["per_request_timeout"] == expected_req_timeout
+                assert isinstance(args[0], ReadRowsQuery)
+                expected_filter = {
+                    "chain": {
+                        "filters": [
+                            {"cells_per_row_limit_filter": 1},
+                            {"strip_value_transformer": True},
+                        ]
+                    }
+                }
+                assert args[0]._to_dict() == {
+                    "rows": {"row_keys": [row_key]},
+                    "rows_limit": 1,
+                    "filter": expected_filter,
+                }
+
+    @pytest.mark.parametrize("input_row", [None, 5, object()])
+    @pytest.mark.asyncio
+    async def test_row_exists_w_invalid_input(self, input_row):
+        """Should raise error when passed None"""
+        async with self._make_client() as client:
+            table = client.get_table("instance", "table")
+            with pytest.raises(ValueError) as e:
+                await table.row_exists(input_row)
+                assert "must be string or bytes" in e
+
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
     async def test_read_rows_metadata(self, include_app_profile):

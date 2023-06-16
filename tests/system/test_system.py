@@ -158,7 +158,7 @@ class TempRowBuilder:
         self.table = table
 
     async def add_row(
-        self, row_key, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
+        self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
         if isinstance(value, str):
             value = value.encode("utf-8")
@@ -339,9 +339,9 @@ async def test_read_rows_range_query(table, temp_rows):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_read_rows_key_query(table, temp_rows):
+async def test_read_rows_single_key_query(table, temp_rows):
     """
-    Ensure that the read_rows method works
+    Ensure that the read_rows method works with specified query
     """
     from google.cloud.bigtable import ReadRowsQuery
 
@@ -349,12 +349,35 @@ async def test_read_rows_key_query(table, temp_rows):
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
     await temp_rows.add_row(b"d")
-    # full table scan
+    # retrieve specific keys
     query = ReadRowsQuery(row_keys=[b"a", b"c"])
     row_list = await table.read_rows(query)
     assert len(row_list) == 2
     assert row_list[0].row_key == b"a"
     assert row_list[1].row_key == b"c"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_with_filter(table, temp_rows):
+    """
+    ensure filters are applied
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    # retrieve keys with filter
+    expected_label = "test-label"
+    row_filter = ApplyLabelFilter(expected_label)
+    query = ReadRowsQuery(row_filter=row_filter)
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 4
+    for row in row_list:
+        assert row[0].labels == [expected_label]
 
 
 @pytest.mark.asyncio
@@ -395,6 +418,72 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         await generator.__anext__()
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
+
+
+@pytest.mark.asyncio
+async def test_read_row(table, temp_rows):
+    """
+    Test read_row (single row helper)
+    """
+    from google.cloud.bigtable import Row
+
+    await temp_rows.add_row(b"row_key_1", value=b"value")
+    row = await table.read_row(b"row_key_1")
+    assert isinstance(row, Row)
+    assert row.row_key == b"row_key_1"
+    assert row.cells[0].value == b"value"
+
+
+@pytest.mark.asyncio
+async def test_read_row_missing(table):
+    """
+    Test read_row when row does not exist
+    """
+    from google.api_core import exceptions
+
+    row_key = "row_key_not_exist"
+    result = await table.read_row(row_key)
+    assert result is None
+    with pytest.raises(exceptions.InvalidArgument) as e:
+        await table.read_row("")
+        assert "Row key must be non-empty" in str(e)
+
+
+@pytest.mark.asyncio
+async def test_read_row_w_filter(table, temp_rows):
+    """
+    Test read_row (single row helper)
+    """
+    from google.cloud.bigtable import Row
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    await temp_rows.add_row(b"row_key_1", value=b"value")
+    expected_label = "test-label"
+    label_filter = ApplyLabelFilter(expected_label)
+    row = await table.read_row(b"row_key_1", row_filter=label_filter)
+    assert isinstance(row, Row)
+    assert row.row_key == b"row_key_1"
+    assert row.cells[0].value == b"value"
+    assert row.cells[0].labels == [expected_label]
+
+
+@pytest.mark.asyncio
+async def test_row_exists(table, temp_rows):
+    from google.api_core import exceptions
+
+    """Test row_exists with rows that exist and don't exist"""
+    assert await table.row_exists(b"row_key_1") is False
+    await temp_rows.add_row(b"row_key_1")
+    assert await table.row_exists(b"row_key_1") is True
+    assert await table.row_exists("row_key_1") is True
+    assert await table.row_exists(b"row_key_2") is False
+    assert await table.row_exists("row_key_2") is False
+    assert await table.row_exists("3") is False
+    await temp_rows.add_row(b"3")
+    assert await table.row_exists(b"3") is True
+    with pytest.raises(exceptions.InvalidArgument) as e:
+        await table.row_exists("")
+        assert "Row kest must be non-empty" in str(e)
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
