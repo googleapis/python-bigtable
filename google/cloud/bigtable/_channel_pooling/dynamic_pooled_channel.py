@@ -64,12 +64,12 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
                 "DynamicPooledChannel cannot be initialized with StaticPoolOptions"
             )
         self._pool: list[TrackedChannel] = []
-        self.pool_options = pool_options or DynamicPoolOptions()
+        self._pool_options = pool_options or DynamicPoolOptions()
         # create the pool
         PooledChannel.__init__(
             self,
             # create options for starting pool
-            pool_options=StaticPoolOptions(pool_size=self.pool_options.start_size),
+            pool_options=StaticPoolOptions(pool_size=self._pool_options.start_size),
             # all channels must be TrackChannels
             create_channel_fn=lambda: TrackedChannel(create_channel_fn(*args, **kwargs)),  # type: ignore
         )
@@ -81,7 +81,7 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
         self.start_background_task()
 
     def _background_coroutine(self) -> Coroutine[Any, Any, None]:
-        return self._resize_routine(interval=self.pool_options.pool_refresh_interval)
+        return self._resize_routine(interval=self._pool_options.pool_refresh_interval)
 
     @property
     def _task_description(self) -> str:
@@ -116,9 +116,9 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
             [channel.get_and_reset_max_active_rpcs() for channel in self._pool]
         )
         # find the minimum number of channels to serve the peak
-        min_channels = estimated_peak // self.pool_options.max_rpcs_per_channel
+        min_channels = estimated_peak // self._pool_options.max_rpcs_per_channel
         # find the maxiumum channels we'd want to serve the peak
-        max_channels = estimated_peak // max(self.pool_options.min_rpcs_per_channel, 1)
+        max_channels = estimated_peak // max(self._pool_options.min_rpcs_per_channel, 1)
         # clamp the number of channels to the min and max
         min_channels = max(min_channels, self.options.min_channels)
         max_channels = min(max_channels, self.options.max_channels)
