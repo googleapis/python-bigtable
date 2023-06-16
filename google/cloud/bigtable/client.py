@@ -55,6 +55,8 @@ from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 
+from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+from google.cloud.bigtable.row_filters import RowFilter
 from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.row_filters import RowFilterChain
@@ -62,8 +64,6 @@ from google.cloud.bigtable.row_filters import RowFilterChain
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
-    from google.cloud.bigtable.row_filters import RowFilter
-    from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
 class BigtableDataClient(ClientWithProject):
@@ -770,10 +770,11 @@ class Table:
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
-        predicate: RowFilter | None,
+        predicate: RowFilter | dict[str, Any] | None,
+        *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = 20,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -807,17 +808,43 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if true_case_mutations is not None and not isinstance(
+            true_case_mutations, list
+        ):
+            true_case_mutations = [true_case_mutations]
+        true_case_dict = [m._to_dict() for m in true_case_mutations or []]
+        if false_case_mutations is not None and not isinstance(
+            false_case_mutations, list
+        ):
+            false_case_mutations = [false_case_mutations]
+        false_case_dict = [m._to_dict() for m in false_case_mutations or []]
+        if predicate is not None and not isinstance(predicate, dict):
+            predicate = predicate.to_dict()
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        result = await self.client._gapic_client.check_and_mutate_row(
+            request={
+                "predicate_filter": predicate,
+                "true_mutations": true_case_dict,
+                "false_mutations": false_case_dict,
+                "table_name": self.table_name,
+                "row_key": row_key,
+                "app_profile_id": self.app_profile_id,
+            },
+            metadata=metadata,
+            timeout=operation_timeout,
+        )
+        return result.predicate_matched
 
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
-        rules: ReadModifyWriteRule
-        | list[ReadModifyWriteRule]
-        | dict[str, Any]
-        | list[dict[str, Any]],
+        rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
         *,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = 20,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -841,7 +868,29 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if rules is not None and not isinstance(rules, list):
+            rules = [rules]
+        if not rules:
+            raise ValueError("rules must contain at least one item")
+        # concert to dict representation
+        rules_dict = [rule._to_dict() for rule in rules]
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        result = await self.client._gapic_client.read_modify_write_row(
+            request={
+                "rules": rules_dict,
+                "table_name": self.table_name,
+                "row_key": row_key,
+                "app_profile_id": self.app_profile_id,
+            },
+            metadata=metadata,
+            timeout=operation_timeout,
+        )
+        # construct Row from result
+        return Row._from_pb(result.row)
 
     async def close(self):
         """
