@@ -150,7 +150,12 @@ class DynamicPooledChannel(PooledChannel, _BackgroundTaskMixin):
     async def __aenter__(self):
         await _BackgroundTaskMixin.__aenter__(self)
         await PooledChannel.__aenter__(self)
+        return self
 
     async def close(self, grace=None):
         await _BackgroundTaskMixin.close(self, grace)
         await PooledChannel.close(self, grace)
+
+    async def __aexit__(self, *args, **kwargs):
+        await _BackgroundTaskMixin.__aexit__(self, *args, **kwargs)
+        await PooledChannel.__aexit__(self, *args, **kwargs)

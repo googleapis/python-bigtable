@@ -52,7 +52,8 @@ class _WrappedChannel(aio.Channel):
         return await self._channel.channel_ready()
 
     async def __aenter__(self):
-        return await self._channel.__aenter__()
+        await self._channel.__aenter__()
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return await self._channel.__aexit__(exc_type, exc_val, exc_tb)

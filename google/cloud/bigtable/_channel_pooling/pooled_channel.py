@@ -97,11 +97,11 @@ class PooledChannel(aio.Channel):
 
     async def close(self, grace=None):
         close_fns = [channel.close(grace=grace) for channel in self._pool]
-        return await asyncio.gather(*close_fns)
+        await asyncio.gather(*close_fns)
 
     async def channel_ready(self):
         ready_fns = [channel.channel_ready() for channel in self._pool]
-        return asyncio.gather(*ready_fns)
+        await asyncio.gather(*ready_fns)
 
     async def __aenter__(self):
         for channel in self._pool:
@@ -109,15 +109,14 @@ class PooledChannel(aio.Channel):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
         for channel in self._pool:
             await channel.__aexit__(exc_type, exc_val, exc_tb)
 
     def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
-        raise NotImplementedError()
+        raise NotImplementedError("undefined for pool of channels")
 
     async def wait_for_state_change(self, last_observed_state):
-        raise NotImplementedError()
+        raise NotImplementedError("undefined for pool of channels")
 
     def index_of(self, channel) -> int:
         try:

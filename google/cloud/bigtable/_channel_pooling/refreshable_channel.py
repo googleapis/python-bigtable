@@ -52,7 +52,7 @@ class RefreshableChannel(_WrappedChannel, _BackgroundTaskMixin):
         )
         self._warm_channel = warm_channel_fn
         self._on_replace = on_replace
-        self._channel = create_channel_fn()
+        self._channel = self._create_channel()
         self._refresh_interval_min = refresh_interval_min
         self._refresh_interval_max = refresh_interval_max
         self._background_task: asyncio.Task[None] | None = None
@@ -112,7 +112,8 @@ class RefreshableChannel(_WrappedChannel, _BackgroundTaskMixin):
 
     async def __aenter__(self):
         await _BackgroundTaskMixin.__aenter__(self)
-        return await _WrappedChannel.__aenter__(self)
+        await _WrappedChannel.__aenter__(self)
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await _BackgroundTaskMixin.__aexit__(self, exc_type, exc_val, exc_tb)
