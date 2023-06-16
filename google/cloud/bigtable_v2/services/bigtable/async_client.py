@@ -18,6 +18,7 @@ import functools
 import re
 from typing import (
     Dict,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -169,7 +170,9 @@ class BigtableAsyncClient:
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Union[str, BigtableTransport] = "grpc_asyncio",
+        transport: Optional[
+            Union[str, BigtableTransport, Callable[..., BigtableTransport]]
+        ] = "grpc_asyncio",
         client_options: Optional[ClientOptions] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -181,10 +184,11 @@ class BigtableAsyncClient:
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, ~.BigtableTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
-            client_options (ClientOptions): Custom options for the client. It
+            transport (Optional[Union[str,BigtableTransport,Callable[..., BigtableTransport]]]):
+                The transport to use, or a callable that generates one with the
+                set of initialization arguments.
+                If set to None, a transport is chosen automatically.
+            client_options (Optional[ClientOptions]): Custom options for the client. It
                 won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
                 default endpoint provided by the client. GOOGLE_API_USE_MTLS_ENDPOINT

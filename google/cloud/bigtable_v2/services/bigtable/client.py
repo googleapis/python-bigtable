@@ -18,6 +18,7 @@ import os
 import re
 from typing import (
     Dict,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -53,7 +54,6 @@ from google.cloud.bigtable_v2.types import request_stats
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
-from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
 
@@ -68,7 +68,6 @@ class BigtableClientMeta(type):
     _transport_registry = OrderedDict()  # type: Dict[str, Type[BigtableTransport]]
     _transport_registry["grpc"] = BigtableGrpcTransport
     _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport
-    _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport
     _transport_registry["rest"] = BigtableRestTransport
 
     def get_transport_class(
@@ -367,7 +366,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTransport]] = None,
+        transport: Optional[
+            Union[str, BigtableTransport, Callable[..., BigtableTransport]]
+        ] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -379,9 +380,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, BigtableTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
+            transport (Optional[Union[str,BigtableTransport,Callable[..., BigtableTransport]]]):
+                The transport to use, or a callable that generates one with the
+                set of initialization arguments.
+                If set to None, a transport is chosen automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
@@ -450,8 +452,12 @@ class BigtableClient(metaclass=BigtableClientMeta):
                     api_key_value
                 )
 
-            Transport = type(self).get_transport_class(transport)
-            self._transport = Transport(
+            transport_init = (
+                type(self).get_transport_class(transport)
+                if isinstance(transport, str) or transport is None
+                else transport
+            )
+            self._transport = transport_init(
                 credentials=credentials,
                 credentials_file=client_options.credentials_file,
                 host=api_endpoint,
