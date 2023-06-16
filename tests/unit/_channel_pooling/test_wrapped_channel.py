@@ -81,6 +81,7 @@ class TestWrappedChannel:
             channel_method.call_args.kwargs.values()
         )
         assert all_args == [arg_mock]
+        assert channel_method.call_count == 1
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("method_name", ["unary_stream", "stream_stream"])
@@ -109,6 +110,7 @@ class TestWrappedChannel:
             channel_method.call_args.kwargs.values()
         )
         assert all_args == [arg_mock]
+        assert channel_method.call_count == 1
 
     @pytest.mark.parametrize("method_name", ["get_state"])
     def test_sync_api_passthrough(self, method_name):
@@ -167,7 +169,11 @@ class TestWrappedChannel:
         )
         assert all_args == args
         # assert that response was passed through
-        assert found_response == expected_response
+        if not method_name == "__aenter__":
+            assert found_response == expected_response
+        else:
+            # __aenter__ is special case: should return self
+            assert found_response is instance
 
     def test_wrapped_channel_property(self):
         """
@@ -175,6 +181,20 @@ class TestWrappedChannel:
         """
         instance, channel = self._make_one_with_channel_mock()
         assert instance.wrapped_channel is channel
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self):
+        """
+        entering and exit should call enter and exit on wrapped channel
+        """
+        instance, channel = self._make_one_with_channel_mock()
+        assert channel.__aenter__.call_count == 0
+        async with instance:
+            assert channel.__aenter__.call_count == 1
+            assert channel.__aenter__.await_count == 1
+            assert channel.__aexit__.call_count == 0
+        assert channel.__aexit__.call_count == 1
+        assert channel.__aexit__.await_count == 1
 
 
 class TestBackgroundTaskMixin:

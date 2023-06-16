@@ -31,8 +31,10 @@ from .test_wrapped_channel import TestBackgroundTaskMixin
 class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
     def _make_one_with_channel_mock(self, *args, async_mock=True, **kwargs):
         channel = AsyncMock() if async_mock else mock.Mock()
+        create_fn = mock.Mock()
+        create_fn.return_value = channel
         return (
-            self._make_one(*args, create_channel_fn=lambda: channel, **kwargs),
+            self._make_one(*args, create_channel_fn=create_fn, **kwargs),
             channel,
         )
 
@@ -46,7 +48,7 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
     def _make_one(self, *args, init_background_task=False, **kwargs):
         import warnings
 
-        kwargs.setdefault("create_channel_fn", lambda: AsyncMock())
+        kwargs.setdefault("create_channel_fn", lambda *args, **kwargs: AsyncMock())
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             if init_background_task:
@@ -60,7 +62,8 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
         test that constuctor sets starting values
         """
         expected_channel = mock.Mock()
-        channel_fn = lambda: expected_channel  # noqa: E731
+        channel_fn = mock.Mock()
+        channel_fn.return_value = expected_channel
         warm_fn = lambda: AsyncMock()  # noqa: E731
         replace_fn = lambda: AsyncMock()  # noqa: E731
         min_refresh = 4
@@ -90,6 +93,8 @@ class TestRefreshableChannel(TestWrappedChannel, TestBackgroundTaskMixin):
             assert instance._background_task is None
             assert instance._channel == expected_channel
             assert start_background_task_mock.call_count == 1
+            assert channel_fn.call_count == 1
+            assert channel_fn.call_args == mock.call(*extra_args, **extra_kwargs)
 
     def test_ctor_defaults(self):
         """
