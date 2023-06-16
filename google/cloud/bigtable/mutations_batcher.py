@@ -183,7 +183,8 @@ class MutationsBatcher:
         """
         Args:
           - table: Table to preform rpc calls
-          - flush_interval: Automatically flush every flush_interval seconds
+          - flush_interval: Automatically flush every flush_interval seconds.
+              If None, no time-based flushing is performed.
           - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
               mutations are added across all entries. If None, this limit is ignored.
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
@@ -223,6 +224,7 @@ class MutationsBatcher:
         Triggers new flush tasks every `interval` seconds
         """
         if interval is None:
+            # no time-based flushing is performed
             return
         while not self.closed:
             await asyncio.sleep(interval)
