@@ -115,8 +115,6 @@ class _FlowControl:
         Yields:
           - list of mutations that have reserved space in the flow control.
             Each batch contains at least one mutation.
-        Raises:
-          - ValueError if any mutation entry is larger than the flow control limits
         """
         if not isinstance(mutations, list):
             mutations = [mutations]
