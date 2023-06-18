@@ -274,80 +274,102 @@ class ReadRowsQuery:
         # our goal is to break up the query into subqueries that each operate in a single segment
         split_points = [sample[0] for sample in shard_keys if sample[0]]
 
-        # 1. handle row_keys
+        # handle row_keys
         # use binary search to find the segment that each key belongs to
         for this_key in list(self.row_keys):
-            # bisect_left: in case of exact match, pick left side (i.e. keys are inclusive ends)
+            # bisect_left: in case of exact match, pick left side (keys are inclusive ends)
             segment_index = bisect_left(split_points, this_key)
             sharded_queries[segment_index].add_key(this_key)
 
-        # 2. handle row_ranges
+        # handle row_ranges
         for this_range in self.row_ranges:
-            # 2a. find the index of the segment the start key belongs to
-            if this_range.start is None:
-                # if range is open on the left, include first segment
-                start_segment = 0
-            else:
-                # use binary search to find the segment the start key belongs to
-                # bisect method determines how we break ties when the start key matches a split point
-                # if inclusive, bisect_left to the left segment, otherwise bisect_right
-                bisect = bisect_left if this_range.start.is_inclusive else bisect_right
-                start_segment = bisect(split_points, this_range.start.key)
-
-            # 2b. find the index of the segment the end key belongs to
-            if this_range.end is None:
-                # if range is open on the right, include final segment
-                end_segment = len(split_points)
-            else:
-                # use binary search to find the segment the end key belongs to.
-                # optimization: remove keys up to start_segment from searched list,
-                # then add start_segment back to get the correct index
-                cropped_pts = split_points[start_segment:]
-                end_segment = (
-                    bisect_left(cropped_pts, this_range.end.key) + start_segment
-                )
-
-            # 2c. create new range definitions for each segment this_range spans
-            if start_segment == end_segment:
-                # this_range is contained in a single segment.
-                # Add this_range to that segment's query only
-                sharded_queries[start_segment].add_range(this_range)
-            else:
-                # this_range spans multiple segments. Create a new range for each segment's query
-                # 2c.1. add new range for first segment this_range spans
-                # first range spans from start_key to the split_point representing the last key in the segment
-                last_key_in_first_segment = split_points[start_segment]
-                start_range = RowRange._from_points(
-                    start=this_range.start,
-                    end=_RangePoint(last_key_in_first_segment, is_inclusive=True),
-                )
-                sharded_queries[start_segment].add_range(start_range)
-                # 2c.2. add new range for last segment this_range spans
-                # we start the final range using the end key from of the previous segment, with is_inclusive=False
-                previous_segment = end_segment - 1
-                last_key_before_segment = split_points[previous_segment]
-                end_range = RowRange._from_points(
-                    start=_RangePoint(last_key_before_segment, is_inclusive=False),
-                    end=this_range.end,
-                )
-                sharded_queries[end_segment].add_range(end_range)
-                # 2c.3. add new spanning range to all segments other than the first and last
-                for this_segment in range(start_segment + 1, end_segment):
-                    prev_segment = this_segment - 1
-                    prev_end_key = split_points[prev_segment]
-                    this_end_key = split_points[prev_segment + 1]
-                    new_range = RowRange(
-                        start_key=prev_end_key,
-                        start_is_inclusive=False,
-                        end_key=this_end_key,
-                        end_is_inclusive=True,
-                    )
-                    sharded_queries[this_segment].add_range(new_range)
-        # 3. return list of queries in order of segment
+            # defer to _shard_range helper
+            for segment_index, added_range in self._shard_range(
+                this_range, split_points
+            ):
+                sharded_queries[segment_index].add_range(added_range)
+        # return list of queries ordered by segment index
         # pull populated segments out of sharded_queries dict
         keys = sorted(list(sharded_queries.keys()))
         # return list of queries
         return [sharded_queries[k] for k in keys]
+
+    @staticmethod
+    def _shard_range(
+        orig_range: RowRange, split_points: list[bytes]
+    ) -> list[tuple[int, RowRange]]:
+        """
+        Helper function for sharding row_range into subranges that fit into
+        segments of the key-space, determined by split_points
+
+        Args:
+          - orig_range: a row range to split
+          - split_points: a list of row keys that define the boundaries of segments.
+                each point represents the inclusive end of a segment
+        Returns:
+          - a list of tuples, containing a segment index and a new sub-range.
+        """
+        # 1. find the index of the segment the start key belongs to
+        if orig_range.start is None:
+            # if range is open on the left, include first segment
+            start_segment = 0
+        else:
+            # use binary search to find the segment the start key belongs to
+            # bisect method determines how we break ties when the start key matches a split point
+            # if inclusive, bisect_left to the left segment, otherwise bisect_right
+            bisect = bisect_left if orig_range.start.is_inclusive else bisect_right
+            start_segment = bisect(split_points, orig_range.start.key)
+
+        # 2. find the index of the segment the end key belongs to
+        if orig_range.end is None:
+            # if range is open on the right, include final segment
+            end_segment = len(split_points)
+        else:
+            # use binary search to find the segment the end key belongs to.
+            # optimization: remove keys up to start_segment from searched list,
+            # then add start_segment back to get the correct index
+            cropped_pts = split_points[start_segment:]
+            end_segment = bisect_left(cropped_pts, orig_range.end.key) + start_segment
+            # note: end_segment will always bisect_left, because split points represent inclusive ends
+            # whether the end_key is includes the split point or not, the result is the same segment
+        # 3. create new range definitions for each segment this_range spans
+        if start_segment == end_segment:
+            # this_range is contained in a single segment.
+            # Add this_range to that segment's query only
+            return [(start_segment, orig_range)]
+        else:
+            results: list[tuple[int, RowRange]] = []
+            # this_range spans multiple segments. Create a new range for each segment's query
+            # 3a. add new range for first segment this_range spans
+            # first range spans from start_key to the split_point representing the last key in the segment
+            last_key_in_first_segment = split_points[start_segment]
+            start_range = RowRange._from_points(
+                start=orig_range.start,
+                end=_RangePoint(last_key_in_first_segment, is_inclusive=True),
+            )
+            results.append((start_segment, start_range))
+            # 3b. add new range for last segment this_range spans
+            # we start the final range using the end key from of the previous segment, with is_inclusive=False
+            previous_segment = end_segment - 1
+            last_key_before_segment = split_points[previous_segment]
+            end_range = RowRange._from_points(
+                start=_RangePoint(last_key_before_segment, is_inclusive=False),
+                end=orig_range.end,
+            )
+            results.append((end_segment, end_range))
+            # 3c. add new spanning range to all segments other than the first and last
+            for this_segment in range(start_segment + 1, end_segment):
+                prev_segment = this_segment - 1
+                prev_end_key = split_points[prev_segment]
+                this_end_key = split_points[prev_segment + 1]
+                new_range = RowRange(
+                    start_key=prev_end_key,
+                    start_is_inclusive=False,
+                    end_key=this_end_key,
+                    end_is_inclusive=True,
+                )
+                results.append((this_segment, new_range))
+            return results
 
     def _to_dict(self) -> dict[str, Any]:
         """
