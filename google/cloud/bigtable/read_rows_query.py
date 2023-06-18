@@ -156,7 +156,7 @@ class ReadRowsQuery:
             for r in row_ranges:
                 self.add_range(r)
         if row_keys is not None:
-            if isinstance(row_keys, (str, bytes)):
+            if not isinstance(row_keys, list):
                 row_keys = [row_keys]
             for k in row_keys:
                 self.add_key(k)

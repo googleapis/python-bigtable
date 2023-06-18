@@ -741,3 +741,8 @@ class TestReadRowsQuery:
         recreated = eval(repr_str)
         assert isinstance(recreated, ReadRowsQuery)
         assert recreated == instance
+
+    def test_empty_row_set(self):
+        """Empty strings should be treated as keys inputs"""
+        query = self._make_one(row_keys="")
+        assert query.row_keys == {b""}
