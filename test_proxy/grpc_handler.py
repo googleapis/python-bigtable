@@ -97,8 +97,7 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
         status = Status()
         entries = []
         if isinstance(client_response, dict) and "error" in client_response:
-            entries = [bigtable_pb2.MutateRowsResponse.Entry(index=exc_dict.get("index",1), status=Status(code=exc_dict.get("code", 5)))
-                            for exc_dict in client_response.get("subexceptions", [])]
+            entries = [bigtable_pb2.MutateRowsResponse.Entry(index=exc_dict.get("index",1), status=Status(code=exc_dict.get("code", 5))) for exc_dict in client_response.get("subexceptions", [])]
             if not entries:
                 # only return failure on the overall request if there are failed entries
                 status = Status(code=client_response.get("code", 5), message=client_response["error"])
@@ -106,12 +105,18 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
         response = test_proxy_pb2.MutateRowsResult(status=status, entry=entries)
         return response
 
-    def CheckAndMutateRow(self, request, context):
-        return test_proxy_pb2.CheckAndMutateRowResult()
+    @delegate_to_client_handler
+    def CheckAndMutateRow(self, request, context, client_response=None):
+        if isinstance(client_response, dict) and "error" in client_response:
+            status = Status(code=client_response.get("code", 5), message=client_response["error"])
+            response = test_proxy_pb2.CheckAndMutateRowResult(status=status)
+        else:
+            result = bigtable_pb2.CheckAndMutateRowResponse(predicate_matched=client_response)
+            response = test_proxy_pb2.CheckAndMutateRowResult(result=result, status=Status())
+        return response
 
     def ReadModifyWriteRow(self, request, context):
         return test_proxy_pb2.RowResult()
 
     def SampleRowKeys(self, request, context):
         return test_proxy_pb2.SampleRowKeysResult()
-

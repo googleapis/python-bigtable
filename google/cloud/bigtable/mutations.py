@@ -51,7 +51,7 @@ class Mutation(ABC):
                     details["family_name"],
                     details["column_qualifier"],
                     details["value"],
-                    details["timestamp_micros"],
+                    details.get("timestamp_micros", None),
                 )
             elif "delete_from_column" in input_dict:
                 details = input_dict["delete_from_column"]

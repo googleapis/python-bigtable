@@ -66,6 +66,7 @@ def encode_exception(exc):
                 result["code"] = subexc["code"]
     return result
 
+
 class TestProxyClientHandler:
     """
     Implements the same methods as the grpc server, but handles the client
@@ -122,8 +123,7 @@ class TestProxyClientHandler:
         except Exception:
             pass
         mutations = [Mutation._from_dict(d) for d in request["mutations"]]
-        async with self.measure_call():
-            await table.mutate_row(row_key, mutations, **kwargs)
+        await table.mutate_row(row_key, mutations, **kwargs)
         return "OK"
 
     @error_safe
@@ -141,6 +141,45 @@ class TestProxyClientHandler:
             except Exception:
                 pass
         entry_list = [RowMutationEntry._from_dict(entry) for entry in request["entries"]]
-        async with self.measure_call():
-            await table.bulk_mutate_rows(entry_list, **kwargs)
+        await table.bulk_mutate_rows(entry_list, **kwargs)
         return "OK"
+
+    @error_safe
+    async def CheckAndMutateRow(self, request, **kwargs):
+        from google.cloud.bigtable.mutations import Mutation, SetCell
+        import base64
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        row_key = request["row_key"]
+        try:
+            # conformance tests send row keys as base64 encoded strings
+            row_key = base64.b64decode(row_key)
+        except Exception:
+            pass
+        # add default values for incomplete dicts, so they can still be parsed to objects
+        true_mutations = []
+        for mut_dict in request.get("true_mutations", []):
+            try:
+                true_mutations.append(Mutation._from_dict(mut_dict))
+            except ValueError:
+                # invalid mutation type. Conformance test may be sending generic empty request
+                true_mutations.append(SetCell("", "", "", -1))
+        false_mutations = []
+        for mut_dict in request.get("false_mutations", []):
+            try:
+                false_mutations.append(Mutation._from_dict(mut_dict))
+            except ValueError:
+                # invalid mutation type. Conformance test may be sending generic empty request
+                false_mutations.append(SetCell("", "", "", -1))
+        predicate_filter = request.get("predicate_filter", None)
+        result = await table.check_and_mutate_row(
+            row_key,
+            predicate_filter,
+            true_case_mutations=true_mutations,
+            false_case_mutations=false_mutations,
+            **kwargs,
+        )
+        return result
+
