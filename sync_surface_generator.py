@@ -53,10 +53,12 @@ name_map = {
     "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
     "Awaitable": None,
     "pytest_asyncio": "pytest",
+    "AsyncMock": "mock.Mock",
     "_ReadRowsOperation": "_ReadRowsOperation_Sync",
     "Table": "Table_Sync",
     "BigtableDataClient": "BigtableDataClient_Sync",
     "ReadRowsIterator": "ReadRowsIterator_Sync",
+    "_MutateRowsOperation": "_MutateRowsOperation_Sync",
 }
 
 # This maps classes to the final sync surface location, so they can be instantiated in generated code
@@ -453,14 +455,16 @@ def generate_full_surface(save_path=None):
     Generate a sync surface from all async classes
     """
     from google.cloud.bigtable._read_rows import _ReadRowsOperation
+    from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
     from google.cloud.bigtable.iterators import ReadRowsIterator
 
-    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator]
+    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator, _MutateRowsOperation]
     code = transform_sync(conversion_list,
         concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-        pass_methods=pass_methods, drop_methods=drop_methods, error_methods=error_methods
+        pass_methods=pass_methods, drop_methods=drop_methods, error_methods=error_methods,
+        add_imports=["import google.cloud.bigtable.exceptions as bt_exceptions"],
     )
     if save_path is not None:
         with open(save_path, "w") as f:

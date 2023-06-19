@@ -22,6 +22,7 @@ from google.cloud.bigtable._sync._autogen import _ReadRowsOperation_Sync
 from google.cloud.bigtable._sync._autogen import Table_Sync
 from google.cloud.bigtable._sync._autogen import BigtableDataClient_Sync
 from google.cloud.bigtable._sync._autogen import ReadRowsIterator_Sync
+from google.cloud.bigtable._sync._autogen import _MutateRowsOperation_Sync
 
 
 class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
@@ -80,4 +81,8 @@ class BigtableDataClient_Sync_Concrete(BigtableDataClient_Sync):
 
 
 class ReadRowsIterator_Sync_Concrete(ReadRowsIterator_Sync):
+    pass
+
+
+class _MutateRowsOperation_Sync_Concrete(_MutateRowsOperation_Sync):
     pass

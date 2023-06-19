@@ -32,6 +32,7 @@ from typing import Optional
 from typing import Set
 from typing import cast
 import asyncio
+import functools
 import time
 import warnings
 
@@ -42,8 +43,9 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable._helpers import _attempt_timeout_generator
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable._helpers import _make_metadata
-from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
 from google.cloud.bigtable._read_rows import _StateMachine
+from google.cloud.bigtable.client import Table
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import _RowSetComplete
 from google.cloud.bigtable.mutations import Mutation
@@ -66,6 +68,8 @@ from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.client import ClientWithProject
 import google.auth._default
 import google.auth.credentials
+import google.cloud.bigtable.exceptions
+import google.cloud.bigtable.exceptions as bt_exceptions
 
 
 class _ReadRowsOperation_Sync(Iterable[Row], ABC):
@@ -672,7 +676,7 @@ class Table_Sync(ABC):
             raise ValueError("per_request_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
-        operation = _MutateRowsOperation(
+        operation = _MutateRowsOperation_Sync(
             self.client._gapic_client,
             self,
             mutation_entries,
@@ -1049,3 +1053,153 @@ class ReadRowsIterator_Sync(Iterable[Row], ABC):
     def close(self):
         """Support closing the stream with an explicit call to aclose()"""
         self._finish_with_error(StopIteration(f"{self.__class__.__name__} closed"))
+
+
+class _MutateRowsOperation_Sync(ABC):
+    """
+    MutateRowsOperation manages the logic of sending a set of row mutations,
+    and retrying on failed entries. It manages this using the _run_attempt
+    function, which attempts to mutate all outstanding entries, and raises
+    _MutateRowsIncomplete if any retryable errors are encountered.
+
+    Errors are exposed as a MutationsExceptionGroup, which contains a list of
+    exceptions organized by the related failed mutation entries.
+    """
+
+    def __init__(
+        self,
+        gapic_client: "BigtableAsyncClient",
+        table: "Table",
+        mutation_entries: list["RowMutationEntry"],
+        operation_timeout: float,
+        per_request_timeout: float | None,
+    ):
+        """
+        Args:
+          - gapic_client: the client to use for the mutate_rows call
+          - table: the table associated with the request
+          - mutation_entries: a list of RowMutationEntry objects to send to the server
+          - operation_timeout: the timeout t o use for the entire operation, in seconds.
+          - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
+              If not specified, the request will run until operation_timeout is reached.
+        """
+        metadata = _make_metadata(table.table_name, table.app_profile_id)
+        self._gapic_fn = functools.partial(
+            gapic_client.mutate_rows,
+            table_name=table.table_name,
+            app_profile_id=table.app_profile_id,
+            metadata=metadata,
+        )
+        self.is_retryable = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+            _MutateRowsIncomplete,
+        )
+        retry = retries.Retry(
+            predicate=self.is_retryable,
+            timeout=operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+        )
+        retry_wrapped = retry(self._run_attempt)
+        self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
+        self.timeout_generator = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
+        self.mutations = mutation_entries
+        self.remaining_indices = list(range(len(self.mutations)))
+        self.errors: dict[int, list[Exception]] = {}
+
+    def start(self):
+        """
+        Start the operation, and run until completion
+
+        Raises:
+          - MutationsExceptionGroup: if any mutations failed
+        """
+        try:
+            self._operation()
+        except Exception as exc:
+            incomplete_indices = self.remaining_indices.copy()
+            for idx in incomplete_indices:
+                self._handle_entry_error(idx, exc)
+        finally:
+            all_errors = []
+            for idx, exc_list in self.errors.items():
+                if len(exc_list) == 0:
+                    raise core_exceptions.ClientError(
+                        f"Mutation {idx} failed with no associated errors"
+                    )
+                elif len(exc_list) == 1:
+                    cause_exc = exc_list[0]
+                else:
+                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
+                entry = self.mutations[idx]
+                all_errors.append(
+                    bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
+                )
+            if all_errors:
+                raise bt_exceptions.MutationsExceptionGroup(
+                    all_errors, len(self.mutations)
+                )
+
+    def _run_attempt(self):
+        """
+        Run a single attempt of the mutate_rows rpc.
+
+        Raises:
+          - _MutateRowsIncomplete: if there are failed mutations eligible for
+              retry after the attempt is complete
+          - GoogleAPICallError: if the gapic rpc fails
+        """
+        request_entries = [
+            self.mutations[idx]._to_dict() for idx in self.remaining_indices
+        ]
+        active_request_indices = {
+            req_idx: orig_idx
+            for (req_idx, orig_idx) in enumerate(self.remaining_indices)
+        }
+        self.remaining_indices = []
+        if not request_entries:
+            return
+        try:
+            result_generator = self._gapic_fn(
+                timeout=next(self.timeout_generator), entries=request_entries
+            )
+            for result_list in result_generator:
+                for result in result_list.entries:
+                    orig_idx = active_request_indices[result.index]
+                    entry_error = core_exceptions.from_grpc_status(
+                        result.status.code,
+                        result.status.message,
+                        details=result.status.details,
+                    )
+                    if result.status.code != 0:
+                        self._handle_entry_error(orig_idx, entry_error)
+                    del active_request_indices[result.index]
+        except Exception as exc:
+            for idx in active_request_indices.values():
+                self._handle_entry_error(idx, exc)
+                raise
+        if self.remaining_indices:
+            raise _MutateRowsIncomplete
+
+    def _handle_entry_error(self, idx: int, exc: Exception):
+        """
+        Add an exception to the list of exceptions for a given mutation index,
+        and add the index to the list of remaining indices if the exception is
+        retryable.
+
+        Args:
+          - idx: the index of the mutation that failed
+          - exc: the exception to add to the list
+        """
+        entry = self.mutations[idx]
+        self.errors.setdefault(idx, []).append(exc)
+        if (
+            entry.is_idempotent()
+            and self.is_retryable(exc)
+            and (idx not in self.remaining_indices)
+        ):
+            self.remaining_indices.append(idx)
