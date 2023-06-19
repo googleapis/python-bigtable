@@ -56,6 +56,7 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
     Defines a process that recives Bigtable requests from a grpc_server_process,
     and runs the request using a client library instance
     """
+    import base64
     import re
     import asyncio
     import warnings
@@ -75,6 +76,15 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
             # check for time encodings
             if re.match("^[0-9]+s$", input_obj):
                 return int(input_obj[:-1])
+            # check for encoded bytes
+            if re.match("^[A-Za-z0-9+/=]+$", input_obj):
+                try:
+                    decoded_str = base64.b64decode(input_obj)
+                    # if the string contains non-ascii bytes, raise exception
+                    decoded_str.decode("ascii")
+                    return decoded_str
+                except Exception:
+                    pass
             # check for int strings
             try:
                 return int(input_obj)
@@ -174,4 +184,4 @@ if __name__ == "__main__":
     # )
     # client.start()
     # grpc_server_process(request_q, response_queue_pool, port)
-    # client.join()
+    client.join()

@@ -123,18 +123,12 @@ class TestProxyClientHandler:
 
     @error_safe
     async def MutateRow(self, request, **kwargs):
-        import base64
         from google.cloud.bigtable.mutations import Mutation
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         row_key = request["row_key"]
-        try:
-            # conformance tests send row keys as base64 encoded strings
-            row_key = base64.b64decode(row_key)
-        except Exception:
-            pass
         mutations = [Mutation._from_dict(d) for d in request["mutations"]]
         await table.mutate_row(row_key, mutations, **kwargs)
         return "OK"
@@ -142,17 +136,10 @@ class TestProxyClientHandler:
     @error_safe
     async def BulkMutateRows(self, request, **kwargs):
         from google.cloud.bigtable.mutations import RowMutationEntry
-        import base64
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        # conformance tests send row keys as base64 encoded strings
-        for entry in request["entries"]:
-            try:
-                entry["row_key"] = base64.b64decode(entry["row_key"])
-            except Exception:
-                pass
         entry_list = [RowMutationEntry._from_dict(entry) for entry in request["entries"]]
         await table.bulk_mutate_rows(entry_list, **kwargs)
         return "OK"
@@ -160,17 +147,11 @@ class TestProxyClientHandler:
     @error_safe
     async def CheckAndMutateRow(self, request, **kwargs):
         from google.cloud.bigtable.mutations import Mutation, SetCell
-        import base64
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         row_key = request["row_key"]
-        try:
-            # conformance tests send row keys as base64 encoded strings
-            row_key = base64.b64decode(row_key)
-        except Exception:
-            pass
         # add default values for incomplete dicts, so they can still be parsed to objects
         true_mutations = []
         for mut_dict in request.get("true_mutations", []):
@@ -200,32 +181,16 @@ class TestProxyClientHandler:
     async def ReadModifyWriteRow(self, request, **kwargs):
         from google.cloud.bigtable.read_modify_write_rules import IncrementRule
         from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
-        import base64
         table_id = request["table_name"].split("/")[-1]
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         row_key = request["row_key"]
-        try:
-            # conformance tests send row keys as base64 encoded strings
-            row_key = base64.b64decode(row_key)
-        except Exception:
-            pass
         rules = []
-        # conformance tests send qualifiers and values as base64 encoded strings
         for rule_dict in request.get("rules", []):
             qualifier = rule_dict["column_qualifier"]
-            try:
-                qualifier = base64.b64decode(qualifier)
-            except Exception:
-                pass
             if "append_value" in rule_dict:
-                value = rule_dict["append_value"]
-                try:
-                    value = base64.b64decode(value)
-                except Exception:
-                    pass
-                new_rule = AppendValueRule(rule_dict["family_name"], qualifier, value)
+                new_rule = AppendValueRule(rule_dict["family_name"], qualifier, rule_dict["append_value"])
             else:
                 new_rule = IncrementRule(rule_dict["family_name"], qualifier, rule_dict["increment_amount"])
             rules.append(new_rule)
