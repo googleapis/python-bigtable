@@ -238,4 +238,9 @@ class TestProxyClientHandler:
 
     @error_safe
     async def SampleRowKeys(self, request, **kwargs):
-        pass
+        table_id = request["table_name"].split("/")[-1]
+        app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        result = await table.sample_row_keys(**kwargs)
+        return result
