@@ -109,6 +109,19 @@ class TestProxyClientHandler:
         return serialized_response
 
     @error_safe
+    async def ReadRow(self, row_key, **kwargs):
+        table_id = kwargs.pop("table_name").split("/")[-1]
+        app_profile_id = self.app_profile_id or kwargs.get("app_profile_id", None)
+        table = self.client.get_table(self.instance_id, table_id, app_profile_id)
+        kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
+        result_row = await table.read_row(row_key, **kwargs)
+        # pack results back into protobuf-parsable format
+        if result_row:
+            return result_row.to_dict()
+        else:
+            return "None"
+
+    @error_safe
     async def MutateRow(self, request, **kwargs):
         import base64
         from google.cloud.bigtable.mutations import Mutation

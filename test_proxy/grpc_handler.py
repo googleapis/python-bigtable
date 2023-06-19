@@ -59,6 +59,7 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
 
         return wrapper
 
+
     @delegate_to_client_handler
     def CreateClient(self, request, context, client_response=None):
         return test_proxy_pb2.CreateClientResponse()
@@ -82,8 +83,16 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
         result = test_proxy_pb2.RowsResult(row=rows, status=status)
         return result
 
-    def ReadRow(self, request, context):
-        return test_proxy_pb2.RowResult()
+    @delegate_to_client_handler
+    def ReadRow(self, request, context, client_response=None):
+        status = Status()
+        row = None
+        if isinstance(client_response, dict) and "error" in client_response:
+            status=Status(code=client_response.get("code", 5), message=client_response.get("error"))
+        elif client_response != "None":
+            row = data_pb2.Row(**client_response)
+        result = test_proxy_pb2.RowResult(row=row, status=status)
+        return result
 
     @delegate_to_client_handler
     def MutateRow(self, request, context, client_response=None):
