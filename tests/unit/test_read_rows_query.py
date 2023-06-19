@@ -300,7 +300,7 @@ class TestReadRowsQuery(unittest.TestCase):
         output = query._to_dict()
         self.assertTrue(isinstance(output, dict))
         self.assertEqual(len(output.keys()), 1)
-        expected = {"rows": {"row_keys": [], "row_ranges": []}}
+        expected = {"rows": {}}
         self.assertEqual(output, expected)
 
         request_proto = ReadRowsRequest(**output)
@@ -354,6 +354,11 @@ class TestReadRowsQuery(unittest.TestCase):
         # check filter
         filter_proto = request_proto.filter
         self.assertEqual(filter_proto, row_filter._to_pb())
+
+    def test_empty_row_set(self):
+        """Empty strings should be treated as keys inputs"""
+        query = self._make_one(row_keys="")
+        self.assertEqual(query.row_keys, {b""})
 
     def test_shard(self):
         pass

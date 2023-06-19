@@ -55,6 +55,50 @@ class TestRow(unittest.TestCase):
         self.assertEqual(list(row_response), cells)
         self.assertEqual(row_response.row_key, TEST_ROW_KEY)
 
+    def test__from_pb(self):
+        """
+        Construct from protobuf.
+        """
+        from google.cloud.bigtable_v2.types import Row as RowPB
+        from google.cloud.bigtable_v2.types import Family as FamilyPB
+        from google.cloud.bigtable_v2.types import Column as ColumnPB
+        from google.cloud.bigtable_v2.types import Cell as CellPB
+
+        row_key = b"row_key"
+        cells = [
+            CellPB(
+                value=str(i).encode(),
+                timestamp_micros=TEST_TIMESTAMP,
+                labels=TEST_LABELS,
+            )
+            for i in range(2)
+        ]
+        column = ColumnPB(qualifier=TEST_QUALIFIER, cells=cells)
+        families_pb = [FamilyPB(name=TEST_FAMILY_ID, columns=[column])]
+        row_pb = RowPB(key=row_key, families=families_pb)
+        output = self._get_target_class()._from_pb(row_pb)
+        self.assertEqual(output.row_key, row_key)
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output[0].value, b"0")
+        self.assertEqual(output[1].value, b"1")
+        self.assertEqual(output[0].timestamp_micros, TEST_TIMESTAMP)
+        self.assertEqual(output[0].labels, TEST_LABELS)
+        assert output[0].row_key == row_key
+        assert output[0].family == TEST_FAMILY_ID
+        assert output[0].qualifier == TEST_QUALIFIER
+
+    def test__from_pb_sparse(self):
+        """
+        Construct from minimal protobuf.
+        """
+        from google.cloud.bigtable_v2.types import Row as RowPB
+
+        row_key = b"row_key"
+        row_pb = RowPB(key=row_key)
+        output = self._get_target_class()._from_pb(row_pb)
+        self.assertEqual(output.row_key, row_key)
+        self.assertEqual(len(output), 0)
+
     def test_get_cells(self):
         cell_list = []
         for family_id in ["1", "2"]:

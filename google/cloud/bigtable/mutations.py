@@ -18,6 +18,8 @@ import time
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
 
@@ -38,6 +40,39 @@ class Mutation(ABC):
 
     def __str__(self) -> str:
         return str(self._to_dict())
+
+    @classmethod
+    def _from_dict(cls, input_dict: dict[str, Any]) -> Mutation:
+        instance: Mutation | None = None
+        try:
+            if "set_cell" in input_dict:
+                details = input_dict["set_cell"]
+                instance = SetCell(
+                    details["family_name"],
+                    details["column_qualifier"],
+                    details["value"],
+                    details["timestamp_micros"],
+                )
+            elif "delete_from_column" in input_dict:
+                details = input_dict["delete_from_column"]
+                time_range = details.get("time_range", {})
+                start = time_range.get("start_timestamp_micros", None)
+                end = time_range.get("end_timestamp_micros", None)
+                instance = DeleteRangeFromColumn(
+                    details["family_name"], details["column_qualifier"], start, end
+                )
+            elif "delete_from_family" in input_dict:
+                details = input_dict["delete_from_family"]
+                instance = DeleteAllFromFamily(details["family_name"])
+            elif "delete_from_row" in input_dict:
+                instance = DeleteAllFromRow()
+        except KeyError as e:
+            raise ValueError("Invalid mutation dictionary") from e
+        if instance is None:
+            raise ValueError("No valid mutation found")
+        if not issubclass(instance.__class__, cls):
+            raise ValueError("Mutation type mismatch")
+        return instance
 
 
 class SetCell(Mutation):
@@ -66,12 +101,17 @@ class SetCell(Mutation):
         if isinstance(new_value, str):
             new_value = new_value.encode()
         elif isinstance(new_value, int):
+            if abs(new_value) > MAX_INCREMENT_VALUE:
+                raise ValueError(
+                    "int values must be between -2**63 and 2**63 (64-bit signed int)"
+                )
             new_value = new_value.to_bytes(8, "big", signed=True)
         if not isinstance(new_value, bytes):
             raise TypeError("new_value must be bytes, str, or int")
         if timestamp_micros is None:
-            # use current timestamp
+            # use current timestamp, with milisecond precision
             timestamp_micros = time.time_ns() // 1000
+            timestamp_micros = timestamp_micros - (timestamp_micros % 1000)
         if timestamp_micros < SERVER_SIDE_TIMESTAMP:
             raise ValueError(
                 "timestamp_micros must be positive (or -1 for server-side timestamp)"
@@ -79,14 +119,7 @@ class SetCell(Mutation):
         self.family = family
         self.qualifier = qualifier
         self.new_value = new_value
-        self._timestamp_micros = timestamp_micros
-
-    @property
-    def timestamp_micros(self):
-        if self._timestamp_micros > 0:
-            # round to use milisecond precision
-            return (self._timestamp_micros // 1000) * 1000
-        return self._timestamp_micros
+        self.timestamp_micros = timestamp_micros
 
     def _to_dict(self) -> dict[str, Any]:
         """Convert the mutation to a dictionary representation"""
@@ -174,3 +207,12 @@ class RowMutationEntry:
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
         return all(mutation.is_idempotent() for mutation in self.mutations)
+
+    @classmethod
+    def _from_dict(cls, input_dict: dict[str, Any]) -> RowMutationEntry:
+        return RowMutationEntry(
+            row_key=input_dict["row_key"],
+            mutations=[
+                Mutation._from_dict(mutation) for mutation in input_dict["mutations"]
+            ],
+        )

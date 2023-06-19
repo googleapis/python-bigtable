@@ -19,6 +19,8 @@ import asyncio
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
 
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
@@ -158,8 +160,12 @@ class TempRowBuilder:
         self.table = table
 
     async def add_row(
-        self, row_key, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
+        self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
     ):
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        elif isinstance(value, int):
+            value = value.to_bytes(8, byteorder="big", signed=True)
         request = {
             "table_name": self.table.table_name,
             "row_key": row_key,
@@ -185,6 +191,19 @@ class TempRowBuilder:
             ],
         }
         await self.table.client._gapic_client.mutate_rows(request)
+
+
+async def _retrieve_cell_value(table, row_key):
+    """
+    Helper to read an individual row
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+
+    row_list = await table.read_rows(ReadRowsQuery(row_keys=row_key))
+    assert len(row_list) == 1
+    row = row_list[0]
+    cell = row.cells[0]
+    return cell.value
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -213,25 +232,214 @@ async def test_mutation_set_cell(table, temp_rows):
     """
     from google.cloud.bigtable.mutations import SetCell
 
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    row_key = b"mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
     )
-    await table.mutate_row("abc", mutation)
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+    await table.mutate_row(row_key, mutation)
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_bulk_mutations_set_cell(client, table):
+async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
     Ensure cells can be set properly
     """
     from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
 
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=b"test-value"
+    row_key = b"bulk_mutate"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_value = b"start"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
     )
-    bulk_mutation = RowMutationEntry(b"abc", [mutation])
+
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    expected_value = b"new-value"
+    mutation = SetCell(
+        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
     await table.bulk_mutate_rows([bulk_mutation])
+
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
+
+
+@pytest.mark.parametrize(
+    "start,increment,expected",
+    [
+        (0, 0, 0),
+        (0, 1, 1),
+        (0, -1, -1),
+        (1, 0, 1),
+        (0, -100, -100),
+        (0, 3000, 3000),
+        (10, 4, 14),
+        (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
+        (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
+        (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
+    ],
+)
+@pytest.mark.asyncio
+async def test_read_modify_write_row_increment(
+    client, table, temp_rows, start, increment, expected
+):
+    """
+    test read_modify_write_row
+    """
+    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    await temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
+
+    rule = IncrementRule(family, qualifier, increment)
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert len(result) == 1
+    assert result[0].family == family
+    assert result[0].qualifier == qualifier
+    assert int(result[0]) == expected
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
+
+
+@pytest.mark.parametrize(
+    "start,append,expected",
+    [
+        (b"", b"", b""),
+        ("", "", b""),
+        (b"abc", b"123", b"abc123"),
+        (b"abc", "123", b"abc123"),
+        ("", b"1", b"1"),
+        (b"abc", "", b"abc"),
+        (b"hello", b"world", b"helloworld"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_read_modify_write_row_append(
+    client, table, temp_rows, start, append, expected
+):
+    """
+    test read_modify_write_row
+    """
+    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    await temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
+
+    rule = AppendValueRule(family, qualifier, append)
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert len(result) == 1
+    assert result[0].family == family
+    assert result[0].qualifier == qualifier
+    assert result[0].value == expected
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
+
+
+@pytest.mark.asyncio
+async def test_read_modify_write_row_chained(client, table, temp_rows):
+    """
+    test read_modify_write_row with multiple rules
+    """
+    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    start_amount = 1
+    increment_amount = 10
+    await temp_rows.add_row(
+        row_key, value=start_amount, family=family, qualifier=qualifier
+    )
+    rule = [
+        IncrementRule(family, qualifier, increment_amount),
+        AppendValueRule(family, qualifier, "hello"),
+        AppendValueRule(family, qualifier, "world"),
+        AppendValueRule(family, qualifier, "!"),
+    ]
+    result = await table.read_modify_write_row(row_key, rule)
+    assert result.row_key == row_key
+    assert result[0].family == family
+    assert result[0].qualifier == qualifier
+    # result should be a bytes number string for the IncrementRules, followed by the AppendValueRule values
+    assert (
+        result[0].value
+        == (start_amount + increment_amount).to_bytes(8, "big", signed=True)
+        + b"helloworld!"
+    )
+    # ensure that reading from server gives same value
+    assert (await _retrieve_cell_value(table, row_key)) == result[0].value
+
+
+@pytest.mark.parametrize(
+    "start_val,predicate_range,expected_result",
+    [
+        (1, (0, 2), True),
+        (-1, (0, 2), False),
+    ],
+)
+@pytest.mark.asyncio
+async def test_check_and_mutate(
+    client, table, temp_rows, start_val, predicate_range, expected_result
+):
+    """
+    test that check_and_mutate_row works applies the right mutations, and returns the right result
+    """
+    from google.cloud.bigtable.mutations import SetCell
+    from google.cloud.bigtable.row_filters import ValueRangeFilter
+
+    row_key = b"test-row-key"
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+
+    await temp_rows.add_row(
+        row_key, value=start_val, family=family, qualifier=qualifier
+    )
+
+    false_mutation_value = b"false-mutation-value"
+    false_mutation = SetCell(
+        family=TEST_FAMILY, qualifier=qualifier, new_value=false_mutation_value
+    )
+    true_mutation_value = b"true-mutation-value"
+    true_mutation = SetCell(
+        family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
+    )
+    predicate = ValueRangeFilter(predicate_range[0], predicate_range[1])
+    result = await table.check_and_mutate_row(
+        row_key,
+        predicate,
+        true_case_mutations=true_mutation,
+        false_case_mutations=false_mutation,
+    )
+    assert result == expected_result
+    # ensure cell is updated
+    expected_value = true_mutation_value if expected_result else false_mutation_value
+    assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -291,9 +499,9 @@ async def test_read_rows_range_query(table, temp_rows):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_read_rows_key_query(table, temp_rows):
+async def test_read_rows_single_key_query(table, temp_rows):
     """
-    Ensure that the read_rows method works
+    Ensure that the read_rows method works with specified query
     """
     from google.cloud.bigtable import ReadRowsQuery
 
@@ -301,12 +509,35 @@ async def test_read_rows_key_query(table, temp_rows):
     await temp_rows.add_row(b"b")
     await temp_rows.add_row(b"c")
     await temp_rows.add_row(b"d")
-    # full table scan
+    # retrieve specific keys
     query = ReadRowsQuery(row_keys=[b"a", b"c"])
     row_list = await table.read_rows(query)
     assert len(row_list) == 2
     assert row_list[0].row_key == b"a"
     assert row_list[1].row_key == b"c"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_with_filter(table, temp_rows):
+    """
+    ensure filters are applied
+    """
+    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    # retrieve keys with filter
+    expected_label = "test-label"
+    row_filter = ApplyLabelFilter(expected_label)
+    query = ReadRowsQuery(row_filter=row_filter)
+    row_list = await table.read_rows(query)
+    assert len(row_list) == 4
+    for row in row_list:
+        assert row[0].labels == [expected_label]
 
 
 @pytest.mark.asyncio
@@ -347,3 +578,115 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         await generator.__anext__()
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
+
+
+@pytest.mark.asyncio
+async def test_read_row(table, temp_rows):
+    """
+    Test read_row (single row helper)
+    """
+    from google.cloud.bigtable import Row
+
+    await temp_rows.add_row(b"row_key_1", value=b"value")
+    row = await table.read_row(b"row_key_1")
+    assert isinstance(row, Row)
+    assert row.row_key == b"row_key_1"
+    assert row.cells[0].value == b"value"
+
+
+@pytest.mark.asyncio
+async def test_read_row_missing(table):
+    """
+    Test read_row when row does not exist
+    """
+    from google.api_core import exceptions
+
+    row_key = "row_key_not_exist"
+    result = await table.read_row(row_key)
+    assert result is None
+    with pytest.raises(exceptions.InvalidArgument) as e:
+        await table.read_row("")
+        assert "Row key must be non-empty" in str(e)
+
+
+@pytest.mark.asyncio
+async def test_read_row_w_filter(table, temp_rows):
+    """
+    Test read_row (single row helper)
+    """
+    from google.cloud.bigtable import Row
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    await temp_rows.add_row(b"row_key_1", value=b"value")
+    expected_label = "test-label"
+    label_filter = ApplyLabelFilter(expected_label)
+    row = await table.read_row(b"row_key_1", row_filter=label_filter)
+    assert isinstance(row, Row)
+    assert row.row_key == b"row_key_1"
+    assert row.cells[0].value == b"value"
+    assert row.cells[0].labels == [expected_label]
+
+
+@pytest.mark.asyncio
+async def test_row_exists(table, temp_rows):
+    from google.api_core import exceptions
+
+    """Test row_exists with rows that exist and don't exist"""
+    assert await table.row_exists(b"row_key_1") is False
+    await temp_rows.add_row(b"row_key_1")
+    assert await table.row_exists(b"row_key_1") is True
+    assert await table.row_exists("row_key_1") is True
+    assert await table.row_exists(b"row_key_2") is False
+    assert await table.row_exists("row_key_2") is False
+    assert await table.row_exists("3") is False
+    await temp_rows.add_row(b"3")
+    assert await table.row_exists(b"3") is True
+    with pytest.raises(exceptions.InvalidArgument) as e:
+        await table.row_exists("")
+        assert "Row kest must be non-empty" in str(e)
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.parametrize(
+    "cell_value,filter_input,expect_match",
+    [
+        (b"abc", b"abc", True),
+        (b"abc", "abc", True),
+        (b".", ".", True),
+        (".*", ".*", True),
+        (".*", b".*", True),
+        ("a", ".*", False),
+        (b".*", b".*", True),
+        (r"\a", r"\a", True),
+        (b"\xe2\x98\x83", "☃", True),
+        ("☃", "☃", True),
+        (r"\C☃", r"\C☃", True),
+        (1, 1, True),
+        (2, 1, False),
+        (68, 68, True),
+        ("D", 68, False),
+        (68, "D", False),
+        (-1, -1, True),
+        (2852126720, 2852126720, True),
+        (-1431655766, -1431655766, True),
+        (-1431655766, -1, False),
+    ],
+)
+@pytest.mark.asyncio
+async def test_literal_value_filter(
+    table, temp_rows, cell_value, filter_input, expect_match
+):
+    """
+    Literal value filter does complex escaping on re2 strings.
+    Make sure inputs are properly interpreted by the server
+    """
+    from google.cloud.bigtable.row_filters import LiteralValueFilter
+    from google.cloud.bigtable import ReadRowsQuery
+
+    f = LiteralValueFilter(filter_input)
+    await temp_rows.add_row(b"row_key_1", value=cell_value)
+    query = ReadRowsQuery(row_filter=f)
+    row_list = await table.read_rows(query)
+    assert len(row_list) == bool(
+        expect_match
+    ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
