@@ -226,6 +226,21 @@ async def test_ping_and_warm_gapic(client, table):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
+async def test_ping_and_warm(client, table):
+    """
+    Test ping and warm from handwritten client
+    """
+    try:
+        channel = client.transport._grpc_channel.pool[0]
+    except Exception:
+        # for sync client
+        channel = client.transport._grpc_channel
+    results = await client._ping_and_warm_instances(channel)
+    assert len(results) == 1
+    assert results[0] is None
+
+
+@pytest.mark.asyncio
 async def test_mutation_set_cell(table, temp_rows):
     """
     Ensure cells can be set properly
@@ -254,6 +269,21 @@ async def test_mutation_set_cell(table, temp_rows):
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_sample_row_keys(client, table, temp_rows):
+    """
+    Sample keys should return a single sample in small test tables
+    """
+    await temp_rows.add_row(b"row_key_1")
+    await temp_rows.add_row(b"row_key_2")
+
+    results = await table.sample_row_keys()
+    assert len(results) == 1
+    sample = results[0]
+    assert isinstance(sample[0], bytes)
+    assert isinstance(sample[1], int)
+
+
 @pytest.mark.asyncio
 async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
@@ -474,6 +504,80 @@ async def test_read_rows(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"row_key_1"
     assert row_list[1].row_key == b"row_key_2"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_sharded_simple(table, temp_rows):
+    """
+    Test read rows sharded with two queries
+    """
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+    query1 = ReadRowsQuery(row_keys=[b"a", b"c"])
+    query2 = ReadRowsQuery(row_keys=[b"b", b"d"])
+    row_list = await table.read_rows_sharded([query1, query2])
+    assert len(row_list) == 4
+    assert row_list[0].row_key == b"a"
+    assert row_list[1].row_key == b"c"
+    assert row_list[2].row_key == b"b"
+    assert row_list[3].row_key == b"d"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_sharded_from_sample(table, temp_rows):
+    """
+    Test end-to-end sharding
+    """
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.read_rows_query import RowRange
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+
+    table_shard_keys = await table.sample_row_keys()
+    query = ReadRowsQuery(row_ranges=[RowRange(start_key=b"b", end_key=b"z")])
+    shard_queries = query.shard(table_shard_keys)
+    row_list = await table.read_rows_sharded(shard_queries)
+    assert len(row_list) == 3
+    assert row_list[0].row_key == b"b"
+    assert row_list[1].row_key == b"c"
+    assert row_list[2].row_key == b"d"
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_read_rows_sharded_filters_limits(table, temp_rows):
+    """
+    Test read rows sharded with filters and limits
+    """
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+
+    await temp_rows.add_row(b"a")
+    await temp_rows.add_row(b"b")
+    await temp_rows.add_row(b"c")
+    await temp_rows.add_row(b"d")
+
+    label_filter1 = ApplyLabelFilter("first")
+    label_filter2 = ApplyLabelFilter("second")
+    query1 = ReadRowsQuery(row_keys=[b"a", b"c"], limit=1, row_filter=label_filter1)
+    query2 = ReadRowsQuery(row_keys=[b"b", b"d"], row_filter=label_filter2)
+    row_list = await table.read_rows_sharded([query1, query2])
+    assert len(row_list) == 3
+    assert row_list[0].row_key == b"a"
+    assert row_list[1].row_key == b"b"
+    assert row_list[2].row_key == b"d"
+    assert row_list[0][0].labels == ["first"]
+    assert row_list[1][0].labels == ["second"]
+    assert row_list[2][0].labels == ["second"]
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)

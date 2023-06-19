@@ -882,7 +882,8 @@ class TestReadRows:
             )
         )
 
-    def _make_chunk(self, *args, **kwargs):
+    @staticmethod
+    def _make_chunk(*args, **kwargs):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
         kwargs["row_key"] = kwargs.get("row_key", b"row_key")
@@ -893,8 +894,8 @@ class TestReadRows:
 
         return ReadRowsResponse.CellChunk(*args, **kwargs)
 
+    @staticmethod
     async def _make_gapic_stream(
-        self,
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
         sleep_time=0,
     ):
@@ -926,6 +927,9 @@ class TestReadRows:
 
         return mock_stream(chunk_list, sleep_time)
 
+    async def execute_fn(self, table, *args, **kwargs):
+        return await table.read_rows(*args, **kwargs)
+
     @pytest.mark.asyncio
     async def test_read_rows(self):
         client = self._make_client()
@@ -939,7 +943,7 @@ class TestReadRows:
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
                 chunks
             )
-            results = await table.read_rows(query, operation_timeout=3)
+            results = await self.execute_fn(table, query, operation_timeout=3)
             assert len(results) == 2
             assert results[0].row_key == b"test_1"
             assert results[1].row_key == b"test_2"
@@ -989,7 +993,7 @@ class TestReadRows:
                 read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
                     []
                 )
-                results = await table.read_rows(query, operation_timeout=3)
+                results = await self.execute_fn(table, query, operation_timeout=3)
                 assert len(results) == 0
                 call_request = read_rows.call_args_list[0][0][0]
                 query_dict = query._to_dict()
@@ -1013,22 +1017,26 @@ class TestReadRows:
     @pytest.mark.asyncio
     async def test_read_rows_timeout(self, operation_timeout):
         async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    chunks, sleep_time=1
-                )
-                try:
-                    await table.read_rows(query, operation_timeout=operation_timeout)
-                except core_exceptions.DeadlineExceeded as e:
-                    assert (
-                        e.message
-                        == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+            async with client.get_table("instance", "table") as table:
+                query = ReadRowsQuery()
+                chunks = [self._make_chunk(row_key=b"test_1")]
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: self._make_gapic_stream(
+                            chunks, sleep_time=1
+                        )
                     )
+                    try:
+                        await self.execute_fn(
+                            table, query, operation_timeout=operation_timeout
+                        )
+                    except core_exceptions.DeadlineExceeded as e:
+                        assert (
+                            e.message
+                            == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+                        )
 
     @pytest.mark.parametrize(
         "per_request_t, operation_t, expected_num",
@@ -1057,45 +1065,48 @@ class TestReadRows:
         # mocking uniform ensures there are no sleeps between retries
         with mock.patch("random.uniform", side_effect=lambda a, b: 0):
             async with self._make_client() as client:
-                table = client.get_table("instance", "table")
-                query = ReadRowsQuery()
-                chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
-                with mock.patch.object(
-                    table.client._gapic_client, "read_rows"
-                ) as read_rows:
-                    read_rows.side_effect = (
-                        lambda *args, **kwargs: self._make_gapic_stream(
-                            chunks, sleep_time=per_request_t
+                async with client.get_table("instance", "table") as table:
+                    query = ReadRowsQuery()
+                    chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
+                    with mock.patch.object(
+                        table.client._gapic_client, "read_rows"
+                    ) as read_rows:
+                        read_rows.side_effect = (
+                            lambda *args, **kwargs: self._make_gapic_stream(
+                                chunks, sleep_time=per_request_t
+                            )
                         )
-                    )
-                    try:
-                        await table.read_rows(
-                            query,
-                            operation_timeout=operation_t,
-                            per_request_timeout=per_request_t,
+                        try:
+                            await self.execute_fn(
+                                table,
+                                query,
+                                operation_timeout=operation_t,
+                                per_request_timeout=per_request_t,
+                            )
+                        except core_exceptions.DeadlineExceeded as e:
+                            retry_exc = e.__cause__
+                            if expected_num == 0:
+                                assert retry_exc is None
+                            else:
+                                assert type(retry_exc) == RetryExceptionGroup
+                                assert f"{expected_num} failed attempts" in str(
+                                    retry_exc
+                                )
+                                assert len(retry_exc.exceptions) == expected_num
+                                for sub_exc in retry_exc.exceptions:
+                                    assert sub_exc.message == "mock deadline"
+                        assert read_rows.call_count == expected_num
+                        # check timeouts
+                        for _, call_kwargs in read_rows.call_args_list[:-1]:
+                            assert call_kwargs["timeout"] == per_request_t
+                        # last timeout should be adjusted to account for the time spent
+                        assert (
+                            abs(
+                                read_rows.call_args_list[-1][1]["timeout"]
+                                - expected_last_timeout
+                            )
+                            < 0.05
                         )
-                    except core_exceptions.DeadlineExceeded as e:
-                        retry_exc = e.__cause__
-                        if expected_num == 0:
-                            assert retry_exc is None
-                        else:
-                            assert type(retry_exc) == RetryExceptionGroup
-                            assert f"{expected_num} failed attempts" in str(retry_exc)
-                            assert len(retry_exc.exceptions) == expected_num
-                            for sub_exc in retry_exc.exceptions:
-                                assert sub_exc.message == "mock deadline"
-                    assert read_rows.call_count == expected_num
-                    # check timeouts
-                    for _, call_kwargs in read_rows.call_args_list[:-1]:
-                        assert call_kwargs["timeout"] == per_request_t
-                    # last timeout should be adjusted to account for the time spent
-                    assert (
-                        abs(
-                            read_rows.call_args_list[-1][1]["timeout"]
-                            - expected_last_timeout
-                        )
-                        < 0.05
-                    )
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
@@ -1155,22 +1166,24 @@ class TestReadRows:
     @pytest.mark.asyncio
     async def test_read_rows_retryable_error(self, exc_type):
         async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            expected_error = exc_type("mock error")
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    [expected_error]
-                )
-                try:
-                    await table.read_rows(query, operation_timeout=0.1)
-                except core_exceptions.DeadlineExceeded as e:
-                    retry_exc = e.__cause__
-                    root_cause = retry_exc.exceptions[0]
-                    assert type(root_cause) == exc_type
-                    assert root_cause == expected_error
+            async with client.get_table("instance", "table") as table:
+                query = ReadRowsQuery()
+                expected_error = exc_type("mock error")
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: self._make_gapic_stream(
+                            [expected_error]
+                        )
+                    )
+                    try:
+                        await self.execute_fn(table, query, operation_timeout=0.1)
+                    except core_exceptions.DeadlineExceeded as e:
+                        retry_exc = e.__cause__
+                        root_cause = retry_exc.exceptions[0]
+                        assert type(root_cause) == exc_type
+                        assert root_cause == expected_error
 
     @pytest.mark.parametrize(
         "exc_type",
@@ -1189,19 +1202,21 @@ class TestReadRows:
     @pytest.mark.asyncio
     async def test_read_rows_non_retryable_error(self, exc_type):
         async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            query = ReadRowsQuery()
-            expected_error = exc_type("mock error")
-            with mock.patch.object(
-                table.client._gapic_client, "read_rows"
-            ) as read_rows:
-                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                    [expected_error]
-                )
-                try:
-                    await table.read_rows(query, operation_timeout=0.1)
-                except exc_type as e:
-                    assert e == expected_error
+            async with client.get_table("instance", "table") as table:
+                query = ReadRowsQuery()
+                expected_error = exc_type("mock error")
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: self._make_gapic_stream(
+                            [expected_error]
+                        )
+                    )
+                    try:
+                        await self.execute_fn(table, query, operation_timeout=0.1)
+                    except exc_type as e:
+                        assert e == expected_error
 
     @pytest.mark.asyncio
     async def test_read_rows_revise_request(self):
@@ -1217,31 +1232,35 @@ class TestReadRows:
             with mock.patch.object(_ReadRowsOperation, "aclose"):
                 revise_rowset.return_value = "modified"
                 async with self._make_client() as client:
-                    table = client.get_table("instance", "table")
-                    row_keys = [b"test_1", b"test_2", b"test_3"]
-                    query = ReadRowsQuery(row_keys=row_keys)
-                    chunks = [
-                        self._make_chunk(row_key=b"test_1"),
-                        core_exceptions.Aborted("mock retryable error"),
-                    ]
-                    with mock.patch.object(
-                        table.client._gapic_client, "read_rows"
-                    ) as read_rows:
-                        read_rows.side_effect = (
-                            lambda *args, **kwargs: self._make_gapic_stream(chunks)
-                        )
-                        try:
-                            await table.read_rows(query)
-                        except InvalidChunk:
-                            revise_rowset.assert_called()
-                            revise_call_kwargs = revise_rowset.call_args_list[0].kwargs
-                            assert (
-                                revise_call_kwargs["row_set"]
-                                == query._to_dict()["rows"]
+                    async with client.get_table("instance", "table") as table:
+                        row_keys = [b"test_1", b"test_2", b"test_3"]
+                        query = ReadRowsQuery(row_keys=row_keys)
+                        chunks = [
+                            self._make_chunk(row_key=b"test_1"),
+                            core_exceptions.Aborted("mock retryable error"),
+                        ]
+                        with mock.patch.object(
+                            table.client._gapic_client, "read_rows"
+                        ) as read_rows:
+                            read_rows.side_effect = (
+                                lambda *args, **kwargs: self._make_gapic_stream(chunks)
                             )
-                            assert revise_call_kwargs["last_seen_row_key"] == b"test_1"
-                            read_rows_request = read_rows.call_args_list[1].args[0]
-                            assert read_rows_request["rows"] == "modified"
+                            try:
+                                await self.execute_fn(table, query)
+                            except InvalidChunk:
+                                revise_rowset.assert_called()
+                                revise_call_kwargs = revise_rowset.call_args_list[
+                                    0
+                                ].kwargs
+                                assert (
+                                    revise_call_kwargs["row_set"]
+                                    == query._to_dict()["rows"]
+                                )
+                                assert (
+                                    revise_call_kwargs["last_seen_row_key"] == b"test_1"
+                                )
+                                read_rows_request = read_rows.call_args_list[1].args[0]
+                                assert read_rows_request["rows"] == "modified"
 
     @pytest.mark.asyncio
     async def test_read_rows_default_timeouts(self):
@@ -1262,7 +1281,7 @@ class TestReadRows:
                     default_per_request_timeout=per_request_timeout,
                 ) as table:
                     try:
-                        await table.read_rows(ReadRowsQuery())
+                        await self.execute_fn(table, ReadRowsQuery())
                     except RuntimeError:
                         pass
                     kwargs = mock_op.call_args_list[0].kwargs
@@ -1288,7 +1307,8 @@ class TestReadRows:
                     default_per_request_timeout=97,
                 ) as table:
                     try:
-                        await table.read_rows(
+                        await self.execute_fn(
+                            table,
                             ReadRowsQuery(),
                             operation_timeout=operation_timeout,
                             per_request_timeout=per_request_timeout,
@@ -1323,7 +1343,7 @@ class TestReadRows:
                 assert len(args) == 1
                 assert isinstance(args[0], ReadRowsQuery)
                 assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key]},
+                    "rows": {"row_keys": [row_key], "row_ranges": []},
                     "rows_limit": 1,
                 }
 
@@ -1355,7 +1375,7 @@ class TestReadRows:
                 assert len(args) == 1
                 assert isinstance(args[0], ReadRowsQuery)
                 assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key]},
+                    "rows": {"row_keys": [row_key], "row_ranges": []},
                     "rows_limit": 1,
                     "filter": expected_filter,
                 }
@@ -1383,7 +1403,7 @@ class TestReadRows:
                 assert kwargs["per_request_timeout"] == expected_req_timeout
                 assert isinstance(args[0], ReadRowsQuery)
                 assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key]},
+                    "rows": {"row_keys": [row_key], "row_ranges": []},
                     "rows_limit": 1,
                 }
 
@@ -1436,7 +1456,7 @@ class TestReadRows:
                     }
                 }
                 assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key]},
+                    "rows": {"row_keys": [row_key], "row_ranges": []},
                     "rows_limit": 1,
                     "filter": expected_filter,
                 }
@@ -1474,6 +1494,335 @@ class TestReadRows:
                     assert "app_profile_id=profile" in goog_metadata
                 else:
                     assert "app_profile_id=" not in goog_metadata
+
+
+class TestReadRowsSharded:
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_empty_query(self):
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as exc:
+                    await table.read_rows_sharded([])
+                assert "query_list must contain at least one query" in str(exc.value)
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_multiple_queries(self):
+        """
+        Test with multiple queries. Should return results from both
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "read_rows"
+                ) as read_rows:
+                    read_rows.side_effect = (
+                        lambda *args, **kwargs: TestReadRows._make_gapic_stream(
+                            [
+                                TestReadRows._make_chunk(row_key=k)
+                                for k in args[0]["rows"]["row_keys"]
+                            ]
+                        )
+                    )
+                    query_1 = ReadRowsQuery(b"test_1")
+                    query_2 = ReadRowsQuery(b"test_2")
+                    result = await table.read_rows_sharded([query_1, query_2])
+                    assert len(result) == 2
+                    assert result[0].row_key == b"test_1"
+                    assert result[1].row_key == b"test_2"
+
+    @pytest.mark.parametrize("n_queries", [1, 2, 5, 11, 24])
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_multiple_queries_calls(self, n_queries):
+        """
+        Each query should trigger a separate read_rows call
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    query_list = [ReadRowsQuery() for _ in range(n_queries)]
+                    await table.read_rows_sharded(query_list)
+                    assert read_rows.call_count == n_queries
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_errors(self):
+        """
+        Errors should be exposed as ShardedReadRowsExceptionGroups
+        """
+        from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.exceptions import FailedQueryShardError
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = RuntimeError("mock error")
+                    query_1 = ReadRowsQuery(b"test_1")
+                    query_2 = ReadRowsQuery(b"test_2")
+                    with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
+                        await table.read_rows_sharded([query_1, query_2])
+                    exc_group = exc.value
+                    assert isinstance(exc_group, ShardedReadRowsExceptionGroup)
+                    assert len(exc.value.exceptions) == 2
+                    assert isinstance(exc.value.exceptions[0], FailedQueryShardError)
+                    assert isinstance(exc.value.exceptions[0].__cause__, RuntimeError)
+                    assert exc.value.exceptions[0].index == 0
+                    assert exc.value.exceptions[0].query == query_1
+                    assert isinstance(exc.value.exceptions[1], FailedQueryShardError)
+                    assert isinstance(exc.value.exceptions[1].__cause__, RuntimeError)
+                    assert exc.value.exceptions[1].index == 1
+                    assert exc.value.exceptions[1].query == query_2
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_concurrent(self):
+        """
+        Ensure sharded requests are concurrent
+        """
+        import time
+
+        async def mock_call(*args, **kwargs):
+            await asyncio.sleep(0.1)
+            return [mock.Mock()]
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(10)]
+                    start_time = time.monotonic()
+                    result = await table.read_rows_sharded(queries)
+                    call_time = time.monotonic() - start_time
+                    assert read_rows.call_count == 10
+                    assert len(result) == 10
+                    # if run in sequence, we would expect this to take 1 second
+                    assert call_time < 0.2
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "read_rows", AsyncMock()
+                ) as read_rows:
+                    await table.read_rows_sharded([ReadRowsQuery()])
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_batching(self):
+        """
+        Large queries should be processed in batches to limit concurrency
+        """
+        n_queries = 90
+        expected_batch_size = 10
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows"):
+                    with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:
+                        query_list = [ReadRowsQuery() for _ in range(n_queries)]
+                        await table.read_rows_sharded(query_list)
+                        assert (
+                            gather_mock.call_count == n_queries // expected_batch_size
+                        )
+                        assert (
+                            len(gather_mock.call_args_list[0][0]) == expected_batch_size
+                        )
+
+
+class TestSampleRowKeys:
+    def _make_client(self, *args, **kwargs):
+        from google.cloud.bigtable.client import BigtableDataClient
+
+        return BigtableDataClient(*args, **kwargs)
+
+    async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
+        from google.cloud.bigtable_v2.types import SampleRowKeysResponse
+
+        for value in sample_list:
+            yield SampleRowKeysResponse(row_key=value[0], offset_bytes=value[1])
+
+    @pytest.mark.asyncio
+    async def test_sample_row_keys(self):
+        """
+        Test that method returns the expected key samples
+        """
+        samples = [
+            (b"test_1", 0),
+            (b"test_2", 100),
+            (b"test_3", 200),
+        ]
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream(samples)
+                    result = await table.sample_row_keys()
+                    assert len(result) == 3
+                    assert all(isinstance(r, tuple) for r in result)
+                    assert all(isinstance(r[0], bytes) for r in result)
+                    assert all(isinstance(r[1], int) for r in result)
+                    assert result[0] == samples[0]
+                    assert result[1] == samples[1]
+                    assert result[2] == samples[2]
+
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_bad_timeout(self):
+        """
+        should raise error if timeout is negative
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as e:
+                    await table.sample_row_keys(operation_timeout=-1)
+                    assert "operation_timeout must be greater than 0" in str(e.value)
+                with pytest.raises(ValueError) as e:
+                    await table.sample_row_keys(per_request_timeout=-1)
+                    assert "per_request_timeout must be greater than 0" in str(e.value)
+                with pytest.raises(ValueError) as e:
+                    await table.sample_row_keys(
+                        operation_timeout=10, per_request_timeout=20
+                    )
+                    assert (
+                        "per_request_timeout must not be greater than operation_timeout"
+                        in str(e.value)
+                    )
+
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_default_timeout(self):
+        """Should fallback to using table default operation_timeout"""
+        expected_timeout = 99
+        async with self._make_client() as client:
+            async with client.get_table(
+                "i", "t", default_operation_timeout=expected_timeout
+            ) as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream([])
+                    result = await table.sample_row_keys()
+                    _, kwargs = sample_row_keys.call_args
+                    assert abs(kwargs["timeout"] - expected_timeout) < 0.1
+                    assert result == []
+
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_gapic_params(self):
+        """
+        make sure arguments are propagated to gapic call as expected
+        """
+        expected_timeout = 10
+        expected_profile = "test1"
+        instance = "instance_name"
+        table_id = "my_table"
+        async with self._make_client() as client:
+            async with client.get_table(
+                instance, table_id, app_profile_id=expected_profile
+            ) as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.return_value = self._make_gapic_stream([])
+                    await table.sample_row_keys(per_request_timeout=expected_timeout)
+                    args, kwargs = sample_row_keys.call_args
+                    assert len(args) == 0
+                    assert len(kwargs) == 4
+                    assert kwargs["timeout"] == expected_timeout
+                    assert kwargs["app_profile_id"] == expected_profile
+                    assert kwargs["table_name"] == table.table_name
+                    assert kwargs["metadata"] is not None
+
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_metadata(self, include_app_profile):
+        """request should attach metadata headers"""
+        profile = "profile" if include_app_profile else None
+        async with self._make_client() as client:
+            async with client.get_table("i", "t", app_profile_id=profile) as table:
+                with mock.patch.object(
+                    client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as read_rows:
+                    await table.sample_row_keys()
+                kwargs = read_rows.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
+
+    @pytest.mark.parametrize(
+        "retryable_exception",
+        [
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_retryable_errors(self, retryable_exception):
+        """
+        retryable errors should be retried until timeout
+        """
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.side_effect = retryable_exception("mock")
+                    with pytest.raises(DeadlineExceeded) as e:
+                        await table.sample_row_keys(operation_timeout=0.05)
+                    cause = e.value.__cause__
+                    assert isinstance(cause, RetryExceptionGroup)
+                    assert len(cause.exceptions) > 0
+                    assert isinstance(cause.exceptions[0], retryable_exception)
+
+    @pytest.mark.parametrize(
+        "non_retryable_exception",
+        [
+            core_exceptions.OutOfRange,
+            core_exceptions.NotFound,
+            core_exceptions.FailedPrecondition,
+            RuntimeError,
+            ValueError,
+            core_exceptions.Aborted,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_sample_row_keys_non_retryable_errors(self, non_retryable_exception):
+        """
+        non-retryable errors should cause a raise
+        """
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(
+                    table.client._gapic_client, "sample_row_keys", AsyncMock()
+                ) as sample_row_keys:
+                    sample_row_keys.side_effect = non_retryable_exception("mock")
+                    with pytest.raises(non_retryable_exception):
+                        await table.sample_row_keys()
 
 
 class TestMutateRow:

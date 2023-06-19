@@ -30,6 +30,7 @@ import warnings
 import sys
 import random
 import os
+from itertools import chain
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -38,6 +39,7 @@ from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio i
     PooledBigtableGrpcAsyncIOTransport,
     PooledChannel,
 )
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
@@ -51,10 +53,14 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
+from google.cloud.bigtable.exceptions import FailedQueryShardError
+from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
+from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.row_filters import RowFilter
@@ -65,6 +71,9 @@ from google.cloud.bigtable.row_filters import RowFilterChain
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
+
+# used by read_rows_sharded to limit how many requests are attempted in parallel
+CONCURRENCY_LIMIT = 10
 
 
 class BigtableDataClient(ClientWithProject):
@@ -210,10 +219,13 @@ class BigtableDataClient(ClientWithProject):
             - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+            "/google.bigtable.v2.Bigtable/PingAndWarm",
+            request_serializer=PingAndWarmRequest.serialize,
         )
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        result = await asyncio.gather(*tasks, return_exceptions=True)
+        # return None in place of empty successful responses
+        return [r or None for r in result]
 
     async def _manage_channel(
         self,
@@ -554,20 +566,59 @@ class Table:
         self,
         query_list: list[ReadRowsQuery] | list[dict[str, Any]],
         *,
-        limit: int | None,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = None,
         per_request_timeout: int | float | None = None,
-    ) -> ReadRowsIterator:
+    ) -> list[Row]:
         """
-        Runs a sharded query in parallel
+        Runs a sharded query in parallel, then return the results in a single list.
+        Results will be returned in the order of the input queries.
 
-        Each query in query list will be run concurrently, with results yielded as they are ready
-        yielded results may be out of order
+        This function is intended to be run on the results on a query.shard() call:
+
+        ```
+        table_shard_keys = await table.sample_row_keys()
+        query = ReadRowsQuery(...)
+        shard_queries = query.shard(table_shard_keys)
+        results = await table.read_rows_sharded(shard_queries)
+        ```
 
         Args:
             - query_list: a list of queries to run in parallel
+        Raises:
+            - ShardedReadRowsExceptionGroup: if any of the queries failed
+            - ValueError: if the query_list is empty
         """
-        raise NotImplementedError
+        if not query_list:
+            raise ValueError("query_list must contain at least one query")
+        routine_list = [
+            self.read_rows(
+                query,
+                operation_timeout=operation_timeout,
+                per_request_timeout=per_request_timeout,
+            )
+            for query in query_list
+        ]
+        # submit requests in batches to limit concurrency
+        batched_routines = [
+            routine_list[i : i + CONCURRENCY_LIMIT]
+            for i in range(0, len(routine_list), CONCURRENCY_LIMIT)
+        ]
+        # run batches and collect results
+        results_list = []
+        for batch in batched_routines:
+            batch_result = await asyncio.gather(*batch, return_exceptions=True)
+            results_list.extend(batch_result)
+        # collect exceptions
+        exception_list = [
+            FailedQueryShardError(idx, query_list[idx], e)
+            for idx, e in enumerate(results_list)
+            if isinstance(e, Exception)
+        ]
+        if exception_list:
+            # if any sub-request failed, raise an exception instead of returning results
+            raise ShardedReadRowsExceptionGroup(exception_list, len(query_list))
+        combined_list = list(chain.from_iterable(results_list))
+        return combined_list
 
     async def row_exists(
         self,
@@ -597,12 +648,11 @@ class Table:
         )
         return len(results) > 0
 
-    async def sample_keys(
+    async def sample_row_keys(
         self,
         *,
-        operation_timeout: int | float | None = 60,
-        per_sample_timeout: int | float | None = 10,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = None,
+        per_request_timeout: float | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -610,7 +660,7 @@ class Table:
 
         RowKeySamples output can be used with ReadRowsQuery.shard() to create a sharded query that
         can be parallelized across multiple backend nodes read_rows and read_rows_stream
-        requests will call sample_keys internally for this purpose when sharding is enabled
+        requests will call sample_row_keys internally for this purpose when sharding is enabled
 
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
@@ -618,11 +668,61 @@ class Table:
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing all GoogleAPIError
-                exceptions from any retries that failed
+            - GoogleAPICallError: if the sample_row_keys request fails
         """
-        raise NotImplementedError
+        # prepare timeouts
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError(
+                "per_request_timeout must not be greater than operation_timeout"
+            )
+        attempt_timeout_gen = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
+        # prepare retryable
+        predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        )
+        transient_errors = []
+
+        def on_error_fn(exc):
+            # add errors to list if retryable
+            if predicate(exc):
+                transient_errors.append(exc)
+
+        retry = retries.AsyncRetry(
+            predicate=predicate,
+            timeout=operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+            on_error=on_error_fn,
+            is_stream=False,
+        )
+
+        # prepare request
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+
+        async def execute_rpc():
+            results = await self.client._gapic_client.sample_row_keys(
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=next(attempt_timeout_gen),
+                metadata=metadata,
+            )
+            return [(s.row_key, s.offset_bytes) async for s in results]
+
+        wrapped_fn = _convert_retry_deadline(
+            retry(execute_rpc), operation_timeout, transient_errors
+        )
+        return await wrapped_fn()
 
     def mutations_batcher(self, **kwargs) -> MutationsBatcher:
         """
@@ -909,16 +1009,17 @@ class Table:
         """
         Called to close the Table instance and release any resources held by it.
         """
+        self._register_instance_task.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
         """
         Implement async context manager protocol
 
-        Register this instance with the client, so that
+        Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        await self.client._register_instance(self.instance_id, self)
+        await self._register_instance_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
