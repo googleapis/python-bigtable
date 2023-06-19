@@ -124,8 +124,16 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
             response = test_proxy_pb2.CheckAndMutateRowResult(result=result, status=Status())
         return response
 
-    def ReadModifyWriteRow(self, request, context):
-        return test_proxy_pb2.RowResult()
+    @delegate_to_client_handler
+    def ReadModifyWriteRow(self, request, context, client_response=None):
+        status = Status()
+        row = None
+        if isinstance(client_response, dict) and "error" in client_response:
+            status = Status(code=client_response.get("code", 5), message=client_response.get("error"))
+        elif client_response != "None":
+            row = data_pb2.Row(**client_response)
+        result = test_proxy_pb2.RowResult(row=row, status=status)
+        return result
 
     def SampleRowKeys(self, request, context):
         return test_proxy_pb2.SampleRowKeysResult()
