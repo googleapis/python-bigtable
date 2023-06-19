@@ -182,7 +182,7 @@ class BigtableDataClient(ClientWithProject):
         Raises:
           - RuntimeError if not called in an asyncio event loop
         """
-        if not self._channel_refresh_tasks:
+        if not self._channel_refresh_tasks and not self._emulator_host:
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
