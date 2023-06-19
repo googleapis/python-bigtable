@@ -22,7 +22,7 @@ import sys
 
 from google.cloud.bigtable._read_rows import _ReadRowsOperation
 from google.cloud.bigtable.exceptions import IdleTimeout
-from google.cloud.bigtable.exceptions import _convert_retry_deadline
+from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
 
 

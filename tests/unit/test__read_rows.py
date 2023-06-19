@@ -41,10 +41,14 @@ class TestReadRowsOperation:
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
-        start_time = 123
         default_operation_timeout = 600
-        with mock.patch("time.monotonic", return_value=start_time):
+        time_gen_mock = mock.Mock()
+        with mock.patch(
+            "google.cloud.bigtable._read_rows._attempt_timeout_generator", time_gen_mock
+        ):
             instance = self._make_one(request, client)
+        assert time_gen_mock.call_count == 1
+        time_gen_mock.assert_called_once_with(None, default_operation_timeout)
         assert instance.transient_errors == []
         assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
@@ -52,9 +56,8 @@ class TestReadRowsOperation:
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == default_operation_timeout
-        assert retryable_fn.args[2] == default_operation_timeout + start_time
-        assert retryable_fn.args[3] == 0
+        assert retryable_fn.args[1] == time_gen_mock.return_value
+        assert retryable_fn.args[2] == 0
         assert client.read_rows.call_count == 0
 
     def test_ctor(self):
@@ -65,14 +68,20 @@ class TestReadRowsOperation:
         client.read_rows.return_value = None
         expected_operation_timeout = 42
         expected_request_timeout = 44
-        start_time = 123
-        with mock.patch("time.monotonic", return_value=start_time):
+        time_gen_mock = mock.Mock()
+        with mock.patch(
+            "google.cloud.bigtable._read_rows._attempt_timeout_generator", time_gen_mock
+        ):
             instance = self._make_one(
                 request,
                 client,
                 operation_timeout=expected_operation_timeout,
                 per_request_timeout=expected_request_timeout,
             )
+        assert time_gen_mock.call_count == 1
+        time_gen_mock.assert_called_once_with(
+            expected_request_timeout, expected_operation_timeout
+        )
         assert instance.transient_errors == []
         assert instance._last_emitted_row_key is None
         assert instance._emit_count == 0
@@ -80,9 +89,8 @@ class TestReadRowsOperation:
         retryable_fn = instance._partial_retryable
         assert retryable_fn.func == instance._read_rows_retryable_attempt
         assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == expected_request_timeout
-        assert retryable_fn.args[2] == start_time + expected_operation_timeout
-        assert retryable_fn.args[3] == row_limit
+        assert retryable_fn.args[1] == time_gen_mock.return_value
+        assert retryable_fn.args[2] == row_limit
         assert client.read_rows.call_count == 0
 
     def test___aiter__(self):
@@ -217,14 +225,18 @@ class TestReadRowsOperation:
         - if the number emitted exceeds the new limit, an exception should
           should be raised (tested in test_revise_limit_over_limit)
         """
+        import itertools
+
         request = {"rows_limit": start_limit}
         instance = self._make_one(request, mock.Mock())
         instance._emit_count = emit_num
         instance._last_emitted_row_key = "a"
         gapic_mock = mock.Mock()
         gapic_mock.side_effect = [GeneratorExit("stop_fn")]
+        mock_timeout_gen = itertools.repeat(5)
+
         attempt = instance._read_rows_retryable_attempt(
-            gapic_mock, 100, 100, start_limit
+            gapic_mock, mock_timeout_gen, start_limit
         )
         if start_limit != 0 and expected_limit == 0:
             # if we emitted the expected number of rows, we should receive a StopAsyncIteration
@@ -242,12 +254,15 @@ class TestReadRowsOperation:
         Should raise runtime error if we get in state where emit_num > start_num
         (unless start_num == 0, which represents unlimited)
         """
+        import itertools
+
         request = {"rows_limit": start_limit}
         instance = self._make_one(request, mock.Mock())
         instance._emit_count = emit_num
         instance._last_emitted_row_key = "a"
+        mock_timeout_gen = itertools.repeat(5)
         attempt = instance._read_rows_retryable_attempt(
-            mock.Mock(), 100, 100, start_limit
+            mock.Mock(), mock_timeout_gen, start_limit
         )
         with pytest.raises(RuntimeError) as e:
             await attempt.__anext__()
@@ -272,6 +287,7 @@ class TestReadRowsOperation:
         Stream should end after hitting the limit
         """
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
+        import itertools
 
         instance = self._make_one({}, mock.Mock())
 
@@ -289,7 +305,8 @@ class TestReadRowsOperation:
 
             return gen()
 
-        gen = instance._read_rows_retryable_attempt(mock_gapic, 100, 100, limit)
+        mock_timeout_gen = itertools.repeat(5)
+        gen = instance._read_rows_retryable_attempt(mock_gapic, mock_timeout_gen, limit)
         # should yield values up to the limit
         for i in range(limit):
             await gen.__anext__()

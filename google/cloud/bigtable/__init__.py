@@ -21,11 +21,6 @@ from google.cloud.bigtable import gapic_version as package_version
 from google.cloud.bigtable.client import BigtableDataClient
 from google.cloud.bigtable.client import Table
 
-from google.cloud.bigtable._sync._concrete import (
-    BigtableDataClient_Sync_Concrete as BigtableDataClientSync,
-)
-from google.cloud.bigtable._sync._concrete import Table_Sync_Concrete as TableSync
-
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.read_rows_query import RowRange
 from google.cloud.bigtable.row import Row
@@ -33,11 +28,20 @@ from google.cloud.bigtable.row import Cell
 
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.mutations import Mutation
-from google.cloud.bigtable.mutations import BulkMutationsEntry
+from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.mutations import SetCell
 from google.cloud.bigtable.mutations import DeleteRangeFromColumn
 from google.cloud.bigtable.mutations import DeleteAllFromFamily
 from google.cloud.bigtable.mutations import DeleteAllFromRow
+
+try:
+    from google.cloud.bigtable._sync._concrete import (
+        BigtableDataClient_Sync_Concrete as BigtableDataClientSync,
+    )
+    from google.cloud.bigtable._sync._concrete import Table_Sync_Concrete as TableSync
+    sync_packages = (BigtableDataClientSync, TableSync)
+except ImportError:
+    pass
 
 # Type alias for the output of sample_keys
 RowKeySamples = List[Tuple[bytes, int]]
@@ -47,18 +51,17 @@ __version__: str = package_version.__version__
 __all__ = (
     "BigtableDataClient",
     "Table",
-    "BigtableDataClientSync",
-    "TableSync",
     "RowKeySamples",
     "ReadRowsQuery",
     "RowRange",
     "MutationsBatcher",
     "Mutation",
-    "BulkMutationsEntry",
+    "RowMutationEntry",
     "SetCell",
     "DeleteRangeFromColumn",
     "DeleteAllFromFamily",
     "DeleteAllFromRow",
     "Row",
     "Cell",
+    *sync_packages,
 )
