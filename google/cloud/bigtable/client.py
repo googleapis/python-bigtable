@@ -54,15 +54,13 @@ from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
-
-from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
-from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable.row_filters import CellsRowLimitFilter
-from google.cloud.bigtable.row_filters import RowFilterChain
+from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.mutations_batcher import MB_SIZE
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable import RowKeySamples
+    from google.cloud.bigtable.row_filters import RowFilter
+    from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 
 
 class BigtableDataClient(ClientWithProject):
@@ -609,17 +607,42 @@ class Table:
         """
         raise NotImplementedError
 
-    def mutations_batcher(self, **kwargs) -> MutationsBatcher:
+    def mutations_batcher(
+        self,
+        *,
+        flush_interval: float | None = 5,
+        flush_limit_mutation_count: int | None = 1000,
+        flush_limit_bytes: int = 20 * MB_SIZE,
+        flow_control_max_count: int | None = 100_000,
+        flow_control_max_bytes: int | None = 100 * MB_SIZE,
+    ) -> MutationsBatcher:
         """
         Returns a new mutations batcher instance.
 
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
+        Args:
+          - flush_interval: Automatically flush every flush_interval seconds. If None,
+              a table default will be used
+          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
+              mutations are added across all entries. If None, this limit is ignored.
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
+              If None, this limit is ignored.
+          - flow_control_max_count: Maximum number of inflight mutations.
+          - flow_control_max_bytes: Maximum number of inflight bytes.
+              If None, this limit is ignored.
         Returns:
             - a MutationsBatcher context manager that can batch requests
         """
-        return MutationsBatcher(self, **kwargs)
+        return MutationsBatcher(
+            self,
+            flush_interval=flush_interval,
+            flush_limit_mutation_count=flush_limit_mutation_count,
+            flush_limit_bytes=flush_limit_bytes,
+            flow_control_max_count=flow_control_max_count,
+            flow_control_max_bytes=flow_control_max_bytes,
+        )
 
     async def mutate_row(
         self,
@@ -717,10 +740,6 @@ class Table:
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[
-            [int, RowMutationEntry], None | Coroutine[None, None, None]
-        ]
-        | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -746,9 +765,6 @@ class Table:
                 in seconds. If it takes longer than this time to complete, the request
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
-            - on_success: a callback function that will be called when each mutation
-                entry is confirmed to be applied successfully. Will be passed the
-                index and the entry itself.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions

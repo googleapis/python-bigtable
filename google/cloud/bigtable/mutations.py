@@ -17,8 +17,11 @@ from typing import Any
 import time
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from sys import getsizeof
 
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+# mutation entries above this should be rejected
+from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
@@ -40,6 +43,12 @@ class Mutation(ABC):
 
     def __str__(self) -> str:
         return str(self._to_dict())
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
 
     @classmethod
     def _from_dict(cls, input_dict: dict[str, Any]) -> Mutation:
@@ -101,10 +110,6 @@ class SetCell(Mutation):
         if isinstance(new_value, str):
             new_value = new_value.encode()
         elif isinstance(new_value, int):
-            if abs(new_value) > MAX_INCREMENT_VALUE:
-                raise ValueError(
-                    "int values must be between -2**63 and 2**63 (64-bit signed int)"
-                )
             new_value = new_value.to_bytes(8, "big", signed=True)
         if not isinstance(new_value, bytes):
             raise TypeError("new_value must be bytes, str, or int")
@@ -195,6 +200,12 @@ class RowMutationEntry:
             row_key = row_key.encode("utf-8")
         if isinstance(mutations, Mutation):
             mutations = [mutations]
+        if len(mutations) == 0:
+            raise ValueError("mutations must not be empty")
+        elif len(mutations) > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+            raise ValueError(
+                f"entries must have <= {MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations"
+            )
         self.row_key = row_key
         self.mutations = tuple(mutations)
 
@@ -207,6 +218,12 @@ class RowMutationEntry:
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
         return all(mutation.is_idempotent() for mutation in self.mutations)
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
 
     @classmethod
     def _from_dict(cls, input_dict: dict[str, Any]) -> RowMutationEntry:

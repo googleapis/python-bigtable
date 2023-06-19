@@ -83,18 +83,22 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
 class MutationsExceptionGroup(BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation
+
+    Exceptions will typically be of type FailedMutationEntryError, but other exceptions may
+    be included if they are raised during the mutation operation
     """
 
     @staticmethod
-    def _format_message(excs: list[FailedMutationEntryError], total_entries: int):
+    def _format_message(excs: list[Exception], total_entries: int):
         entry_str = "entry" if total_entries == 1 else "entries"
         plural_str = "" if len(excs) == 1 else "s"
         return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
 
-    def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
+    def __init__(self, excs: list[Exception], total_entries: int):
         super().__init__(self._format_message(excs, total_entries), excs)
+        self.total_entries_attempted = total_entries
 
-    def __new__(cls, excs: list[FailedMutationEntryError], total_entries: int):
+    def __new__(cls, excs: list[Exception], total_entries: int):
         return super().__new__(cls, cls._format_message(excs, total_entries), excs)
 
 
@@ -106,14 +110,17 @@ class FailedMutationEntryError(Exception):
 
     def __init__(
         self,
-        failed_idx: int,
+        failed_idx: int | None,
         failed_mutation_entry: "RowMutationEntry",
         cause: Exception,
     ):
         idempotent_msg = (
             "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
         )
-        message = f"Failed {idempotent_msg} mutation entry at index {failed_idx} with cause: {cause!r}"
+        index_msg = f" at index {failed_idx} " if failed_idx is not None else " "
+        message = (
+            f"Failed {idempotent_msg} mutation entry{index_msg}with cause: {cause!r}"
+        )
         super().__init__(message)
         self.index = failed_idx
         self.entry = failed_mutation_entry
