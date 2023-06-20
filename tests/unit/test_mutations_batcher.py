@@ -499,7 +499,7 @@ class TestMutationsBatcher:
         with pytest.raises(RuntimeError):
             instance = self._make_one()
             await instance.close()
-            instance.append(mock.Mock())
+            await instance.append(mock.Mock())
 
     @pytest.mark.asyncio
     async def test_append_wrong_mutation(self):
@@ -512,7 +512,7 @@ class TestMutationsBatcher:
         instance = self._make_one()
         expected_error = "invalid mutation type: DeleteAllFromRow. Only RowMutationEntry objects are supported by batcher"
         with pytest.raises(ValueError) as e:
-            instance.append(DeleteAllFromRow())
+            await instance.append(DeleteAllFromRow())
         assert str(e.value) == expected_error
 
     @pytest.mark.asyncio
@@ -522,7 +522,7 @@ class TestMutationsBatcher:
             flow_control_max_count=1, flow_control_max_bytes=1
         ) as instance:
             oversized_entry = _make_mutation(count=0, size=2)
-            instance.append(oversized_entry)
+            await instance.append(oversized_entry)
             assert instance._staged_entries == [oversized_entry]
             assert instance._staged_count == 0
             assert instance._staged_bytes == 2
@@ -531,11 +531,41 @@ class TestMutationsBatcher:
             flow_control_max_count=1, flow_control_max_bytes=1
         ) as instance:
             overcount_entry = _make_mutation(count=2, size=0)
-            instance.append(overcount_entry)
+            await instance.append(overcount_entry)
             assert instance._staged_entries == [overcount_entry]
             assert instance._staged_count == 2
             assert instance._staged_bytes == 0
             instance._staged_entries = []
+
+    @pytest.mark.asyncio
+    async def test_append_flush_runs_after_limit_hit(self):
+        """
+        If the user appends a bunch of entries above the flush limits back-to-back,
+        it should still flush in a single task
+        """
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+
+        with mock.patch.object(MutationsBatcher, "_execute_mutate_rows") as op_mock:
+            async with self._make_one(flush_limit_bytes=100) as instance:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    return []
+
+                op_mock.side_effect = mock_call
+                # append a mutation just under the size limit
+                await instance.append(_make_mutation(size=99))
+                # append a bunch of entries back-to-back in a loop
+                num_entries = 10
+                for _ in range(num_entries):
+                    await instance.append(_make_mutation(size=1))
+                # let any flush jobs finish
+                await instance._prev_flush
+                # should have only flushed once, with large mutation and first mutation in loop
+                assert op_mock.call_count == 1
+                sent_batch = op_mock.call_args[0][0]
+                assert len(sent_batch) == 2
+                # others should still be pending
+                assert len(instance._staged_entries) == num_entries - 1
 
     @pytest.mark.parametrize(
         "flush_count,flush_bytes,mutation_count,mutation_bytes,expect_flush",
@@ -562,7 +592,7 @@ class TestMutationsBatcher:
             assert instance._staged_entries == []
             mutation = _make_mutation(count=mutation_count, size=mutation_bytes)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
-                instance.append(mutation)
+                await instance.append(mutation)
             assert flush_mock.call_count == bool(expect_flush)
             assert instance._staged_count == mutation_count
             assert instance._staged_bytes == mutation_bytes
@@ -580,17 +610,17 @@ class TestMutationsBatcher:
             assert instance._staged_entries == []
             mutation = _make_mutation(count=2, size=3)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
-                instance.append(mutation)
+                await instance.append(mutation)
                 assert flush_mock.call_count == 0
                 assert instance._staged_count == 2
                 assert instance._staged_bytes == 3
                 assert len(instance._staged_entries) == 1
-                instance.append(mutation)
+                await instance.append(mutation)
                 assert flush_mock.call_count == 0
                 assert instance._staged_count == 4
                 assert instance._staged_bytes == 6
                 assert len(instance._staged_entries) == 2
-                instance.append(mutation)
+                await instance.append(mutation)
                 assert flush_mock.call_count == 1
                 assert instance._staged_count == 6
                 assert instance._staged_bytes == 9
@@ -787,23 +817,21 @@ class TestMutationsBatcher:
                 mutations = [_make_mutation() for _ in range(4)]
                 op_mock.side_effect = mock_call
                 # create a few concurrent flushes
-                instance.append(mutations[0])
+                await instance.append(mutations[0])
                 flush_task1 = asyncio.create_task(instance.flush())
-                instance.append(mutations[1])
+                await instance.append(mutations[1])
                 flush_task2 = asyncio.create_task(instance.flush())
-                instance.append(mutations[2])
+                await instance.append(mutations[2])
                 # should have mutations staged and ready
                 assert len(instance._staged_entries) == 3
-                assert len(instance._pending_flush_entries) == 0
 
                 # second task should be empty
                 await flush_task2
                 # mutations should have been flushed
                 assert len(instance._staged_entries) == 0
-                assert len(instance._pending_flush_entries) == 0
                 # mutations added after a context switch should not be in flush batch
                 await asyncio.sleep(0)
-                instance.append(mutations[3])
+                await instance.append(mutations[3])
 
                 # flushes should be finalized in order. flush_task1 should already be done
                 assert flush_task1.done()
@@ -837,14 +865,11 @@ class TestMutationsBatcher:
         async with self._make_one() as instance:
             orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
-                flush_mock.side_effect = lambda *args, **kwargs: setattr(
-                    instance, "_pending_flush_entries", []
-                )
                 for i in range(1, 4):
                     mutation = mock.Mock()
                     instance._staged_entries = [mutation]
                     instance._schedule_flush()
-                    assert instance._pending_flush_entries == [mutation]
+                    assert instance._staged_entries == []
                     # let flush task run
                     await asyncio.sleep(0)
                     assert instance._staged_entries == []
@@ -853,35 +878,6 @@ class TestMutationsBatcher:
                     assert flush_mock.call_count == i
                     assert instance._prev_flush != orig_flush
                     orig_flush = instance._prev_flush
-
-    @pytest.mark.asyncio
-    async def test_schedule_flush_multiple_calls_single_flush(self):
-        """
-        If the user appends a bunch of entries above the flush limits back-to-back,
-        it should still flush in a single task
-        """
-        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-
-        with mock.patch.object(MutationsBatcher, "_execute_mutate_rows") as op_mock:
-            async with self._make_one(flush_limit_mutation_count=1) as instance:
-                # mock network calls
-                async def mock_call(*args, **kwargs):
-                    return []
-
-                op_mock.side_effect = mock_call
-                # append a bunch of entries back-to-back, without awaiting
-                num_entries = 10
-                for _ in range(num_entries):
-                    instance._staged_entries.append(_make_mutation())
-                    instance._schedule_flush()
-                    assert len(instance._staged_entries) == 0
-                # await to let flush run
-                await asyncio.sleep(0)
-                # should have batched into a single request
-                assert op_mock.call_count == 1
-                sent_batch = op_mock.call_args[0][0]
-                assert len(sent_batch) == num_entries
-                assert instance._staged_entries == []
 
     @pytest.mark.asyncio
     async def test__flush_internal(self):
@@ -906,8 +902,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._pending_flush_entries = mutations
-                    await instance._flush_internal(prev_flush)
+                    await instance._flush_internal(mutations, prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
@@ -953,8 +948,7 @@ class TestMutationsBatcher:
                     prev_flush_mock = AsyncMock()
                     prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    instance._pending_flush_entries = mutations
-                    await instance._flush_internal(prev_flush)
+                    await instance._flush_internal(mutations, prev_flush)
                     assert prev_flush_mock.await_count == 1
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
@@ -997,7 +991,7 @@ class TestMutationsBatcher:
                     lambda *args, **kwargs: self._mock_gapic_return(num_nutations)
                 )
                 for m in mutations:
-                    instance.append(m)
+                    await instance.append(m)
                 assert instance._entries_processed_since_last_raise == 0
                 await instance.flush()
                 assert instance._entries_processed_since_last_raise == num_nutations
@@ -1018,7 +1012,7 @@ class TestMutationsBatcher:
                     lambda *args, **kwargs: self._mock_gapic_return(num_nutations)
                 )
                 for m in mutations:
-                    instance.append(m)
+                    await instance.append(m)
                 assert instance._entries_processed_since_last_raise == 0
                 # let flush trigger due to timer
                 await asyncio.sleep(0.1)

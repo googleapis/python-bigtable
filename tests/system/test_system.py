@@ -301,8 +301,8 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
     async with table.mutations_batcher() as batcher:
-        batcher.append(bulk_mutation)
-        batcher.append(bulk_mutation2)
+        await batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation2)
     # ensure cell is updated
     assert (await _retrieve_cell_value(table, row_key)) == new_value
     assert len(batcher._staged_entries) == 0
@@ -322,7 +322,7 @@ async def test_mutations_batcher_manual_flush(client, table, temp_rows):
     )
     bulk_mutation = RowMutationEntry(row_key, [mutation])
     async with table.mutations_batcher() as batcher:
-        batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation)
         assert len(batcher._staged_entries) == 1
         await batcher.flush()
         assert len(batcher._staged_entries) == 0
@@ -345,7 +345,7 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
     bulk_mutation = RowMutationEntry(row_key, [mutation])
     flush_interval = 0.1
     async with table.mutations_batcher(flush_interval=flush_interval) as batcher:
-        batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation)
         await asyncio.sleep(0)
         assert len(batcher._staged_entries) == 1
         await asyncio.sleep(flush_interval + 0.1)
@@ -373,11 +373,11 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
     bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
 
     async with table.mutations_batcher(flush_limit_mutation_count=2) as batcher:
-        batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation)
         # should be noop; flush not scheduled
         await batcher._prev_flush
         assert len(batcher._staged_entries) == 1
-        batcher.append(bulk_mutation2)
+        await batcher.append(bulk_mutation2)
         # task should now be scheduled
         await batcher._prev_flush
         assert len(batcher._staged_entries) == 0
@@ -407,11 +407,11 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
     flush_limit = bulk_mutation.size() + bulk_mutation2.size() - 1
 
     async with table.mutations_batcher(flush_limit_bytes=flush_limit) as batcher:
-        batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation)
         # should be noop; flush not scheduled
         await batcher._prev_flush
         assert len(batcher._staged_entries) == 1
-        batcher.append(bulk_mutation2)
+        await batcher.append(bulk_mutation2)
         # task should now be scheduled
         await batcher._prev_flush
         assert len(batcher._staged_entries) == 0
@@ -443,9 +443,9 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
     async with table.mutations_batcher(
         flush_limit_bytes=size_limit, flush_limit_mutation_count=3, flush_interval=1
     ) as batcher:
-        batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation)
         assert len(batcher._staged_entries) == 1
-        batcher.append(bulk_mutation2)
+        await batcher.append(bulk_mutation2)
         # should be noop; flush not scheduled
         await batcher._prev_flush
         await asyncio.sleep(0.01)
