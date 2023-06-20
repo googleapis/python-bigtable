@@ -32,6 +32,7 @@ from typing import Set
 from typing import cast
 import asyncio
 import atexit
+import concurrent.futures
 import functools
 import threading
 import time
@@ -1269,18 +1270,47 @@ class MutationsBatcher_Sync(ABC):
         flow_control_max_count: int | None = 100000,
         flow_control_max_bytes: int | None = 100 * MB_SIZE,
     ):
+        """
+        Args:
+          - table: Table_Sync to preform rpc calls
+          - flush_interval: Automatically flush every flush_interval seconds.
+              If None, no time-based flushing is performed.
+          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
+              mutations are added across all entries. If None, this limit is ignored.
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
+          - flow_control_max_count: Maximum number of inflight mutations.
+              If None, this limit is ignored.
+          - flow_control_max_bytes: Maximum number of inflight bytes.
+              If None, this limit is ignored.
+        """
+        atexit.register(self._on_exit)
+        self.closed: bool = False
+        self._table = table
+        self._staged_entries: list[RowMutationEntry] = []
+        (self._staged_count, self._staged_bytes) = (0, 0)
+        self._flow_control = (
+            google.cloud.bigtable._sync._concrete._FlowControl_Sync_Concrete(
+                flow_control_max_count, flow_control_max_bytes
+            )
+        )
+        self._flush_limit_bytes = flush_limit_bytes
+        self._flush_limit_count = (
+            flush_limit_mutation_count
+            if flush_limit_mutation_count is not None
+            else float("inf")
+        )
+        self.exceptions: list[Exception] = []
+        self._flush_timer = self._start_flush_timer(flush_interval)
+        self._prev_flush: concurrent.futures.Future[None] = concurrent.futures.Future()
+        self._prev_flush.set_result(None)
+        self._entries_processed_since_last_raise: int = 0
+
+    def _start_flush_timer(
+        self, interval: float | None
+    ) -> concurrent.futures.Future[None]:
         raise NotImplementedError(
             "Corresponding Async Function contains unhandled asyncio calls"
         )
-
-    def _flush_timer(self, interval: float | None):
-        """Triggers new flush tasks every `interval` seconds"""
-        if interval is None:
-            return
-        while not self.closed:
-            time.sleep(interval)
-            if not self.closed and self._staged_entries:
-                self._schedule_flush()
 
     def append(self, mutation_entry: RowMutationEntry):
         """
@@ -1298,32 +1328,54 @@ class MutationsBatcher_Sync(ABC):
             raise ValueError(
                 f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
             )
-        if self._pending_flush_entries:
-            self._pending_flush_entries.append(mutation_entry)
-        else:
-            self._staged_entries.append(mutation_entry)
-            self._staged_count += len(mutation_entry.mutations)
-            self._staged_bytes += mutation_entry.size()
-            if (
-                self._staged_count >= self._flush_limit_count
-                or self._staged_bytes >= self._flush_limit_bytes
-            ):
-                self._schedule_flush()
+        self._staged_entries.append(mutation_entry)
+        self._staged_count += len(mutation_entry.mutations)
+        self._staged_bytes += mutation_entry.size()
+        if (
+            self._staged_count >= self._flush_limit_count
+            or self._staged_bytes >= self._flush_limit_bytes
+        ):
+            self._schedule_flush()
+            time.sleep(0)
 
     def flush(self, *, raise_exceptions: bool = True, timeout: float | None = 60):
         raise NotImplementedError(
             "Corresponding Async Function contains unhandled asyncio calls"
         )
 
-    def _schedule_flush(self) -> asyncio.Task[None]:
-        raise NotImplementedError(
-            "Corresponding Async Function contains unhandled asyncio calls"
-        )
+    def _schedule_flush(self) -> concurrent.futures.Future[None]:
+        """Update the flush task to include the latest staged entries"""
+        if self._staged_entries:
+            (entries, self._staged_entries) = (self._staged_entries, [])
+            (self._staged_count, self._staged_bytes) = (0, 0)
+            self._prev_flush = self._create_bg_task(
+                self._flush_internal, entries, self._prev_flush
+            )
+        return self._prev_flush
 
-    def _flush_internal(self, prev_flush: asyncio.Task[None]):
-        raise NotImplementedError(
-            "Corresponding Async Function contains unhandled asyncio calls"
-        )
+    def _flush_internal(
+        self,
+        new_entries: list[RowMutationEntry],
+        prev_flush: concurrent.futures.Future[None],
+    ):
+        """
+        Flushes a set of mutations to the server, and updates internal state
+
+        Args:
+          - prev_flush: the previous flush task, which will be awaited before
+              a new flush is initiated
+        """
+        in_process_requests: list[
+            concurrent.futures.Future[list[FailedMutationEntryError]]
+            | concurrent.futures.Future[None]
+        ] = [prev_flush]
+        for batch in self._flow_control.add_to_flow(new_entries):
+            batch_task = self._create_bg_task(self._execute_mutate_rows, batch)
+            in_process_requests.append(batch_task)
+        found_exceptions = self._wait_for_batch_results(*in_process_requests)
+        time.sleep(0)
+        self._entries_processed_since_last_raise += len(new_entries)
+        self.exceptions.extend(found_exceptions)
 
     def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -1385,9 +1437,13 @@ class MutationsBatcher_Sync(ABC):
     def close(self):
         """Flush queue and clean up resources"""
         self.closed = True
-        self._flush_timer_task.cancel()
+        self._flush_timer.cancel()
         self._schedule_flush()
         self._prev_flush
+        try:
+            self._flush_timer
+        except asyncio.CancelledError:
+            pass
         self._raise_exceptions()
         atexit.unregister(self._on_exit)
 
@@ -1397,6 +1453,21 @@ class MutationsBatcher_Sync(ABC):
             warnings.warn(
                 f"MutationsBatcher for table {self._table.table_name} was not closed. {len(self._staged_entries)} Unflushed mutations will not be sent to the server."
             )
+
+    @staticmethod
+    def _create_bg_task(func, *args, **kwargs) -> concurrent.futures.Future[Any]:
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
+
+    @staticmethod
+    def _wait_for_batch_results(
+        *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
+        | concurrent.futures.Future[None],
+    ) -> list[list[FailedMutationEntryError] | Exception]:
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
 
 
 class _FlowControl_Sync(ABC):

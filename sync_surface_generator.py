@@ -22,6 +22,7 @@ import time
 import queue
 import os
 import threading
+import concurrent.futures
 
 from black import format_str, FileMode
 import autoflake
@@ -34,6 +35,7 @@ asynciomap = {
     "sleep": ({"time": time}, "time.sleep"),
     "Queue": ({"queue": queue}, "queue.Queue"),
     "Condition": ({"threading": threading}, "threading.Condition"),
+    "Future": ({"concurrent.futures": concurrent.futures}, "concurrent.futures.Future"),
 }
 
 # This map defines find/replace pairs for the generated code and docstrings

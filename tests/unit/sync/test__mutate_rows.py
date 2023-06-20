@@ -31,8 +31,9 @@ except ImportError:
 class TestMutateRowsOperation:
     def _target_class(self):
         from google.cloud.bigtable._sync._concrete import (
-            _MutateRowsOperation_Sync_Concrete
+            _MutateRowsOperation_Sync_Concrete,
         )
+
         return _MutateRowsOperation_Sync_Concrete
 
     def _make_one(self, *args, **kwargs):
@@ -151,8 +152,9 @@ class TestMutateRowsOperation:
     def test_mutate_rows_exception_retryable_eventually_pass(self, exc_type):
         """If an exception fails but eventually passes, it should not raise an exception"""
         from google.cloud.bigtable._sync._concrete import (
-            _MutateRowsOperation_Sync_Concrete
+            _MutateRowsOperation_Sync_Concrete,
         )
+
         client = mock.Mock()
         table = mock.Mock()
         entries = [mock.Mock()]

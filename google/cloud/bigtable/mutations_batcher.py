@@ -451,4 +451,3 @@ class MutationsBatcher:
                 # completed requests will return a list of FailedMutationEntryError
                 found_errors.extend(result)
         return found_errors
-

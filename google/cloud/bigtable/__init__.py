@@ -39,6 +39,7 @@ try:
         BigtableDataClient_Sync_Concrete as BigtableDataClientSync,
     )
     from google.cloud.bigtable._sync._concrete import Table_Sync_Concrete as TableSync
+
     sync_packages = (BigtableDataClientSync, TableSync)
 except ImportError:
     pass
