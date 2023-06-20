@@ -23,7 +23,6 @@ from grpc import Channel
 from grpc.aio import RpcContext
 from typing import Any
 from typing import Callable
-from typing import Coroutine
 from typing import Generator
 from typing import Iterable
 from typing import Iterator
@@ -32,7 +31,9 @@ from typing import Optional
 from typing import Set
 from typing import cast
 import asyncio
+import atexit
 import functools
+import threading
 import time
 import warnings
 
@@ -43,22 +44,22 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.bigtable._helpers import _attempt_timeout_generator
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable._helpers import _make_metadata
+from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 from google.cloud.bigtable._mutate_rows import _MutateRowsIncomplete
 from google.cloud.bigtable._read_rows import _StateMachine
 from google.cloud.bigtable.client import Table
+from google.cloud.bigtable.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.exceptions import InvalidChunk
+from google.cloud.bigtable.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.exceptions import _RowSetComplete
 from google.cloud.bigtable.mutations import Mutation
 from google.cloud.bigtable.mutations import RowMutationEntry
-from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.mutations_batcher import MB_SIZE
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.row import _LastScannedRow
-from google.cloud.bigtable.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable.row_filters import RowFilterChain
-from google.cloud.bigtable.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
@@ -544,8 +545,42 @@ class Table_Sync(ABC):
         """
         raise NotImplementedError
 
-    def mutations_batcher(self, **kwargs) -> MutationsBatcher:
-        raise NotImplementedError("Function marked as unsupported in sync mode")
+    def mutations_batcher(
+        self,
+        *,
+        flush_interval: float | None = 5,
+        flush_limit_mutation_count: int | None = 1000,
+        flush_limit_bytes: int = 20 * MB_SIZE,
+        flow_control_max_count: int | None = 100000,
+        flow_control_max_bytes: int | None = 100 * MB_SIZE,
+    ) -> MutationsBatcher_Sync:
+        """
+        Returns a new mutations batcher instance.
+
+        Can be used to iteratively add mutations that are flushed as a group,
+        to avoid excess network calls
+
+        Args:
+          - flush_interval: Automatically flush every flush_interval seconds. If None,
+              a table default will be used
+          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
+              mutations are added across all entries. If None, this limit is ignored.
+          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
+              If None, this limit is ignored.
+          - flow_control_max_count: Maximum number of inflight mutations.
+          - flow_control_max_bytes: Maximum number of inflight bytes.
+              If None, this limit is ignored.
+        Returns:
+            - a MutationsBatcher_Sync context manager that can batch requests
+        """
+        return google.cloud.bigtable._sync._concrete.MutationsBatcher_Threaded(
+            self,
+            flush_interval=flush_interval,
+            flush_limit_mutation_count=flush_limit_mutation_count,
+            flush_limit_bytes=flush_limit_bytes,
+            flow_control_max_count=flow_control_max_count,
+            flow_control_max_bytes=flow_control_max_bytes,
+        )
 
     def mutate_row(
         self,
@@ -632,10 +667,6 @@ class Table_Sync(ABC):
         *,
         operation_timeout: float | None = 60,
         per_request_timeout: float | None = None,
-        on_success: Callable[
-            [int, RowMutationEntry], None | Coroutine[None, None, None]
-        ]
-        | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -661,9 +692,6 @@ class Table_Sync(ABC):
                 in seconds. If it takes longer than this time to complete, the request
                 will be cancelled with a DeadlineExceeded exception, and a retry will
                 be attempted if within operation_timeout budget
-            - on_success: a callback function that will be called when each mutation
-                entry is confirmed to be applied successfully. Will be passed the
-                index and the entry itself.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -676,12 +704,14 @@ class Table_Sync(ABC):
             raise ValueError("per_request_timeout must be greater than 0")
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
-        operation = _MutateRowsOperation_Sync(
-            self.client._gapic_client,
-            self,
-            mutation_entries,
-            operation_timeout,
-            per_request_timeout,
+        operation = (
+            google.cloud.bigtable._sync._concrete._MutateRowsOperation_Sync_Concrete(
+                self.client._gapic_client,
+                self,
+                mutation_entries,
+                operation_timeout,
+                per_request_timeout,
+            )
         )
         operation.start()
 
@@ -1083,6 +1113,11 @@ class _MutateRowsOperation_Sync(ABC):
           - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
         """
+        total_mutations = sum((len(entry.mutations) for entry in mutation_entries))
+        if total_mutations > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+            raise ValueError(
+                f"mutate_rows requests can contain at most {MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across all entries. Found {total_mutations}."
+            )
         metadata = _make_metadata(table.table_name, table.app_profile_id)
         self._gapic_fn = functools.partial(
             gapic_client.mutate_rows,
@@ -1125,7 +1160,7 @@ class _MutateRowsOperation_Sync(ABC):
             for idx in incomplete_indices:
                 self._handle_entry_error(idx, exc)
         finally:
-            all_errors = []
+            all_errors: list[Exception] = []
             for idx, exc_list in self.errors.items():
                 if len(exc_list) == 0:
                     raise core_exceptions.ClientError(
@@ -1203,3 +1238,265 @@ class _MutateRowsOperation_Sync(ABC):
             and (idx not in self.remaining_indices)
         ):
             self.remaining_indices.append(idx)
+
+
+class MutationsBatcher_Sync(ABC):
+    """
+    Allows users to send batches using context manager API:
+
+    Runs mutate_row,  mutate_rows, and check_and_mutate_row internally, combining
+    to use as few network requests as required
+
+    Flushes:
+      - manually
+      - every flush_interval seconds
+      - after queue reaches flush_count in quantity
+      - after queue reaches flush_size_bytes in storage size
+      - when batcher is closed or destroyed
+
+    async with table.mutations_batcher() as batcher:
+       for i in range(10):
+         batcher.add(row, mut)
+    """
+
+    def __init__(
+        self,
+        table: "Table",
+        *,
+        flush_interval: float | None = 5,
+        flush_limit_mutation_count: int | None = 1000,
+        flush_limit_bytes: int = 20 * MB_SIZE,
+        flow_control_max_count: int | None = 100000,
+        flow_control_max_bytes: int | None = 100 * MB_SIZE,
+    ):
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
+
+    def _flush_timer(self, interval: float | None):
+        """Triggers new flush tasks every `interval` seconds"""
+        if interval is None:
+            return
+        while not self.closed:
+            time.sleep(interval)
+            if not self.closed and self._staged_entries:
+                self._schedule_flush()
+
+    def append(self, mutation_entry: RowMutationEntry):
+        """
+        Add a new set of mutations to the internal queue
+
+        Args:
+          - mutation_entry: new entry to add to flush queue
+        Raises:
+          - RuntimeError if batcher is closed
+          - ValueError if an invalid mutation type is added
+        """
+        if self.closed:
+            raise RuntimeError("Cannot append to closed MutationsBatcher")
+        if isinstance(mutation_entry, Mutation):
+            raise ValueError(
+                f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
+            )
+        if self._pending_flush_entries:
+            self._pending_flush_entries.append(mutation_entry)
+        else:
+            self._staged_entries.append(mutation_entry)
+            self._staged_count += len(mutation_entry.mutations)
+            self._staged_bytes += mutation_entry.size()
+            if (
+                self._staged_count >= self._flush_limit_count
+                or self._staged_bytes >= self._flush_limit_bytes
+            ):
+                self._schedule_flush()
+
+    def flush(self, *, raise_exceptions: bool = True, timeout: float | None = 60):
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
+
+    def _schedule_flush(self) -> asyncio.Task[None]:
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
+
+    def _flush_internal(self, prev_flush: asyncio.Task[None]):
+        raise NotImplementedError(
+            "Corresponding Async Function contains unhandled asyncio calls"
+        )
+
+    def _execute_mutate_rows(
+        self, batch: list[RowMutationEntry]
+    ) -> list[FailedMutationEntryError]:
+        """
+        Helper to execute mutation operation on a batch
+
+        Args:
+          - batch: list of RowMutationEntry objects to send to server
+          - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
+              If not given, will use table defaults
+        Returns:
+          - list of FailedMutationEntryError objects for mutations that failed.
+              FailedMutationEntryError objects will not contain index information
+        """
+        request = {"table_name": self._table.table_name}
+        if self._table.app_profile_id:
+            request["app_profile_id"] = self._table.app_profile_id
+        try:
+            operation = google.cloud.bigtable._sync._concrete._MutateRowsOperation_Sync_Concrete(
+                self._table.client._gapic_client,
+                self._table,
+                batch,
+                self._table.default_operation_timeout,
+                self._table.default_per_request_timeout,
+            )
+            operation.start()
+        except MutationsExceptionGroup as e:
+            for subexc in e.exceptions:
+                subexc.index = None
+            return list(e.exceptions)
+        finally:
+            self._flow_control.remove_from_flow(batch)
+        return []
+
+    def _raise_exceptions(self):
+        """
+        Raise any unreported exceptions from background flush operations
+
+        Raises:
+          - MutationsExceptionGroup with all unreported exceptions
+        """
+        if self.exceptions:
+            (exc_list, self.exceptions) = (self.exceptions, [])
+            (raise_count, self._entries_processed_since_last_raise) = (
+                self._entries_processed_since_last_raise,
+                0,
+            )
+            raise MutationsExceptionGroup(exc_list, raise_count)
+
+    def __enter__(self):
+        """For context manager API"""
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        """For context manager API"""
+        self.close()
+
+    def close(self):
+        """Flush queue and clean up resources"""
+        self.closed = True
+        self._flush_timer_task.cancel()
+        self._schedule_flush()
+        self._prev_flush
+        self._raise_exceptions()
+        atexit.unregister(self._on_exit)
+
+    def _on_exit(self):
+        """Called when program is exited. Raises warning if unflushed mutations remain"""
+        if not self.closed and self._staged_entries:
+            warnings.warn(
+                f"MutationsBatcher for table {self._table.table_name} was not closed. {len(self._staged_entries)} Unflushed mutations will not be sent to the server."
+            )
+
+
+class _FlowControl_Sync(ABC):
+    """
+    Manages flow control for batched mutations. Mutations are registered against
+    the FlowControl object before being sent, which will block if size or count
+    limits have reached capacity. As mutations completed, they are removed from
+    the FlowControl object, which will notify any blocked requests that there
+    is additional capacity.
+
+    Flow limits are not hard limits. If a single mutation exceeds the configured
+    limits, it will be allowed as a single batch when the capacity is available.
+    """
+
+    def __init__(self, max_mutation_count: int | None, max_mutation_bytes: int | None):
+        """
+        Args:
+          - max_mutation_count: maximum number of mutations to send in a single rpc.
+             This corresponds to individual mutations in a single RowMutationEntry.
+             If None, no limit is enforced.
+          - max_mutation_bytes: maximum number of bytes to send in a single rpc.
+             If None, no limit is enforced.
+        """
+        self._max_mutation_count = (
+            max_mutation_count if max_mutation_count is not None else float("inf")
+        )
+        self._max_mutation_bytes = (
+            max_mutation_bytes if max_mutation_bytes is not None else float("inf")
+        )
+        if self._max_mutation_count < 1:
+            raise ValueError("max_mutation_count must be greater than 0")
+        if self._max_mutation_bytes < 1:
+            raise ValueError("max_mutation_bytes must be greater than 0")
+        self._capacity_condition = threading.Condition()
+        self._in_flight_mutation_count = 0
+        self._in_flight_mutation_bytes = 0
+
+    def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
+        """
+        Checks if there is capacity to send a new mutation with the given size and count
+
+        FlowControl limits are not hard limits. If a single mutation exceeds
+        the configured limits, it can be sent in a single batch.
+        """
+        acceptable_size = max(self._max_mutation_bytes, additional_size)
+        acceptable_count = max(self._max_mutation_count, additional_count)
+        new_size = self._in_flight_mutation_bytes + additional_size
+        new_count = self._in_flight_mutation_count + additional_count
+        return new_size <= acceptable_size and new_count <= acceptable_count
+
+    def remove_from_flow(
+        self, mutations: RowMutationEntry | list[RowMutationEntry]
+    ) -> None:
+        """Every time an in-flight mutation is complete, release the flow control semaphore"""
+        if not isinstance(mutations, list):
+            mutations = [mutations]
+        total_count = sum((len(entry.mutations) for entry in mutations))
+        total_size = sum((entry.size() for entry in mutations))
+        self._in_flight_mutation_count -= total_count
+        self._in_flight_mutation_bytes -= total_size
+        with self._capacity_condition:
+            self._capacity_condition.notify_all()
+
+    def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
+        """
+        Breaks up list of mutations into batches that were registered to fit within
+        flow control limits. This method will block when the flow control limits are
+        reached.
+
+        Args:
+          - mutations: list mutations to break up into batches
+        Yields:
+          - list of mutations that have reserved space in the flow control.
+            Each batch contains at least one mutation.
+        """
+        if not isinstance(mutations, list):
+            mutations = [mutations]
+        start_idx = 0
+        end_idx = 0
+        while end_idx < len(mutations):
+            start_idx = end_idx
+            batch_mutation_count = 0
+            with self._capacity_condition:
+                while end_idx < len(mutations):
+                    next_entry = mutations[end_idx]
+                    next_size = next_entry.size()
+                    next_count = len(next_entry.mutations)
+                    if (
+                        self._has_capacity(next_count, next_size)
+                        and batch_mutation_count + next_count
+                        <= MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+                    ):
+                        end_idx += 1
+                        batch_mutation_count += next_count
+                        self._in_flight_mutation_bytes += next_size
+                        self._in_flight_mutation_count += next_count
+                    elif start_idx != end_idx:
+                        break
+                    else:
+                        self._capacity_condition.wait_for(
+                            lambda: self._has_capacity(next_count, next_size)
+                        )
+            yield mutations[start_idx:end_idx]

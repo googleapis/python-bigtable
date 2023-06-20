@@ -18,10 +18,11 @@
 
 import os
 import pytest
+import time
+import uuid
 
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 import google.cloud.bigtable
 
 TEST_FAMILY = "test-family"
@@ -200,6 +201,21 @@ def _retrieve_cell_value(table, row_key):
     return cell.value
 
 
+def _create_row_and_mutation(
+    table, temp_rows, *, start_value=b"start", new_value=b"new_value"
+):
+    """Helper to create a new row, and a sample set_cell mutation to change its value"""
+    from google.cloud.bigtable.mutations import SetCell
+
+    row_key = uuid.uuid4().hex.encode()
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    temp_rows.add_row(row_key, family=family, qualifier=qualifier, value=start_value)
+    assert _retrieve_cell_value(table, row_key) == start_value
+    mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
+    return (row_key, mutation)
+
+
 @pytest.fixture(scope="function")
 def temp_rows(table):
     builder = TempRowBuilder(table)
@@ -207,7 +223,7 @@ def temp_rows(table):
     builder.delete_rows()
 
 
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
 def test_ping_and_warm_gapic(client, table):
     """
     Simple ping rpc test
@@ -220,171 +236,168 @@ def test_ping_and_warm_gapic(client, table):
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_mutation_set_cell(table, temp_rows):
     """Ensure cells can be set properly"""
-    from google.cloud.bigtable.mutations import SetCell
-
-    row_key = b"mutate"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    start_value = b"start"
-    temp_rows.add_row(row_key, family=family, qualifier=qualifier, value=start_value)
-    assert _retrieve_cell_value(table, row_key) == start_value
-    expected_value = b"new-value"
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    row_key = b"bulk_mutate"
+    new_value = uuid.uuid4().hex.encode()
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
     table.mutate_row(row_key, mutation)
-    assert _retrieve_cell_value(table, row_key) == expected_value
+    assert _retrieve_cell_value(table, row_key) == new_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 def test_bulk_mutations_set_cell(client, table, temp_rows):
     """Ensure cells can be set properly"""
-    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
-    row_key = b"bulk_mutate"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    start_value = b"start"
-    temp_rows.add_row(row_key, family=family, qualifier=qualifier, value=start_value)
-    assert _retrieve_cell_value(table, row_key) == start_value
-    expected_value = b"new-value"
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    new_value = uuid.uuid4().hex.encode()
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
     bulk_mutation = RowMutationEntry(row_key, [mutation])
     table.bulk_mutate_rows([bulk_mutation])
-    assert _retrieve_cell_value(table, row_key) == expected_value
+    assert _retrieve_cell_value(table, row_key) == new_value
 
 
-@pytest.mark.parametrize(
-    "start,increment,expected",
-    [
-        (0, 0, 0),
-        (0, 1, 1),
-        (0, -1, -1),
-        (1, 0, 1),
-        (0, -100, -100),
-        (0, 3000, 3000),
-        (10, 4, 14),
-        (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
-        (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
-        (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
-    ],
-)
-def test_read_modify_write_row_increment(
-    client, table, temp_rows, start, increment, expected
-):
-    """test read_modify_write_row"""
-    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_context_manager(client, table, temp_rows):
+    """test batcher with context manager. Should flush on exit"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
-    row_key = b"test-row-key"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
-    rule = IncrementRule(family, qualifier, increment)
-    result = table.read_modify_write_row(row_key, rule)
-    assert result.row_key == row_key
-    assert len(result) == 1
-    assert result[0].family == family
-    assert result[0].qualifier == qualifier
-    assert int(result[0]) == expected
-    assert _retrieve_cell_value(table, row_key) == result[0].value
-
-
-@pytest.mark.parametrize(
-    "start,append,expected",
-    [
-        (b"", b"", b""),
-        ("", "", b""),
-        (b"abc", b"123", b"abc123"),
-        (b"abc", "123", b"abc123"),
-        ("", b"1", b"1"),
-        (b"abc", "", b"abc"),
-        (b"hello", b"world", b"helloworld"),
-    ],
-)
-def test_read_modify_write_row_append(
-    client, table, temp_rows, start, append, expected
-):
-    """test read_modify_write_row"""
-    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
-
-    row_key = b"test-row-key"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    temp_rows.add_row(row_key, value=start, family=family, qualifier=qualifier)
-    rule = AppendValueRule(family, qualifier, append)
-    result = table.read_modify_write_row(row_key, rule)
-    assert result.row_key == row_key
-    assert len(result) == 1
-    assert result[0].family == family
-    assert result[0].qualifier == qualifier
-    assert result[0].value == expected
-    assert _retrieve_cell_value(table, row_key) == result[0].value
-
-
-def test_read_modify_write_row_chained(client, table, temp_rows):
-    """test read_modify_write_row with multiple rules"""
-    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
-    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
-
-    row_key = b"test-row-key"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    start_amount = 1
-    increment_amount = 10
-    temp_rows.add_row(row_key, value=start_amount, family=family, qualifier=qualifier)
-    rule = [
-        IncrementRule(family, qualifier, increment_amount),
-        AppendValueRule(family, qualifier, "hello"),
-        AppendValueRule(family, qualifier, "world"),
-        AppendValueRule(family, qualifier, "!"),
-    ]
-    result = table.read_modify_write_row(row_key, rule)
-    assert result.row_key == row_key
-    assert result[0].family == family
-    assert result[0].qualifier == qualifier
-    assert (
-        result[0].value
-        == (start_amount + increment_amount).to_bytes(8, "big", signed=True)
-        + b"helloworld!"
+    (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
-    assert _retrieve_cell_value(table, row_key) == result[0].value
+    (row_key2, mutation2) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+    with table.mutations_batcher() as batcher:
+        batcher.append(bulk_mutation)
+        batcher.append(bulk_mutation2)
+    assert _retrieve_cell_value(table, row_key) == new_value
+    assert len(batcher._staged_entries) == 0
 
 
-@pytest.mark.parametrize(
-    "start_val,predicate_range,expected_result",
-    [(1, (0, 2), True), (-1, (0, 2), False)],
-)
-def test_check_and_mutate(
-    client, table, temp_rows, start_val, predicate_range, expected_result
-):
-    """test that check_and_mutate_row works applies the right mutations, and returns the right result"""
-    from google.cloud.bigtable.mutations import SetCell
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_manual_flush(client, table, temp_rows):
+    """batcher should flush when manually requested"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
-    row_key = b"test-row-key"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    temp_rows.add_row(row_key, value=start_val, family=family, qualifier=qualifier)
-    false_mutation_value = b"false-mutation-value"
-    false_mutation = SetCell(
-        family=TEST_FAMILY, qualifier=qualifier, new_value=false_mutation_value
+    new_value = uuid.uuid4().hex.encode()
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
-    true_mutation_value = b"true-mutation-value"
-    true_mutation = SetCell(
-        family=TEST_FAMILY, qualifier=qualifier, new_value=true_mutation_value
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    with table.mutations_batcher() as batcher:
+        batcher.append(bulk_mutation)
+        assert len(batcher._staged_entries) == 1
+        batcher.flush()
+        assert len(batcher._staged_entries) == 0
+        assert _retrieve_cell_value(table, row_key) == new_value
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_timer_flush(client, table, temp_rows):
+    """batch should occur after flush_interval seconds"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value = uuid.uuid4().hex.encode()
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
-    predicate = ValueRangeFilter(predicate_range[0], predicate_range[1])
-    result = table.check_and_mutate_row(
-        row_key,
-        predicate,
-        true_case_mutations=true_mutation,
-        false_case_mutations=false_mutation,
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    flush_interval = 0.1
+    with table.mutations_batcher(flush_interval=flush_interval) as batcher:
+        batcher.append(bulk_mutation)
+        time.sleep(0)
+        assert len(batcher._staged_entries) == 1
+        time.sleep(flush_interval + 0.1)
+        assert len(batcher._staged_entries) == 0
+        assert _retrieve_cell_value(table, row_key) == new_value
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_count_flush(client, table, temp_rows):
+    """batch should flush after flush_limit_mutation_count mutations"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
-    assert result == expected_result
-    expected_value = true_mutation_value if expected_result else false_mutation_value
-    assert _retrieve_cell_value(table, row_key) == expected_value
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    (row_key2, mutation2) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+    with table.mutations_batcher(flush_limit_mutation_count=2) as batcher:
+        batcher.append(bulk_mutation)
+        batcher._prev_flush
+        assert len(batcher._staged_entries) == 1
+        batcher.append(bulk_mutation2)
+        batcher._prev_flush
+        batcher._prev_flush.result()
+        assert len(batcher._staged_entries) == 0
+        assert _retrieve_cell_value(table, row_key) == new_value
+        assert _retrieve_cell_value(table, row_key2) == new_value2
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_bytes_flush(client, table, temp_rows):
+    """batch should flush after flush_limit_bytes bytes"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    (new_value, new_value2) = [uuid.uuid4().hex.encode() for _ in range(2)]
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    (row_key2, mutation2) = _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+    flush_limit = bulk_mutation.size() + bulk_mutation2.size() - 1
+    with table.mutations_batcher(flush_limit_bytes=flush_limit) as batcher:
+        batcher.append(bulk_mutation)
+        batcher._prev_flush
+        assert len(batcher._staged_entries) == 1
+        batcher.append(bulk_mutation2)
+        batcher._prev_flush
+        batcher._prev_flush.result()
+        assert len(batcher._staged_entries) == 0
+        assert _retrieve_cell_value(table, row_key) == new_value
+        assert _retrieve_cell_value(table, row_key2) == new_value2
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+def test_mutations_batcher_no_flush(client, table, temp_rows):
+    """test with no flush requirements met"""
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value = uuid.uuid4().hex.encode()
+    start_value = b"unchanged"
+    (row_key, mutation) = _create_row_and_mutation(
+        table, temp_rows, start_value=start_value, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    (row_key2, mutation2) = _create_row_and_mutation(
+        table, temp_rows, start_value=start_value, new_value=new_value
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+    size_limit = bulk_mutation.size() + bulk_mutation2.size() + 1
+    with table.mutations_batcher(
+        flush_limit_bytes=size_limit, flush_limit_mutation_count=3, flush_interval=1
+    ) as batcher:
+        batcher.append(bulk_mutation)
+        assert len(batcher._staged_entries) == 1
+        batcher.append(bulk_mutation2)
+        batcher._prev_flush
+        time.sleep(0.01)
+        assert len(batcher._staged_entries) == 2
+        assert _retrieve_cell_value(table, row_key) == start_value
+        assert _retrieve_cell_value(table, row_key2) == start_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -476,62 +489,6 @@ def test_read_rows_stream_close(table, temp_rows):
     with pytest.raises(StopIteration) as e:
         generator.__next__()
         assert "closed" in str(e)
-
-
-def test_read_row(table, temp_rows):
-    """Test read_row (single row helper)"""
-    from google.cloud.bigtable import Row
-
-    temp_rows.add_row(b"row_key_1", value=b"value")
-    row = table.read_row(b"row_key_1")
-    assert isinstance(row, Row)
-    assert row.row_key == b"row_key_1"
-    assert row.cells[0].value == b"value"
-
-
-def test_read_row_missing(table):
-    """Test read_row when row does not exist"""
-    from google.api_core import exceptions
-
-    row_key = "row_key_not_exist"
-    result = table.read_row(row_key)
-    assert result is None
-    with pytest.raises(exceptions.InvalidArgument) as e:
-        table.read_row("")
-        assert "Row key must be non-empty" in str(e)
-
-
-def test_read_row_w_filter(table, temp_rows):
-    """Test read_row (single row helper)"""
-    from google.cloud.bigtable import Row
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
-
-    temp_rows.add_row(b"row_key_1", value=b"value")
-    expected_label = "test-label"
-    label_filter = ApplyLabelFilter(expected_label)
-    row = table.read_row(b"row_key_1", row_filter=label_filter)
-    assert isinstance(row, Row)
-    assert row.row_key == b"row_key_1"
-    assert row.cells[0].value == b"value"
-    assert row.cells[0].labels == [expected_label]
-
-
-def test_row_exists(table, temp_rows):
-    from google.api_core import exceptions
-
-    "Test row_exists with rows that exist and don't exist"
-    assert table.row_exists(b"row_key_1") is False
-    temp_rows.add_row(b"row_key_1")
-    assert table.row_exists(b"row_key_1") is True
-    assert table.row_exists("row_key_1") is True
-    assert table.row_exists(b"row_key_2") is False
-    assert table.row_exists("row_key_2") is False
-    assert table.row_exists("3") is False
-    temp_rows.add_row(b"3")
-    assert table.row_exists(b"3") is True
-    with pytest.raises(exceptions.InvalidArgument) as e:
-        table.row_exists("")
-        assert "Row kest must be non-empty" in str(e)
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)

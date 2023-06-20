@@ -381,8 +381,9 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
         await batcher._prev_flush
         assert len(batcher._staged_entries) == 1
         batcher.append(bulk_mutation2)
-        # task should now be scheduled
+        # task should now be scheduled. Let it complete
         await batcher._prev_flush
+        batcher._prev_flush.result()  # needed for sync version of tests
         assert len(batcher._staged_entries) == 0
         # ensure cells were updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value
@@ -416,7 +417,9 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
         assert len(batcher._staged_entries) == 1
         batcher.append(bulk_mutation2)
         # task should now be scheduled
+        # let it complete
         await batcher._prev_flush
+        batcher._prev_flush.result()  # needed for sync version of tests
         assert len(batcher._staged_entries) == 0
         # ensure cells were updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value

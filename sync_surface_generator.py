@@ -59,6 +59,8 @@ name_map = {
     "BigtableDataClient": "BigtableDataClient_Sync",
     "ReadRowsIterator": "ReadRowsIterator_Sync",
     "_MutateRowsOperation": "_MutateRowsOperation_Sync",
+    "MutationsBatcher": "MutationsBatcher_Sync",
+    "_FlowControl": "_FlowControl_Sync",
 }
 
 # This maps classes to the final sync surface location, so they can be instantiated in generated code
@@ -67,6 +69,9 @@ concrete_class_map = {
     "Table": "google.cloud.bigtable._sync._concrete.Table_Sync_Concrete",
     "BigtableDataClient": "google.cloud.bigtable._sync._concrete.BigtableDataClient_Sync_Concrete",
     "ReadRowsIterator": "google.cloud.bigtable._sync._concrete.ReadRowsIterator_Sync_Concrete",
+    "_MutateRowsOperation": "google.cloud.bigtable._sync._concrete._MutateRowsOperation_Sync_Concrete",
+    "MutationsBatcher": "google.cloud.bigtable._sync._concrete.MutationsBatcher_Threaded",
+    "_FlowControl": "google.cloud.bigtable._sync._concrete._FlowControl_Sync_Concrete",
 }
 
 # This map defines import replacements for the generated code
@@ -95,7 +100,7 @@ pass_methods=["__init__async__", "_prepare_stream", "_manage_channel", "_registe
 # methods that are dropped from sync surface
 drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"]
 # methods that raise a NotImplementedError in sync surface
-error_methods=["mutations_batcher"]
+error_methods=[]
 
 class AsyncToSyncTransformer(ast.NodeTransformer):
     """
@@ -459,8 +464,10 @@ def generate_full_surface(save_path=None):
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.client import BigtableDataClient
     from google.cloud.bigtable.iterators import ReadRowsIterator
+    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable.mutations_batcher import _FlowControl
 
-    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator, _MutateRowsOperation]
+    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator, _MutateRowsOperation, MutationsBatcher, _FlowControl]
     code = transform_sync(conversion_list,
         concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
         pass_methods=pass_methods, drop_methods=drop_methods, error_methods=error_methods,
