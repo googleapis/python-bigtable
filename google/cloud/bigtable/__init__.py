@@ -34,6 +34,16 @@ from google.cloud.bigtable.mutations import DeleteRangeFromColumn
 from google.cloud.bigtable.mutations import DeleteAllFromFamily
 from google.cloud.bigtable.mutations import DeleteAllFromRow
 
+try:
+    from google.cloud.bigtable._sync._concrete import (
+        BigtableDataClient_Sync_Concrete as BigtableDataClientSync,
+    )
+    from google.cloud.bigtable._sync._concrete import Table_Sync_Concrete as TableSync
+
+    sync_packages = (BigtableDataClientSync, TableSync)
+except ImportError:
+    pass
+
 # Type alias for the output of sample_keys
 RowKeySamples = List[Tuple[bytes, int]]
 
@@ -54,4 +64,5 @@ __all__ = (
     "DeleteAllFromRow",
     "Row",
     "Cell",
+    *sync_packages,
 )

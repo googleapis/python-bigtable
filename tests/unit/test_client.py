@@ -883,8 +883,6 @@ class TestReadRows:
         )
 
     def _make_chunk(self, *args, **kwargs):
-        from google.cloud.bigtable_v2 import ReadRowsResponse
-
         kwargs["row_key"] = kwargs.get("row_key", b"row_key")
         kwargs["family_name"] = kwargs.get("family_name", "family_name")
         kwargs["qualifier"] = kwargs.get("qualifier", b"qualifier")
@@ -898,8 +896,6 @@ class TestReadRows:
         chunk_list: list[ReadRowsResponse.CellChunk | Exception],
         sleep_time=0,
     ):
-        from google.cloud.bigtable_v2 import ReadRowsResponse
-
         class mock_stream:
             def __init__(self, chunk_list, sleep_time):
                 self.chunk_list = chunk_list
@@ -2007,14 +2003,18 @@ class TestBulkMutateRows:
             async with client.get_table("i", "t", app_profile_id=profile) as table:
                 with mock.patch.object(
                     client._gapic_client, "mutate_rows", AsyncMock()
-                ) as read_rows:
-                    read_rows.side_effect = core_exceptions.Aborted("mock")
+                ) as mutate_rows:
+                    mutate_rows.side_effect = core_exceptions.Aborted("mock")
+                    mutation = mock.Mock()
+                    mutation.size.return_value = 1
+                    entry = mock.Mock()
+                    entry.mutations = [mutation]
                     try:
-                        await table.bulk_mutate_rows([mock.Mock()])
+                        await table.bulk_mutate_rows([entry])
                     except Exception:
                         # exception used to end early
                         pass
-                kwargs = read_rows.call_args_list[0].kwargs
+                kwargs = mutate_rows.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:

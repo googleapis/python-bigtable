@@ -135,7 +135,7 @@ class _ReadRowsOperation(AsyncIterable[Row]):
         if self._stream is not None:
             return await self._stream.__anext__()
         else:
-            raise asyncio.InvalidStateError("stream is closed")
+            raise GeneratorExit
 
     async def aclose(self):
         """Close the stream and release resources"""
