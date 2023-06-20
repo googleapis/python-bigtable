@@ -294,10 +294,11 @@ class TestMutationsBatcher:
         return MutationsBatcher(table, **kwargs)
 
     @unittest.mock.patch(
-        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._flush_timer"
+        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
     )
     @pytest.mark.asyncio
     async def test_ctor_defaults(self, flush_timer_mock):
+        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
         async with self._make_one(table) as instance:
             assert instance._table == table
@@ -312,14 +313,15 @@ class TestMutationsBatcher:
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == 5
-            assert isinstance(instance._flush_timer_task, asyncio.Task)
+            assert isinstance(instance._flush_timer, asyncio.Future)
 
     @unittest.mock.patch(
-        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._flush_timer"
+        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer",
     )
     @pytest.mark.asyncio
     async def test_ctor_explicit(self, flush_timer_mock):
         """Test with explicit parameters"""
+        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
         flush_interval = 20
         flush_limit_count = 17
@@ -346,14 +348,15 @@ class TestMutationsBatcher:
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == flush_interval
-            assert isinstance(instance._flush_timer_task, asyncio.Task)
+            assert isinstance(instance._flush_timer, asyncio.Future)
 
     @unittest.mock.patch(
-        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._flush_timer"
+        "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
     )
     @pytest.mark.asyncio
     async def test_ctor_no_limits(self, flush_timer_mock):
         """Test with None for flow control and flush limits"""
+        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
         flush_interval = None
         flush_limit_count = None
@@ -380,7 +383,7 @@ class TestMutationsBatcher:
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] is None
-            assert isinstance(instance._flush_timer_task, asyncio.Task)
+            assert isinstance(instance._flush_timer, asyncio.Future)
 
     def test_default_argument_consistency(self):
         """
@@ -414,11 +417,11 @@ class TestMutationsBatcher:
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
-    async def test__flush_timer_w_None(self, flush_mock):
+    async def test__start_flush_timer_w_None(self, flush_mock):
         """Empty timer should return immediately"""
         async with self._make_one() as instance:
             with mock.patch("asyncio.sleep") as sleep_mock:
-                await instance._flush_timer(None)
+                await instance._start_flush_timer(None)
                 assert sleep_mock.call_count == 0
                 assert flush_mock.call_count == 0
 
@@ -426,13 +429,13 @@ class TestMutationsBatcher:
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
-    async def test__flush_timer_call_when_closed(self, flush_mock):
+    async def test__start_flush_timer_call_when_closed(self, flush_mock):
         """closed batcher's timer should return immediately"""
         async with self._make_one() as instance:
             await instance.close()
             flush_mock.reset_mock()
             with mock.patch("asyncio.sleep") as sleep_mock:
-                await instance._flush_timer(1)
+                await instance._start_flush_timer(1)
                 assert sleep_mock.call_count == 0
                 assert flush_mock.call_count == 0
 
@@ -442,14 +445,14 @@ class TestMutationsBatcher:
     @pytest.mark.asyncio
     async def test__flush_timer(self, flush_mock):
         """Timer should continue to call _schedule_flush in a loop"""
-        async with self._make_one() as instance:
+        expected_sleep = 12
+        async with self._make_one(flush_interval=expected_sleep) as instance:
             instance._staged_entries = [mock.Mock()]
             loop_num = 3
-            expected_sleep = 12
             with mock.patch("asyncio.sleep") as sleep_mock:
                 sleep_mock.side_effect = [None] * loop_num + [asyncio.CancelledError()]
                 try:
-                    await instance._flush_timer(expected_sleep)
+                    await instance._flush_timer
                 except asyncio.CancelledError:
                     pass
                 assert sleep_mock.call_count == loop_num + 1
@@ -462,13 +465,13 @@ class TestMutationsBatcher:
     @pytest.mark.asyncio
     async def test__flush_timer_no_mutations(self, flush_mock):
         """Timer should not flush if no new mutations have been staged"""
-        async with self._make_one() as instance:
+        expected_sleep = 12
+        async with self._make_one(flush_interval=expected_sleep) as instance:
             loop_num = 3
-            expected_sleep = 12
             with mock.patch("asyncio.sleep") as sleep_mock:
                 sleep_mock.side_effect = [None] * loop_num + [asyncio.CancelledError()]
                 try:
-                    await instance._flush_timer(expected_sleep)
+                    await instance._flush_timer
                 except asyncio.CancelledError:
                     pass
                 assert sleep_mock.call_count == loop_num + 1
@@ -482,16 +485,15 @@ class TestMutationsBatcher:
     async def test__flush_timer_close(self, flush_mock):
         """Timer should continue terminate after close"""
         async with self._make_one() as instance:
-            expected_sleep = 12
             with mock.patch("asyncio.sleep"):
-                task = asyncio.create_task(instance._flush_timer(expected_sleep))
                 # let task run in background
                 await asyncio.sleep(0.5)
+                assert instance._flush_timer.done() is False
                 # close the batcher
                 await instance.close()
                 await asyncio.sleep(0.1)
                 # task should be complete
-                assert task.done()
+                assert instance._flush_timer.done() is True
 
     @pytest.mark.asyncio
     async def test_append_closed(self):
@@ -509,11 +511,11 @@ class TestMutationsBatcher:
         """
         from google.cloud.bigtable.mutations import DeleteAllFromRow
 
-        instance = self._make_one()
-        expected_error = "invalid mutation type: DeleteAllFromRow. Only RowMutationEntry objects are supported by batcher"
-        with pytest.raises(ValueError) as e:
-            await instance.append(DeleteAllFromRow())
-        assert str(e.value) == expected_error
+        async with self._make_one() as instance:
+            expected_error = "invalid mutation type: DeleteAllFromRow. Only RowMutationEntry objects are supported by batcher"
+            with pytest.raises(ValueError) as e:
+                await instance.append(DeleteAllFromRow())
+            assert str(e.value) == expected_error
 
     @pytest.mark.asyncio
     async def test_append_outside_flow_limits(self):
@@ -1110,7 +1112,7 @@ class TestMutationsBatcher:
                 with mock.patch.object(instance, "_raise_exceptions") as raise_mock:
                     await instance.close()
                     assert instance.closed is True
-                    assert instance._flush_timer_task.done() is True
+                    assert instance._flush_timer.done() is True
                     assert instance._prev_flush.done() is True
                     assert flush_mock.call_count == 1
                     assert raise_mock.call_count == 1
