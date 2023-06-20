@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import atexit
 import warnings
-from typing import Awaitable, TYPE_CHECKING
+from typing import Any, Awaitable, TYPE_CHECKING
 
 from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
@@ -208,31 +208,44 @@ class MutationsBatcher:
             else float("inf")
         )
         self.exceptions: list[Exception] = []
-        self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
-            self._flush_timer(flush_interval)
-        )
-        # create noop previous flush task to avoid None checks
-        self._prev_flush: asyncio.Task[None] = asyncio.create_task(asyncio.sleep(0))
+        self._flush_timer = self._start_flush_timer(flush_interval)
+        # create empty previous flush to avoid None checks
+        self._prev_flush: asyncio.Future[None] = asyncio.Future()
+        self._prev_flush.set_result(None)
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
-        # keep track of entries that are set to be sent in next flush,
-        # so we can add more before if mutations are added before flush task starts
-        self._pending_flush_entries: list[RowMutationEntry] = []
 
-    async def _flush_timer(self, interval: float | None):
+    def _start_flush_timer(self, interval: float | None) -> asyncio.Future[None]:
         """
-        Triggers new flush tasks every `interval` seconds
-        """
-        if interval is None:
-            # no time-based flushing is performed
-            return
-        while not self.closed:
-            await asyncio.sleep(interval)
-            # add new flush task to list
-            if not self.closed and self._staged_entries:
-                self._schedule_flush()
+        Set up a background task to flush the batcher every interval seconds
 
-    def append(self, mutation_entry: RowMutationEntry):
+        If interval is None, an empty future is returned
+
+        Args:
+          - flush_interval: Automatically flush every flush_interval seconds.
+              If None, no time-based flushing is performed.
+        Returns:
+            - asyncio.Future that represents the background task
+        """
+        if interval is None or self.closed:
+            empty_future: asyncio.Future[None] = asyncio.Future()
+            empty_future.set_result(None)
+            return empty_future
+
+        async def timer_routine(self, interval: float):
+            """
+            Triggers new flush tasks every `interval` seconds
+            """
+            while not self.closed:
+                await asyncio.sleep(interval)
+                # add new flush task to list
+                if not self.closed and self._staged_entries:
+                    self._schedule_flush()
+
+        timer_task = asyncio.create_task(timer_routine(self, interval))
+        return timer_task
+
+    async def append(self, mutation_entry: RowMutationEntry):
         """
         Add a new set of mutations to the internal queue
 
@@ -248,21 +261,17 @@ class MutationsBatcher:
             raise ValueError(
                 f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
             )
-        if self._pending_flush_entries:
-            # flush is already scheduled to run on next loop iteration
-            # add new entries directly to flush list
-            self._pending_flush_entries.append(mutation_entry)
-        else:
-            # add to staged list
-            self._staged_entries.append(mutation_entry)
-            # start a new flush task if limits exceeded
-            self._staged_count += len(mutation_entry.mutations)
-            self._staged_bytes += mutation_entry.size()
-            if (
-                self._staged_count >= self._flush_limit_count
-                or self._staged_bytes >= self._flush_limit_bytes
-            ):
-                self._schedule_flush()
+        self._staged_entries.append(mutation_entry)
+        # start a new flush task if limits exceeded
+        self._staged_count += len(mutation_entry.mutations)
+        self._staged_bytes += mutation_entry.size()
+        if (
+            self._staged_count >= self._flush_limit_count
+            or self._staged_bytes >= self._flush_limit_bytes
+        ):
+            self._schedule_flush()
+            # yield to the event loop to allow flush to run
+            await asyncio.sleep(0)
 
     async def flush(self, *, raise_exceptions: bool = True, timeout: float | None = 60):
         """
@@ -290,20 +299,19 @@ class MutationsBatcher:
         if raise_exceptions:
             self._raise_exceptions()
 
-    def _schedule_flush(self) -> asyncio.Task[None]:
+    def _schedule_flush(self) -> asyncio.Future[None]:
         """Update the flush task to include the latest staged entries"""
         if self._staged_entries:
             entries, self._staged_entries = self._staged_entries, []
             self._staged_count, self._staged_bytes = 0, 0
-            # flush is scheduled to run on next loop iteration
-            # use _pending_flush_entries to add new extra entries before flush task starts
-            self._pending_flush_entries.extend(entries)
-            self._prev_flush = asyncio.create_task(
-                self._flush_internal(self._prev_flush)
+            self._prev_flush = self._create_bg_task(
+                self._flush_internal, entries, self._prev_flush
             )
         return self._prev_flush
 
-    async def _flush_internal(self, prev_flush: asyncio.Task[None]):
+    async def _flush_internal(
+        self, new_entries: list[RowMutationEntry], prev_flush: asyncio.Future[None]
+    ):
         """
         Flushes a set of mutations to the server, and updates internal state
 
@@ -311,29 +319,20 @@ class MutationsBatcher:
           - prev_flush: the previous flush task, which will be awaited before
               a new flush is initiated
         """
-        new_entries, self._pending_flush_entries = self._pending_flush_entries, []
         # flush new entries
         in_process_requests: list[
-            asyncio.Task[None | list[FailedMutationEntryError]]
+            asyncio.Future[list[FailedMutationEntryError]] | asyncio.Future[None]
         ] = [prev_flush]
         async for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = asyncio.create_task(self._execute_mutate_rows(batch))
+            batch_task = self._create_bg_task(self._execute_mutate_rows, batch)
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
-        all_results: list[
-            list[FailedMutationEntryError] | Exception | None
-        ] = await asyncio.gather(*in_process_requests, return_exceptions=True)
+        found_exceptions = await self._wait_for_batch_results(*in_process_requests)
         # allow previous flush tasks to finalize before adding new exceptions to list
         await asyncio.sleep(0)
         # collect exception data for next raise, after previous flush tasks have completed
         self._entries_processed_since_last_raise += len(new_entries)
-        for request_result in all_results:
-            if isinstance(request_result, Exception):
-                # will receive direct Exception objects if request task fails
-                self.exceptions.append(request_result)
-            elif request_result is not None:
-                # completed requests will return a list of FailedMutationEntryError
-                self.exceptions.extend(request_result)
+        self.exceptions.extend(found_exceptions)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -399,9 +398,13 @@ class MutationsBatcher:
         Flush queue and clean up resources
         """
         self.closed = True
-        self._flush_timer_task.cancel()
+        self._flush_timer.cancel()
         self._schedule_flush()
         await self._prev_flush
+        try:
+            await self._flush_timer
+        except asyncio.CancelledError:
+            pass
         # raise unreported exceptions
         self._raise_exceptions()
         atexit.unregister(self._on_exit)
@@ -415,3 +418,37 @@ class MutationsBatcher:
                 f"MutationsBatcher for table {self._table.table_name} was not closed. "
                 f"{len(self._staged_entries)} Unflushed mutations will not be sent to the server."
             )
+
+    @staticmethod
+    def _create_bg_task(func, *args, **kwargs) -> asyncio.Future[Any]:
+        """
+        Create a new background task, and return a future
+
+        This method wraps asyncio to make it easier to maintain subclasses
+        with different concurrency models.
+        """
+        return asyncio.create_task(func(*args, **kwargs))
+
+    @staticmethod
+    async def _wait_for_batch_results(
+        *tasks: asyncio.Future[list[FailedMutationEntryError]] | asyncio.Future[None],
+    ) -> list[list[FailedMutationEntryError] | Exception]:
+        """
+        Takes in a list of futures representing _execute_mutate_rows tasks,
+        waits for them to complete, and returns a list of errors encountered.
+
+        Errors are expected to be FailedMutationEntryError, representing a failed
+        mutation operation. If a task fails, a direct Exception object will be
+        added to the output list instead.
+        """
+        all_results = await asyncio.gather(*tasks, return_exceptions=True)
+        found_errors = []
+        for result in all_results:
+            if isinstance(result, Exception):
+                # will receive direct Exception objects if request task fails
+                found_errors.append(result)
+            elif result:
+                # completed requests will return a list of FailedMutationEntryError
+                found_errors.extend(result)
+        return found_errors
+
