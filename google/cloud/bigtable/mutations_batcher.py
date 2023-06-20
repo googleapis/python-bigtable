@@ -208,11 +208,12 @@ class MutationsBatcher:
             else float("inf")
         )
         self.exceptions: list[Exception] = []
-        self._flush_timer_task: asyncio.Task[None] = asyncio.create_task(
+        self._flush_timer_task: asyncio.Future[None] = asyncio.create_task(
             self._flush_timer(flush_interval)
         )
-        # create noop previous flush task to avoid None checks
-        self._prev_flush: asyncio.Task[None] = asyncio.create_task(asyncio.sleep(0))
+        # create empty previous flush to avoid None checks
+        self._prev_flush: asyncio.Future[None] = asyncio.Future()
+        self._prev_flush.set_result(None)
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
 
@@ -283,7 +284,7 @@ class MutationsBatcher:
         if raise_exceptions:
             self._raise_exceptions()
 
-    def _schedule_flush(self) -> asyncio.Task[None]:
+    def _schedule_flush(self) -> asyncio.Future[None]:
         """Update the flush task to include the latest staged entries"""
         if self._staged_entries:
             entries, self._staged_entries = self._staged_entries, []
@@ -294,7 +295,7 @@ class MutationsBatcher:
         return self._prev_flush
 
     async def _flush_internal(
-        self, new_entries: list[RowMutationEntry], prev_flush: asyncio.Task[None]
+        self, new_entries: list[RowMutationEntry], prev_flush: asyncio.Future[None]
     ):
         """
         Flushes a set of mutations to the server, and updates internal state
@@ -305,7 +306,7 @@ class MutationsBatcher:
         """
         # flush new entries
         in_process_requests: list[
-            asyncio.Task[None | list[FailedMutationEntryError]]
+            asyncio.Future[list[FailedMutationEntryError]] | asyncio.Future[None]
         ] = [prev_flush]
         async for batch in self._flow_control.add_to_flow(new_entries):
             batch_task = asyncio.create_task(self._execute_mutate_rows(batch))
@@ -393,6 +394,10 @@ class MutationsBatcher:
         self._flush_timer_task.cancel()
         self._schedule_flush()
         await self._prev_flush
+        try:
+            await self._flush_timer_task
+        except asyncio.CancelledError:
+            pass
         # raise unreported exceptions
         self._raise_exceptions()
         atexit.unregister(self._on_exit)
