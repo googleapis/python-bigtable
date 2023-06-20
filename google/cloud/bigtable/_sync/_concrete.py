@@ -29,11 +29,10 @@ from google.cloud.bigtable._sync._autogen import MutationsBatcher_Sync
 from concurrent.futures import Future
 from concurrent.futures import wait
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
+from threading import Timer
 from google.cloud.bigtable.exceptions import FailedMutationEntryError
 import atexit
 from google.cloud.bigtable.mutations_batcher import MB_SIZE
-
 
 
 class _ReadRowsOperation_Sync_Concrete(_ReadRowsOperation_Sync):
@@ -145,8 +144,9 @@ class MutationsBatcher_Threaded(MutationsBatcher_Sync):
             else float("inf")
         )
         self.exceptions: list[Exception] = []
-        self._flush_timer = Thread(daemon=True, target=self._flush_timer, args=(flush_interval,))
-        self._flush_timer.start()
+        self._flush_timer_task = Timer(flush_interval, self._flush_timer, args=(flush_interval,))
+        if flush_interval is not None:
+            self._flush_timer_task.start()
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
         # create empty previous flush to avoid None checks
@@ -165,6 +165,16 @@ class MutationsBatcher_Threaded(MutationsBatcher_Sync):
             # use _pending_flush_entries to add new extra entries before flush task starts
             self._prev_flush = self._executor.submit(self._flush_internal, entries, self._prev_flush)
         return self._prev_flush
+
+    def _flush_timer(self, interval: float | None):
+        """Triggers new flush tasks every `interval` seconds"""
+        if interval is None or self.closed:
+            return
+        else:
+            self._schedule_flush()
+            # schedule a new timer
+            self._flush_timer_task = Timer(interval, self._flush_timer, args=(interval,))
+            self._flush_timer_task.start()
 
     def _flush_internal(self, new_entries, prev_flush: Future[None]):
         """
@@ -236,8 +246,7 @@ class MutationsBatcher_Threaded(MutationsBatcher_Sync):
         """
         self.closed = True
         # flush remaining entries
-        # TODO: clean up timer thread
-        # self._flush_timer.cancel()
+        self._flush_timer_task.cancel()
         self._schedule_flush()
         self._prev_flush.result()
         self._executor.shutdown(wait=True)
