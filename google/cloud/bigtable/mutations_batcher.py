@@ -48,23 +48,17 @@ class _FlowControl:
 
     def __init__(
         self,
-        max_mutation_count: int | None,
-        max_mutation_bytes: int | None,
+        max_mutation_count: int,
+        max_mutation_bytes: int,
     ):
         """
         Args:
           - max_mutation_count: maximum number of mutations to send in a single rpc.
              This corresponds to individual mutations in a single RowMutationEntry.
-             If None, no limit is enforced.
           - max_mutation_bytes: maximum number of bytes to send in a single rpc.
-             If None, no limit is enforced.
         """
-        self._max_mutation_count = (
-            max_mutation_count if max_mutation_count is not None else float("inf")
-        )
-        self._max_mutation_bytes = (
-            max_mutation_bytes if max_mutation_bytes is not None else float("inf")
-        )
+        self._max_mutation_count = max_mutation_count
+        self._max_mutation_bytes = max_mutation_bytes
         if self._max_mutation_count < 1:
             raise ValueError("max_mutation_count must be greater than 0")
         if self._max_mutation_bytes < 1:
@@ -177,8 +171,8 @@ class MutationsBatcher:
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
         flush_limit_bytes: int = 20 * MB_SIZE,
-        flow_control_max_mutation_count: int | None = 100_000,
-        flow_control_max_bytes: int | None = 100 * MB_SIZE,
+        flow_control_max_mutation_count: int = 100_000,
+        flow_control_max_bytes: int = 100 * MB_SIZE,
     ):
         """
         Args:
@@ -188,10 +182,8 @@ class MutationsBatcher:
           - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
               mutations are added across all entries. If None, this limit is ignored.
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-          - flow_control_max_count: Maximum number of inflight mutations.
-              If None, this limit is ignored.
+          - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
-              If None, this limit is ignored.
         """
         atexit.register(self._on_exit)
         self.closed: bool = False
@@ -451,4 +443,3 @@ class MutationsBatcher:
                 # completed requests will return a list of FailedMutationEntryError
                 found_errors.extend(result)
         return found_errors
-

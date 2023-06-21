@@ -581,8 +581,8 @@ class Table:
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
         flush_limit_bytes: int = 20 * MB_SIZE,
-        flow_control_max_count: int | None = 100_000,
-        flow_control_max_bytes: int | None = 100 * MB_SIZE,
+        flow_control_max_mutation_count: int = 100_000,
+        flow_control_max_bytes: int = 100 * MB_SIZE,
     ) -> MutationsBatcher:
         """
         Returns a new mutations batcher instance.
@@ -596,10 +596,8 @@ class Table:
           - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
               mutations are added across all entries. If None, this limit is ignored.
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-              If None, this limit is ignored.
-          - flow_control_max_count: Maximum number of inflight mutations.
+          - flow_control_max_mitation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
-              If None, this limit is ignored.
         Returns:
             - a MutationsBatcher context manager that can batch requests
         """
@@ -608,7 +606,7 @@ class Table:
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
             flush_limit_bytes=flush_limit_bytes,
-            flow_control_max_count=flow_control_max_count,
+            flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
         )
 
