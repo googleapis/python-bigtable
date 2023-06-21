@@ -69,10 +69,17 @@ class _FlowControl:
 
     def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
         """
-        Checks if there is capacity to send a new mutation with the given size and count
+        Checks if there is capacity to send a new entry with the given size and count
 
         FlowControl limits are not hard limits. If a single mutation exceeds
-        the configured limits, it can be sent in a single batch.
+        the configured flow limits, it will be sent in a single batch when
+        previous batches have completed.
+
+        Args:
+          - additional_count: number of mutations in the pending entry
+          - additional_size: size of the pending entry
+        Returns:
+          -  True if there is capacity to send the pending entry, False otherwise
         """
         # adjust limits to allow overly large mutations
         acceptable_size = max(self._max_mutation_bytes, additional_size)
@@ -86,7 +93,12 @@ class _FlowControl:
         self, mutations: RowMutationEntry | list[RowMutationEntry]
     ) -> None:
         """
-        Every time an in-flight mutation is complete, release the flow control semaphore
+        Removes mutations from flow control. This method should be called once
+        for each mutation that was sent to add_to_flow, after the corresponding
+        operation is complete.
+
+        Args:
+          - mutations: mutation or list of mutations to remove from flow control
         """
         if not isinstance(mutations, list):
             mutations = [mutations]
@@ -100,9 +112,10 @@ class _FlowControl:
 
     async def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
         """
-        Breaks up list of mutations into batches that were registered to fit within
-        flow control limits. This method will block when the flow control limits are
-        reached.
+        Generator function that registers mutations with flow control. As mutations
+        are accepted into the flow control, they are yielded back to the caller,
+        to be sent in a batch. If the flow control is at capacity, the generator
+        will block until there is capacity available.
 
         Args:
           - mutations: list mutations to break up into batches
@@ -418,6 +431,13 @@ class MutationsBatcher:
 
         This method wraps asyncio to make it easier to maintain subclasses
         with different concurrency models.
+
+        Args:
+          - func: function to execute in background task
+          - *args: positional arguments to pass to func
+          - **kwargs: keyword arguments to pass to func
+        Returns:
+          - Future object representing the background task
         """
         return asyncio.create_task(func(*args, **kwargs))
 
@@ -429,9 +449,13 @@ class MutationsBatcher:
         Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
 
-        Errors are expected to be FailedMutationEntryError, representing a failed
-        mutation operation. If a task fails, a direct Exception object will be
-        added to the output list instead.
+        Args:
+          - *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
+        Returns:
+          - list of Exceptions encountered by any of the tasks. Errors are expected
+              to be FailedMutationEntryError, representing a failed mutation operation.
+              If a task fails with a different exception, it will be included in the
+              output list. Successful tasks will not be represented in the output list.
         """
         all_results = await asyncio.gather(*tasks, return_exceptions=True)
         found_errors = []
