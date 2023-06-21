@@ -177,7 +177,7 @@ class MutationsBatcher:
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
         flush_limit_bytes: int = 20 * MB_SIZE,
-        flow_control_max_count: int | None = 100_000,
+        flow_control_max_mutation_count: int | None = 100_000,
         flow_control_max_bytes: int | None = 100 * MB_SIZE,
     ):
         """
@@ -199,7 +199,7 @@ class MutationsBatcher:
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
         self._flow_control = _FlowControl(
-            flow_control_max_count, flow_control_max_bytes
+            flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
         self._flush_limit_count = (
