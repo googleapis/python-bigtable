@@ -571,23 +571,28 @@ class Table:
         """
         if not sharded_query:
             raise ValueError("empty sharded_query")
-        routine_list = [
-            self.read_rows(
-                query,
-                operation_timeout=operation_timeout,
-                per_request_timeout=per_request_timeout,
-            )
-            for query in sharded_query
-        ]
+        # reduce operation_timeout between batches
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout or operation_timeout
+        timeout_generator = _attempt_timeout_generator(operation_timeout, operation_timeout)
         # submit requests in batches to limit concurrency
-        batched_routines = [
-            routine_list[i : i + CONCURRENCY_LIMIT]
-            for i in range(0, len(routine_list), CONCURRENCY_LIMIT)
+        batched_queries = [
+            sharded_query[i : i + CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), CONCURRENCY_LIMIT)
         ]
         # run batches and collect results
         results_list = []
-        for batch in batched_routines:
-            batch_result = await asyncio.gather(*batch, return_exceptions=True)
+        for batch in batched_queries:
+            batch_operation_timeout = next(timeout_generator)
+            routine_list = [
+                self.read_rows(
+                    query,
+                    operation_timeout=batch_operation_timeout,
+                    per_request_timeout=min(per_request_timeout, batch_operation_timeout),
+                )
+                for query in batch
+            ]
+            batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
             results_list.extend(batch_result)
         # collect exceptions
         exception_list = [
