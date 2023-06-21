@@ -424,7 +424,7 @@ class MutationsBatcher:
     @staticmethod
     async def _wait_for_batch_results(
         *tasks: asyncio.Future[list[FailedMutationEntryError]] | asyncio.Future[None],
-    ) -> list[list[FailedMutationEntryError] | Exception]:
+    ) -> list[Exception]:
         """
         Takes in a list of futures representing _execute_mutate_rows tasks,
         waits for them to complete, and returns a list of errors encountered.
