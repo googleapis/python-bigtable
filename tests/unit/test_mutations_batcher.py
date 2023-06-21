@@ -294,6 +294,8 @@ class TestMutationsBatcher:
     async def test_ctor_defaults(self, flush_timer_mock):
         flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
+        table.default_operation_timeout = 10
+        table.default_per_request_timeout = 8
         async with self._make_one(table) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -304,6 +306,8 @@ class TestMutationsBatcher:
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
+            assert instance._operation_timeout == table.default_operation_timeout
+            assert instance._per_request_timeout == table.default_per_request_timeout
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == 5
@@ -322,6 +326,8 @@ class TestMutationsBatcher:
         flush_limit_bytes = 19
         flow_control_max_mutation_count = 1001
         flow_control_max_bytes = 12
+        operation_timeout = 11
+        per_request_timeout = 2
         async with self._make_one(
             table,
             flush_interval=flush_interval,
@@ -329,6 +335,8 @@ class TestMutationsBatcher:
             flush_limit_bytes=flush_limit_bytes,
             flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
+            batch_operation_timeout=operation_timeout,
+            batch_per_request_timeout=per_request_timeout,
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -342,6 +350,8 @@ class TestMutationsBatcher:
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
+            assert instance._operation_timeout == operation_timeout
+            assert instance._per_request_timeout == per_request_timeout
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == flush_interval
@@ -355,6 +365,8 @@ class TestMutationsBatcher:
         """Test with None for flush limits"""
         flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
+        table.default_operation_timeout = 10
+        table.default_per_request_timeout = 8
         flush_interval = None
         flush_limit_count = None
         flush_limit_bytes = None
@@ -376,6 +388,22 @@ class TestMutationsBatcher:
             assert flush_timer_mock.call_args[0][0] is None
             assert isinstance(instance._flush_timer, asyncio.Future)
 
+    @pytest.mark.asyncio
+    async def test_ctor_invalid_values(self):
+        """Test that timeout values are positive, and fit within expected limits"""
+        with pytest.raises(ValueError) as e:
+            self._make_one(batch_operation_timeout=-1)
+        assert "batch_operation_timeout must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(batch_per_request_timeout=-1)
+        assert "batch_per_request_timeout must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(batch_operation_timeout=1, batch_per_request_timeout=2)
+        assert (
+            "batch_per_request_timeout must be less than batch_operation_timeout"
+            in str(e.value)
+        )
+
     def test_default_argument_consistency(self):
         """
         We supply default arguments in MutationsBatcher.__init__, and in
@@ -393,8 +421,8 @@ class TestMutationsBatcher:
         batcher_init_signature = dict(inspect.signature(MutationsBatcher).parameters)
         batcher_init_signature.pop("table")
         # both should have same number of arguments
-        assert len(get_batcher_signature) == len(batcher_init_signature)
-        assert len(get_batcher_signature) == 5
+        assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
+        assert len(get_batcher_signature) == 7  # update if expected params change
         # both should have same argument names
         assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
         # both should have same default values
@@ -1027,12 +1055,12 @@ class TestMutationsBatcher:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
             assert start_operation.call_count == 1
-            args, _ = mutate_rows.call_args
+            args, kwargs = mutate_rows.call_args
             assert args[0] == table.client._gapic_client
             assert args[1] == table
             assert args[2] == batch
-            assert args[3] == 17
-            assert args[4] == 13
+            kwargs["operation_timeout"] == 17
+            kwargs["per_request_timeout"] == 13
             assert result == []
 
     @pytest.mark.asyncio
@@ -1051,6 +1079,7 @@ class TestMutationsBatcher:
         mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
         table = mock.Mock()
         table.default_operation_timeout = 17
+        table.default_per_request_timeout = 13
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
@@ -1163,3 +1192,28 @@ class TestMutationsBatcher:
         # should not call after close
         atexit._run_exitfuncs()
         assert on_exit_mock.call_count == 1
+
+    @pytest.mark.asyncio
+    @unittest.mock.patch(
+        "google.cloud.bigtable.mutations_batcher._MutateRowsOperation",
+    )
+    async def test_timeout_args_passed(self, mutate_rows):
+        """
+        batch_operation_timeout and batch_per_request_timeout should be used
+        in api calls
+        """
+        mutate_rows.return_value = AsyncMock()
+        expected_operation_timeout = 17
+        expected_per_request_timeout = 13
+        async with self._make_one(
+            batch_operation_timeout=expected_operation_timeout,
+            batch_per_request_timeout=expected_per_request_timeout,
+        ) as instance:
+            assert instance._operation_timeout == expected_operation_timeout
+            assert instance._per_request_timeout == expected_per_request_timeout
+            # make simulated gapic call
+            await instance._execute_mutate_rows([_make_mutation()])
+            assert mutate_rows.call_count == 1
+            kwargs = mutate_rows.call_args[1]
+            assert kwargs["operation_timeout"] == expected_operation_timeout
+            assert kwargs["per_request_timeout"] == expected_per_request_timeout

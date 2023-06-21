@@ -583,6 +583,8 @@ class Table:
         flush_limit_bytes: int = 20 * MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * MB_SIZE,
+        batch_operation_timeout: float | None = None,
+        batch_per_request_timeout: float | None = None,
     ) -> MutationsBatcher:
         """
         Returns a new mutations batcher instance.
@@ -598,6 +600,10 @@ class Table:
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
           - flow_control_max_mitation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
+          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
+              table default_operation_timeout will be used
+          - batch_per_request_timeout: timeout for each individual request, in seconds. If None,
+              table default_per_request_timeout will be used
         Returns:
             - a MutationsBatcher context manager that can batch requests
         """
@@ -608,6 +614,8 @@ class Table:
             flush_limit_bytes=flush_limit_bytes,
             flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
+            batch_operation_timeout=batch_operation_timeout,
+            batch_per_request_timeout=batch_per_request_timeout,
         )
 
     async def mutate_row(

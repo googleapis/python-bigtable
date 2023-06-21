@@ -186,6 +186,8 @@ class MutationsBatcher:
         flush_limit_bytes: int = 20 * MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * MB_SIZE,
+        batch_operation_timeout: float | None = None,
+        batch_per_request_timeout: float | None = None,
     ):
         """
         Args:
@@ -197,8 +199,27 @@ class MutationsBatcher:
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
           - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
+          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
+              table default_operation_timeout will be used
+          - batch_per_request_timeout: timeout for each individual request, in seconds. If None,
+              table default_per_request_timeout will be used
         """
-        atexit.register(self._on_exit)
+        self._operation_timeout: float = (
+            batch_operation_timeout or table.default_operation_timeout
+        )
+        self._per_request_timeout: float = (
+            batch_per_request_timeout
+            or table.default_per_request_timeout
+            or self._operation_timeout
+        )
+        if self._operation_timeout <= 0:
+            raise ValueError("batch_operation_timeout must be greater than 0")
+        if self._per_request_timeout <= 0:
+            raise ValueError("batch_per_request_timeout must be greater than 0")
+        if self._per_request_timeout > self._operation_timeout:
+            raise ValueError(
+                "batch_per_request_timeout must be less than batch_operation_timeout"
+            )
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
@@ -219,6 +240,8 @@ class MutationsBatcher:
         self._prev_flush.set_result(None)
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
+        # clean up on program exit
+        atexit.register(self._on_exit)
 
     def _start_flush_timer(self, interval: float | None) -> asyncio.Future[None]:
         """
@@ -361,8 +384,8 @@ class MutationsBatcher:
                 self._table.client._gapic_client,
                 self._table,
                 batch,
-                self._table.default_operation_timeout,
-                self._table.default_per_request_timeout,
+                operation_timeout=self._operation_timeout,
+                per_request_timeout=self._per_request_timeout,
             )
             await operation.start()
         except MutationsExceptionGroup as e:
