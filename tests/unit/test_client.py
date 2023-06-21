@@ -1508,7 +1508,7 @@ class TestReadRowsSharded:
             async with client.get_table("instance", "table") as table:
                 with pytest.raises(ValueError) as exc:
                     await table.read_rows_sharded([])
-                assert "query_list must contain at least one query" in str(exc.value)
+                assert "empty sharded_query" in str(exc.value)
 
     @pytest.mark.asyncio
     async def test_read_rows_sharded_multiple_queries(self):

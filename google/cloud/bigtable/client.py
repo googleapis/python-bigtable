@@ -70,6 +70,7 @@ from google.cloud.bigtable.row_filters import RowFilterChain
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
+    from google.cloud.bigtable import ShardedQuery
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 CONCURRENCY_LIMIT = 10
@@ -544,7 +545,7 @@ class Table:
 
     async def read_rows_sharded(
         self,
-        query_list: list[ReadRowsQuery] | list[dict[str, Any]],
+        sharded_query: ShardedQuery,
         *,
         operation_timeout: int | float | None = None,
         per_request_timeout: int | float | None = None,
@@ -563,20 +564,20 @@ class Table:
         ```
 
         Args:
-            - query_list: a list of queries to run in parallel
+            - sharded_query: a sharded query to execute
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
         """
-        if not query_list:
-            raise ValueError("query_list must contain at least one query")
+        if not sharded_query:
+            raise ValueError("empty sharded_query")
         routine_list = [
             self.read_rows(
                 query,
                 operation_timeout=operation_timeout,
                 per_request_timeout=per_request_timeout,
             )
-            for query in query_list
+            for query in sharded_query
         ]
         # submit requests in batches to limit concurrency
         batched_routines = [
@@ -590,13 +591,13 @@ class Table:
             results_list.extend(batch_result)
         # collect exceptions
         exception_list = [
-            FailedQueryShardError(idx, query_list[idx], e)
+            FailedQueryShardError(idx, sharded_query[idx], e)
             for idx, e in enumerate(results_list)
             if isinstance(e, Exception)
         ]
         if exception_list:
             # if any sub-request failed, raise an exception instead of returning results
-            raise ShardedReadRowsExceptionGroup(exception_list, len(query_list))
+            raise ShardedReadRowsExceptionGroup(exception_list, len(sharded_query))
         combined_list = list(chain.from_iterable(results_list))
         return combined_list
 

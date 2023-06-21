@@ -22,6 +22,7 @@ from google.cloud.bigtable.row_filters import RowFilter
 
 if TYPE_CHECKING:
     from google.cloud.bigtable import RowKeySamples
+    from google.cloud.bigtable import ShardedQuery
 
 
 @dataclass
@@ -245,14 +246,13 @@ class ReadRowsQuery:
             row_range = RowRange._from_dict(row_range)
         self.row_ranges.add(row_range)
 
-    def shard(self, shard_keys: RowKeySamples) -> list[ReadRowsQuery]:
+    def shard(self, shard_keys: RowKeySamples) -> ShardedQuery:
         """
         Split this query into multiple queries that can be evenly distributed
         across nodes and run in parallel
 
         Returns:
-            - a list of queries that represent a sharded version of the original
-              query (if possible)
+            - a ShardedQuery that can be used in sharded_read_rows calls
         Raises:
             - AttributeError if the query contains a limit
         """
