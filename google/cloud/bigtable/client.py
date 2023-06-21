@@ -600,10 +600,10 @@ class Table:
             for idx, e in enumerate(results_list)
             if isinstance(e, Exception)
         ]
+        combined_list = list(chain.from_iterable(results_list))
         if exception_list:
             # if any sub-request failed, raise an exception instead of returning results
-            raise ShardedReadRowsExceptionGroup(exception_list, len(sharded_query))
-        combined_list = list(chain.from_iterable(results_list))
+            raise ShardedReadRowsExceptionGroup(exception_list, combined_list, len(sharded_query))
         return combined_list
 
     async def row_exists(

@@ -19,6 +19,7 @@ import sys
 from typing import Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable.row import Row
 
 is_311_plus = sys.version_info >= (3, 11)
 
@@ -90,7 +91,7 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     def _format_message(excs: list[FailedMutationEntryError], total_entries: int):
         entry_str = "entry" if total_entries == 1 else "entries"
         plural_str = "" if len(excs) == 1 else "s"
-        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted). Exceptions:\n{excs}"
 
     def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
         super().__init__(self._format_message(excs, total_entries), excs)
@@ -151,11 +152,14 @@ class ShardedReadRowsExceptionGroup(BigtableExceptionGroup):
         plural_str = "" if len(excs) == 1 else "s"
         return f"{len(excs)} sub-exception{plural_str} (from {total_queries} {query_str} attempted)"
 
-    def __init__(self, excs: list[FailedQueryShardError], total_queries: int):
+    def __init__(self, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int):
         super().__init__(self._format_message(excs, total_queries), excs)
+        self.successful_rows = succeeded
 
-    def __new__(cls, excs: list[FailedQueryShardError], total_queries: int):
-        return super().__new__(cls, cls._format_message(excs, total_queries), excs)
+    def __new__(cls, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int):
+        instance = super().__new__(cls, cls._format_message(excs, total_queries), excs)
+        instance.successful_rows = succeeded
+        return instance
 
 
 class FailedQueryShardError(Exception):
