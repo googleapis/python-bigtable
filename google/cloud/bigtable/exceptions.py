@@ -91,7 +91,7 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     def _format_message(excs: list[FailedMutationEntryError], total_entries: int):
         entry_str = "entry" if total_entries == 1 else "entries"
         plural_str = "" if len(excs) == 1 else "s"
-        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted). Exceptions:\n{excs}"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
 
     def __init__(self, excs: list[FailedMutationEntryError], total_entries: int):
         super().__init__(self._format_message(excs, total_entries), excs)
