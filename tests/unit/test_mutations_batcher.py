@@ -48,12 +48,6 @@ class Test_FlowControl:
         assert instance._in_flight_mutation_bytes == 0
         assert isinstance(instance._capacity_condition, asyncio.Condition)
 
-    def test_ctor_empty_values(self):
-        """Test constructor with None count and bytes"""
-        instance = self._make_one(None, None)
-        assert instance._max_mutation_count == float("inf")
-        assert instance._max_mutation_bytes == float("inf")
-
     def test_ctor_invalid_values(self):
         """Test that values are positive, and fit within expected limits"""
         with pytest.raises(ValueError) as e:
@@ -250,7 +244,7 @@ class Test_FlowControl:
         ):
             mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
             # flow control has no limits except API restrictions
-            instance = self._make_one(None, None)
+            instance = self._make_one(float("inf"), float("inf"))
             i = 0
             async for batch in instance.add_to_flow(mutation_objs):
                 expected_batch = expected_results[i]
@@ -326,21 +320,24 @@ class TestMutationsBatcher:
         flush_interval = 20
         flush_limit_count = 17
         flush_limit_bytes = 19
-        flow_control_max_count = 1001
+        flow_control_max_mutation_count = 1001
         flow_control_max_bytes = 12
         async with self._make_one(
             table,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_count,
             flush_limit_bytes=flush_limit_bytes,
-            flow_control_max_count=flow_control_max_count,
+            flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
             assert instance._staged_entries == []
             assert instance.exceptions == []
-            assert instance._flow_control._max_mutation_count == flow_control_max_count
+            assert (
+                instance._flow_control._max_mutation_count
+                == flow_control_max_mutation_count
+            )
             assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
@@ -354,29 +351,23 @@ class TestMutationsBatcher:
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
     )
     @pytest.mark.asyncio
-    async def test_ctor_no_limits(self, flush_timer_mock):
-        """Test with None for flow control and flush limits"""
+    async def test_ctor_no_flush_limits(self, flush_timer_mock):
+        """Test with None for flush limits"""
         flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
         flush_interval = None
         flush_limit_count = None
         flush_limit_bytes = None
-        flow_control_max_count = None
-        flow_control_max_bytes = None
         async with self._make_one(
             table,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_count,
             flush_limit_bytes=flush_limit_bytes,
-            flow_control_max_count=flow_control_max_count,
-            flow_control_max_bytes=flow_control_max_bytes,
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
             assert instance._staged_entries == []
             assert instance.exceptions == []
-            assert instance._flow_control._max_mutation_count == float("inf")
-            assert instance._flow_control._max_mutation_bytes == float("inf")
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
@@ -521,7 +512,7 @@ class TestMutationsBatcher:
     async def test_append_outside_flow_limits(self):
         """entries larger than mutation limits are still processed"""
         async with self._make_one(
-            flow_control_max_count=1, flow_control_max_bytes=1
+            flow_control_max_mutation_count=1, flow_control_max_bytes=1
         ) as instance:
             oversized_entry = _make_mutation(count=0, size=2)
             await instance.append(oversized_entry)
@@ -530,7 +521,7 @@ class TestMutationsBatcher:
             assert instance._staged_bytes == 2
             instance._staged_entries = []
         async with self._make_one(
-            flow_control_max_count=1, flow_control_max_bytes=1
+            flow_control_max_mutation_count=1, flow_control_max_bytes=1
         ) as instance:
             overcount_entry = _make_mutation(count=2, size=0)
             await instance.append(overcount_entry)
@@ -706,7 +697,7 @@ class TestMutationsBatcher:
 
         num_calls = 10
         fake_mutations = [_make_mutation(count=1) for _ in range(num_calls)]
-        async with self._make_one(flow_control_max_count=1) as instance:
+        async with self._make_one(flow_control_max_mutation_count=1) as instance:
             with mock.patch.object(
                 instance, "_execute_mutate_rows", AsyncMock()
             ) as op_mock:
@@ -982,7 +973,7 @@ class TestMutationsBatcher:
         mutations = [_make_mutation(count=2, size=2)] * num_nutations
 
         async with self._make_one(
-            flow_control_max_count=3, flow_control_max_bytes=3
+            flow_control_max_mutation_count=3, flow_control_max_bytes=3
         ) as instance:
             instance._table.default_operation_timeout = 10
             instance._table.default_per_request_timeout = 9
