@@ -1064,9 +1064,7 @@ class TestMutationsBatcher:
             assert result == []
 
     @pytest.mark.asyncio
-    @mock.patch(
-        "google.cloud.bigtable.mutations_batcher._MutateRowsOperation.start"
-    )
+    @mock.patch("google.cloud.bigtable.mutations_batcher._MutateRowsOperation.start")
     async def test__execute_mutate_rows_returns_errors(self, mutate_rows):
         """Errors from operation should be retruned as list"""
         from google.cloud.bigtable.exceptions import (
