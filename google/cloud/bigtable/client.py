@@ -32,6 +32,8 @@ import warnings
 import sys
 import random
 
+from collections import namedtuple
+
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
@@ -65,6 +67,11 @@ from google.cloud.bigtable.row_filters import RowFilterChain
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations_batcher import MutationsBatcher
     from google.cloud.bigtable import RowKeySamples
+
+# used to register instance data with the client for channel warming
+_WarmedInstanceKey = namedtuple(
+    "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
+)
 
 
 class BigtableDataClient(ClientWithProject):
@@ -131,10 +138,10 @@ class BigtableDataClient(ClientWithProject):
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
         # keep track of active instances to for warmup on channel refresh
-        self._active_instances: Set[str] = set()
+        self._active_instances: Set[_WarmedInstanceKey] = set()
         # keep track of table objects associated with each instance
         # only remove instance from _active_instances when all associated tables remove it
-        self._instance_owners: dict[str, Set[int]] = {}
+        self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         # attempt to start background tasks
         self._channel_init_time = time.time()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
@@ -194,7 +201,15 @@ class BigtableDataClient(ClientWithProject):
             "/google.bigtable.v2.Bigtable/PingAndWarm",
             request_serializer=PingAndWarmRequest.serialize,
         )
-        tasks = [ping_rpc({"name": n}) for n in self._active_instances]
+        tasks = []
+        for (instance_name, table_name, app_profile_id) in self._active_instances:
+            tasks.append(
+                ping_rpc(
+                    request={"name": instance_name, "app_profile_id": app_profile_id},
+                    metadata=_make_metadata(table_name, app_profile_id),
+                    wait_for_ready=True,
+                )
+            )
         result_list = await asyncio.gather(*tasks, return_exceptions=True)
         # return None in place of empty successful responses
         return [r or None for r in result_list]
@@ -263,9 +278,12 @@ class BigtableDataClient(ClientWithProject):
             owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        self._instance_owners.setdefault(instance_name, set()).add(id(owner))
+        instance_key = _WarmedInstanceKey(
+            instance_name, owner.table_name, owner.app_profile_id
+        )
+        self._instance_owners.setdefault(instance_key, set()).add(id(owner))
         if instance_name not in self._active_instances:
-            self._active_instances.add(instance_name)
+            self._active_instances.add(instance_key)
             if self._channel_refresh_tasks:
                 # refresh tasks already running
                 # call ping and warm on all existing channels
