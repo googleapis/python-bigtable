@@ -326,7 +326,9 @@ class ReadRowsQuery:
             end_segment = len(split_points)
         else:
             # use binary search to find the segment the end key belongs to.
-            end_segment = bisect_left(split_points, orig_range.end.key, lo=start_segment)
+            end_segment = bisect_left(
+                split_points, orig_range.end.key, lo=start_segment
+            )
             # note: end_segment will always bisect_left, because split points represent inclusive ends
             # whether the end_key is includes the split point or not, the result is the same segment
         # 3. create new range definitions for each segment this_range spans

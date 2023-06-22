@@ -152,11 +152,18 @@ class ShardedReadRowsExceptionGroup(BigtableExceptionGroup):
         plural_str = "" if len(excs) == 1 else "s"
         return f"{len(excs)} sub-exception{plural_str} (from {total_queries} {query_str} attempted)"
 
-    def __init__(self, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int):
+    def __init__(
+        self,
+        excs: list[FailedQueryShardError],
+        succeeded: list[Row],
+        total_queries: int,
+    ):
         super().__init__(self._format_message(excs, total_queries), excs)
         self.successful_rows = succeeded
 
-    def __new__(cls, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int):
+    def __new__(
+        cls, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int
+    ):
         instance = super().__new__(cls, cls._format_message(excs, total_queries), excs)
         instance.successful_rows = succeeded
         return instance

@@ -31,7 +31,6 @@ import time
 import warnings
 import sys
 import random
-from itertools import chain
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient

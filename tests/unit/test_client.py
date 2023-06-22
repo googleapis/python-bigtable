@@ -1653,21 +1653,37 @@ class TestReadRowsSharded:
                 # should have single gather call for each batch
                 assert gather_mock.call_count == expected_num_batches
                 # ensure that timeouts decrease over time
-                kwargs = [table_mock.read_rows.call_args_list[idx][1] for idx in range(n_queries)]
+                kwargs = [
+                    table_mock.read_rows.call_args_list[idx][1]
+                    for idx in range(n_queries)
+                ]
                 for batch_idx in range(expected_num_batches):
-                    batch_kwargs = kwargs[batch_idx * CONCURRENCY_LIMIT : (batch_idx + 1) * CONCURRENCY_LIMIT]
+                    batch_kwargs = kwargs[
+                        batch_idx
+                        * CONCURRENCY_LIMIT : (batch_idx + 1)
+                        * CONCURRENCY_LIMIT
+                    ]
                     for req_kwargs in batch_kwargs:
                         # each batch should have the same operation_timeout, and it should decrease in each batch
-                        expected_operation_timeout = start_operation_timeout - (batch_idx + 1)
-                        assert req_kwargs["operation_timeout"] == expected_operation_timeout
+                        expected_operation_timeout = start_operation_timeout - (
+                            batch_idx + 1
+                        )
+                        assert (
+                            req_kwargs["operation_timeout"]
+                            == expected_operation_timeout
+                        )
                         # each per_request_timeout should start with default value, but decrease when operation_timeout reaches it
-                        expected_per_request_timeout = min(start_per_request_timeout, expected_operation_timeout)
-                        assert req_kwargs["per_request_timeout"] == expected_per_request_timeout
+                        expected_per_request_timeout = min(
+                            start_per_request_timeout, expected_operation_timeout
+                        )
+                        assert (
+                            req_kwargs["per_request_timeout"]
+                            == expected_per_request_timeout
+                        )
                 # await all created coroutines to avoid warnings
                 for i in range(len(gather_mock.call_args_list)):
                     for j in range(len(gather_mock.call_args_list[i][0])):
                         await gather_mock.call_args_list[i][0][j]
-
 
 
 class TestSampleRowKeys:
