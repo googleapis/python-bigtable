@@ -287,7 +287,7 @@ class TestMutationsBatcher:
 
         return MutationsBatcher(table, **kwargs)
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
     )
     @pytest.mark.asyncio
@@ -313,7 +313,7 @@ class TestMutationsBatcher:
             assert flush_timer_mock.call_args[0][0] == 5
             assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer",
     )
     @pytest.mark.asyncio
@@ -357,7 +357,7 @@ class TestMutationsBatcher:
             assert flush_timer_mock.call_args[0][0] == flush_interval
             assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
     )
     @pytest.mark.asyncio
@@ -432,7 +432,7 @@ class TestMutationsBatcher:
                 == batcher_init_signature[arg_name].default
             )
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
@@ -444,7 +444,7 @@ class TestMutationsBatcher:
                 assert sleep_mock.call_count == 0
                 assert flush_mock.call_count == 0
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
@@ -458,7 +458,7 @@ class TestMutationsBatcher:
                 assert sleep_mock.call_count == 0
                 assert flush_mock.call_count == 0
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
@@ -478,7 +478,7 @@ class TestMutationsBatcher:
                 sleep_mock.assert_called_with(expected_sleep)
                 assert flush_mock.call_count == loop_num
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
@@ -497,7 +497,7 @@ class TestMutationsBatcher:
                 sleep_mock.assert_called_with(expected_sleep)
                 assert flush_mock.call_count == 0
 
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._schedule_flush"
     )
     @pytest.mark.asyncio
@@ -1040,7 +1040,7 @@ class TestMutationsBatcher:
                 assert instance._entries_processed_since_last_raise == num_nutations
 
     @pytest.mark.asyncio
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher._MutateRowsOperation",
     )
     async def test__execute_mutate_rows(self, mutate_rows):
@@ -1064,7 +1064,7 @@ class TestMutationsBatcher:
             assert result == []
 
     @pytest.mark.asyncio
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher._MutateRowsOperation.start"
     )
     async def test__execute_mutate_rows_returns_errors(self, mutate_rows):
@@ -1194,7 +1194,7 @@ class TestMutationsBatcher:
         assert on_exit_mock.call_count == 1
 
     @pytest.mark.asyncio
-    @unittest.mock.patch(
+    @mock.patch(
         "google.cloud.bigtable.mutations_batcher._MutateRowsOperation",
     )
     async def test_timeout_args_passed(self, mutate_rows):
