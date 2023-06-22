@@ -573,38 +573,51 @@ class Table:
             raise ValueError("empty sharded_query")
         # reduce operation_timeout between batches
         operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout or operation_timeout
-        timeout_generator = _attempt_timeout_generator(operation_timeout, operation_timeout)
-        # submit requests in batches to limit concurrency
+        per_request_timeout = (
+            per_request_timeout or self.default_per_request_timeout or operation_timeout
+        )
+        timeout_generator = _attempt_timeout_generator(
+            operation_timeout, operation_timeout
+        )
+        # submit shards in batches if the number of shards goes over CONCURRENCY_LIMIT
         batched_queries = [
             sharded_query[i : i + CONCURRENCY_LIMIT]
             for i in range(0, len(sharded_query), CONCURRENCY_LIMIT)
         ]
         # run batches and collect results
         results_list = []
+        error_dict = {}
+        shard_idx = 0
         for batch in batched_queries:
             batch_operation_timeout = next(timeout_generator)
             routine_list = [
                 self.read_rows(
                     query,
                     operation_timeout=batch_operation_timeout,
-                    per_request_timeout=min(per_request_timeout, batch_operation_timeout),
+                    per_request_timeout=min(
+                        per_request_timeout, batch_operation_timeout
+                    ),
                 )
                 for query in batch
             ]
             batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
-            results_list.extend(batch_result)
-        # collect exceptions
-        exception_list = [
-            FailedQueryShardError(idx, sharded_query[idx], e)
-            for idx, e in enumerate(results_list)
-            if isinstance(e, Exception)
-        ]
-        combined_list = list(chain.from_iterable(results_list))
-        if exception_list:
+            for result in batch_result:
+                if isinstance(result, Exception):
+                    error_dict[shard_idx] = result
+                else:
+                    results_list.extend(result)
+                shard_idx += 1
+        if error_dict:
             # if any sub-request failed, raise an exception instead of returning results
-            raise ShardedReadRowsExceptionGroup(exception_list, combined_list, len(sharded_query))
-        return combined_list
+            raise ShardedReadRowsExceptionGroup(
+                [
+                    FailedQueryShardError(idx, sharded_query[idx], e)
+                    for idx, e in error_dict.items()
+                ],
+                results_list,
+                len(sharded_query),
+            )
+        return results_list
 
     async def row_exists(
         self,
