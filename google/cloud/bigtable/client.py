@@ -143,7 +143,7 @@ class BigtableDataClient(ClientWithProject):
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         # attempt to start background tasks
-        self._channel_init_time = time.time()
+        self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         try:
             self.start_background_channel_refresh()
@@ -185,7 +185,7 @@ class BigtableDataClient(ClientWithProject):
         self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
-        self, channel: grpc.aio.Channel
+        self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[GoogleAPICallError | None]:
         """
         Prepares the backend for requests on a channel
@@ -193,23 +193,27 @@ class BigtableDataClient(ClientWithProject):
         Pings each Bigtable instance registered in `_active_instances` on the client
 
         Args:
-            channel: grpc channel to ping
+            - channel: grpc channel to warm
+            - instance_key: if provided, only warm the instance associated with the key
         Returns:
             - sequence of results or exceptions from the ping requests
         """
+        instance_list = (
+            [instance_key] if instance_key is not None else self._active_instances
+        )
         ping_rpc = channel.unary_unary(
             "/google.bigtable.v2.Bigtable/PingAndWarm",
             request_serializer=PingAndWarmRequest.serialize,
         )
-        tasks = []
-        for (instance_name, table_name, app_profile_id) in self._active_instances:
-            tasks.append(
-                ping_rpc(
-                    request={"name": instance_name, "app_profile_id": app_profile_id},
-                    metadata=_make_metadata(table_name, app_profile_id),
-                    wait_for_ready=True,
-                )
-            )
+        # prepare list of coroutines to run
+        tasks = [
+            ping_rpc(
+                request={"name": instance_name, "app_profile_id": app_profile_id},
+                metadata=_make_metadata(table_name, app_profile_id),
+                wait_for_ready=True,
+            ) for (instance_name, table_name, app_profile_id) in instance_list
+        ]
+        # execute coroutines in parallel
         result_list = await asyncio.gather(*tasks, return_exceptions=True)
         # return None in place of empty successful responses
         return [r or None for r in result_list]
@@ -243,7 +247,7 @@ class BigtableDataClient(ClientWithProject):
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
-        next_sleep = max(first_refresh - time.time(), 0)
+        next_sleep = max(first_refresh - time.monotonic(), 0)
         if next_sleep > 0:
             # warm the current channel immediately
             channel = self.transport.channels[channel_idx]
@@ -288,7 +292,7 @@ class BigtableDataClient(ClientWithProject):
                 # refresh tasks already running
                 # call ping and warm on all existing channels
                 for channel in self.transport.channels:
-                    await self._ping_and_warm_instances(channel)
+                    await self._ping_and_warm_instances(channel, instance_key)
             else:
                 # refresh tasks aren't active. start them as background tasks
                 self.start_background_channel_refresh()
