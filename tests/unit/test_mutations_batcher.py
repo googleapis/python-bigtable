@@ -14,7 +14,6 @@
 
 import pytest
 import asyncio
-import unittest
 
 # try/except added for compatibility with python < 3.8
 try:
