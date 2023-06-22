@@ -1096,7 +1096,7 @@ class TestMutationsBatcher:
         from google.cloud.bigtable import exceptions
 
         expected_total = 1201
-        expected_exceptions = [mock.Mock()] * 3
+        expected_exceptions = [RuntimeError("mock")] * 3
         async with self._make_one() as instance:
             instance.exceptions = expected_exceptions
             instance._entries_processed_since_last_raise = expected_total
@@ -1143,7 +1143,7 @@ class TestMutationsBatcher:
         from google.cloud.bigtable import exceptions
 
         expected_total = 10
-        expected_exceptions = [mock.Mock()]
+        expected_exceptions = [RuntimeError("mock")]
         async with self._make_one() as instance:
             instance.exceptions = expected_exceptions
             instance._entries_processed_since_last_raise = expected_total
