@@ -1628,21 +1628,46 @@ class TestReadRowsSharded:
     async def test_read_rows_sharded_batching(self):
         """
         Large queries should be processed in batches to limit concurrency
+        operation timeout should change between batches
         """
+        from google.cloud.bigtable.client import Table
+        from google.cloud.bigtable.client import CONCURRENCY_LIMIT
+
+        assert CONCURRENCY_LIMIT == 10  # change this test if this changes
+
         n_queries = 90
-        expected_batch_size = 10
-        async with self._make_client() as client:
-            async with client.get_table("instance", "table") as table:
-                with mock.patch.object(table, "read_rows"):
-                    with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:
-                        query_list = [ReadRowsQuery() for _ in range(n_queries)]
-                        await table.read_rows_sharded(query_list)
-                        assert (
-                            gather_mock.call_count == n_queries // expected_batch_size
-                        )
-                        assert (
-                            len(gather_mock.call_args_list[0][0]) == expected_batch_size
-                        )
+        expected_num_batches = n_queries // CONCURRENCY_LIMIT
+        query_list = [ReadRowsQuery() for _ in range(n_queries)]
+
+        table_mock = AsyncMock()
+        start_operation_timeout = 10
+        start_per_request_timeout = 3
+        table_mock.default_operation_timeout = start_operation_timeout
+        table_mock.default_per_request_timeout = start_per_request_timeout
+        # clock ticks one second on each check
+        with mock.patch("time.monotonic", side_effect=range(0, 100000)):
+            with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:
+                await Table.read_rows_sharded(table_mock, query_list)
+                # should have individual calls for each query
+                assert table_mock.read_rows.call_count == n_queries
+                # should have single gather call for each batch
+                assert gather_mock.call_count == expected_num_batches
+                # ensure that timeouts decrease over time
+                kwargs = [table_mock.read_rows.call_args_list[idx][1] for idx in range(n_queries)]
+                for batch_idx in range(expected_num_batches):
+                    batch_kwargs = kwargs[batch_idx * CONCURRENCY_LIMIT : (batch_idx + 1) * CONCURRENCY_LIMIT]
+                    for req_kwargs in batch_kwargs:
+                        # each batch should have the same operation_timeout, and it should decrease in each batch
+                        expected_operation_timeout = start_operation_timeout - (batch_idx + 1)
+                        assert req_kwargs["operation_timeout"] == expected_operation_timeout
+                        # each per_request_timeout should start with default value, but decrease when operation_timeout reaches it
+                        expected_per_request_timeout = min(start_per_request_timeout, expected_operation_timeout)
+                        assert req_kwargs["per_request_timeout"] == expected_per_request_timeout
+                # await all created coroutines to avoid warnings
+                for i in range(len(gather_mock.call_args_list)):
+                    for j in range(len(gather_mock.call_args_list[i][0])):
+                        await gather_mock.call_args_list[i][0][j]
+
 
 
 class TestSampleRowKeys:
