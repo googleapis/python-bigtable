@@ -211,7 +211,8 @@ class BigtableDataClient(ClientWithProject):
                 request={"name": instance_name, "app_profile_id": app_profile_id},
                 metadata=_make_metadata(table_name, app_profile_id),
                 wait_for_ready=True,
-            ) for (instance_name, table_name, app_profile_id) in instance_list
+            )
+            for (instance_name, table_name, app_profile_id) in instance_list
         ]
         # execute coroutines in parallel
         result_list = await asyncio.gather(*tasks, return_exceptions=True)

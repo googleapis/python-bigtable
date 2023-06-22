@@ -299,7 +299,9 @@ class TestBigtableDataClient:
             assert not gather.call_args.args
             assert gather.call_args.kwargs == {"return_exceptions": True}
             # test with instances
-            client_mock._active_instances = [(mock.Mock(), mock.Mock(), mock.Mock())] * 4
+            client_mock._active_instances = [
+                (mock.Mock(), mock.Mock(), mock.Mock())
+            ] * 4
             gather.reset_mock()
             channel.reset_mock()
             result = await self._get_target_class()._ping_and_warm_instances(
@@ -312,14 +314,54 @@ class TestBigtableDataClient:
             # check grpc call arguments
             grpc_call_args = channel.unary_unary().call_args_list
             for idx, (_, kwargs) in enumerate(grpc_call_args):
-                expected_instance, expected_table, expected_app_profile = client_mock._active_instances[idx]
+                (
+                    expected_instance,
+                    expected_table,
+                    expected_app_profile,
+                ) = client_mock._active_instances[idx]
                 request = kwargs["request"]
                 assert request["name"] == expected_instance
                 assert request["app_profile_id"] == expected_app_profile
                 metadata = kwargs["metadata"]
                 assert len(metadata) == 1
-                assert metadata[0][0] == 'x-goog-request-params'
-                assert metadata[0][1] == f'table_name={expected_table},app_profile_id={expected_app_profile}'
+                assert metadata[0][0] == "x-goog-request-params"
+                assert (
+                    metadata[0][1]
+                    == f"table_name={expected_table},app_profile_id={expected_app_profile}"
+                )
+
+    @pytest.mark.asyncio
+    async def test_ping_and_warm_single_instance(self):
+        """
+        should be able to call ping and warm with single instance
+        """
+        client_mock = mock.Mock()
+        with mock.patch.object(asyncio, "gather", AsyncMock()) as gather:
+            # simulate gather by returning the same number of items as passed in
+            gather.side_effect = lambda *args, **kwargs: [None for _ in args]
+            channel = mock.Mock()
+            # test with large set of instances
+            client_mock._active_instances = [mock.Mock()] * 100
+            test_key = ("test-instance", "test-table", "test-app-profile")
+            result = await self._get_target_class()._ping_and_warm_instances(
+                client_mock, channel, test_key
+            )
+            # should only have been called with test instance
+            assert len(result) == 1
+            # check grpc call arguments
+            grpc_call_args = channel.unary_unary().call_args_list
+            assert len(grpc_call_args) == 1
+            kwargs = grpc_call_args[0][1]
+            request = kwargs["request"]
+            assert request["name"] == "test-instance"
+            assert request["app_profile_id"] == "test-app-profile"
+            metadata = kwargs["metadata"]
+            assert len(metadata) == 1
+            assert metadata[0][0] == "x-goog-request-params"
+            assert (
+                metadata[0][1]
+                == "table_name=test-table,app_profile_id=test-app-profile"
+            )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -339,7 +381,7 @@ class TestBigtableDataClient:
         # first sleep time should be `refresh_interval` seconds after client init
         import time
 
-        with mock.patch.object(time, "time") as time:
+        with mock.patch.object(time, "monotonic") as time:
             time.return_value = 0
             with mock.patch.object(asyncio, "sleep") as sleep:
                 sleep.side_effect = asyncio.CancelledError
@@ -358,46 +400,47 @@ class TestBigtableDataClient:
 
     @pytest.mark.asyncio
     async def test__manage_channel_ping_and_warm(self):
-        from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-            PooledBigtableGrpcAsyncIOTransport,
-        )
+        """
+        _manage channel should call ping and warm internally
+        """
+        import time
 
+        client_mock = mock.Mock()
+        client_mock._channel_init_time = time.monotonic()
+        channel_list = [mock.Mock(), mock.Mock()]
+        client_mock.transport.channels = channel_list
+        new_channel = mock.Mock()
+        client_mock.transport.grpc_channel._create_channel.return_value = new_channel
         # should ping an warm all new channels, and old channels if sleeping
-        client = self._make_one(project="project-id")
-        new_channel = grpc.aio.insecure_channel("localhost:8080")
         with mock.patch.object(asyncio, "sleep"):
-            create_channel = mock.Mock()
-            create_channel.return_value = new_channel
-            client.transport.grpc_channel._create_channel = create_channel
-            with mock.patch.object(
-                PooledBigtableGrpcAsyncIOTransport, "replace_channel"
-            ) as replace_channel:
-                replace_channel.side_effect = asyncio.CancelledError
-                # should ping and warm old channel then new if sleep > 0
-                with mock.patch.object(
-                    type(self._make_one()), "_ping_and_warm_instances"
-                ) as ping_and_warm:
-                    try:
-                        channel_idx = 2
-                        old_channel = client.transport._grpc_channel._pool[channel_idx]
-                        await client._manage_channel(channel_idx, 10)
-                    except asyncio.CancelledError:
-                        pass
-                    assert ping_and_warm.call_count == 2
-                    assert old_channel != new_channel
-                    called_with = [call[0][0] for call in ping_and_warm.call_args_list]
-                    assert old_channel in called_with
-                    assert new_channel in called_with
-                # should ping and warm instantly new channel only if not sleeping
-                with mock.patch.object(
-                    type(self._make_one()), "_ping_and_warm_instances"
-                ) as ping_and_warm:
-                    try:
-                        await client._manage_channel(0, 0, 0)
-                    except asyncio.CancelledError:
-                        pass
-                    ping_and_warm.assert_called_once_with(new_channel)
-        await client.close()
+            # stop process after replace_channel is called
+            client_mock.transport.replace_channel.side_effect = asyncio.CancelledError
+            ping_and_warm = client_mock._ping_and_warm_instances = AsyncMock()
+            # should ping and warm old channel then new if sleep > 0
+            try:
+                channel_idx = 1
+                await self._get_target_class()._manage_channel(
+                    client_mock, channel_idx, 10
+                )
+            except asyncio.CancelledError:
+                pass
+            # should have called at loop start, and after replacement
+            assert ping_and_warm.call_count == 2
+            # should have replaced channel once
+            assert client_mock.transport.replace_channel.call_count == 1
+            # make sure new and old channels were warmed
+            old_channel = channel_list[channel_idx]
+            assert old_channel != new_channel
+            called_with = [call[0][0] for call in ping_and_warm.call_args_list]
+            assert old_channel in called_with
+            assert new_channel in called_with
+            # should ping and warm instantly new channel only if not sleeping
+            ping_and_warm.reset_mock()
+            try:
+                await self._get_target_class()._manage_channel(client_mock, 0, 0, 0)
+            except asyncio.CancelledError:
+                pass
+            ping_and_warm.assert_called_once_with(new_channel)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -528,16 +571,24 @@ class TestBigtableDataClient:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        client_mock.start_background_channel_refresh.side_effect = (
+            lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
         client_mock._ping_and_warm_instances = AsyncMock()
         table_mock = mock.Mock()
-        await self._get_target_class()._register_instance(client_mock, "instance-1", table_mock)
+        await self._get_target_class()._register_instance(
+            client_mock, "instance-1", table_mock
+        )
         # first call should start background refresh
         assert client_mock.start_background_channel_refresh.call_count == 1
         # ensure active_instances and instance_owners were updated properly
-        expected_key = ("prefix/instance-1", table_mock.table_name, table_mock.app_profile_id)
+        expected_key = (
+            "prefix/instance-1",
+            table_mock.table_name,
+            table_mock.app_profile_id,
+        )
         assert len(active_instances) == 1
         assert expected_key == tuple(list(active_instances)[0])
         assert len(instance_owners) == 1
@@ -546,27 +597,55 @@ class TestBigtableDataClient:
         assert client_mock._channel_refresh_tasks
         # # next call should not call start_background_channel_refresh again
         table_mock2 = mock.Mock()
-        await self._get_target_class()._register_instance(client_mock, "instance-2", table_mock2)
+        await self._get_target_class()._register_instance(
+            client_mock, "instance-2", table_mock2
+        )
         assert client_mock.start_background_channel_refresh.call_count == 1
         # but it should call ping and warm with new instance key
         assert client_mock._ping_and_warm_instances.call_count == len(mock_channels)
         for channel in mock_channels:
-            assert channel in [call[0][0] for call in client_mock._ping_and_warm_instances.call_args_list]
+            assert channel in [
+                call[0][0]
+                for call in client_mock._ping_and_warm_instances.call_args_list
+            ]
         # check for updated lists
         assert len(active_instances) == 2
         assert len(instance_owners) == 2
-        expected_key2 = ("prefix/instance-2", table_mock2.table_name, table_mock2.app_profile_id)
-        assert any([expected_key2 == tuple(list(active_instances)[i]) for i in range(len(active_instances))])
-        assert any([expected_key2 == tuple(list(instance_owners)[i]) for i in range(len(instance_owners))])
+        expected_key2 = (
+            "prefix/instance-2",
+            table_mock2.table_name,
+            table_mock2.app_profile_id,
+        )
+        assert any(
+            [
+                expected_key2 == tuple(list(active_instances)[i])
+                for i in range(len(active_instances))
+            ]
+        )
+        assert any(
+            [
+                expected_key2 == tuple(list(instance_owners)[i])
+                for i in range(len(instance_owners))
+            ]
+        )
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("insert_instances,expected_active,expected_owner_keys", [
-        ([('i','t',None)], [('i','t',None)], [('i','t',None)]),
-        ([('i','t','p')], [('i','t','p')], [('i','t','p')]),
-        ([('1','t','p'), ('1','t','p')], [('1','t','p')], [('1','t','p')]),
-        ([('1','t','p'), ('2','t','p')], [('1','t','p'), ('2','t','p')], [('1','t','p'), ('2','t','p')]),
-    ])
-    async def test__register_instance_state(self, insert_instances, expected_active, expected_owner_keys):
+    @pytest.mark.parametrize(
+        "insert_instances,expected_active,expected_owner_keys",
+        [
+            ([("i", "t", None)], [("i", "t", None)], [("i", "t", None)]),
+            ([("i", "t", "p")], [("i", "t", "p")], [("i", "t", "p")]),
+            ([("1", "t", "p"), ("1", "t", "p")], [("1", "t", "p")], [("1", "t", "p")]),
+            (
+                [("1", "t", "p"), ("2", "t", "p")],
+                [("1", "t", "p"), ("2", "t", "p")],
+                [("1", "t", "p"), ("2", "t", "p")],
+            ),
+        ],
+    )
+    async def test__register_instance_state(
+        self, insert_instances, expected_active, expected_owner_keys
+    ):
         """
         test that active_instances and instance_owners are updated as expected
         """
@@ -578,7 +657,9 @@ class TestBigtableDataClient:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        client_mock.start_background_channel_refresh.side_effect = (
+            lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        )
         mock_channels = [mock.Mock() for i in range(5)]
         client_mock.transport.channels = mock_channels
         client_mock._ping_and_warm_instances = AsyncMock()
@@ -587,13 +668,25 @@ class TestBigtableDataClient:
         for instance, table, profile in insert_instances:
             table_mock.table_name = table
             table_mock.app_profile_id = profile
-            await self._get_target_class()._register_instance(client_mock, instance, table_mock)
+            await self._get_target_class()._register_instance(
+                client_mock, instance, table_mock
+            )
         assert len(active_instances) == len(expected_active)
         assert len(instance_owners) == len(expected_owner_keys)
         for expected in expected_active:
-            assert any([expected == tuple(list(active_instances)[i]) for i in range(len(active_instances))])
+            assert any(
+                [
+                    expected == tuple(list(active_instances)[i])
+                    for i in range(len(active_instances))
+                ]
+            )
         for expected in expected_owner_keys:
-            assert any([expected == tuple(list(instance_owners)[i]) for i in range(len(instance_owners))])
+            assert any(
+                [
+                    expected == tuple(list(instance_owners)[i])
+                    for i in range(len(instance_owners))
+                ]
+            )
 
     @pytest.mark.asyncio
     async def test__remove_instance_registration(self):
@@ -628,58 +721,96 @@ class TestBigtableDataClient:
 
     @pytest.mark.asyncio
     async def test__multiple_table_registration(self):
+        """
+        registering with multiple tables with the same key should
+        add multiple owners to instance_owners, but only keep one copy
+        of shared key in active_instances
+        """
+        from google.cloud.bigtable.client import _WarmedInstanceKey
+
         async with self._make_one(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
                 instance_1_path = client._gapic_client.instance_path(
                     client.project, "instance_1"
                 )
-                assert len(client._instance_owners[instance_1_path]) == 1
+                instance_1_key = _WarmedInstanceKey(
+                    instance_1_path, table_1.table_name, table_1.app_profile_id
+                )
+                assert len(client._instance_owners[instance_1_key]) == 1
                 assert len(client._active_instances) == 1
-                assert id(table_1) in client._instance_owners[instance_1_path]
-                async with client.get_table("instance_1", "table_2") as table_2:
-                    assert len(client._instance_owners[instance_1_path]) == 2
+                assert id(table_1) in client._instance_owners[instance_1_key]
+                # duplicate table should register in instance_owners under same key
+                async with client.get_table("instance_1", "table_1") as table_2:
+                    assert len(client._instance_owners[instance_1_key]) == 2
                     assert len(client._active_instances) == 1
-                    assert id(table_1) in client._instance_owners[instance_1_path]
-                    assert id(table_2) in client._instance_owners[instance_1_path]
-                # table_2 should be unregistered, but instance should still be active
+                    assert id(table_1) in client._instance_owners[instance_1_key]
+                    assert id(table_2) in client._instance_owners[instance_1_key]
+                    # unique table should register in instance_owners and active_instances
+                    async with client.get_table("instance_1", "table_3") as table_3:
+                        instance_3_path = client._gapic_client.instance_path(
+                            client.project, "instance_1"
+                        )
+                        instance_3_key = _WarmedInstanceKey(
+                            instance_3_path, table_3.table_name, table_3.app_profile_id
+                        )
+                        assert len(client._instance_owners[instance_1_key]) == 2
+                        assert len(client._instance_owners[instance_3_key]) == 1
+                        assert len(client._active_instances) == 2
+                        assert id(table_1) in client._instance_owners[instance_1_key]
+                        assert id(table_2) in client._instance_owners[instance_1_key]
+                        assert id(table_3) in client._instance_owners[instance_3_key]
+                # sub-tables should be unregistered, but instance should still be active
                 assert len(client._active_instances) == 1
-                assert instance_1_path in client._active_instances
-                assert id(table_2) not in client._instance_owners[instance_1_path]
+                assert instance_1_key in client._active_instances
+                assert id(table_2) not in client._instance_owners[instance_1_key]
             # both tables are gone. instance should be unregistered
             assert len(client._active_instances) == 0
-            assert instance_1_path not in client._active_instances
-            assert len(client._instance_owners[instance_1_path]) == 0
+            assert instance_1_key not in client._active_instances
+            assert len(client._instance_owners[instance_1_key]) == 0
 
     @pytest.mark.asyncio
     async def test__multiple_instance_registration(self):
+        """
+        registering with multiple instance keys should update the key
+        in instance_owners and active_instances
+        """
+        from google.cloud.bigtable.client import _WarmedInstanceKey
+
         async with self._make_one(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
                 async with client.get_table("instance_2", "table_2") as table_2:
                     instance_1_path = client._gapic_client.instance_path(
                         client.project, "instance_1"
                     )
+                    instance_1_key = _WarmedInstanceKey(
+                        instance_1_path, table_1.table_name, table_1.app_profile_id
+                    )
                     instance_2_path = client._gapic_client.instance_path(
                         client.project, "instance_2"
                     )
-                    assert len(client._instance_owners[instance_1_path]) == 1
-                    assert len(client._instance_owners[instance_2_path]) == 1
+                    instance_2_key = _WarmedInstanceKey(
+                        instance_2_path, table_2.table_name, table_2.app_profile_id
+                    )
+                    assert len(client._instance_owners[instance_1_key]) == 1
+                    assert len(client._instance_owners[instance_2_key]) == 1
                     assert len(client._active_instances) == 2
-                    assert id(table_1) in client._instance_owners[instance_1_path]
-                    assert id(table_2) in client._instance_owners[instance_2_path]
+                    assert id(table_1) in client._instance_owners[instance_1_key]
+                    assert id(table_2) in client._instance_owners[instance_2_key]
                 # instance2 should be unregistered, but instance1 should still be active
                 assert len(client._active_instances) == 1
-                assert instance_1_path in client._active_instances
-                assert len(client._instance_owners[instance_2_path]) == 0
-                assert len(client._instance_owners[instance_1_path]) == 1
-                assert id(table_1) in client._instance_owners[instance_1_path]
+                assert instance_1_key in client._active_instances
+                assert len(client._instance_owners[instance_2_key]) == 0
+                assert len(client._instance_owners[instance_1_key]) == 1
+                assert id(table_1) in client._instance_owners[instance_1_key]
             # both tables are gone. instances should both be unregistered
             assert len(client._active_instances) == 0
-            assert len(client._instance_owners[instance_1_path]) == 0
-            assert len(client._instance_owners[instance_2_path]) == 0
+            assert len(client._instance_owners[instance_1_key]) == 0
+            assert len(client._instance_owners[instance_2_key]) == 0
 
     @pytest.mark.asyncio
     async def test_get_table(self):
         from google.cloud.bigtable.client import Table
+        from google.cloud.bigtable.client import _WarmedInstanceKey
 
         client = self._make_one(project="project-id")
         assert not client._active_instances
@@ -705,12 +836,17 @@ class TestBigtableDataClient:
         )
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
-        assert table.instance_name in client._active_instances
+        instance_key = _WarmedInstanceKey(
+            table.instance_name, table.table_name, table.app_profile_id
+        )
+        assert instance_key in client._active_instances
+        assert client._instance_owners[instance_key] == {id(table)}
         await client.close()
 
     @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
         from google.cloud.bigtable.client import Table
+        from google.cloud.bigtable.client import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -738,7 +874,11 @@ class TestBigtableDataClient:
                     )
                     assert table.app_profile_id == expected_app_profile_id
                     assert table.client is client
-                    assert table.instance_name in client._active_instances
+                    instance_key = _WarmedInstanceKey(
+                        table.instance_name, table.table_name, table.app_profile_id
+                    )
+                    assert instance_key in client._active_instances
+                    assert client._instance_owners[instance_key] == {id(table)}
             assert close_mock.call_count == 1
 
     @pytest.mark.asyncio
@@ -829,6 +969,7 @@ class TestTable:
     async def test_table_ctor(self):
         from google.cloud.bigtable.client import BigtableDataClient
         from google.cloud.bigtable.client import Table
+        from google.cloud.bigtable.client import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -851,7 +992,11 @@ class TestTable:
         assert table.instance_id == expected_instance_id
         assert table.app_profile_id == expected_app_profile_id
         assert table.client is client
-        assert table.instance_name in client._active_instances
+        instance_key = _WarmedInstanceKey(
+            table.instance_name, table.table_name, table.app_profile_id
+        )
+        assert instance_key in client._active_instances
+        assert client._instance_owners[instance_key] == {id(table)}
         assert table.default_operation_timeout == expected_operation_timeout
         assert table.default_per_request_timeout == expected_per_request_timeout
         # ensure task reaches completion
