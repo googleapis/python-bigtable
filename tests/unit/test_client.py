@@ -327,7 +327,7 @@ class TestBigtableDataClient:
                 assert metadata[0][0] == "x-goog-request-params"
                 assert (
                     metadata[0][1]
-                    == f"table_name={expected_table},app_profile_id={expected_app_profile}"
+                    == f"table_name={expected_table}&app_profile_id={expected_app_profile}"
                 )
 
     @pytest.mark.asyncio
@@ -360,7 +360,7 @@ class TestBigtableDataClient:
             assert metadata[0][0] == "x-goog-request-params"
             assert (
                 metadata[0][1]
-                == "table_name=test-table,app_profile_id=test-app-profile"
+                == "table_name=test-table&app_profile_id=test-app-profile"
             )
 
     @pytest.mark.asyncio
