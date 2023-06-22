@@ -38,6 +38,7 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
@@ -190,10 +191,13 @@ class BigtableDataClient(ClientWithProject):
             - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+            "/google.bigtable.v2.Bigtable/PingAndWarm",
+            request_serializer=PingAndWarmRequest.serialize,
         )
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        result_list = await asyncio.gather(*tasks, return_exceptions=True)
+        # return None in place of empty successful responses
+        return [r or None for r in result_list]
 
     async def _manage_channel(
         self,
