@@ -311,11 +311,14 @@ class BigtableDataClient(ClientWithProject):
             - True if instance was removed
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        owner_list = self._instance_owners.get(instance_name, set())
+        instance_key = _WarmedInstanceKey(
+            instance_name, owner.table_name, owner.app_profile_id
+        )
+        owner_list = self._instance_owners.get(instance_key, set())
         try:
             owner_list.remove(id(owner))
             if len(owner_list) == 0:
-                self._active_instances.remove(instance_name)
+                self._active_instances.remove(instance_key)
             return True
         except KeyError:
             return False
