@@ -290,28 +290,36 @@ class TestBigtableDataClient:
             channel = mock.Mock()
             # test with no instances
             client_mock._active_instances = []
-            result = await self._get_target_class()._ping_and_warm_instances(client_mock, channel)
+            result = await self._get_target_class()._ping_and_warm_instances(
+                client_mock, channel
+            )
             assert len(result) == 0
             gather.assert_called_once()
             gather.assert_awaited_once()
             assert not gather.call_args.args
             assert gather.call_args.kwargs == {"return_exceptions": True}
             # test with instances
-            client_mock._active_instances = [
-                "instance-1",
-                "instance-2",
-                "instance-3",
-                "instance-4",
-            ]
+            client_mock._active_instances = [(mock.Mock(), mock.Mock(), mock.Mock())] * 4
             gather.reset_mock()
-            result = await self._get_target_class()._ping_and_warm_instances(client_mock, channel)
+            channel.reset_mock()
+            result = await self._get_target_class()._ping_and_warm_instances(
+                client_mock, channel
+            )
             assert len(result) == 4
             gather.assert_called_once()
             gather.assert_awaited_once()
             assert len(gather.call_args.args) == 4
-            assert gather.call_args.kwargs == {"return_exceptions": True}
-            for idx, call in enumerate(gather.call_args.args):
-                assert call == channel.unary_unary()()
+            # check grpc call arguments
+            grpc_call_args = channel.unary_unary().call_args_list
+            for idx, (_, kwargs) in enumerate(grpc_call_args):
+                expected_instance, expected_table, expected_app_profile = client_mock._active_instances[idx]
+                request = kwargs["request"]
+                assert request["name"] == expected_instance
+                assert request["app_profile_id"] == expected_app_profile
+                metadata = kwargs["metadata"]
+                assert len(metadata) == 1
+                assert metadata[0][0] == 'x-goog-request-params'
+                assert metadata[0][1] == f'table_name={expected_table},app_profile_id={expected_app_profile}'
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -508,58 +516,84 @@ class TestBigtableDataClient:
                 await client.close()
 
     @pytest.mark.asyncio
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__register_instance(self):
-        # create the client without calling start_background_channel_refresh
-        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
-            get_event_loop.side_effect = RuntimeError("no event loop")
-            client = self._make_one(project="project-id")
-        assert not client._channel_refresh_tasks
+        """
+        test instance registration
+        """
+        # set up mock client
+        client_mock = mock.Mock()
+        client_mock._gapic_client.instance_path.side_effect = lambda a, b: f"prefix/{b}"
+        active_instances = set()
+        instance_owners = {}
+        client_mock._active_instances = active_instances
+        client_mock._instance_owners = instance_owners
+        client_mock._channel_refresh_tasks = []
+        client_mock.start_background_channel_refresh.side_effect = lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        mock_channels = [mock.Mock() for i in range(5)]
+        client_mock.transport.channels = mock_channels
+        client_mock._ping_and_warm_instances = AsyncMock()
+        table_mock = mock.Mock()
+        await self._get_target_class()._register_instance(client_mock, "instance-1", table_mock)
         # first call should start background refresh
-        assert client._active_instances == set()
-        await client._register_instance("instance-1", mock.Mock())
-        assert len(client._active_instances) == 1
-        assert client._active_instances == {"projects/project-id/instances/instance-1"}
-        assert client._channel_refresh_tasks
-        # next call should not
-        with mock.patch.object(
-            type(self._make_one()), "start_background_channel_refresh"
-        ) as refresh_mock:
-            await client._register_instance("instance-2", mock.Mock())
-            assert len(client._active_instances) == 2
-            assert client._active_instances == {
-                "projects/project-id/instances/instance-1",
-                "projects/project-id/instances/instance-2",
-            }
-            refresh_mock.assert_not_called()
+        assert client_mock.start_background_channel_refresh.call_count == 1
+        # ensure active_instances and instance_owners were updated properly
+        expected_key = ("prefix/instance-1", table_mock.table_name, table_mock.app_profile_id)
+        assert len(active_instances) == 1
+        assert expected_key == tuple(list(active_instances)[0])
+        assert len(instance_owners) == 1
+        assert expected_key == tuple(list(instance_owners)[0])
+        # should be a new task set
+        assert client_mock._channel_refresh_tasks
+        # # next call should not call start_background_channel_refresh again
+        table_mock2 = mock.Mock()
+        await self._get_target_class()._register_instance(client_mock, "instance-2", table_mock2)
+        assert client_mock.start_background_channel_refresh.call_count == 1
+        # but it should call ping and warm with new instance key
+        assert client_mock._ping_and_warm_instances.call_count == len(mock_channels)
+        for channel in mock_channels:
+            assert channel in [call[0][0] for call in client_mock._ping_and_warm_instances.call_args_list]
+        # check for updated lists
+        assert len(active_instances) == 2
+        assert len(instance_owners) == 2
+        expected_key2 = ("prefix/instance-2", table_mock2.table_name, table_mock2.app_profile_id)
+        assert any([expected_key2 == tuple(list(active_instances)[i]) for i in range(len(active_instances))])
+        assert any([expected_key2 == tuple(list(instance_owners)[i]) for i in range(len(instance_owners))])
 
     @pytest.mark.asyncio
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    async def test__register_instance_ping_and_warm(self):
-        # should ping and warm each new instance
-        pool_size = 7
-        with mock.patch.object(asyncio, "get_running_loop") as get_event_loop:
-            get_event_loop.side_effect = RuntimeError("no event loop")
-            client = self._make_one(project="project-id", pool_size=pool_size)
-        # first call should start background refresh
-        assert not client._channel_refresh_tasks
-        await client._register_instance("instance-1", mock.Mock())
-        client = self._make_one(project="project-id", pool_size=pool_size)
-        assert len(client._channel_refresh_tasks) == pool_size
-        assert not client._active_instances
-        # next calls should trigger ping and warm
-        with mock.patch.object(
-            type(self._make_one()), "_ping_and_warm_instances"
-        ) as ping_mock:
-            # new instance should trigger ping and warm
-            await client._register_instance("instance-2", mock.Mock())
-            assert ping_mock.call_count == pool_size
-            await client._register_instance("instance-3", mock.Mock())
-            assert ping_mock.call_count == pool_size * 2
-            # duplcate instances should not trigger ping and warm
-            await client._register_instance("instance-3", mock.Mock())
-            assert ping_mock.call_count == pool_size * 2
-        await client.close()
+    @pytest.mark.parametrize("insert_instances,expected_active,expected_owner_keys", [
+        ([('i','t',None)], [('i','t',None)], [('i','t',None)]),
+        ([('i','t','p')], [('i','t','p')], [('i','t','p')]),
+        ([('1','t','p'), ('1','t','p')], [('1','t','p')], [('1','t','p')]),
+        ([('1','t','p'), ('2','t','p')], [('1','t','p'), ('2','t','p')], [('1','t','p'), ('2','t','p')]),
+    ])
+    async def test__register_instance_state(self, insert_instances, expected_active, expected_owner_keys):
+        """
+        test that active_instances and instance_owners are updated as expected
+        """
+        # set up mock client
+        client_mock = mock.Mock()
+        client_mock._gapic_client.instance_path.side_effect = lambda a, b: b
+        active_instances = set()
+        instance_owners = {}
+        client_mock._active_instances = active_instances
+        client_mock._instance_owners = instance_owners
+        client_mock._channel_refresh_tasks = []
+        client_mock.start_background_channel_refresh.side_effect = lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
+        mock_channels = [mock.Mock() for i in range(5)]
+        client_mock.transport.channels = mock_channels
+        client_mock._ping_and_warm_instances = AsyncMock()
+        table_mock = mock.Mock()
+        # register instances
+        for instance, table, profile in insert_instances:
+            table_mock.table_name = table
+            table_mock.app_profile_id = profile
+            await self._get_target_class()._register_instance(client_mock, instance, table_mock)
+        assert len(active_instances) == len(expected_active)
+        assert len(instance_owners) == len(expected_owner_keys)
+        for expected in expected_active:
+            assert any([expected == tuple(list(active_instances)[i]) for i in range(len(active_instances))])
+        for expected in expected_owner_keys:
+            assert any([expected == tuple(list(instance_owners)[i]) for i in range(len(instance_owners))])
 
     @pytest.mark.asyncio
     async def test__remove_instance_registration(self):
@@ -572,20 +606,22 @@ class TestBigtableDataClient:
         instance_1_path = client._gapic_client.instance_path(
             client.project, "instance-1"
         )
+        instance_1_key = (instance_1_path, table.table_name, table.app_profile_id)
         instance_2_path = client._gapic_client.instance_path(
             client.project, "instance-2"
         )
-        assert len(client._instance_owners[instance_1_path]) == 1
-        assert list(client._instance_owners[instance_1_path])[0] == id(table)
-        assert len(client._instance_owners[instance_2_path]) == 1
-        assert list(client._instance_owners[instance_2_path])[0] == id(table)
+        instance_2_key = (instance_2_path, table.table_name, table.app_profile_id)
+        assert len(client._instance_owners[instance_1_key]) == 1
+        assert list(client._instance_owners[instance_1_key])[0] == id(table)
+        assert len(client._instance_owners[instance_2_key]) == 1
+        assert list(client._instance_owners[instance_2_key])[0] == id(table)
         success = await client._remove_instance_registration("instance-1", table)
         assert success
         assert len(client._active_instances) == 1
-        assert len(client._instance_owners[instance_1_path]) == 0
-        assert len(client._instance_owners[instance_2_path]) == 1
-        assert client._active_instances == {"projects/project-id/instances/instance-2"}
-        success = await client._remove_instance_registration("nonexistant", table)
+        assert len(client._instance_owners[instance_1_key]) == 0
+        assert len(client._instance_owners[instance_2_key]) == 1
+        assert client._active_instances == {instance_2_key}
+        success = await client._remove_instance_registration("fake-key", table)
         assert not success
         assert len(client._active_instances) == 1
         await client.close()
@@ -874,11 +910,20 @@ class TestReadRows:
 
     def _make_table(self, *args, **kwargs):
         from google.cloud.bigtable.client import Table
+
         client_mock = mock.Mock()
-        client_mock._register_instance.side_effect = lambda *args, **kwargs: asyncio.sleep(0)
-        client_mock._remove_instance_registration.side_effect = lambda *args, **kwargs: asyncio.sleep(0)
-        kwargs["instance_id"] = kwargs.get("instance_id", args[0] if args else "instance")
-        kwargs["table_id"] = kwargs.get("table_id", args[1] if len(args) > 1 else "table")
+        client_mock._register_instance.side_effect = (
+            lambda *args, **kwargs: asyncio.sleep(0)
+        )
+        client_mock._remove_instance_registration.side_effect = (
+            lambda *args, **kwargs: asyncio.sleep(0)
+        )
+        kwargs["instance_id"] = kwargs.get(
+            "instance_id", args[0] if args else "instance"
+        )
+        kwargs["table_id"] = kwargs.get(
+            "table_id", args[1] if len(args) > 1 else "table"
+        )
         client_mock._gapic_client.table_path.return_value = kwargs["table_id"]
         client_mock._gapic_client.instance_path.return_value = kwargs["instance_id"]
         return Table(client_mock, *args, **kwargs)
@@ -986,9 +1031,7 @@ class TestReadRows:
         app_profile_id = "app_profile_id" if include_app_profile else None
         async with self._make_table(app_profile_id=app_profile_id) as table:
             read_rows = table.client._gapic_client.read_rows
-            read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                []
-            )
+            read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream([])
             row_keys = [b"test_1", "test_2"]
             row_ranges = RowRange("start", "end")
             filter_ = {"test": "filter"}
@@ -1066,10 +1109,8 @@ class TestReadRows:
         with mock.patch("random.uniform", side_effect=lambda a, b: 0):
             async with self._make_table() as table:
                 read_rows = table.client._gapic_client.read_rows
-                read_rows.side_effect = (
-                    lambda *args, **kwargs: self._make_gapic_stream(
-                        chunks, sleep_time=per_request_t
-                    )
+                read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
+                    chunks, sleep_time=per_request_t
                 )
                 query = ReadRowsQuery()
                 chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
@@ -1232,10 +1273,7 @@ class TestReadRows:
                     except InvalidChunk:
                         revise_rowset.assert_called()
                         revise_call_kwargs = revise_rowset.call_args_list[0].kwargs
-                        assert (
-                            revise_call_kwargs["row_set"]
-                            == query._to_dict()["rows"]
-                        )
+                        assert revise_call_kwargs["row_set"] == query._to_dict()["rows"]
                         assert revise_call_kwargs["last_seen_row_key"] == b"test_1"
                         read_rows_request = read_rows.call_args_list[1].args[0]
                         assert read_rows_request["rows"] == "modified"
@@ -1251,7 +1289,10 @@ class TestReadRows:
         per_request_timeout = 4
         with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
-            async with self._make_table(default_operation_timeout=operation_timeout,default_per_request_timeout=per_request_timeout) as table:
+            async with self._make_table(
+                default_operation_timeout=operation_timeout,
+                default_per_request_timeout=per_request_timeout,
+            ) as table:
                 try:
                     await table.read_rows(ReadRowsQuery())
                 except RuntimeError:
@@ -1271,7 +1312,9 @@ class TestReadRows:
         per_request_timeout = 4
         with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
-            async with self._make_table(default_operation_timeout=99, default_per_request_timeout=97) as table:
+            async with self._make_table(
+                default_operation_timeout=99, default_per_request_timeout=97
+            ) as table:
                 try:
                     await table.read_rows(
                         ReadRowsQuery(),
