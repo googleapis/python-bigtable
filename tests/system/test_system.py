@@ -226,6 +226,21 @@ async def test_ping_and_warm_gapic(client, table):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
+async def test_ping_and_warm(client, table):
+    """
+    Test ping and warm from handwritten client
+    """
+    try:
+        channel = client.transport._grpc_channel.pool[0]
+    except Exception:
+        # for sync client
+        channel = client.transport._grpc_channel
+    results = await client._ping_and_warm_instances(channel)
+    assert len(results) == 1
+    assert results[0] is None
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
 async def test_mutation_set_cell(table, temp_rows):
     """
     Ensure cells can be set properly
