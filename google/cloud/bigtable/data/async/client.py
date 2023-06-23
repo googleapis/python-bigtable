@@ -43,19 +43,19 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable._read_rows import _ReadRowsOperation
+from google.cloud.bigtable._read_rows import _ReadRowsOperationAsync
 
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.iterators import ReadRowsIterator
+from google.cloud.bigtable.iterators import ReadRowsIteratorAsync
 from google.cloud.bigtable.exceptions import FailedQueryShardError
 from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
 
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
@@ -81,7 +81,7 @@ _WarmedInstanceKey = namedtuple(
 )
 
 
-class BigtableDataClient(ClientWithProject):
+class BigtableDataClientAsync(ClientWithProject):
     def __init__(
         self,
         *,
@@ -280,7 +280,7 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    async def _register_instance(self, instance_id: str, owner: Table) -> None:
+    async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -311,7 +311,7 @@ class BigtableDataClient(ClientWithProject):
                 self.start_background_channel_refresh()
 
     async def _remove_instance_registration(
-        self, instance_id: str, owner: Table
+        self, instance_id: str, owner: TableAsync
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -348,7 +348,7 @@ class BigtableDataClient(ClientWithProject):
         app_profile_id: str | None = None,
         default_operation_timeout: float = 600,
         default_per_request_timeout: float | None = None,
-    ) -> Table:
+    ) -> TableAsync:
         """
         Returns a table instance for making data API requests
 
@@ -360,7 +360,7 @@ class BigtableDataClient(ClientWithProject):
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
         """
-        return Table(
+        return TableAsync(
             self,
             instance_id,
             table_id,
@@ -378,7 +378,7 @@ class BigtableDataClient(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-class Table:
+class TableAsync:
     """
     Main Data API surface
 
@@ -388,7 +388,7 @@ class Table:
 
     def __init__(
         self,
-        client: BigtableDataClient,
+        client: BigtableDataClientAsync,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
@@ -457,7 +457,7 @@ class Table:
         *,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
-    ) -> ReadRowsIterator:
+    ) -> ReadRowsIteratorAsync:
         """
         Returns an iterator to asynchronously stream back row data.
 
@@ -507,13 +507,13 @@ class Table:
         # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
         # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_request_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
-        row_merger = _ReadRowsOperation(
+        row_merger = _ReadRowsOperationAsync(
             request,
             self.client._gapic_client,
             operation_timeout=operation_timeout,
             per_request_timeout=per_request_timeout,
         )
-        output_generator = ReadRowsIterator(row_merger)
+        output_generator = ReadRowsIteratorAsync(row_merger)
         # add idle timeout to clear resources if generator is abandoned
         idle_timeout_seconds = 300
         await output_generator._start_idle_timer(idle_timeout_seconds)

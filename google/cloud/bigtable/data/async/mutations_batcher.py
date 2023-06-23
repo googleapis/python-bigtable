@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 _MB_SIZE = 1024 * 1024
 
 
-class _FlowControl:
+class _FlowControlAsync:
     """
     Manages flow control for batched mutations. Mutations are registered against
     the FlowControl object before being sent, which will block if size or count
@@ -159,7 +159,7 @@ class _FlowControl:
             yield mutations[start_idx:end_idx]
 
 
-class MutationsBatcher:
+class MutationsBatcherAsync:
     """
     Allows users to send batches using context manager API:
 
@@ -224,7 +224,7 @@ class MutationsBatcher:
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
-        self._flow_control = _FlowControl(
+        self._flow_control = _FlowControlAsync(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes

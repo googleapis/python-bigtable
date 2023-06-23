@@ -24,6 +24,9 @@ from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
+# mutate_rows requests are limited to this number of mutations
+from google.cloud.bigtable.mutations import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
@@ -31,19 +34,8 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.mutations import RowMutationEntry
 
-# mutate_rows requests are limited to this value
-MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
 
-
-class _MutateRowsIncomplete(RuntimeError):
-    """
-    Exception raised when a mutate_rows call has unfinished work.
-    """
-
-    pass
-
-
-class _MutateRowsOperation:
+class _MutateRowsOperationAsync:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
     and retrying on failed entries. It manages this using the _run_attempt
@@ -93,7 +85,7 @@ class _MutateRowsOperation:
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             # Entry level errors
-            _MutateRowsIncomplete,
+            bt_exceptions._MutateRowsIncomplete,
         )
         # build retryable operation
         retry = retries.AsyncRetry(
@@ -199,7 +191,7 @@ class _MutateRowsOperation:
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
-            raise _MutateRowsIncomplete
+            raise bt_exceptions._MutateRowsIncomplete
 
     def _handle_entry_error(self, idx: int, exc: Exception):
         """

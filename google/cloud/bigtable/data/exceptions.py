@@ -50,6 +50,14 @@ class _RowSetComplete(Exception):
     pass
 
 
+class _MutateRowsIncomplete(RuntimeError):
+    """
+    Exception raised when a mutate_rows call has unfinished work.
+    """
+
+    pass
+
+
 class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
     """
     Represents one or more exceptions that occur during a bulk Bigtable operation

@@ -26,7 +26,7 @@ from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable.row import Row
 
 
-class ReadRowsIterator(AsyncIterable[Row]):
+class ReadRowsIteratorAsync(AsyncIterable[Row]):
     """
     Async iterator for ReadRows responses.
     """

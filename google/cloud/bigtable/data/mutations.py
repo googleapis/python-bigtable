@@ -19,14 +19,14 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
-# mutation entries above this should be rejected
-from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-
-
 from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
+
+
+# mutation entries above this should be rejected
+MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
 
 
 class Mutation(ABC):
