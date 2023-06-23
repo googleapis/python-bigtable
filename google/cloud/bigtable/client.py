@@ -57,7 +57,7 @@ from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.mutations_batcher import MB_SIZE
+from google.cloud.bigtable.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable._helpers import _attempt_timeout_generator
 
 from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
@@ -726,9 +726,9 @@ class Table:
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
-        flush_limit_bytes: int = 20 * MB_SIZE,
+        flush_limit_bytes: int = 20 * _MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
-        flow_control_max_bytes: int = 100 * MB_SIZE,
+        flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
         batch_per_request_timeout: float | None = None,
     ) -> MutationsBatcher:

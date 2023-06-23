@@ -276,15 +276,18 @@ class Test_FlowControl:
 
 
 class TestMutationsBatcher:
-    def _make_one(self, table=None, **kwargs):
-        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 
+    def _get_target_class(self):
+        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+        return MutationsBatcher
+
+    def _make_one(self, table=None, **kwargs):
         if table is None:
             table = mock.Mock()
             table.default_operation_timeout = 10
             table.default_per_request_timeout = 10
 
-        return MutationsBatcher(table, **kwargs)
+        return self._get_target_class()(table, **kwargs)
 
     @mock.patch(
         "google.cloud.bigtable.mutations_batcher.MutationsBatcher._start_flush_timer"
@@ -298,8 +301,12 @@ class TestMutationsBatcher:
         async with self._make_one(table) as instance:
             assert instance._table == table
             assert instance.closed is False
+            assert instance._flush_jobs == set()
             assert instance._staged_entries == []
-            assert instance.exceptions == []
+            assert instance._oldest_exceptions == []
+            assert instance._newest_exceptions == []
+            assert instance._exception_list_limit == 10
+            assert instance._exceptions_since_last_raise == 0
             assert instance._flow_control._max_mutation_count == 100000
             assert instance._flow_control._max_mutation_bytes == 104857600
             assert instance._flow_control._in_flight_mutation_count == 0
@@ -339,8 +346,12 @@ class TestMutationsBatcher:
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
+            assert instance._flush_jobs == set()
             assert instance._staged_entries == []
-            assert instance.exceptions == []
+            assert instance._oldest_exceptions == []
+            assert instance._newest_exceptions == []
+            assert instance._exception_list_limit == 10
+            assert instance._exceptions_since_last_raise == 0
             assert (
                 instance._flow_control._max_mutation_count
                 == flow_control_max_mutation_count
@@ -378,7 +389,10 @@ class TestMutationsBatcher:
             assert instance._table == table
             assert instance.closed is False
             assert instance._staged_entries == []
-            assert instance.exceptions == []
+            assert instance._oldest_exceptions == []
+            assert instance._newest_exceptions == []
+            assert instance._exception_list_limit == 10
+            assert instance._exceptions_since_last_raise == 0
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
@@ -579,7 +593,7 @@ class TestMutationsBatcher:
                 for _ in range(num_entries):
                     await instance.append(_make_mutation(size=1))
                 # let any flush jobs finish
-                await instance._prev_flush
+                await asyncio.gather(*instance._flush_jobs)
                 # should have only flushed once, with large mutation and first mutation in loop
                 assert op_mock.call_count == 1
                 sent_batch = op_mock.call_args[0][0]
@@ -647,74 +661,6 @@ class TestMutationsBatcher:
                 assert len(instance._staged_entries) == 3
             instance._staged_entries = []
 
-    @pytest.mark.parametrize("raise_exceptions", [True, False])
-    @pytest.mark.asyncio
-    async def test_flush_no_timeout(self, raise_exceptions):
-        """flush should internally call _schedule_flush"""
-        mock_obj = AsyncMock()
-        async with self._make_one() as instance:
-            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
-                with mock.patch.object(instance, "_raise_exceptions") as raise_mock:
-                    flush_mock.return_value = mock_obj.__call__()
-                    await instance.flush(
-                        raise_exceptions=raise_exceptions, timeout=None
-                    )
-                    assert flush_mock.call_count == 1
-                    assert mock_obj.await_count == 1
-                    assert raise_mock.call_count == int(raise_exceptions)
-
-    @pytest.mark.asyncio
-    async def test_flush_w_timeout(self):
-        """
-        flush should raise TimeoutError if incomplete by timeline, but flush
-        task should continue internally
-        """
-        async with self._make_one() as instance:
-            # create mock internal flush job
-            instance._prev_flush = asyncio.create_task(asyncio.sleep(0.5))
-            with pytest.raises(asyncio.TimeoutError):
-                await instance.flush(timeout=0.01)
-            # ensure that underlying flush task is still running
-            assert not instance._prev_flush.done()
-            # ensure flush task can complete without error
-            await instance._prev_flush
-            assert instance._prev_flush.done()
-            assert instance._prev_flush.exception() is None
-
-    @pytest.mark.asyncio
-    async def test_flush_concurrent_requests(self):
-        """
-        requests should happen in parallel if multiple flushes overlap
-        """
-        import time
-
-        num_flushes = 10
-        fake_mutations = [_make_mutation() for _ in range(num_flushes)]
-        async with self._make_one() as instance:
-            with mock.patch.object(
-                instance, "_execute_mutate_rows", AsyncMock()
-            ) as op_mock:
-                # mock network calls
-                async def mock_call(*args, **kwargs):
-                    await asyncio.sleep(0.1)
-                    return []
-
-                op_mock.side_effect = mock_call
-                start_time = time.monotonic()
-                # create a few concurrent flushes
-                for i in range(num_flushes):
-                    instance._staged_entries = [fake_mutations[i]]
-                    try:
-                        await instance.flush(timeout=0.01)
-                    except asyncio.TimeoutError:
-                        pass
-                # allow flushes to complete
-                await instance.flush()
-                duration = time.monotonic() - start_time
-                # if flushes were sequential, total duration would be 1s
-                assert duration < 0.25
-                assert op_mock.call_count == num_flushes
-
     @pytest.mark.asyncio
     async def test_flush_flow_control_concurrent_requests(self):
         """
@@ -737,10 +683,8 @@ class TestMutationsBatcher:
                 start_time = time.monotonic()
                 # flush one large batch, that will be broken up into smaller batches
                 instance._staged_entries = fake_mutations
-                try:
-                    await instance.flush(timeout=0.01)
-                except asyncio.TimeoutError:
-                    pass
+                instance._schedule_flush()
+                await asyncio.sleep(0.01)
                 # make room for new mutations
                 for i in range(num_calls):
                     await instance._flow_control.remove_from_flow(
@@ -748,142 +692,27 @@ class TestMutationsBatcher:
                     )
                     await asyncio.sleep(0.01)
                 # allow flushes to complete
-                await instance.flush()
+                await asyncio.gather(*instance._flush_jobs)
                 duration = time.monotonic() - start_time
+                assert instance._oldest_exceptions == []
+                assert instance._newest_exceptions == []
                 # if flushes were sequential, total duration would be 1s
-                assert instance.exceptions == []
                 assert duration < 0.25
                 assert op_mock.call_count == num_calls
 
     @pytest.mark.asyncio
-    async def test_overlapping_flush_requests(self):
-        """
-        Should allow multiple flushes to be scheduled concurrently, with
-        each flush raising the errors related to the mutations at flush time
-        """
-        from google.cloud.bigtable.exceptions import (
-            MutationsExceptionGroup,
-            FailedMutationEntryError,
-        )
-        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-
-        exception1 = RuntimeError("test error1")
-        exception2 = ValueError("test error2")
-        wrapped_exception_list = [
-            FailedMutationEntryError(2, mock.Mock(), exc)
-            for exc in [exception1, exception2]
-        ]
-        # excpetion1 is flushed first, but finishes second
-        sleep_times = [0.1, 0.05]
-        with mock.patch.object(
-            MutationsBatcher, "_execute_mutate_rows", AsyncMock()
-        ) as op_mock:
-            async with self._make_one() as instance:
-                # mock network calls
-                async def mock_call(*args, **kwargs):
-                    time, exception = sleep_times.pop(0), wrapped_exception_list.pop(0)
-                    await asyncio.sleep(time)
-                    return [exception]
-
-                op_mock.side_effect = mock_call
-                # create a few concurrent flushes
-                instance._staged_entries = [_make_mutation()]
-                flush_task1 = asyncio.create_task(instance.flush())
-                # let flush task initialize
-                await asyncio.sleep(0)
-                instance._staged_entries = [_make_mutation()]
-                flush_task2 = asyncio.create_task(instance.flush())
-                # raise errors
-                with pytest.raises(MutationsExceptionGroup) as exc2:
-                    await flush_task2
-                assert len(exc2.value.exceptions) == 1
-                assert exc2.value.total_entries_attempted == 1
-                assert exc2.value.exceptions[0].__cause__ == exception2
-
-                # flushes should be finalized in order. flush_task1 should already be done
-                assert flush_task1.done()
-                with pytest.raises(MutationsExceptionGroup) as exc:
-                    await flush_task1
-                assert len(exc.value.exceptions) == 1
-                assert exc2.value.total_entries_attempted == 1
-                assert exc.value.exceptions[0].__cause__ == exception1
-                # should have had two separate flush calls
-                assert op_mock.call_count == 2
-
-    @pytest.mark.asyncio
-    async def test_overlapping_flush_requests_background(self):
-        """
-        Test scheduling multiple background flushes without yielding the event loop in between.
-
-        Should result in first flush receiving both entries, and the second flush being an empty
-        request.
-        Entries added after a context switch should not be flushed until the next flush call.
-        """
-        from google.cloud.bigtable.exceptions import (
-            MutationsExceptionGroup,
-            FailedMutationEntryError,
-        )
-        from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-
-        test_error = RuntimeError("test error")
-        with mock.patch.object(
-            MutationsBatcher, "_execute_mutate_rows", AsyncMock()
-        ) as op_mock:
-            # mock network calls
-            async def mock_call(*args, **kwargs):
-                return [FailedMutationEntryError(2, mock.Mock(), test_error)]
-
-            async with self._make_one() as instance:
-                mutations = [_make_mutation() for _ in range(4)]
-                op_mock.side_effect = mock_call
-                # create a few concurrent flushes
-                await instance.append(mutations[0])
-                flush_task1 = asyncio.create_task(instance.flush())
-                await instance.append(mutations[1])
-                flush_task2 = asyncio.create_task(instance.flush())
-                await instance.append(mutations[2])
-                # should have mutations staged and ready
-                assert len(instance._staged_entries) == 3
-
-                # second task should be empty
-                await flush_task2
-                # mutations should have been flushed
-                assert len(instance._staged_entries) == 0
-                # mutations added after a context switch should not be in flush batch
-                await asyncio.sleep(0)
-                await instance.append(mutations[3])
-
-                # flushes should be finalized in order. flush_task1 should already be done
-                assert flush_task1.done()
-                # first task should have sent all mutations and raise exception
-                with pytest.raises(MutationsExceptionGroup) as exc:
-                    await flush_task1
-                assert exc.value.total_entries_attempted == 3
-                assert len(exc.value.exceptions) == 1
-                assert exc.value.exceptions[0].__cause__ == test_error
-                # should have just one flush call
-                assert op_mock.call_count == 1
-                assert op_mock.call_args[0][0] == mutations[:3]
-                # final mutation should still be staged for next flush
-                assert instance._staged_entries == [mutations[3]]
-                instance._staged_entries = []
-
-    @pytest.mark.asyncio
     async def test_schedule_flush_no_mutations(self):
-        """schedule flush should return prev_flush if no new mutations"""
+        """schedule flush should return None if no staged mutations"""
         async with self._make_one() as instance:
-            orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
                 for i in range(3):
-                    instance._schedule_flush()
+                    assert instance._schedule_flush() is None
                     assert flush_mock.call_count == 0
-                    assert instance._prev_flush == orig_flush
 
     @pytest.mark.asyncio
     async def test_schedule_flush_with_mutations(self):
-        """if new mutations exist, should update prev_flush to a new flush task"""
+        """if new mutations exist, should add a new flush task to _flush_jobs"""
         async with self._make_one() as instance:
-            orig_flush = instance._prev_flush
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
                 for i in range(1, 4):
                     mutation = mock.Mock()
@@ -896,8 +725,6 @@ class TestMutationsBatcher:
                     assert instance._staged_count == 0
                     assert instance._staged_bytes == 0
                     assert flush_mock.call_count == i
-                    assert instance._prev_flush != orig_flush
-                    orig_flush = instance._prev_flush
 
     @pytest.mark.asyncio
     async def test__flush_internal(self):
@@ -919,15 +746,12 @@ class TestMutationsBatcher:
                         yield x
 
                     flow_mock.side_effect = lambda x: gen(x)
-                    prev_flush_mock = AsyncMock()
-                    prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    await instance._flush_internal(mutations, prev_flush)
-                    assert prev_flush_mock.await_count == 1
+                    await instance._flush_internal(mutations)
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
                     assert flow_mock.call_count == 1
-                    assert instance.exceptions == []
+                    instance._oldest_exceptions, instance._newest_exceptions = [], []
 
     @pytest.mark.parametrize(
         "num_starting,num_new_errors,expected_total_errors",
@@ -946,7 +770,7 @@ class TestMutationsBatcher:
         self, num_starting, num_new_errors, expected_total_errors
     ):
         """
-        errors returned from _execute_mutate_rows should be added to self.exceptions
+        errors returned from _execute_mutate_rows should be added to internal exceptions
         """
         from google.cloud.bigtable import exceptions
 
@@ -966,21 +790,19 @@ class TestMutationsBatcher:
                         yield x
 
                     flow_mock.side_effect = lambda x: gen(x)
-                    prev_flush_mock = AsyncMock()
-                    prev_flush = prev_flush_mock.__call__()
                     mutations = [_make_mutation(count=1, size=1)] * num_entries
-                    await instance._flush_internal(mutations, prev_flush)
-                    assert prev_flush_mock.await_count == 1
+                    await instance._flush_internal(mutations)
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
                     assert flow_mock.call_count == 1
-                    assert len(instance.exceptions) == expected_total_errors
+                    found_exceptions = (
+                        instance._oldest_exceptions + instance._newest_exceptions
+                    )
+                    assert len(found_exceptions) == expected_total_errors
                     for i in range(num_starting, expected_total_errors):
-                        assert (
-                            instance.exceptions[i] == expected_errors[i - num_starting]
-                        )
+                        assert found_exceptions[i] == expected_errors[i - num_starting]
                         # errors should have index stripped
-                        assert instance.exceptions[i].index is None
+                        assert found_exceptions[i].index is None
             # clear out exceptions
             instance._oldest_exceptions, instance._newest_exceptions = [], []
 
@@ -996,29 +818,6 @@ class TestMutationsBatcher:
                 yield MutateRowsResponse(entries=[entry])
 
         return gen(num)
-
-    @pytest.mark.asyncio
-    async def test_manual_flush_end_to_end(self):
-        """Test full flush process with minimal mocking"""
-        num_nutations = 10
-        mutations = [_make_mutation(count=2, size=2)] * num_nutations
-
-        async with self._make_one(
-            flow_control_max_mutation_count=3, flow_control_max_bytes=3
-        ) as instance:
-            instance._table.default_operation_timeout = 10
-            instance._table.default_per_request_timeout = 9
-            with mock.patch.object(
-                instance._table.client._gapic_client, "mutate_rows"
-            ) as gapic_mock:
-                gapic_mock.side_effect = (
-                    lambda *args, **kwargs: self._mock_gapic_return(num_nutations)
-                )
-                for m in mutations:
-                    await instance.append(m)
-                assert instance._entries_processed_since_last_raise == 0
-                await instance.flush()
-                assert instance._entries_processed_since_last_raise == num_nutations
 
     @pytest.mark.asyncio
     async def test_timer_flush_end_to_end(self):
@@ -1107,7 +906,7 @@ class TestMutationsBatcher:
                 assert list(exc.exceptions) == expected_exceptions
                 assert str(expected_total) in str(exc)
             assert instance._entries_processed_since_last_raise == 0
-            assert instance.exceptions == []
+            instance._oldest_exceptions, instance._newest_exceptions = ([], [])
             # try calling again
             instance._raise_exceptions()
 
@@ -1134,7 +933,7 @@ class TestMutationsBatcher:
                     await instance.close()
                     assert instance.closed is True
                     assert instance._flush_timer.done() is True
-                    assert instance._prev_flush is None
+                    assert instance._flush_jobs == set()
                     assert flush_mock.call_count == 1
                     assert raise_mock.call_count == 1
 
@@ -1154,7 +953,8 @@ class TestMutationsBatcher:
                 assert list(exc.exceptions) == expected_exceptions
                 assert str(expected_total) in str(exc)
             assert instance._entries_processed_since_last_raise == 0
-            assert instance.exceptions == []
+            # clear out exceptions
+            instance._oldest_exceptions, instance._newest_exceptions = ([], [])
 
     @pytest.mark.asyncio
     async def test__on_exit(self, recwarn):
@@ -1219,77 +1019,48 @@ class TestMutationsBatcher:
             assert kwargs["operation_timeout"] == expected_operation_timeout
             assert kwargs["per_request_timeout"] == expected_per_request_timeout
 
-    @pytest.mark.asyncio
-    async def test_batcher_task_memory_release(self):
+    @pytest.mark.parametrize("limit,in_e,start_e,end_e", [
+        (10, 0, (10, 0), (10, 0)),
+        (1, 10, (0, 0), (1, 1)),
+        (10, 1, (0, 0), (1, 0)),
+        (10, 10, (0, 0), (10, 0)),
+        (10, 11, (0, 0), (10, 1)),
+        (3, 20, (0, 0), (3, 3)),
+        (10, 20, (0, 0), (10, 10)),
+        (10, 21, (0, 0), (10, 10)),
+        (2, 1, (2, 0), (2, 1)),
+        (2, 1, (1, 0), (2, 0)),
+        (2, 2, (1, 0), (2, 1)),
+        (3, 1, (3, 1), (3, 2)),
+        (3, 3, (3, 1), (3, 3)),
+    ])
+    def test__add_exceptions(self, limit, in_e, start_e, end_e):
         """
-        the batcher keeps a reference to the previous task, which may contain
-        a reference to another previous task. If we're not careful, this
-        could result in a memory leak.
-
-        Test to ensure that old tasks are released
+        Test that the _add_exceptions function properly updates the
+        _oldest_exceptions and _newest_exceptions lists
+        Args:
+          - limit: the _exception_list_limit representing the max size of either list
+          - in_e: size of list of exceptions to send to _add_exceptions
+          - start_e: a tuple of ints representing the initial sizes of _oldest_exceptions and _newest_exceptions
+          - end_e: a tuple of ints representing the expected sizes of _oldest_exceptions and _newest_exceptions
         """
-        import weakref
-        # use locks to control when tasks complete
-        task_locks = [asyncio.Lock() for _ in range(4)]
-        lock_idx = 0
-        for lock in task_locks:
-            await asyncio.wait_for(lock.acquire(), timeout=2)
-        async with self._make_one() as instance:
-            with mock.patch.object(
-                instance, "_execute_mutate_rows", AsyncMock()
-            ) as op_mock:
-                # mock network calls
-                async def mock_call(*args, **kwargs):
-                    nonlocal lock_idx
-                    lock_idx += 1
-                    await task_locks[lock_idx - 1].acquire()
-                    return []
-
-                op_mock.side_effect = mock_call
-                # create a starting task
-                instance._staged_entries = [_make_mutation()]
-                try:
-                    await instance.flush(timeout=0.01)
-                except asyncio.TimeoutError:
-                    pass
-                # capture as weak reference
-                first_task_ref = weakref.ref(instance._prev_flush)
-                assert first_task_ref() is not None
-                assert first_task_ref().done() is False
-                assert len(first_task_ref().get_stack()) == 1
-                # add more flushes to chain
-                middle_task = None
-                # add more flushes to chain
-                for i in range(3):
-                    instance._staged_entries = [_make_mutation()]
-                    try:
-                        await instance.flush(timeout=0.01)
-                    except asyncio.TimeoutError:
-                        pass
-                    if i == 1:
-                        # save a reference to a task in the middle of the chain
-                        middle_task = instance._prev_flush
-                assert instance._prev_flush != middle_task
-                # first_task should still be active
-                assert first_task_ref() is not None
-                assert first_task_ref().done() is False
-                # let it complete
-                task_locks[0].release()
-                await asyncio.sleep(0.01)
-                # should be complete, but still referenced in second task, which is still active
-                assert first_task_ref() is not None
-                assert first_task_ref().done() is True
-                # task's internal stack should be cleared
-                assert len(first_task_ref().get_stack()) == 0
-                # finish locks up to middle task
-                task_locks[1].release()
-                task_locks[2].release()
-                await asyncio.sleep(0.01)
-                # first task should no longer be referenced
-                assert first_task_ref() is None
-                # but there should still be an active task
-                assert instance._prev_flush is not None
-                assert instance._prev_flush.done() is False
-                # clear locks
-                for lock in task_locks:
-                    lock.release()
+        input_list = [RuntimeError(f"mock {i}") for i in range(in_e)]
+        mock_batcher = mock.Mock()
+        mock_batcher._oldest_exceptions = [RuntimeError(f"starting mock {i}") for i in range(start_e[0])]
+        mock_batcher._newest_exceptions = [RuntimeError(f"starting mock {i}") for i in range(start_e[1])]
+        mock_batcher._exception_list_limit = limit
+        mock_batcher._exceptions_since_last_raise = 0
+        self._get_target_class()._add_exceptions(mock_batcher, input_list)
+        assert len(mock_batcher._oldest_exceptions) == end_e[0]
+        assert len(mock_batcher._newest_exceptions) == end_e[1]
+        assert mock_batcher._exceptions_since_last_raise == in_e
+        # make sure that the right items ended up in the right spots
+        # should fill the oldest slots first
+        oldest_list_diff = end_e[0] - start_e[0]
+        # new items should bump off starting items
+        newest_list_diff = min(max(in_e - oldest_list_diff, 0), limit)
+        for i in range(oldest_list_diff):
+            assert mock_batcher._oldest_exceptions[i + start_e[0]] == input_list[i]
+        # then, the newest slots should be filled with the last items of the input list
+        for i in range(newest_list_diff):
+            assert mock_batcher._newest_exceptions[i] == input_list[-(newest_list_diff - i)]
