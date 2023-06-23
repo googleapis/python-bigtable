@@ -36,6 +36,8 @@ from google.cloud.bigtable.mutations import DeleteAllFromRow
 
 # Type alias for the output of sample_keys
 RowKeySamples = List[Tuple[bytes, int]]
+# type alias for the output of query.shard()
+ShardedQuery = List[ReadRowsQuery]
 
 __version__: str = package_version.__version__
 
