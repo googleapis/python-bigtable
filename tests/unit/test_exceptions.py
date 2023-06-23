@@ -130,12 +130,12 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
     @pytest.mark.parametrize(
         "exception_list,total_entries,expected_message",
         [
-            ([Exception()], 1, "1 sub-exception (from 1 entry attempted)"),
-            ([Exception()], 2, "1 sub-exception (from 2 entries attempted)"),
+            ([Exception()], 1, "1 failed entry (from 1 attempted)"),
+            ([Exception()], 2, "1 failed entry (from 2 attempted)"),
             (
                 [Exception(), RuntimeError()],
                 2,
-                "2 sub-exceptions (from 2 entries attempted)",
+                "2 failed entries (from 2 attempted)",
             ),
         ],
     )

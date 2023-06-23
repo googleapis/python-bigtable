@@ -938,6 +938,7 @@ class TestMutationsBatcher:
             (1, 0, 1),
             (1, 1, 2),
             (10, 2, 12),
+            (10, 20, 20),  # should cap at 20
         ],
     )
     @pytest.mark.asyncio
@@ -954,7 +955,7 @@ class TestMutationsBatcher:
             exceptions.FailedMutationEntryError(mock.Mock(), mock.Mock(), ValueError())
         ] * num_new_errors
         async with self._make_one() as instance:
-            instance.exceptions = [mock.Mock()] * num_starting
+            instance._oldest_exceptions = [mock.Mock()] * num_starting
             with mock.patch.object(instance, "_execute_mutate_rows") as execute_mock:
                 execute_mock.return_value = expected_errors
                 with mock.patch.object(
@@ -981,7 +982,7 @@ class TestMutationsBatcher:
                         # errors should have index stripped
                         assert instance.exceptions[i].index is None
             # clear out exceptions
-            instance.exceptions = []
+            instance._oldest_exceptions, instance._newest_exceptions = [], []
 
     async def _mock_gapic_return(self, num=5):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
@@ -1098,7 +1099,7 @@ class TestMutationsBatcher:
         expected_total = 1201
         expected_exceptions = [RuntimeError("mock")] * 3
         async with self._make_one() as instance:
-            instance.exceptions = expected_exceptions
+            instance._oldest_exceptions = expected_exceptions
             instance._entries_processed_since_last_raise = expected_total
             try:
                 instance._raise_exceptions()
@@ -1133,7 +1134,7 @@ class TestMutationsBatcher:
                     await instance.close()
                     assert instance.closed is True
                     assert instance._flush_timer.done() is True
-                    assert instance._prev_flush.done() is True
+                    assert instance._prev_flush is None
                     assert flush_mock.call_count == 1
                     assert raise_mock.call_count == 1
 
@@ -1145,7 +1146,7 @@ class TestMutationsBatcher:
         expected_total = 10
         expected_exceptions = [RuntimeError("mock")]
         async with self._make_one() as instance:
-            instance.exceptions = expected_exceptions
+            instance._oldest_exceptions = expected_exceptions
             instance._entries_processed_since_last_raise = expected_total
             try:
                 await instance.close()

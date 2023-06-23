@@ -410,23 +410,23 @@ class MutationsBatcher:
             await self._flow_control.remove_from_flow(batch)
         return []
 
-    def _add_exceptions(self, new_exceptions: list[Exception]):
+    def _add_exceptions(self, excs: list[Exception]):
         """
         Add new list of exceptions to internal store. To avoid unbounded memory,
         the batcher will store the first and last _exception_list_limit exceptions,
         and discard any in between.
         """
-        self._exceptions_since_last_raise += len(new_exceptions)
-        if new_exceptions and len(self._oldest_exceptions) < self._exception_list_limit:
+        self._exceptions_since_last_raise += len(excs)
+        if excs and len(self._oldest_exceptions) < self._exception_list_limit:
             # populate oldest_exceptions with found_exceptions
             addition_count = self._exception_list_limit - len(self._oldest_exceptions)
-            self._oldest_exceptions.extend(new_exceptions[:addition_count])
-            new_exceptions = new_exceptions[addition_count:]
-        if new_exceptions:
+            self._oldest_exceptions.extend(excs[:addition_count])
+            excs = excs[addition_count:]
+        if excs:
             # populate newest_exceptions with remaining found_exceptions
-            keep_count = self._exception_list_limit - len(new_exceptions)
+            keep_count = self._exception_list_limit - len(excs)
             self._newest_exceptions = (
-                new_exceptions[-self._exception_list_limit :]
+                excs[-self._exception_list_limit :]
                 + self._newest_exceptions[:keep_count]
             )
 

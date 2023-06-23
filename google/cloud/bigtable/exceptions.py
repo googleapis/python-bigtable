@@ -140,7 +140,7 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
         return instance
 
     @classmethod
-    def from_truncated_mutations(
+    def from_truncated_lists(
         cls,
         first_list: list[Exception],
         last_list: list[Exception],
