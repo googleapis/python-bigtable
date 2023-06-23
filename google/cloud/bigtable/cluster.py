@@ -42,7 +42,7 @@ class Cluster(object):
     :type cluster_id: str
     :param cluster_id: The ID of the cluster.
 
-    :type instance: :class:`~google.cloud.bigtable.deprecated.instance.Instance`
+    :type instance: :class:`~google.cloud.bigtable.instance.Instance`
     :param instance: The instance where the cluster resides.
 
     :type location_id: str
@@ -62,10 +62,10 @@ class Cluster(object):
     :param default_storage_type: (Optional) The type of storage
                                  Possible values are represented by the
                                  following constants:
-                                 :data:`google.cloud.bigtable.deprecated.enums.StorageType.SSD`.
-                                 :data:`google.cloud.bigtable.deprecated.enums.StorageType.HDD`,
+                                 :data:`google.cloud.bigtable.enums.StorageType.SSD`.
+                                 :data:`google.cloud.bigtable.enums.StorageType.HDD`,
                                  Defaults to
-                                 :data:`google.cloud.bigtable.deprecated.enums.StorageType.UNSPECIFIED`.
+                                 :data:`google.cloud.bigtable.enums.StorageType.UNSPECIFIED`.
 
     :type kms_key_name: str
     :param kms_key_name: (Optional, Creation Only) The name of the KMS customer managed
@@ -84,11 +84,11 @@ class Cluster(object):
     :param _state: (`OutputOnly`)
                    The current state of the cluster.
                    Possible values are represented by the following constants:
-                   :data:`google.cloud.bigtable.deprecated.enums.Cluster.State.NOT_KNOWN`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Cluster.State.READY`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Cluster.State.CREATING`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Cluster.State.RESIZING`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Cluster.State.DISABLED`.
+                   :data:`google.cloud.bigtable.enums.Cluster.State.NOT_KNOWN`.
+                   :data:`google.cloud.bigtable.enums.Cluster.State.READY`.
+                   :data:`google.cloud.bigtable.enums.Cluster.State.CREATING`.
+                   :data:`google.cloud.bigtable.enums.Cluster.State.RESIZING`.
+                   :data:`google.cloud.bigtable.enums.Cluster.State.DISABLED`.
 
     :type min_serve_nodes: int
     :param min_serve_nodes: (Optional) The minimum number of nodes to be set in the cluster for autoscaling.
@@ -150,7 +150,7 @@ class Cluster(object):
         :type cluster_pb: :class:`instance.Cluster`
         :param cluster_pb: An instance protobuf object.
 
-        :type instance: :class:`google.cloud.bigtable.deprecated.instance.Instance`
+        :type instance: :class:`google.cloud.bigtable.instance.Instance`
         :param instance: The instance that owns the cluster.
 
         :rtype: :class:`Cluster`
@@ -236,7 +236,7 @@ class Cluster(object):
 
     @property
     def state(self):
-        """google.cloud.bigtable.deprecated.enums.Cluster.State: state of cluster.
+        """google.cloud.bigtable.enums.Cluster.State: state of cluster.
 
         For example:
 

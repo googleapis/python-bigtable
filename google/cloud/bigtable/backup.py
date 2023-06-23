@@ -19,8 +19,8 @@ import re
 from google.cloud._helpers import _datetime_to_pb_timestamp  # type: ignore
 from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
 from google.cloud.bigtable_admin_v2.types import table
-from google.cloud.bigtable.deprecated.encryption_info import EncryptionInfo
-from google.cloud.bigtable.deprecated.policy import Policy
+from google.cloud.bigtable.encryption_info import EncryptionInfo
+from google.cloud.bigtable.policy import Policy
 from google.cloud.exceptions import NotFound  # type: ignore
 from google.protobuf import field_mask_pb2
 
@@ -50,7 +50,7 @@ class Backup(object):
     :type backup_id: str
     :param backup_id: The ID of the backup.
 
-    :type instance: :class:`~google.cloud.bigtable.deprecated.instance.Instance`
+    :type instance: :class:`~google.cloud.bigtable.instance.Instance`
     :param instance: The Instance that owns this Backup.
 
     :type cluster_id: str
@@ -188,7 +188,7 @@ class Backup(object):
     def encryption_info(self):
         """Encryption info for this Backup.
 
-        :rtype: :class:`google.cloud.bigtable.deprecated.encryption.EncryptionInfo`
+        :rtype: :class:`google.cloud.bigtable.encryption.EncryptionInfo`
         :returns: The encryption information for this backup.
         """
         return self._encryption_info
@@ -238,10 +238,10 @@ class Backup(object):
         :type backup_pb: :class:`table.Backup`
         :param backup_pb: A Backup protobuf object.
 
-        :type instance: :class:`Instance <google.cloud.bigtable.deprecated.instance.Instance>`
+        :type instance: :class:`Instance <google.cloud.bigtable.instance.Instance>`
         :param instance: The Instance that owns the Backup.
 
-        :rtype: :class:`~google.cloud.bigtable.deprecated.backup.Backup`
+        :rtype: :class:`~google.cloud.bigtable.backup.Backup`
         :returns: The backup parsed from the protobuf response.
         :raises: ValueError: If the backup name does not match the expected
                              format or the parsed project ID does not match the
@@ -440,7 +440,7 @@ class Backup(object):
     def get_iam_policy(self):
         """Gets the IAM access control policy for this backup.
 
-        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this backup.
         """
         table_api = self._instance._client.table_admin_client
@@ -452,13 +452,13 @@ class Backup(object):
         existing policy.
 
         For more information about policy, please see documentation of
-        class `google.cloud.bigtable.deprecated.policy.Policy`
+        class `google.cloud.bigtable.policy.Policy`
 
-        :type policy: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :type policy: :class:`google.cloud.bigtable.policy.Policy`
         :param policy: A new IAM policy to replace the current IAM policy
                        of this backup.
 
-        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this backup.
         """
         table_api = self._instance._client.table_admin_client

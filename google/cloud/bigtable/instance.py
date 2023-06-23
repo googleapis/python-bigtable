@@ -16,9 +16,9 @@
 
 import re
 
-from google.cloud.bigtable.deprecated.app_profile import AppProfile
-from google.cloud.bigtable.deprecated.cluster import Cluster
-from google.cloud.bigtable.deprecated.table import Table
+from google.cloud.bigtable.app_profile import AppProfile
+from google.cloud.bigtable.cluster import Cluster
+from google.cloud.bigtable.table import Table
 
 from google.protobuf import field_mask_pb2
 
@@ -28,7 +28,7 @@ from google.iam.v1 import options_pb2  # type: ignore
 
 from google.api_core.exceptions import NotFound
 
-from google.cloud.bigtable.deprecated.policy import Policy
+from google.cloud.bigtable.policy import Policy
 
 import warnings
 
@@ -61,7 +61,7 @@ class Instance(object):
     :type instance_id: str
     :param instance_id: The ID of the instance.
 
-    :type client: :class:`Client <google.cloud.bigtable.deprecated.client.Client>`
+    :type client: :class:`Client <google.cloud.bigtable.client.Client>`
     :param client: The client that owns the instance. Provides
                    authorization and a project ID.
 
@@ -75,10 +75,10 @@ class Instance(object):
     :param instance_type: (Optional) The type of the instance.
                           Possible values are represented
                           by the following constants:
-                          :data:`google.cloud.bigtable.deprecated.enums.Instance.Type.PRODUCTION`.
-                          :data:`google.cloud.bigtable.deprecated.enums.Instance.Type.DEVELOPMENT`,
+                          :data:`google.cloud.bigtable.enums.Instance.Type.PRODUCTION`.
+                          :data:`google.cloud.bigtable.enums.Instance.Type.DEVELOPMENT`,
                           Defaults to
-                          :data:`google.cloud.bigtable.deprecated.enums.Instance.Type.UNSPECIFIED`.
+                          :data:`google.cloud.bigtable.enums.Instance.Type.UNSPECIFIED`.
 
     :type labels: dict
     :param labels: (Optional) Labels are a flexible and lightweight
@@ -95,9 +95,9 @@ class Instance(object):
     :param _state: (`OutputOnly`)
                    The current state of the instance.
                    Possible values are represented by the following constants:
-                   :data:`google.cloud.bigtable.deprecated.enums.Instance.State.STATE_NOT_KNOWN`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Instance.State.READY`.
-                   :data:`google.cloud.bigtable.deprecated.enums.Instance.State.CREATING`.
+                   :data:`google.cloud.bigtable.enums.Instance.State.STATE_NOT_KNOWN`.
+                   :data:`google.cloud.bigtable.enums.Instance.State.READY`.
+                   :data:`google.cloud.bigtable.enums.Instance.State.CREATING`.
     """
 
     def __init__(
@@ -141,7 +141,7 @@ class Instance(object):
         :type instance_pb: :class:`instance.Instance`
         :param instance_pb: An instance protobuf object.
 
-        :type client: :class:`Client <google.cloud.bigtable.deprecated.client.Client>`
+        :type client: :class:`Client <google.cloud.bigtable.client.Client>`
         :param client: The client that owns the instance.
 
         :rtype: :class:`Instance`
@@ -196,7 +196,7 @@ class Instance(object):
 
     @property
     def state(self):
-        """google.cloud.bigtable.deprecated.enums.Instance.State: state of Instance.
+        """google.cloud.bigtable.enums.Instance.State: state of Instance.
 
         For example:
 
@@ -272,12 +272,12 @@ class Instance(object):
                                       persisting Bigtable data.
                                       Possible values are represented
                                       by the following constants:
-                                      :data:`google.cloud.bigtable.deprecated.enums.StorageType.SSD`.
-                                      :data:`google.cloud.bigtable.deprecated.enums.StorageType.HDD`,
+                                      :data:`google.cloud.bigtable.enums.StorageType.SSD`.
+                                      :data:`google.cloud.bigtable.enums.StorageType.HDD`,
                                       Defaults to
-                                      :data:`google.cloud.bigtable.deprecated.enums.StorageType.UNSPECIFIED`.
+                                      :data:`google.cloud.bigtable.enums.StorageType.UNSPECIFIED`.
 
-        :type clusters: class:`~[~google.cloud.bigtable.deprecated.cluster.Cluster]`
+        :type clusters: class:`~[~google.cloud.bigtable.cluster.Cluster]`
         :param clusters: List of clusters to be created.
 
         :rtype: :class:`~google.api_core.operation.Operation`
@@ -478,7 +478,7 @@ class Instance(object):
                                          than the one that was requested, based on the
                                          feature syntax in the policy fetched.
 
-        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this instance
         """
         args = {"resource": self.name}
@@ -497,7 +497,7 @@ class Instance(object):
         existing policy.
 
         For more information about policy, please see documentation of
-        class `google.cloud.bigtable.deprecated.policy.Policy`
+        class `google.cloud.bigtable.policy.Policy`
 
         For example:
 
@@ -506,11 +506,11 @@ class Instance(object):
             :end-before: [END bigtable_api_set_iam_policy]
             :dedent: 4
 
-        :type policy: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :type policy: :class:`google.cloud.bigtable.policy.Policy`
         :param policy: A new IAM policy to replace the current IAM policy
                        of this instance
 
-        :rtype: :class:`google.cloud.bigtable.deprecated.policy.Policy`
+        :rtype: :class:`google.cloud.bigtable.policy.Policy`
         :returns: The current IAM policy of this instance.
         """
         instance_admin_client = self._client.instance_admin_client
@@ -586,12 +586,12 @@ class Instance(object):
         :param default_storage_type: (Optional) The type of storage
                                      Possible values are represented by the
                                      following constants:
-                                     :data:`google.cloud.bigtable.deprecated.enums.StorageType.SSD`.
-                                     :data:`google.cloud.bigtable.deprecated.enums.StorageType.HDD`,
+                                     :data:`google.cloud.bigtable.enums.StorageType.SSD`.
+                                     :data:`google.cloud.bigtable.enums.StorageType.HDD`,
                                      Defaults to
-                                     :data:`google.cloud.bigtable.deprecated.enums.StorageType.UNSPECIFIED`.
+                                     :data:`google.cloud.bigtable.enums.StorageType.UNSPECIFIED`.
 
-        :rtype: :class:`~google.cloud.bigtable.deprecated.instance.Cluster`
+        :rtype: :class:`~google.cloud.bigtable.instance.Cluster`
         :returns: a cluster owned by this instance.
 
         :type kms_key_name: str
@@ -635,7 +635,7 @@ class Instance(object):
         :rtype: tuple
         :returns:
             (clusters, failed_locations), where 'clusters' is list of
-            :class:`google.cloud.bigtable.deprecated.instance.Cluster`, and
+            :class:`google.cloud.bigtable.instance.Cluster`, and
             'failed_locations' is a list of locations which could not
             be resolved.
         """
@@ -664,7 +664,7 @@ class Instance(object):
         :type app_profile_id: str
         :param app_profile_id: (Optional) The unique name of the AppProfile.
 
-        :rtype: :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
+        :rtype: :class:`Table <google.cloud.bigtable.table.Table>`
         :returns: The table owned by this instance.
         """
         return Table(
@@ -684,7 +684,7 @@ class Instance(object):
             :end-before: [END bigtable_api_list_tables]
             :dedent: 4
 
-        :rtype: list of :class:`Table <google.cloud.bigtable.deprecated.table.Table>`
+        :rtype: list of :class:`Table <google.cloud.bigtable.table.Table>`
         :returns: The list of tables owned by the instance.
         :raises: :class:`ValueError <exceptions.ValueError>` if one of the
                  returned tables has a name that is not of the expected format.
@@ -731,8 +731,8 @@ class Instance(object):
         :param: routing_policy_type: The type of the routing policy.
                                      Possible values are represented
                                      by the following constants:
-                                     :data:`google.cloud.bigtable.deprecated.enums.RoutingPolicyType.ANY`
-                                     :data:`google.cloud.bigtable.deprecated.enums.RoutingPolicyType.SINGLE`
+                                     :data:`google.cloud.bigtable.enums.RoutingPolicyType.ANY`
+                                     :data:`google.cloud.bigtable.enums.RoutingPolicyType.SINGLE`
 
         :type: description: str
         :param: description: (Optional) Long form description of the use
@@ -753,7 +753,7 @@ class Instance(object):
                                             transactional writes for
                                             ROUTING_POLICY_TYPE_SINGLE.
 
-        :rtype: :class:`~google.cloud.bigtable.deprecated.app_profile.AppProfile>`
+        :rtype: :class:`~google.cloud.bigtable.app_profile.AppProfile>`
         :returns: AppProfile for this instance.
         """
         return AppProfile(
@@ -776,10 +776,10 @@ class Instance(object):
             :end-before: [END bigtable_api_list_app_profiles]
             :dedent: 4
 
-        :rtype: :list:[`~google.cloud.bigtable.deprecated.app_profile.AppProfile`]
-        :returns: A :list:[`~google.cloud.bigtable.deprecated.app_profile.AppProfile`].
+        :rtype: :list:[`~google.cloud.bigtable.app_profile.AppProfile`]
+        :returns: A :list:[`~google.cloud.bigtable.app_profile.AppProfile`].
                   By default, this is a list of
-                  :class:`~google.cloud.bigtable.deprecated.app_profile.AppProfile`
+                  :class:`~google.cloud.bigtable.app_profile.AppProfile`
                   instances.
         """
         resp = self._client.instance_admin_client.list_app_profiles(

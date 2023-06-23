@@ -18,14 +18,14 @@ This is the base from which all interactions with the API occur.
 
 In the hierarchy of API concepts
 
-* a :class:`~google.cloud.bigtable.deprecated.client.Client` owns an
-  :class:`~google.cloud.bigtable.deprecated.instance.Instance`
-* an :class:`~google.cloud.bigtable.deprecated.instance.Instance` owns a
-  :class:`~google.cloud.bigtable.deprecated.table.Table`
-* a :class:`~google.cloud.bigtable.deprecated.table.Table` owns a
+* a :class:`~google.cloud.bigtable.client.Client` owns an
+  :class:`~google.cloud.bigtable.instance.Instance`
+* an :class:`~google.cloud.bigtable.instance.Instance` owns a
+  :class:`~google.cloud.bigtable.table.Table`
+* a :class:`~google.cloud.bigtable.table.Table` owns a
   :class:`~.column_family.ColumnFamily`
-* a :class:`~google.cloud.bigtable.deprecated.table.Table` owns a
-  :class:`~google.cloud.bigtable.deprecated.row.Row` (and all the cells in the row)
+* a :class:`~google.cloud.bigtable.table.Table` owns a
+  :class:`~google.cloud.bigtable.row.Row` (and all the cells in the row)
 """
 import os
 import warnings
@@ -46,13 +46,13 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin.transports imp
 )
 
 from google.cloud import bigtable
-from google.cloud.bigtable.deprecated.instance import Instance
-from google.cloud.bigtable.deprecated.cluster import Cluster
+from google.cloud.bigtable.instance import Instance
+from google.cloud.bigtable.cluster import Cluster
 
 from google.cloud.client import ClientWithProject  # type: ignore
 
 from google.cloud.bigtable_admin_v2.types import instance
-from google.cloud.bigtable.deprecated.cluster import _CLUSTER_NAME_RE
+from google.cloud.bigtable.cluster import _CLUSTER_NAME_RE
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 
 
@@ -90,9 +90,6 @@ def _create_gapic_client(client_class, client_options=None, transport=None):
 
 class Client(ClientWithProject):
     """Client for interacting with Google Cloud Bigtable API.
-
-    DEPRECATED: This class is deprecated and may be removed in a future version
-        Please use `google.cloud.bigtable.BigtableDataClient` instead.
 
     .. note::
 
@@ -162,11 +159,6 @@ class Client(ClientWithProject):
         admin_client_options=None,
         channel=None,
     ):
-        warnings.warn(
-            "'Client' is deprecated. Please use 'google.cloud.bigtable.BigtableDataClient' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         if client_info is None:
             client_info = client_info_lib.ClientInfo(
                 client_library_version=bigtable.__version__,
@@ -438,10 +430,10 @@ class Client(ClientWithProject):
         :param instance_type: (Optional) The type of the instance.
                                Possible values are represented
                                by the following constants:
-                               :data:`google.cloud.bigtable.deprecated.instance.InstanceType.PRODUCTION`.
-                               :data:`google.cloud.bigtable.deprecated.instance.InstanceType.DEVELOPMENT`,
+                               :data:`google.cloud.bigtable.instance.InstanceType.PRODUCTION`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.DEVELOPMENT`,
                                Defaults to
-                               :data:`google.cloud.bigtable.deprecated.instance.InstanceType.UNSPECIFIED`.
+                               :data:`google.cloud.bigtable.instance.InstanceType.UNSPECIFIED`.
 
         :type labels: dict
         :param labels: (Optional) Labels are a flexible and lightweight
@@ -454,7 +446,7 @@ class Client(ClientWithProject):
                        be between 0 and 63 characters long. Keys and values
                        must both be under 128 bytes.
 
-        :rtype: :class:`~google.cloud.bigtable.deprecated.instance.Instance`
+        :rtype: :class:`~google.cloud.bigtable.instance.Instance`
         :returns: an instance owned by this client.
         """
         return Instance(
@@ -478,7 +470,7 @@ class Client(ClientWithProject):
         :rtype: tuple
         :returns:
             (instances, failed_locations), where 'instances' is list of
-            :class:`google.cloud.bigtable.deprecated.instance.Instance`, and
+            :class:`google.cloud.bigtable.instance.Instance`, and
             'failed_locations' is a list of locations which could not
             be resolved.
         """
@@ -501,7 +493,7 @@ class Client(ClientWithProject):
         :rtype: tuple
         :returns:
             (clusters, failed_locations), where 'clusters' is list of
-            :class:`google.cloud.bigtable.deprecated.instance.Cluster`, and
+            :class:`google.cloud.bigtable.instance.Cluster`, and
             'failed_locations' is a list of strings representing
             locations which could not be resolved.
         """

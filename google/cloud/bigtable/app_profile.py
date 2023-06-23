@@ -17,7 +17,7 @@
 
 import re
 
-from google.cloud.bigtable.deprecated.enums import RoutingPolicyType
+from google.cloud.bigtable.enums import RoutingPolicyType
 from google.cloud.bigtable_admin_v2.types import instance
 from google.protobuf import field_mask_pb2
 from google.api_core.exceptions import NotFound
@@ -47,8 +47,8 @@ class AppProfile(object):
     :param: routing_policy_type: (Optional) The type of the routing policy.
                                  Possible values are represented
                                  by the following constants:
-                                 :data:`google.cloud.bigtable.deprecated.enums.RoutingPolicyType.ANY`
-                                 :data:`google.cloud.bigtable.deprecated.enums.RoutingPolicyType.SINGLE`
+                                 :data:`google.cloud.bigtable.enums.RoutingPolicyType.ANY`
+                                 :data:`google.cloud.bigtable.enums.RoutingPolicyType.SINGLE`
 
     :type: description: str
     :param: description: (Optional) Long form description of the use
@@ -148,7 +148,7 @@ class AppProfile(object):
         :type app_profile_pb: :class:`instance.app_profile_pb`
         :param app_profile_pb: An instance protobuf object.
 
-        :type instance: :class:`google.cloud.bigtable.deprecated.instance.Instance`
+        :type instance: :class:`google.cloud.bigtable.instance.Instance`
         :param instance: The instance that owns the cluster.
 
         :rtype: :class:`AppProfile`

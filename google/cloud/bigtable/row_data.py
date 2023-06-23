@@ -23,10 +23,10 @@ from google.api_core import exceptions
 from google.api_core import retry
 from google.cloud._helpers import _to_bytes  # type: ignore
 
-from google.cloud.bigtable.deprecated.row_merger import _RowMerger, _State
+from google.cloud.bigtable.row_merger import _RowMerger, _State
 from google.cloud.bigtable_v2.types import bigtable as data_messages_v2_pb2
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
-from google.cloud.bigtable.deprecated.row import Cell, InvalidChunk, PartialRowData
+from google.cloud.bigtable.row import Cell, InvalidChunk, PartialRowData
 
 
 # Some classes need to be re-exported here to keep backwards
@@ -98,7 +98,7 @@ DEFAULT_RETRY_READ_ROWS = retry.Retry(
 """The default retry strategy to be used on retry-able errors.
 
 Used by
-:meth:`~google.cloud.bigtable.deprecated.row_data.PartialRowsData._read_next_response`.
+:meth:`~google.cloud.bigtable.row_data.PartialRowsData._read_next_response`.
 """
 
 
@@ -157,7 +157,9 @@ class PartialRowsData(object):
         # Otherwise there is a risk of entering an infinite loop that resets
         # the timeout counter just before it being triggered. The increment
         # by 1 second here is customary but should not be much less than that.
-        self.response_iterator = read_method(request, timeout=self.retry._deadline + 1)
+        self.response_iterator = read_method(
+            request, timeout=self.retry._deadline + 1, retry=self.retry
+        )
 
         self.rows = {}
 
