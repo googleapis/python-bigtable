@@ -1228,12 +1228,11 @@ class TestMutationsBatcher:
         Test to ensure that old tasks are released
         """
         import weakref
-
         # use locks to control when tasks complete
         task_locks = [asyncio.Lock() for _ in range(4)]
         lock_idx = 0
         for lock in task_locks:
-            await lock.acquire()
+            await asyncio.wait_for(lock.acquire(), timeout=2)
         async with self._make_one() as instance:
             with mock.patch.object(
                 instance, "_execute_mutate_rows", AsyncMock()

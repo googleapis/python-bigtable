@@ -412,16 +412,10 @@ class MutationsBatcher:
 
     def _add_exceptions(self, new_exceptions: list[Exception]):
         """
-        Add new list of exxceptions to internal store. To avoid unbounded memory,
+        Add new list of exceptions to internal store. To avoid unbounded memory,
         the batcher will store the first and last _exception_list_limit exceptions,
         and discard any in between.
         """
-        # add indices to exceptions to track the failure ordering
-        for idx, exc in enumerate(
-            new_exceptions, start=self._entries_processed_since_last_raise
-        ):
-            if isinstance(exc, FailedMutationEntryError):
-                exc.index = idx
         self._exceptions_since_last_raise += len(new_exceptions)
         if new_exceptions and len(self._oldest_exceptions) < self._exception_list_limit:
             # populate oldest_exceptions with found_exceptions
