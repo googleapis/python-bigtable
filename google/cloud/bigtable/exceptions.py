@@ -16,14 +16,16 @@ from __future__ import annotations
 
 import sys
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
+from google.cloud.bigtable.row import Row
 
 is_311_plus = sys.version_info >= (3, 11)
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 
 
 class IdleTimeout(core_exceptions.DeadlineExceeded):
@@ -214,3 +216,49 @@ class RetryExceptionGroup(BigtableExceptionGroup):
 
     def __new__(cls, excs: list[Exception]):
         return super().__new__(cls, cls._format_message(excs), excs)
+
+
+class ShardedReadRowsExceptionGroup(BigtableExceptionGroup):
+    """
+    Represents one or more exceptions that occur during a sharded read rows operation
+    """
+
+    @staticmethod
+    def _format_message(excs: list[FailedQueryShardError], total_queries: int):
+        query_str = "query" if total_queries == 1 else "queries"
+        plural_str = "" if len(excs) == 1 else "s"
+        return f"{len(excs)} sub-exception{plural_str} (from {total_queries} {query_str} attempted)"
+
+    def __init__(
+        self,
+        excs: list[FailedQueryShardError],
+        succeeded: list[Row],
+        total_queries: int,
+    ):
+        super().__init__(self._format_message(excs, total_queries), excs)
+        self.successful_rows = succeeded
+
+    def __new__(
+        cls, excs: list[FailedQueryShardError], succeeded: list[Row], total_queries: int
+    ):
+        instance = super().__new__(cls, cls._format_message(excs, total_queries), excs)
+        instance.successful_rows = succeeded
+        return instance
+
+
+class FailedQueryShardError(Exception):
+    """
+    Represents an individual failed query in a sharded read rows operation
+    """
+
+    def __init__(
+        self,
+        failed_index: int,
+        failed_query: "ReadRowsQuery" | dict[str, Any],
+        cause: Exception,
+    ):
+        message = f"Failed query at index {failed_index} with cause: {cause!r}"
+        super().__init__(message)
+        self.index = failed_index
+        self.query = failed_query
+        self.__cause__ = cause

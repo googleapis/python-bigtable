@@ -18,10 +18,16 @@ import sys
 
 import google.cloud.bigtable.exceptions as bigtable_exceptions
 
+# try/except added for compatibility with python < 3.8
+try:
+    from unittest import mock
+except ImportError:  # pragma: NO COVER
+    import mock  # type: ignore
+
 
 class TestBigtableExceptionGroup:
     """
-    Subclass for MutationsExceptionGroup and RetryExceptionGroup
+    Subclass for MutationsExceptionGroup, RetryExceptionGroup, and ShardedReadRowsExceptionGroup
     """
 
     def _get_class(self):
@@ -190,13 +196,50 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         assert list(e.value.exceptions) == exception_list
 
 
+class TestShardedReadRowsExceptionGroup(TestBigtableExceptionGroup):
+    def _get_class(self):
+        from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+
+        return ShardedReadRowsExceptionGroup
+
+    def _make_one(self, excs=None, succeeded=None, num_entries=3):
+        if excs is None:
+            excs = [RuntimeError("mock")]
+        succeeded = succeeded or []
+
+        return self._get_class()(excs, succeeded, num_entries)
+
+    @pytest.mark.parametrize(
+        "exception_list,succeeded,total_entries,expected_message",
+        [
+            ([Exception()], [], 1, "1 sub-exception (from 1 query attempted)"),
+            ([Exception()], [1], 2, "1 sub-exception (from 2 queries attempted)"),
+            (
+                [Exception(), RuntimeError()],
+                [0, 1],
+                2,
+                "2 sub-exceptions (from 2 queries attempted)",
+            ),
+        ],
+    )
+    def test_raise(self, exception_list, succeeded, total_entries, expected_message):
+        """
+        Create exception in raise statement, which calls __new__ and __init__
+        """
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(exception_list, succeeded, total_entries)
+        assert str(e.value) == expected_message
+        assert list(e.value.exceptions) == exception_list
+        assert e.value.successful_rows == succeeded
+
+
 class TestFailedMutationEntryError:
     def _get_class(self):
         from google.cloud.bigtable.exceptions import FailedMutationEntryError
 
         return FailedMutationEntryError
 
-    def _make_one(self, idx=9, entry=unittest.mock.Mock(), cause=RuntimeError("mock")):
+    def _make_one(self, idx=9, entry=mock.Mock(), cause=RuntimeError("mock")):
 
         return self._get_class()(idx, entry, cause)
 
@@ -205,7 +248,7 @@ class TestFailedMutationEntryError:
         Create exception in raise statement, which calls __new__ and __init__
         """
         test_idx = 2
-        test_entry = unittest.mock.Mock()
+        test_entry = mock.Mock()
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
@@ -256,3 +299,28 @@ class TestFailedMutationEntryError:
         assert e.value.__cause__ == test_exc
         assert isinstance(e.value, Exception)
         assert test_entry.is_idempotent.call_count == 1
+
+class TestFailedQueryShardError:
+    def _get_class(self):
+        from google.cloud.bigtable.exceptions import FailedQueryShardError
+
+        return FailedQueryShardError
+
+    def _make_one(self, idx=9, query=mock.Mock(), cause=RuntimeError("mock")):
+
+        return self._get_class()(idx, query, cause)
+
+    def test_raise(self):
+        """
+        Create exception in raise statement, which calls __new__ and __init__
+        """
+        test_idx = 2
+        test_query = mock.Mock()
+        test_exc = ValueError("test")
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(test_idx, test_query, test_exc)
+        assert str(e.value) == "Failed query at index 2 with cause: ValueError('test')"
+        assert e.value.index == test_idx
+        assert e.value.query == test_query
+        assert e.value.__cause__ == test_exc
+        assert isinstance(e.value, Exception)

@@ -36,6 +36,7 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
@@ -48,17 +49,29 @@ from google.api_core import client_options as client_options_lib
 from google.cloud.bigtable.row import Row
 from google.cloud.bigtable.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.iterators import ReadRowsIterator
+from google.cloud.bigtable.exceptions import FailedQueryShardError
+from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+
 from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _convert_retry_deadline
 from google.cloud.bigtable.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.mutations_batcher import MB_SIZE
+from google.cloud.bigtable._helpers import _attempt_timeout_generator
+
+from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+from google.cloud.bigtable.row_filters import RowFilter
+from google.cloud.bigtable.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.row_filters import CellsRowLimitFilter
+from google.cloud.bigtable.row_filters import RowFilterChain
 
 if TYPE_CHECKING:
     from google.cloud.bigtable import RowKeySamples
-    from google.cloud.bigtable.row_filters import RowFilter
-    from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
+    from google.cloud.bigtable import ShardedQuery
+
+# used by read_rows_sharded to limit how many requests are attempted in parallel
+CONCURRENCY_LIMIT = 10
 
 
 class BigtableDataClient(ClientWithProject):
@@ -185,10 +198,13 @@ class BigtableDataClient(ClientWithProject):
             - sequence of results or exceptions from the ping requests
         """
         ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarmChannel"
+            "/google.bigtable.v2.Bigtable/PingAndWarm",
+            request_serializer=PingAndWarmRequest.serialize,
         )
         tasks = [ping_rpc({"name": n}) for n in self._active_instances]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        result = await asyncio.gather(*tasks, return_exceptions=True)
+        # return None in place of empty successful responses
+        return [r or None for r in result]
 
     async def _manage_channel(
         self,
@@ -499,37 +515,107 @@ class Table:
         self,
         row_key: str | bytes,
         *,
+        row_filter: RowFilter | None = None,
         operation_timeout: int | float | None = 60,
         per_request_timeout: int | float | None = None,
-    ) -> Row:
+    ) -> Row | None:
         """
         Helper function to return a single row
 
         See read_rows_stream
 
+        Raises:
+            - google.cloud.bigtable.exceptions.RowNotFound: if the row does not exist
         Returns:
-            - the individual row requested
+            - the individual row requested, or None if it does not exist
         """
-        raise NotImplementedError
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
+        query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        if len(results) == 0:
+            return None
+        return results[0]
 
     async def read_rows_sharded(
         self,
-        query_list: list[ReadRowsQuery] | list[dict[str, Any]],
+        sharded_query: ShardedQuery,
         *,
-        limit: int | None,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = None,
         per_request_timeout: int | float | None = None,
-    ) -> ReadRowsIterator:
+    ) -> list[Row]:
         """
-        Runs a sharded query in parallel
+        Runs a sharded query in parallel, then return the results in a single list.
+        Results will be returned in the order of the input queries.
 
-        Each query in query list will be run concurrently, with results yielded as they are ready
-        yielded results may be out of order
+        This function is intended to be run on the results on a query.shard() call:
+
+        ```
+        table_shard_keys = await table.sample_row_keys()
+        query = ReadRowsQuery(...)
+        shard_queries = query.shard(table_shard_keys)
+        results = await table.read_rows_sharded(shard_queries)
+        ```
 
         Args:
-            - query_list: a list of queries to run in parallel
+            - sharded_query: a sharded query to execute
+        Raises:
+            - ShardedReadRowsExceptionGroup: if any of the queries failed
+            - ValueError: if the query_list is empty
         """
-        raise NotImplementedError
+        if not sharded_query:
+            raise ValueError("empty sharded_query")
+        # reduce operation_timeout between batches
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = (
+            per_request_timeout or self.default_per_request_timeout or operation_timeout
+        )
+        timeout_generator = _attempt_timeout_generator(
+            operation_timeout, operation_timeout
+        )
+        # submit shards in batches if the number of shards goes over CONCURRENCY_LIMIT
+        batched_queries = [
+            sharded_query[i : i + CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), CONCURRENCY_LIMIT)
+        ]
+        # run batches and collect results
+        results_list = []
+        error_dict = {}
+        shard_idx = 0
+        for batch in batched_queries:
+            batch_operation_timeout = next(timeout_generator)
+            routine_list = [
+                self.read_rows(
+                    query,
+                    operation_timeout=batch_operation_timeout,
+                    per_request_timeout=min(
+                        per_request_timeout, batch_operation_timeout
+                    ),
+                )
+                for query in batch
+            ]
+            batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
+            for result in batch_result:
+                if isinstance(result, Exception):
+                    error_dict[shard_idx] = result
+                else:
+                    results_list.extend(result)
+                shard_idx += 1
+        if error_dict:
+            # if any sub-request failed, raise an exception instead of returning results
+            raise ShardedReadRowsExceptionGroup(
+                [
+                    FailedQueryShardError(idx, sharded_query[idx], e)
+                    for idx, e in error_dict.items()
+                ],
+                results_list,
+                len(sharded_query),
+            )
+        return results_list
 
     async def row_exists(
         self,
@@ -546,14 +632,24 @@ class Table:
         Returns:
             - a bool indicating whether the row exists
         """
-        raise NotImplementedError
+        if row_key is None:
+            raise ValueError("row_key must be string or bytes")
+        strip_filter = StripValueTransformerFilter(flag=True)
+        limit_filter = CellsRowLimitFilter(1)
+        chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
+        query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
+        results = await self.read_rows(
+            query,
+            operation_timeout=operation_timeout,
+            per_request_timeout=per_request_timeout,
+        )
+        return len(results) > 0
 
-    async def sample_keys(
+    async def sample_row_keys(
         self,
         *,
-        operation_timeout: int | float | None = 60,
-        per_sample_timeout: int | float | None = 10,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: float | None = None,
+        per_request_timeout: float | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -561,7 +657,7 @@ class Table:
 
         RowKeySamples output can be used with ReadRowsQuery.shard() to create a sharded query that
         can be parallelized across multiple backend nodes read_rows and read_rows_stream
-        requests will call sample_keys internally for this purpose when sharding is enabled
+        requests will call sample_row_keys internally for this purpose when sharding is enabled
 
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
@@ -569,11 +665,61 @@ class Table:
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing all GoogleAPIError
-                exceptions from any retries that failed
+            - GoogleAPICallError: if the sample_row_keys request fails
         """
-        raise NotImplementedError
+        # prepare timeouts
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout <= 0:
+            raise ValueError("per_request_timeout must be greater than 0")
+        if per_request_timeout is not None and per_request_timeout > operation_timeout:
+            raise ValueError(
+                "per_request_timeout must not be greater than operation_timeout"
+            )
+        attempt_timeout_gen = _attempt_timeout_generator(
+            per_request_timeout, operation_timeout
+        )
+        # prepare retryable
+        predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+        )
+        transient_errors = []
+
+        def on_error_fn(exc):
+            # add errors to list if retryable
+            if predicate(exc):
+                transient_errors.append(exc)
+
+        retry = retries.AsyncRetry(
+            predicate=predicate,
+            timeout=operation_timeout,
+            initial=0.01,
+            multiplier=2,
+            maximum=60,
+            on_error=on_error_fn,
+            is_stream=False,
+        )
+
+        # prepare request
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+
+        async def execute_rpc():
+            results = await self.client._gapic_client.sample_row_keys(
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=next(attempt_timeout_gen),
+                metadata=metadata,
+            )
+            return [(s.row_key, s.offset_bytes) async for s in results]
+
+        wrapped_fn = _convert_retry_deadline(
+            retry(execute_rpc), operation_timeout, transient_errors
+        )
+        return await wrapped_fn()
 
     def mutations_batcher(
         self,
@@ -765,10 +911,11 @@ class Table:
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
-        predicate: RowFilter | None,
+        predicate: RowFilter | dict[str, Any] | None,
+        *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = 20,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -802,17 +949,43 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if true_case_mutations is not None and not isinstance(
+            true_case_mutations, list
+        ):
+            true_case_mutations = [true_case_mutations]
+        true_case_dict = [m._to_dict() for m in true_case_mutations or []]
+        if false_case_mutations is not None and not isinstance(
+            false_case_mutations, list
+        ):
+            false_case_mutations = [false_case_mutations]
+        false_case_dict = [m._to_dict() for m in false_case_mutations or []]
+        if predicate is not None and not isinstance(predicate, dict):
+            predicate = predicate.to_dict()
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        result = await self.client._gapic_client.check_and_mutate_row(
+            request={
+                "predicate_filter": predicate,
+                "true_mutations": true_case_dict,
+                "false_mutations": false_case_dict,
+                "table_name": self.table_name,
+                "row_key": row_key,
+                "app_profile_id": self.app_profile_id,
+            },
+            metadata=metadata,
+            timeout=operation_timeout,
+        )
+        return result.predicate_matched
 
     async def read_modify_write_row(
         self,
         row_key: str | bytes,
-        rules: ReadModifyWriteRule
-        | list[ReadModifyWriteRule]
-        | dict[str, Any]
-        | list[dict[str, Any]],
+        rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
         *,
-        operation_timeout: int | float | None = 60,
+        operation_timeout: int | float | None = 20,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -836,22 +1009,45 @@ class Table:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        raise NotImplementedError
+        operation_timeout = operation_timeout or self.default_operation_timeout
+        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
+        if operation_timeout <= 0:
+            raise ValueError("operation_timeout must be greater than 0")
+        if rules is not None and not isinstance(rules, list):
+            rules = [rules]
+        if not rules:
+            raise ValueError("rules must contain at least one item")
+        # concert to dict representation
+        rules_dict = [rule._to_dict() for rule in rules]
+        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        result = await self.client._gapic_client.read_modify_write_row(
+            request={
+                "rules": rules_dict,
+                "table_name": self.table_name,
+                "row_key": row_key,
+                "app_profile_id": self.app_profile_id,
+            },
+            metadata=metadata,
+            timeout=operation_timeout,
+        )
+        # construct Row from result
+        return Row._from_pb(result.row)
 
     async def close(self):
         """
         Called to close the Table instance and release any resources held by it.
         """
+        self._register_instance_task.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
         """
         Implement async context manager protocol
 
-        Register this instance with the client, so that
+        Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        await self.client._register_instance(self.instance_id, self)
+        await self._register_instance_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

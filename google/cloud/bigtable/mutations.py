@@ -23,6 +23,8 @@ from sys import getsizeof
 from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 
+from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1
 
@@ -110,6 +112,10 @@ class SetCell(Mutation):
         if isinstance(new_value, str):
             new_value = new_value.encode()
         elif isinstance(new_value, int):
+            if abs(new_value) > MAX_INCREMENT_VALUE:
+                raise ValueError(
+                    "int values must be between -2**63 and 2**63 (64-bit signed int)"
+                )
             new_value = new_value.to_bytes(8, "big", signed=True)
         if not isinstance(new_value, bytes):
             raise TypeError("new_value must be bytes, str, or int")
