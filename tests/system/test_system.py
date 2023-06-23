@@ -26,7 +26,10 @@ TEST_FAMILY_2 = "test-family-2"
 
 @pytest.fixture(scope="session")
 def event_loop():
-    return asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.stop()
+    loop.close()
 
 
 @pytest.fixture(scope="session")

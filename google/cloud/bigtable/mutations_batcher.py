@@ -488,5 +488,7 @@ class MutationsBatcher:
                 found_errors.append(result)
             elif result:
                 # completed requests will return a list of FailedMutationEntryError
+                for e in result:
+                    e.index = None
                 found_errors.extend(result)
         return found_errors

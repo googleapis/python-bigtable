@@ -978,6 +978,8 @@ class TestMutationsBatcher:
                         assert (
                             instance.exceptions[i] == expected_errors[i - num_starting]
                         )
+                        # errors should have index stripped
+                        assert instance.exceptions[i].index == i
             instance.exceptions = []
 
     async def _mock_gapic_return(self, num=5):
