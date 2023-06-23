@@ -20,13 +20,13 @@ from ._testing import _make_credentials
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.client import Client
+    from google.cloud.bigtable.client import Client
 
     return Client(*args, **kwargs)
 
 
 def _make_row(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row import Row
+    from google.cloud.bigtable.row import Row
 
     return Row(*args, **kwargs)
 
@@ -42,7 +42,7 @@ def test_row_table_getter():
 
 
 def _make__set_delete_row(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row import _SetDeleteRow
+    from google.cloud.bigtable.row import _SetDeleteRow
 
     return _SetDeleteRow(*args, **kwargs)
 
@@ -54,7 +54,7 @@ def test__set_detlete_row__get_mutations_virtual():
 
 
 def _make_direct_row(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.row import DirectRow
 
     return DirectRow(*args, **kwargs)
 
@@ -193,7 +193,7 @@ def test_direct_row_delete():
 
 
 def test_direct_row_delete_cell():
-    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.row import DirectRow
 
     class MockRow(DirectRow):
         def __init__(self, *args, **kwargs):
@@ -237,7 +237,7 @@ def test_direct_row_delete_cells_non_iterable():
 
 
 def test_direct_row_delete_cells_all_columns():
-    from google.cloud.bigtable.deprecated.row import DirectRow
+    from google.cloud.bigtable.row import DirectRow
 
     row_key = b"row_key"
     column_family_id = "column_family_id"
@@ -293,7 +293,7 @@ def test_direct_row_delete_cells_no_time_range():
 def test_direct_row_delete_cells_with_time_range():
     import datetime
     from google.cloud._helpers import _EPOCH
-    from google.cloud.bigtable.deprecated.row_filters import TimestampRange
+    from google.cloud.bigtable.row_filters import TimestampRange
 
     microseconds = 30871000  # Makes sure already milliseconds granularity
     start = _EPOCH + datetime.timedelta(microseconds=microseconds)
@@ -386,7 +386,7 @@ def test_direct_row_commit_with_exception():
 
 
 def _make_conditional_row(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row import ConditionalRow
+    from google.cloud.bigtable.row import ConditionalRow
 
     return ConditionalRow(*args, **kwargs)
 
@@ -417,7 +417,7 @@ def test_conditional_row__get_mutations():
 
 
 def test_conditional_row_commit():
-    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient
 
     project_id = "project-id"
@@ -466,7 +466,7 @@ def test_conditional_row_commit():
 
 def test_conditional_row_commit_too_many_mutations():
     from google.cloud._testing import _Monkey
-    from google.cloud.bigtable.deprecated import row as MUT
+    from google.cloud.bigtable import row as MUT
 
     row_key = b"row_key"
     table = object()
@@ -504,7 +504,7 @@ def test_conditional_row_commit_no_mutations():
 
 
 def _make_append_row(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row import AppendRow
+    from google.cloud.bigtable.row import AppendRow
 
     return AppendRow(*args, **kwargs)
 
@@ -564,7 +564,7 @@ def test_append_row_increment_cell_value():
 
 def test_append_row_commit():
     from google.cloud._testing import _Monkey
-    from google.cloud.bigtable.deprecated import row as MUT
+    from google.cloud.bigtable import row as MUT
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient
 
     project_id = "project-id"
@@ -630,7 +630,7 @@ def test_append_row_commit_no_rules():
 
 def test_append_row_commit_too_many_mutations():
     from google.cloud._testing import _Monkey
-    from google.cloud.bigtable.deprecated import row as MUT
+    from google.cloud.bigtable import row as MUT
 
     row_key = b"row_key"
     table = object()
@@ -644,7 +644,7 @@ def test_append_row_commit_too_many_mutations():
 
 def test__parse_rmw_row_response():
     from google.cloud._helpers import _datetime_from_microseconds
-    from google.cloud.bigtable.deprecated.row import _parse_rmw_row_response
+    from google.cloud.bigtable.row import _parse_rmw_row_response
 
     col_fam1 = "col-fam-id"
     col_fam2 = "col-fam-id2"
@@ -700,7 +700,7 @@ def test__parse_rmw_row_response():
 
 def test__parse_family_pb():
     from google.cloud._helpers import _datetime_from_microseconds
-    from google.cloud.bigtable.deprecated.row import _parse_family_pb
+    from google.cloud.bigtable.row import _parse_family_pb
 
     col_fam1 = "col-fam-id"
     col_name1 = b"col-name1"

@@ -19,7 +19,7 @@ from ._testing import _make_credentials
 
 
 def _make_max_versions_gc_rule(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     return MaxVersionsGCRule(*args, **kwargs)
 
@@ -51,7 +51,7 @@ def test_max_versions_gc_rule_to_pb():
 
 
 def _make_max_age_gc_rule(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
 
     return MaxAgeGCRule(*args, **kwargs)
 
@@ -89,7 +89,7 @@ def test_max_age_gc_rule_to_pb():
 
 
 def _make_gc_rule_union(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.column_family import GCRuleUnion
+    from google.cloud.bigtable.column_family import GCRuleUnion
 
     return GCRuleUnion(*args, **kwargs)
 
@@ -124,8 +124,8 @@ def test_gc_rule_union___ne__same_value():
 def test_gc_rule_union_to_pb():
     import datetime
     from google.protobuf import duration_pb2
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     max_num_versions = 42
     rule1 = MaxVersionsGCRule(max_num_versions)
@@ -145,8 +145,8 @@ def test_gc_rule_union_to_pb():
 def test_gc_rule_union_to_pb_nested():
     import datetime
     from google.protobuf import duration_pb2
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     max_num_versions1 = 42
     rule1 = MaxVersionsGCRule(max_num_versions1)
@@ -171,7 +171,7 @@ def test_gc_rule_union_to_pb_nested():
 
 
 def _make_gc_rule_intersection(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.column_family import GCRuleIntersection
+    from google.cloud.bigtable.column_family import GCRuleIntersection
 
     return GCRuleIntersection(*args, **kwargs)
 
@@ -206,8 +206,8 @@ def test_gc_rule_intersection___ne__same_value():
 def test_gc_rule_intersection_to_pb():
     import datetime
     from google.protobuf import duration_pb2
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     max_num_versions = 42
     rule1 = MaxVersionsGCRule(max_num_versions)
@@ -227,8 +227,8 @@ def test_gc_rule_intersection_to_pb():
 def test_gc_rule_intersection_to_pb_nested():
     import datetime
     from google.protobuf import duration_pb2
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     max_num_versions1 = 42
     rule1 = MaxVersionsGCRule(max_num_versions1)
@@ -253,13 +253,13 @@ def test_gc_rule_intersection_to_pb_nested():
 
 
 def _make_column_family(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.column_family import ColumnFamily
+    from google.cloud.bigtable.column_family import ColumnFamily
 
     return ColumnFamily(*args, **kwargs)
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.client import Client
+    from google.cloud.bigtable.client import Client
 
     return Client(*args, **kwargs)
 
@@ -323,7 +323,7 @@ def test_column_family_to_pb_no_rules():
 
 
 def test_column_family_to_pb_with_rule():
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     gc_rule = MaxVersionsGCRule(1)
     column_family = _make_column_family("column_family_id", None, gc_rule=gc_rule)
@@ -397,7 +397,7 @@ def test_column_family_create():
 
 
 def test_column_family_create_with_gc_rule():
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     gc_rule = MaxVersionsGCRule(1337)
     _create_test_helper(gc_rule=gc_rule)
@@ -467,7 +467,7 @@ def test_column_family_update():
 
 
 def test_column_family_update_with_gc_rule():
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     gc_rule = MaxVersionsGCRule(1337)
     _update_test_helper(gc_rule=gc_rule)
@@ -530,15 +530,15 @@ def test_column_family_delete():
 
 
 def test__gc_rule_from_pb_empty():
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
 
     gc_rule_pb = _GcRulePB()
     assert _gc_rule_from_pb(gc_rule_pb) is None
 
 
 def test__gc_rule_from_pb_max_num_versions():
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     orig_rule = MaxVersionsGCRule(1)
     gc_rule_pb = orig_rule.to_pb()
@@ -549,8 +549,8 @@ def test__gc_rule_from_pb_max_num_versions():
 
 def test__gc_rule_from_pb_max_age():
     import datetime
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
 
     orig_rule = MaxAgeGCRule(datetime.timedelta(seconds=1))
     gc_rule_pb = orig_rule.to_pb()
@@ -561,10 +561,10 @@ def test__gc_rule_from_pb_max_age():
 
 def test__gc_rule_from_pb_union():
     import datetime
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
-    from google.cloud.bigtable.deprecated.column_family import GCRuleUnion
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import GCRuleUnion
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     rule1 = MaxVersionsGCRule(1)
     rule2 = MaxAgeGCRule(datetime.timedelta(seconds=1))
@@ -577,10 +577,10 @@ def test__gc_rule_from_pb_union():
 
 def test__gc_rule_from_pb_intersection():
     import datetime
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
-    from google.cloud.bigtable.deprecated.column_family import GCRuleIntersection
-    from google.cloud.bigtable.deprecated.column_family import MaxAgeGCRule
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import GCRuleIntersection
+    from google.cloud.bigtable.column_family import MaxAgeGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     rule1 = MaxVersionsGCRule(1)
     rule2 = MaxAgeGCRule(datetime.timedelta(seconds=1))
@@ -592,7 +592,7 @@ def test__gc_rule_from_pb_intersection():
 
 
 def test__gc_rule_from_pb_unknown_field_name():
-    from google.cloud.bigtable.deprecated.column_family import _gc_rule_from_pb
+    from google.cloud.bigtable.column_family import _gc_rule_from_pb
 
     class MockProto(object):
 

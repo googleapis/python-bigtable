@@ -20,7 +20,7 @@ def _make_status_pb(**kwargs):
 
 
 def _make_status(status_pb):
-    from google.cloud.bigtable.deprecated.error import Status
+    from google.cloud.bigtable.error import Status
 
     return Status(status_pb)
 
