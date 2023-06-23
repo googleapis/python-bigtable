@@ -233,11 +233,15 @@ class MutationsBatcher:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self.exceptions: list[Exception] = []
         self._flush_timer = self._start_flush_timer(flush_interval)
         self._prev_flush: asyncio.Future[None] | None = None
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
+        self._exceptions_since_last_raise: int = 0
+        # keep track of the first and last _exception_list_limit exceptions
+        self._exception_list_limit: int = 10
+        self._oldest_exceptions: list[Exception] = []
+        self._newest_exceptions: list[Exception] = []
         # clean up on program exit
         atexit.register(self._on_exit)
 
@@ -368,7 +372,7 @@ class MutationsBatcher:
         await asyncio.sleep(0)
         # collect exception data for next raise, after previous flush tasks have completed
         self._entries_processed_since_last_raise += len(new_entries)
-        self.exceptions.extend(found_exceptions)
+        self._add_exceptions(found_exceptions)
 
     async def _execute_mutate_rows(
         self, batch: list[RowMutationEntry]
@@ -406,6 +410,41 @@ class MutationsBatcher:
             await self._flow_control.remove_from_flow(batch)
         return []
 
+    def _add_exceptions(self, new_exceptions: list[Exception]):
+        """
+        Add new list of exxceptions to internal store. To avoid unbounded memory,
+        the batcher will store the first and last _exception_list_limit exceptions,
+        and discard any in between.
+        """
+        # add indices to exceptions to track the failure ordering
+        for idx, exc in enumerate(
+            new_exceptions, start=self._entries_processed_since_last_raise
+        ):
+            if isinstance(exc, FailedMutationEntryError):
+                exc.index = idx
+        self._exceptions_since_last_raise += len(new_exceptions)
+        if new_exceptions and len(self._oldest_exceptions) < self._exception_list_limit:
+            # populate oldest_exceptions with found_exceptions
+            addition_count = self._exception_list_limit - len(self._oldest_exceptions)
+            self._oldest_exceptions.extend(new_exceptions[:addition_count])
+            new_exceptions = new_exceptions[addition_count:]
+        if new_exceptions:
+            # populate newest_exceptions with remaining found_exceptions
+            keep_count = self._exception_list_limit - len(new_exceptions)
+            self._newest_exceptions = (
+                new_exceptions[-self._exception_list_limit :]
+                + self._newest_exceptions[:keep_count]
+            )
+
+    @property
+    def exceptions(self) -> list[Exception]:
+        """
+        Access the list of exceptions waiting to be flushed. If more than
+        20 exceptions have been encountered since the last flush, only the
+        first and last 10 exceptions will be stored.
+        """
+        return self._oldest_exceptions + self._newest_exceptions
+
     def _raise_exceptions(self):
         """
         Raise any unreported exceptions from background flush operations
@@ -414,12 +453,22 @@ class MutationsBatcher:
           - MutationsExceptionGroup with all unreported exceptions
         """
         if self.exceptions:
-            exc_list, self.exceptions = self.exceptions, []
-            raise_count, self._entries_processed_since_last_raise = (
+            oldest, self._oldest_exceptions = self._oldest_exceptions, []
+            newest, self._newest_exceptions = self._newest_exceptions, []
+            entry_count, self._entries_processed_since_last_raise = (
                 self._entries_processed_since_last_raise,
                 0,
             )
-            raise MutationsExceptionGroup(exc_list, raise_count)
+            exc_count, self._exceptions_since_last_raise = (
+                self._exceptions_since_last_raise,
+                0,
+            )
+            raise MutationsExceptionGroup.from_truncated_lists(
+                first_list=oldest,
+                last_list=newest,
+                total_excs=exc_count,
+                entry_count=entry_count,
+            )
 
     async def __aenter__(self):
         """For context manager API"""
@@ -498,6 +547,7 @@ class MutationsBatcher:
             elif result:
                 # completed requests will return a list of FailedMutationEntryError
                 for e in result:
+                    # strip index information
                     e.index = None
                 found_errors.extend(result)
         return found_errors

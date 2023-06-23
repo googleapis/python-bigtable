@@ -89,17 +89,87 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
     """
 
     @staticmethod
-    def _format_message(excs: list[Exception], total_entries: int):
-        entry_str = "entry" if total_entries == 1 else "entries"
-        plural_str = "" if len(excs) == 1 else "s"
-        return f"{len(excs)} sub-exception{plural_str} (from {total_entries} {entry_str} attempted)"
+    def _format_message(
+        excs: list[Exception], total_entries: int, exc_count: int | None = None
+    ) -> str:
+        """
+        Format a message for the exception group
 
-    def __init__(self, excs: list[Exception], total_entries: int):
-        super().__init__(self._format_message(excs, total_entries), excs)
+        Args:
+          - excs: the exceptions in the group
+          - total_entries: the total number of entries attempted, successful or not
+          - exc_count: the number of exceptions associated with the request
+             if None, this will be len(excs)
+        """
+        exc_count = exc_count if exc_count is not None else len(excs)
+        entry_str = "entry" if exc_count == 1 else "entries"
+        return f"{exc_count} failed {entry_str} from {total_entries} attempted."
+
+    def __init__(
+        self, excs: list[Exception], total_entries: int, message: str | None = None
+    ):
+        """
+        Args:
+          - excs: the exceptions in the group
+          - total_entries: the total number of entries attempted, successful or not
+          - message: the message for the exception group. If None, a default message
+              will be generated
+        """
+        message = (
+            message
+            if message is not None
+            else self._format_message(excs, total_entries)
+        )
+        super().__init__(message, excs)
         self.total_entries_attempted = total_entries
 
-    def __new__(cls, excs: list[Exception], total_entries: int):
-        return super().__new__(cls, cls._format_message(excs, total_entries), excs)
+    def __new__(
+        cls, excs: list[Exception], total_entries: int, message: str | None = None
+    ):
+        """
+        Args:
+          - excs: the exceptions in the group
+          - total_entries: the total number of entries attempted, successful or not
+          - message: the message for the exception group. If None, a default message
+        """
+        message = (
+            message if message is not None else cls._format_message(excs, total_entries)
+        )
+        instance = super().__new__(cls, message, excs)
+        instance.total_entries_attempted = total_entries
+        return instance
+
+    @classmethod
+    def from_truncated_mutations(
+        cls,
+        first_list: list[Exception],
+        last_list: list[Exception],
+        total_excs: int,
+        entry_count: int,
+    ) -> MutationsExceptionGroup:
+        """
+        Create a MutationsExceptionGroup from two lists of exceptions, representing
+        a larger set that has been truncated. The MutationsExceptionGroup will
+        contain the union of the two lists as sub-exceptions, and the error message
+        describe the number of exceptions that were truncated.
+
+        Args:
+          - first_list: the set of oldest exceptions to add to the ExceptionGroup
+          - last_list: the set of newest exceptions to add to the ExceptionGroup
+          - total_excs: the total number of exceptions associated with the request
+             Should be len(first_list) + len(last_list) + number of dropped exceptions
+             in the middle
+          - entry_count: the total number of entries attempted, successful or not
+        """
+        first_count, last_count = len(first_list), len(last_list)
+        if last_count == 0 and first_count == total_excs:
+            # not truncated; use default constructor
+            return cls(first_list, entry_count)
+        excs = first_list + last_list
+        truncation_count = total_excs - (first_count + last_count)
+        base_message = cls._format_message(excs, entry_count, len(last_list))
+        message = f"{base_message} (First {first_count} and last {last_count} attached as sub-exceptions; {truncation_count} exceptions truncated)"
+        return cls(excs, entry_count, message)
 
 
 class FailedMutationEntryError(Exception):
