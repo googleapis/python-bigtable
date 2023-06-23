@@ -302,9 +302,9 @@ class TestMutationsBatcher:
             assert instance._table == table
             assert instance.closed is False
             assert instance._flush_jobs == set()
-            assert instance._staged_entries == []
-            assert instance._oldest_exceptions == []
-            assert instance._newest_exceptions == []
+            assert len(instance._staged_entries) == 0
+            assert len(instance._oldest_exceptions) == 0
+            assert len(instance._newest_exceptions) == 0
             assert instance._exception_list_limit == 10
             assert instance._exceptions_since_last_raise == 0
             assert instance._flow_control._max_mutation_count == 100000
@@ -347,9 +347,9 @@ class TestMutationsBatcher:
             assert instance._table == table
             assert instance.closed is False
             assert instance._flush_jobs == set()
-            assert instance._staged_entries == []
-            assert instance._oldest_exceptions == []
-            assert instance._newest_exceptions == []
+            assert len(instance._staged_entries) == 0
+            assert len(instance._oldest_exceptions) == 0
+            assert len(instance._newest_exceptions) == 0
             assert instance._exception_list_limit == 10
             assert instance._exceptions_since_last_raise == 0
             assert (
@@ -389,8 +389,8 @@ class TestMutationsBatcher:
             assert instance._table == table
             assert instance.closed is False
             assert instance._staged_entries == []
-            assert instance._oldest_exceptions == []
-            assert instance._newest_exceptions == []
+            assert len(instance._oldest_exceptions) == 0
+            assert len(instance._newest_exceptions) == 0
             assert instance._exception_list_limit == 10
             assert instance._exceptions_since_last_raise == 0
             assert instance._flow_control._in_flight_mutation_count == 0
@@ -694,8 +694,8 @@ class TestMutationsBatcher:
                 # allow flushes to complete
                 await asyncio.gather(*instance._flush_jobs)
                 duration = time.monotonic() - start_time
-                assert instance._oldest_exceptions == []
-                assert instance._newest_exceptions == []
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
                 # if flushes were sequential, total duration would be 1s
                 assert duration < 0.25
                 assert op_mock.call_count == num_calls
@@ -751,7 +751,8 @@ class TestMutationsBatcher:
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
                     assert flow_mock.call_count == 1
-                    instance._oldest_exceptions, instance._newest_exceptions = [], []
+                    instance._oldest_exceptions.clear()
+                    instance._newest_exceptions.clear()
 
     @pytest.mark.asyncio
     async def test_flush_clears_job_list(self):
@@ -811,8 +812,8 @@ class TestMutationsBatcher:
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
                     assert flow_mock.call_count == 1
-                    found_exceptions = (
-                        instance._oldest_exceptions + instance._newest_exceptions
+                    found_exceptions = instance._oldest_exceptions + list(
+                        instance._newest_exceptions
                     )
                     assert len(found_exceptions) == expected_total_errors
                     for i in range(num_starting, expected_total_errors):
@@ -820,7 +821,8 @@ class TestMutationsBatcher:
                         # errors should have index stripped
                         assert found_exceptions[i].index is None
             # clear out exceptions
-            instance._oldest_exceptions, instance._newest_exceptions = [], []
+            instance._oldest_exceptions.clear()
+            instance._newest_exceptions.clear()
 
     async def _mock_gapic_return(self, num=5):
         from google.cloud.bigtable_v2.types import MutateRowsResponse
@@ -1051,6 +1053,9 @@ class TestMutationsBatcher:
             (2, 2, (1, 0), (2, 1)),
             (3, 1, (3, 1), (3, 2)),
             (3, 3, (3, 1), (3, 3)),
+            (1000, 5, (999, 0), (1000, 4)),
+            (1000, 5, (0, 0), (5, 0)),
+            (1000, 5, (1000, 0), (1000, 5)),
         ],
     )
     def test__add_exceptions(self, limit, in_e, start_e, end_e):
@@ -1063,14 +1068,17 @@ class TestMutationsBatcher:
           - start_e: a tuple of ints representing the initial sizes of _oldest_exceptions and _newest_exceptions
           - end_e: a tuple of ints representing the expected sizes of _oldest_exceptions and _newest_exceptions
         """
+        from collections import deque
+
         input_list = [RuntimeError(f"mock {i}") for i in range(in_e)]
         mock_batcher = mock.Mock()
         mock_batcher._oldest_exceptions = [
             RuntimeError(f"starting mock {i}") for i in range(start_e[0])
         ]
-        mock_batcher._newest_exceptions = [
-            RuntimeError(f"starting mock {i}") for i in range(start_e[1])
-        ]
+        mock_batcher._newest_exceptions = deque(
+            [RuntimeError(f"starting mock {i}") for i in range(start_e[1])],
+            maxlen=limit,
+        )
         mock_batcher._exception_list_limit = limit
         mock_batcher._exceptions_since_last_raise = 0
         self._get_target_class()._add_exceptions(mock_batcher, input_list)
@@ -1080,13 +1088,10 @@ class TestMutationsBatcher:
         # make sure that the right items ended up in the right spots
         # should fill the oldest slots first
         oldest_list_diff = end_e[0] - start_e[0]
-        # new items should bump off starting items
+        # new items should by added on top of the starting list
         newest_list_diff = min(max(in_e - oldest_list_diff, 0), limit)
         for i in range(oldest_list_diff):
             assert mock_batcher._oldest_exceptions[i + start_e[0]] == input_list[i]
         # then, the newest slots should be filled with the last items of the input list
-        for i in range(newest_list_diff):
-            assert (
-                mock_batcher._newest_exceptions[i]
-                == input_list[-(newest_list_diff - i)]
-            )
+        for i in range(1, newest_list_diff + 1):
+            assert mock_batcher._newest_exceptions[-i] == input_list[-i]

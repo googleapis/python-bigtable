@@ -14,10 +14,11 @@
 #
 from __future__ import annotations
 
+from typing import Any, TYPE_CHECKING
 import asyncio
 import atexit
 import warnings
-from typing import Any, TYPE_CHECKING
+from collections import deque
 
 from google.cloud.bigtable.mutations import RowMutationEntry
 from google.cloud.bigtable.exceptions import MutationsExceptionGroup
@@ -240,7 +241,9 @@ class MutationsBatcher:
         # keep track of the first and last _exception_list_limit exceptions
         self._exception_list_limit: int = 10
         self._oldest_exceptions: list[Exception] = []
-        self._newest_exceptions: list[Exception] = []
+        self._newest_exceptions: deque[Exception] = deque(
+            maxlen=self._exception_list_limit
+        )
         # clean up on program exit
         atexit.register(self._on_exit)
 
@@ -382,11 +385,7 @@ class MutationsBatcher:
             excs = excs[addition_count:]
         if excs:
             # populate newest_exceptions with remaining found_exceptions
-            keep_count = self._exception_list_limit - len(excs)
-            self._newest_exceptions = (
-                excs[-self._exception_list_limit :]
-                + self._newest_exceptions[:keep_count]
-            )
+            self._newest_exceptions.extend(excs[-self._exception_list_limit :])
 
     def _raise_exceptions(self):
         """
@@ -397,7 +396,8 @@ class MutationsBatcher:
         """
         if self._oldest_exceptions or self._newest_exceptions:
             oldest, self._oldest_exceptions = self._oldest_exceptions, []
-            newest, self._newest_exceptions = self._newest_exceptions, []
+            newest = list(self._newest_exceptions)
+            self._newest_exceptions.clear()
             entry_count, self._entries_processed_since_last_raise = (
                 self._entries_processed_since_last_raise,
                 0,
@@ -428,14 +428,15 @@ class MutationsBatcher:
         self.closed = True
         self._flush_timer.cancel()
         self._schedule_flush()
-        await asyncio.gather(*self._flush_jobs, return_exceptions=True)
+        if self._flush_jobs:
+            await asyncio.gather(*self._flush_jobs, return_exceptions=True)
         try:
             await self._flush_timer
         except asyncio.CancelledError:
             pass
+        atexit.unregister(self._on_exit)
         # raise unreported exceptions
         self._raise_exceptions()
-        atexit.unregister(self._on_exit)
 
     def _on_exit(self):
         """
@@ -480,6 +481,8 @@ class MutationsBatcher:
               If a task fails with a different exception, it will be included in the
               output list. Successful tasks will not be represented in the output list.
         """
+        if not tasks:
+            return []
         all_results = await asyncio.gather(*tasks, return_exceptions=True)
         found_errors = []
         for result in all_results:
