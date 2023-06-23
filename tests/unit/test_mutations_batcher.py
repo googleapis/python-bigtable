@@ -1216,3 +1216,78 @@ class TestMutationsBatcher:
             kwargs = mutate_rows.call_args[1]
             assert kwargs["operation_timeout"] == expected_operation_timeout
             assert kwargs["per_request_timeout"] == expected_per_request_timeout
+
+    @pytest.mark.asyncio
+    async def test_batcher_task_memory_release(self):
+        """
+        the batcher keeps a reference to the previous task, which may contain
+        a reference to another previous task. If we're not careful, this
+        could result in a memory leak.
+
+        Test to ensure that old tasks are released
+        """
+        import weakref
+        x
+        # use locks to control when tasks complete
+        task_locks = [asyncio.Lock() for _ in range(4)]
+        lock_idx = 0
+        for lock in task_locks:
+            await lock.acquire()
+        async with self._make_one() as instance:
+            with mock.patch.object(
+                instance, "_execute_mutate_rows", AsyncMock()
+            ) as op_mock:
+                # mock network calls
+                async def mock_call(*args, **kwargs):
+                    nonlocal lock_idx
+                    lock_idx += 1
+                    await task_locks[lock_idx-1].acquire()
+                    return []
+                op_mock.side_effect = mock_call
+                # create a starting task
+                instance._staged_entries = [_make_mutation()]
+                try:
+                    await instance.flush(timeout=0.01)
+                except asyncio.TimeoutError:
+                    pass
+                # capture as weak reference
+                first_task_ref = weakref.ref(instance._prev_flush)
+                assert first_task_ref() is not None
+                assert first_task_ref().done() is False
+                assert len(first_task_ref().get_stack()) == 1
+                # add more flushes to chain
+                middle_task = None
+                # add more flushes to chain
+                for i in range(3):
+                    instance._staged_entries = [_make_mutation()]
+                    try:
+                        await instance.flush(timeout=0.01)
+                    except asyncio.TimeoutError:
+                        pass
+                    if i == 1:
+                        # save a reference to a task in the middle of the chain
+                        middle_task = instance._prev_flush
+                assert instance._prev_flush != middle_task
+                # first_task should still be active
+                assert first_task_ref() is not None
+                assert first_task_ref().done() is False
+                # let it complete
+                task_locks[0].release()
+                await asyncio.sleep(0.01)
+                # should be complete, but still referenced in second task, which is still active
+                assert first_task_ref() is not None
+                assert first_task_ref().done() is True
+                # task's internal stack should be cleared
+                assert len(first_task_ref().get_stack()) == 0
+                # finish locks up to middle task
+                task_locks[1].release()
+                task_locks[2].release()
+                await asyncio.sleep(0.01)
+                # first task should no longer be referenced
+                assert first_task_ref() is None
+                # but there should still be an active task
+                assert instance._prev_flush is not None
+                assert instance._prev_flush.done() is False
+                # clear locks
+                for lock in task_locks:
+                    lock.release()
