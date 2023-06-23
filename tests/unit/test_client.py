@@ -327,11 +327,11 @@ class TestBigtableDataClient:
                 assert metadata[0][0] == "x-goog-request-params"
                 assert (
                     metadata[0][1]
-                    == f"table_name={expected_table}&app_profile_id={expected_app_profile}"
+                    == f"name={expected_instance}&app_profile_id={expected_app_profile}"
                 )
 
     @pytest.mark.asyncio
-    async def test_ping_and_warm_single_instance(self):
+    async def test__ping_and_warm_single_instance(self):
         """
         should be able to call ping and warm with single instance
         """
@@ -359,8 +359,7 @@ class TestBigtableDataClient:
             assert len(metadata) == 1
             assert metadata[0][0] == "x-goog-request-params"
             assert (
-                metadata[0][1]
-                == "table_name=test-table&app_profile_id=test-app-profile"
+                metadata[0][1] == "name=test-instance&app_profile_id=test-app-profile"
             )
 
     @pytest.mark.asyncio

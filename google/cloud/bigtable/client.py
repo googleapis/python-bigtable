@@ -217,7 +217,12 @@ class BigtableDataClient(ClientWithProject):
         tasks = [
             ping_rpc(
                 request={"name": instance_name, "app_profile_id": app_profile_id},
-                metadata=_make_metadata(table_name, app_profile_id),
+                metadata=[
+                    (
+                        "x-goog-request-params",
+                        f"name={instance_name}&app_profile_id={app_profile_id}",
+                    )
+                ],
                 wait_for_ready=True,
             )
             for (instance_name, table_name, app_profile_id) in instance_list
