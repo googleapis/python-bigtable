@@ -166,7 +166,6 @@ class MutationsBatcher:
     to use as few network requests as required
 
     Flushes:
-      - manually
       - every flush_interval seconds
       - after queue reaches flush_count in quantity
       - after queue reaches flush_size_bytes in storage size
@@ -314,7 +313,7 @@ class MutationsBatcher:
             return new_task
         return None
 
-    async def _flush_internal(self,new_entries: list[RowMutationEntry]):
+    async def _flush_internal(self, new_entries: list[RowMutationEntry]):
         """
         Flushes a set of mutations to the server, and updates internal state
 
@@ -333,7 +332,9 @@ class MutationsBatcher:
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
-    async def _execute_mutate_rows(self, batch: list[RowMutationEntry]) -> list[FailedMutationEntryError]:
+    async def _execute_mutate_rows(
+        self, batch: list[RowMutationEntry]
+    ) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
 

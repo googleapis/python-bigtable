@@ -164,13 +164,16 @@ class MutationsExceptionGroup(BigtableExceptionGroup):
           - entry_count: the total number of entries attempted, successful or not
         """
         first_count, last_count = len(first_list), len(last_list)
-        if last_count == 0 and first_count == total_excs:
-            # not truncated; use default constructor
-            return cls(first_list, entry_count)
+        if first_count + last_count >= total_excs:
+            # no exceptions were dropped
+            return cls(first_list + last_list, entry_count)
         excs = first_list + last_list
         truncation_count = total_excs - (first_count + last_count)
-        base_message = cls._format_message(excs, entry_count, len(last_list))
-        message = f"{base_message} (First {first_count} and last {last_count} attached as sub-exceptions; {truncation_count} exceptions truncated)"
+        base_message = cls._format_message(excs, entry_count, total_excs)
+        first_message = f"first {first_count}" if first_count else ""
+        last_message = f"last {last_count}" if last_count else ""
+        conjunction = " and " if first_message and last_message else ""
+        message = f"{base_message} ({first_message}{conjunction}{last_message} attached as sub-exceptions; {truncation_count} truncated)"
         return cls(excs, entry_count, message)
 
 

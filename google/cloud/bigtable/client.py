@@ -744,7 +744,7 @@ class Table:
           - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
               mutations are added across all entries. If None, this limit is ignored.
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-          - flow_control_max_mitation_count: Maximum number of inflight mutations.
+          - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
           - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
               table default_operation_timeout will be used

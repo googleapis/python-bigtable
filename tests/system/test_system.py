@@ -344,28 +344,6 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_mutations_batcher_manual_flush(client, table, temp_rows):
-    """
-    batcher should flush when manually requested
-    """
-    from google.cloud.bigtable.mutations import RowMutationEntry
-
-    new_value = uuid.uuid4().hex.encode()
-    row_key, mutation = await _create_row_and_mutation(
-        table, temp_rows, new_value=new_value
-    )
-    bulk_mutation = RowMutationEntry(row_key, [mutation])
-    async with table.mutations_batcher() as batcher:
-        await batcher.append(bulk_mutation)
-        assert len(batcher._staged_entries) == 1
-        await batcher.flush()
-        assert len(batcher._staged_entries) == 0
-        # ensure cell is updated
-        assert (await _retrieve_cell_value(table, row_key)) == new_value
-
-
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
-@pytest.mark.asyncio
 async def test_mutations_batcher_timer_flush(client, table, temp_rows):
     """
     batch should occur after flush_interval seconds
@@ -408,13 +386,15 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
 
     async with table.mutations_batcher(flush_limit_mutation_count=2) as batcher:
         await batcher.append(bulk_mutation)
+        assert len(batcher._flush_jobs) == 0
         # should be noop; flush not scheduled
-        await batcher._prev_flush
         assert len(batcher._staged_entries) == 1
         await batcher.append(bulk_mutation2)
         # task should now be scheduled
-        await batcher._prev_flush
+        assert len(batcher._flush_jobs) == 1
+        await asyncio.gather(*batcher._flush_jobs)
         assert len(batcher._staged_entries) == 0
+        assert len(batcher._flush_jobs) == 0
         # ensure cells were updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
@@ -442,13 +422,14 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
 
     async with table.mutations_batcher(flush_limit_bytes=flush_limit) as batcher:
         await batcher.append(bulk_mutation)
-        # should be noop; flush not scheduled
-        await batcher._prev_flush
+        assert len(batcher._flush_jobs) == 0
         assert len(batcher._staged_entries) == 1
         await batcher.append(bulk_mutation2)
         # task should now be scheduled
-        await batcher._prev_flush
+        assert len(batcher._flush_jobs) == 1
         assert len(batcher._staged_entries) == 0
+        # let flush complete
+        await asyncio.gather(*batcher._flush_jobs)
         # ensure cells were updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
@@ -480,11 +461,12 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
         await batcher.append(bulk_mutation)
         assert len(batcher._staged_entries) == 1
         await batcher.append(bulk_mutation2)
-        # should be noop; flush not scheduled
-        await batcher._prev_flush
+        # flush not scheduled
+        assert len(batcher._flush_jobs) == 0
         await asyncio.sleep(0.01)
         assert len(batcher._staged_entries) == 2
-        # ensure cells were updated
+        assert len(batcher._flush_jobs) == 0
+        # ensure cells were not updated
         assert (await _retrieve_cell_value(table, row_key)) == start_value
         assert (await _retrieve_cell_value(table, row_key2)) == start_value
 

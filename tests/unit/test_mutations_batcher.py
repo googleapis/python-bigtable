@@ -276,9 +276,9 @@ class Test_FlowControl:
 
 
 class TestMutationsBatcher:
-
     def _get_target_class(self):
         from google.cloud.bigtable.mutations_batcher import MutationsBatcher
+
         return MutationsBatcher
 
     def _make_one(self, table=None, **kwargs):
@@ -753,6 +753,22 @@ class TestMutationsBatcher:
                     assert flow_mock.call_count == 1
                     instance._oldest_exceptions, instance._newest_exceptions = [], []
 
+    @pytest.mark.asyncio
+    async def test_flush_clears_job_list(self):
+        """
+        a job should be added to _flush_jobs when _schedule_flush is called,
+        and removed when it completes
+        """
+        async with self._make_one() as instance:
+            with mock.patch.object(instance, "_flush_internal", AsyncMock()):
+                mutations = [_make_mutation(count=1, size=1)]
+                instance._staged_entries = mutations
+                assert instance._flush_jobs == set()
+                new_job = instance._schedule_flush()
+                assert instance._flush_jobs == {new_job}
+                await new_job
+                assert instance._flush_jobs == set()
+
     @pytest.mark.parametrize(
         "num_starting,num_new_errors,expected_total_errors",
         [
@@ -1019,21 +1035,24 @@ class TestMutationsBatcher:
             assert kwargs["operation_timeout"] == expected_operation_timeout
             assert kwargs["per_request_timeout"] == expected_per_request_timeout
 
-    @pytest.mark.parametrize("limit,in_e,start_e,end_e", [
-        (10, 0, (10, 0), (10, 0)),
-        (1, 10, (0, 0), (1, 1)),
-        (10, 1, (0, 0), (1, 0)),
-        (10, 10, (0, 0), (10, 0)),
-        (10, 11, (0, 0), (10, 1)),
-        (3, 20, (0, 0), (3, 3)),
-        (10, 20, (0, 0), (10, 10)),
-        (10, 21, (0, 0), (10, 10)),
-        (2, 1, (2, 0), (2, 1)),
-        (2, 1, (1, 0), (2, 0)),
-        (2, 2, (1, 0), (2, 1)),
-        (3, 1, (3, 1), (3, 2)),
-        (3, 3, (3, 1), (3, 3)),
-    ])
+    @pytest.mark.parametrize(
+        "limit,in_e,start_e,end_e",
+        [
+            (10, 0, (10, 0), (10, 0)),
+            (1, 10, (0, 0), (1, 1)),
+            (10, 1, (0, 0), (1, 0)),
+            (10, 10, (0, 0), (10, 0)),
+            (10, 11, (0, 0), (10, 1)),
+            (3, 20, (0, 0), (3, 3)),
+            (10, 20, (0, 0), (10, 10)),
+            (10, 21, (0, 0), (10, 10)),
+            (2, 1, (2, 0), (2, 1)),
+            (2, 1, (1, 0), (2, 0)),
+            (2, 2, (1, 0), (2, 1)),
+            (3, 1, (3, 1), (3, 2)),
+            (3, 3, (3, 1), (3, 3)),
+        ],
+    )
     def test__add_exceptions(self, limit, in_e, start_e, end_e):
         """
         Test that the _add_exceptions function properly updates the
@@ -1046,8 +1065,12 @@ class TestMutationsBatcher:
         """
         input_list = [RuntimeError(f"mock {i}") for i in range(in_e)]
         mock_batcher = mock.Mock()
-        mock_batcher._oldest_exceptions = [RuntimeError(f"starting mock {i}") for i in range(start_e[0])]
-        mock_batcher._newest_exceptions = [RuntimeError(f"starting mock {i}") for i in range(start_e[1])]
+        mock_batcher._oldest_exceptions = [
+            RuntimeError(f"starting mock {i}") for i in range(start_e[0])
+        ]
+        mock_batcher._newest_exceptions = [
+            RuntimeError(f"starting mock {i}") for i in range(start_e[1])
+        ]
         mock_batcher._exception_list_limit = limit
         mock_batcher._exceptions_since_last_raise = 0
         self._get_target_class()._add_exceptions(mock_batcher, input_list)
@@ -1063,4 +1086,7 @@ class TestMutationsBatcher:
             assert mock_batcher._oldest_exceptions[i + start_e[0]] == input_list[i]
         # then, the newest slots should be filled with the last items of the input list
         for i in range(newest_list_diff):
-            assert mock_batcher._newest_exceptions[i] == input_list[-(newest_list_diff - i)]
+            assert (
+                mock_batcher._newest_exceptions[i]
+                == input_list[-(newest_list_diff - i)]
+            )
