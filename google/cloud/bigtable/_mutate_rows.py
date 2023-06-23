@@ -31,6 +31,9 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.client import Table
     from google.cloud.bigtable.mutations import RowMutationEntry
 
+# mutate_rows requests are limited to this value
+MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
+
 
 class _MutateRowsIncomplete(RuntimeError):
     """
@@ -68,6 +71,14 @@ class _MutateRowsOperation:
           - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
         """
+        # check that mutations are within limits
+        total_mutations = sum(len(entry.mutations) for entry in mutation_entries)
+        if total_mutations > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+            raise ValueError(
+                "mutate_rows requests can contain at most "
+                f"{MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
+                f"all entries. Found {total_mutations}."
+            )
         # create partial function to pass to trigger rpc call
         metadata = _make_metadata(table.table_name, table.app_profile_id)
         self._gapic_fn = functools.partial(
@@ -119,7 +130,7 @@ class _MutateRowsOperation:
                 self._handle_entry_error(idx, exc)
         finally:
             # raise exception detailing incomplete mutations
-            all_errors = []
+            all_errors: list[Exception] = []
             for idx, exc_list in self.errors.items():
                 if len(exc_list) == 0:
                     raise core_exceptions.ClientError(

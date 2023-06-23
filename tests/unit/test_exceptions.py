@@ -136,12 +136,12 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
     @pytest.mark.parametrize(
         "exception_list,total_entries,expected_message",
         [
-            ([Exception()], 1, "1 sub-exception (from 1 entry attempted)"),
-            ([Exception()], 2, "1 sub-exception (from 2 entries attempted)"),
+            ([Exception()], 1, "1 failed entry from 1 attempted."),
+            ([Exception()], 2, "1 failed entry from 2 attempted."),
             (
                 [Exception(), RuntimeError()],
                 2,
-                "2 sub-exceptions (from 2 entries attempted)",
+                "2 failed entries from 2 attempted.",
             ),
         ],
     )
@@ -153,6 +153,77 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
             raise self._get_class()(exception_list, total_entries)
         assert str(e.value) == expected_message
         assert list(e.value.exceptions) == exception_list
+
+    def test_raise_custom_message(self):
+        """
+        should be able to set a custom error message
+        """
+        custom_message = "custom message"
+        exception_list = [Exception()]
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(exception_list, 5, message=custom_message)
+        assert str(e.value) == custom_message
+        assert list(e.value.exceptions) == exception_list
+
+    @pytest.mark.parametrize(
+        "first_list_len,second_list_len,total_excs,entry_count,expected_message",
+        [
+            (3, 0, 3, 4, "3 failed entries from 4 attempted."),
+            (1, 0, 1, 2, "1 failed entry from 2 attempted."),
+            (0, 1, 1, 2, "1 failed entry from 2 attempted."),
+            (2, 2, 4, 4, "4 failed entries from 4 attempted."),
+            (
+                1,
+                1,
+                3,
+                2,
+                "3 failed entries from 2 attempted. (first 1 and last 1 attached as sub-exceptions; 1 truncated)",
+            ),
+            (
+                1,
+                2,
+                100,
+                2,
+                "100 failed entries from 2 attempted. (first 1 and last 2 attached as sub-exceptions; 97 truncated)",
+            ),
+            (
+                2,
+                1,
+                4,
+                9,
+                "4 failed entries from 9 attempted. (first 2 and last 1 attached as sub-exceptions; 1 truncated)",
+            ),
+            (
+                3,
+                0,
+                10,
+                10,
+                "10 failed entries from 10 attempted. (first 3 attached as sub-exceptions; 7 truncated)",
+            ),
+            (
+                0,
+                3,
+                10,
+                10,
+                "10 failed entries from 10 attempted. (last 3 attached as sub-exceptions; 7 truncated)",
+            ),
+        ],
+    )
+    def test_from_truncated_lists(
+        self, first_list_len, second_list_len, total_excs, entry_count, expected_message
+    ):
+        """
+        Should be able to make MutationsExceptionGroup using a pair of
+        lists representing a larger truncated list of exceptions
+        """
+        first_list = [Exception()] * first_list_len
+        second_list = [Exception()] * second_list_len
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class().from_truncated_lists(
+                first_list, second_list, total_excs, entry_count
+            )
+        assert str(e.value) == expected_message
+        assert list(e.value.exceptions) == first_list + second_list
 
 
 class TestRetryExceptionGroup(TestBigtableExceptionGroup):
@@ -279,6 +350,25 @@ class TestFailedMutationEntryError:
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
+        assert test_entry.is_idempotent.call_count == 1
+
+    def test_no_index(self):
+        """
+        Instances without an index should display different error string
+        """
+        test_idx = None
+        test_entry = unittest.mock.Mock()
+        test_exc = ValueError("test")
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(test_idx, test_entry, test_exc)
+        assert (
+            str(e.value)
+            == "Failed idempotent mutation entry with cause: ValueError('test')"
+        )
+        assert e.value.index == test_idx
+        assert e.value.entry == test_entry
+        assert e.value.__cause__ == test_exc
+        assert isinstance(e.value, Exception)
         assert test_entry.is_idempotent.call_count == 1
 
 

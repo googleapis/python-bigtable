@@ -45,6 +45,16 @@ class TestBaseMutation:
         assert self_mock._to_dict.called
         assert str_value == str(self_mock._to_dict.return_value)
 
+    @pytest.mark.parametrize("test_dict", [{}, {"key": "value"}])
+    def test_size(self, test_dict):
+        from sys import getsizeof
+
+        """Size should return size of dict representation"""
+        self_mock = mock.Mock()
+        self_mock._to_dict.return_value = test_dict
+        size_value = self._target_class().size(self_mock)
+        assert size_value == getsizeof(test_dict)
+
     @pytest.mark.parametrize(
         "expected_class,input_dict",
         [
@@ -494,6 +504,21 @@ class TestRowMutationEntry:
         assert instance.row_key == expected_key
         assert list(instance.mutations) == expected_mutations
 
+    def test_ctor_over_limit(self):
+        """Should raise error if mutations exceed MAX_MUTATIONS_PER_ENTRY"""
+        from google.cloud.bigtable._mutate_rows import (
+            MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+        )
+
+        assert MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100_000
+        # no errors at limit
+        expected_mutations = [None for _ in range(MUTATE_ROWS_REQUEST_MUTATION_LIMIT)]
+        self._make_one(b"row_key", expected_mutations)
+        # error if over limit
+        with pytest.raises(ValueError) as e:
+            self._make_one("key", expected_mutations + [mock.Mock()])
+        assert "entries must have <= 100000 mutations" in str(e.value)
+
     def test_ctor_str_key(self):
         expected_key = "row_key"
         expected_mutations = [mock.Mock(), mock.Mock()]
@@ -528,7 +553,6 @@ class TestRowMutationEntry:
     @pytest.mark.parametrize(
         "mutations,result",
         [
-            ([], True),
             ([mock.Mock(is_idempotent=lambda: True)], True),
             ([mock.Mock(is_idempotent=lambda: False)], False),
             (
@@ -550,6 +574,21 @@ class TestRowMutationEntry:
     def test_is_idempotent(self, mutations, result):
         instance = self._make_one("row_key", mutations)
         assert instance.is_idempotent() == result
+
+    def test_empty_mutations(self):
+        with pytest.raises(ValueError) as e:
+            self._make_one("row_key", [])
+        assert "must not be empty" in str(e.value)
+
+    @pytest.mark.parametrize("test_dict", [{}, {"key": "value"}])
+    def test_size(self, test_dict):
+        from sys import getsizeof
+
+        """Size should return size of dict representation"""
+        self_mock = mock.Mock()
+        self_mock._to_dict.return_value = test_dict
+        size_value = self._target_class().size(self_mock)
+        assert size_value == getsizeof(test_dict)
 
     def test__from_dict_mock(self):
         """

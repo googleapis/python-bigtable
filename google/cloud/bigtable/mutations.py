@@ -17,6 +17,11 @@ from typing import Any
 import time
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from sys import getsizeof
+
+# mutation entries above this should be rejected
+from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+
 
 from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
 
@@ -40,6 +45,12 @@ class Mutation(ABC):
 
     def __str__(self) -> str:
         return str(self._to_dict())
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
 
     @classmethod
     def _from_dict(cls, input_dict: dict[str, Any]) -> Mutation:
@@ -195,6 +206,12 @@ class RowMutationEntry:
             row_key = row_key.encode("utf-8")
         if isinstance(mutations, Mutation):
             mutations = [mutations]
+        if len(mutations) == 0:
+            raise ValueError("mutations must not be empty")
+        elif len(mutations) > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+            raise ValueError(
+                f"entries must have <= {MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations"
+            )
         self.row_key = row_key
         self.mutations = tuple(mutations)
 
@@ -207,6 +224,12 @@ class RowMutationEntry:
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
         return all(mutation.is_idempotent() for mutation in self.mutations)
+
+    def size(self) -> int:
+        """
+        Get the size of the mutation in bytes
+        """
+        return getsizeof(self._to_dict())
 
     @classmethod
     def _from_dict(cls, input_dict: dict[str, Any]) -> RowMutationEntry:
