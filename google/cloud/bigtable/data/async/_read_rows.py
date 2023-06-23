@@ -25,7 +25,8 @@ from typing import (
     Awaitable,
     Type,
 )
-
+import sys
+import time
 import asyncio
 from functools import partial
 from grpc.aio import RpcContext
@@ -35,11 +36,13 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyn
 from google.cloud.bigtable.row import Row, _LastScannedRow
 from google.cloud.bigtable.exceptions import InvalidChunk
 from google.cloud.bigtable.exceptions import _RowSetComplete
+from google.cloud.bigtable.exceptions import IdleTimeout
 from google.cloud.bigtable._read_rows_state_machine import _StateMachine
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable._helpers import _make_metadata
 from google.cloud.bigtable._helpers import _attempt_timeout_generator
+from google.cloud.bigtable._helpers import _convert_retry_deadline
 
 
 class _ReadRowsOperationAsync(AsyncIterable[Row]):
@@ -287,3 +290,106 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
         if not state_machine.is_terminal_state():
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
+
+
+class ReadRowsIteratorAsync(AsyncIterable[Row]):
+    """
+    Async iterator for ReadRows responses.
+    """
+
+    def __init__(self, merger: _ReadRowsOperationAsync):
+        self._merger: _ReadRowsOperationAsync = merger
+        self._error: Exception | None = None
+        self.last_interaction_time = time.time()
+        self._idle_timeout_task: asyncio.Task[None] | None = None
+        # wrap merger with a wrapper that properly formats exceptions
+        self._next_fn = _convert_retry_deadline(
+            self._merger.__anext__,
+            self._merger.operation_timeout,
+            self._merger.transient_errors,
+        )
+
+    async def _start_idle_timer(self, idle_timeout: float):
+        """
+        Start a coroutine that will cancel a stream if no interaction
+        with the iterator occurs for the specified number of seconds.
+
+        Subsequent access to the iterator will raise an IdleTimeout exception.
+
+        Args:
+          - idle_timeout: number of seconds of inactivity before cancelling the stream
+        """
+        self.last_interaction_time = time.time()
+        if self._idle_timeout_task is not None:
+            self._idle_timeout_task.cancel()
+        self._idle_timeout_task = asyncio.create_task(
+            self._idle_timeout_coroutine(idle_timeout)
+        )
+        if sys.version_info >= (3, 8):
+            self._idle_timeout_task.name = f"{self.__class__.__name__}.idle_timeout"
+
+    @property
+    def active(self):
+        """
+        Returns True if the iterator is still active and has not been closed
+        """
+        return self._error is None
+
+    async def _idle_timeout_coroutine(self, idle_timeout: float):
+        """
+        Coroutine that will cancel a stream if no interaction with the iterator
+        in the last `idle_timeout` seconds.
+        """
+        while self.active:
+            next_timeout = self.last_interaction_time + idle_timeout
+            await asyncio.sleep(next_timeout - time.time())
+            if self.last_interaction_time + idle_timeout < time.time() and self.active:
+                # idle timeout has expired
+                await self._finish_with_error(
+                    IdleTimeout(
+                        (
+                            "Timed out waiting for next Row to be consumed. "
+                            f"(idle_timeout={idle_timeout:0.1f}s)"
+                        )
+                    )
+                )
+
+    def __aiter__(self):
+        """Implement the async iterator protocol."""
+        return self
+
+    async def __anext__(self) -> Row:
+        """
+        Implement the async iterator potocol.
+
+        Return the next item in the stream if active, or
+        raise an exception if the stream has been closed.
+        """
+        if self._error is not None:
+            raise self._error
+        try:
+            self.last_interaction_time = time.time()
+            return await self._next_fn()
+        except Exception as e:
+            await self._finish_with_error(e)
+            raise e
+
+    async def _finish_with_error(self, e: Exception):
+        """
+        Helper function to close the stream and clean up resources
+        after an error has occurred.
+        """
+        if self.active:
+            await self._merger.aclose()
+            self._error = e
+        if self._idle_timeout_task is not None:
+            self._idle_timeout_task.cancel()
+            self._idle_timeout_task = None
+
+    async def aclose(self):
+        """
+        Support closing the stream with an explicit call to aclose()
+        """
+        await self._finish_with_error(
+            StopAsyncIteration(f"{self.__class__.__name__} closed")
+        )
