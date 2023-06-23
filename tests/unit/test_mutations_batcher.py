@@ -979,7 +979,8 @@ class TestMutationsBatcher:
                             instance.exceptions[i] == expected_errors[i - num_starting]
                         )
                         # errors should have index stripped
-                        assert instance.exceptions[i].index == i
+                        assert instance.exceptions[i].index is None
+            # clear out exceptions
             instance.exceptions = []
 
     async def _mock_gapic_return(self, num=5):
@@ -1227,7 +1228,7 @@ class TestMutationsBatcher:
         Test to ensure that old tasks are released
         """
         import weakref
-        x
+
         # use locks to control when tasks complete
         task_locks = [asyncio.Lock() for _ in range(4)]
         lock_idx = 0
@@ -1241,8 +1242,9 @@ class TestMutationsBatcher:
                 async def mock_call(*args, **kwargs):
                     nonlocal lock_idx
                     lock_idx += 1
-                    await task_locks[lock_idx-1].acquire()
+                    await task_locks[lock_idx - 1].acquire()
                     return []
+
                 op_mock.side_effect = mock_call
                 # create a starting task
                 instance._staged_entries = [_make_mutation()]
