@@ -60,7 +60,7 @@ def rows_to_delete():
 
 
 def test_table_read_rows_filter_millis(data_table):
-    from google.cloud.bigtable.deprecated import row_filters
+    from google.cloud.bigtable import row_filters
 
     end = datetime.datetime.now()
     start = end - datetime.timedelta(minutes=60)
@@ -158,8 +158,8 @@ def test_table_drop_by_prefix(data_table, rows_to_delete):
 
 
 def test_table_read_rows_w_row_set(data_table, rows_to_delete):
-    from google.cloud.bigtable.deprecated.row_set import RowSet
-    from google.cloud.bigtable.deprecated.row_set import RowRange
+    from google.cloud.bigtable.row_set import RowSet
+    from google.cloud.bigtable.row_set import RowRange
 
     row_keys = [
         b"row_key_1",
@@ -189,7 +189,7 @@ def test_table_read_rows_w_row_set(data_table, rows_to_delete):
 
 
 def test_rowset_add_row_range_w_pfx(data_table, rows_to_delete):
-    from google.cloud.bigtable.deprecated.row_set import RowSet
+    from google.cloud.bigtable.row_set import RowSet
 
     row_keys = [
         b"row_key_1",
@@ -234,7 +234,7 @@ def _write_to_row(row1, row2, row3, row4):
     from google.cloud._helpers import _datetime_from_microseconds
     from google.cloud._helpers import _microseconds_from_datetime
     from google.cloud._helpers import UTC
-    from google.cloud.bigtable.deprecated.row_data import Cell
+    from google.cloud.bigtable.row_data import Cell
 
     timestamp1 = datetime.datetime.utcnow().replace(tzinfo=UTC)
     timestamp1_micros = _microseconds_from_datetime(timestamp1)
@@ -290,7 +290,7 @@ def test_table_read_row(data_table, rows_to_delete):
 
 
 def test_table_read_rows(data_table, rows_to_delete):
-    from google.cloud.bigtable.deprecated.row_data import PartialRowData
+    from google.cloud.bigtable.row_data import PartialRowData
 
     row = data_table.direct_row(ROW_KEY)
     rows_to_delete.append(row)
@@ -326,10 +326,10 @@ def test_table_read_rows(data_table, rows_to_delete):
 
 
 def test_read_with_label_applied(data_table, rows_to_delete, skip_on_emulator):
-    from google.cloud.bigtable.deprecated.row_filters import ApplyLabelFilter
-    from google.cloud.bigtable.deprecated.row_filters import ColumnQualifierRegexFilter
-    from google.cloud.bigtable.deprecated.row_filters import RowFilterChain
-    from google.cloud.bigtable.deprecated.row_filters import RowFilterUnion
+    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.row_filters import ColumnQualifierRegexFilter
+    from google.cloud.bigtable.row_filters import RowFilterChain
+    from google.cloud.bigtable.row_filters import RowFilterUnion
 
     row = data_table.direct_row(ROW_KEY)
     rows_to_delete.append(row)

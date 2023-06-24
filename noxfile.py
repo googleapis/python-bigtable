@@ -318,7 +318,6 @@ def system(session):
             "py.test",
             "--quiet",
             f"--junitxml=system_{session.python}_sponge_log.xml",
-            "--ignore=tests/system/v2_client",
             system_test_folder_path,
             *session.posargs,
         )
