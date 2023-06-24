@@ -23,7 +23,7 @@ TEST_ROWS = [
 class TestRowRange:
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         return RowRange
 
@@ -139,7 +139,7 @@ class TestRowRange:
         start_is_inclusive,
         end_is_inclusive,
     ):
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         row_range = RowRange._from_dict(input_dict)
         assert row_range._to_dict().keys() == input_dict.keys()
@@ -172,7 +172,7 @@ class TestRowRange:
         ],
     )
     def test__from_points(self, dict_repr):
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         row_range_from_dict = RowRange._from_dict(dict_repr)
         row_range_from_points = RowRange._from_points(
@@ -210,7 +210,7 @@ class TestRowRange:
         ],
     )
     def test___hash__(self, first_dict, second_dict, should_match):
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         row_range1 = RowRange._from_dict(first_dict)
         row_range2 = RowRange._from_dict(second_dict)
@@ -233,7 +233,7 @@ class TestRowRange:
         """
         Only row range with both points empty should be falsy
         """
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         row_range = RowRange._from_dict(dict_repr)
         assert bool(row_range) is expected
@@ -242,7 +242,7 @@ class TestRowRange:
 class TestReadRowsQuery:
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         return ReadRowsQuery
 
@@ -257,8 +257,8 @@ class TestReadRowsQuery:
         assert query.limit is None
 
     def test_ctor_explicit(self):
-        from google.cloud.bigtable.row_filters import RowFilterChain
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.row_filters import RowFilterChain
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         filter_ = RowFilterChain()
         query = self._make_one(
@@ -281,7 +281,7 @@ class TestReadRowsQuery:
         assert str(exc.value) == "limit must be >= 0"
 
     def test_set_filter(self):
-        from google.cloud.bigtable.row_filters import RowFilterChain
+        from google.cloud.bigtable.data.row_filters import RowFilterChain
 
         filter1 = RowFilterChain()
         query = self._make_one()
@@ -300,7 +300,7 @@ class TestReadRowsQuery:
         assert str(exc.value) == "row_filter must be a RowFilter or dict"
 
     def test_set_filter_dict(self):
-        from google.cloud.bigtable.row_filters import RowSampleFilter
+        from google.cloud.bigtable.data.row_filters import RowSampleFilter
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
 
         filter1 = RowSampleFilter(0.5)
@@ -402,7 +402,7 @@ class TestReadRowsQuery:
         assert len(query.row_keys) == 3
 
     def test_add_range(self):
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         query = self._make_one()
         assert query.row_ranges == set()
@@ -419,7 +419,7 @@ class TestReadRowsQuery:
         assert len(query.row_ranges) == 2
 
     def test_add_range_dict(self):
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         query = self._make_one()
         assert query.row_ranges == set()
@@ -449,8 +449,8 @@ class TestReadRowsQuery:
     def test_to_dict_rows_populated(self):
         # dictionary should be in rowset proto format
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
-        from google.cloud.bigtable.row_filters import PassAllFilter
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.row_filters import PassAllFilter
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         row_filter = PassAllFilter(False)
         query = self._make_one(limit=100, row_filter=row_filter)
@@ -494,7 +494,7 @@ class TestReadRowsQuery:
         assert filter_proto == row_filter._to_pb()
 
     def _parse_query_string(self, query_string):
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery, RowRange
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery, RowRange
 
         query = ReadRowsQuery()
         segments = query_string.split(",")
@@ -550,7 +550,7 @@ class TestReadRowsQuery:
         """
         Sharding a full table scan with no split should return another full table scan.
         """
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         full_scan_query = ReadRowsQuery()
         split_points = []
@@ -563,7 +563,7 @@ class TestReadRowsQuery:
         """
         Test splitting a full table scan into two queries
         """
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         full_scan_query = ReadRowsQuery()
         split_points = [(b"a", None)]
@@ -576,7 +576,7 @@ class TestReadRowsQuery:
         """
         Test splitting a full table scan into three queries
         """
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         full_scan_query = ReadRowsQuery()
         split_points = [(b"a", None), (b"z", None)]
@@ -684,7 +684,7 @@ class TestReadRowsQuery:
         """
         queries with a limit should raise an exception when a shard is attempted
         """
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         query = ReadRowsQuery(limit=10)
         with pytest.raises(AttributeError) as e:
@@ -718,8 +718,8 @@ class TestReadRowsQuery:
         ],
     )
     def test___eq__(self, first_args, second_args, expected):
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-        from google.cloud.bigtable.read_rows_query import RowRange
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import RowRange
 
         # replace row_range placeholders with a RowRange object
         if len(first_args) > 1:
@@ -733,7 +733,7 @@ class TestReadRowsQuery:
         assert (first == second) == expected
 
     def test___repr__(self):
-        from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+        from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
         instance = self._make_one(row_keys=["a", "b"], row_filter={}, limit=10)
         # should be able to recreate the instance from the repr

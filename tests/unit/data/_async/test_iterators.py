@@ -17,7 +17,7 @@ import sys
 import asyncio
 import pytest
 
-from google.cloud.bigtable._read_rows import _ReadRowsOperation
+from google.cloud.bigtable.data._read_rows import _ReadRowsOperation
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -61,7 +61,7 @@ class TestReadRowsIterator:
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable.iterators import ReadRowsIterator
+        from google.cloud.bigtable.data.iterators import ReadRowsIterator
 
         stream = MockStream(*args, **kwargs)
         return ReadRowsIterator(stream)
@@ -117,7 +117,7 @@ class TestReadRowsIterator:
 
     @pytest.mark.asyncio
     async def test__idle_timeout_coroutine(self):
-        from google.cloud.bigtable.exceptions import IdleTimeout
+        from google.cloud.bigtable.data.exceptions import IdleTimeout
 
         iterator = self._make_one()
         await iterator._idle_timeout_coroutine(0.05)
@@ -174,7 +174,7 @@ class TestReadRowsIterator:
         Transient errors should be exposed as an error group
         """
         from google.api_core import exceptions as core_exceptions
-        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
         items = [1, core_exceptions.RetryError("retry error", None)]
         expected_timeout = 99

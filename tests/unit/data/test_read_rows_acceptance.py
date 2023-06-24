@@ -21,10 +21,10 @@ import mock
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
-from google.cloud.bigtable.client import BigtableDataClient
-from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable._read_rows import _ReadRowsOperation, _StateMachine
-from google.cloud.bigtable.row import Row
+from google.cloud.bigtable.data.client import BigtableDataClient
+from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data._read_rows import _ReadRowsOperation, _StateMachine
+from google.cloud.bigtable.data.row import Row
 
 from .v2_client.test_row_merger import ReadRowsTest, TestFile
 

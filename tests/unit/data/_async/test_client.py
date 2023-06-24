@@ -45,7 +45,7 @@ VENEER_HEADER_REGEX = re.compile(
 
 class TestBigtableDataClientAsync:
     def _get_target_class(self):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync
 
@@ -118,10 +118,9 @@ class TestBigtableDataClientAsync:
             BigtableAsyncClient,
         )
         from google.api_core.client_options import ClientOptions
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
 
         client_options = {"api_endpoint": "foo.bar:1234"}
-        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
+        with mock.patch.object(self._get_target_class(), "__init__") as bigtable_client_init:
             try:
                 self._make_one(client_options=client_options)
             except TypeError:
@@ -132,7 +131,7 @@ class TestBigtableDataClientAsync:
             assert called_options.api_endpoint == "foo.bar:1234"
             assert isinstance(called_options, ClientOptions)
         with mock.patch.object(
-            BigtableDataClientAsync, "start_background_channel_refresh"
+            self._get_target_class(), "start_background_channel_refresh"
         ) as start_background_refresh:
             client = self._make_one(client_options=client_options)
             start_background_refresh.assert_called_once()
@@ -725,7 +724,7 @@ class TestBigtableDataClientAsync:
         add multiple owners to instance_owners, but only keep one copy
         of shared key in active_instances
         """
-        from google.cloud.bigtable.data.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
         async with self._make_one(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
@@ -773,7 +772,7 @@ class TestBigtableDataClientAsync:
         registering with multiple instance keys should update the key
         in instance_owners and active_instances
         """
-        from google.cloud.bigtable.data.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
         async with self._make_one(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
@@ -808,8 +807,8 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_get_table(self):
-        from google.cloud.bigtable.data.client import TableAsync
-        from google.cloud.bigtable.data.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
         client = self._make_one(project="project-id")
         assert not client._active_instances
@@ -844,8 +843,8 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
-        from google.cloud.bigtable.data.client import TableAsync
-        from google.cloud.bigtable.data.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -950,7 +949,7 @@ class TestBigtableDataClientAsync:
 
     def test_client_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         with pytest.warns(RuntimeWarning) as warnings:
             client = BigtableDataClientAsync(project="project-id")
@@ -966,9 +965,9 @@ class TestBigtableDataClientAsync:
 class TestTableAsync:
     @pytest.mark.asyncio
     async def test_table_ctor(self):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
-        from google.cloud.bigtable.data.client import TableAsync
-        from google.cloud.bigtable.data.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1007,8 +1006,8 @@ class TestTableAsync:
 
     @pytest.mark.asyncio
     async def test_table_ctor_bad_timeout_values(self):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
-        from google.cloud.bigtable.data.client import TableAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import TableAsync
 
         client = BigtableDataClientAsync()
 
@@ -1034,7 +1033,7 @@ class TestTableAsync:
 
     def test_table_ctor_sync(self):
         # initializing client in a sync context should raise RuntimeError
-        from google.cloud.bigtable.data.client import TableAsync
+        from google.cloud.bigtable.data._async.client import TableAsync
 
         client = mock.Mock()
         with pytest.raises(RuntimeError) as e:
@@ -1048,12 +1047,12 @@ class TestReadRows:
     """
 
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
     def _make_table(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import TableAsync
+        from google.cloud.bigtable.data._async.client import TableAsync
 
         client_mock = mock.Mock()
         client_mock._register_instance.side_effect = (
@@ -1295,12 +1294,12 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
-        from google.cloud.bigtable.data.client import ReadRowsIterator
+        from google.cloud.bigtable.data._async.client import ReadRowsIterator
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
         from google.cloud.bigtable.data.exceptions import IdleTimeout
-        from google.cloud.bigtable.data._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
 
         chunks = [
             self._make_chunk(row_key=b"test_1"),
@@ -1398,7 +1397,7 @@ class TestReadRows:
         """
         Ensure that _revise_request is called between retries
         """
-        from google.cloud.bigtable.data._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
         from google.cloud.bigtable.data.exceptions import InvalidChunk
 
         with mock.patch.object(
@@ -1432,7 +1431,7 @@ class TestReadRows:
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
         """
-        from google.cloud.bigtable.data._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
 
         operation_timeout = 8
         per_request_timeout = 4
@@ -1455,7 +1454,7 @@ class TestReadRows:
         """
         When timeouts are passed, they overwrite default values
         """
-        from google.cloud.bigtable.data._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
 
         operation_timeout = 8
         per_request_timeout = 4
@@ -1653,7 +1652,7 @@ class TestReadRows:
 
 class TestReadRowsSharded:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
@@ -1785,8 +1784,8 @@ class TestReadRowsSharded:
         Large queries should be processed in batches to limit concurrency
         operation timeout should change between batches
         """
-        from google.cloud.bigtable.data.client import TableAsync
-        from google.cloud.bigtable.data.client import CONCURRENCY_LIMIT
+        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.client import CONCURRENCY_LIMIT
 
         assert CONCURRENCY_LIMIT == 10  # change this test if this changes
 
@@ -1843,7 +1842,7 @@ class TestReadRowsSharded:
 
 class TestSampleRowKeys:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
@@ -2023,7 +2022,7 @@ class TestSampleRowKeys:
 
 class TestMutateRow:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
@@ -2190,7 +2189,7 @@ class TestMutateRow:
 
 class TestBulkMutateRows:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
@@ -2579,7 +2578,7 @@ class TestBulkMutateRows:
 
 class TestCheckAndMutateRow:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 
@@ -2772,7 +2771,7 @@ class TestCheckAndMutateRow:
 
 class TestReadModifyWriteRow:
     def _make_client(self, *args, **kwargs):
-        from google.cloud.bigtable.data.client import BigtableDataClientAsync
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 
         return BigtableDataClientAsync(*args, **kwargs)
 

@@ -27,7 +27,7 @@ TEST_LABELS = ["label1", "label2"]
 class TestRow(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row import Row
+        from google.cloud.bigtable.data.row import Row
 
         return Row
 
@@ -45,7 +45,7 @@ class TestRow(unittest.TestCase):
         timestamp=TEST_TIMESTAMP,
         labels=TEST_LABELS,
     ):
-        from google.cloud.bigtable.row import Cell
+        from google.cloud.bigtable.data.row import Cell
 
         return Cell(value, row_key, family_id, qualifier, timestamp, labels)
 
@@ -223,7 +223,7 @@ class TestRow(unittest.TestCase):
         self.assertEqual(column.cells[1].labels, TEST_LABELS)
 
     def test_iteration(self):
-        from google.cloud.bigtable.row import Cell
+        from google.cloud.bigtable.data.row import Cell
 
         # should be able to iterate over the Row as a list
         cell1 = self._make_cell(value=b"1")
@@ -499,7 +499,7 @@ class TestRow(unittest.TestCase):
 class TestCell(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.row import Cell
+        from google.cloud.bigtable.data.row import Cell
 
         return Cell
 
@@ -623,7 +623,7 @@ class TestCell(unittest.TestCase):
         self.assertEqual(str(cell), str(test_value))
 
     def test___repr__(self):
-        from google.cloud.bigtable.row import Cell  # type: ignore # noqa: F401
+        from google.cloud.bigtable.data.row import Cell  # type: ignore # noqa: F401
 
         cell = self._make_one()
         expected = (
@@ -637,7 +637,7 @@ class TestCell(unittest.TestCase):
         self.assertEqual(result, cell)
 
     def test___repr___no_labels(self):
-        from google.cloud.bigtable.row import Cell  # type: ignore # noqa: F401
+        from google.cloud.bigtable.data.row import Cell  # type: ignore # noqa: F401
 
         cell_no_labels = self._make_one(
             TEST_VALUE,

@@ -16,7 +16,7 @@ import unittest
 import pytest
 import sys
 
-import google.cloud.bigtable.exceptions as bigtable_exceptions
+import google.cloud.bigtable.data.exceptions as bigtable_exceptions
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -31,7 +31,7 @@ class TestBigtableExceptionGroup:
     """
 
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import BigtableExceptionGroup
+        from google.cloud.bigtable.data.exceptions import BigtableExceptionGroup
 
         return BigtableExceptionGroup
 
@@ -74,7 +74,7 @@ class TestBigtableExceptionGroup:
         exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
 
         expected_traceback = (
-            f"  | google.cloud.bigtable.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+            f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
             "  +-+---------------- 1 ----------------",
             "    | RuntimeError: first sub exception",
             "    +---------------- 2 ----------------",
@@ -123,7 +123,7 @@ class TestBigtableExceptionGroup:
 
 class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import MutationsExceptionGroup
+        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 
         return MutationsExceptionGroup
 
@@ -228,7 +228,7 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
 
 class TestRetryExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
         return RetryExceptionGroup
 
@@ -269,7 +269,7 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
 
 class TestShardedReadRowsExceptionGroup(TestBigtableExceptionGroup):
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
         return ShardedReadRowsExceptionGroup
 
@@ -306,7 +306,7 @@ class TestShardedReadRowsExceptionGroup(TestBigtableExceptionGroup):
 
 class TestFailedMutationEntryError:
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import FailedMutationEntryError
+        from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 
         return FailedMutationEntryError
 
@@ -374,7 +374,7 @@ class TestFailedMutationEntryError:
 
 class TestFailedQueryShardError:
     def _get_class(self):
-        from google.cloud.bigtable.exceptions import FailedQueryShardError
+        from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 
         return FailedQueryShardError
 

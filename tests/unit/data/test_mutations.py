@@ -14,7 +14,7 @@
 
 import pytest
 
-import google.cloud.bigtable.mutations as mutations
+import google.cloud.bigtable.data.mutations as mutations
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -25,7 +25,7 @@ except ImportError:  # pragma: NO COVER
 
 class TestBaseMutation:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import Mutation
+        from google.cloud.bigtable.data.mutations import Mutation
 
         return Mutation
 
@@ -173,7 +173,7 @@ class TestBaseMutation:
 
 class TestSetCell:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import SetCell
+        from google.cloud.bigtable.data.mutations import SetCell
 
         return SetCell
 
@@ -336,7 +336,7 @@ class TestSetCell:
 
 class TestDeleteRangeFromColumn:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import DeleteRangeFromColumn
+        from google.cloud.bigtable.data.mutations import DeleteRangeFromColumn
 
         return DeleteRangeFromColumn
 
@@ -423,7 +423,7 @@ class TestDeleteRangeFromColumn:
 
 class TestDeleteAllFromFamily:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import DeleteAllFromFamily
+        from google.cloud.bigtable.data.mutations import DeleteAllFromFamily
 
         return DeleteAllFromFamily
 
@@ -460,7 +460,7 @@ class TestDeleteAllFromFamily:
 
 class TestDeleteFromRow:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import DeleteAllFromRow
+        from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 
         return DeleteAllFromRow
 
@@ -490,7 +490,7 @@ class TestDeleteFromRow:
 
 class TestRowMutationEntry:
     def _target_class(self):
-        from google.cloud.bigtable.mutations import RowMutationEntry
+        from google.cloud.bigtable.data.mutations import RowMutationEntry
 
         return RowMutationEntry
 
@@ -506,7 +506,7 @@ class TestRowMutationEntry:
 
     def test_ctor_over_limit(self):
         """Should raise error if mutations exceed MAX_MUTATIONS_PER_ENTRY"""
-        from google.cloud.bigtable._mutate_rows import (
+        from google.cloud.bigtable.data._mutate_rows import (
             MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
         )
 
@@ -527,7 +527,7 @@ class TestRowMutationEntry:
         assert list(instance.mutations) == expected_mutations
 
     def test_ctor_single_mutation(self):
-        from google.cloud.bigtable.mutations import DeleteAllFromRow
+        from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 
         expected_key = b"row_key"
         expected_mutations = DeleteAllFromRow()

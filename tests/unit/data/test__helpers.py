@@ -13,8 +13,8 @@
 #
 
 import pytest
-import google.cloud.bigtable._helpers as _helpers
-import google.cloud.bigtable.exceptions as bigtable_exceptions
+import google.cloud.bigtable.data._helpers as _helpers
+import google.cloud.bigtable.data.exceptions as bigtable_exceptions
 
 import mock
 
