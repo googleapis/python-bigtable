@@ -21,12 +21,13 @@ import mock
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
-from google.cloud.bigtable.data.client import BigtableDataClient
+from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
-from google.cloud.bigtable.data._read_rows import _ReadRowsOperation, _StateMachine
+from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+from google.clout.bigtable.data import StateMachine
 from google.cloud.bigtable.data.row import Row
 
-from .v2_client.test_row_merger import ReadRowsTest, TestFile
+from ..v2_client.test_row_merger import ReadRowsTest, TestFile
 
 
 def parse_readrows_acceptance_tests():
@@ -67,7 +68,7 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
     try:
         state = _StateMachine()
         results = []
-        async for row in _ReadRowsOperation.merge_row_response_stream(
+        async for row in _ReadRowsOperationAsync.merge_row_response_stream(
             _scenerio_stream(), state
         ):
             for cell in row:
@@ -117,7 +118,7 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
         return mock_stream(chunk_list)
 
     try:
-        client = BigtableDataClient()
+        client = BigtableDataClientAsync()
         table = client.get_table("instance", "table")
         results = []
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
@@ -150,7 +151,7 @@ async def test_out_of_order_rows():
     state = _StateMachine()
     state.last_seen_row_key = b"a"
     with pytest.raises(InvalidChunk):
-        async for _ in _ReadRowsOperation.merge_row_response_stream(
+        async for _ in _ReadRowsOperationAsync.merge_row_response_stream(
             _row_stream(), state
         ):
             pass
@@ -309,6 +310,6 @@ async def _process_chunks(*chunks):
 
     state = _StateMachine()
     results = []
-    async for row in _ReadRowsOperation.merge_row_response_stream(_row_stream(), state):
+    async for row in _ReadRowsOperationAsync.merge_row_response_stream(_row_stream(), state):
         results.append(row)
     return results
