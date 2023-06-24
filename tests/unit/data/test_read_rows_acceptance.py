@@ -24,7 +24,7 @@ from google.cloud.bigtable_v2 import ReadRowsResponse
 from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.clout.bigtable.data import StateMachine
+from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
 from google.cloud.bigtable.data.row import Row
 
 from ..v2_client.test_row_merger import ReadRowsTest, TestFile

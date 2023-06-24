@@ -36,9 +36,9 @@ def _make_mutation(count=1, size=1):
 
 class TestMutateRowsOperation:
     def _target_class(self):
-        from google.cloud.bigtable.data._mutate_rows import _MutateRowsOperation
+        from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 
-        return _MutateRowsOperation
+        return _MutateRowsOperationAsync
 
     def _make_one(self, *args, **kwargs):
         if not args:
@@ -73,7 +73,7 @@ class TestMutateRowsOperation:
         """
         test that constructor sets all the attributes correctly
         """
-        from google.cloud.bigtable.data._mutate_rows import _MutateRowsIncomplete
+        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
         from google.api_core.exceptions import DeadlineExceeded
         from google.api_core.exceptions import ServiceUnavailable
 
@@ -116,7 +116,7 @@ class TestMutateRowsOperation:
         """
         should raise an error if an operation is created with more than 100,000 entries
         """
-        from google.cloud.bigtable.data._mutate_rows import (
+        from google.cloud.bigtable.data._async._mutate_rows import (
             MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
         )
 
@@ -204,7 +204,7 @@ class TestMutateRowsOperation:
         """
         If an exception fails but eventually passes, it should not raise an exception
         """
-        from google.cloud.bigtable.data._mutate_rows import _MutateRowsOperation
+        from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 
         client = mock.Mock()
         table = mock.Mock()
@@ -213,7 +213,7 @@ class TestMutateRowsOperation:
         expected_cause = exc_type("retry")
         num_retries = 2
         with mock.patch.object(
-            _MutateRowsOperation,
+            _MutateRowsOperationAsync,
             "_run_attempt",
             AsyncMock(),
         ) as attempt_mock:
@@ -229,7 +229,7 @@ class TestMutateRowsOperation:
         """
         MutateRowsIncomplete exceptions should not be added to error list
         """
-        from google.cloud.bigtable.data._mutate_rows import _MutateRowsIncomplete
+        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
         from google.api_core.exceptions import DeadlineExceeded
 
@@ -286,7 +286,7 @@ class TestMutateRowsOperation:
     @pytest.mark.asyncio
     async def test_run_attempt_partial_success_retryable(self):
         """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
-        from google.cloud.bigtable.data._mutate_rows import _MutateRowsIncomplete
+        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 
         success_mutation = _make_mutation()
         success_mutation_2 = _make_mutation()

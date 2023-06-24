@@ -120,7 +120,7 @@ class TestBigtableDataClientAsync:
         from google.api_core.client_options import ClientOptions
 
         client_options = {"api_endpoint": "foo.bar:1234"}
-        with mock.patch.object(self._get_target_class(), "__init__") as bigtable_client_init:
+        with mock.patch.object(BigtableAsyncClient, "__init__") as bigtable_client_init:
             try:
                 self._make_one(client_options=client_options)
             except TypeError:

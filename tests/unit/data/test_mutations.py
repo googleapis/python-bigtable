@@ -506,7 +506,7 @@ class TestRowMutationEntry:
 
     def test_ctor_over_limit(self):
         """Should raise error if mutations exceed MAX_MUTATIONS_PER_ENTRY"""
-        from google.cloud.bigtable.data._mutate_rows import (
+        from google.cloud.bigtable.data.mutations import (
             MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
         )
 

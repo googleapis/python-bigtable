@@ -35,7 +35,7 @@ TEST_LABELS = ["label1", "label2"]
 class TestStateMachine(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.data._async._read_rows import _StateMachine
+        from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
 
         return _StateMachine
 
@@ -43,7 +43,7 @@ class TestStateMachine(unittest.TestCase):
         return self._get_target_class()(*args, **kwargs)
 
     def test_ctor(self):
-        from google.cloud.bigtable.data._async._read_rows import _RowBuilder
+        from google.cloud.bigtable.data._read_rows_state_machine import _RowBuilder
 
         instance = self._make_one()
         assert instance.last_seen_row_key is None
@@ -500,7 +500,7 @@ class TestState(unittest.TestCase):
 class TestRowBuilder(unittest.TestCase):
     @staticmethod
     def _get_target_class():
-        from google.cloud.bigtable.data._async._read_rows import _RowBuilder
+        from google.cloud.bigtable.data._read_rows_state_machine import _RowBuilder
 
         return _RowBuilder
 
@@ -648,7 +648,7 @@ class TestRowBuilder(unittest.TestCase):
 class TestChunkHasField:
     def test__chunk_has_field_empty(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-        from google.cloud.bigtable.data._async._read_rows import _chunk_has_field
+        from google.cloud.bigtable.data._read_rows_state_machine import _chunk_has_field
 
         chunk = ReadRowsResponse.CellChunk()._pb
         assert not _chunk_has_field(chunk, "family_name")
@@ -656,7 +656,7 @@ class TestChunkHasField:
 
     def test__chunk_has_field_populated_empty_strings(self):
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-        from google.cloud.bigtable.data._async._read_rows import _chunk_has_field
+        from google.cloud.bigtable.data._read_rows_state_machine import _chunk_has_field
 
         chunk = ReadRowsResponse.CellChunk(qualifier=b"", family_name="")._pb
         assert _chunk_has_field(chunk, "family_name")
