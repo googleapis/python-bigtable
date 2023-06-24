@@ -19,20 +19,20 @@ import functools
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
-import google.cloud.bigtable.exceptions as bt_exceptions
-from google.cloud.bigtable._helpers import _make_metadata
-from google.cloud.bigtable._helpers import _convert_retry_deadline
-from google.cloud.bigtable._helpers import _attempt_timeout_generator
+import google.cloud.bigtable.data.exceptions as bt_exceptions
+from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
 # mutate_rows requests are limited to this number of mutations
-from google.cloud.bigtable.mutations import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data.mutations import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
-    from google.cloud.bigtable.client import Table
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.client import Table
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
 
 class _MutateRowsOperationAsync:

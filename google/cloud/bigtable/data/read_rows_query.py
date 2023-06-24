@@ -18,11 +18,11 @@ from bisect import bisect_left
 from bisect import bisect_right
 from collections import defaultdict
 from dataclasses import dataclass
-from google.cloud.bigtable.row_filters import RowFilter
+from google.cloud.bigtable.data.row_filters import RowFilter
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable import RowKeySamples
-    from google.cloud.bigtable import ShardedQuery
+    from google.cloud.bigtable.data import RowKeySamples
+    from google.cloud.bigtable.data import ShardedQuery
 
 
 @dataclass

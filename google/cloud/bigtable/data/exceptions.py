@@ -19,13 +19,13 @@ import sys
 from typing import Any, TYPE_CHECKING
 
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.row import Row
+from google.cloud.bigtable.data.row import Row
 
 is_311_plus = sys.version_info >= (3, 11)
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.mutations import RowMutationEntry
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 
 class IdleTimeout(core_exceptions.DeadlineExceeded):

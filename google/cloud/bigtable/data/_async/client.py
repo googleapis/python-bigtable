@@ -43,34 +43,34 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable._read_rows import _ReadRowsOperationAsync
+from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+from google.cloud.bigtable.data._async._read_rows import ReadRowsIteratorAsync
 
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
-from google.cloud.bigtable.row import Row
-from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.iterators import ReadRowsIteratorAsync
-from google.cloud.bigtable.exceptions import FailedQueryShardError
-from google.cloud.bigtable.exceptions import ShardedReadRowsExceptionGroup
+from google.cloud.bigtable.data.row import Row
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.data.exceptions import FailedQueryShardError
+from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
-from google.cloud.bigtable.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable._helpers import _make_metadata
-from google.cloud.bigtable._helpers import _convert_retry_deadline
-from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
+from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
-from google.cloud.bigtable.read_modify_write_rules import ReadModifyWriteRule
-from google.cloud.bigtable.row_filters import RowFilter
-from google.cloud.bigtable.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable.row_filters import CellsRowLimitFilter
-from google.cloud.bigtable.row_filters import RowFilterChain
+from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
+from google.cloud.bigtable.data.row_filters import RowFilter
+from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
+from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable import RowKeySamples
-    from google.cloud.bigtable import ShardedQuery
+    from google.cloud.bigtable.data.data import RowKeySamples
+    from google.cloud.bigtable.data.data import ShardedQuery
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 CONCURRENCY_LIMIT = 10
@@ -556,7 +556,7 @@ class TableAsync:
         See read_rows_stream
 
         Raises:
-            - google.cloud.bigtable.exceptions.RowNotFound: if the row does not exist
+            - google.cloud.bigtable.data.exceptions.RowNotFound: if the row does not exist
         Returns:
             - the individual row requested, or None if it does not exist
         """
@@ -762,7 +762,7 @@ class TableAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
         batch_per_request_timeout: float | None = None,
-    ) -> MutationsBatcher:
+    ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
 
@@ -782,9 +782,9 @@ class TableAsync:
           - batch_per_request_timeout: timeout for each individual request, in seconds. If None,
               table default_per_request_timeout will be used
         Returns:
-            - a MutationsBatcher context manager that can batch requests
+            - a MutationsBatcherAsync context manager that can batch requests
         """
-        return MutationsBatcher(
+        return MutationsBatcherAsync(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
@@ -930,7 +930,7 @@ class TableAsync:
         if per_request_timeout is not None and per_request_timeout > operation_timeout:
             raise ValueError("per_request_timeout must be less than operation_timeout")
 
-        operation = _MutateRowsOperation(
+        operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
             self,
             mutation_entries,

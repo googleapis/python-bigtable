@@ -18,7 +18,7 @@ from inspect import iscoroutinefunction
 import time
 
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 """
 Helper functions used in various places in the library.

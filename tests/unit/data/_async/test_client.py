@@ -1294,12 +1294,12 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
-        from google.cloud.bigtable.data._async.client import ReadRowsIterator
+        from google.cloud.bigtable.data._async.client import ReadRowsIteratorAsync
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
         from google.cloud.bigtable.data.exceptions import IdleTimeout
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
         chunks = [
             self._make_chunk(row_key=b"test_1"),
@@ -1310,7 +1310,7 @@ class TestReadRows:
                 chunks
             )
             with mock.patch.object(
-                ReadRowsIterator, "_start_idle_timer"
+                ReadRowsIteratorAsync, "_start_idle_timer"
             ) as start_idle_timer:
                 client = self._make_client()
                 table = client.get_table("instance", "table")
@@ -1318,7 +1318,7 @@ class TestReadRows:
                 gen = await table.read_rows_stream(query)
             # should start idle timer on creation
             start_idle_timer.assert_called_once()
-        with mock.patch.object(_ReadRowsOperation, "aclose", AsyncMock()) as aclose:
+        with mock.patch.object(_ReadRowsOperationAsync, "aclose", AsyncMock()) as aclose:
             # start idle timer with our own value
             await gen._start_idle_timer(0.1)
             # should timeout after being abandoned
@@ -1397,13 +1397,13 @@ class TestReadRows:
         """
         Ensure that _revise_request is called between retries
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
         from google.cloud.bigtable.data.exceptions import InvalidChunk
 
         with mock.patch.object(
-            _ReadRowsOperation, "_revise_request_rowset"
+            _ReadRowsOperationAsync, "_revise_request_rowset"
         ) as revise_rowset:
-            with mock.patch.object(_ReadRowsOperation, "aclose"):
+            with mock.patch.object(_ReadRowsOperationAsync, "aclose"):
                 revise_rowset.return_value = "modified"
                 async with self._make_table() as table:
                     read_rows = table.client._gapic_client.read_rows
@@ -1431,11 +1431,11 @@ class TestReadRows:
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
         operation_timeout = 8
         per_request_timeout = 4
-        with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+        with mock.patch.object(_ReadRowsOperationAsync, "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
             async with self._make_table(
                 default_operation_timeout=operation_timeout,
@@ -1454,11 +1454,11 @@ class TestReadRows:
         """
         When timeouts are passed, they overwrite default values
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperation
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
         operation_timeout = 8
         per_request_timeout = 4
-        with mock.patch.object(_ReadRowsOperation, "__init__") as mock_op:
+        with mock.patch.object(_ReadRowsOperationAsync, "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
             async with self._make_table(
                 default_operation_timeout=99, default_per_request_timeout=97

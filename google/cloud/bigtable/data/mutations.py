@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+from google.cloud.bigtable.data.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 SERVER_SIDE_TIMESTAMP = -1

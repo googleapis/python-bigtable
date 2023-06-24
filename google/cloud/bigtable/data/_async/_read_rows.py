@@ -33,16 +33,16 @@ from grpc.aio import RpcContext
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable.row import Row, _LastScannedRow
-from google.cloud.bigtable.exceptions import InvalidChunk
-from google.cloud.bigtable.exceptions import _RowSetComplete
-from google.cloud.bigtable.exceptions import IdleTimeout
-from google.cloud.bigtable._read_rows_state_machine import _StateMachine
+from google.cloud.bigtable.data.row import Row, _LastScannedRow
+from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import _RowSetComplete
+from google.cloud.bigtable.data.exceptions import IdleTimeout
+from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable._helpers import _make_metadata
-from google.cloud.bigtable._helpers import _attempt_timeout_generator
-from google.cloud.bigtable._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 
 
 class _ReadRowsOperationAsync(AsyncIterable[Row]):

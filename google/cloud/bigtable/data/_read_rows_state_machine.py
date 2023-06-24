@@ -17,8 +17,8 @@ from __future__ import annotations
 from typing import Type
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable.row import Row, Cell, _LastScannedRow
-from google.cloud.bigtable.exceptions import InvalidChunk
+from google.cloud.bigtable.data.row import Row, Cell, _LastScannedRow
+from google.cloud.bigtable.data.exceptions import InvalidChunk
 
 """
 This module provides classes for the read_rows state machine:

@@ -20,16 +20,13 @@ import atexit
 import warnings
 from collections import deque
 
-from google.cloud.bigtable.mutations import RowMutationEntry
-from google.cloud.bigtable.exceptions import MutationsExceptionGroup
-from google.cloud.bigtable.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data.mutations import RowMutationEntry
+from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 
-from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
-from google.cloud.bigtable._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-from google.cloud.bigtable.mutations import Mutation
-
-if TYPE_CHECKING:
-    from google.cloud.bigtable.client import Table  # pragma: no cover
+from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+from google.cloud.bigtable.data._async._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data.mutations import Mutation
 
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024
@@ -179,7 +176,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: "Table",
+        table: TableAsync,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -353,7 +350,7 @@ class MutationsBatcherAsync:
         if self._table.app_profile_id:
             request["app_profile_id"] = self._table.app_profile_id
         try:
-            operation = _MutateRowsOperation(
+            operation = _MutateRowsOperationAsync(
                 self._table.client._gapic_client,
                 self._table,
                 batch,

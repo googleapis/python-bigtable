@@ -18,21 +18,21 @@ from typing import List, Tuple
 
 from google.cloud.bigtable import gapic_version as package_version
 
-from google.cloud.bigtable.client import BigtableDataClient
-from google.cloud.bigtable.client import Table
+from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+from google.cloud.bigtable.data._async.client import TableAsync
 
-from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.read_rows_query import RowRange
-from google.cloud.bigtable.row import Row
-from google.cloud.bigtable.row import Cell
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.data.read_rows_query import RowRange
+from google.cloud.bigtable.data.row import Row
+from google.cloud.bigtable.data.row import Cell
 
-from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.mutations import Mutation
-from google.cloud.bigtable.mutations import RowMutationEntry
-from google.cloud.bigtable.mutations import SetCell
-from google.cloud.bigtable.mutations import DeleteRangeFromColumn
-from google.cloud.bigtable.mutations import DeleteAllFromFamily
-from google.cloud.bigtable.mutations import DeleteAllFromRow
+from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+from google.cloud.bigtable.data.mutations import Mutation
+from google.cloud.bigtable.data.mutations import RowMutationEntry
+from google.cloud.bigtable.data.mutations import SetCell
+from google.cloud.bigtable.data.mutations import DeleteRangeFromColumn
+from google.cloud.bigtable.data.mutations import DeleteAllFromFamily
+from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 
 # Type alias for the output of sample_keys
 RowKeySamples = List[Tuple[bytes, int]]
@@ -42,12 +42,12 @@ ShardedQuery = List[ReadRowsQuery]
 __version__: str = package_version.__version__
 
 __all__ = (
-    "BigtableDataClient",
-    "Table",
+    "BigtableDataClientAsync",
+    "TableAsync",
     "RowKeySamples",
     "ReadRowsQuery",
     "RowRange",
-    "MutationsBatcher",
+    "MutationsBatcherAsync",
     "Mutation",
     "RowMutationEntry",
     "SetCell",
