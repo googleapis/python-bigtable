@@ -20,7 +20,7 @@ import uuid
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
 
-from google.cloud.bigtable.read_modify_write_rules import MAX_INCREMENT_VALUE
+from google.cloud.bigtable.data.read_modify_write_rules import MAX_INCREMENT_VALUE
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
@@ -135,10 +135,10 @@ def table_id(table_admin_client, project_id, instance_id):
 
 @pytest_asyncio.fixture(scope="session")
 async def client():
-    from google.cloud.bigtable import BigtableDataClient
+    from google.cloud.bigtable.data import BigtableDataClientAsync
 
     project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-    async with BigtableDataClient(project=project) as client:
+    async with BigtableDataClientAsync(project=project) as client:
         yield client
 
 
@@ -201,7 +201,7 @@ async def _retrieve_cell_value(table, row_key):
     """
     Helper to read an individual row
     """
-    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable.data import ReadRowsQuery
 
     row_list = await table.read_rows(ReadRowsQuery(row_keys=row_key))
     assert len(row_list) == 1
@@ -216,7 +216,7 @@ async def _create_row_and_mutation(
     """
     Helper to create a new row, and a sample set_cell mutation to change its value
     """
-    from google.cloud.bigtable.mutations import SetCell
+    from google.cloud.bigtable.data.mutations import SetCell
 
     row_key = uuid.uuid4().hex.encode()
     family = TEST_FAMILY
@@ -303,7 +303,7 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
     Ensure cells can be set properly
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value = uuid.uuid4().hex.encode()
     row_key, mutation = await _create_row_and_mutation(
@@ -323,7 +323,7 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     """
     test batcher with context manager. Should flush on exit
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
     row_key, mutation = await _create_row_and_mutation(
@@ -349,7 +349,7 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
     """
     batch should occur after flush_interval seconds
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value = uuid.uuid4().hex.encode()
     row_key, mutation = await _create_row_and_mutation(
@@ -373,7 +373,7 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
     """
     batch should flush after flush_limit_mutation_count mutations
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
     row_key, mutation = await _create_row_and_mutation(
@@ -407,7 +407,7 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
     """
     batch should flush after flush_limit_bytes bytes
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
     row_key, mutation = await _create_row_and_mutation(
@@ -442,7 +442,7 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
     """
     test with no flush requirements met
     """
-    from google.cloud.bigtable.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
     new_value = uuid.uuid4().hex.encode()
     start_value = b"unchanged"
@@ -494,7 +494,7 @@ async def test_read_modify_write_row_increment(
     """
     test read_modify_write_row
     """
-    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+    from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 
     row_key = b"test-row-key"
     family = TEST_FAMILY
@@ -531,7 +531,7 @@ async def test_read_modify_write_row_append(
     """
     test read_modify_write_row
     """
-    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
+    from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
 
     row_key = b"test-row-key"
     family = TEST_FAMILY
@@ -554,8 +554,8 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     """
     test read_modify_write_row with multiple rules
     """
-    from google.cloud.bigtable.read_modify_write_rules import AppendValueRule
-    from google.cloud.bigtable.read_modify_write_rules import IncrementRule
+    from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
+    from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 
     row_key = b"test-row-key"
     family = TEST_FAMILY
@@ -599,8 +599,8 @@ async def test_check_and_mutate(
     """
     test that check_and_mutate_row works applies the right mutations, and returns the right result
     """
-    from google.cloud.bigtable.mutations import SetCell
-    from google.cloud.bigtable.row_filters import ValueRangeFilter
+    from google.cloud.bigtable.data.mutations import SetCell
+    from google.cloud.bigtable.data.row_filters import ValueRangeFilter
 
     row_key = b"test-row-key"
     family = TEST_FAMILY
@@ -671,7 +671,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
     """
     Test read rows sharded with two queries
     """
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -693,8 +693,8 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     """
     Test end-to-end sharding
     """
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-    from google.cloud.bigtable.read_rows_query import RowRange
+    from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.data.read_rows_query import RowRange
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -717,8 +717,8 @@ async def test_read_rows_sharded_filters_limits(table, temp_rows):
     """
     Test read rows sharded with filters and limits
     """
-    from google.cloud.bigtable.read_rows_query import ReadRowsQuery
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+    from google.cloud.bigtable.data.row_filters import ApplyLabelFilter
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -745,8 +745,8 @@ async def test_read_rows_range_query(table, temp_rows):
     """
     Ensure that the read_rows method works
     """
-    from google.cloud.bigtable import ReadRowsQuery
-    from google.cloud.bigtable import RowRange
+    from google.cloud.bigtable.data import ReadRowsQuery
+    from google.cloud.bigtable.data import RowRange
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -766,7 +766,7 @@ async def test_read_rows_single_key_query(table, temp_rows):
     """
     Ensure that the read_rows method works with specified query
     """
-    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable.data import ReadRowsQuery
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -786,8 +786,8 @@ async def test_read_rows_with_filter(table, temp_rows):
     """
     ensure filters are applied
     """
-    from google.cloud.bigtable import ReadRowsQuery
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.data import ReadRowsQuery
+    from google.cloud.bigtable.data.row_filters import ApplyLabelFilter
 
     await temp_rows.add_row(b"a")
     await temp_rows.add_row(b"b")
@@ -828,7 +828,7 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
     """
     Ensure that the read_rows_stream method works
     """
-    from google.cloud.bigtable.exceptions import IdleTimeout
+    from google.cloud.bigtable.data.exceptions import IdleTimeout
 
     await temp_rows.add_row(b"row_key_1")
     await temp_rows.add_row(b"row_key_2")
@@ -848,7 +848,7 @@ async def test_read_row(table, temp_rows):
     """
     Test read_row (single row helper)
     """
-    from google.cloud.bigtable import Row
+    from google.cloud.bigtable.data import Row
 
     await temp_rows.add_row(b"row_key_1", value=b"value")
     row = await table.read_row(b"row_key_1")
@@ -877,8 +877,8 @@ async def test_read_row_w_filter(table, temp_rows):
     """
     Test read_row (single row helper)
     """
-    from google.cloud.bigtable import Row
-    from google.cloud.bigtable.row_filters import ApplyLabelFilter
+    from google.cloud.bigtable.data import Row
+    from google.cloud.bigtable.data.row_filters import ApplyLabelFilter
 
     await temp_rows.add_row(b"row_key_1", value=b"value")
     expected_label = "test-label"
@@ -943,8 +943,8 @@ async def test_literal_value_filter(
     Literal value filter does complex escaping on re2 strings.
     Make sure inputs are properly interpreted by the server
     """
-    from google.cloud.bigtable.row_filters import LiteralValueFilter
-    from google.cloud.bigtable import ReadRowsQuery
+    from google.cloud.bigtable.data.row_filters import LiteralValueFilter
+    from google.cloud.bigtable.data import ReadRowsQuery
 
     f = LiteralValueFilter(filter_input)
     await temp_rows.add_row(b"row_key_1", value=cell_value)
