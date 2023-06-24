@@ -661,6 +661,3 @@ class TestChunkHasField:
         chunk = ReadRowsResponse.CellChunk(qualifier=b"", family_name="")._pb
         assert _chunk_has_field(chunk, "family_name")
         assert _chunk_has_field(chunk, "qualifier")
-
-
-

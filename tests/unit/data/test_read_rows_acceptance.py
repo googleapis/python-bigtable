@@ -310,6 +310,8 @@ async def _process_chunks(*chunks):
 
     state = _StateMachine()
     results = []
-    async for row in _ReadRowsOperationAsync.merge_row_response_stream(_row_stream(), state):
+    async for row in _ReadRowsOperationAsync.merge_row_response_stream(
+        _row_stream(), state
+    ):
         results.append(row)
     return results

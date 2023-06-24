@@ -24,7 +24,9 @@ except ImportError:  # pragma: NO COVER
 
 class TestBaseReadModifyWriteRule:
     def _target_class(self):
-        from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
+        from google.cloud.bigtable.data.read_modify_write_rules import (
+            ReadModifyWriteRule,
+        )
 
         return ReadModifyWriteRule
 

@@ -955,8 +955,9 @@ class TestBigtableDataClientAsync:
             client = BigtableDataClientAsync(project="project-id")
         expected_warning = [w for w in warnings if "client.py" in w.filename]
         assert len(expected_warning) == 1
-        assert "BigtableDataClientAsync should be started in an asyncio event loop." in str(
-            expected_warning[0].message
+        assert (
+            "BigtableDataClientAsync should be started in an asyncio event loop."
+            in str(expected_warning[0].message)
         )
         assert client.project == "project-id"
         assert client._channel_refresh_tasks == []
@@ -1318,7 +1319,9 @@ class TestReadRows:
                 gen = await table.read_rows_stream(query)
             # should start idle timer on creation
             start_idle_timer.assert_called_once()
-        with mock.patch.object(_ReadRowsOperationAsync, "aclose", AsyncMock()) as aclose:
+        with mock.patch.object(
+            _ReadRowsOperationAsync, "aclose", AsyncMock()
+        ) as aclose:
             # start idle timer with our own value
             await gen._start_idle_timer(0.1)
             # should timeout after being abandoned

@@ -23,7 +23,6 @@ from typing import (
     Iterator,
     Callable,
     Awaitable,
-    Type,
 )
 import sys
 import time

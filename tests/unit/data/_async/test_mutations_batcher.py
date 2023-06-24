@@ -33,7 +33,9 @@ def _make_mutation(count=1, size=1):
 
 class Test_FlowControl:
     def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
-        from google.cloud.bigtable.data._async.mutations_batcher import _FlowControlAsync
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            _FlowControlAsync,
+        )
 
         return _FlowControlAsync(max_mutation_count, max_mutation_bytes)
 
@@ -277,7 +279,9 @@ class Test_FlowControl:
 
 class TestMutationsBatcherAsync:
     def _get_target_class(self):
-        from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
 
         return MutationsBatcherAsync
 
@@ -424,14 +428,18 @@ class TestMutationsBatcherAsync:
         both places
         """
         from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
         import inspect
 
         get_batcher_signature = dict(
             inspect.signature(TableAsync.mutations_batcher).parameters
         )
         get_batcher_signature.pop("self")
-        batcher_init_signature = dict(inspect.signature(MutationsBatcherAsync).parameters)
+        batcher_init_signature = dict(
+            inspect.signature(MutationsBatcherAsync).parameters
+        )
         batcher_init_signature.pop("table")
         # both should have same number of arguments
         assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
@@ -577,9 +585,13 @@ class TestMutationsBatcherAsync:
         If the user appends a bunch of entries above the flush limits back-to-back,
         it should still flush in a single task
         """
-        from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
 
-        with mock.patch.object(MutationsBatcherAsync, "_execute_mutate_rows") as op_mock:
+        with mock.patch.object(
+            MutationsBatcherAsync, "_execute_mutate_rows"
+        ) as op_mock:
             async with self._make_one(flush_limit_bytes=100) as instance:
                 # mock network calls
                 async def mock_call(*args, **kwargs):
@@ -884,7 +896,9 @@ class TestMutationsBatcherAsync:
             assert result == []
 
     @pytest.mark.asyncio
-    @mock.patch("google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync.start")
+    @mock.patch(
+        "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync.start"
+    )
     async def test__execute_mutate_rows_returns_errors(self, mutate_rows):
         """Errors from operation should be retruned as list"""
         from google.cloud.bigtable.data.exceptions import (

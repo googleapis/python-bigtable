@@ -69,8 +69,8 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data.data import RowKeySamples
-    from google.cloud.bigtable.data.data import ShardedQuery
+    from google.cloud.bigtable.data import RowKeySamples
+    from google.cloud.bigtable.data import ShardedQuery
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
 CONCURRENCY_LIMIT = 10

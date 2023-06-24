@@ -25,8 +25,13 @@ from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._mutate_rows import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data._async._mutate_rows import (
+    MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+)
 from google.cloud.bigtable.data.mutations import Mutation
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data._async.client import TableAsync
 
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024
@@ -176,7 +181,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: TableAsync,
+        table: "TableAsync",
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,

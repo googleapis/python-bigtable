@@ -31,8 +31,8 @@ if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
         BigtableAsyncClient,
     )
-    from google.cloud.bigtable.data.client import Table
     from google.cloud.bigtable.data.mutations import RowMutationEntry
+    from google.cloud.bigtable.data._async.client import TableAsync
 
 
 class _MutateRowsOperationAsync:
@@ -49,7 +49,7 @@ class _MutateRowsOperationAsync:
     def __init__(
         self,
         gapic_client: "BigtableAsyncClient",
-        table: "Table",
+        table: "TableAsync",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         per_request_timeout: float | None,

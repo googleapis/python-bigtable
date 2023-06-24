@@ -15,7 +15,6 @@ import pytest
 import sys
 import asyncio
 
-from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 # try/except added for compatibility with python < 3.8
@@ -56,7 +55,8 @@ class TestReadRowsOperation:
         default_operation_timeout = 600
         time_gen_mock = mock.Mock()
         with mock.patch(
-            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator", time_gen_mock
+            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
+            time_gen_mock,
         ):
             instance = self._make_one(request, client)
         assert time_gen_mock.call_count == 1
@@ -82,7 +82,8 @@ class TestReadRowsOperation:
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
         with mock.patch(
-            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator", time_gen_mock
+            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
+            time_gen_mock,
         ):
             instance = self._make_one(
                 request,
@@ -398,6 +399,7 @@ class TestReadRowsOperation:
             await instance.aclose()
             assert mock_call.cancel.call_count == 1
 
+
 class MockStream(_ReadRowsOperationAsync):
     """
     Mock a _ReadRowsOperationAsync stream for testing
@@ -425,7 +427,6 @@ class MockStream(_ReadRowsOperationAsync):
 
     async def aclose(self):
         pass
-
 
 
 class TestReadRowsIteratorAsync:

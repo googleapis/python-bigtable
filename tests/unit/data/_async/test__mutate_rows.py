@@ -36,7 +36,9 @@ def _make_mutation(count=1, size=1):
 
 class TestMutateRowsOperation:
     def _target_class(self):
-        from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+        from google.cloud.bigtable.data._async._mutate_rows import (
+            _MutateRowsOperationAsync,
+        )
 
         return _MutateRowsOperationAsync
 
@@ -204,7 +206,9 @@ class TestMutateRowsOperation:
         """
         If an exception fails but eventually passes, it should not raise an exception
         """
-        from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+        from google.cloud.bigtable.data._async._mutate_rows import (
+            _MutateRowsOperationAsync,
+        )
 
         client = mock.Mock()
         table = mock.Mock()
