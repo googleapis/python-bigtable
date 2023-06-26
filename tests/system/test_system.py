@@ -240,6 +240,7 @@ async def test_ping_and_warm(client, table):
     assert results[0] is None
 
 
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutation_set_cell(table, temp_rows):
     """
