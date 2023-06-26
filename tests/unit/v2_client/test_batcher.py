@@ -204,22 +204,21 @@ def test_mutations_batcher_response_with_error_codes():
 
     mocked_response = [Status(code=1), Status(code=5)]
 
-    with mock.patch("tests.unit.test_batcher._Table") as mocked_table:
-        table = mocked_table.return_value
-        mutation_batcher = MutationsBatcher(table=table)
+    table = mock.Mock()
+    mutation_batcher = MutationsBatcher(table=table)
 
-        row1 = DirectRow(row_key=b"row_key")
-        row2 = DirectRow(row_key=b"row_key")
-        table.mutate_rows.return_value = mocked_response
+    row1 = DirectRow(row_key=b"row_key")
+    row2 = DirectRow(row_key=b"row_key")
+    table.mutate_rows.return_value = mocked_response
 
-        mutation_batcher.mutate_rows([row1, row2])
-        with pytest.raises(MutationsBatchError) as exc:
-            mutation_batcher.close()
-        assert exc.value.message == "Errors in batch mutations."
-        assert len(exc.value.exc) == 2
+    mutation_batcher.mutate_rows([row1, row2])
+    with pytest.raises(MutationsBatchError) as exc:
+        mutation_batcher.close()
+    assert exc.value.message == "Errors in batch mutations."
+    assert len(exc.value.exc) == 2
 
-        assert exc.value.exc[0].message == mocked_response[0].message
-        assert exc.value.exc[1].message == mocked_response[1].message
+    assert exc.value.exc[0].message == mocked_response[0].message
+    assert exc.value.exc[1].message == mocked_response[1].message
 
 
 def test_flow_control_event_is_set_when_not_blocked():
