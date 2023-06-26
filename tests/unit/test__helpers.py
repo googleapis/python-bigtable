@@ -23,7 +23,7 @@ class TestMakeMetadata:
     @pytest.mark.parametrize(
         "table,profile,expected",
         [
-            ("table", "profile", "table_name=table,app_profile_id=profile"),
+            ("table", "profile", "table_name=table&app_profile_id=profile"),
             ("table", None, "table_name=table"),
         ],
     )

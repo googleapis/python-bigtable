@@ -35,7 +35,7 @@ def _make_metadata(
     params.append(f"table_name={table_name}")
     if app_profile_id is not None:
         params.append(f"app_profile_id={app_profile_id}")
-    params_str = ",".join(params)
+    params_str = "&".join(params)
     return [("x-goog-request-params", params_str)]
 
 
