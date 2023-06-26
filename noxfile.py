@@ -143,8 +143,6 @@ def mypy(session):
         "--warn-unreachable",
         "--disallow-any-generics",
         "--exclude",
-        "google/cloud/bigtable/deprecated",
-        "--exclude",
         "tests/system/v2_client",
         "--exclude",
         "tests/unit/v2_client",

@@ -1,6 +1,6 @@
 Cluster
 ~~~~~~~
 
-.. automodule:: google.cloud.bigtable.deprecated.cluster
+.. automodule:: google.cloud.bigtable.cluster
   :members:
   :show-inheritance:
