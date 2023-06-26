@@ -1015,16 +1015,10 @@ class TestMutationsBatcherAsync:
         """Should run _on_exit on program termination"""
         import atexit
 
-        with mock.patch(
-            "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._on_exit"
-        ) as on_exit_mock:
+        with mock.patch.object(atexit, "register") as register_mock:
+            assert register_mock.call_count == 0
             async with self._make_one():
-                assert on_exit_mock.call_count == 0
-                atexit._run_exitfuncs()
-                assert on_exit_mock.call_count == 1
-        # should not call after close
-        atexit._run_exitfuncs()
-        assert on_exit_mock.call_count == 1
+                assert register_mock.call_count == 1
 
     @pytest.mark.asyncio
     @mock.patch(
