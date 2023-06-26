@@ -242,8 +242,10 @@ class BigtableAsyncClient:
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             app_profile_id (:class:`str`):
-                This value specifies routing for replication. This API
-                only accepts the empty value of app_profile_id.
+                This value specifies routing for
+                replication. If not specified, the
+                "default" application profile will be
+                used.
 
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -807,8 +809,8 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.PingAndWarmRequest, dict]]):
-                The request object. Request message for client
-                connection keep-alive and warming.
+                The request object. Request message for client connection
+                keep-alive and warming.
             name (:class:`str`):
                 Required. The unique name of the instance to check
                 permissions for as well as respond. Values are of the
@@ -1027,8 +1029,9 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.GenerateInitialChangeStreamPartitionsRequest, dict]]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for
                 Bigtable.GenerateInitialChangeStreamPartitions.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to get
@@ -1126,9 +1129,9 @@ class BigtableAsyncClient:
 
         Args:
             request (Optional[Union[google.cloud.bigtable_v2.types.ReadChangeStreamRequest, dict]]):
-                The request object. NOTE: This API is intended to be
-                used by Apache Beam BigtableIO. Request message for
-                Bigtable.ReadChangeStream.
+                The request object. NOTE: This API is intended to be used
+                by Apache Beam BigtableIO. Request
+                message for Bigtable.ReadChangeStream.
             table_name (:class:`str`):
                 Required. The unique name of the table from which to
                 read a change stream. Values are of the form
