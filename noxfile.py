@@ -463,11 +463,6 @@ def prerelease_deps(session):
     )
     session.run("python", "-c", "import grpc; print(grpc.__version__)")
 
-    # TODO: remove adter merging api-core
-    session.install(
-        "--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES
-    )
-
     session.run("py.test", "tests/unit")
 
     system_test_path = os.path.join("tests", "system.py")
