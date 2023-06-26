@@ -283,6 +283,8 @@ class MutationsBatcherAsync:
         """
         Add a new set of mutations to the internal queue
 
+        TODO: return a future to track completion of this entry
+
         Args:
           - mutation_entry: new entry to add to flush queue
         Raises:
@@ -332,8 +334,7 @@ class MutationsBatcherAsync:
             in_process_requests.append(batch_task)
         # wait for all inflight requests to complete
         found_exceptions = await self._wait_for_batch_results(*in_process_requests)
-        # allow previous flush tasks to finalize before adding new exceptions to list
-        # collect exception data for next raise, after previous flush tasks have completed
+        # update exception data to reflect any new errors
         self._entries_processed_since_last_raise += len(new_entries)
         self._add_exceptions(found_exceptions)
 
