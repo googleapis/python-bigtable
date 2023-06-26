@@ -16,6 +16,7 @@ import pytest
 import pytest_asyncio
 import os
 import asyncio
+import uuid
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
 
@@ -27,7 +28,10 @@ TEST_FAMILY_2 = "test-family-2"
 
 @pytest.fixture(scope="session")
 def event_loop():
-    return asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.stop()
+    loop.close()
 
 
 @pytest.fixture(scope="session")
@@ -206,6 +210,27 @@ async def _retrieve_cell_value(table, row_key):
     return cell.value
 
 
+async def _create_row_and_mutation(
+    table, temp_rows, *, start_value=b"start", new_value=b"new_value"
+):
+    """
+    Helper to create a new row, and a sample set_cell mutation to change its value
+    """
+    from google.cloud.bigtable.mutations import SetCell
+
+    row_key = uuid.uuid4().hex.encode()
+    family = TEST_FAMILY
+    qualifier = b"test-qualifier"
+    await temp_rows.add_row(
+        row_key, family=family, qualifier=qualifier, value=start_value
+    )
+    # ensure cell is initialized
+    assert (await _retrieve_cell_value(table, row_key)) == start_value
+
+    mutation = SetCell(family=TEST_FAMILY, qualifier=qualifier, new_value=new_value)
+    return row_key, mutation
+
+
 @pytest_asyncio.fixture(scope="function")
 async def temp_rows(table):
     builder = TempRowBuilder(table)
@@ -213,7 +238,7 @@ async def temp_rows(table):
     await builder.delete_rows()
 
 
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -246,27 +271,15 @@ async def test_mutation_set_cell(table, temp_rows):
     """
     Ensure cells can be set properly
     """
-    from google.cloud.bigtable.mutations import SetCell
-
-    row_key = b"mutate"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    start_value = b"start"
-    await temp_rows.add_row(
-        row_key, family=family, qualifier=qualifier, value=start_value
-    )
-
-    # ensure cell is initialized
-    assert (await _retrieve_cell_value(table, row_key)) == start_value
-
-    expected_value = b"new-value"
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    row_key = b"bulk_mutate"
+    new_value = uuid.uuid4().hex.encode()
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
     await table.mutate_row(row_key, mutation)
 
     # ensure cell is updated
-    assert (await _retrieve_cell_value(table, row_key)) == expected_value
+    assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -290,28 +303,173 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
     Ensure cells can be set properly
     """
-    from google.cloud.bigtable.mutations import SetCell, RowMutationEntry
+    from google.cloud.bigtable.mutations import RowMutationEntry
 
-    row_key = b"bulk_mutate"
-    family = TEST_FAMILY
-    qualifier = b"test-qualifier"
-    start_value = b"start"
-    await temp_rows.add_row(
-        row_key, family=family, qualifier=qualifier, value=start_value
-    )
-
-    # ensure cell is initialized
-    assert (await _retrieve_cell_value(table, row_key)) == start_value
-
-    expected_value = b"new-value"
-    mutation = SetCell(
-        family=TEST_FAMILY, qualifier=b"test-qualifier", new_value=expected_value
+    new_value = uuid.uuid4().hex.encode()
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
     )
     bulk_mutation = RowMutationEntry(row_key, [mutation])
+
     await table.bulk_mutate_rows([bulk_mutation])
 
     # ensure cell is updated
-    assert (await _retrieve_cell_value(table, row_key)) == expected_value
+    assert (await _retrieve_cell_value(table, row_key)) == new_value
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutations_batcher_context_manager(client, table, temp_rows):
+    """
+    test batcher with context manager. Should flush on exit
+    """
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
+    )
+    row_key2, mutation2 = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+
+    async with table.mutations_batcher() as batcher:
+        await batcher.append(bulk_mutation)
+        await batcher.append(bulk_mutation2)
+    # ensure cell is updated
+    assert (await _retrieve_cell_value(table, row_key)) == new_value
+    assert len(batcher._staged_entries) == 0
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutations_batcher_timer_flush(client, table, temp_rows):
+    """
+    batch should occur after flush_interval seconds
+    """
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value = uuid.uuid4().hex.encode()
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    flush_interval = 0.1
+    async with table.mutations_batcher(flush_interval=flush_interval) as batcher:
+        await batcher.append(bulk_mutation)
+        await asyncio.sleep(0)
+        assert len(batcher._staged_entries) == 1
+        await asyncio.sleep(flush_interval + 0.1)
+        assert len(batcher._staged_entries) == 0
+        # ensure cell is updated
+        assert (await _retrieve_cell_value(table, row_key)) == new_value
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutations_batcher_count_flush(client, table, temp_rows):
+    """
+    batch should flush after flush_limit_mutation_count mutations
+    """
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    row_key2, mutation2 = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+
+    async with table.mutations_batcher(flush_limit_mutation_count=2) as batcher:
+        await batcher.append(bulk_mutation)
+        assert len(batcher._flush_jobs) == 0
+        # should be noop; flush not scheduled
+        assert len(batcher._staged_entries) == 1
+        await batcher.append(bulk_mutation2)
+        # task should now be scheduled
+        assert len(batcher._flush_jobs) == 1
+        await asyncio.gather(*batcher._flush_jobs)
+        assert len(batcher._staged_entries) == 0
+        assert len(batcher._flush_jobs) == 0
+        # ensure cells were updated
+        assert (await _retrieve_cell_value(table, row_key)) == new_value
+        assert (await _retrieve_cell_value(table, row_key2)) == new_value2
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
+    """
+    batch should flush after flush_limit_bytes bytes
+    """
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value, new_value2 = [uuid.uuid4().hex.encode() for _ in range(2)]
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    row_key2, mutation2 = await _create_row_and_mutation(
+        table, temp_rows, new_value=new_value2
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+
+    flush_limit = bulk_mutation.size() + bulk_mutation2.size() - 1
+
+    async with table.mutations_batcher(flush_limit_bytes=flush_limit) as batcher:
+        await batcher.append(bulk_mutation)
+        assert len(batcher._flush_jobs) == 0
+        assert len(batcher._staged_entries) == 1
+        await batcher.append(bulk_mutation2)
+        # task should now be scheduled
+        assert len(batcher._flush_jobs) == 1
+        assert len(batcher._staged_entries) == 0
+        # let flush complete
+        await asyncio.gather(*batcher._flush_jobs)
+        # ensure cells were updated
+        assert (await _retrieve_cell_value(table, row_key)) == new_value
+        assert (await _retrieve_cell_value(table, row_key2)) == new_value2
+
+
+@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@pytest.mark.asyncio
+async def test_mutations_batcher_no_flush(client, table, temp_rows):
+    """
+    test with no flush requirements met
+    """
+    from google.cloud.bigtable.mutations import RowMutationEntry
+
+    new_value = uuid.uuid4().hex.encode()
+    start_value = b"unchanged"
+    row_key, mutation = await _create_row_and_mutation(
+        table, temp_rows, start_value=start_value, new_value=new_value
+    )
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+    row_key2, mutation2 = await _create_row_and_mutation(
+        table, temp_rows, start_value=start_value, new_value=new_value
+    )
+    bulk_mutation2 = RowMutationEntry(row_key2, [mutation2])
+
+    size_limit = bulk_mutation.size() + bulk_mutation2.size() + 1
+    async with table.mutations_batcher(
+        flush_limit_bytes=size_limit, flush_limit_mutation_count=3, flush_interval=1
+    ) as batcher:
+        await batcher.append(bulk_mutation)
+        assert len(batcher._staged_entries) == 1
+        await batcher.append(bulk_mutation2)
+        # flush not scheduled
+        assert len(batcher._flush_jobs) == 0
+        await asyncio.sleep(0.01)
+        assert len(batcher._staged_entries) == 2
+        assert len(batcher._flush_jobs) == 0
+        # ensure cells were not updated
+        assert (await _retrieve_cell_value(table, row_key)) == start_value
+        assert (await _retrieve_cell_value(table, row_key2)) == start_value
 
 
 @pytest.mark.parametrize(
