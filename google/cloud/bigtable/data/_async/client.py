@@ -58,6 +58,7 @@ from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -340,14 +341,18 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
-    # TODO: revisit timeouts https://github.com/googleapis/python-bigtable/issues/782
     def get_table(
         self,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
-        default_operation_timeout: float = 600,
-        default_per_request_timeout: float | None = None,
+        *,
+        default_read_rows_operation_timeout: float = 600,
+        default_read_rows_attempt_timeout: float | None = None,
+        default_mutate_rows_operation_timeout: float = 600,
+        default_mutate_rows_attempt_timeout: float | None = None,
+        default_operation_timeout: float = 60,
+        default_attempt_timeout: float | None = None,
     ) -> TableAsync:
         """
         Returns a table instance for making data API requests
@@ -366,7 +371,7 @@ class BigtableDataClientAsync(ClientWithProject):
             table_id,
             app_profile_id,
             default_operation_timeout=default_operation_timeout,
-            default_per_request_timeout=default_per_request_timeout,
+            default_attempt_timeout=default_attempt_timeout,
         )
 
     async def __aenter__(self):
@@ -393,8 +398,12 @@ class TableAsync:
         table_id: str,
         app_profile_id: str | None = None,
         *,
-        default_operation_timeout: float = 600,
-        default_per_request_timeout: float | None = None,
+        default_read_rows_operation_timeout: float = 600,
+        default_read_rows_attempt_timeout: float | None = None,
+        default_mutate_rows_operation_timeout: float = 600,
+        default_mutate_rows_attempt_timeout: float | None = None,
+        default_operation_timeout: float = 60,
+        default_attempt_timeout: float | None = None,
     ):
         """
         Initialize a Table instance
@@ -410,23 +419,26 @@ class TableAsync:
             app_profile_id: (Optional) The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
             default_operation_timeout: (Optional) The default timeout, in seconds
-            default_per_request_timeout: (Optional) The default timeout for individual
+            default_attempt_timeout: (Optional) The default timeout for individual
                 rpc requests, in seconds
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
         # validate timeouts
-        if default_operation_timeout <= 0:
-            raise ValueError("default_operation_timeout must be greater than 0")
-        if default_per_request_timeout is not None and default_per_request_timeout <= 0:
-            raise ValueError("default_per_request_timeout must be greater than 0")
-        if (
-            default_per_request_timeout is not None
-            and default_per_request_timeout > default_operation_timeout
-        ):
-            raise ValueError(
-                "default_per_request_timeout must be less than default_operation_timeout"
-            )
+        _validate_timeouts(
+            default_operation_timeout, default_attempt_timeout, allow_none=True
+        )
+        _validate_timeouts(
+            default_read_rows_operation_timeout,
+            default_read_rows_attempt_timeout,
+            allow_none=True,
+        )
+        _validate_timeouts(
+            default_mutate_rows_operation_timeout,
+            default_mutate_rows_attempt_timeout,
+            allow_none=True,
+        )
+
         self.client = client
         self.instance_id = instance_id
         self.instance_name = self.client._gapic_client.instance_path(
@@ -439,7 +451,13 @@ class TableAsync:
         self.app_profile_id = app_profile_id
 
         self.default_operation_timeout = default_operation_timeout
-        self.default_per_request_timeout = default_per_request_timeout
+        self.default_attempt_timeout = default_attempt_timeout
+        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
+        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
+        self.default_mutate_rows_operation_timeout = (
+            default_mutate_rows_operation_timeout
+        )
+        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
@@ -456,24 +474,24 @@ class TableAsync:
         query: ReadRowsQuery | dict[str, Any],
         *,
         operation_timeout: float | None = None,
-        per_request_timeout: float | None = None,
+        attempt_timeout: float | None = None,
     ) -> ReadRowsIteratorAsync:
         """
+        Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
 
-        Failed requests within operation_timeout and operation_deadline policies will be retried.
+        Failed requests within operation_timeout will be retried.
 
         Args:
             - query: contains details about which rows to return
             - operation_timeout: the time budget for the entire operation, in seconds.
                  Failed requests will be retried within the budget.
-                 time is only counted while actively waiting on the network.
-                 If None, defaults to the Table's default_operation_timeout
-            - per_request_timeout: the time budget for an individual network request, in seconds.
+                 If None, defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
                 If it takes longer than this time to complete, the request will be cancelled with
                 a DeadlineExceeded exception, and a retry will be attempted.
-                If None, defaults to the Table's default_per_request_timeout
-
+                If None, defaults to the Table's default_read_rows_attempt_timeout,
+                or the operation_timeout if that is also None.
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -484,34 +502,31 @@ class TableAsync:
             - IdleTimeout: if iterator was abandoned
         """
 
-        operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        operation_timeout = (
+            operation_timeout or self.default_read_rows_operation_timeout
+        )
+        attempt_timeout = (
+            attempt_timeout
+            or self.default_read_rows_attempt_timeout
+            or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
 
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError(
-                "per_request_timeout must not be greater than operation_timeout"
-            )
-        if per_request_timeout is None:
-            per_request_timeout = operation_timeout
         request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
         request["table_name"] = self.table_name
         if self.app_profile_id:
             request["app_profile_id"] = self.app_profile_id
 
         # read_rows smart retries is implemented using a series of iterators:
-        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
+        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has attempt_timeout
         # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
-        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_request_timeout
+        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, attempt_timeout
         # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
         row_merger = _ReadRowsOperationAsync(
             request,
             self.client._gapic_client,
             operation_timeout=operation_timeout,
-            per_request_timeout=per_request_timeout,
+            attempt_timeout=attempt_timeout,
         )
         output_generator = ReadRowsIteratorAsync(row_merger)
         # add idle timeout to clear resources if generator is abandoned
@@ -524,20 +539,37 @@ class TableAsync:
         query: ReadRowsQuery | dict[str, Any],
         *,
         operation_timeout: float | None = None,
-        per_request_timeout: float | None = None,
+        attempt_timeout: float | None = None,
     ) -> list[Row]:
         """
-        Helper function that returns a full list instead of a generator
+        Read a set of rows from the table, based on the specified query.
+        Retruns results as a list of Row objects when the request is complete.
+        For streamed results, use read_rows_stream.
 
-        See read_rows_stream
+        Failed requests within operation_timeout and operation_deadline policies will be retried.
 
+        Args:
+            - query: contains details about which rows to return
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 If None, defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_read_rows_attempt_timeout,
+                or the operation_timeout if that is also None.
         Returns:
-            - a list of the rows returned by the query
+            - a list of Rows returned by the query
+        Raises:
+            - DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         row_generator = await self.read_rows_stream(
             query,
             operation_timeout=operation_timeout,
-            per_request_timeout=per_request_timeout,
+            attempt_timeout=attempt_timeout,
         )
         results = [row async for row in row_generator]
         return results
@@ -547,18 +579,31 @@ class TableAsync:
         row_key: str | bytes,
         *,
         row_filter: RowFilter | None = None,
-        operation_timeout: int | float | None = 60,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: int | float | None = None,
+        attempt_timeout: int | float | None = None,
     ) -> Row | None:
         """
-        Helper function to return a single row
+        Read a single row from the table, based on the specified key.
 
-        See read_rows_stream
+        Failed requests within operation_timeout and operation_deadline policies will be retried.
 
-        Raises:
-            - google.cloud.bigtable.data.exceptions.RowNotFound: if the row does not exist
+        Args:
+            - query: contains details about which rows to return
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 If None, defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
+                if that is also None.
         Returns:
-            - the individual row requested, or None if it does not exist
+            - a Row object if the row exists, otherwise None
+        Raises:
+            - DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
@@ -566,7 +611,7 @@ class TableAsync:
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
-            per_request_timeout=per_request_timeout,
+            attempt_timeout=attempt_timeout,
         )
         if len(results) == 0:
             return None
@@ -577,7 +622,7 @@ class TableAsync:
         sharded_query: ShardedQuery,
         *,
         operation_timeout: int | float | None = None,
-        per_request_timeout: int | float | None = None,
+        attempt_timeout: int | float | None = None,
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -594,6 +639,14 @@ class TableAsync:
 
         Args:
             - sharded_query: a sharded query to execute
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 If None, defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
+                if that is also None.
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
@@ -601,10 +654,15 @@ class TableAsync:
         if not sharded_query:
             raise ValueError("empty sharded_query")
         # reduce operation_timeout between batches
-        operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = (
-            per_request_timeout or self.default_per_request_timeout or operation_timeout
+        operation_timeout = (
+            operation_timeout or self.default_read_rows_operation_timeout
         )
+        attempt_timeout = (
+            attempt_timeout
+            or self.default_read_rows_attempt_timeout
+            or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
         timeout_generator = _attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
@@ -623,9 +681,7 @@ class TableAsync:
                 self.read_rows(
                     query,
                     operation_timeout=batch_operation_timeout,
-                    per_request_timeout=min(
-                        per_request_timeout, batch_operation_timeout
-                    ),
+                    attempt_timeout=min(attempt_timeout, batch_operation_timeout),
                 )
                 for query in batch
             ]
@@ -652,19 +708,33 @@ class TableAsync:
         self,
         row_key: str | bytes,
         *,
-        operation_timeout: int | float | None = 60,
-        per_request_timeout: int | float | None = None,
+        operation_timeout: int | float | None = None,
+        attempt_timeout: int | float | None = None,
     ) -> bool:
         """
-        Helper function to determine if a row exists
-
+        Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
-
+        Args:
+            - row_key: the key of the row to check
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 If None, defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
+                if that is also None.
         Returns:
             - a bool indicating whether the row exists
+        Raises:
+            - DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
+
         strip_filter = StripValueTransformerFilter(flag=True)
         limit_filter = CellsRowLimitFilter(1)
         chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
@@ -672,7 +742,7 @@ class TableAsync:
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
-            per_request_timeout=per_request_timeout,
+            attempt_timeout=attempt_timeout,
         )
         return len(results) > 0
 
@@ -680,7 +750,7 @@ class TableAsync:
         self,
         *,
         operation_timeout: float | None = None,
-        per_request_timeout: float | None = None,
+        attempt_timeout: float | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -693,25 +763,32 @@ class TableAsync:
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
 
+        Args:
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                If None, defaults to the Table's default_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_attempt_timeout, or the operation_timeout
+                if that is also None.
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - GoogleAPICallError: if the sample_row_keys request fails
+            - DeadlineExceeded: raised after operation timeout
+                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                from any retries that failed
+            - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         # prepare timeouts
         operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
+        attempt_timeout = (
+            attempt_timeout or self.default_attempt_timeout or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
 
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError(
-                "per_request_timeout must not be greater than operation_timeout"
-            )
         attempt_timeout_gen = _attempt_timeout_generator(
-            per_request_timeout, operation_timeout
+            attempt_timeout, operation_timeout
         )
         # prepare retryable
         predicate = retries.if_exception_type(
@@ -761,7 +838,7 @@ class TableAsync:
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
-        batch_per_request_timeout: float | None = None,
+        batch_attempt_timeout: float | None = None,
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -778,9 +855,10 @@ class TableAsync:
           - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
           - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
-              table default_operation_timeout will be used
-          - batch_per_request_timeout: timeout for each individual request, in seconds. If None,
-              table default_per_request_timeout will be used
+              table default_mutate_rows_operation_timeout will be used
+          - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
+              table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
+              if that is also None.
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
@@ -792,7 +870,7 @@ class TableAsync:
             flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=batch_operation_timeout,
-            batch_per_request_timeout=batch_per_request_timeout,
+            batch_attempt_timeout=batch_attempt_timeout,
         )
 
     async def mutate_row(
@@ -800,8 +878,8 @@ class TableAsync:
         row_key: str | bytes,
         mutations: list[Mutation] | Mutation,
         *,
-        operation_timeout: float | None = 60,
-        per_request_timeout: float | None = None,
+        operation_timeout: float | None = None,
+        attempt_timeout: float | None = None,
     ):
         """
          Mutates a row atomically.
@@ -815,15 +893,14 @@ class TableAsync:
          Args:
              - row_key: the row to apply mutations to
              - mutations: the set of mutations to apply to the row
-             - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 time is only counted while actively waiting on the network.
-                 DeadlineExceeded exception raised after timeout
-             - per_request_timeout: the time budget for an individual network request,
-               in seconds. If it takes longer than this time to complete, the request
-               will be cancelled with a DeadlineExceeded exception, and a retry will be
-               attempted if within operation_timeout budget
-
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                Failed requests will be retried within the budget.
+                If None, defaults to the Table's default_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_attempt_timeout, or the operation_timeout
+                if that is also None.
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -832,14 +909,10 @@ class TableAsync:
                  safely retried.
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
-
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
+        attempt_timeout = (
+            attempt_timeout or self.default_attempt_timeout or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
 
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")
@@ -883,14 +956,16 @@ class TableAsync:
         )
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
-        await deadline_wrapped(request, timeout=per_request_timeout, metadata=metadata)
+        await deadline_wrapped(
+            request, timeout=attempt_timeout, metadata=metadata, retry=None
+        )
 
     async def bulk_mutate_rows(
         self,
         mutation_entries: list[RowMutationEntry],
         *,
-        operation_timeout: float | None = 60,
-        per_request_timeout: float | None = None,
+        operation_timeout: float | None = None,
+        attempt_timeout: float | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -910,32 +985,32 @@ class TableAsync:
                 in arbitrary order
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will be retried within the budget.
-                time is only counted while actively waiting on the network.
-                DeadlineExceeded exception raised after timeout
-            - per_request_timeout: the time budget for an individual network request,
-                in seconds. If it takes longer than this time to complete, the request
-                will be cancelled with a DeadlineExceeded exception, and a retry will
-                be attempted if within operation_timeout budget
+                If None, defaults to the Table's default_mutate_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                If None, defaults to the Table's default_mutate_rows_attempt_timeout,
+                or the operation_timeout if that is also None.
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
         """
-        operation_timeout = operation_timeout or self.default_operation_timeout
-        per_request_timeout = per_request_timeout or self.default_per_request_timeout
-
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout <= 0:
-            raise ValueError("per_request_timeout must be greater than 0")
-        if per_request_timeout is not None and per_request_timeout > operation_timeout:
-            raise ValueError("per_request_timeout must be less than operation_timeout")
+        operation_timeout = (
+            operation_timeout or self.default_mutate_rows_operation_timeout
+        )
+        attempt_timeout = (
+            attempt_timeout
+            or self.default_mutate_rows_attempt_timeout
+            or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
             self,
             mutation_entries,
             operation_timeout,
-            per_request_timeout,
+            attempt_timeout,
         )
         await operation.start()
 
@@ -946,7 +1021,7 @@ class TableAsync:
         *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: int | float | None = 20,
+        operation_timeout: int | float | None = None,
     ) -> bool:
         """
         Mutates a row atomically based on the output of a predicate filter
@@ -974,7 +1049,8 @@ class TableAsync:
                 ones. Must contain at least one entry if
                 `true_case_mutations is empty, and at most 100000.
             - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will not be retried.
+                Failed requests will not be retried. Defaults to the Table's default_operation_timeout
+                if None.
         Returns:
             - bool indicating whether the predicate was true or false
         Raises:
@@ -1016,7 +1092,7 @@ class TableAsync:
         row_key: str | bytes,
         rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
         *,
-        operation_timeout: int | float | None = 20,
+        operation_timeout: int | float | None = None,
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -1033,7 +1109,8 @@ class TableAsync:
                 Rules are applied in order, meaning that earlier rules will affect the
                 results of later ones.
            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will not be retried.
+                Failed requests will not be retried. Defaults to the Table's default_operation_timeout
+                if None.
         Returns:
             - Row: containing cell data that was modified as part of the
                 operation

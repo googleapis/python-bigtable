@@ -288,8 +288,8 @@ class TestMutationsBatcherAsync:
     def _make_one(self, table=None, **kwargs):
         if table is None:
             table = mock.Mock()
-            table.default_operation_timeout = 10
-            table.default_per_request_timeout = 10
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 10
 
         return self._get_target_class()(table, **kwargs)
 
@@ -300,8 +300,8 @@ class TestMutationsBatcherAsync:
     async def test_ctor_defaults(self, flush_timer_mock):
         flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
-        table.default_operation_timeout = 10
-        table.default_per_request_timeout = 8
+        table.default_mutate_rows_operation_timeout = 10
+        table.default_mutate_rows_attempt_timeout = 8
         async with self._make_one(table) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -316,8 +316,13 @@ class TestMutationsBatcherAsync:
             assert instance._flow_control._in_flight_mutation_count == 0
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
-            assert instance._operation_timeout == table.default_operation_timeout
-            assert instance._per_request_timeout == table.default_per_request_timeout
+            assert (
+                instance._operation_timeout
+                == table.default_mutate_rows_operation_timeout
+            )
+            assert (
+                instance._attempt_timeout == table.default_mutate_rows_attempt_timeout
+            )
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == 5
@@ -337,7 +342,7 @@ class TestMutationsBatcherAsync:
         flow_control_max_mutation_count = 1001
         flow_control_max_bytes = 12
         operation_timeout = 11
-        per_request_timeout = 2
+        attempt_timeout = 2
         async with self._make_one(
             table,
             flush_interval=flush_interval,
@@ -346,7 +351,7 @@ class TestMutationsBatcherAsync:
             flow_control_max_mutation_count=flow_control_max_mutation_count,
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=operation_timeout,
-            batch_per_request_timeout=per_request_timeout,
+            batch_attempt_timeout=attempt_timeout,
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -365,7 +370,7 @@ class TestMutationsBatcherAsync:
             assert instance._flow_control._in_flight_mutation_bytes == 0
             assert instance._entries_processed_since_last_raise == 0
             assert instance._operation_timeout == operation_timeout
-            assert instance._per_request_timeout == per_request_timeout
+            assert instance._attempt_timeout == attempt_timeout
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == flush_interval
@@ -379,8 +384,8 @@ class TestMutationsBatcherAsync:
         """Test with None for flush limits"""
         flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
         table = mock.Mock()
-        table.default_operation_timeout = 10
-        table.default_per_request_timeout = 8
+        table.default_mutate_rows_operation_timeout = 10
+        table.default_mutate_rows_attempt_timeout = 8
         flush_interval = None
         flush_limit_count = None
         flush_limit_bytes = None
@@ -410,15 +415,14 @@ class TestMutationsBatcherAsync:
         """Test that timeout values are positive, and fit within expected limits"""
         with pytest.raises(ValueError) as e:
             self._make_one(batch_operation_timeout=-1)
-        assert "batch_operation_timeout must be greater than 0" in str(e.value)
+        assert "operation_timeout must be greater than 0" in str(e.value)
         with pytest.raises(ValueError) as e:
-            self._make_one(batch_per_request_timeout=-1)
-        assert "batch_per_request_timeout must be greater than 0" in str(e.value)
+            self._make_one(batch_attempt_timeout=-1)
+        assert "attempt_timeout must be greater than 0" in str(e.value)
         with pytest.raises(ValueError) as e:
-            self._make_one(batch_operation_timeout=1, batch_per_request_timeout=2)
-        assert (
-            "batch_per_request_timeout must be less than batch_operation_timeout"
-            in str(e.value)
+            self._make_one(batch_operation_timeout=1, batch_attempt_timeout=2)
+        assert "attempt_timeout must not be greater than operation_timeout" in str(
+            e.value
         )
 
     def test_default_argument_consistency(self):
@@ -857,7 +861,7 @@ class TestMutationsBatcherAsync:
 
         async with self._make_one(flush_interval=0.05) as instance:
             instance._table.default_operation_timeout = 10
-            instance._table.default_per_request_timeout = 9
+            instance._table.default_attempt_timeout = 9
             with mock.patch.object(
                 instance._table.client._gapic_client, "mutate_rows"
             ) as gapic_mock:
@@ -881,8 +885,8 @@ class TestMutationsBatcherAsync:
         table = mock.Mock()
         table.table_name = "test-table"
         table.app_profile_id = "test-app-profile"
-        table.default_operation_timeout = 17
-        table.default_per_request_timeout = 13
+        table.default_mutate_rows_operation_timeout = 17
+        table.default_mutate_rows_attempt_timeout = 13
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
@@ -892,7 +896,7 @@ class TestMutationsBatcherAsync:
             assert args[1] == table
             assert args[2] == batch
             kwargs["operation_timeout"] == 17
-            kwargs["per_request_timeout"] == 13
+            kwargs["attempt_timeout"] == 13
             assert result == []
 
     @pytest.mark.asyncio
@@ -910,8 +914,8 @@ class TestMutationsBatcherAsync:
         err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
         mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
         table = mock.Mock()
-        table.default_operation_timeout = 17
-        table.default_per_request_timeout = 13
+        table.default_mutate_rows_operation_timeout = 17
+        table.default_mutate_rows_attempt_timeout = 13
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
@@ -1026,24 +1030,24 @@ class TestMutationsBatcherAsync:
     )
     async def test_timeout_args_passed(self, mutate_rows):
         """
-        batch_operation_timeout and batch_per_request_timeout should be used
+        batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
         mutate_rows.return_value = AsyncMock()
         expected_operation_timeout = 17
-        expected_per_request_timeout = 13
+        expected_attempt_timeout = 13
         async with self._make_one(
             batch_operation_timeout=expected_operation_timeout,
-            batch_per_request_timeout=expected_per_request_timeout,
+            batch_attempt_timeout=expected_attempt_timeout,
         ) as instance:
             assert instance._operation_timeout == expected_operation_timeout
-            assert instance._per_request_timeout == expected_per_request_timeout
+            assert instance._attempt_timeout == expected_attempt_timeout
             # make simulated gapic call
             await instance._execute_mutate_rows([_make_mutation()])
             assert mutate_rows.call_count == 1
             kwargs = mutate_rows.call_args[1]
             assert kwargs["operation_timeout"] == expected_operation_timeout
-            assert kwargs["per_request_timeout"] == expected_per_request_timeout
+            assert kwargs["attempt_timeout"] == expected_attempt_timeout
 
     @pytest.mark.parametrize(
         "limit,in_e,start_e,end_e",

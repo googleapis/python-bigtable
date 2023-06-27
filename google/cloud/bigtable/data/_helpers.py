@@ -109,3 +109,30 @@ def _convert_retry_deadline(
             handle_error()
 
     return wrapper_async if iscoroutinefunction(func) else wrapper
+
+
+def _validate_timeouts(
+    operation_timeout: float, attempt_timeout: float | None, allow_none: bool = False
+):
+    """
+    Helper function that will verify that timeout values are valid, and raise
+    an exception if they are not.
+
+    Args:
+      - operation_timeout: The timeout value to use for the entire operation, in seconds.
+      - attempt_timeout: The timeout value to use for each attempt, in seconds.
+      - allow_none: If True, attempt_timeout can be None. If False, None values will raise an exception.
+    Raises:
+      - ValueError if operation_timeout or attempt_timeout are invalid.
+    """
+    if operation_timeout <= 0:
+        raise ValueError("operation_timeout must be greater than 0")
+    if not allow_none and attempt_timeout is None:
+        raise ValueError("attempt_timeout must not be None")
+    elif attempt_timeout is not None:
+        if attempt_timeout <= 0:
+            raise ValueError("attempt_timeout must be greater than 0")
+        if attempt_timeout > operation_timeout:
+            raise ValueError(
+                "attempt_timeout must not be greater than operation_timeout"
+            )
