@@ -19,14 +19,14 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
-from google.cloud.bigtable.data.read_modify_write_rules import MAX_INCREMENT_VALUE
+from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
-SERVER_SIDE_TIMESTAMP = -1
+_SERVER_SIDE_TIMESTAMP = -1
 
 
 # mutation entries above this should be rejected
-MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
+_MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
 
 
 class Mutation(ABC):
@@ -112,7 +112,7 @@ class SetCell(Mutation):
         if isinstance(new_value, str):
             new_value = new_value.encode()
         elif isinstance(new_value, int):
-            if abs(new_value) > MAX_INCREMENT_VALUE:
+            if abs(new_value) > _MAX_INCREMENT_VALUE:
                 raise ValueError(
                     "int values must be between -2**63 and 2**63 (64-bit signed int)"
                 )
@@ -123,9 +123,9 @@ class SetCell(Mutation):
             # use current timestamp, with milisecond precision
             timestamp_micros = time.time_ns() // 1000
             timestamp_micros = timestamp_micros - (timestamp_micros % 1000)
-        if timestamp_micros < SERVER_SIDE_TIMESTAMP:
+        if timestamp_micros < _SERVER_SIDE_TIMESTAMP:
             raise ValueError(
-                "timestamp_micros must be positive (or -1 for server-side timestamp)"
+                f"timestamp_micros must be positive (or {_SERVER_SIDE_TIMESTAMP} for server-side timestamp)"
             )
         self.family = family
         self.qualifier = qualifier
@@ -145,7 +145,7 @@ class SetCell(Mutation):
 
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
-        return self.timestamp_micros != SERVER_SIDE_TIMESTAMP
+        return self.timestamp_micros != _SERVER_SIDE_TIMESTAMP
 
 
 @dataclass
@@ -208,9 +208,9 @@ class RowMutationEntry:
             mutations = [mutations]
         if len(mutations) == 0:
             raise ValueError("mutations must not be empty")
-        elif len(mutations) > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+        elif len(mutations) > _MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
             raise ValueError(
-                f"entries must have <= {MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations"
+                f"entries must have <= {_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations"
             )
         self.row_key = row_key
         self.mutations = tuple(mutations)

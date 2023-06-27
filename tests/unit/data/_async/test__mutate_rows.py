@@ -119,14 +119,14 @@ class TestMutateRowsOperation:
         should raise an error if an operation is created with more than 100,000 entries
         """
         from google.cloud.bigtable.data._async._mutate_rows import (
-            MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+            _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
         )
 
-        assert MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100_000
+        assert _MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100_000
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation()] * MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+        entries = [_make_mutation()] * _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
         operation_timeout = 0.05
         attempt_timeout = 0.01
         # no errors if at limit

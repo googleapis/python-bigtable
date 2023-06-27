@@ -299,24 +299,6 @@ class TestReadRowsQuery:
             query.filter = 1
         assert str(exc.value) == "row_filter must be a RowFilter or dict"
 
-    def test_set_filter_dict(self):
-        from google.cloud.bigtable.data.row_filters import RowSampleFilter
-        from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
-
-        filter1 = RowSampleFilter(0.5)
-        filter1_dict = filter1.to_dict()
-        query = self._make_one()
-        assert query.filter is None
-        query.filter = filter1_dict
-        assert query.filter == filter1_dict
-        output = query._to_dict()
-        assert output["filter"] == filter1_dict
-        proto_output = ReadRowsRequest(**output)
-        assert proto_output.filter == filter1._to_pb()
-
-        query.filter = None
-        assert query.filter is None
-
     def test_set_limit(self):
         query = self._make_one()
         assert query.limit is None

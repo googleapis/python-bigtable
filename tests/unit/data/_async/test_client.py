@@ -1788,12 +1788,12 @@ class TestReadRowsSharded:
         operation timeout should change between batches
         """
         from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.client import CONCURRENCY_LIMIT
+        from google.cloud.bigtable.data._async.client import _CONCURRENCY_LIMIT
 
-        assert CONCURRENCY_LIMIT == 10  # change this test if this changes
+        assert _CONCURRENCY_LIMIT == 10  # change this test if this changes
 
         n_queries = 90
-        expected_num_batches = n_queries // CONCURRENCY_LIMIT
+        expected_num_batches = n_queries // _CONCURRENCY_LIMIT
         query_list = [ReadRowsQuery() for _ in range(n_queries)]
 
         table_mock = AsyncMock()
@@ -1817,8 +1817,8 @@ class TestReadRowsSharded:
                 for batch_idx in range(expected_num_batches):
                     batch_kwargs = kwargs[
                         batch_idx
-                        * CONCURRENCY_LIMIT : (batch_idx + 1)
-                        * CONCURRENCY_LIMIT
+                        * _CONCURRENCY_LIMIT : (batch_idx + 1)
+                        * _CONCURRENCY_LIMIT
                     ]
                     for req_kwargs in batch_kwargs:
                         # each batch should have the same operation_timeout, and it should decrease in each batch
@@ -2692,6 +2692,8 @@ class TestCheckAndMutateRow:
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
 
         mock_predicate = mock.Mock()
+        predicate_dict = {"predicate": "dict"}
+        mock_predicate._to_dict.return_value = predicate_dict
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
@@ -2706,7 +2708,8 @@ class TestCheckAndMutateRow:
                         false_case_mutations=[mock.Mock()],
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["request"]["predicate_filter"] == mock_predicate
+                    assert kwargs["request"]["predicate_filter"] == predicate_dict
+                    assert mock_predicate._to_dict.call_count == 1
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_mutations_parsing(self):

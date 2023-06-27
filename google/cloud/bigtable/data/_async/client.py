@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data import ShardedQuery
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
-CONCURRENCY_LIMIT = 10
+_CONCURRENCY_LIMIT = 10
 
 # used to register instance data with the client for channel warming
 _WarmedInstanceKey = namedtuple(
@@ -608,10 +608,10 @@ class TableAsync:
         timeout_generator = _attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
-        # submit shards in batches if the number of shards goes over CONCURRENCY_LIMIT
+        # submit shards in batches if the number of shards goes over _CONCURRENCY_LIMIT
         batched_queries = [
-            sharded_query[i : i + CONCURRENCY_LIMIT]
-            for i in range(0, len(sharded_query), CONCURRENCY_LIMIT)
+            sharded_query[i : i + _CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), _CONCURRENCY_LIMIT)
         ]
         # run batches and collect results
         results_list = []
@@ -997,7 +997,7 @@ class TableAsync:
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
             request={
-                "predicate_filter": predicate,
+                "predicate_filter": predicate._to_dict() if predicate is not None else None,
                 "true_mutations": true_case_dict,
                 "false_mutations": false_case_dict,
                 "table_name": self.table_name,

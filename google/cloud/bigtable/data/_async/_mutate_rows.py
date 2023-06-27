@@ -25,7 +25,7 @@ from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
 # mutate_rows requests are limited to this number of mutations
-from google.cloud.bigtable.data.mutations import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -65,10 +65,10 @@ class _MutateRowsOperationAsync:
         """
         # check that mutations are within limits
         total_mutations = sum(len(entry.mutations) for entry in mutation_entries)
-        if total_mutations > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+        if total_mutations > _MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
             raise ValueError(
                 "mutate_rows requests can contain at most "
-                f"{MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
+                f"{_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
                 f"all entries. Found {total_mutations}."
             )
         # create partial function to pass to trigger rpc call

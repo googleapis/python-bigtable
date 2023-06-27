@@ -507,12 +507,12 @@ class TestRowMutationEntry:
     def test_ctor_over_limit(self):
         """Should raise error if mutations exceed MAX_MUTATIONS_PER_ENTRY"""
         from google.cloud.bigtable.data.mutations import (
-            MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+            _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
         )
 
-        assert MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100_000
+        assert _MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100_000
         # no errors at limit
-        expected_mutations = [None for _ in range(MUTATE_ROWS_REQUEST_MUTATION_LIMIT)]
+        expected_mutations = [None for _ in range(_MUTATE_ROWS_REQUEST_MUTATION_LIMIT)]
         self._make_one(b"row_key", expected_mutations)
         # error if over limit
         with pytest.raises(ValueError) as e:
