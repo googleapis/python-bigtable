@@ -348,7 +348,10 @@ class ReadRowsAsyncIterator(AsyncIterable[Row]):
         while self.active:
             next_timeout = self._last_interaction_time + idle_timeout
             await asyncio.sleep(next_timeout - time.monotonic())
-            if self._last_interaction_time + idle_timeout < time.monotonic() and self.active:
+            if (
+                self._last_interaction_time + idle_timeout < time.monotonic()
+                and self.active
+            ):
                 # idle timeout has expired
                 await self._finish_with_error(
                     IdleTimeout(

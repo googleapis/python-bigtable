@@ -35,6 +35,15 @@ from google.cloud.bigtable.data.mutations import DeleteRangeFromColumn
 from google.cloud.bigtable.data.mutations import DeleteAllFromFamily
 from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 
+from google.cloud.bigtable.data.exceptions import IdleTimeout
+from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data.exceptions import FailedQueryShardError
+
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+
 # Type alias for the output of sample_keys
 RowKeySamples = List[Tuple[bytes, int]]
 # type alias for the output of query.shard()
@@ -58,4 +67,12 @@ __all__ = (
     "Row",
     "Cell",
     "ReadRowsAsyncIterator",
+    "IdleTimeout",
+    "InvalidChunk",
+    "FailedMutationEntryError",
+    "FailedQueryShardError",
+    "RetryExceptionGroup",
+    "MutationsExceptionGroup",
+    "ShardedReadRowsExceptionGroup",
+    "ShardedQuery",
 )
