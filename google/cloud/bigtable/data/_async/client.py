@@ -546,7 +546,7 @@ class TableAsync:
         Retruns results as a list of Row objects when the request is complete.
         For streamed results, use read_rows_stream.
 
-        Failed requests within operation_timeout and operation_deadline policies will be retried.
+        Failed requests within operation_timeout will be retried.
 
         Args:
             - query: contains details about which rows to return
@@ -585,7 +585,7 @@ class TableAsync:
         """
         Read a single row from the table, based on the specified key.
 
-        Failed requests within operation_timeout and operation_deadline policies will be retried.
+        Failed requests within operation_timeout will be retried.
 
         Args:
             - query: contains details about which rows to return
@@ -891,8 +891,8 @@ class TableAsync:
          retried on server failure. Non-idempotent operations will not.
 
          Args:
-             - row_key: the row to apply mutations to
-             - mutations: the set of mutations to apply to the row
+            - row_key: the row to apply mutations to
+            - mutations: the set of mutations to apply to the row
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will be retried within the budget.
                 If None, defaults to the Table's default_operation_timeout
@@ -1108,7 +1108,7 @@ class TableAsync:
             - rules: A rule or set of rules to apply to the row.
                 Rules are applied in order, meaning that earlier rules will affect the
                 results of later ones.
-           - operation_timeout: the time budget for the entire operation, in seconds.
+            - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried. Defaults to the Table's default_operation_timeout
                 if None.
         Returns:
