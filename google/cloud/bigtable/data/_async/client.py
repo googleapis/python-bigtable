@@ -153,7 +153,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         try:
-            self.start_background_channel_refresh()
+            self._start_background_channel_refresh()
         except RuntimeError:
             warnings.warn(
                 f"{self.__class__.__name__} should be started in an "
@@ -162,7 +162,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 stacklevel=2,
             )
 
-    def start_background_channel_refresh(self) -> None:
+    def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm each channel in the pool
         Raises:
@@ -308,7 +308,7 @@ class BigtableDataClientAsync(ClientWithProject):
                     await self._ping_and_warm_instances(channel, instance_key)
             else:
                 # refresh tasks aren't active. start them as background tasks
-                self.start_background_channel_refresh()
+                self._start_background_channel_refresh()
 
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync
@@ -370,7 +370,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
 
     async def __aenter__(self):
-        self.start_background_channel_refresh()
+        self._start_background_channel_refresh()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

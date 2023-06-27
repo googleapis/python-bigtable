@@ -131,7 +131,7 @@ class TestBigtableDataClientAsync:
             assert called_options.api_endpoint == "foo.bar:1234"
             assert isinstance(called_options, ClientOptions)
         with mock.patch.object(
-            self._get_target_class(), "start_background_channel_refresh"
+            self._get_target_class(), "_start_background_channel_refresh"
         ) as start_background_refresh:
             client = self._make_one(client_options=client_options)
             start_background_refresh.assert_called_once()
@@ -231,29 +231,29 @@ class TestBigtableDataClientAsync:
             await client.close()
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test_start_background_channel_refresh_sync(self):
+    def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
         client = self._make_one(project="project-id")
         with pytest.raises(RuntimeError):
-            client.start_background_channel_refresh()
+            client._start_background_channel_refresh()
 
     @pytest.mark.asyncio
-    async def test_start_background_channel_refresh_tasks_exist(self):
+    async def test__start_background_channel_refresh_tasks_exist(self):
         # if tasks exist, should do nothing
         client = self._make_one(project="project-id")
         with mock.patch.object(asyncio, "create_task") as create_task:
-            client.start_background_channel_refresh()
+            client._start_background_channel_refresh()
             create_task.assert_not_called()
         await client.close()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
-    async def test_start_background_channel_refresh(self, pool_size):
+    async def test__start_background_channel_refresh(self, pool_size):
         # should create background tasks for each channel
         client = self._make_one(project="project-id", pool_size=pool_size)
         ping_and_warm = AsyncMock()
         client._ping_and_warm_instances = ping_and_warm
-        client.start_background_channel_refresh()
+        client._start_background_channel_refresh()
         assert len(client._channel_refresh_tasks) == pool_size
         for task in client._channel_refresh_tasks:
             assert isinstance(task, asyncio.Task)
@@ -267,7 +267,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
     )
-    async def test_start_background_channel_refresh_tasks_names(self):
+    async def test__start_background_channel_refresh_tasks_names(self):
         # if tasks exist, should do nothing
         pool_size = 3
         client = self._make_one(project="project-id", pool_size=pool_size)
@@ -569,7 +569,7 @@ class TestBigtableDataClientAsync:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = (
+        client_mock._start_background_channel_refresh.side_effect = (
             lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
         )
         mock_channels = [mock.Mock() for i in range(5)]
@@ -580,7 +580,7 @@ class TestBigtableDataClientAsync:
             client_mock, "instance-1", table_mock
         )
         # first call should start background refresh
-        assert client_mock.start_background_channel_refresh.call_count == 1
+        assert client_mock._start_background_channel_refresh.call_count == 1
         # ensure active_instances and instance_owners were updated properly
         expected_key = (
             "prefix/instance-1",
@@ -593,12 +593,12 @@ class TestBigtableDataClientAsync:
         assert expected_key == tuple(list(instance_owners)[0])
         # should be a new task set
         assert client_mock._channel_refresh_tasks
-        # # next call should not call start_background_channel_refresh again
+        # # next call should not call _start_background_channel_refresh again
         table_mock2 = mock.Mock()
         await self._get_target_class()._register_instance(
             client_mock, "instance-2", table_mock2
         )
-        assert client_mock.start_background_channel_refresh.call_count == 1
+        assert client_mock._start_background_channel_refresh.call_count == 1
         # but it should call ping and warm with new instance key
         assert client_mock._ping_and_warm_instances.call_count == len(mock_channels)
         for channel in mock_channels:
@@ -655,7 +655,7 @@ class TestBigtableDataClientAsync:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = (
+        client_mock._start_background_channel_refresh.side_effect = (
             lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
         )
         mock_channels = [mock.Mock() for i in range(5)]
