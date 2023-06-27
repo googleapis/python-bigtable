@@ -429,16 +429,16 @@ class MockStream(_ReadRowsOperationAsync):
         pass
 
 
-class TestReadRowsIteratorAsync:
+class TestReadRowsAsyncIterator:
     async def mock_stream(self, size=10):
         for i in range(size):
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable.data._async._read_rows import ReadRowsIteratorAsync
+        from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 
         stream = MockStream(*args, **kwargs)
-        return ReadRowsIteratorAsync(stream)
+        return ReadRowsAsyncIterator(stream)
 
     def test_ctor(self):
         with mock.patch("time.monotonic", return_value=0):

@@ -291,7 +291,7 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             raise InvalidChunk("read_rows completed with partial state remaining")
 
 
-class ReadRowsIteratorAsync(AsyncIterable[Row]):
+class ReadRowsAsyncIterator(AsyncIterable[Row]):
     """
     Async iterator for ReadRows responses.
 
