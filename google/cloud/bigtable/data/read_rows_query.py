@@ -136,7 +136,7 @@ class ReadRowsQuery:
         row_keys: list[str | bytes] | str | bytes | None = None,
         row_ranges: list[RowRange] | RowRange | None = None,
         limit: int | None = None,
-        row_filter: RowFilter | dict[str, Any] | None = None,
+        row_filter: RowFilter | None = None,
     ):
         """
         Create a new ReadRowsQuery
@@ -162,7 +162,7 @@ class ReadRowsQuery:
             for k in row_keys:
                 self.add_key(k)
         self.limit: int | None = limit
-        self.filter: RowFilter | dict[str, Any] | None = row_filter
+        self.filter: RowFilter | None = row_filter
 
     @property
     def limit(self) -> int | None:
@@ -187,11 +187,11 @@ class ReadRowsQuery:
         self._limit = new_limit
 
     @property
-    def filter(self) -> RowFilter | dict[str, Any] | None:
+    def filter(self) -> RowFilter | None:
         return self._filter
 
     @filter.setter
-    def filter(self, row_filter: RowFilter | dict[str, Any] | None):
+    def filter(self, row_filter: RowFilter | None):
         """
         Set a RowFilter to apply to this query
 

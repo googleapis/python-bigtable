@@ -2688,12 +2688,10 @@ class TestCheckAndMutateRow:
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_predicate_object(self):
-        """predicate object should be converted to dict"""
+        """predicate filter should be passed to gapic request"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
 
         mock_predicate = mock.Mock()
-        fake_dict = {"fake": "dict"}
-        mock_predicate.to_dict.return_value = fake_dict
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
@@ -2708,8 +2706,7 @@ class TestCheckAndMutateRow:
                         false_case_mutations=[mock.Mock()],
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["request"]["predicate_filter"] == fake_dict
-                    assert mock_predicate.to_dict.call_count == 1
+                    assert kwargs["request"]["predicate_filter"] == mock_predicate
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_mutations_parsing(self):

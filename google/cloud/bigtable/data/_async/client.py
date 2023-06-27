@@ -453,7 +453,7 @@ class TableAsync:
 
     async def read_rows_stream(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
@@ -521,7 +521,7 @@ class TableAsync:
 
     async def read_rows(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
@@ -942,7 +942,7 @@ class TableAsync:
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
-        predicate: RowFilter | dict[str, Any] | None,
+        predicate: RowFilter | None,
         *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
@@ -994,8 +994,6 @@ class TableAsync:
         ):
             false_case_mutations = [false_case_mutations]
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
-        if predicate is not None and not isinstance(predicate, dict):
-            predicate = predicate.to_dict()
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
             request={
