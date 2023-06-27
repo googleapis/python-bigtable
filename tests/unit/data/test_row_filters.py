@@ -80,7 +80,7 @@ def test_sink_filter_to_dict():
     flag = True
     row_filter = SinkFilter(flag)
     expected_dict = {"sink": flag}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -112,7 +112,7 @@ def test_pass_all_filter_to_dict():
     flag = True
     row_filter = PassAllFilter(flag)
     expected_dict = {"pass_all_filter": flag}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -144,7 +144,7 @@ def test_block_all_filter_to_dict():
     flag = True
     row_filter = BlockAllFilter(flag)
     expected_dict = {"block_all_filter": flag}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -214,7 +214,7 @@ def test_row_key_regex_filter_to_dict():
     regex = b"row-key-regex"
     row_filter = RowKeyRegexFilter(regex)
     expected_dict = {"row_key_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -302,7 +302,7 @@ def test_family_name_regex_filter_to_dict():
     regex = "family-regex"
     row_filter = FamilyNameRegexFilter(regex)
     expected_dict = {"family_name_regex_filter": regex.encode()}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -335,7 +335,7 @@ def test_column_qualifier_regex_filter_to_dict():
     regex = b"column-regex"
     row_filter = ColumnQualifierRegexFilter(regex)
     expected_dict = {"column_qualifier_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -432,7 +432,7 @@ def test_timestamp_range_to_dict():
         "start_timestamp_micros": 1546300800000000,
         "end_timestamp_micros": 1546387200000000,
     }
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.TimestampRange(**expected_dict) == expected_pb_value
 
@@ -454,7 +454,7 @@ def test_timestamp_range_to_dict_start_only():
 
     row_filter = TimestampRange(start=datetime.datetime(2019, 1, 1))
     expected_dict = {"start_timestamp_micros": 1546300800000000}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.TimestampRange(**expected_dict) == expected_pb_value
 
@@ -476,7 +476,7 @@ def test_timestamp_range_to_dict_end_only():
 
     row_filter = TimestampRange(end=datetime.datetime(2019, 1, 2))
     expected_dict = {"end_timestamp_micros": 1546387200000000}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.TimestampRange(**expected_dict) == expected_pb_value
 
@@ -543,7 +543,7 @@ def test_timestamp_range_filter_to_dict():
             "end_timestamp_micros": 1546387200000000,
         }
     }
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -554,7 +554,7 @@ def test_timestamp_range_filter_empty_to_dict():
 
     row_filter = TimestampRangeFilter()
     expected_dict = {"timestamp_range_filter": {}}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -701,7 +701,7 @@ def test_column_range_filter_to_dict():
     family_id = "column-family-id"
     row_filter = ColumnRangeFilter(family_id)
     expected_dict = {"column_range_filter": {"family_name": family_id}}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -782,7 +782,7 @@ def test_value_regex_filter_to_dict_w_bytes():
     value = regex = b"value-regex"
     row_filter = ValueRegexFilter(value)
     expected_dict = {"value_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -806,7 +806,7 @@ def test_value_regex_filter_to_dict_w_str():
     regex = value.encode("ascii")
     row_filter = ValueRegexFilter(value)
     expected_dict = {"value_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -839,7 +839,7 @@ def test_literal_value_filter_to_dict_w_bytes():
     value = regex = b"value_regex"
     row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -863,7 +863,7 @@ def test_literal_value_filter_to_dict_w_str():
     regex = value.encode("ascii")
     row_filter = LiteralValueFilter(value)
     expected_dict = {"value_regex_filter": regex}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -896,7 +896,7 @@ def test_literal_value_filter_w_int(value, expected_byte_string):
     assert pb_val == expected_pb
     # test dict
     expected_dict = {"value_regex_filter": expected_byte_string}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     assert data_v2_pb2.RowFilter(**expected_dict) == pb_val
 
 
@@ -1042,7 +1042,7 @@ def test_value_range_filter_to_dict():
 
     row_filter = ValueRangeFilter()
     expected_dict = {"value_range_filter": {}}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1149,7 +1149,7 @@ def test_cells_row_offset_filter_to_dict():
     num_cells = 76
     row_filter = CellsRowOffsetFilter(num_cells)
     expected_dict = {"cells_per_row_offset_filter": num_cells}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1182,7 +1182,7 @@ def test_cells_row_limit_filter_to_dict():
     num_cells = 189
     row_filter = CellsRowLimitFilter(num_cells)
     expected_dict = {"cells_per_row_limit_filter": num_cells}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1215,7 +1215,7 @@ def test_cells_column_limit_filter_to_dict():
     num_cells = 10
     row_filter = CellsColumnLimitFilter(num_cells)
     expected_dict = {"cells_per_column_limit_filter": num_cells}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1248,7 +1248,7 @@ def test_strip_value_transformer_filter_to_dict():
     flag = True
     row_filter = StripValueTransformerFilter(flag)
     expected_dict = {"strip_value_transformer": flag}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1317,7 +1317,7 @@ def test_apply_label_filter_to_dict():
     label = "label"
     row_filter = ApplyLabelFilter(label)
     expected_dict = {"apply_label_transformer": label}
-    assert row_filter.to_dict() == expected_dict
+    assert row_filter._to_dict() == expected_dict
     expected_pb_value = row_filter._to_pb()
     assert data_v2_pb2.RowFilter(**expected_dict) == expected_pb_value
 
@@ -1437,13 +1437,13 @@ def test_row_filter_chain_to_dict():
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_dict = row_filter1.to_dict()
+    row_filter1_dict = row_filter1._to_dict()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_dict = row_filter2.to_dict()
+    row_filter2_dict = row_filter2._to_dict()
 
     row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
-    filter_dict = row_filter3.to_dict()
+    filter_dict = row_filter3._to_dict()
 
     expected_dict = {"chain": {"filters": [row_filter1_dict, row_filter2_dict]}}
     assert filter_dict == expected_dict
@@ -1487,13 +1487,13 @@ def test_row_filter_chain_to_dict_nested():
     row_filter2 = RowSampleFilter(0.25)
 
     row_filter3 = RowFilterChain(filters=[row_filter1, row_filter2])
-    row_filter3_dict = row_filter3.to_dict()
+    row_filter3_dict = row_filter3._to_dict()
 
     row_filter4 = CellsRowLimitFilter(11)
-    row_filter4_dict = row_filter4.to_dict()
+    row_filter4_dict = row_filter4._to_dict()
 
     row_filter5 = RowFilterChain(filters=[row_filter3, row_filter4])
-    filter_dict = row_filter5.to_dict()
+    filter_dict = row_filter5._to_dict()
 
     expected_dict = {"chain": {"filters": [row_filter3_dict, row_filter4_dict]}}
     assert filter_dict == expected_dict
@@ -1559,13 +1559,13 @@ def test_row_filter_union_to_dict():
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_dict = row_filter1.to_dict()
+    row_filter1_dict = row_filter1._to_dict()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_dict = row_filter2.to_dict()
+    row_filter2_dict = row_filter2._to_dict()
 
     row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
-    filter_dict = row_filter3.to_dict()
+    filter_dict = row_filter3._to_dict()
 
     expected_dict = {"interleave": {"filters": [row_filter1_dict, row_filter2_dict]}}
     assert filter_dict == expected_dict
@@ -1609,13 +1609,13 @@ def test_row_filter_union_to_dict_nested():
     row_filter2 = RowSampleFilter(0.25)
 
     row_filter3 = RowFilterUnion(filters=[row_filter1, row_filter2])
-    row_filter3_dict = row_filter3.to_dict()
+    row_filter3_dict = row_filter3._to_dict()
 
     row_filter4 = CellsRowLimitFilter(11)
-    row_filter4_dict = row_filter4.to_dict()
+    row_filter4_dict = row_filter4._to_dict()
 
     row_filter5 = RowFilterUnion(filters=[row_filter3, row_filter4])
-    filter_dict = row_filter5.to_dict()
+    filter_dict = row_filter5._to_dict()
 
     expected_dict = {"interleave": {"filters": [row_filter3_dict, row_filter4_dict]}}
     assert filter_dict == expected_dict
@@ -1750,18 +1750,18 @@ def test_conditional_row_filter_to_dict():
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_dict = row_filter1.to_dict()
+    row_filter1_dict = row_filter1._to_dict()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_dict = row_filter2.to_dict()
+    row_filter2_dict = row_filter2._to_dict()
 
     row_filter3 = CellsRowOffsetFilter(11)
-    row_filter3_dict = row_filter3.to_dict()
+    row_filter3_dict = row_filter3._to_dict()
 
     row_filter4 = ConditionalRowFilter(
         row_filter1, true_filter=row_filter2, false_filter=row_filter3
     )
-    filter_dict = row_filter4.to_dict()
+    filter_dict = row_filter4._to_dict()
 
     expected_dict = {
         "condition": {
@@ -1804,13 +1804,13 @@ def test_conditional_row_filter_to_dict_true_only():
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_dict = row_filter1.to_dict()
+    row_filter1_dict = row_filter1._to_dict()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_dict = row_filter2.to_dict()
+    row_filter2_dict = row_filter2._to_dict()
 
     row_filter3 = ConditionalRowFilter(row_filter1, true_filter=row_filter2)
-    filter_dict = row_filter3.to_dict()
+    filter_dict = row_filter3._to_dict()
 
     expected_dict = {
         "condition": {
@@ -1852,13 +1852,13 @@ def test_conditional_row_filter_to_dict_false_only():
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
     row_filter1 = StripValueTransformerFilter(True)
-    row_filter1_dict = row_filter1.to_dict()
+    row_filter1_dict = row_filter1._to_dict()
 
     row_filter2 = RowSampleFilter(0.25)
-    row_filter2_dict = row_filter2.to_dict()
+    row_filter2_dict = row_filter2._to_dict()
 
     row_filter3 = ConditionalRowFilter(row_filter1, false_filter=row_filter2)
-    filter_dict = row_filter3.to_dict()
+    filter_dict = row_filter3._to_dict()
 
     expected_dict = {
         "condition": {
