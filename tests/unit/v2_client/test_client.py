@@ -25,7 +25,7 @@ USER_AGENT = "you-sir-age-int"
 
 
 def _invoke_client_factory(client_class, **kw):
-    from google.cloud.bigtable.deprecated.client import _create_gapic_client
+    from google.cloud.bigtable.client import _create_gapic_client
 
     return _create_gapic_client(client_class, **kw)
 
@@ -101,27 +101,23 @@ class _MockClient(object):
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.client import Client
+    from google.cloud.bigtable.client import Client
 
     return Client(*args, **kwargs)
 
 
 @mock.patch("os.environ", {})
 def test_client_constructor_defaults():
-    import warnings
     from google.api_core import client_info
-    from google.cloud.bigtable.deprecated import __version__
-    from google.cloud.bigtable.deprecated.client import DATA_SCOPE
+    from google.cloud.bigtable import __version__
+    from google.cloud.bigtable.client import DATA_SCOPE
 
     credentials = _make_credentials()
 
-    with warnings.catch_warnings(record=True) as warned:
-        with mock.patch("google.auth.default") as mocked:
-            mocked.return_value = credentials, PROJECT
-            client = _make_client()
+    with mock.patch("google.auth.default") as mocked:
+        mocked.return_value = credentials, PROJECT
+        client = _make_client()
 
-    # warn about client deprecation
-    assert len(warned) == 1
     assert client.project == PROJECT
     assert client._credentials is credentials.with_scopes.return_value
     assert not client._read_only
@@ -135,8 +131,8 @@ def test_client_constructor_defaults():
 
 def test_client_constructor_explicit():
     import warnings
-    from google.cloud.bigtable.deprecated.client import ADMIN_SCOPE
-    from google.cloud.bigtable.deprecated.client import DATA_SCOPE
+    from google.cloud.bigtable.client import ADMIN_SCOPE
+    from google.cloud.bigtable.client import DATA_SCOPE
 
     credentials = _make_credentials()
     client_info = mock.Mock()
@@ -151,8 +147,7 @@ def test_client_constructor_explicit():
             channel=mock.sentinel.channel,
         )
 
-    # deprecationw arnning for channel and Client deprecation
-    assert len(warned) == 2
+    assert len(warned) == 1
 
     assert client.project == PROJECT
     assert client._credentials is credentials.with_scopes.return_value
@@ -176,10 +171,8 @@ def test_client_constructor_w_both_admin_and_read_only():
 
 def test_client_constructor_w_emulator_host():
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    from google.cloud.bigtable.deprecated.client import (
-        _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
-    )
-    from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
+    from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+    from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
     emulator_host = "localhost:8081"
     with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
@@ -202,7 +195,7 @@ def test_client_constructor_w_emulator_host():
 
 def test_client_constructor_w_emulator_host_w_project():
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
+    from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
     emulator_host = "localhost:8081"
     with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
@@ -223,10 +216,8 @@ def test_client_constructor_w_emulator_host_w_project():
 
 def test_client_constructor_w_emulator_host_w_credentials():
     from google.cloud.environment_vars import BIGTABLE_EMULATOR
-    from google.cloud.bigtable.deprecated.client import (
-        _DEFAULT_BIGTABLE_EMULATOR_CLIENT,
-    )
-    from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
+    from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+    from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
     emulator_host = "localhost:8081"
     credentials = _make_credentials()
@@ -247,15 +238,15 @@ def test_client_constructor_w_emulator_host_w_credentials():
 
 
 def test_client__get_scopes_default():
-    from google.cloud.bigtable.deprecated.client import DATA_SCOPE
+    from google.cloud.bigtable.client import DATA_SCOPE
 
     client = _make_client(project=PROJECT, credentials=_make_credentials())
     assert client._get_scopes() == (DATA_SCOPE,)
 
 
 def test_client__get_scopes_w_admin():
-    from google.cloud.bigtable.deprecated.client import ADMIN_SCOPE
-    from google.cloud.bigtable.deprecated.client import DATA_SCOPE
+    from google.cloud.bigtable.client import ADMIN_SCOPE
+    from google.cloud.bigtable.client import DATA_SCOPE
 
     client = _make_client(project=PROJECT, credentials=_make_credentials(), admin=True)
     expected_scopes = (DATA_SCOPE, ADMIN_SCOPE)
@@ -263,7 +254,7 @@ def test_client__get_scopes_w_admin():
 
 
 def test_client__get_scopes_w_read_only():
-    from google.cloud.bigtable.deprecated.client import READ_ONLY_SCOPE
+    from google.cloud.bigtable.client import READ_ONLY_SCOPE
 
     client = _make_client(
         project=PROJECT, credentials=_make_credentials(), read_only=True
@@ -353,7 +344,7 @@ def test_client__local_composite_credentials():
 
 
 def _create_gapic_client_channel_helper(endpoint=None, emulator_host=None):
-    from google.cloud.bigtable.deprecated.client import _GRPC_CHANNEL_OPTIONS
+    from google.cloud.bigtable.client import _GRPC_CHANNEL_OPTIONS
 
     client_class = mock.Mock(spec=["DEFAULT_ENDPOINT"])
     credentials = _make_credentials()
@@ -627,7 +618,7 @@ def test_client_instance_admin_client_initialized():
 
 
 def test_client_instance_factory_defaults():
-    from google.cloud.bigtable.deprecated.instance import Instance
+    from google.cloud.bigtable.instance import Instance
 
     credentials = _make_credentials()
     client = _make_client(project=PROJECT, credentials=credentials)
@@ -643,8 +634,8 @@ def test_client_instance_factory_defaults():
 
 
 def test_client_instance_factory_non_defaults():
-    from google.cloud.bigtable.deprecated.instance import Instance
-    from google.cloud.bigtable.deprecated import enums
+    from google.cloud.bigtable.instance import Instance
+    from google.cloud.bigtable import enums
 
     instance_type = enums.Instance.Type.DEVELOPMENT
     labels = {"foo": "bar"}
@@ -674,7 +665,7 @@ def test_client_list_instances():
     from google.cloud.bigtable_admin_v2.services.bigtable_instance_admin import (
         BigtableInstanceAdminClient,
     )
-    from google.cloud.bigtable.deprecated.instance import Instance
+    from google.cloud.bigtable.instance import Instance
 
     FAILED_LOCATION = "FAILED"
     INSTANCE_ID1 = "instance-id1"
@@ -726,7 +717,7 @@ def test_client_list_clusters():
         bigtable_instance_admin as messages_v2_pb2,
     )
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
-    from google.cloud.bigtable.deprecated.instance import Cluster
+    from google.cloud.bigtable.instance import Cluster
 
     instance_api = mock.create_autospec(BigtableInstanceAdminClient)
 

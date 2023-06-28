@@ -97,7 +97,7 @@ def test_table_create_w_families(
     data_instance_populated,
     tables_to_delete,
 ):
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     temp_table_id = "test-create-table-with-failies"
     column_family_id = "col-fam-id1"
@@ -134,7 +134,7 @@ def test_table_create_w_split_keys(
 
 
 def test_column_family_create(data_instance_populated, tables_to_delete):
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     temp_table_id = "test-create-column-family"
     temp_table = data_instance_populated.table(temp_table_id)
@@ -158,7 +158,7 @@ def test_column_family_create(data_instance_populated, tables_to_delete):
 
 
 def test_column_family_update(data_instance_populated, tables_to_delete):
-    from google.cloud.bigtable.deprecated.column_family import MaxVersionsGCRule
+    from google.cloud.bigtable.column_family import MaxVersionsGCRule
 
     temp_table_id = "test-update-column-family"
     temp_table = data_instance_populated.table(temp_table_id)
@@ -219,8 +219,8 @@ def test_table_get_iam_policy(
 def test_table_set_iam_policy(
     service_account, data_instance_populated, tables_to_delete, skip_on_emulator
 ):
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import Policy
 
     temp_table_id = "test-set-iam-policy-table"
     temp_table = data_instance_populated.table(temp_table_id)
@@ -264,7 +264,7 @@ def test_table_backup(
     skip_on_emulator,
 ):
     from google.cloud._helpers import _datetime_to_pb_timestamp
-    from google.cloud.bigtable.deprecated import enums
+    from google.cloud.bigtable import enums
 
     temp_table_id = "test-backup-table"
     temp_table = data_instance_populated.table(temp_table_id)

@@ -14,7 +14,7 @@
 
 
 def _make_policy(*args, **kw):
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import Policy
 
     return Policy(*args, **kw)
 
@@ -48,7 +48,7 @@ def test_policy_ctor_explicit():
 
 
 def test_policy_bigtable_admins():
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
     MEMBER = "user:phred@example.com"
     expected = frozenset([MEMBER])
@@ -58,7 +58,7 @@ def test_policy_bigtable_admins():
 
 
 def test_policy_bigtable_readers():
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_READER_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_READER_ROLE
 
     MEMBER = "user:phred@example.com"
     expected = frozenset([MEMBER])
@@ -68,7 +68,7 @@ def test_policy_bigtable_readers():
 
 
 def test_policy_bigtable_users():
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_USER_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_USER_ROLE
 
     MEMBER = "user:phred@example.com"
     expected = frozenset([MEMBER])
@@ -78,7 +78,7 @@ def test_policy_bigtable_users():
 
 
 def test_policy_bigtable_viewers():
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_VIEWER_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_VIEWER_ROLE
 
     MEMBER = "user:phred@example.com"
     expected = frozenset([MEMBER])
@@ -89,7 +89,7 @@ def test_policy_bigtable_viewers():
 
 def test_policy_from_pb_w_empty():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import Policy
 
     empty = frozenset()
     message = policy_pb2.Policy()
@@ -106,8 +106,8 @@ def test_policy_from_pb_w_empty():
 
 def test_policy_from_pb_w_non_empty():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import Policy
 
     ETAG = b"ETAG"
     VERSION = 1
@@ -133,8 +133,8 @@ def test_policy_from_pb_w_condition():
     import pytest
     from google.iam.v1 import policy_pb2
     from google.api_core.iam import InvalidOperationException, _DICT_ACCESS_MSG
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import Policy
 
     ETAG = b"ETAG"
     VERSION = 3
@@ -184,7 +184,7 @@ def test_policy_to_pb_empty():
 
 def test_policy_to_pb_explicit():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
     VERSION = 1
     ETAG = b"ETAG"
@@ -204,7 +204,7 @@ def test_policy_to_pb_explicit():
 
 def test_policy_to_pb_w_condition():
     from google.iam.v1 import policy_pb2
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
     VERSION = 3
     ETAG = b"ETAG"
@@ -234,7 +234,7 @@ def test_policy_to_pb_w_condition():
 
 
 def test_policy_from_api_repr_wo_etag():
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import Policy
 
     VERSION = 1
     empty = frozenset()
@@ -252,7 +252,7 @@ def test_policy_from_api_repr_wo_etag():
 
 def test_policy_from_api_repr_w_etag():
     import base64
-    from google.cloud.bigtable.deprecated.policy import Policy
+    from google.cloud.bigtable.policy import Policy
 
     ETAG = b"ETAG"
     empty = frozenset()

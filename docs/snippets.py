@@ -16,7 +16,7 @@
 """Testable usage examples for Google Cloud Bigtable API wrapper
 
 Each example function takes a ``client`` argument (which must be an instance
-of :class:`google.cloud.bigtable.deprecated.client.Client`) and uses it to perform a task
+of :class:`google.cloud.bigtable.client.Client`) and uses it to perform a task
 with the API.
 
 To facilitate running the examples as system tests, each example is also passed
@@ -40,8 +40,8 @@ from test_utils.system import unique_resource_id
 from test_utils.retry import RetryErrors
 
 from google.cloud._helpers import UTC
-from google.cloud.bigtable.deprecated import Client
-from google.cloud.bigtable.deprecated import enums
+from google.cloud.bigtable import Client
+from google.cloud.bigtable import enums
 
 
 UNIQUE_SUFFIX = unique_resource_id("-")
@@ -110,8 +110,8 @@ def teardown_module():
 
 def test_bigtable_create_instance():
     # [START bigtable_api_create_prod_instance]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated import enums
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable import enums
 
     my_instance_id = "inst-my-" + UNIQUE_SUFFIX
     my_cluster_id = "clus-my-" + UNIQUE_SUFFIX
@@ -144,8 +144,8 @@ def test_bigtable_create_instance():
 
 def test_bigtable_create_additional_cluster():
     # [START bigtable_api_create_cluster]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated import enums
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable import enums
 
     # Assuming that there is an existing instance with `INSTANCE_ID`
     # on the server already.
@@ -181,8 +181,8 @@ def test_bigtable_create_reload_delete_app_profile():
     import re
 
     # [START bigtable_api_create_app_profile]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated import enums
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable import enums
 
     routing_policy_type = enums.RoutingPolicyType.ANY
 
@@ -202,7 +202,7 @@ def test_bigtable_create_reload_delete_app_profile():
     # [END bigtable_api_create_app_profile]
 
     # [START bigtable_api_app_profile_name]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -219,7 +219,7 @@ def test_bigtable_create_reload_delete_app_profile():
     assert _profile_name_re.match(app_profile_name)
 
     # [START bigtable_api_app_profile_exists]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -230,7 +230,7 @@ def test_bigtable_create_reload_delete_app_profile():
     assert app_profile_exists
 
     # [START bigtable_api_reload_app_profile]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -241,7 +241,7 @@ def test_bigtable_create_reload_delete_app_profile():
     assert app_profile.routing_policy_type == ROUTING_POLICY_TYPE
 
     # [START bigtable_api_update_app_profile]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -255,7 +255,7 @@ def test_bigtable_create_reload_delete_app_profile():
     assert app_profile.description == description
 
     # [START bigtable_api_delete_app_profile]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -269,7 +269,7 @@ def test_bigtable_create_reload_delete_app_profile():
 
 def test_bigtable_list_instances():
     # [START bigtable_api_list_instances]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     (instances_list, failed_locations_list) = client.list_instances()
@@ -280,7 +280,7 @@ def test_bigtable_list_instances():
 
 def test_bigtable_list_clusters_on_instance():
     # [START bigtable_api_list_clusters_on_instance]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -292,7 +292,7 @@ def test_bigtable_list_clusters_on_instance():
 
 def test_bigtable_list_clusters_in_project():
     # [START bigtable_api_list_clusters_in_project]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     (clusters_list, failed_locations_list) = client.list_clusters()
@@ -309,7 +309,7 @@ def test_bigtable_list_app_profiles():
     app_profile = app_profile.create(ignore_warnings=True)
 
     # [START bigtable_api_list_app_profiles]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -325,7 +325,7 @@ def test_bigtable_list_app_profiles():
 
 def test_bigtable_instance_exists():
     # [START bigtable_api_check_instance_exists]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -337,7 +337,7 @@ def test_bigtable_instance_exists():
 
 def test_bigtable_cluster_exists():
     # [START bigtable_api_check_cluster_exists]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -350,7 +350,7 @@ def test_bigtable_cluster_exists():
 
 def test_bigtable_reload_instance():
     # [START bigtable_api_reload_instance]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -362,7 +362,7 @@ def test_bigtable_reload_instance():
 
 def test_bigtable_reload_cluster():
     # [START bigtable_api_reload_cluster]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -375,7 +375,7 @@ def test_bigtable_reload_cluster():
 
 def test_bigtable_update_instance():
     # [START bigtable_api_update_instance]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -389,7 +389,7 @@ def test_bigtable_update_instance():
 
 def test_bigtable_update_cluster():
     # [START bigtable_api_update_cluster]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -403,7 +403,7 @@ def test_bigtable_update_cluster():
 
 def test_bigtable_cluster_disable_autoscaling():
     # [START bigtable_api_cluster_disable_autoscaling]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -424,8 +424,8 @@ def test_bigtable_create_table():
     # [START bigtable_api_create_table]
     from google.api_core import exceptions
     from google.api_core import retry
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated import column_family
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable import column_family
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -450,7 +450,7 @@ def test_bigtable_create_table():
 def test_bigtable_list_tables():
 
     # [START bigtable_api_list_tables]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -463,7 +463,7 @@ def test_bigtable_list_tables():
 
 
 def test_bigtable_delete_cluster():
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -480,7 +480,7 @@ def test_bigtable_delete_cluster():
     operation.result(timeout=1000)
 
     # [START bigtable_api_delete_cluster]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -493,7 +493,7 @@ def test_bigtable_delete_cluster():
 
 
 def test_bigtable_delete_instance():
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
 
@@ -515,7 +515,7 @@ def test_bigtable_delete_instance():
     INSTANCES_TO_DELETE.append(instance)
 
     # [START bigtable_api_delete_instance]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
 
@@ -531,7 +531,7 @@ def test_bigtable_delete_instance():
 
 def test_bigtable_test_iam_permissions():
     # [START bigtable_api_test_iam_permissions]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -547,9 +547,9 @@ def test_bigtable_set_iam_policy_then_get_iam_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_set_iam_policy]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated.policy import Policy
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -563,7 +563,7 @@ def test_bigtable_set_iam_policy_then_get_iam_policy():
     assert len(policy_latest.bigtable_admins) > 0
 
     # [START bigtable_api_get_iam_policy]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -577,7 +577,7 @@ def test_bigtable_project_path():
     import re
 
     # [START bigtable_api_project_path]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     project_path = client.project_path
@@ -586,7 +586,7 @@ def test_bigtable_project_path():
 
 def test_bigtable_table_data_client():
     # [START bigtable_api_table_data_client]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     table_data_client = client.table_data_client
@@ -595,7 +595,7 @@ def test_bigtable_table_data_client():
 
 def test_bigtable_table_admin_client():
     # [START bigtable_api_table_admin_client]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     table_admin_client = client.table_admin_client
@@ -604,7 +604,7 @@ def test_bigtable_table_admin_client():
 
 def test_bigtable_instance_admin_client():
     # [START bigtable_api_instance_admin_client]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance_admin_client = client.instance_admin_client
@@ -615,9 +615,9 @@ def test_bigtable_admins_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_admins_policy]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated.policy import Policy
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_ADMIN_ROLE
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_ADMIN_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -636,9 +636,9 @@ def test_bigtable_readers_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_readers_policy]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated.policy import Policy
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_READER_ROLE
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_READER_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -657,9 +657,9 @@ def test_bigtable_users_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_users_policy]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated.policy import Policy
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_USER_ROLE
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_USER_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -678,9 +678,9 @@ def test_bigtable_viewers_policy():
     service_account_email = Config.CLIENT._credentials.service_account_email
 
     # [START bigtable_api_viewers_policy]
-    from google.cloud.bigtable.deprecated import Client
-    from google.cloud.bigtable.deprecated.policy import Policy
-    from google.cloud.bigtable.deprecated.policy import BIGTABLE_VIEWER_ROLE
+    from google.cloud.bigtable import Client
+    from google.cloud.bigtable.policy import Policy
+    from google.cloud.bigtable.policy import BIGTABLE_VIEWER_ROLE
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -699,7 +699,7 @@ def test_bigtable_instance_name():
     import re
 
     # [START bigtable_api_instance_name]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -711,7 +711,7 @@ def test_bigtable_cluster_name():
     import re
 
     # [START bigtable_api_cluster_name]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -722,7 +722,7 @@ def test_bigtable_cluster_name():
 
 def test_bigtable_instance_from_pb():
     # [START bigtable_api_instance_from_pb]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
 
     client = Client(admin=True)
@@ -741,7 +741,7 @@ def test_bigtable_instance_from_pb():
 
 def test_bigtable_cluster_from_pb():
     # [START bigtable_api_cluster_from_pb]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
     from google.cloud.bigtable_admin_v2.types import instance as data_v2_pb2
 
     client = Client(admin=True)
@@ -767,7 +767,7 @@ def test_bigtable_cluster_from_pb():
 
 def test_bigtable_instance_state():
     # [START bigtable_api_instance_state]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)
@@ -779,7 +779,7 @@ def test_bigtable_instance_state():
 
 def test_bigtable_cluster_state():
     # [START bigtable_api_cluster_state]
-    from google.cloud.bigtable.deprecated import Client
+    from google.cloud.bigtable import Client
 
     client = Client(admin=True)
     instance = client.instance(INSTANCE_ID)

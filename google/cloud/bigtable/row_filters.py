@@ -13,25 +13,18 @@
 # limitations under the License.
 
 """Filters for Google Cloud Bigtable Row classes."""
-from __future__ import annotations
 
 import struct
 
-from typing import Any, Sequence, TYPE_CHECKING, overload
-from abc import ABC, abstractmethod
 
 from google.cloud._helpers import _microseconds_from_datetime  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
-if TYPE_CHECKING:
-    # import dependencies when type checking
-    from datetime import datetime
-
 _PACK_I64 = struct.Struct(">q").pack
 
 
-class RowFilter(ABC):
+class RowFilter(object):
     """Basic filter to apply to cells in a row.
 
     These values can be combined via :class:`RowFilterChain`,
@@ -42,30 +35,15 @@ class RowFilter(ABC):
         This class is a do-nothing base class for all row filters.
     """
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
-        """Converts the row filter to a protobuf.
 
-        Returns: The converted current object.
-        """
-        return data_v2_pb2.RowFilter(**self.to_dict())
-
-    @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        pass
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
-
-
-class _BoolFilter(RowFilter, ABC):
+class _BoolFilter(RowFilter):
     """Row filter that uses a boolean flag.
 
     :type flag: bool
     :param flag: An indicator if a setting is turned on or off.
     """
 
-    def __init__(self, flag: bool):
+    def __init__(self, flag):
         self.flag = flag
 
     def __eq__(self, other):
@@ -75,9 +53,6 @@ class _BoolFilter(RowFilter, ABC):
 
     def __ne__(self, other):
         return not self == other
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(flag={self.flag})"
 
 
 class SinkFilter(_BoolFilter):
@@ -91,9 +66,13 @@ class SinkFilter(_BoolFilter):
                  of a :class:`ConditionalRowFilter`.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"sink": self.flag}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(sink=self.flag)
 
 
 class PassAllFilter(_BoolFilter):
@@ -105,9 +84,13 @@ class PassAllFilter(_BoolFilter):
                  completeness.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"pass_all_filter": self.flag}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(pass_all_filter=self.flag)
 
 
 class BlockAllFilter(_BoolFilter):
@@ -118,12 +101,16 @@ class BlockAllFilter(_BoolFilter):
                  temporarily disabling just part of a filter.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"block_all_filter": self.flag}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(block_all_filter=self.flag)
 
 
-class _RegexFilter(RowFilter, ABC):
+class _RegexFilter(RowFilter):
     """Row filter that uses a regular expression.
 
     The ``regex`` must be valid RE2 patterns. See Google's
@@ -137,8 +124,8 @@ class _RegexFilter(RowFilter, ABC):
         will be encoded as ASCII.
     """
 
-    def __init__(self, regex: str | bytes):
-        self.regex: bytes = _to_bytes(regex)
+    def __init__(self, regex):
+        self.regex = _to_bytes(regex)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -147,9 +134,6 @@ class _RegexFilter(RowFilter, ABC):
 
     def __ne__(self, other):
         return not self == other
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(regex={self.regex!r})"
 
 
 class RowKeyRegexFilter(_RegexFilter):
@@ -175,9 +159,13 @@ class RowKeyRegexFilter(_RegexFilter):
                   since the row key is already specified.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"row_key_regex_filter": self.regex}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(row_key_regex_filter=self.regex)
 
 
 class RowSampleFilter(RowFilter):
@@ -188,8 +176,8 @@ class RowSampleFilter(RowFilter):
                    interval ``(0, 1)``  The end points are excluded).
     """
 
-    def __init__(self, sample: float):
-        self.sample: float = sample
+    def __init__(self, sample):
+        self.sample = sample
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -199,12 +187,13 @@ class RowSampleFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"row_sample_filter": self.sample}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(sample={self.sample})"
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(row_sample_filter=self.sample)
 
 
 class FamilyNameRegexFilter(_RegexFilter):
@@ -222,9 +211,13 @@ class FamilyNameRegexFilter(_RegexFilter):
                   used as a literal.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"family_name_regex_filter": self.regex}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(family_name_regex_filter=self.regex)
 
 
 class ColumnQualifierRegexFilter(_RegexFilter):
@@ -248,9 +241,13 @@ class ColumnQualifierRegexFilter(_RegexFilter):
                   match this regex (irrespective of column family).
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"column_qualifier_regex_filter": self.regex}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(column_qualifier_regex_filter=self.regex)
 
 
 class TimestampRange(object):
@@ -265,9 +262,9 @@ class TimestampRange(object):
                 range. If omitted, no upper bound is used.
     """
 
-    def __init__(self, start: "datetime" | None = None, end: "datetime" | None = None):
-        self.start: "datetime" | None = start
-        self.end: "datetime" | None = end
+    def __init__(self, start=None, end=None):
+        self.start = start
+        self.end = end
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -277,29 +274,23 @@ class TimestampRange(object):
     def __ne__(self, other):
         return not self == other
 
-    def _to_pb(self) -> data_v2_pb2.TimestampRange:
+    def to_pb(self):
         """Converts the :class:`TimestampRange` to a protobuf.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.TimestampRange`
+        :returns: The converted current object.
         """
-        return data_v2_pb2.TimestampRange(**self.to_dict())
-
-    def to_dict(self) -> dict[str, int]:
-        """Converts the timestamp range to a dict representation."""
         timestamp_range_kwargs = {}
         if self.start is not None:
-            start_time = _microseconds_from_datetime(self.start) // 1000 * 1000
-            timestamp_range_kwargs["start_timestamp_micros"] = start_time
+            timestamp_range_kwargs["start_timestamp_micros"] = (
+                _microseconds_from_datetime(self.start) // 1000 * 1000
+            )
         if self.end is not None:
             end_time = _microseconds_from_datetime(self.end)
             if end_time % 1000 != 0:
-                # if not a whole milisecond value, round up
                 end_time = end_time // 1000 * 1000 + 1000
             timestamp_range_kwargs["end_timestamp_micros"] = end_time
-        return timestamp_range_kwargs
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(start={self.start}, end={self.end})"
+        return data_v2_pb2.TimestampRange(**timestamp_range_kwargs)
 
 
 class TimestampRangeFilter(RowFilter):
@@ -309,8 +300,8 @@ class TimestampRangeFilter(RowFilter):
     :param range_: Range of time that cells should match against.
     """
 
-    def __init__(self, start: "datetime" | None = None, end: "datetime" | None = None):
-        self.range_: TimestampRange = TimestampRange(start, end)
+    def __init__(self, range_):
+        self.range_ = range_
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -320,22 +311,16 @@ class TimestampRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts the ``range_`` on the current object to a protobuf and
         then uses it in the ``timestamp_range_filter`` field.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
-        return data_v2_pb2.RowFilter(timestamp_range_filter=self.range_._to_pb())
-
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"timestamp_range_filter": self.range_.to_dict()}
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(start={self.range_.start!r}, end={self.range_.end!r})"
+        return data_v2_pb2.RowFilter(timestamp_range_filter=self.range_.to_pb())
 
 
 class ColumnRangeFilter(RowFilter):
@@ -345,72 +330,71 @@ class ColumnRangeFilter(RowFilter):
     By default, we include them both, but this can be changed with optional
     flags.
 
-    :type family_id: str
-    :param family_id: The column family that contains the columns. Must
+    :type column_family_id: str
+    :param column_family_id: The column family that contains the columns. Must
                              be of the form ``[_a-zA-Z0-9][-_.a-zA-Z0-9]*``.
 
-    :type start_qualifier: bytes
-    :param start_qualifier: The start of the range of columns. If no value is
+    :type start_column: bytes
+    :param start_column: The start of the range of columns. If no value is
                          used, the backend applies no upper bound to the
                          values.
 
-    :type end_qualifier: bytes
-    :param end_qualifier: The end of the range of columns. If no value is used,
+    :type end_column: bytes
+    :param end_column: The end of the range of columns. If no value is used,
                        the backend applies no upper bound to the values.
 
     :type inclusive_start: bool
     :param inclusive_start: Boolean indicating if the start column should be
                             included in the range (or excluded). Defaults
-                            to :data:`True` if ``start_qualifier`` is passed and
+                            to :data:`True` if ``start_column`` is passed and
                             no ``inclusive_start`` was given.
 
     :type inclusive_end: bool
     :param inclusive_end: Boolean indicating if the end column should be
                           included in the range (or excluded). Defaults
-                          to :data:`True` if ``end_qualifier`` is passed and
+                          to :data:`True` if ``end_column`` is passed and
                           no ``inclusive_end`` was given.
 
     :raises: :class:`ValueError <exceptions.ValueError>` if ``inclusive_start``
-             is set but no ``start_qualifier`` is given or if ``inclusive_end``
-             is set but no ``end_qualifier`` is given
+             is set but no ``start_column`` is given or if ``inclusive_end``
+             is set but no ``end_column`` is given
     """
 
     def __init__(
         self,
-        family_id: str,
-        start_qualifier: bytes | None = None,
-        end_qualifier: bytes | None = None,
-        inclusive_start: bool | None = None,
-        inclusive_end: bool | None = None,
+        column_family_id,
+        start_column=None,
+        end_column=None,
+        inclusive_start=None,
+        inclusive_end=None,
     ):
+        self.column_family_id = column_family_id
+
         if inclusive_start is None:
             inclusive_start = True
-        elif start_qualifier is None:
+        elif start_column is None:
             raise ValueError(
-                "inclusive_start was specified but no start_qualifier was given."
+                "Inclusive start was specified but no " "start column was given."
             )
-        if inclusive_end is None:
-            inclusive_end = True
-        elif end_qualifier is None:
-            raise ValueError(
-                "inclusive_end was specified but no end_qualifier was given."
-            )
-
-        self.family_id = family_id
-
-        self.start_qualifier = start_qualifier
+        self.start_column = start_column
         self.inclusive_start = inclusive_start
 
-        self.end_qualifier = end_qualifier
+        if inclusive_end is None:
+            inclusive_end = True
+        elif end_column is None:
+            raise ValueError(
+                "Inclusive end was specified but no " "end column was given."
+            )
+        self.end_column = end_column
         self.inclusive_end = inclusive_end
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
-            other.family_id == self.family_id
-            and other.start_qualifier == self.start_qualifier
-            and other.end_qualifier == self.end_qualifier
+            other.column_family_id == self.column_family_id
+            and other.start_column == self.start_column
+            and other.end_column == self.end_column
             and other.inclusive_start == self.inclusive_start
             and other.inclusive_end == self.inclusive_end
         )
@@ -418,41 +402,31 @@ class ColumnRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts to a :class:`.data_v2_pb2.ColumnRange` and then uses it
         in the ``column_range_filter`` field.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
-        column_range = data_v2_pb2.ColumnRange(**self.range_to_dict())
-        return data_v2_pb2.RowFilter(column_range_filter=column_range)
-
-    def range_to_dict(self) -> dict[str, str | bytes]:
-        """Converts the column range range to a dict representation."""
-        column_range_kwargs: dict[str, str | bytes] = {}
-        column_range_kwargs["family_name"] = self.family_id
-        if self.start_qualifier is not None:
+        column_range_kwargs = {"family_name": self.column_family_id}
+        if self.start_column is not None:
             if self.inclusive_start:
                 key = "start_qualifier_closed"
             else:
                 key = "start_qualifier_open"
-            column_range_kwargs[key] = _to_bytes(self.start_qualifier)
-        if self.end_qualifier is not None:
+            column_range_kwargs[key] = _to_bytes(self.start_column)
+        if self.end_column is not None:
             if self.inclusive_end:
                 key = "end_qualifier_closed"
             else:
                 key = "end_qualifier_open"
-            column_range_kwargs[key] = _to_bytes(self.end_qualifier)
-        return column_range_kwargs
+            column_range_kwargs[key] = _to_bytes(self.end_column)
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"column_range_filter": self.range_to_dict()}
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(family_id='{self.family_id}', start_qualifier={self.start_qualifier!r}, end_qualifier={self.end_qualifier!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        column_range = data_v2_pb2.ColumnRange(**column_range_kwargs)
+        return data_v2_pb2.RowFilter(column_range_filter=column_range)
 
 
 class ValueRegexFilter(_RegexFilter):
@@ -476,64 +450,29 @@ class ValueRegexFilter(_RegexFilter):
                   match this regex.  String values will be encoded as ASCII.
     """
 
-    def to_dict(self) -> dict[str, bytes]:
-        """Converts the row filter to a dict representation."""
-        return {"value_regex_filter": self.regex}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(value_regex_filter=self.regex)
 
 
-class LiteralValueFilter(ValueRegexFilter):
+class ExactValueFilter(ValueRegexFilter):
     """Row filter for an exact value.
 
 
     :type value: bytes or str or int
     :param value:
-        a literal string, integer, or the equivalent bytes.
-        Integer values will be packed into signed 8-bytes.
+        a literal string encodable as ASCII, or the
+        equivalent bytes, or an integer (which will be packed into 8-bytes).
     """
 
-    def __init__(self, value: bytes | str | int):
+    def __init__(self, value):
         if isinstance(value, int):
             value = _PACK_I64(value)
-        elif isinstance(value, str):
-            value = value.encode("utf-8")
-        value = self._write_literal_regex(value)
-        super(LiteralValueFilter, self).__init__(value)
-
-    @staticmethod
-    def _write_literal_regex(input_bytes: bytes) -> bytes:
-        """
-        Escape re2 special characters from literal bytes.
-
-        Extracted from: re2 QuoteMeta:
-        https://github.com/google/re2/blob/70f66454c255080a54a8da806c52d1f618707f8a/re2/re2.cc#L456
-        """
-        result = bytearray()
-        for byte in input_bytes:
-            # If this is the part of a UTF8 or Latin1 character, we need \
-            # to copy this byte without escaping.  Experimentally this is \
-            # what works correctly with the regexp library. \
-            utf8_latin1_check = (byte & 128) == 0
-            if (
-                (byte < ord("a") or byte > ord("z"))
-                and (byte < ord("A") or byte > ord("Z"))
-                and (byte < ord("0") or byte > ord("9"))
-                and byte != ord("_")
-                and utf8_latin1_check
-            ):
-                if byte == 0:
-                    # Special handling for null chars.
-                    # Note that this special handling is not strictly required for RE2,
-                    # but this quoting is required for other regexp libraries such as
-                    # PCRE.
-                    # Can't use "\\0" since the next character might be a digit.
-                    result.extend([ord("\\"), ord("x"), ord("0"), ord("0")])
-                    continue
-                result.append(ord(b"\\"))
-            result.append(byte)
-        return bytes(result)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(value={self.regex!r})"
+        super(ExactValueFilter, self).__init__(value)
 
 
 class ValueRangeFilter(RowFilter):
@@ -571,29 +510,25 @@ class ValueRangeFilter(RowFilter):
     """
 
     def __init__(
-        self,
-        start_value: bytes | int | None = None,
-        end_value: bytes | int | None = None,
-        inclusive_start: bool | None = None,
-        inclusive_end: bool | None = None,
+        self, start_value=None, end_value=None, inclusive_start=None, inclusive_end=None
     ):
         if inclusive_start is None:
             inclusive_start = True
         elif start_value is None:
             raise ValueError(
-                "inclusive_start was specified but no start_value was given."
-            )
-        if inclusive_end is None:
-            inclusive_end = True
-        elif end_value is None:
-            raise ValueError(
-                "inclusive_end was specified but no end_qualifier was given."
+                "Inclusive start was specified but no " "start value was given."
             )
         if isinstance(start_value, int):
             start_value = _PACK_I64(start_value)
         self.start_value = start_value
         self.inclusive_start = inclusive_start
 
+        if inclusive_end is None:
+            inclusive_end = True
+        elif end_value is None:
+            raise ValueError(
+                "Inclusive end was specified but no " "end value was given."
+            )
         if isinstance(end_value, int):
             end_value = _PACK_I64(end_value)
         self.end_value = end_value
@@ -612,19 +547,15 @@ class ValueRangeFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
         First converts to a :class:`.data_v2_pb2.ValueRange` and then uses
         it to create a row filter protobuf.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
-        value_range = data_v2_pb2.ValueRange(**self.range_to_dict())
-        return data_v2_pb2.RowFilter(value_range_filter=value_range)
-
-    def range_to_dict(self) -> dict[str, bytes]:
-        """Converts the value range range to a dict representation."""
         value_range_kwargs = {}
         if self.start_value is not None:
             if self.inclusive_start:
@@ -638,17 +569,12 @@ class ValueRangeFilter(RowFilter):
             else:
                 key = "end_value_open"
             value_range_kwargs[key] = _to_bytes(self.end_value)
-        return value_range_kwargs
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"value_range_filter": self.range_to_dict()}
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(start_value={self.start_value!r}, end_value={self.end_value!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
+        value_range = data_v2_pb2.ValueRange(**value_range_kwargs)
+        return data_v2_pb2.RowFilter(value_range_filter=value_range)
 
 
-class _CellCountFilter(RowFilter, ABC):
+class _CellCountFilter(RowFilter):
     """Row filter that uses an integer count of cells.
 
     The cell count is used as an offset or a limit for the number
@@ -658,7 +584,7 @@ class _CellCountFilter(RowFilter, ABC):
     :param num_cells: An integer count / offset / limit.
     """
 
-    def __init__(self, num_cells: int):
+    def __init__(self, num_cells):
         self.num_cells = num_cells
 
     def __eq__(self, other):
@@ -669,9 +595,6 @@ class _CellCountFilter(RowFilter, ABC):
     def __ne__(self, other):
         return not self == other
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(num_cells={self.num_cells})"
-
 
 class CellsRowOffsetFilter(_CellCountFilter):
     """Row filter to skip cells in a row.
@@ -680,9 +603,13 @@ class CellsRowOffsetFilter(_CellCountFilter):
     :param num_cells: Skips the first N cells of the row.
     """
 
-    def to_dict(self) -> dict[str, int]:
-        """Converts the row filter to a dict representation."""
-        return {"cells_per_row_offset_filter": self.num_cells}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(cells_per_row_offset_filter=self.num_cells)
 
 
 class CellsRowLimitFilter(_CellCountFilter):
@@ -692,9 +619,13 @@ class CellsRowLimitFilter(_CellCountFilter):
     :param num_cells: Matches only the first N cells of the row.
     """
 
-    def to_dict(self) -> dict[str, int]:
-        """Converts the row filter to a dict representation."""
-        return {"cells_per_row_limit_filter": self.num_cells}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(cells_per_row_limit_filter=self.num_cells)
 
 
 class CellsColumnLimitFilter(_CellCountFilter):
@@ -706,9 +637,13 @@ class CellsColumnLimitFilter(_CellCountFilter):
                       timestamps of each cell.
     """
 
-    def to_dict(self) -> dict[str, int]:
-        """Converts the row filter to a dict representation."""
-        return {"cells_per_column_limit_filter": self.num_cells}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(cells_per_column_limit_filter=self.num_cells)
 
 
 class StripValueTransformerFilter(_BoolFilter):
@@ -720,9 +655,13 @@ class StripValueTransformerFilter(_BoolFilter):
                  transformer than a generic query / filter.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"strip_value_transformer": self.flag}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
+
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(strip_value_transformer=self.flag)
 
 
 class ApplyLabelFilter(RowFilter):
@@ -744,7 +683,7 @@ class ApplyLabelFilter(RowFilter):
                   ``[a-z0-9\\-]+``.
     """
 
-    def __init__(self, label: str):
+    def __init__(self, label):
         self.label = label
 
     def __eq__(self, other):
@@ -755,15 +694,16 @@ class ApplyLabelFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_dict(self) -> dict[str, str]:
-        """Converts the row filter to a dict representation."""
-        return {"apply_label_transformer": self.label}
+    def to_pb(self):
+        """Converts the row filter to a protobuf.
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(label={self.label})"
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
+        """
+        return data_v2_pb2.RowFilter(apply_label_transformer=self.label)
 
 
-class _FilterCombination(RowFilter, Sequence[RowFilter], ABC):
+class _FilterCombination(RowFilter):
     """Chain of row filters.
 
     Sends rows through several filters in sequence. The filters are "chained"
@@ -774,10 +714,10 @@ class _FilterCombination(RowFilter, Sequence[RowFilter], ABC):
     :param filters: List of :class:`RowFilter`
     """
 
-    def __init__(self, filters: list[RowFilter] | None = None):
+    def __init__(self, filters=None):
         if filters is None:
             filters = []
-        self.filters: list[RowFilter] = filters
+        self.filters = filters
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -786,38 +726,6 @@ class _FilterCombination(RowFilter, Sequence[RowFilter], ABC):
 
     def __ne__(self, other):
         return not self == other
-
-    def __len__(self) -> int:
-        return len(self.filters)
-
-    @overload
-    def __getitem__(self, index: int) -> RowFilter:
-        # overload signature for type checking
-        pass
-
-    @overload
-    def __getitem__(self, index: slice) -> list[RowFilter]:
-        # overload signature for type checking
-        pass
-
-    def __getitem__(self, index):
-        return self.filters[index]
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(filters={self.filters})"
-
-    def __str__(self) -> str:
-        """
-        Returns a string representation of the filter chain.
-
-        Adds line breaks between each sub-filter for readability.
-        """
-        output = [f"{self.__class__.__name__}(["]
-        for filter_ in self.filters:
-            filter_lines = f"{filter_},".splitlines()
-            output.extend([f"    {line}" for line in filter_lines])
-        output.append("])")
-        return "\n".join(output)
 
 
 class RowFilterChain(_FilterCombination):
@@ -831,19 +739,16 @@ class RowFilterChain(_FilterCombination):
     :param filters: List of :class:`RowFilter`
     """
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
         chain = data_v2_pb2.RowFilter.Chain(
-            filters=[row_filter._to_pb() for row_filter in self.filters]
+            filters=[row_filter.to_pb() for row_filter in self.filters]
         )
         return data_v2_pb2.RowFilter(chain=chain)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"chain": {"filters": [f.to_dict() for f in self.filters]}}
 
 
 class RowFilterUnion(_FilterCombination):
@@ -859,58 +764,50 @@ class RowFilterUnion(_FilterCombination):
     :param filters: List of :class:`RowFilter`
     """
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
         interleave = data_v2_pb2.RowFilter.Interleave(
-            filters=[row_filter._to_pb() for row_filter in self.filters]
+            filters=[row_filter.to_pb() for row_filter in self.filters]
         )
         return data_v2_pb2.RowFilter(interleave=interleave)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"interleave": {"filters": [f.to_dict() for f in self.filters]}}
 
 
 class ConditionalRowFilter(RowFilter):
     """Conditional row filter which exhibits ternary behavior.
 
-    Executes one of two filters based on another filter. If the ``predicate_filter``
+    Executes one of two filters based on another filter. If the ``base_filter``
     returns any cells in the row, then ``true_filter`` is executed. If not,
     then ``false_filter`` is executed.
 
     .. note::
 
-        The ``predicate_filter`` does not execute atomically with the true and false
+        The ``base_filter`` does not execute atomically with the true and false
         filters, which may lead to inconsistent or unexpected results.
 
         Additionally, executing a :class:`ConditionalRowFilter` has poor
         performance on the server, especially when ``false_filter`` is set.
 
-    :type predicate_filter: :class:`RowFilter`
-    :param predicate_filter: The filter to condition on before executing the
+    :type base_filter: :class:`RowFilter`
+    :param base_filter: The filter to condition on before executing the
                         true/false filters.
 
     :type true_filter: :class:`RowFilter`
     :param true_filter: (Optional) The filter to execute if there are any cells
-                        matching ``predicate_filter``. If not provided, no results
+                        matching ``base_filter``. If not provided, no results
                         will be returned in the true case.
 
     :type false_filter: :class:`RowFilter`
     :param false_filter: (Optional) The filter to execute if there are no cells
-                         matching ``predicate_filter``. If not provided, no results
+                         matching ``base_filter``. If not provided, no results
                          will be returned in the false case.
     """
 
-    def __init__(
-        self,
-        predicate_filter: RowFilter,
-        true_filter: RowFilter | None = None,
-        false_filter: RowFilter | None = None,
-    ):
-        self.predicate_filter = predicate_filter
+    def __init__(self, base_filter, true_filter=None, false_filter=None):
+        self.base_filter = base_filter
         self.true_filter = true_filter
         self.false_filter = false_filter
 
@@ -918,7 +815,7 @@ class ConditionalRowFilter(RowFilter):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
-            other.predicate_filter == self.predicate_filter
+            other.base_filter == self.base_filter
             and other.true_filter == self.true_filter
             and other.false_filter == self.false_filter
         )
@@ -926,43 +823,16 @@ class ConditionalRowFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def _to_pb(self) -> data_v2_pb2.RowFilter:
+    def to_pb(self):
         """Converts the row filter to a protobuf.
 
-        Returns: The converted current object.
+        :rtype: :class:`.data_v2_pb2.RowFilter`
+        :returns: The converted current object.
         """
-        condition_kwargs = {"predicate_filter": self.predicate_filter._to_pb()}
+        condition_kwargs = {"predicate_filter": self.base_filter.to_pb()}
         if self.true_filter is not None:
-            condition_kwargs["true_filter"] = self.true_filter._to_pb()
+            condition_kwargs["true_filter"] = self.true_filter.to_pb()
         if self.false_filter is not None:
-            condition_kwargs["false_filter"] = self.false_filter._to_pb()
+            condition_kwargs["false_filter"] = self.false_filter.to_pb()
         condition = data_v2_pb2.RowFilter.Condition(**condition_kwargs)
         return data_v2_pb2.RowFilter(condition=condition)
-
-    def condition_to_dict(self) -> dict[str, Any]:
-        """Converts the condition to a dict representation."""
-        condition_kwargs = {"predicate_filter": self.predicate_filter.to_dict()}
-        if self.true_filter is not None:
-            condition_kwargs["true_filter"] = self.true_filter.to_dict()
-        if self.false_filter is not None:
-            condition_kwargs["false_filter"] = self.false_filter.to_dict()
-        return condition_kwargs
-
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the row filter to a dict representation."""
-        return {"condition": self.condition_to_dict()}
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(predicate_filter={self.predicate_filter!r}, true_filter={self.true_filter!r}, false_filter={self.false_filter!r})"
-
-    def __str__(self) -> str:
-        output = [f"{self.__class__.__name__}("]
-        for filter_type in ("predicate_filter", "true_filter", "false_filter"):
-            filter_ = getattr(self, filter_type)
-            if filter_ is None:
-                continue
-            # add the new filter set, adding indentations for readability
-            filter_lines = f"{filter_type}={filter_},".splitlines()
-            output.extend(f"    {line}" for line in filter_lines)
-        output.append(")")
-        return "\n".join(output)

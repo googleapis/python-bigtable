@@ -1,6 +1,6 @@
 Client
 ~~~~~~
 
-.. automodule:: google.cloud.bigtable.deprecated.client
+.. automodule:: google.cloud.bigtable.client
   :members:
   :show-inheritance:

@@ -1,21 +1,21 @@
 Base for Everything
 ===================
 
-To use the API, the :class:`Client <google.cloud.bigtable.deprecated.client.Client>`
+To use the API, the :class:`Client <google.cloud.bigtable.client.Client>`
 class defines a high-level interface which handles authorization
 and creating other objects:
 
 .. code:: python
 
-    from google.cloud.bigtable.deprecated.client import Client
+    from google.cloud.bigtable.client import Client
     client = Client()
 
 Long-lived Defaults
 -------------------
 
-When creating a :class:`Client <google.cloud.bigtable.deprecated.client.Client>`, the
+When creating a :class:`Client <google.cloud.bigtable.client.Client>`, the
 ``user_agent`` argument has sensible a default
-(:data:`DEFAULT_USER_AGENT <google.cloud.bigtable.deprecated.client.DEFAULT_USER_AGENT>`).
+(:data:`DEFAULT_USER_AGENT <google.cloud.bigtable.client.DEFAULT_USER_AGENT>`).
 However, you may over-ride it and the value will be used throughout all API
 requests made with the ``client`` you create.
 
@@ -38,14 +38,14 @@ Configuration
 
   .. code::
 
-     >>> import google.cloud.deprecated as bigtable
+     >>> from google.cloud import bigtable
      >>> client = bigtable.Client()
 
   or pass in ``credentials`` and ``project`` explicitly
 
   .. code::
 
-     >>> import google.cloud.deprecated as bigtable
+     >>> from google.cloud import bigtable
      >>> client = bigtable.Client(project='my-project', credentials=creds)
 
 .. tip::
@@ -73,15 +73,15 @@ you can pass the ``read_only`` argument:
     client = bigtable.Client(read_only=True)
 
 This will ensure that the
-:data:`READ_ONLY_SCOPE <google.cloud.bigtable.deprecated.client.READ_ONLY_SCOPE>` is used
+:data:`READ_ONLY_SCOPE <google.cloud.bigtable.client.READ_ONLY_SCOPE>` is used
 for API requests (so any accidental requests that would modify data will
 fail).
 
 Next Step
 ---------
 
-After a :class:`Client <google.cloud.bigtable.deprecated.client.Client>`, the next highest-level
-object is an :class:`Instance <google.cloud.bigtable.deprecated.instance.Instance>`. You'll need
+After a :class:`Client <google.cloud.bigtable.client.Client>`, the next highest-level
+object is an :class:`Instance <google.cloud.bigtable.instance.Instance>`. You'll need
 one before you can interact with tables or data.
 
 Head next to learn about the :doc:`instance-api`.

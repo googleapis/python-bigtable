@@ -27,7 +27,7 @@ TABLE_NAME = "table_name"
 
 
 def _make_cell(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row_data import Cell
+    from google.cloud.bigtable.row_data import Cell
 
     return Cell(*args, **kwargs)
 
@@ -36,7 +36,7 @@ def _cell_from_pb_test_helper(labels=None):
     import datetime
     from google.cloud._helpers import _EPOCH
     from google.cloud.bigtable_v2.types import data as data_v2_pb2
-    from google.cloud.bigtable.deprecated.row_data import Cell
+    from google.cloud.bigtable.row_data import Cell
 
     timestamp = _EPOCH + datetime.timedelta(microseconds=TIMESTAMP_MICROS)
     value = b"value-bytes"
@@ -100,7 +100,7 @@ def test_cell___ne__():
 
 
 def _make_partial_row_data(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row_data import PartialRowData
+    from google.cloud.bigtable.row_data import PartialRowData
 
     return PartialRowData(*args, **kwargs)
 
@@ -288,7 +288,7 @@ def _make_grpc_call_error(exception):
 
 def test__retry_read_rows_exception_miss():
     from google.api_core.exceptions import Conflict
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     exception = Conflict("testing")
     assert not _retry_read_rows_exception(exception)
@@ -296,7 +296,7 @@ def test__retry_read_rows_exception_miss():
 
 def test__retry_read_rows_exception_service_unavailable():
     from google.api_core.exceptions import ServiceUnavailable
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     exception = ServiceUnavailable("testing")
     assert _retry_read_rows_exception(exception)
@@ -304,7 +304,7 @@ def test__retry_read_rows_exception_service_unavailable():
 
 def test__retry_read_rows_exception_deadline_exceeded():
     from google.api_core.exceptions import DeadlineExceeded
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     exception = DeadlineExceeded("testing")
     assert _retry_read_rows_exception(exception)
@@ -312,7 +312,7 @@ def test__retry_read_rows_exception_deadline_exceeded():
 
 def test__retry_read_rows_exception_internal_server_not_retriable():
     from google.api_core.exceptions import InternalServerError
-    from google.cloud.bigtable.deprecated.row_data import (
+    from google.cloud.bigtable.row_data import (
         _retry_read_rows_exception,
         RETRYABLE_INTERNAL_ERROR_MESSAGES,
     )
@@ -325,7 +325,7 @@ def test__retry_read_rows_exception_internal_server_not_retriable():
 
 def test__retry_read_rows_exception_internal_server_retriable():
     from google.api_core.exceptions import InternalServerError
-    from google.cloud.bigtable.deprecated.row_data import (
+    from google.cloud.bigtable.row_data import (
         _retry_read_rows_exception,
         RETRYABLE_INTERNAL_ERROR_MESSAGES,
     )
@@ -337,7 +337,7 @@ def test__retry_read_rows_exception_internal_server_retriable():
 
 def test__retry_read_rows_exception_miss_wrapped_in_grpc():
     from google.api_core.exceptions import Conflict
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     wrapped = Conflict("testing")
     exception = _make_grpc_call_error(wrapped)
@@ -346,7 +346,7 @@ def test__retry_read_rows_exception_miss_wrapped_in_grpc():
 
 def test__retry_read_rows_exception_service_unavailable_wrapped_in_grpc():
     from google.api_core.exceptions import ServiceUnavailable
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     wrapped = ServiceUnavailable("testing")
     exception = _make_grpc_call_error(wrapped)
@@ -355,7 +355,7 @@ def test__retry_read_rows_exception_service_unavailable_wrapped_in_grpc():
 
 def test__retry_read_rows_exception_deadline_exceeded_wrapped_in_grpc():
     from google.api_core.exceptions import DeadlineExceeded
-    from google.cloud.bigtable.deprecated.row_data import _retry_read_rows_exception
+    from google.cloud.bigtable.row_data import _retry_read_rows_exception
 
     wrapped = DeadlineExceeded("testing")
     exception = _make_grpc_call_error(wrapped)
@@ -363,7 +363,7 @@ def test__retry_read_rows_exception_deadline_exceeded_wrapped_in_grpc():
 
 
 def _make_partial_rows_data(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row_data import PartialRowsData
+    from google.cloud.bigtable.row_data import PartialRowsData
 
     return PartialRowsData(*args, **kwargs)
 
@@ -373,13 +373,13 @@ def _partial_rows_data_consume_all(yrd):
 
 
 def _make_client(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.client import Client
+    from google.cloud.bigtable.client import Client
 
     return Client(*args, **kwargs)
 
 
 def test_partial_rows_data_constructor():
-    from google.cloud.bigtable.deprecated.row_data import DEFAULT_RETRY_READ_ROWS
+    from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
     client = _Client()
     client._data_stub = mock.MagicMock()
@@ -436,7 +436,7 @@ def test_partial_rows_data_consume_all():
 
 
 def test_partial_rows_data_constructor_with_retry():
-    from google.cloud.bigtable.deprecated.row_data import DEFAULT_RETRY_READ_ROWS
+    from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 
     client = _Client()
     client._data_stub = mock.MagicMock()
@@ -446,7 +446,9 @@ def test_partial_rows_data_constructor_with_retry():
         client._data_stub.ReadRows, request, retry
     )
     partial_rows_data.read_method.assert_called_once_with(
-        request, timeout=DEFAULT_RETRY_READ_ROWS.deadline + 1
+        request,
+        timeout=DEFAULT_RETRY_READ_ROWS.deadline + 1,
+        retry=DEFAULT_RETRY_READ_ROWS,
     )
     assert partial_rows_data.request is request
     assert partial_rows_data.rows == {}
@@ -644,7 +646,7 @@ def test_partial_rows_data_valid_last_scanned_row_key_on_start():
 
 
 def test_partial_rows_data_invalid_empty_chunk():
-    from google.cloud.bigtable.deprecated.row_data import InvalidChunk
+    from google.cloud.bigtable.row_data import InvalidChunk
     from google.cloud.bigtable_v2.services.bigtable import BigtableClient
 
     client = _Client()
@@ -755,14 +757,14 @@ def test_partial_rows_data_yield_retry_rows_data():
 
 
 def _make_read_rows_request_manager(*args, **kwargs):
-    from google.cloud.bigtable.deprecated.row_data import _ReadRowsRequestManager
+    from google.cloud.bigtable.row_data import _ReadRowsRequestManager
 
     return _ReadRowsRequestManager(*args, **kwargs)
 
 
 @pytest.fixture(scope="session")
 def rrrm_data():
-    from google.cloud.bigtable.deprecated import row_set
+    from google.cloud.bigtable import row_set
 
     row_range1 = row_set.RowRange(b"row_key21", b"row_key29")
     row_range2 = row_set.RowRange(b"row_key31", b"row_key39")
@@ -851,7 +853,7 @@ def test_RRRM__filter_row_ranges_all_ranges_already_read(rrrm_data):
 
 
 def test_RRRM__filter_row_ranges_all_ranges_already_read_open_closed():
-    from google.cloud.bigtable.deprecated import row_set
+    from google.cloud.bigtable import row_set
 
     last_scanned_key = b"row_key54"
 
@@ -895,7 +897,7 @@ def test_RRRM__filter_row_ranges_some_ranges_already_read(rrrm_data):
 
 
 def test_RRRM_build_updated_request(rrrm_data):
-    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
     from google.cloud.bigtable_v2 import types
 
     row_range1 = rrrm_data["row_range1"]
@@ -944,7 +946,7 @@ def test_RRRM_build_updated_request_full_table():
 
 
 def test_RRRM_build_updated_request_no_start_key():
-    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
     from google.cloud.bigtable_v2 import types
 
     row_filter = RowSampleFilter(0.33)
@@ -972,7 +974,7 @@ def test_RRRM_build_updated_request_no_start_key():
 
 
 def test_RRRM_build_updated_request_no_end_key():
-    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
     from google.cloud.bigtable_v2 import types
 
     row_filter = RowSampleFilter(0.33)
@@ -998,7 +1000,7 @@ def test_RRRM_build_updated_request_no_end_key():
 
 
 def test_RRRM_build_updated_request_rows():
-    from google.cloud.bigtable.deprecated.row_filters import RowSampleFilter
+    from google.cloud.bigtable.row_filters import RowSampleFilter
 
     row_filter = RowSampleFilter(0.33)
     last_scanned_key = b"row_key4"
@@ -1046,7 +1048,7 @@ def test_RRRM__key_already_read():
 
 
 def test_RRRM__rows_limit_reached():
-    from google.cloud.bigtable.deprecated.row_data import InvalidRetryRequest
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
 
     last_scanned_key = b"row_key14"
     request = _ReadRowsRequestPB(table_name=TABLE_NAME)
@@ -1059,7 +1061,7 @@ def test_RRRM__rows_limit_reached():
 
 
 def test_RRRM_build_updated_request_last_row_read_raises_invalid_retry_request():
-    from google.cloud.bigtable.deprecated.row_data import InvalidRetryRequest
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
 
     last_scanned_key = b"row_key4"
     request = _ReadRowsRequestPB(table_name=TABLE_NAME)
@@ -1073,8 +1075,8 @@ def test_RRRM_build_updated_request_last_row_read_raises_invalid_retry_request()
 
 
 def test_RRRM_build_updated_request_row_ranges_read_raises_invalid_retry_request():
-    from google.cloud.bigtable.deprecated.row_data import InvalidRetryRequest
-    from google.cloud.bigtable.deprecated import row_set
+    from google.cloud.bigtable.row_data import InvalidRetryRequest
+    from google.cloud.bigtable import row_set
 
     row_range1 = row_set.RowRange(b"row_key21", b"row_key29")
 
@@ -1095,7 +1097,7 @@ def test_RRRM_build_updated_request_row_ranges_read_raises_invalid_retry_request
 
 
 def test_RRRM_build_updated_request_row_ranges_valid():
-    from google.cloud.bigtable.deprecated import row_set
+    from google.cloud.bigtable import row_set
 
     row_range1 = row_set.RowRange(b"row_key21", b"row_key29")
 
@@ -1179,7 +1181,7 @@ def _ReadRowsResponseCellChunkPB(*args, **kw):
 
 
 def _make_cell_pb(value):
-    from google.cloud.bigtable.deprecated import row_data
+    from google.cloud.bigtable import row_data
 
     return row_data.Cell(value, TIMESTAMP_MICROS)
 

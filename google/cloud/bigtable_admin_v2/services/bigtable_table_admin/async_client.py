@@ -369,6 +369,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.CreateTableFromSnapshotRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
+
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
                 most Cloud Bigtable customers. This feature might be
@@ -682,16 +683,19 @@ class BigtableTableAdminAsyncClient:
                 should not be set.
             update_mask (:class:`google.protobuf.field_mask_pb2.FieldMask`):
                 Required. The list of fields to update. A mask
-                specifying which fields (e.g. ``deletion_protection``)
+                specifying which fields (e.g. ``change_stream_config``)
                 in the ``table`` field should be updated. This mask is
                 relative to the ``table`` field, not to the request
                 message. The wildcard (*) path is currently not
                 supported. Currently UpdateTable is only supported for
-                the following field:
+                the following fields:
 
-                -  ``deletion_protection`` If ``column_families`` is set
-                   in ``update_mask``, it will return an UNIMPLEMENTED
-                   error.
+                -  ``change_stream_config``
+                -  ``change_stream_config.retention_period``
+                -  ``deletion_protection``
+
+                If ``column_families`` is set in ``update_mask``, it
+                will return an UNIMPLEMENTED error.
 
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1300,6 +1304,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.SnapshotTableRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
+
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
                 most Cloud Bigtable customers. This feature might be
@@ -1437,6 +1442,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.GetSnapshotRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
+
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
                 most Cloud Bigtable customers. This feature might be
@@ -1549,6 +1555,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.ListSnapshotsRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
                 most Cloud Bigtable customers. This feature might be
@@ -1672,6 +1679,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.DeleteSnapshotRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
+
                 Note: This is a private alpha release of Cloud Bigtable
                 snapshots. This feature is not currently available to
                 most Cloud Bigtable customers. This feature might be
@@ -2290,8 +2298,7 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (Optional[Union[google.iam.v1.iam_policy_pb2.GetIamPolicyRequest, dict]]):
-                The request object. Request message for `GetIamPolicy`
-                method.
+                The request object. Request message for ``GetIamPolicy`` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
                 policy is being requested. See the
@@ -2440,8 +2447,7 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (Optional[Union[google.iam.v1.iam_policy_pb2.SetIamPolicyRequest, dict]]):
-                The request object. Request message for `SetIamPolicy`
-                method.
+                The request object. Request message for ``SetIamPolicy`` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
                 policy is being specified. See the
@@ -2581,8 +2587,7 @@ class BigtableTableAdminAsyncClient:
 
         Args:
             request (Optional[Union[google.iam.v1.iam_policy_pb2.TestIamPermissionsRequest, dict]]):
-                The request object. Request message for
-                `TestIamPermissions` method.
+                The request object. Request message for ``TestIamPermissions`` method.
             resource (:class:`str`):
                 REQUIRED: The resource for which the
                 policy detail is being requested. See
