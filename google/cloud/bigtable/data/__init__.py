@@ -28,7 +28,6 @@ from google.cloud.bigtable.data.read_rows_query import RowRange
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data.row import Cell
 
-from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data.mutations import Mutation
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import SetCell

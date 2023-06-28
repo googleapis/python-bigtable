@@ -845,7 +845,7 @@ class RowFilterChain(_FilterCombination):
         """Converts the row filter to a dict representation."""
         return {"chain": {"filters": [f._to_dict() for f in self.filters]}}
 
-      
+
 class RowFilterUnion(_FilterCombination):
     """Union of row filters.
 

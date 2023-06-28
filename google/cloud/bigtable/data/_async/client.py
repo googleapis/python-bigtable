@@ -997,7 +997,9 @@ class TableAsync:
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
             request={
-                "predicate_filter": predicate._to_dict() if predicate is not None else None,
+                "predicate_filter": predicate._to_dict()
+                if predicate is not None
+                else None,
                 "true_mutations": true_case_dict,
                 "false_mutations": false_case_dict,
                 "table_name": self.table_name,

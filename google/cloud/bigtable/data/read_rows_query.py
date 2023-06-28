@@ -386,7 +386,9 @@ class ReadRowsQuery:
             "rows": row_set,
         }
         dict_filter = (
-            self.filter._to_dict() if isinstance(self.filter, RowFilter) else self.filter
+            self.filter._to_dict()
+            if isinstance(self.filter, RowFilter)
+            else self.filter
         )
         if dict_filter:
             final_dict["filter"] = dict_filter
