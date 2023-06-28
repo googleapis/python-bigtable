@@ -82,10 +82,13 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
             for idx, e in enumerate(excs[:15]):
                 if idx != 0:
                     message_parts.append(f"+---------------- {str(idx+1).rjust(2)} ----------------")
-                message_parts.extend(f"| {type(e).__name__}: {e}".splitlines())
                 cause = e.__cause__
                 if cause is not None:
-                    message_parts.extend(f"| Caused by {type(cause).__name__}: {cause}".splitlines())
+                    message_parts.extend(f"| {type(cause).__name__}: {cause}".splitlines())
+                    message_parts.append("| ")
+                    message_parts.append("| The above exception was the direct cause of the following exception:")
+                    message_parts.append("| ")
+                message_parts.extend(f"| {type(e).__name__}: {e}".splitlines())
             if len(excs) > 15:
                 message_parts.append("+---------------- ... ---------------")
                 message_parts.append(f"| and {len(excs) - 15} more")
@@ -228,9 +231,9 @@ class FailedMutationEntryError(Exception):
         index_msg = f" at index {failed_idx}" if failed_idx is not None else ""
         message = f"Failed {idempotent_msg} mutation entry{index_msg}"
         super().__init__(message)
+        self.__cause__ = cause
         self.index = failed_idx
         self.entry = failed_mutation_entry
-        self.__cause__ = cause
 
 
 class RetryExceptionGroup(_BigtableExceptionGroup):
@@ -291,6 +294,6 @@ class FailedQueryShardError(Exception):
     ):
         message = f"Failed query at index {failed_index}"
         super().__init__(message)
+        self.__cause__ = cause
         self.index = failed_index
         self.query = failed_query
-        self.__cause__ = cause
