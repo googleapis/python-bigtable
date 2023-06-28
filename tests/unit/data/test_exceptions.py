@@ -49,7 +49,8 @@ class TestBigtableExceptionGroup:
         test_excs = [Exception(test_msg)]
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_msg, test_excs)
-        assert str(e.value) == test_msg
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == test_msg
         assert list(e.value.exceptions) == test_excs
 
     def test_raise_empty_list(self):
@@ -191,7 +192,8 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, total_entries)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
 
     def test_raise_custom_message(self):
@@ -202,7 +204,8 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         exception_list = [Exception()]
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, 5, message=custom_message)
-        assert str(e.value) == custom_message
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == custom_message
         assert list(e.value.exceptions) == exception_list
 
     @pytest.mark.parametrize(
@@ -262,7 +265,8 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
             raise self._get_class().from_truncated_lists(
                 first_list, second_list, total_excs, entry_count
             )
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == first_list + second_list
 
 
@@ -303,7 +307,8 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
 
 
@@ -339,7 +344,8 @@ class TestShardedReadRowsExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, succeeded, total_entries)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[0]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
         assert e.value.successful_rows == succeeded
 
