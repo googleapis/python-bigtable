@@ -399,11 +399,11 @@ class TableAsync:
         app_profile_id: str | None = None,
         *,
         default_read_rows_operation_timeout: float = 600,
-        default_read_rows_attempt_timeout: float | None = None,
+        default_read_rows_attempt_timeout: float | None = 20,
         default_mutate_rows_operation_timeout: float = 600,
-        default_mutate_rows_attempt_timeout: float | None = None,
+        default_mutate_rows_attempt_timeout: float | None = 60,
         default_operation_timeout: float = 60,
-        default_attempt_timeout: float | None = None,
+        default_attempt_timeout: float | None = 20,
     ):
         """
         Initialize a Table instance
