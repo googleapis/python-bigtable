@@ -1055,9 +1055,9 @@ class TestTableAsync:
         assert table.default_operation_timeout == 60
         assert table.default_read_rows_operation_timeout == 600
         assert table.default_mutate_rows_operation_timeout == 600
-        assert table.default_attempt_timeout is None
-        assert table.default_read_rows_attempt_timeout is None
-        assert table.default_mutate_rows_attempt_timeout is None
+        assert table.default_attempt_timeout == 20
+        assert table.default_read_rows_attempt_timeout == 20
+        assert table.default_mutate_rows_attempt_timeout == 60
         await client.close()
 
     @pytest.mark.asyncio
@@ -1088,16 +1088,6 @@ class TestTableAsync:
             with pytest.raises(ValueError) as e:
                 TableAsync(client, "", "", **{operation_timeout: -1})
             assert "operation_timeout must be greater than 0" in str(e.value)
-            with pytest.raises(ValueError) as e:
-                TableAsync(
-                    client,
-                    "",
-                    "",
-                    **{operation_timeout: 1, attempt_timeout: 2},
-                )
-            assert "attempt_timeout must not be greater than operation_timeout" in str(
-                e.value
-            )
         await client.close()
 
     def test_table_ctor_sync(self):
@@ -1958,14 +1948,6 @@ class TestSampleRowKeys:
                 with pytest.raises(ValueError) as e:
                     await table.sample_row_keys(attempt_timeout=-1)
                     assert "attempt_timeout must be greater than 0" in str(e.value)
-                with pytest.raises(ValueError) as e:
-                    await table.sample_row_keys(
-                        operation_timeout=10, attempt_timeout=20
-                    )
-                    assert (
-                        "attempt_timeout must not be greater than operation_timeout"
-                        in str(e.value)
-                    )
 
     @pytest.mark.asyncio
     async def test_sample_row_keys_default_timeout(self):

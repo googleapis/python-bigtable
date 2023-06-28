@@ -419,11 +419,6 @@ class TestMutationsBatcherAsync:
         with pytest.raises(ValueError) as e:
             self._make_one(batch_attempt_timeout=-1)
         assert "attempt_timeout must be greater than 0" in str(e.value)
-        with pytest.raises(ValueError) as e:
-            self._make_one(batch_operation_timeout=1, batch_attempt_timeout=2)
-        assert "attempt_timeout must not be greater than operation_timeout" in str(
-            e.value
-        )
 
     def test_default_argument_consistency(self):
         """

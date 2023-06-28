@@ -132,7 +132,3 @@ def _validate_timeouts(
     elif attempt_timeout is not None:
         if attempt_timeout <= 0:
             raise ValueError("attempt_timeout must be greater than 0")
-        if attempt_timeout > operation_timeout:
-            raise ValueError(
-                "attempt_timeout must not be greater than operation_timeout"
-            )

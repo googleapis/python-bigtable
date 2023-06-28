@@ -153,11 +153,6 @@ class TestValidateTimeouts:
         with pytest.raises(ValueError) as e:
             _helpers._validate_timeouts(operation_timeout=-1, attempt_timeout=1)
         assert "operation_timeout must be greater than 0" in str(e.value)
-        with pytest.raises(ValueError) as e:
-            _helpers._validate_timeouts(operation_timeout=1, attempt_timeout=2)
-        assert "attempt_timeout must not be greater than operation_timeout" in str(
-            e.value
-        )
 
     @pytest.mark.parametrize(
         "args,expected",
@@ -169,7 +164,6 @@ class TestValidateTimeouts:
             ([1, 1], True),
             ([1, None], False),
             ([2, 1], True),
-            ([1, 2], False),
             ([0, 1], False),
             ([1, 0], False),
             ([60, None], False),
