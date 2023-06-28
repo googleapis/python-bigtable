@@ -82,8 +82,10 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
             for idx, e in enumerate(excs[:15]):
                 if idx != 0:
                     message_parts.append(f"+---------------- {str(idx+1).rjust(2)} ----------------")
-                for sub_exc_line in f"| {e.__class__.__name__}: {str(e)}".split("\n"):
-                    message_parts.append(sub_exc_line)
+                message_parts.extend(f"| {type(e).__name__}: {e}".splitlines())
+                cause = e.__cause__
+                if cause is not None:
+                    message_parts.extend(f"| Caused by {type(cause).__name__}: {cause}".splitlines())
             if len(excs) > 15:
                 message_parts.append("+---------------- ... ---------------")
                 message_parts.append(f"| and {len(excs) - 15} more")
@@ -219,9 +221,6 @@ class FailedMutationEntryError(Exception):
         )
         index_msg = f" at index {failed_idx}" if failed_idx is not None else " "
         message = f"Failed {idempotent_msg} mutation entry{index_msg}."
-        if not is_311_plus:
-            # attach the cause to the message, since it won't be displayed in the stack trace by default
-            message = f"{message}\n| Caused by {cause.__class__.__name__}: {cause}"
         super().__init__(message)
         self.index = failed_idx
         self.entry = failed_mutation_entry
@@ -287,9 +286,6 @@ class FailedQueryShardError(Exception):
         cause: Exception,
     ):
         message = f"Failed query at index {failed_index}"
-        if not is_311_plus:
-            # attach the cause to the message, since it won't be displayed in the stack trace by default
-            message = f"{message}\n| Caused by {cause.__class__.__name__}: {cause}"
         super().__init__(message)
         self.index = failed_index
         self.query = failed_query
