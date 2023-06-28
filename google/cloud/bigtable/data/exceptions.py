@@ -74,7 +74,22 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
             if len(excs) == 0:
                 raise ValueError("exceptions must be a non-empty sequence")
             self.exceptions = tuple(excs)
-            super().__init__(message)
+            # simulate an exception group in Python < 3.11 by adding exception info
+            # to the message
+            first_line = "--+----------------  1 ----------------"
+            last_line = "+------------------------------------"
+            message_parts = [message + "\n" + first_line]
+            for idx, e in enumerate(excs[:15]):
+                if idx != 0:
+                    message_parts.append(f"+---------------- {str(idx+1).rjust(2)} ----------------")
+                for sub_exc_line in f"| {e.__class__.__name__}: {str(e)}".split("\n"):
+                    message_parts.append(sub_exc_line)
+            if len(excs) > 15:
+                message_parts.append("+---------------- ... ---------------")
+                message_parts.append(f"| and {len(excs) - 15} more")
+            if last_line not in message_parts[-1]:
+                message_parts.append(last_line)
+            super().__init__("\n  ".join(message_parts))
 
     def __new__(cls, message, excs):
         if is_311_plus:
@@ -82,12 +97,14 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
         else:
             return super().__new__(cls)
 
-    def __str__(self):
+    def __repr__(self):
         """
-        String representation doesn't display sub-exceptions. Subexceptions are
-        described in message
+        repr representation should strip out sub-exception details
         """
-        return self.args[0]
+        if is_311_plus:
+            return super().__repr__()
+        message = self.args[0].split("\n")[0]
+        return f"{self.__class__.__name__}({message!r}, {self.exceptions!r})"
 
 
 class MutationsExceptionGroup(_BigtableExceptionGroup):
@@ -200,10 +217,11 @@ class FailedMutationEntryError(Exception):
         idempotent_msg = (
             "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
         )
-        index_msg = f" at index {failed_idx} " if failed_idx is not None else " "
-        message = (
-            f"Failed {idempotent_msg} mutation entry{index_msg}with cause: {cause!r}"
-        )
+        index_msg = f" at index {failed_idx}" if failed_idx is not None else " "
+        message = f"Failed {idempotent_msg} mutation entry{index_msg}."
+        if not is_311_plus:
+            # attach the cause to the message, since it won't be displayed in the stack trace by default
+            message = f"{message}\n| Caused by {cause.__class__.__name__}: {cause}"
         super().__init__(message)
         self.index = failed_idx
         self.entry = failed_mutation_entry
@@ -220,7 +238,7 @@ class RetryExceptionGroup(_BigtableExceptionGroup):
         if len(excs) == 1:
             return f"1 failed attempt: {type(excs[0]).__name__}"
         else:
-            return f"{len(excs)} failed attempts. Latest: {type(excs[-1]).__name__}"
+            return f"{len(excs)} failed attempts."
 
     def __init__(self, excs: list[Exception]):
         super().__init__(self._format_message(excs), excs)
@@ -268,7 +286,10 @@ class FailedQueryShardError(Exception):
         failed_query: "ReadRowsQuery" | dict[str, Any],
         cause: Exception,
     ):
-        message = f"Failed query at index {failed_index} with cause: {cause!r}"
+        message = f"Failed query at index {failed_index}"
+        if not is_311_plus:
+            # attach the cause to the message, since it won't be displayed in the stack trace by default
+            message = f"{message}\n| Caused by {cause.__class__.__name__}: {cause}"
         super().__init__(message)
         self.index = failed_index
         self.query = failed_query
