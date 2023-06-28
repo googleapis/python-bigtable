@@ -99,6 +99,12 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
         else:
             return super().__new__(cls)
 
+    def __str__(self):
+        if is_311_plus:
+            # don't return built-in sub-exception message
+            return self.args[0]
+        return super().__str__()
+
     def __repr__(self):
         """
         repr representation should strip out sub-exception details
@@ -219,8 +225,8 @@ class FailedMutationEntryError(Exception):
         idempotent_msg = (
             "idempotent" if failed_mutation_entry.is_idempotent() else "non-idempotent"
         )
-        index_msg = f" at index {failed_idx}" if failed_idx is not None else " "
-        message = f"Failed {idempotent_msg} mutation entry{index_msg}."
+        index_msg = f" at index {failed_idx}" if failed_idx is not None else ""
+        message = f"Failed {idempotent_msg} mutation entry{index_msg}"
         super().__init__(message)
         self.index = failed_idx
         self.entry = failed_mutation_entry
@@ -234,10 +240,8 @@ class RetryExceptionGroup(_BigtableExceptionGroup):
     def _format_message(excs: list[Exception]):
         if len(excs) == 0:
             return "No exceptions"
-        if len(excs) == 1:
-            return f"1 failed attempt: {type(excs[0]).__name__}"
-        else:
-            return f"{len(excs)} failed attempts."
+        plural = "s" if len(excs) > 1 else ""
+        return f"{len(excs)} failed attempt{plural}"
 
     def __init__(self, excs: list[Exception]):
         super().__init__(self._format_message(excs), excs)

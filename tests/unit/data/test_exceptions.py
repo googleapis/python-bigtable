@@ -241,11 +241,11 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
     @pytest.mark.parametrize(
         "exception_list,expected_message",
         [
-            ([Exception()], "1 failed attempt: Exception"),
-            ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError"),
+            ([Exception()], "1 failed attempt"),
+            ([Exception(), RuntimeError()], "2 failed attempts"),
             (
                 [Exception(), ValueError("test")],
-                "2 failed attempts. Latest: ValueError",
+                "2 failed attempts",
             ),
             (
                 [
@@ -253,7 +253,7 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
                         [Exception(), ValueError("test")]
                     )
                 ],
-                "1 failed attempt: RetryExceptionGroup",
+                "1 failed attempt",
             ),
         ],
     )
@@ -323,10 +323,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed idempotent mutation entry at index 2 with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed idempotent mutation entry at index 2"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -343,10 +340,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed non-idempotent mutation entry at index 2 with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed non-idempotent mutation entry at index 2"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -361,10 +355,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed idempotent mutation entry with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed idempotent mutation entry"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -391,7 +382,7 @@ class TestFailedQueryShardError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_query, test_exc)
-        assert str(e.value) == "Failed query at index 2 with cause: ValueError('test')"
+        assert str(e.value) == "Failed query at index 2"
         assert e.value.index == test_idx
         assert e.value.query == test_query
         assert e.value.__cause__ == test_exc
