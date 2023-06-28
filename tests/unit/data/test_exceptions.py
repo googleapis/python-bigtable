@@ -31,9 +31,9 @@ class TestBigtableExceptionGroup:
     """
 
     def _get_class(self):
-        from google.cloud.bigtable.data.exceptions import BigtableExceptionGroup
+        from google.cloud.bigtable.data.exceptions import _BigtableExceptionGroup
 
-        return BigtableExceptionGroup
+        return _BigtableExceptionGroup
 
     def _make_one(self, message="test_message", excs=None):
         if excs is None:

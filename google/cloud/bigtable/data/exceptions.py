@@ -58,7 +58,7 @@ class _MutateRowsIncomplete(RuntimeError):
     pass
 
 
-class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
+class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # type: ignore # noqa: F821
     """
     Represents one or more exceptions that occur during a bulk Bigtable operation
 
@@ -90,7 +90,7 @@ class BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # t
         return self.args[0]
 
 
-class MutationsExceptionGroup(BigtableExceptionGroup):
+class MutationsExceptionGroup(_BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a bulk mutation operation
 
@@ -210,7 +210,7 @@ class FailedMutationEntryError(Exception):
         self.__cause__ = cause
 
 
-class RetryExceptionGroup(BigtableExceptionGroup):
+class RetryExceptionGroup(_BigtableExceptionGroup):
     """Represents one or more exceptions that occur during a retryable operation"""
 
     @staticmethod
@@ -229,7 +229,7 @@ class RetryExceptionGroup(BigtableExceptionGroup):
         return super().__new__(cls, cls._format_message(excs), excs)
 
 
-class ShardedReadRowsExceptionGroup(BigtableExceptionGroup):
+class ShardedReadRowsExceptionGroup(_BigtableExceptionGroup):
     """
     Represents one or more exceptions that occur during a sharded read rows operation
     """

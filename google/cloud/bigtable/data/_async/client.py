@@ -44,7 +44,7 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import ReadRowsIteratorAsync
+from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 
 import google.auth.credentials
 import google.auth._default
@@ -457,7 +457,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         per_request_timeout: float | None = None,
-    ) -> ReadRowsIteratorAsync:
+    ) -> ReadRowsAsyncIterator:
         """
         Returns an iterator to asynchronously stream back row data.
 
@@ -506,14 +506,14 @@ class TableAsync:
         # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has per_request_timeout
         # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
         # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, per_request_timeout
-        # - ReadRowsIterator: adds idle_timeout, moves stats out of stream and into attribute
+        # - ReadRowsAsyncIterator: adds idle_timeout, moves stats out of stream and into attribute
         row_merger = _ReadRowsOperationAsync(
             request,
             self.client._gapic_client,
             operation_timeout=operation_timeout,
             per_request_timeout=per_request_timeout,
         )
-        output_generator = ReadRowsIteratorAsync(row_merger)
+        output_generator = ReadRowsAsyncIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
         idle_timeout_seconds = 300
         await output_generator._start_idle_timer(idle_timeout_seconds)

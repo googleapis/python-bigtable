@@ -593,7 +593,7 @@ class TestBigtableDataClientAsync:
         assert expected_key == tuple(list(instance_owners)[0])
         # should be a new task set
         assert client_mock._channel_refresh_tasks
-        # # next call should not call _start_background_channel_refresh again
+        # next call should not call _start_background_channel_refresh again
         table_mock2 = mock.Mock()
         await self._get_target_class()._register_instance(
             client_mock, "instance-2", table_mock2
@@ -1295,7 +1295,7 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
-        from google.cloud.bigtable.data._async.client import ReadRowsIteratorAsync
+        from google.cloud.bigtable.data._async.client import ReadRowsAsyncIterator
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
@@ -1311,7 +1311,7 @@ class TestReadRows:
                 chunks
             )
             with mock.patch.object(
-                ReadRowsIteratorAsync, "_start_idle_timer"
+                ReadRowsAsyncIterator, "_start_idle_timer"
             ) as start_idle_timer:
                 client = self._make_client()
                 table = client.get_table("instance", "table")

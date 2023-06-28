@@ -19,11 +19,11 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
+
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 _SERVER_SIDE_TIMESTAMP = -1
-
 
 # mutation entries above this should be rejected
 _MUTATE_ROWS_REQUEST_MUTATION_LIMIT = 100_000
