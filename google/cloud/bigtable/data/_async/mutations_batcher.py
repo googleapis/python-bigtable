@@ -203,9 +203,10 @@ class MutationsBatcherAsync:
           - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
           - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
-              table default_operation_timeout will be used
+              table default_mutate_rows_operation_timeout will be used
           - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
-              table default_attempt_timeout will be used
+              table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
+              if that is also None.
         """
         self._operation_timeout: float = (
             batch_operation_timeout or table.default_mutate_rows_operation_timeout
