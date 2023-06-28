@@ -71,11 +71,51 @@ class TestBigtableExceptionGroup:
 
         sub_exc1 = RuntimeError("first sub exception")
         sub_exc2 = ZeroDivisionError("second sub exception")
+        sub_group = self._make_one(excs=[sub_exc2])
+        exc_group = self._make_one(excs=[sub_exc1, sub_group])
+
+        expected_traceback = (
+           f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+            "  +-+---------------- 1 ----------------",
+            "    | RuntimeError: first sub exception",
+            "    +---------------- 2 ----------------",
+           f"    | google.cloud.bigtable.data.exceptions.{type(sub_group).__name__}: {str(sub_group)}",
+            "    +-+---------------- 1 ----------------",
+            "      | ZeroDivisionError: second sub exception",
+            "      +------------------------------------",
+        )
+        exception_caught = False
+        try:
+            raise exc_group
+        except self._get_class():
+            exception_caught = True
+            tb = traceback.format_exc()
+            tb_relevant_lines = tuple(tb.splitlines()[3:])
+            assert expected_traceback == tb_relevant_lines
+        assert exception_caught
+
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="requires python3.11 or higher"
+    )
+    def test_311_traceback_with_cause(self):
+        """
+        traceback should display nicely with sub-exceptions with __cause__ set
+        """
+        import traceback
+
+        sub_exc1 = RuntimeError("first sub exception")
+        cause_exc = ImportError("cause exception")
+        sub_exc1.__cause__ = cause_exc
+        sub_exc2 = ZeroDivisionError("second sub exception")
         exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
 
         expected_traceback = (
-            f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+           f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
             "  +-+---------------- 1 ----------------",
+            "    | ImportError: cause exception",
+            "    | ",
+            "    | The above exception was the direct cause of the following exception:",
+            "    | ",
             "    | RuntimeError: first sub exception",
             "    +---------------- 2 ----------------",
             "    | ZeroDivisionError: second sub exception",
