@@ -1363,7 +1363,7 @@ class TestReadRows:
 
     @pytest.mark.asyncio
     async def test_read_rows_idle_timeout(self):
-        from google.cloud.bigtable.data._async.client import ReadRowsIteratorAsync
+        from google.cloud.bigtable.data._async.client import ReadRowsAsyncIterator
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
             BigtableAsyncClient,
         )
@@ -1379,7 +1379,7 @@ class TestReadRows:
                 chunks
             )
             with mock.patch.object(
-                ReadRowsIteratorAsync, "_start_idle_timer"
+                ReadRowsAsyncIterator, "_start_idle_timer"
             ) as start_idle_timer:
                 client = self._make_client()
                 table = client.get_table("instance", "table")

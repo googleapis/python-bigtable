@@ -429,21 +429,21 @@ class MockStream(_ReadRowsOperationAsync):
         pass
 
 
-class TestReadRowsIteratorAsync:
+class TestReadRowsAsyncIterator:
     async def mock_stream(self, size=10):
         for i in range(size):
             yield i
 
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable.data._async._read_rows import ReadRowsIteratorAsync
+        from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 
         stream = MockStream(*args, **kwargs)
-        return ReadRowsIteratorAsync(stream)
+        return ReadRowsAsyncIterator(stream)
 
     def test_ctor(self):
-        with mock.patch("time.time", return_value=0):
+        with mock.patch("time.monotonic", return_value=0):
             iterator = self._make_one()
-            assert iterator.last_interaction_time == 0
+            assert iterator._last_interaction_time == 0
             assert iterator._idle_timeout_task is None
             assert iterator.active is True
 
@@ -459,12 +459,12 @@ class TestReadRowsIteratorAsync:
         """Should start timer coroutine"""
         iterator = self._make_one()
         expected_timeout = 10
-        with mock.patch("time.time", return_value=1):
+        with mock.patch("time.monotonic", return_value=1):
             with mock.patch.object(iterator, "_idle_timeout_coroutine") as mock_coro:
                 await iterator._start_idle_timer(expected_timeout)
                 assert mock_coro.call_count == 1
                 assert mock_coro.call_args[0] == (expected_timeout,)
-        assert iterator.last_interaction_time == 1
+        assert iterator._last_interaction_time == 1
         assert iterator._idle_timeout_task is not None
 
     @pytest.mark.skipif(

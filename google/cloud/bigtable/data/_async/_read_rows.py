@@ -291,15 +291,21 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             raise InvalidChunk("read_rows completed with partial state remaining")
 
 
-class ReadRowsIteratorAsync(AsyncIterable[Row]):
+class ReadRowsAsyncIterator(AsyncIterable[Row]):
     """
     Async iterator for ReadRows responses.
+
+    Supports the AsyncIterator protocol for use in async for loops,
+    along with:
+      - `aclose` for closing the underlying stream
+      - `active` for checking if the iterator is still active
+      - an internal idle timer for closing the stream after a period of inactivity
     """
 
     def __init__(self, merger: _ReadRowsOperationAsync):
         self._merger: _ReadRowsOperationAsync = merger
         self._error: Exception | None = None
-        self.last_interaction_time = time.time()
+        self._last_interaction_time = time.monotonic()
         self._idle_timeout_task: asyncio.Task[None] | None = None
         # wrap merger with a wrapper that properly formats exceptions
         self._next_fn = _convert_retry_deadline(
@@ -318,7 +324,7 @@ class ReadRowsIteratorAsync(AsyncIterable[Row]):
         Args:
           - idle_timeout: number of seconds of inactivity before cancelling the stream
         """
-        self.last_interaction_time = time.time()
+        self._last_interaction_time = time.monotonic()
         if self._idle_timeout_task is not None:
             self._idle_timeout_task.cancel()
         self._idle_timeout_task = asyncio.create_task(
@@ -340,9 +346,12 @@ class ReadRowsIteratorAsync(AsyncIterable[Row]):
         in the last `idle_timeout` seconds.
         """
         while self.active:
-            next_timeout = self.last_interaction_time + idle_timeout
-            await asyncio.sleep(next_timeout - time.time())
-            if self.last_interaction_time + idle_timeout < time.time() and self.active:
+            next_timeout = self._last_interaction_time + idle_timeout
+            await asyncio.sleep(next_timeout - time.monotonic())
+            if (
+                self._last_interaction_time + idle_timeout < time.monotonic()
+                and self.active
+            ):
                 # idle timeout has expired
                 await self._finish_with_error(
                     IdleTimeout(
@@ -367,7 +376,7 @@ class ReadRowsIteratorAsync(AsyncIterable[Row]):
         if self._error is not None:
             raise self._error
         try:
-            self.last_interaction_time = time.time()
+            self._last_interaction_time = time.monotonic()
             return await self._next_fn()
         except Exception as e:
             await self._finish_with_error(e)
