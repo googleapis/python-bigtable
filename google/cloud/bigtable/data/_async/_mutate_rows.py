@@ -60,7 +60,7 @@ class _MutateRowsOperationAsync:
           - table: the table associated with the request
           - mutation_entries: a list of RowMutationEntry objects to send to the server
           - operation_timeout: the timeout t o use for the entire operation, in seconds.
-          - attempt_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
+          - attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
         """
         # check that mutations are within limits
