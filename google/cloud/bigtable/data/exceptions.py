@@ -79,12 +79,17 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
             first_line = "--+----------------  1 ----------------"
             last_line = "+------------------------------------"
             message_parts = [message + "\n" + first_line]
+            # print error info for each exception in the group
             for idx, e in enumerate(excs[:15]):
+                # apply index header
                 if idx != 0:
                     message_parts.append(
                         f"+---------------- {str(idx+1).rjust(2)} ----------------"
                     )
                 cause = e.__cause__
+                # if this exception was had a cause, print the cause first
+                # used to display root causes of FailedMutationEntryError and  FailedQueryShardError
+                # format matches the error output of Python 3.11+
                 if cause is not None:
                     message_parts.extend(
                         f"| {type(cause).__name__}: {cause}".splitlines()
@@ -94,11 +99,17 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
                         "| The above exception was the direct cause of the following exception:"
                     )
                     message_parts.append("| ")
+                # attach error message for this sub-exception 
+                # if the subexception is also a _BigtableExceptionGroup,
+                # error messages will be nested
                 message_parts.extend(f"| {type(e).__name__}: {e}".splitlines())
+            # truncate the message if there are more than 15 exceptions
             if len(excs) > 15:
                 message_parts.append("+---------------- ... ---------------")
                 message_parts.append(f"| and {len(excs) - 15} more")
             if last_line not in message_parts[-1]:
+                # in the case of nested _BigtableExceptionGroups, the last line
+                # does not need to be added, since one was added by the final sub-exception
                 message_parts.append(last_line)
             super().__init__("\n  ".join(message_parts))
 
