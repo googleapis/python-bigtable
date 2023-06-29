@@ -52,15 +52,15 @@ class _MutateRowsOperationAsync:
         table: "TableAsync",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
-        per_request_timeout: float | None,
+        attempt_timeout: float | None,
     ):
         """
         Args:
           - gapic_client: the client to use for the mutate_rows call
           - table: the table associated with the request
           - mutation_entries: a list of RowMutationEntry objects to send to the server
-          - operation_timeout: the timeout t o use for the entire operation, in seconds.
-          - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
+          - operation_timeout: the timeout to use for the entire operation, in seconds.
+          - attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
         """
         # check that mutations are within limits
@@ -99,7 +99,7 @@ class _MutateRowsOperationAsync:
         self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(
-            per_request_timeout, operation_timeout
+            attempt_timeout, operation_timeout
         )
         self.mutations = mutation_entries
         self.remaining_indices = list(range(len(self.mutations)))
