@@ -361,9 +361,22 @@ class BigtableDataClientAsync(ClientWithProject):
             instance_id: The Bigtable instance ID to associate with this client.
                 instance_id is combined with the client's project to fully
                 specify the instance
-            table_id: The ID of the table.
-            app_profile_id: (Optional) The app profile to associate with requests.
+            table_id: The ID of the table. table_id is combined with the
+                instance_id and the client's project to fully specify the table
+            app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
+            default_read_rows_operation_timeout: The default timeout for read rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_read_rows_attempt_timeout: The default timeout for individual
+                read rows rpc requests, in seconds. If not set, defaults to 20 seconds
+            default_mutate_rows_operation_timeout: The default timeout for mutate rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_mutate_rows_attempt_timeout: The default timeout for individual
+                mutate rows rpc requests, in seconds. If not set, defaults to 60 seconds
+            default_operation_timeout: The default timeout for all other operations, in
+                seconds. If not set, defaults to 60 seconds
+            default_attempt_timeout: The default timeout for all other individual rpc
+                requests, in seconds. If not set, defaults to 20 seconds
         """
         return TableAsync(
             self,
@@ -416,11 +429,20 @@ class TableAsync:
                 specify the instance
             table_id: The ID of the table. table_id is combined with the
                 instance_id and the client's project to fully specify the table
-            app_profile_id: (Optional) The app profile to associate with requests.
+            app_profile_id: The app profile to associate with requests.
                 https://cloud.google.com/bigtable/docs/app-profiles
-            default_operation_timeout: (Optional) The default timeout, in seconds
-            default_attempt_timeout: (Optional) The default timeout for individual
-                rpc requests, in seconds
+            default_read_rows_operation_timeout: The default timeout for read rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_read_rows_attempt_timeout: The default timeout for individual
+                read rows rpc requests, in seconds. If not set, defaults to 20 seconds
+            default_mutate_rows_operation_timeout: The default timeout for mutate rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_mutate_rows_attempt_timeout: The default timeout for individual
+                mutate rows rpc requests, in seconds. If not set, defaults to 60 seconds
+            default_operation_timeout: The default timeout for all other operations, in
+                seconds. If not set, defaults to 60 seconds
+            default_attempt_timeout: The default timeout for all other individual rpc
+                requests, in seconds. If not set, defaults to 20 seconds
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
