@@ -55,8 +55,8 @@ class RowRange:
     ):
         """
         Args:
-          - start_key: The start key of the range. If None, the range is unbounded on the left.
-          - end_key: The end key of the range. If None, the range is unbounded on the right.
+          - start_key: The start key of the range. If empty, the range is unbounded on the left.
+          - end_key: The end key of the range. If empty, the range is unbounded on the right.
           - start_is_inclusive: Whether the start key is inclusive. If None, the start key is
                 inclusive.
           - end_is_inclusive: Whether the end key is inclusive. If None, the end key is not inclusive.
@@ -65,6 +65,9 @@ class RowRange:
               or end_is_inclusive is set when the corresponding key is None,
               or start_key or end_key is not a string or bytes.
         """
+        # convert empty key inputs to None for consistency
+        start_key = None if not start_key else start_key
+        end_key = None if not end_key else end_key
         # check for invalid combinations of arguments
         if start_is_inclusive is None:
             start_is_inclusive = True

@@ -55,6 +55,18 @@ class TestRowRange:
         assert row_range.start_key is None
         assert row_range.start_is_inclusive is None
 
+    def test_ctor_empty_strings(self):
+        """
+        empty strings should be treated as None
+        """
+        row_range = self._make_one("", "")
+        assert row_range._start is None
+        assert row_range._end is None
+        assert row_range.start_key is None
+        assert row_range.end_key is None
+        assert row_range.start_is_inclusive is None
+        assert row_range.end_is_inclusive is None
+
     def test_ctor_inclusive_flags(self):
         row_range = self._make_one("test_row5", "test_row6", False, True)
         assert row_range.start_key == "test_row5".encode()
