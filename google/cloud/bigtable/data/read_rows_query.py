@@ -498,9 +498,10 @@ class ReadRowsQuery:
             return False
         if len(self.row_ranges) != len(other.row_ranges):
             return False
+        ranges_match = all([row in other.row_ranges for row in self.row_ranges])
         return (
             self.row_keys == other.row_keys
-            and all([r1 == r2 for r1, r2 in zip(self.row_ranges, other.row_ranges)])
+            and ranges_match
             and self.filter == other.filter
             and self.limit == other.limit
         )
