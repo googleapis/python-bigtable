@@ -115,20 +115,20 @@ class RowRange:
         return self._end.key if self._end is not None else None
 
     @property
-    def start_is_inclusive(self) -> bool | None:
+    def start_is_inclusive(self) -> bool:
         """
         Returns whether the range is inclusive of the start key.
-        Returns None if the start key is None.
+        Returns True if the range is unbounded on the left.
         """
-        return self._start.is_inclusive if self._start is not None else None
+        return self._start.is_inclusive if self._start is not None else True
 
     @property
-    def end_is_inclusive(self) -> bool | None:
+    def end_is_inclusive(self) -> bool:
         """
         Returns whether the range is inclusive of the end key.
-        Returns None if the end key is None.
+        Returns True if the range is unbounded on the right.
         """
-        return self._end.is_inclusive if self._end is not None else None
+        return self._end.is_inclusive if self._end is not None else True
 
     def _to_dict(self) -> dict[str, bytes]:
         """Converts this object to a dictionary"""
@@ -199,10 +199,10 @@ class RowRange:
         args_list = []
         args_list.append(f"start_key={self.start_key!r}")
         args_list.append(f"end_key={self.end_key!r}")
-        if self.start_is_inclusive is not None and self.start_is_inclusive is False:
+        if self.start_is_inclusive is False:
             # only show start_is_inclusive if it is different from the default
             args_list.append(f"start_is_inclusive={self.start_is_inclusive}")
-        if self.end_is_inclusive is True:
+        if self.end_is_inclusive is True and self._end is not None:
             # only show end_is_inclusive if it is different from the default
             args_list.append(f"end_is_inclusive={self.end_is_inclusive}")
         return f"RowRange({', '.join(args_list)})"

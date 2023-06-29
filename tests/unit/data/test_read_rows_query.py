@@ -46,14 +46,14 @@ class TestRowRange:
         assert row_range.start_key == "test_row3".encode()
         assert row_range.start_is_inclusive is True
         assert row_range.end_key is None
-        assert row_range.end_is_inclusive is None
+        assert row_range.end_is_inclusive is True
 
     def test_ctor_end_only(self):
         row_range = self._make_one(end_key="test_row4")
         assert row_range.end_key == "test_row4".encode()
         assert row_range.end_is_inclusive is False
         assert row_range.start_key is None
-        assert row_range.start_is_inclusive is None
+        assert row_range.start_is_inclusive is True
 
     def test_ctor_empty_strings(self):
         """
@@ -64,8 +64,8 @@ class TestRowRange:
         assert row_range._end is None
         assert row_range.start_key is None
         assert row_range.end_key is None
-        assert row_range.start_is_inclusive is None
-        assert row_range.end_is_inclusive is None
+        assert row_range.start_is_inclusive is True
+        assert row_range.end_is_inclusive is True
 
     def test_ctor_inclusive_flags(self):
         row_range = self._make_one("test_row5", "test_row6", False, True)
@@ -292,10 +292,10 @@ class TestRowRange:
                 {"start_key_open": "test_row", "end_key_closed": "test_row2"},
                 "(b'test_row', b'test_row2']",
             ),
-            ({"start_key_open": b"a"}, "(b'a', +inf)"),
-            ({"end_key_closed": b"b"}, "(-inf, b'b']"),
-            ({"end_key_open": b"b"}, "(-inf, b'b')"),
-            ({}, "(-inf, +inf)"),
+            ({"start_key_open": b"a"}, "(b'a', +inf]"),
+            ({"end_key_closed": b"b"}, "[-inf, b'b']"),
+            ({"end_key_open": b"b"}, "[-inf, b'b')"),
+            ({}, "[-inf, +inf]"),
         ],
     )
     def test___str__(self, dict_repr, expected):
