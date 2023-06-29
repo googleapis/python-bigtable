@@ -35,11 +35,16 @@ class _RangePoint:
     def __hash__(self) -> int:
         return hash((self.key, self.is_inclusive))
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, _RangePoint):
+            return NotImplemented
+        return self.key == other.key and self.is_inclusive == other.is_inclusive
 
-@dataclass
+
 class RowRange:
-    start: _RangePoint | None
-    end: _RangePoint | None
+    """
+    Represents a range of keys in a ReadRowsQuery
+    """
 
     def __init__(
         self,
@@ -48,11 +53,24 @@ class RowRange:
         start_is_inclusive: bool | None = None,
         end_is_inclusive: bool | None = None,
     ):
+        """
+        Args:
+          - start_key: The start key of the range. If None, the range is unbounded on the left.
+          - end_key: The end key of the range. If None, the range is unbounded on the right.
+          - start_is_inclusive: Whether the start key is inclusive. If None, the start key is
+                inclusive.
+          - end_is_inclusive: Whether the end key is inclusive. If None, the end key is not inclusive.
+        Raises:
+          - ValueError: if start_key is greater than end_key, or start_is_inclusive,
+              or end_is_inclusive is set when the corresponding key is None,
+              or start_key or end_key is not a string or bytes.
+        """
         # check for invalid combinations of arguments
         if start_is_inclusive is None:
             start_is_inclusive = True
         elif start_key is None:
             raise ValueError("start_is_inclusive must be set with start_key")
+
         if end_is_inclusive is None:
             end_is_inclusive = False
         elif end_key is None:
@@ -66,29 +84,62 @@ class RowRange:
             end_key = end_key.encode()
         elif end_key is not None and not isinstance(end_key, bytes):
             raise ValueError("end_key must be a string or bytes")
+        # ensure that start_key is less than or equal to end_key
+        if start_key is not None and end_key is not None and start_key > end_key:
+            raise ValueError("start_key must be less than or equal to end_key")
 
-        self.start = (
+        self._start: _RangePoint | None = (
             _RangePoint(start_key, start_is_inclusive)
             if start_key is not None
             else None
         )
-        self.end = (
+        self._end: _RangePoint | None = (
             _RangePoint(end_key, end_is_inclusive) if end_key is not None else None
         )
+
+    @property
+    def start_key(self) -> bytes | None:
+        """
+        Returns the start key of the range. If None, the range is unbounded on the left.
+        """
+        return self._start.key if self._start is not None else None
+
+    @property
+    def end_key(self) -> bytes | None:
+        """
+        Returns the end key of the range. If None, the range is unbounded on the right.
+        """
+        return self._end.key if self._end is not None else None
+
+    @property
+    def start_is_inclusive(self) -> bool | None:
+        """
+        Returns whether the range is inclusive of the start key.
+        Returns None if the start key is None.
+        """
+        return self._start.is_inclusive if self._start is not None else None
+
+    @property
+    def end_is_inclusive(self) -> bool | None:
+        """
+        Returns whether the range is inclusive of the end key.
+        Returns None if the end key is None.
+        """
+        return self._end.is_inclusive if self._end is not None else None
 
     def _to_dict(self) -> dict[str, bytes]:
         """Converts this object to a dictionary"""
         output = {}
-        if self.start is not None:
-            key = "start_key_closed" if self.start.is_inclusive else "start_key_open"
-            output[key] = self.start.key
-        if self.end is not None:
-            key = "end_key_closed" if self.end.is_inclusive else "end_key_open"
-            output[key] = self.end.key
+        if self._start is not None:
+            key = "start_key_closed" if self.start_is_inclusive else "start_key_open"
+            output[key] = self._start.key
+        if self._end is not None:
+            key = "end_key_closed" if self.end_is_inclusive else "end_key_open"
+            output[key] = self._end.key
         return output
 
     def __hash__(self) -> int:
-        return hash((self.start, self.end))
+        return hash((self._start, self._end))
 
     @classmethod
     def _from_dict(cls, data: dict[str, bytes]) -> RowRange:
@@ -123,7 +174,35 @@ class RowRange:
         Empty RowRanges (representing a full table scan) are falsy, because
         they can be substituted with None. Non-empty RowRanges are truthy.
         """
-        return self.start is not None or self.end is not None
+        return self._start is not None or self._end is not None
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RowRange):
+            return NotImplemented
+        return self._start == other._start and self._end == other._end
+
+    def __str__(self) -> str:
+        """
+        Represent range as a string, e.g. "[b'a', b'z)"
+        Unbounded start or end keys are represented as "-inf" or "+inf"
+        """
+        left = "[" if self.start_is_inclusive else "("
+        right = "]" if self.end_is_inclusive else ")"
+        start = repr(self.start_key) if self.start_key is not None else "-inf"
+        end = repr(self.end_key) if self.end_key is not None else "+inf"
+        return f"{left}{start}, {end}{right}"
+
+    def __repr__(self) -> str:
+        args_list = []
+        args_list.append(f"start_key={self.start_key!r}")
+        args_list.append(f"end_key={self.end_key!r}")
+        if self.start_is_inclusive is not None and self.start_is_inclusive is False:
+            # only show start_is_inclusive if it is different from the default
+            args_list.append(f"start_is_inclusive={self.start_is_inclusive}")
+        if self.end_is_inclusive is True:
+            # only show end_is_inclusive if it is different from the default
+            args_list.append(f"end_is_inclusive={self.end_is_inclusive}")
+        return f"RowRange({', '.join(args_list)})"
 
 
 class ReadRowsQuery:
@@ -310,24 +389,24 @@ class ReadRowsQuery:
           - a list of tuples, containing a segment index and a new sub-range.
         """
         # 1. find the index of the segment the start key belongs to
-        if orig_range.start is None:
+        if orig_range._start is None:
             # if range is open on the left, include first segment
             start_segment = 0
         else:
             # use binary search to find the segment the start key belongs to
             # bisect method determines how we break ties when the start key matches a split point
             # if inclusive, bisect_left to the left segment, otherwise bisect_right
-            bisect = bisect_left if orig_range.start.is_inclusive else bisect_right
-            start_segment = bisect(split_points, orig_range.start.key)
+            bisect = bisect_left if orig_range._start.is_inclusive else bisect_right
+            start_segment = bisect(split_points, orig_range._start.key)
 
         # 2. find the index of the segment the end key belongs to
-        if orig_range.end is None:
+        if orig_range._end is None:
             # if range is open on the right, include final segment
             end_segment = len(split_points)
         else:
             # use binary search to find the segment the end key belongs to.
             end_segment = bisect_left(
-                split_points, orig_range.end.key, lo=start_segment
+                split_points, orig_range._end.key, lo=start_segment
             )
             # note: end_segment will always bisect_left, because split points represent inclusive ends
             # whether the end_key is includes the split point or not, the result is the same segment
@@ -343,7 +422,7 @@ class ReadRowsQuery:
             # first range spans from start_key to the split_point representing the last key in the segment
             last_key_in_first_segment = split_points[start_segment]
             start_range = RowRange._from_points(
-                start=orig_range.start,
+                start=orig_range._start,
                 end=_RangePoint(last_key_in_first_segment, is_inclusive=True),
             )
             results.append((start_segment, start_range))
@@ -353,7 +432,7 @@ class ReadRowsQuery:
             last_key_before_segment = split_points[previous_segment]
             end_range = RowRange._from_points(
                 start=_RangePoint(last_key_before_segment, is_inclusive=False),
-                end=orig_range.end,
+                end=orig_range._end,
             )
             results.append((end_segment, end_range))
             # 3c. add new spanning range to all segments other than the first and last
@@ -414,9 +493,14 @@ class ReadRowsQuery:
             )
             if this_range_empty and other_range_empty:
                 return self.filter == other.filter and self.limit == other.limit
+        # otherwise, sets should have same sizes
+        if len(self.row_keys) != len(other.row_keys):
+            return False
+        if len(self.row_ranges) != len(other.row_ranges):
+            return False
         return (
             self.row_keys == other.row_keys
-            and self.row_ranges == other.row_ranges
+            and all([r1 == r2 for r1, r2 in zip(self.row_ranges, other.row_ranges)])
             and self.filter == other.filter
             and self.limit == other.limit
         )

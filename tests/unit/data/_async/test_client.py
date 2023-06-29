@@ -1181,7 +1181,7 @@ class TestReadRows:
             read_rows = table.client._gapic_client.read_rows
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream([])
             row_keys = [b"test_1", "test_2"]
-            row_ranges = RowRange("start", "end")
+            row_ranges = RowRange("1start", "2end")
             filter_ = {"test": "filter"}
             limit = 99
             query = ReadRowsQuery(
