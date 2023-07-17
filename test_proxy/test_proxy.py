@@ -26,6 +26,9 @@ multiprocessing module to allow them to work together.
 """
 
 import multiprocessing
+import argparse
+import sys
+sys.path.append("handlers")
 
 
 def grpc_server_process(request_q, queue_pool, port=50055):
@@ -33,7 +36,6 @@ def grpc_server_process(request_q, queue_pool, port=50055):
     Defines a process that hosts a grpc server
     proxies requests to a client_handler_process
     """
-    import sys
     sys.path.append("protos")
     from concurrent import futures
 
@@ -61,7 +63,7 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
     import re
     import asyncio
     import warnings
-    import client_handler
+    import client_handler_data
     import client_handler_legacy
     warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Bigtable emulator.*")
 
@@ -114,7 +116,7 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
                 if use_legacy_client:
                     client = client_handler_legacy.LegacyTestProxyClientHandler(**json_data)
                 else:
-                    client = client_handler.TestProxyClientHandler(**json_data)
+                    client = client_handler_data.TestProxyClientHandler(**json_data)
                 client_map[client_id] = client
                 out_q.put(True)
             elif client is None:
@@ -140,11 +142,13 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
 
 
 def client_handler_process(request_q, queue_pool, legacy_client=False):
+    """
+    Sync entrypoint for client_handler_process_async
+    """
     import asyncio
     asyncio.run(client_handler_process_async(request_q, queue_pool, legacy_client))
 
 
-import argparse
 p = argparse.ArgumentParser()
 p.add_argument("--port", dest='port', default="50055")
 p.add_argument('--legacy-client', dest='use_legacy', action='store_true', default=False)
@@ -181,4 +185,4 @@ if __name__ == "__main__":
     # )
     # client.start()
     # grpc_server_process(request_q, response_queue_pool, port)
-    client.join()
+    # client.join()

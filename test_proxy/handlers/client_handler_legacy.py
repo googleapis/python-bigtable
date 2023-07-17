@@ -19,7 +19,7 @@ import os
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable.client import Client
 
-import client_handler_data as client_handler
+import client_handler
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
