@@ -26,7 +26,6 @@ multiprocessing module to allow them to work together.
 """
 
 import multiprocessing
-import sys
 
 
 def grpc_server_process(request_q, queue_pool, port=50055):
@@ -34,6 +33,8 @@ def grpc_server_process(request_q, queue_pool, port=50055):
     Defines a process that hosts a grpc server
     proxies requests to a client_handler_process
     """
+    import sys
+    sys.path.append("protos")
     from concurrent import futures
 
     import grpc
