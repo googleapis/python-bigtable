@@ -38,12 +38,18 @@ CLONE_REPO_DIR = "cloud-bigtable-clients-test"
 nox.options.error_on_missing_interpreters = True
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
-def run_proxy(session):
-    default(session)
+def default(session):
+    """
+    if nox is run directly, run the test_proxy session
+    """
+    test_proxy(session)
+
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def conformance_tests(session):
+    """
+    download and run the conformance test suite against the test proxy
+    """
     import subprocess
     import time
     # download the conformance test suite
@@ -51,13 +57,13 @@ def conformance_tests(session):
     if not os.path.exists(clone_dir):
         print("downloading copy of test repo")
         session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR)
-    # subprocess.Popen(["nox", "-s", "run_proxy"])
-    # time.sleep(10)
+    # start tests
     with session.chdir(f"{clone_dir}/tests"):
         session.run("go", "test", "-v", f"-proxy_addr=:{PROXY_SERVER_PORT}")
 
-def default(session):
-    """Run the performance test suite."""
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def test_proxy(session):
+    """Start up the test proxy"""
     # Install all dependencies, then install this package into the
     # virtualenv's dist-packages.
     # session.install(

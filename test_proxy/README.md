@@ -10,7 +10,7 @@ You can launch the test proxy directly using `nox`, which will handle dependency
 
 ```
 cd python-bigtable/test_proxy
-nox -s run_proxy
+nox -s test_proxy
 ```
 
 The port can be configured using the `PROXY_SERVER_PORT` environment variable
@@ -18,7 +18,7 @@ The port can be configured using the `PROXY_SERVER_PORT` environment variable
 ```
 cd python-bigtable/test_proxy
 PROXY_SERVER_PORT=8080
-nox -s run_proxy
+nox -s test_proxy
 ```
 
 #### running the proxy script manually
@@ -84,14 +84,15 @@ by setting the `PROXY_CLIENT_VERSION` environment variable:
 
 ```
 PROXY_CLIENT_VERSION=3.0.0
-nox -s run_proxy
+nox -s test_proxy
 ```
 
 if unset, it will default to installing the library from source
 
 ## Test the legacy client
 
-You can run the test proxy against the previous `v2` client by running it with the `--legacy-client` flag:
+By default, tests are run against the new data client.You can run the test proxy against the 
+previous client by running it with the `--legacy-client` flag:
 
 ```
 python test_proxy.py --legacy-client
