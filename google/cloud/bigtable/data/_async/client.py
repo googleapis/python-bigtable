@@ -29,6 +29,7 @@ import time
 import warnings
 import sys
 import random
+import os
 
 from collections import namedtuple
 
@@ -36,11 +37,12 @@ from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
+    PooledBigtableGrpcAsyncIOTransport, PooledChannel
 )
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
+from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
@@ -122,6 +124,7 @@ class BigtableDataClientAsync(ClientWithProject):
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
+        client_info.user_agent = f"bigtable-python/{client_info.client_library_version}"
         # parse client options
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
@@ -152,15 +155,33 @@ class BigtableDataClientAsync(ClientWithProject):
         # attempt to start background tasks
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        try:
-            self.start_background_channel_refresh()
-        except RuntimeError:
+        self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
+        if self._emulator_host is not None:
+            # connect to an emulator host
             warnings.warn(
-                f"{self.__class__.__name__} should be started in an "
-                "asyncio event loop. Channel refresh will not be started",
+                "Connecting to Bigtable emulator at {}".format(self._emulator_host),
                 RuntimeWarning,
                 stacklevel=2,
             )
+            self.transport._grpc_channel = PooledChannel(
+                pool_size=pool_size,
+                host=self._emulator_host,
+                insecure=True,
+            )
+            # refresh cached stubs to use emulator pool
+            self.transport._stubs = {}
+            self.transport._prep_wrapped_messages(client_info)
+        else:
+            # attempt to start background channel refresh tasks
+            try:
+                self.start_background_channel_refresh()
+            except RuntimeError:
+                warnings.warn(
+                    f"{self.__class__.__name__} should be started in an "
+                    "asyncio event loop. Channel refresh will not be started",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     def start_background_channel_refresh(self) -> None:
         """
@@ -168,7 +189,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Raises:
           - RuntimeError if not called in an asyncio event loop
         """
-        if not self._channel_refresh_tasks:
+        if not self._channel_refresh_tasks and not self._emulator_host:
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
