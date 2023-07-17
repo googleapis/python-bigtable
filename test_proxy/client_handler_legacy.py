@@ -27,7 +27,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
-
     def __init__(
         self,
         data_target=None,
@@ -44,6 +43,9 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
+
+    async def close(self):
+        self.closed = True
 
     @client_handler.error_safe
     async def ReadRows(self, request, **kwargs):

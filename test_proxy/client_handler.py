@@ -36,6 +36,7 @@ def error_safe(func):
 
     return wrapper
 
+
 def encode_exception(exc):
     """
     Encode an exception or chain of exceptions to pass back to grpc_handler
@@ -94,7 +95,8 @@ class TestProxyClientHandler:
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
 
-    def close(self):
+    async def close(self):
+        await self.client.close()
         self.closed = True
 
     @error_safe

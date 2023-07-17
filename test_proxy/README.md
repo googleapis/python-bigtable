@@ -95,5 +95,11 @@ By default, tests are run against the new data client.You can run the test proxy
 previous client by running it with the `--legacy-client` flag:
 
 ```
+nox -s test_proxy -- --legacy-client
+```
+
+or
+
+```
 python test_proxy.py --legacy-client
 ```
