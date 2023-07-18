@@ -124,7 +124,6 @@ class BigtableDataClientAsync(ClientWithProject):
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = client_info.gapic_version
-        client_info.user_agent = f"bigtable-python/{client_info.client_library_version}"
         # parse client options
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
