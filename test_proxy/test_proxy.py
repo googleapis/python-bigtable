@@ -122,7 +122,7 @@ async def client_handler_process_async(request_q, queue_pool, use_legacy_client=
             elif client is None:
                 out_q.put(RuntimeError("client not found"))
             elif fn_name == "CloseClient":
-                await client.close()
+                client.close()
                 out_q.put(True)
             elif fn_name == "RemoveClient":
                 client_map.pop(client_id, None)

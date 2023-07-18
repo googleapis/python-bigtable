@@ -95,8 +95,8 @@ class TestProxyClientHandler:
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
 
-    async def close(self):
-        await self.client.close()
+    def close(self):
+        # TODO: call self.client.close()
         self.closed = True
 
     @error_safe
