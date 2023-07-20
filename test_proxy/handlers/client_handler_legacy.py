@@ -44,7 +44,7 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
 
-    async def close(self):
+    def close(self):
         self.closed = True
 
     @client_handler.error_safe
