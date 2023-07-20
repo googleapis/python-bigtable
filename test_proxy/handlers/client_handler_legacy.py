@@ -27,6 +27,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
+
     def __init__(
         self,
         data_target=None,
@@ -34,18 +35,25 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
+        raise_on_error=False,
+        enable_timing=False,
+        enable_profiling=False,
         **kwargs,
     ):
+        self._raise_on_error = raise_on_error
         self.closed = False
         # use emulator
-        os.environ[BIGTABLE_EMULATOR] = data_target
+        if data_target is not None:
+            os.environ[BIGTABLE_EMULATOR] = data_target
         self.client = Client(project=project_id)
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
-
-    def close(self):
-        self.closed = True
+        # track timing and profiling if enabled
+        self._enabled_timing = enable_timing
+        self.total_time = 0
+        self._enabled_profiling = enable_profiling
+        self._profiler = None
 
     @client_handler.error_safe
     async def ReadRows(self, request, **kwargs):
@@ -60,7 +68,9 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         end_inclusive = request.get("rows", {}).get("row_ranges", [{}])[-1].get("end_key_closed", True)
 
         row_list = []
-        for row in table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive):
+        async with self.measure_call():
+            result_generator = list(table.read_rows(start_key=start_key, end_key=end_key, limit=limit, end_inclusive=end_inclusive))
+        for row in result_generator:
             # parse results into proto formatted dict
             dict_val = {"row_key": row.row_key}
             for family, family_cells in row.cells.items():

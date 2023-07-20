@@ -14,7 +14,9 @@
 """
 This module contains the client handler process for proxy_server.py.
 """
+from __future__ import annotations
 import os
+from contextlib import asynccontextmanager
 
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 from google.cloud.bigtable.data import BigtableDataClientAsync
@@ -25,17 +27,19 @@ def error_safe(func):
     Catch and pass errors back to the grpc_server_process
     Also check if client is closed before processing requests
     """
-    async def wrapper(self, *args, **kwargs):
+    async def wrapper(self, *args, raise_on_error=False, **kwargs):
         try:
             if self.closed:
                 raise RuntimeError("client is closed")
             return await func(self, *args, **kwargs)
         except (Exception, NotImplementedError) as e:
-            # exceptions should be raised in grpc_server_process
-            return encode_exception(e)
+            if raise_on_error or self._raise_on_error:
+                raise e
+            else:
+                # exceptions should be raised in grpc_server_process
+                return encode_exception(e)
 
     return wrapper
-
 
 def encode_exception(exc):
     """
@@ -51,7 +55,7 @@ def encode_exception(exc):
     if hasattr(exc, "index"):
         result["index"] = exc.index
     if isinstance(exc, GoogleAPICallError):
-        if exc.grpc_status_code is not None:
+        if  exc.grpc_status_code is not None:
             result["code"] = exc.grpc_status_code.value[0]
         elif exc.code is not None:
             result["code"] = int(exc.code)
@@ -66,7 +70,6 @@ def encode_exception(exc):
             if subexc.get("code", None):
                 result["code"] = subexc["code"]
     return result
-
 
 class TestProxyClientHandler:
     """
@@ -85,19 +88,62 @@ class TestProxyClientHandler:
         instance_id=None,
         app_profile_id=None,
         per_operation_timeout=None,
+        raise_on_error=False,
+        enable_timing=False,
+        enable_profiling=False,
         **kwargs,
     ):
+        self._raise_on_error = raise_on_error
         self.closed = False
         # use emulator
-        os.environ[BIGTABLE_EMULATOR] = data_target
+        if data_target is not None:
+            os.environ[BIGTABLE_EMULATOR] = data_target
         self.client = BigtableDataClientAsync(project=project_id)
         self.instance_id = instance_id
         self.app_profile_id = app_profile_id
         self.per_operation_timeout = per_operation_timeout
+        # track timing and profiling if enabled
+        self._enabled_timing = enable_timing
+        self.total_time = 0
+        self._enabled_profiling = enable_profiling
 
     def close(self):
         # TODO: call self.client.close()
         self.closed = True
+
+    @asynccontextmanager
+    async def measure_call(self):
+        """Tracks the core part of the library call, for profiling purposes"""
+        if self._enabled_timing:
+            import timeit
+            starting_time = timeit.default_timer()
+        if self._enabled_profiling:
+            import yappi
+            yappi.start()
+        yield
+        if self._enabled_profiling:
+            import yappi
+            yappi.stop()
+        if self._enabled_timing:
+            elapsed_time = timeit.default_timer() - starting_time
+            self.total_time += elapsed_time
+
+    def print_profile(self, save_path:str|None=None) -> str:
+        if not self._enabled_profiling:
+            raise RuntimeError("Profiling is not enabled")
+        import io
+        import yappi
+        result = io.StringIO()
+        yappi.get_func_stats().print_all(out=result)
+        stats = yappi.convert2pstats(yappi.get_func_stats())
+        if save_path:
+            yappi.get_func_stats().save(save_path, type="pstat")
+        return result.getvalue()
+
+    def reset_profile(self):
+        if self._enabled_profiling:
+            import yappi
+            yappi.clear_stats()
 
     @error_safe
     async def ReadRows(self, request, **kwargs):
@@ -105,7 +151,8 @@ class TestProxyClientHandler:
         app_profile_id = self.app_profile_id or request.get("app_profile_id", None)
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
-        result_list = await table.read_rows(request, **kwargs)
+        async with self.measure_call():
+            result_list = await table.read_rows(request, **kwargs)
         # pack results back into protobuf-parsable format
         serialized_response = [row.to_dict() for row in result_list]
         return serialized_response
@@ -132,7 +179,8 @@ class TestProxyClientHandler:
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         row_key = request["row_key"]
         mutations = [Mutation._from_dict(d) for d in request["mutations"]]
-        await table.mutate_row(row_key, mutations, **kwargs)
+        async with self.measure_call():
+            await table.mutate_row(row_key, mutations, **kwargs)
         return "OK"
 
     @error_safe
@@ -143,7 +191,8 @@ class TestProxyClientHandler:
         table = self.client.get_table(self.instance_id, table_id, app_profile_id)
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         entry_list = [RowMutationEntry._from_dict(entry) for entry in request["entries"]]
-        await table.bulk_mutate_rows(entry_list, **kwargs)
+        async with self.measure_call():
+            await table.bulk_mutate_rows(entry_list, **kwargs)
         return "OK"
 
     @error_safe
