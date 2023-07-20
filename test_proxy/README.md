@@ -1,6 +1,6 @@
 # CBT Python Test Proxy
 
-The CBT test proxy is intended for running confromance tests for Cloug Bigtable Python Client.
+The CBT test proxy is intended for running conformance tests for Cloud Bigtable Python Client.
 
 ## Start test proxy
 
