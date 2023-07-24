@@ -167,7 +167,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Helper function to return the client version string for this client
         """
-        return f"{google.cloud.bigtable.__version__}-async-data"
+        return f"{google.cloud.bigtable.__version__}-data-async"
 
     def start_background_channel_refresh(self) -> None:
         """
