@@ -186,8 +186,8 @@ class _MutateRowsOperationAsync:
             # already handled, and update remaining_indices if mutation is retryable
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
-                # bubble up exception to be handled by retry wrapper
-                raise
+            # bubble up exception to be handled by retry wrapper
+            raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
