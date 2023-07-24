@@ -161,7 +161,7 @@ class Client(ClientWithProject):
     ):
         if client_info is None:
             client_info = client_info_lib.ClientInfo(
-                client_library_version=bigtable.__version__,
+                client_library_version=f"{bigtable.__version__}-legacy",
             )
         if read_only and admin:
             raise ValueError(
