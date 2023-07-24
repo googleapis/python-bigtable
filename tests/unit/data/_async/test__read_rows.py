@@ -89,7 +89,7 @@ class TestReadRowsOperation:
                 request,
                 client,
                 operation_timeout=expected_operation_timeout,
-                per_request_timeout=expected_request_timeout,
+                attempt_timeout=expected_request_timeout,
             )
         assert time_gen_mock.call_count == 1
         time_gen_mock.assert_called_once_with(

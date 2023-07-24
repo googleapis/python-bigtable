@@ -48,7 +48,7 @@ class TestMutateRowsOperation:
             kwargs["table"] = kwargs.pop("table", AsyncMock())
             kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
-            kwargs["per_request_timeout"] = kwargs.pop("per_request_timeout", 0.1)
+            kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
         return self._target_class()(*args, **kwargs)
 
     async def _mock_stream(self, mutation_list, error_dict):
@@ -166,6 +166,34 @@ class TestMutateRowsOperation:
         "exc_type", [RuntimeError, ZeroDivisionError, core_exceptions.Forbidden]
     )
     @pytest.mark.asyncio
+    async def test_mutate_rows_attempt_exception(self, exc_type):
+        """
+        exceptions raised from attempt should be raised in MutationsExceptionGroup
+        """
+        client = AsyncMock()
+        table = mock.Mock()
+        entries = [_make_mutation(), _make_mutation()]
+        operation_timeout = 0.05
+        expected_exception = exc_type("test")
+        client.mutate_rows.side_effect = expected_exception
+        found_exc = None
+        try:
+            instance = self._make_one(
+                client, table, entries, operation_timeout, operation_timeout
+            )
+            await instance._run_attempt()
+        except Exception as e:
+            found_exc = e
+        assert client.mutate_rows.call_count == 1
+        assert type(found_exc) == exc_type
+        assert found_exc == expected_exception
+        assert len(instance.errors) == 2
+        assert len(instance.remaining_indices) == 0
+
+    @pytest.mark.parametrize(
+        "exc_type", [RuntimeError, ZeroDivisionError, core_exceptions.Forbidden]
+    )
+    @pytest.mark.asyncio
     async def test_mutate_rows_exception(self, exc_type):
         """
         exceptions raised from retryable should be raised in MutationsExceptionGroup
@@ -175,7 +203,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation()]
+        entries = [_make_mutation(), _make_mutation()]
         operation_timeout = 0.05
         expected_cause = exc_type("abort")
         with mock.patch.object(
@@ -193,9 +221,11 @@ class TestMutateRowsOperation:
             except MutationsExceptionGroup as e:
                 found_exc = e
             assert attempt_mock.call_count == 1
-            assert len(found_exc.exceptions) == 1
+            assert len(found_exc.exceptions) == 2
             assert isinstance(found_exc.exceptions[0], FailedMutationEntryError)
+            assert isinstance(found_exc.exceptions[1], FailedMutationEntryError)
             assert found_exc.exceptions[0].__cause__ == expected_cause
+            assert found_exc.exceptions[1].__cause__ == expected_cause
 
     @pytest.mark.parametrize(
         "exc_type",
@@ -267,7 +297,7 @@ class TestMutateRowsOperation:
         mock_gapic_fn = self._make_mock_gapic({0: mutation})
         instance = self._make_one(
             mutation_entries=[mutation],
-            per_request_timeout=expected_timeout,
+            attempt_timeout=expected_timeout,
         )
         with mock.patch.object(instance, "_gapic_fn", mock_gapic_fn):
             await instance._run_attempt()
