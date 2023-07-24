@@ -21,13 +21,29 @@ KEY_WIDTH = 5
 # The size of each BulkApply request.
 BULK_SIZE = 1000
 
+# How many shards to use for the table population.
+POPULATE_SHARD_COUNT = 10
 
 def random_value():
     valid_chars = list(string.ascii_letters + "-/_")
     return "".join(random.choices(valid_chars, k=FIELD_SIZE))
 
+async def populate_table(table, table_size=100_000):
+    """
+    Populate the table with random test data
 
-async def populate_shard(table, begin:int, end:int):
+    Args:
+    table: the Table object to populate with data
+    table_size: the number of entries in the table. This value will be adjusted to be a multiple of 10, to ensure
+        each shard has the same number of entries.
+    """
+    shard_size = max(table_size // POPULATE_SHARD_COUNT, 1)
+    print(f"Populating table {table.table_id} with {shard_size*POPULATE_SHARD_COUNT} entries...")
+    for shard_idx in range(POPULATE_SHARD_COUNT):
+        print(f"start: {shard_idx * shard_size}, end: {(shard_idx + 1) * shard_size}")
+        await _populate_shard(table, shard_idx * shard_size, (shard_idx + 1) * shard_size)
+
+async def _populate_shard(table, begin:int, end:int):
     entry_list = []
     for idx in range(begin, end):
         row_key = f"user{str(idx).zfill(KEY_WIDTH)}"
@@ -40,7 +56,8 @@ async def async_main():
     from google.cloud.bigtable.data import BigtableDataClientAsync
     client = BigtableDataClientAsync()
     table = client.get_table("sanche-test", "benchmarks")
-    await populate_shard(table, 0, 1000)
+    # await populate_shard(table, 0, 1000)
+    await populate_table(table)
 
 if __name__ == "__main__":
     asyncio.run(async_main())
