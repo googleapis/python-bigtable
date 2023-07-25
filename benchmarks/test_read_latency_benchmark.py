@@ -87,16 +87,18 @@ async def test_scan_throughput_benchmark(populated_table, duration=5):
         print(f"running scan throughput benchmark with scan_size={scan_size}")
         deadline = time.monotonic() + duration
         total_rows = 0
+        total_operations = 0
         while time.monotonic() < deadline:
             start_idx = random.randint(0, max(10_000 - scan_size, 0))
             start_key = f"user{str(start_idx).zfill(KEY_WIDTH)}"
             query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
             try:
-                results = await populated_table.read_rows(query, operation_timeout=deadline - time.monotonic())
-                total_rows += len(results)
+                total_operations += 1
+                async for row in await populated_table.read_rows_stream(query, operation_timeout=deadline - time.monotonic()):
+                    total_rows += 1
             except DeadlineExceeded as e:
                 exc_group = e.__cause__
                 if exc_group and any(not isinstance(exc, DeadlineExceeded) for exc in exc_group.exceptions):
                     # found error other than deadline exceeded
                     raise
-        print(f"total rows: {total_rows}")
+        print(f"total rows: {total_rows}. total operations: {total_operations}")
