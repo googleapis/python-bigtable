@@ -49,7 +49,7 @@ def table_admin_client():
 
 
 @pytest.fixture(scope="session")
-def instance_id(instance_admin_client, project_id):
+def instance_id(instance_admin_client, project_id, cluster_config):
     """
     Returns BIGTABLE_TEST_INSTANCE if set, otherwise creates a new temporary instance for the test session
     """
@@ -73,12 +73,7 @@ def instance_id(instance_admin_client, project_id):
                 display_name="Test Instance",
                 labels={"python-system-test": "true"},
             ),
-            clusters={
-                "test-cluster": types.Cluster(
-                    location=f"projects/{project_id}/locations/us-central1-b",
-                    serve_nodes=3,
-                )
-            },
+            clusters=cluster_config,
         )
         operation.result(timeout=240)
     except exceptions.AlreadyExists:
@@ -90,7 +85,7 @@ def instance_id(instance_admin_client, project_id):
 
 
 @pytest.fixture(scope="session")
-def table_id(table_admin_client, project_id, instance_id, init_column_families, init_table_id):
+def table_id(table_admin_client, project_id, instance_id, column_family_config, init_table_id):
     """
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
 
@@ -124,7 +119,7 @@ def table_id(table_admin_client, project_id, instance_id, init_column_families, 
             request={
                 "parent": parent_path,
                 "table_id": init_table_id,
-                "table": {"column_families": init_column_families},
+                "table": {"column_families": column_family_config},
                 "initial_splits": [{"key": (num * 1000).to_bytes(8, "big")} for num in range(1,10)],
             },
             retry=retry,
