@@ -29,8 +29,6 @@ NUM_QUALIFIERS = 10
 # The name of the column family used in the benchmark.
 COLUMN_FAMILY = "cf"
 
-KEY_WIDTH = 5
-
 # The size of each BulkApply request.
 BULK_SIZE = 1000
 
@@ -65,7 +63,7 @@ async def populate_table(table, table_size=100_000):
 
 async def _populate_shard(batcher, begin:int, end:int, pbar=None):
     for idx in range(begin, end):
-        row_key = f"user{str(idx).zfill(KEY_WIDTH)}"
+        row_key = idx.to_bytes(8, byteorder="big")
         row_mutations = [SetCell(COLUMN_FAMILY, f"field{qual}", random_value()) for qual in range(NUM_QUALIFIERS)]
         entry = RowMutationEntry(row_key, row_mutations)
         await batcher.append(entry)
