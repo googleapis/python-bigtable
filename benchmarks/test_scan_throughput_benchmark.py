@@ -19,6 +19,8 @@ import os
 import random
 import time
 
+import rich
+
 from populate_table import populate_table
 
 
@@ -74,8 +76,9 @@ async def populated_table(table):
     yield table
 
 
+@pytest.mark.parametrize("scan_size", [100, 1000, 10_000])
 @pytest.mark.asyncio
-async def test_scan_throughput_benchmark(populated_table, duration=5):
+async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5):
     """
     This benchmark measures the throughput of read_rows against
     a typical table
@@ -92,22 +95,21 @@ async def test_scan_throughput_benchmark(populated_table, duration=5):
     from google.cloud.bigtable.data import ReadRowsQuery
     from google.cloud.bigtable.data import RowRange
     from google.api_core.exceptions import DeadlineExceeded
-    for scan_size in [100, 1000, 10_000]:
-        print(f"running test_scan_throughput_benchmark for {duration}s with scan_size={scan_size}")
-        deadline = time.monotonic() + duration
-        total_rows = 0
-        total_operations = 0
-        while time.monotonic() < deadline:
-            start_idx = random.randint(0, max(10_000 - scan_size, 0))
-            start_key = start_idx.to_bytes(8, byteorder="big")
-            query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
-            try:
-                total_operations += 1
-                async for row in await populated_table.read_rows_stream(query, operation_timeout=deadline - time.monotonic()):
-                    total_rows += 1
-            except DeadlineExceeded as e:
-                exc_group = e.__cause__
-                if exc_group and any(not isinstance(exc, DeadlineExceeded) for exc in exc_group.exceptions):
-                    # found error other than deadline exceeded
-                    raise
-        print(f"total rows: {total_rows}. total operations: {total_operations}")
+    print(f"\nrunning test_scan_throughput_benchmark for {duration}s with scan_size={scan_size}")
+    deadline = time.monotonic() + duration
+    total_rows = 0
+    total_operations = 0
+    while time.monotonic() < deadline:
+        start_idx = random.randint(0, max(10_000 - scan_size, 0))
+        start_key = start_idx.to_bytes(8, byteorder="big")
+        query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
+        try:
+            total_operations += 1
+            async for row in await populated_table.read_rows_stream(query, operation_timeout=deadline - time.monotonic()):
+                total_rows += 1
+        except DeadlineExceeded as e:
+            exc_group = e.__cause__
+            if exc_group and any(not isinstance(exc, DeadlineExceeded) for exc in exc_group.exceptions):
+                # found error other than deadline exceeded
+                raise
+    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} throughput: {total_rows / duration} rows/s")
