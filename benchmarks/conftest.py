@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Import fixtures for setting up table from setup_fixtures.py
+Import pytest fixtures for setting up table from system test directory.
 """
 import sys
 import os

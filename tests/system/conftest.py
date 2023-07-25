@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Import fixtures for setting up table from setup_fixtures.py
+Import pytest fixtures for setting up table for data client system tests
 """
 import sys
 import os
@@ -20,5 +20,5 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(script_path)
 
 pytest_plugins = [
-    "setup_fixtures",
+    "data.setup_fixtures",
 ]
