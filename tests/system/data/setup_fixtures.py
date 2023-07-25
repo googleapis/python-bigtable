@@ -121,11 +121,12 @@ def table_id(table_admin_client, project_id, instance_id, init_column_families, 
         parent_path = f"projects/{project_id}/instances/{instance_id}"
         print(f"Creating table: {parent_path}/tables/{init_table_id}")
         table_admin_client.create_table(
-            parent=parent_path,
-            table_id=init_table_id,
-            table=types.Table(
-                column_families=init_column_families,
-            ),
+            request={
+                "parent": parent_path,
+                "table_id": init_table_id,
+                "table": {"column_families": init_column_families},
+                "initial_splits": [{"key": (num * 1000).to_bytes(8, "big")} for num in range(1,10)],
+            },
             retry=retry,
         )
     except exceptions.AlreadyExists:

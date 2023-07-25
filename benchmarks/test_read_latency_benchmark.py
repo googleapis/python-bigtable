@@ -20,7 +20,6 @@ import random
 import time
 
 from populate_table import populate_table
-from populate_table import KEY_WIDTH
 
 
 @pytest.fixture(scope="session")
@@ -51,6 +50,7 @@ async def populated_table(table):
       - 10,000 rows
       - single column family
       - 10 column qualifiers
+      - splits at 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, and 9000
     """
     user_specified_table = os.getenv("BIGTABLE_TEST_TABLE")
     if table.table_id != user_specified_table:
@@ -74,23 +74,18 @@ async def test_scan_throughput_benchmark(populated_table, duration=5):
         - scan `scan_size` rows starting at the chosen key
 
     The benchmark will report throughput in rows per second for each `scan_size` value.
-
-    Table details:
-      - 10,000 rows
-      - single column family
-      - 10 column qualifiers
     """
     from google.cloud.bigtable.data import ReadRowsQuery
     from google.cloud.bigtable.data import RowRange
     from google.api_core.exceptions import DeadlineExceeded
     for scan_size in [100, 1000, 10_000]:
-        print(f"running scan throughput benchmark with scan_size={scan_size}")
+        print(f"running test_scan_throughput_benchmark for {duration}s with scan_size={scan_size}")
         deadline = time.monotonic() + duration
         total_rows = 0
         total_operations = 0
         while time.monotonic() < deadline:
             start_idx = random.randint(0, max(10_000 - scan_size, 0))
-            start_key = f"user{str(start_idx).zfill(KEY_WIDTH)}"
+            start_key = start_idx.to_bytes(8, byteorder="big")
             query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
             try:
                 total_operations += 1
