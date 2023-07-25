@@ -99,12 +99,14 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
     deadline = time.monotonic() + duration
     total_rows = 0
     total_operations = 0
+    total_op_time = 0
     while time.monotonic() < deadline:
         start_idx = random.randint(0, max(10_000 - scan_size, 0))
         start_key = start_idx.to_bytes(8, byteorder="big")
         query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
         try:
             total_operations += 1
+            start_time = time.perf_counter()
             async for row in await populated_table.read_rows_stream(query, operation_timeout=deadline - time.monotonic()):
                 total_rows += 1
         except DeadlineExceeded as e:
@@ -112,7 +114,9 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
             if exc_group and any(not isinstance(exc, DeadlineExceeded) for exc in exc_group.exceptions):
                 # found error other than deadline exceeded
                 raise
-    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} throughput: {total_rows / duration} rows/s")
+        finally:
+            total_op_time += time.perf_counter() - start_time
+    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
 
 
 @pytest.mark.asyncio
@@ -137,6 +141,7 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
     deadline = time.monotonic() + duration
     total_rows = 0
     total_operations = 0
+    total_op_time = 0
     table_shard_keys = await populated_table.sample_row_keys()
     while time.monotonic() < deadline:
         start_idx = random.randint(0, 10_000)
@@ -145,6 +150,7 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
         shard_query = query.shard(table_shard_keys)
         try:
             total_operations += 1
+            start_timestamp = time.perf_counter()
             results = await populated_table.read_rows_sharded(shard_query, operation_timeout=deadline - time.monotonic())
             total_rows += len(results)
         except ShardedReadRowsExceptionGroup as e:
@@ -152,4 +158,6 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
                 if sub_exc.__cause__ and not isinstance(sub_exc.__cause__, DeadlineExceeded):
                     # found error other than deadline exceeded
                     raise
-    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} throughput: {total_rows / duration} rows/s")
+        finally:
+            total_op_time += time.perf_counter() - start_timestamp
+    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
