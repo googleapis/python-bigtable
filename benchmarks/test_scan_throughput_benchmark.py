@@ -113,3 +113,43 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
                 # found error other than deadline exceeded
                 raise
     rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} throughput: {total_rows / duration} rows/s")
+
+
+@pytest.mark.asyncio
+async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
+    """
+    This benchmark measures the throughput of read_rows_sharded against
+    a typical table
+
+    The benchmark will:
+      - for `duration` seconds, execute the following loop:
+        - pick one of the 10,000 keys at random, with uniform probability
+        - build a sharded query using the row key samples
+        - scan rows to the end of the table starting at the chosen key
+
+    The benchmark will report throughput in rows per second for each `scan_size` value.
+    """
+    from google.cloud.bigtable.data import ReadRowsQuery
+    from google.cloud.bigtable.data import RowRange
+    from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+    from google.api_core.exceptions import DeadlineExceeded
+    print(f"\nrunning test_sharded_scan_throughput_benchmark for {duration}s")
+    deadline = time.monotonic() + duration
+    total_rows = 0
+    total_operations = 0
+    table_shard_keys = await populated_table.sample_row_keys()
+    while time.monotonic() < deadline:
+        start_idx = random.randint(0, 10_000)
+        start_key = start_idx.to_bytes(8, byteorder="big")
+        query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key))
+        shard_query = query.shard(table_shard_keys)
+        try:
+            total_operations += 1
+            results = await populated_table.read_rows_sharded(shard_query, operation_timeout=deadline - time.monotonic())
+            total_rows += len(results)
+        except ShardedReadRowsExceptionGroup as e:
+            for sub_exc in e.exceptions:
+                if sub_exc.__cause__ and not isinstance(sub_exc.__cause__, DeadlineExceeded):
+                    # found error other than deadline exceeded
+                    raise
+    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} throughput: {total_rows / duration} rows/s")
