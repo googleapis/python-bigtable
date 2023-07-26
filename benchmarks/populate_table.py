@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import random
 import asyncio
 import string
@@ -19,9 +20,6 @@ from tqdm import tqdm
 
 from google.cloud.bigtable.data import SetCell
 from google.cloud.bigtable.data import RowMutationEntry
-
-# the size of each value
-FIELD_SIZE = 100
 
 # number of qualifiers to use in test table
 NUM_QUALIFIERS = 1
@@ -35,10 +33,11 @@ BULK_SIZE = 1000
 # How many shards to use for the table population.
 POPULATE_SHARD_COUNT = 10
 
+ROW_SIZE = int(os.environ.get("ROW_SIZE", 100))
 
 def random_value():
     valid_chars = list(string.ascii_letters + "-/_")
-    return "".join(random.choices(valid_chars, k=FIELD_SIZE))
+    return "".join(random.choices(valid_chars, k=ROW_SIZE))
 
 
 async def populate_table(table, table_size=100_000):
@@ -51,7 +50,7 @@ async def populate_table(table, table_size=100_000):
         each shard has the same number of entries.
     """
     shard_size = max(table_size // POPULATE_SHARD_COUNT, 1)
-    print(f"Populating table {table.table_id}...")
+    print(f"Populating table {table.table_id} with {ROW_SIZE}b entries...")
     async with table.mutations_batcher() as batcher:
         with tqdm(total=table_size) as pbar:
             task_list = []

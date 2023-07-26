@@ -15,6 +15,7 @@
 #!/bin/bash
 
 PROJECT_ID=$(gcloud config get-value project)
+ROW_SIZE=1000
 
 SCRIPT_DIR=$(dirname "$0")
 cd $SCRIPT_DIR/..
@@ -33,7 +34,8 @@ gcloud compute instances create-with-container $INSTANCE_NAME \
   --machine-type=n1-standard-4 \
   --zone=$ZONE \
   --scopes=cloud-platform \
-  --container-restart-policy=never
+  --container-restart-policy=never \
+  --container-env=ROW_SIZE=$ROW_SIZE
 
 # find container id
 echo "waiting for container to start..."

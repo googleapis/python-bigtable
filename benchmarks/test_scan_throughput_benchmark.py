@@ -66,6 +66,7 @@ async def populated_table(table):
 
     Table details:
       - 10,000 rows
+      - $ROW_SIZE bytes per row (default: 100b)
       - single column family
       - single column qualifier
       - splits at 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, and 9000
