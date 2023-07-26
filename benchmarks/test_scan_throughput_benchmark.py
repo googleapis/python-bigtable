@@ -65,7 +65,7 @@ async def populated_table(table):
     Table details:
       - 10,000 rows
       - single column family
-      - 10 column qualifiers
+      - single column qualifier
       - splits at 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, and 9000
     """
     user_specified_table = os.getenv("BIGTABLE_TEST_TABLE")
@@ -86,7 +86,7 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
     The benchmark will:
       - for each `scan_size` in `[100, 1000, 10_000]`, execute the following loop
         for `duration` seconds:
-        - pick one of the 10,000 keys at random, with uniform probability
+        - pick one of the keys at random, with uniform probability
             - keys within `scan_size` of the end of the table are excluded from sampling
         - scan `scan_size` rows starting at the chosen key
 
@@ -127,7 +127,7 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
 
     The benchmark will:
       - for `duration` seconds, execute the following loop:
-        - pick one of the 10,000 keys at random, with uniform probability
+        - pick one of the keys at random, with uniform probability
         - build a sharded query using the row key samples
         - scan rows to the end of the table starting at the chosen key
 

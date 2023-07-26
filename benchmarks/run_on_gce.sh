@@ -37,8 +37,9 @@ gcloud compute instances create-with-container $INSTANCE_NAME \
 
 # find container id
 echo "waiting for container to start..."
+sleep 5
 while [[ -z "$CONTAINER_ID" ]]; do
-  sleep 1
+  sleep 2
   CONTAINER_ID=$(gcloud compute instances get-serial-port-output $INSTANCE_NAME --zone $ZONE  2>/dev/null | grep "Starting a container with ID" |  awk '{print $NF}')
 done
 echo "found container id: $CONTAINER_ID"

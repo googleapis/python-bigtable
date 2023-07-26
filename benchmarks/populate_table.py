@@ -24,7 +24,7 @@ from google.cloud.bigtable.data import RowMutationEntry
 FIELD_SIZE = 100
 
 # number of qualifiers to use in test table
-NUM_QUALIFIERS = 10
+NUM_QUALIFIERS = 1
 
 # The name of the column family used in the benchmark.
 COLUMN_FAMILY = "cf"
