@@ -18,6 +18,7 @@ import uuid
 import os
 import random
 import time
+import asyncio
 
 import rich
 
@@ -40,6 +41,7 @@ def init_table_id():
     The table_id to use when creating a new test table
     """
     return f"benchmark-table-{uuid.uuid4().hex}"
+
 
 @pytest.fixture(scope="session")
 def cluster_config(project_id):
@@ -76,7 +78,7 @@ async def populated_table(table):
     yield table
 
 
-@pytest.mark.parametrize("scan_size", [100, 1000, 10_000])
+@pytest.mark.parametrize("scan_size", [1, 100, 1000, 10_000])
 @pytest.mark.asyncio
 async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5):
     """
@@ -120,7 +122,49 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
 
 
 @pytest.mark.asyncio
-async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
+async def test_point_read_throughput_benchmark(populated_table, batch_count=100, duration=5):
+    """
+    This benchmark measures the throughput of read_row against
+    a typical table
+
+    The benchmark will:
+      - for `duration` seconds:
+        - pick one of the keys at random, with uniform probability
+        - call `read_row` on the chosen key
+
+    The benchmark will report throughput in rows per second.
+    """
+    from google.cloud.bigtable.data import ReadRowsQuery
+    from google.cloud.bigtable.data import RowRange
+    from google.api_core.exceptions import DeadlineExceeded
+    print(f"\nrunning test_point_read_throughput for {duration}s")
+    deadline = time.monotonic() + duration
+    total_rows = 0
+    total_operations = 0
+    total_op_time = 0
+    while time.monotonic() < deadline:
+        chosen_idx = random.randint(0, 10_000)
+        chosen_key = chosen_idx.to_bytes(8, byteorder="big")
+        try:
+            timeout = deadline - time.monotonic()
+            task_list = [asyncio.create_task(populated_table.read_row(chosen_key, operation_timeout=timeout)) for _ in range(batch_count)]
+            start_time = time.perf_counter()
+            await asyncio.gather(*task_list)
+            total_rows += batch_count
+            total_operations += batch_count
+        except DeadlineExceeded as e:
+            exc_group = e.__cause__
+            if exc_group and any(not isinstance(exc, DeadlineExceeded) for exc in exc_group.exceptions):
+                # found error other than deadline exceeded
+                raise
+        finally:
+            total_op_time += time.perf_counter() - start_time
+            for t in task_list:
+                t.cancel()
+    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
+
+@pytest.mark.asyncio
+async def test_sharded_scan_throughput_benchmark(populated_table, duration=5):
     """
     This benchmark measures the throughput of read_rows_sharded against
     a typical table
@@ -131,7 +175,7 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=10):
         - build a sharded query using the row key samples
         - scan rows to the end of the table starting at the chosen key
 
-    The benchmark will report throughput in rows per second for each `scan_size` value.
+    The benchmark will report throughput in rows per second.
     """
     from google.cloud.bigtable.data import ReadRowsQuery
     from google.cloud.bigtable.data import RowRange
