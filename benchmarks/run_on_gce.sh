@@ -15,9 +15,9 @@
 #!/bin/bash
 
 PROJECT_ID=$(gcloud config get-value project)
-ROW_SIZE=1000
+ROW_SIZE=100
 
-SCRIPT_DIR=$(dirname "$0")
+SCRIPT_DIR=$(realpath $(dirname "$0"))
 cd $SCRIPT_DIR/..
 
 # build container
@@ -29,9 +29,15 @@ docker push $IMAGE_PATH
 # deploy to GCE
 INSTANCE_NAME="python-bigtable-benchmark-$(date +%s)"
 ZONE=us-central1-b
+function finish {
+  # remove VM on script exit
+  gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE --quiet &
+  sleep 0.5
+}
+trap finish EXIT
 gcloud compute instances create-with-container $INSTANCE_NAME \
   --container-image=$IMAGE_PATH \
-  --machine-type=n1-standard-4 \
+  --machine-type=n2-standard-8 \
   --zone=$ZONE \
   --scopes=cloud-platform \
   --container-restart-policy=never \

@@ -79,7 +79,7 @@ async def populated_table(table):
     yield table
 
 
-@pytest.mark.parametrize("scan_size", [100])
+@pytest.mark.parametrize("scan_size", [100, 1000, 10_000])
 @pytest.mark.asyncio
 async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5):
     """
@@ -112,7 +112,8 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
         rows = await populated_table.read_rows(query)
         total_op_time += time.perf_counter() - start_time
         total_rows += len(rows)
-    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s QPS: {total_operations / total_op_time:0.2f} ops/s")
+    # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s QPS: {total_operations / total_op_time:0.2f} ops/s")
+    rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f} rows/s QPS: {total_operations / total_op_time:,.2f} ops/s")
 
 
 @pytest.mark.asyncio
@@ -145,7 +146,8 @@ async def test_point_read_throughput_benchmark(populated_table, batch_count=100,
         total_op_time += time.perf_counter() - start_time
         total_rows += batch_count
         total_operations += batch_count
-    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
+    # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
+    rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f}")
 
 @pytest.mark.asyncio
 async def test_sharded_scan_throughput_benchmark(populated_table, duration=5):
@@ -171,14 +173,17 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=5):
     total_operations = 0
     total_op_time = 0
     table_shard_keys = await populated_table.sample_row_keys()
+    table_scan = ReadRowsQuery()
+    sharded_scan = table_scan.shard(table_shard_keys)
     while time.monotonic() < deadline:
-        start_idx = random.randint(0, 10_000)
-        start_key = start_idx.to_bytes(8, byteorder="big")
-        query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key))
-        shard_query = query.shard(table_shard_keys)
+        # start_idx = random.randint(0, 10_000)
+        # start_key = start_idx.to_bytes(8, byteorder="big")
+        # query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key))
+        # shard_query = query.shard(table_shard_keys)
         total_operations += 1
         start_timestamp = time.perf_counter()
-        results = await populated_table.read_rows_sharded(shard_query)
+        results = await populated_table.read_rows_sharded(sharded_scan)
         total_op_time += time.perf_counter() - start_timestamp
         total_rows += len(results)
-    rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
+    # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
+    rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f} rows/s QPS: {total_operations / total_op_time:,.2f} ops/s")
