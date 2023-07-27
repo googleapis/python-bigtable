@@ -123,7 +123,7 @@ def test_client_constructor_defaults():
     assert not client._read_only
     assert not client._admin
     assert isinstance(client._client_info, client_info.ClientInfo)
-    assert client._client_info.client_library_version == f"{__version__}-legacy"
+    assert client._client_info.client_library_version == __version__
     assert client._channel is None
     assert client._emulator_host is None
     assert client.SCOPE == (DATA_SCOPE,)
