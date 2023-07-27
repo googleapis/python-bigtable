@@ -9,7 +9,7 @@ app = FastAPI()
 async def startup_event():
     """set up client on app start"""
     global table
-    client = BigtableDataClientAsync()
+    client = BigtableDataClientAsync(pool_size=3)
     table = client.get_table('sanche-test', 'benchmarks')
     # from populate_table import populate_table
     # await populate_table(table)
