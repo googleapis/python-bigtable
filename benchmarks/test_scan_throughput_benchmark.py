@@ -25,7 +25,7 @@ import rich
 from populate_table import populate_table
 
 TEST_DURATION = int(os.getenv("TEST_DURATION", 30))
-
+ENABLE_PROFILING = os.getenv("ENABLE_PROFILING", 0) in [1, "1", "true", "True", "TRUE"]
 
 @pytest.fixture(scope="session")
 def column_family_config():
@@ -145,10 +145,22 @@ async def test_point_read_throughput_benchmark(populated_table, batch_count=1000
         chosen_key = chosen_idx.to_bytes(8, byteorder="big")
         task_list = [asyncio.create_task(populated_table.read_row(chosen_key)) for _ in range(batch_count)]
         start_time = time.perf_counter()
+        if ENABLE_PROFILING:
+            import yappi
+            yappi.start()
         await asyncio.gather(*task_list)
+        if ENABLE_PROFILING:
+            import yappi
+            import io
+            yappi.stop()
         total_op_time += time.perf_counter() - start_time
         total_rows += batch_count
         total_operations += batch_count
+    if ENABLE_PROFILING:
+        result = io.StringIO()
+        yappi.get_func_stats().print_all(out=result)
+        yappi.get_func_stats().save("point_read.stats", type="pstat")
+        print(result.getvalue())
     # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
     rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f}")
 
