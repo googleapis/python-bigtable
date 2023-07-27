@@ -41,7 +41,8 @@ gcloud compute instances create-with-container $INSTANCE_NAME \
   --zone=$ZONE \
   --scopes=cloud-platform \
   --container-restart-policy=never \
-  --container-env=ROW_SIZE=$ROW_SIZE
+  --container-env=ROW_SIZE=$ROW_SIZE \
+  --container-env=TEST_DURATION=10
 
 # find container id
 echo "waiting for container to start..."
