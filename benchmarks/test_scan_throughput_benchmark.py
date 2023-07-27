@@ -24,6 +24,8 @@ import rich
 
 from populate_table import populate_table
 
+TEST_DURATION = int(os.getenv("TEST_DURATION", 30))
+
 
 @pytest.fixture(scope="session")
 def column_family_config():
@@ -81,7 +83,7 @@ async def populated_table(table):
 
 @pytest.mark.parametrize("scan_size", [100, 1000, 10_000])
 @pytest.mark.asyncio
-async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5):
+async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TEST_DURATION, batch_size=100):
     """
     This benchmark measures the throughput of read_rows against
     a typical table
@@ -107,17 +109,18 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=5)
         start_idx = random.randint(0, max(10_000 - scan_size, 0))
         start_key = start_idx.to_bytes(8, byteorder="big")
         query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
-        total_operations += 1
+        total_operations += batch_size
+        task_list = [asyncio.create_task(populated_table.read_rows(query)) for _ in range(batch_size)]
         start_time = time.perf_counter()
-        rows = await populated_table.read_rows(query)
+        await asyncio.gather(*task_list)
         total_op_time += time.perf_counter() - start_time
-        total_rows += len(rows)
+        total_rows += scan_size * batch_size
     # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s QPS: {total_operations / total_op_time:0.2f} ops/s")
     rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f} rows/s QPS: {total_operations / total_op_time:,.2f} ops/s")
 
 
 @pytest.mark.asyncio
-async def test_point_read_throughput_benchmark(populated_table, batch_count=100, duration=5):
+async def test_point_read_throughput_benchmark(populated_table, batch_count=1000, duration=TEST_DURATION):
     """
     This benchmark measures the throughput of read_row against
     a typical table
@@ -150,7 +153,7 @@ async def test_point_read_throughput_benchmark(populated_table, batch_count=100,
     rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f}")
 
 @pytest.mark.asyncio
-async def test_sharded_scan_throughput_benchmark(populated_table, duration=5):
+async def test_sharded_scan_throughput_benchmark(populated_table, duration=TEST_DURATION, batch_size=100):
     """
     This benchmark measures the throughput of read_rows_sharded against
     a typical table
@@ -180,10 +183,11 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=5):
         # start_key = start_idx.to_bytes(8, byteorder="big")
         # query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key))
         # shard_query = query.shard(table_shard_keys)
-        total_operations += 1
+        total_operations += batch_size
         start_timestamp = time.perf_counter()
-        results = await populated_table.read_rows_sharded(sharded_scan)
+        task_list = [asyncio.create_task(populated_table.read_rows_sharded(sharded_scan)) for _ in range(batch_size)]
+        results = await asyncio.gather(*task_list)
         total_op_time += time.perf_counter() - start_timestamp
-        total_rows += len(results)
+        total_rows += len(results) * len(results[0])
     # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s")
     rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f} rows/s QPS: {total_operations / total_op_time:,.2f} ops/s")
