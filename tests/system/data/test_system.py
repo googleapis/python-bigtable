@@ -26,7 +26,7 @@ TEST_FAMILY_2 = "test-family-2"
 
 
 @pytest.fixture(scope="session")
-def init_column_families():
+def column_family_config():
     """
     specify column families to create when creating a new test table
     """
@@ -40,7 +40,22 @@ def init_table_id():
     """
     The table_id to use when creating a new test table
     """
-    return "test-table-{}".format(uuid.uuid4().hex)
+    return f"test-table-{uuid.uuid4().hex}"
+
+@pytest.fixture(scope="session")
+def cluster_config(project_id):
+    """
+    Configuration for the clusters to use when creating a new instance
+    """
+    from google.cloud.bigtable_admin_v2 import types
+    cluster = {
+        "test-cluster": types.Cluster(
+            location=f"projects/{project_id}/locations/us-central1-b",
+            serve_nodes=3,
+        )
+    }
+    return cluster
+
 
 class TempRowBuilder:
     """
