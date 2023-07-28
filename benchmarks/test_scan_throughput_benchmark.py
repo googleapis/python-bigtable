@@ -81,7 +81,7 @@ async def populated_table(table):
     yield table
 
 
-@pytest.mark.parametrize("scan_size", [100, 1000, 10_000])
+@pytest.mark.parametrize("scan_size", [10_000])
 @pytest.mark.asyncio
 async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TEST_DURATION, batch_size=100):
     """
@@ -112,9 +112,21 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TE
         total_operations += batch_size
         task_list = [asyncio.create_task(populated_table.read_rows(query)) for _ in range(batch_size)]
         start_time = time.perf_counter()
+        if ENABLE_PROFILING:
+            import yappi
+            yappi.start()
         await asyncio.gather(*task_list)
+        if ENABLE_PROFILING:
+            import yappi
+            import io
+            yappi.stop()
         total_op_time += time.perf_counter() - start_time
         total_rows += scan_size * batch_size
+    if ENABLE_PROFILING:
+        result = io.StringIO()
+        yappi.get_func_stats().print_all(out=result)
+        yappi.get_func_stats().save(f"table_scan_{scan_size}.stats", type="pstat")
+        print(result.getvalue())
     # rich.print(f"[blue]total rows: {total_rows}. total operations: {total_operations} time in operation: {total_op_time:0.2f}s throughput: {total_rows / total_op_time:0.2f} rows/s QPS: {total_operations / total_op_time:0.2f} ops/s")
     rich.print(f"[blue]throughput: {total_rows / total_op_time:,.2f} rows/s QPS: {total_operations / total_op_time:,.2f} ops/s")
 
