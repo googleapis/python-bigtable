@@ -19,6 +19,7 @@ from typing import Sequence, Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
+from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
 # Type aliases used internally for readability.
 _family_type = str
@@ -84,17 +85,16 @@ class Row(Sequence["Cell"]):
         """
         row_key: bytes = row_pb.key
         cell_list: list[Cell] = []
+        new_cell = None
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
-                    new_cell = Cell(
-                        value=cell.value,
-                        row_key=row_key,
-                        family=family.name,
-                        qualifier=column.qualifier,
-                        timestamp_micros=cell.timestamp_micros,
-                        labels=list(cell.labels) if cell.labels else None,
-                    )
+                    new_cell = Cell(row_key, new_cell, ReadRowsResponse.CellChunk())
+                    new_cell._value = cell.value
+                    new_cell._timestamp_micros = cell.timestamp_micros
+                    new_cell._labels = cell.labels
+                    new_cell._family = family.name
+                    new_cell._qualifier = column.qualifier
                     cell_list.append(new_cell)
         return cls(row_key, cells=cell_list)
 
@@ -335,37 +335,93 @@ class Cell:
     """
 
     __slots__ = (
-        "value",
         "row_key",
-        "family",
-        "qualifier",
-        "timestamp_micros",
-        "labels",
+        "_chunks",
+        "_prev_cell",
+        "_value",
+        "_family",
+        "_qualifier",
+        "_timestamp_micros",
+        "_labels",
     )
 
-    def __init__(
-        self,
-        value: bytes,
-        row_key: bytes,
-        family: str,
-        qualifier: bytes | str,
-        timestamp_micros: int,
-        labels: list[str] | None = None,
-    ):
-        """
-        Cell constructor
-
-        Cell objects are not intended to be constructed by users.
-        They are returned by the Bigtable backend.
-        """
-        self.value = value
+    def __init__(self, row_key: bytes, prev_cell: Cell|None, first_chunk: ReadRowsResponse.CellChunk):
+        self._prev_cell = prev_cell
+        self._chunks = [first_chunk]
         self.row_key = row_key
-        self.family = family
-        if isinstance(qualifier, str):
-            qualifier = qualifier.encode()
-        self.qualifier = qualifier
-        self.timestamp_micros = timestamp_micros
-        self.labels = labels if labels is not None else []
+        self._value = None
+        self._family = None
+        self._qualifier = None
+        self._timestamp_micros = None
+        self._labels = None
+
+    def _add_chunk(self, chunk: ReadRowsResponse.CellChunk):
+        self._chunks.append(chunk)
+
+    def _unpack_chunks(self):
+        if self._chunks:
+            first_chunk = self._chunks.pop(0)
+            self.family = first_chunk.family_name
+            self.qualifier = first_chunk.qualifier.value
+            self.timestamp_micros = first_chunk.timestamp_micros
+            if first_chunk.labels:
+                self.labels = list(first_chunk.labels)
+            working_value = bytearray()
+            if first_chunk.value:
+                working_value.extend(first_chunk.value)
+            while self._chunks:
+                chunk = self._chunks.pop(0)
+                working_value.extend(chunk.value)
+            self.value = bytes(working_value)
+
+    @property
+    def value(self) -> bytes:
+        if self._value is None:
+            working_value = bytearray()
+            for chunk in self._chunks:
+                working_value.extend(chunk.value)
+            self._value = bytes(working_value)
+        return self._value
+
+    @property
+    def family(self) -> str:
+        if self._family is None:
+            if self._chunks[0].family_name:
+                self._family = self._chunks[0].family_name
+            elif self._prev_cell:
+                self._family = self._prev_cell.family
+            else:
+                raise ValueError("Cell has no family")
+        return self._family
+
+    @property
+    def qualifier(self) -> bytes:
+        if self._qualifier is None:
+            if self._chunks[0].qualifier.value:
+                self._qualifier = self._chunks[0].qualifier.value
+            elif self._prev_cell:
+                self._qualifier = self._prev_cell.qualifier
+            else:
+                raise ValueError("Cell has no qualifier")
+        return self._qualifier
+
+    @property
+    def timestamp_micros(self) -> int:
+        if self._timestamp_micros is None:
+            if self._chunks[0].timestamp_micros:
+                self._timestamp_micros = self._chunks[0].timestamp_micros
+            else:
+                raise ValueError("Cell has no timestamp")
+        return self._timestamp_micros
+
+    @property
+    def labels(self) -> list[str] | None:
+        if self._labels is None:
+            if self._chunks[0].labels:
+                self._labels = list(self._chunks[0].labels)
+            else:
+                self._labels = []
+        return self._labels if self._labels else None
 
     def __int__(self) -> int:
         """
