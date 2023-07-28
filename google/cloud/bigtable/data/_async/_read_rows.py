@@ -38,6 +38,8 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import IdleTimeout
 from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
 from google.api_core import retry_async as retries
+from google.api_core.retry_streaming_async import AsyncRetryableGenerator
+from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -99,18 +101,15 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             if predicate(exc):
                 self.transient_errors.append(exc)
 
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            timeout=self.operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-            on_error=on_error_fn,
-            is_stream=True,
+        self._stream: AsyncGenerator[Row, None] | None = AsyncRetryableGenerator(
+            self._partial_retryable,
+            predicate,
+            exponential_sleep_generator(
+                0.01, 60, multiplier=2
+            ),
+            self.operation_timeout,
+            on_error_fn,
         )
-        self._stream: AsyncGenerator[Row, None] | None = retry(
-            self._partial_retryable
-        )()
         # contains the list of errors that were retried
         self.transient_errors: List[Exception] = []
 
