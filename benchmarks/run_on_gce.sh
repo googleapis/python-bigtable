@@ -37,12 +37,12 @@ function finish {
 trap finish EXIT
 gcloud compute instances create-with-container $INSTANCE_NAME \
   --container-image=$IMAGE_PATH \
-  --machine-type=n2-standard-8 \
+  --machine-type=e2-standard-8 \
   --zone=$ZONE \
   --scopes=cloud-platform \
   --container-restart-policy=never \
   --container-env=ROW_SIZE=$ROW_SIZE \
-  --container-env=TEST_DURATION=10
+  --container-env=TEST_DURATION=30
 
 # find container id
 echo "waiting for container to start..."
