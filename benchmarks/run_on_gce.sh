@@ -37,7 +37,7 @@ function finish {
 trap finish EXIT
 gcloud compute instances create-with-container $INSTANCE_NAME \
   --container-image=$IMAGE_PATH \
-  --machine-type=e2-standard-8 \
+  --machine-type=n2-standard-8 \
   --zone=$ZONE \
   --scopes=cloud-platform \
   --container-restart-policy=never \

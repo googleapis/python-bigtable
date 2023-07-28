@@ -101,16 +101,14 @@ async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TE
     from google.cloud.bigtable.data import RowRange
     from google.api_core.exceptions import DeadlineExceeded
     print(f"\nrunning test_scan_throughput_benchmark for {duration}s with scan_size={scan_size}")
-    deadline = time.monotonic() + duration
     total_rows = 0
     total_operations = 0
     total_op_time = 0
-    while time.monotonic() < deadline:
-        start_idx = random.randint(0, max(10_000 - scan_size, 0))
-        start_key = start_idx.to_bytes(8, byteorder="big")
-        query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key), limit=scan_size)
+    while total_op_time < duration:
+        test_keys = [random.randint(0, max(10_000 - scan_size, 0)).to_bytes(8, byteorder="big") for _ in range(batch_size)]
+        test_queries = [ReadRowsQuery(row_ranges=RowRange(start_key=key), limit=scan_size) for key in test_keys]
         total_operations += batch_size
-        task_list = [asyncio.create_task(populated_table.read_rows(query)) for _ in range(batch_size)]
+        task_list = [asyncio.create_task(populated_table.read_rows(q)) for q in test_queries]
         start_time = time.perf_counter()
         if ENABLE_PROFILING:
             import yappi
@@ -144,18 +142,13 @@ async def test_point_read_throughput_benchmark(populated_table, batch_count=1000
 
     The benchmark will report throughput in rows per second.
     """
-    from google.cloud.bigtable.data import ReadRowsQuery
-    from google.cloud.bigtable.data import RowRange
-    from google.api_core.exceptions import DeadlineExceeded
     print(f"\nrunning test_point_read_throughput for {duration}s")
-    deadline = time.monotonic() + duration
     total_rows = 0
     total_operations = 0
     total_op_time = 0
-    while time.monotonic() < deadline:
-        chosen_idx = random.randint(0, 10_000)
-        chosen_key = chosen_idx.to_bytes(8, byteorder="big")
-        task_list = [asyncio.create_task(populated_table.read_row(chosen_key)) for _ in range(batch_count)]
+    while total_op_time < duration:
+        test_keys = [random.randint(0, 10_000).to_bytes(8, "big") for _ in range(batch_count)]
+        task_list = [asyncio.create_task(populated_table.read_row(k)) for k in test_keys]
         start_time = time.perf_counter()
         if ENABLE_PROFILING:
             import yappi
@@ -195,18 +188,13 @@ async def test_sharded_scan_throughput_benchmark(populated_table, duration=TEST_
     from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
     from google.api_core.exceptions import DeadlineExceeded
     print(f"\nrunning test_sharded_scan_throughput_benchmark for {duration}s")
-    deadline = time.monotonic() + duration
     total_rows = 0
     total_operations = 0
     total_op_time = 0
     table_shard_keys = await populated_table.sample_row_keys()
     table_scan = ReadRowsQuery()
     sharded_scan = table_scan.shard(table_shard_keys)
-    while time.monotonic() < deadline:
-        # start_idx = random.randint(0, 10_000)
-        # start_key = start_idx.to_bytes(8, byteorder="big")
-        # query = ReadRowsQuery(row_ranges=RowRange(start_key=start_key))
-        # shard_query = query.shard(table_shard_keys)
+    while total_op_time < duration:
         total_operations += batch_size
         start_timestamp = time.perf_counter()
         task_list = [asyncio.create_task(populated_table.read_rows_sharded(sharded_scan)) for _ in range(batch_size)]
