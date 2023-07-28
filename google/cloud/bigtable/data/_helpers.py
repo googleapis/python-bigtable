@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from typing import Callable, Any
-from inspect import iscoroutinefunction
 import time
 
 from google.api_core import exceptions as core_exceptions
@@ -67,6 +66,7 @@ def _convert_retry_deadline(
     func: Callable[..., Any],
     timeout_value: float | None = None,
     retry_errors: list[Exception] | None = None,
+    is_async: bool = False,
 ):
     """
     Decorator to convert RetryErrors raised by api_core.retry into
@@ -108,7 +108,7 @@ def _convert_retry_deadline(
         except core_exceptions.RetryError:
             handle_error()
 
-    return wrapper_async if iscoroutinefunction(func) else wrapper
+    return wrapper_async if is_async else wrapper
 
 
 def _validate_timeouts(

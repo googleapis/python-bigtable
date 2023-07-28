@@ -846,7 +846,7 @@ class TableAsync:
             return [(s.row_key, s.offset_bytes) async for s in results]
 
         wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc), operation_timeout, transient_errors
+            retry(execute_rpc), operation_timeout, transient_errors, is_async=True
         )
         return await wrapped_fn()
 

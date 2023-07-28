@@ -96,7 +96,7 @@ class _MutateRowsOperationAsync:
             maximum=60,
         )
         retry_wrapped = retry(self._run_attempt)
-        self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
+        self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout, is_async=True)
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout

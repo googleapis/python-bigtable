@@ -311,6 +311,7 @@ class ReadRowsAsyncIterator(AsyncIterable[Row]):
             self._merger.__anext__,
             self._merger.operation_timeout,
             self._merger.transient_errors,
+            is_async=True,
         )
 
     async def _start_idle_timer(self, idle_timeout: float):
