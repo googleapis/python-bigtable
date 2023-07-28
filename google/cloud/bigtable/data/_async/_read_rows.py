@@ -32,11 +32,10 @@ from grpc.aio import RpcContext
 
 from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable.data.row import Row, _LastScannedRow
+from google.cloud.bigtable.data.row import Row, _LastScannedRow, Cell
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import IdleTimeout
-from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import AsyncRetryableGenerator
 from google.api_core.retry import exponential_sleep_generator
@@ -181,9 +180,8 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             metadata=metadata,
         )
         try:
-            state_machine = _StateMachine()
             stream = _ReadRowsOperationAsync.merge_row_response_stream(
-                new_gapic_stream, state_machine
+                new_gapic_stream
             )
             # run until we get a timeout or the stream is exhausted
             async for new_item in stream:
@@ -259,7 +257,6 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
     @staticmethod
     async def merge_row_response_stream(
         response_generator: AsyncIterable[ReadRowsResponse],
-        state_machine: _StateMachine,
     ) -> AsyncGenerator[Row, None]:
         """
         Consume chunks from a ReadRowsResponse stream into a set of Rows
@@ -272,23 +269,28 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
         Raises:
             - InvalidChunk: if the chunk stream is invalid
         """
+        row = None
         async for row_response in response_generator:
             # unwrap protoplus object for increased performance
             response_pb = row_response._pb
             last_scanned = response_pb.last_scanned_row_key
             # if the server sends a scan heartbeat, notify the state machine.
             if last_scanned:
-                yield state_machine.handle_last_scanned_row(last_scanned)
+                yield _LastScannedRow(last_scanned)
             # process new chunks through the state machine.
             for chunk in response_pb.chunks:
-                complete_row = state_machine.handle_chunk(chunk)
-                if complete_row is not None:
-                    yield complete_row
-            # TODO: handle request stats
-        if not state_machine.is_terminal_state():
+                key = chunk.row_key
+                if row is None and key is not None:
+                    row = Row(key, [chunk])
+                else:
+                    row._chunks.append(chunk)
+                if chunk.commit_row:
+                    yield row
+                    row = None
+                # TODO: handle request stats
+        if row is not None:
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
-
 
 class ReadRowsAsyncIterator(AsyncIterable[Row]):
     """

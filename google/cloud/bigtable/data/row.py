@@ -38,12 +38,12 @@ class Row(Sequence["Cell"]):
     cells = row["family", "qualifier"]
     """
 
-    __slots__ = ("row_key", "cells", "_index_data")
+    __slots__ = ("row_key", "_chunks", "_cells", "_index_data")
 
     def __init__(
         self,
         key: bytes,
-        cells: list[Cell],
+        chunks: list[ReadRowsResponse.CellChunk],
     ):
         """
         Initializes a Row object
@@ -52,11 +52,27 @@ class Row(Sequence["Cell"]):
         They are returned by the Bigtable backend.
         """
         self.row_key = key
-        self.cells: list[Cell] = cells
+        self._chunks = chunks
+        # cells are lazily loaded
+        self._cells: list[Cell] | None = None
         # index is lazily created when needed
         self._index_data: OrderedDict[
             _family_type, OrderedDict[_qualifier_type, list[Cell]]
         ] | None = None
+
+    @property
+    def cells(self) -> list[Cell]:
+        if self._cells is None:
+            first_chunk = self._chunks.pop(0)
+            self._cells = [Cell(self.row_key, None, first_chunk)]
+            last_was_split = first_chunk.value_size > 0
+            for chunk in self._chunks:
+                if last_was_split:
+                    self._cells[-1].add_chunk(chunk)
+                else:
+                    self._cells.append(Cell(self.row_key, self._cells[-1], chunk))
+                last_was_split = chunk.value_size > 0
+        return self._cells
 
     @property
     def _index(
@@ -96,7 +112,9 @@ class Row(Sequence["Cell"]):
                     new_cell._family = family.name
                     new_cell._qualifier = column.qualifier
                     cell_list.append(new_cell)
-        return cls(row_key, cells=cell_list)
+        instance = cls(row_key, [])
+        instance._cells = cell_list
+        return instance
 
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
