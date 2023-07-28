@@ -57,14 +57,14 @@ class _StateMachine:
     __slots__ = (
         "current_state",
         "last_seen_row_key",
-        "adapter",
+        "_current_row",
     )
 
     def __init__(self):
         # represents either the last row emitted, or the last_scanned_key sent from backend
         # all future rows should have keys > last_seen_row_key
         self.last_seen_row_key: bytes | None = None
-        self.adapter = _RowBuilder()
+        self._current_row = None
         self._reset_row()
 
     def _reset_row(self) -> None:
@@ -72,7 +72,7 @@ class _StateMachine:
         Drops the current row and transitions to AWAITING_NEW_ROW to start a fresh one
         """
         self.current_state: Type[_State] = AWAITING_NEW_ROW
-        self.adapter.reset()
+        self._current_row = None
 
     def is_terminal_state(self) -> bool:
         """
@@ -114,7 +114,7 @@ class _StateMachine:
             # check if row is complete, and return it if so
             if not self.current_state == AWAITING_NEW_CELL:
                 raise InvalidChunk("Commit chunk received in invalid state")
-            complete_row = self.adapter.finish_row()
+            complete_row = self._current_row
             self._handle_complete_row(complete_row)
             return complete_row
         else:
@@ -167,7 +167,7 @@ class AWAITING_NEW_ROW(_State):
     def handle_chunk(
         owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
     ) -> Type["_State"]:
-        owner.adapter.start_row(chunk.row_key)
+        owner._current_row = Row(chunk.row_key, [])
         # the first chunk signals both the start of a new row and the start of a new cell, so
         # force the chunk processing in the AWAITING_CELL_VALUE.
         return AWAITING_NEW_CELL.handle_chunk(owner, chunk)
@@ -187,13 +187,13 @@ class AWAITING_NEW_CELL(_State):
         owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
     ) -> Type["_State"]:
         is_split = chunk.value_size > 0
-        owner.adapter.start_cell(chunk)
+        prev_cell = owner._current_row.cells[-1] if owner._current_row.cells else None
+        owner._current_row.cells.append(Cell(owner._current_row.row_key, prev_cell, chunk))
         # transition to new state
         if is_split:
             return AWAITING_CELL_VALUE
         else:
             # cell is complete
-            owner.adapter.finish_cell()
             return AWAITING_NEW_CELL
 
 
@@ -211,71 +211,11 @@ class AWAITING_CELL_VALUE(_State):
         owner: _StateMachine, chunk: ReadRowsResponse.CellChunk
     ) -> Type["_State"]:
         is_last = chunk.value_size == 0
-        owner.adapter.cell_value(chunk)
+        owner._current_row.cells[-1].add_chunk(chunk)
         # transition to new state
         if not is_last:
             return AWAITING_CELL_VALUE
         else:
             # cell is complete
-            owner.adapter.finish_cell()
             return AWAITING_NEW_CELL
 
-
-class _RowBuilder:
-    """
-    called by state machine to build rows
-    State machine makes the following guarantees:
-        Exactly 1 `start_row` for each row.
-        Exactly 1 `start_cell` for each cell.
-        At least 1 `cell_value` for each cell.
-        Exactly 1 `finish_cell` for each cell.
-        Exactly 1 `finish_row` for each row.
-    `reset` can be called at any point and can be invoked multiple times in
-    a row.
-    """
-
-    __slots__ = "current_key", "working_cell", "completed_cells"
-
-    def __init__(self):
-        # initialize state
-        self.completed_cells : list[Cell] = []
-        self.current_key: bytes | None = None
-        self.working_cell: Cell | None = None
-
-    def reset(self) -> None:
-        """called when the current in progress row should be dropped"""
-        self.current_key = None
-        self.working_cell = None
-        self.completed_cells = []
-
-    def start_row(self, key: bytes) -> None:
-        """Called to start a new row. This will be called once per row"""
-        self.current_key = key
-
-    def start_cell(
-        self,
-        chunk: ReadRowsResponse.CellChunk,
-    ) -> None:
-        """called to start a new cell in a row."""
-        if self.current_key is None:
-            raise InvalidChunk("start_cell called without a row")
-        self.working_cell = Cell(self.current_key, self.working_cell, chunk)
-
-    def cell_value(self, chunk: ReadRowsResponse.CellChunk) -> None:
-        """called multiple times per cell to concatenate the cell value"""
-        self.working_cell._add_chunk(chunk)
-
-    def finish_cell(self) -> None:
-        """called once per cell to signal the end of the value (unless reset)"""
-        if self.working_cell is None:
-            raise InvalidChunk("finish_cell called before start_cell")
-        self.completed_cells.append(self.working_cell)
-        self.working_cell = None
-
-    def finish_row(self) -> Row:
-        """called once per row to signal that all cells have been processed (unless reset)"""
-        if self.current_key is None:
-            raise InvalidChunk("No row in progress")
-        new_row = Row(self.current_key, self.completed_cells)
-        self.reset()
-        return new_row
