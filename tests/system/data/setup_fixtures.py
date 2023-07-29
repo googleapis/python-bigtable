@@ -138,7 +138,7 @@ async def client():
     from google.cloud.bigtable.data import BigtableDataClientAsync
 
     project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-    async with BigtableDataClientAsync(project=project) as client:
+    async with BigtableDataClientAsync(project=project, pool_size=4) as client:
         yield client
 
 
