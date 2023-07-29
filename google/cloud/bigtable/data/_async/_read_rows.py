@@ -84,8 +84,14 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
         )
         row_limit = request.get("rows_limit", 0)
         # lock in paramters for retryable wrapper
-        self._partial_retryable = partial(
+        retryable_stream = partial(
             self._read_rows_retryable_attempt,
+            client.read_rows,
+            attempt_timeout_gen,
+            row_limit,
+        )
+        retryable_as_list = partial(
+            self._read_rows_retryable_attempt_as_list,
             client.read_rows,
             attempt_timeout_gen,
             row_limit,
@@ -101,7 +107,16 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
                 self.transient_errors.append(exc)
 
         self._stream: AsyncGenerator[Row, None] | None = AsyncRetryableGenerator(
-            self._partial_retryable,
+            retryable_stream,
+            predicate,
+            exponential_sleep_generator(
+                0.01, 60, multiplier=2
+            ),
+            self.operation_timeout,
+            on_error_fn,
+        )
+        self._as_list_fn = retries.retry_target(
+            retryable_as_list,
             predicate,
             exponential_sleep_generator(
                 0.01, 60, multiplier=2
@@ -129,6 +144,15 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             await self._stream.aclose()
         self._stream = None
         self._emitted_seen_row_key = None
+
+    async def _read_rows_retryable_attempt_as_list(
+        self,
+        gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
+        timeout_generator: Iterator[float],
+        total_row_limit: int,
+    ) -> List[Row]:
+        output_list = [row async for row in self._read_rows_retryable_attempt(gapic_fn, timeout_generator, total_row_limit)]
+        return output_list
 
     async def _read_rows_retryable_attempt(
         self,

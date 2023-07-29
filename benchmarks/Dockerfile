@@ -34,4 +34,4 @@ COPY benchmarks /app
 COPY tests/system/data/setup_fixtures.py /app
 
 # run benchmark
-CMD ["python", "-m", "pytest", ".", "-s"]
+CMD ["python", "-m", "pytest", "test_scan_throughput_benchmark.py", "-s"]

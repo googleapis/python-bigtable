@@ -41,6 +41,7 @@ def column_family_config():
 def init_table_id():
     """
     The table_id to use when creating a new test table
+    
     """
     return f"benchmark-table-{uuid.uuid4().hex}"
 
@@ -81,7 +82,7 @@ async def populated_table(table):
     yield table
 
 
-@pytest.mark.parametrize("scan_size", [10_000])
+@pytest.mark.parametrize("scan_size", [100, 10_000])
 @pytest.mark.asyncio
 async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TEST_DURATION, batch_size=100):
     """

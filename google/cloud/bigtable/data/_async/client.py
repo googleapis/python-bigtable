@@ -551,8 +551,8 @@ class TableAsync:
         )
         output_generator = ReadRowsAsyncIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
-        idle_timeout_seconds = 300
-        await output_generator._start_idle_timer(idle_timeout_seconds)
+        #idle_timeout_seconds = 300
+        #await output_generator._start_idle_timer(idle_timeout_seconds)
         return output_generator
 
     async def read_rows(
@@ -592,8 +592,9 @@ class TableAsync:
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
         )
-        results = [row async for row in row_generator]
-        return results
+        operation = row_generator._merger
+        row_list = await operation._as_list_fn
+        return row_list
 
     async def read_row(
         self,
