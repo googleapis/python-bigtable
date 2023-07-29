@@ -38,12 +38,12 @@ class Row(Sequence["Cell"]):
     cells = row["family", "qualifier"]
     """
 
-    __slots__ = ("row_key", "_chunks", "_cells", "_index_data")
+    __slots__ = ("row_key", "cells", "_index_data")
 
     def __init__(
         self,
         key: bytes,
-        chunks: list[ReadRowsResponse.CellChunk],
+        cells: list[Cell],
     ):
         """
         Initializes a Row object
@@ -52,27 +52,11 @@ class Row(Sequence["Cell"]):
         They are returned by the Bigtable backend.
         """
         self.row_key = key
-        self._chunks = chunks
-        # cells are lazily loaded
-        self._cells: list[Cell] | None = None
+        self.cells: list[Cell] = cells
         # index is lazily created when needed
         self._index_data: OrderedDict[
             _family_type, OrderedDict[_qualifier_type, list[Cell]]
         ] | None = None
-
-    @property
-    def cells(self) -> list[Cell]:
-        if self._cells is None:
-            first_chunk = self._chunks.pop(0)
-            self._cells = [Cell(self.row_key, None, first_chunk)]
-            last_was_split = first_chunk.value_size > 0
-            for chunk in self._chunks:
-                if last_was_split:
-                    self._cells[-1].add_chunk(chunk)
-                else:
-                    self._cells.append(Cell(self.row_key, self._cells[-1], chunk))
-                last_was_split = chunk.value_size > 0
-        return self._cells
 
     @property
     def _index(
@@ -354,92 +338,35 @@ class Cell:
 
     __slots__ = (
         "row_key",
-        "_chunks",
-        "_prev_cell",
-        "_value",
-        "_family",
-        "_qualifier",
-        "_timestamp_micros",
-        "_labels",
+        "value",
+        "family",
+        "qualifier",
+        "timestamp_micros",
+        "labels",
     )
 
-    def __init__(self, row_key: bytes, prev_cell: Cell|None, first_chunk: ReadRowsResponse.CellChunk):
-        self._prev_cell = prev_cell
-        self._chunks = [first_chunk]
+    def __init__(self, row_key: bytes, family: str, qualifier: bytes, value: bytes, timestamp_micros: int, labels: list[str] = None):
         self.row_key = row_key
-        self._value = None
-        self._family = None
-        self._qualifier = None
-        self._timestamp_micros = None
-        self._labels = None
+        self.family = family
+        self.qualifier = qualifier
+        self.value = value
+        self.timestamp_micros = timestamp_micros
+        self.labels = labels
 
     def _add_chunk(self, chunk: ReadRowsResponse.CellChunk):
         self._chunks.append(chunk)
 
-    def _unpack_chunks(self):
-        if self._chunks:
-            first_chunk = self._chunks.pop(0)
-            self.family = first_chunk.family_name
-            self.qualifier = first_chunk.qualifier.value
-            self.timestamp_micros = first_chunk.timestamp_micros
-            if first_chunk.labels:
-                self.labels = list(first_chunk.labels)
-            working_value = bytearray()
-            if first_chunk.value:
-                working_value.extend(first_chunk.value)
-            while self._chunks:
-                chunk = self._chunks.pop(0)
-                working_value.extend(chunk.value)
-            self.value = bytes(working_value)
-
-    @property
-    def value(self) -> bytes:
-        if self._value is None:
-            working_value = bytearray()
-            for chunk in self._chunks:
-                working_value.extend(chunk.value)
-            self._value = bytes(working_value)
-        return self._value
-
-    @property
-    def family(self) -> str:
-        if self._family is None:
-            if self._chunks[0].family_name:
-                self._family = self._chunks[0].family_name
-            elif self._prev_cell:
-                self._family = self._prev_cell.family
-            else:
-                raise ValueError("Cell has no family")
-        return self._family
-
-    @property
-    def qualifier(self) -> bytes:
-        if self._qualifier is None:
-            if self._chunks[0].qualifier.value:
-                self._qualifier = self._chunks[0].qualifier.value
-            elif self._prev_cell:
-                self._qualifier = self._prev_cell.qualifier
-            else:
-                raise ValueError("Cell has no qualifier")
-        return self._qualifier
-
-    @property
-    def timestamp_micros(self) -> int:
-        if self._timestamp_micros is None:
-            if self._chunks[0].timestamp_micros:
-                self._timestamp_micros = self._chunks[0].timestamp_micros
-            else:
-                raise ValueError("Cell has no timestamp")
-        return self._timestamp_micros
-
-    @property
-    def labels(self) -> list[str] | None:
-        if self._labels is None:
-            if self._chunks[0].labels:
-                self._labels = list(self._chunks[0].labels)
-            else:
-                self._labels = []
-        return self._labels if self._labels else None
+    @classmethod
+    def _from_chunks(cls, row_key, chunks, prev_cell=None):
+        first_chunk = chunks[0]
+        family = first_chunk.family_name or prev_cell.family
+        qualifier = first_chunk.qualifier or prev_cell.qualifier
+        timestamp_micros = first_chunk.timestamp_micros
+        labels = list(first_chunk.labels) if first_chunk.labels else None
+        working_value = first_chunk.value
+        for chunk in chunks[1:]:
+            working_value += chunk.value
+        return Cell(row_key, family, qualifier, working_value, timestamp_micros, labels)
 
     def __int__(self) -> int:
         """

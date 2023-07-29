@@ -294,6 +294,7 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             - InvalidChunk: if the chunk stream is invalid
         """
         row = None
+        cell_chunks = []
         async for row_response in response_generator:
             # unwrap protoplus object for increased performance
             response_pb = row_response._pb
@@ -305,9 +306,14 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             for chunk in response_pb.chunks:
                 key = chunk.row_key
                 if row is None and key is not None:
-                    row = Row(key, [chunk])
-                else:
-                    row._chunks.append(chunk)
+                    cell_chunks = [chunk]
+                    row = Row(key, [])
+                if chunk.value_size == 0:
+                    prev_cell = row.cells[-1] if row.cells else None
+                    row.cells.append(Cell._from_chunks(key, cell_chunks, prev_cell))
+                    cell_chunks = []
+                elif cell_chunks[-1] != chunk:
+                    cell_chunks.append(chunk)
                 if chunk.commit_row:
                     yield row
                     row = None
