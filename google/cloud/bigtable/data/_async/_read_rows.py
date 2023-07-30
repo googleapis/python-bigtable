@@ -298,12 +298,10 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
         async for row_response in response_generator:
             # unwrap protoplus object for increased performance
             response_pb = row_response._pb
-            last_scanned = response_pb.last_scanned_row_key
-            # if the server sends a scan heartbeat, notify the state machine.
-            if last_scanned:
-                yield _LastScannedRow(last_scanned)
             # process new chunks through the state machine.
+            found_chunks = False
             for chunk in response_pb.chunks:
+                found_chunks = True
                 key = chunk.row_key
                 if row is None and key is not None:
                     cell_chunks = [chunk]
@@ -318,9 +316,16 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
                     yield row
                     row = None
                 # TODO: handle request stats
+            if not found_chunks:
+                # check for last scanned key
+                last_scanned = response_pb.last_scanned_row_key
+                # if the server sends a scan heartbeat, notify the state machine.
+                if last_scanned:
+                    yield _LastScannedRow(last_scanned)
         if row is not None:
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")
+
 
 class ReadRowsAsyncIterator(AsyncIterable[Row]):
     """
