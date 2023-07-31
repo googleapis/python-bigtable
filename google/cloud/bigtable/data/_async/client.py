@@ -45,6 +45,7 @@ from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
+from google.cloud.bigtable.data._async._read_rows_igor import start_operation
 
 import google.auth.credentials
 import google.auth._default
@@ -587,14 +588,16 @@ class TableAsync:
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        row_generator = await self.read_rows_stream(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-        )
-        operation = row_generator._merger
-        row_list = await operation._as_list_fn
-        return row_list
+        # row_generator = await self.read_rows_stream(
+        #     query,
+        #     operation_timeout=operation_timeout,
+        #     attempt_timeout=attempt_timeout,
+        # )
+        # operation = row_generator._merger
+        # row_list = await operation._as_list_fn()
+        # return row_list
+        rows = await start_operation(self, query)
+        return rows
 
     async def read_row(
         self,

@@ -115,15 +115,16 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             self.operation_timeout,
             on_error_fn,
         )
-        self._as_list_fn = retries.retry_target(
-            retryable_as_list,
-            predicate,
-            exponential_sleep_generator(
-                0.01, 60, multiplier=2
-            ),
-            self.operation_timeout,
-            on_error_fn,
-        )
+        # self._as_list_fn = retries.retry_target(
+        #     retryable_as_list,
+        #     predicate,
+        #     exponential_sleep_generator(
+        #         0.01, 60, multiplier=2
+        #     ),
+        #     self.operation_timeout,
+        #     on_error_fn,
+        # )
+        self._as_list_fn = retryable_as_list
         # contains the list of errors that were retried
         self.transient_errors: List[Exception] = []
 
