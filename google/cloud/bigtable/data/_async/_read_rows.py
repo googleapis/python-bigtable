@@ -209,11 +209,11 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             )
             # run until we get a timeout or the stream is exhausted
             async for new_item in stream:
-                if (
-                    self._last_emitted_row_key is not None
-                    and new_item.row_key <= self._last_emitted_row_key
-                ):
-                    raise InvalidChunk("Last emitted row key out of order")
+                # if (
+                #     self._last_emitted_row_key is not None
+                #     and new_item.row_key <= self._last_emitted_row_key
+                # ):
+                #     raise InvalidChunk("Last emitted row key out of order")
                 # don't yeild _LastScannedRow markers; they
                 # should only update last_seen_row_key
                 if not isinstance(new_item, _LastScannedRow):
@@ -294,34 +294,24 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
             - InvalidChunk: if the chunk stream is invalid
         """
         row = None
-        cell_chunks = []
+        chunk_list = []
         async for row_response in response_generator:
             # unwrap protoplus object for increased performance
             response_pb = row_response._pb
-            # process new chunks through the state machine.
-            found_chunks = False
-            for chunk in response_pb.chunks:
-                found_chunks = True
-                key = chunk.row_key
-                if row is None and key is not None:
-                    cell_chunks = [chunk]
-                    row = Row(key, [])
-                if chunk.value_size == 0:
-                    prev_cell = row.cells[-1] if row.cells else None
-                    row.cells.append(Cell._from_chunks(key, cell_chunks, prev_cell))
-                    cell_chunks = []
-                elif cell_chunks[-1] != chunk:
-                    cell_chunks.append(chunk)
-                if chunk.commit_row:
-                    yield row
-                    row = None
-                # TODO: handle request stats
-            if not found_chunks:
+            if len(response_pb.chunks) == 0:
                 # check for last scanned key
                 last_scanned = response_pb.last_scanned_row_key
                 # if the server sends a scan heartbeat, notify the state machine.
                 if last_scanned:
                     yield _LastScannedRow(last_scanned)
+            else:
+                # process new chunks through the state machine.
+                for chunk in response_pb.chunks:
+                    chunk_list.append(chunk)
+                    if chunk.commit_row:
+                        yield Row._from_chunks(chunk_list)
+                        chunk_list.clear()
+
         if row is not None:
             # read rows is complete, but there's still data in the merger
             raise InvalidChunk("read_rows completed with partial state remaining")

@@ -58,6 +58,20 @@ class Row(Sequence["Cell"]):
             _family_type, OrderedDict[_qualifier_type, list[Cell]]
         ] | None = None
 
+    @classmethod
+    def _from_chunks(cls, chunks):
+        first_chunk = chunks[0]
+        row_key = first_chunk.row_key
+
+        cell_list = []
+        start_idx = 0
+        for idx, this_chunk in enumerate(chunks):
+            if this_chunk.value_size == 0:
+                cell_list.append(Cell._from_chunks(row_key, chunks[start_idx:idx+1]))
+                start_idx = idx + 1
+        # TODO: make sure family and qualifer is populated for each cell
+        return cls(row_key, cell_list)
+
     @property
     def _index(
         self,
@@ -89,15 +103,10 @@ class Row(Sequence["Cell"]):
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
-                    new_cell = Cell(row_key, new_cell, ReadRowsResponse.CellChunk())
-                    new_cell._value = cell.value
-                    new_cell._timestamp_micros = cell.timestamp_micros
-                    new_cell._labels = cell.labels
-                    new_cell._family = family.name
-                    new_cell._qualifier = column.qualifier
+                    new_cell = Cell(row_key, family.name, column.qualifier, cell.value, cell.timestamp_micros, cell.labels)
                     cell_list.append(new_cell)
         instance = cls(row_key, [])
-        instance._cells = cell_list
+        instance.cells = cell_list
         return instance
 
     def get_cells(
@@ -357,10 +366,10 @@ class Cell:
         self._chunks.append(chunk)
 
     @classmethod
-    def _from_chunks(cls, row_key, chunks, prev_cell=None):
+    def _from_chunks(cls, row_key, chunks):
         first_chunk = chunks[0]
-        family = first_chunk.family_name or prev_cell.family
-        qualifier = first_chunk.qualifier or prev_cell.qualifier
+        family = first_chunk.family_name
+        qualifier = first_chunk.qualifier
         timestamp_micros = first_chunk.timestamp_micros
         labels = list(first_chunk.labels) if first_chunk.labels else None
         working_value = first_chunk.value
