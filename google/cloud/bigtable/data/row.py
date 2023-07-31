@@ -26,7 +26,7 @@ _family_type = str
 _qualifier_type = bytes
 
 
-class Row(Sequence["Cell"]):
+class Row:
     """
     Model class for row data returned from server
 
