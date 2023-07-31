@@ -1,19 +1,8 @@
-import dataclasses
+from google.cloud.bigtable.data.row import Row, Cell
+
 
 class InvalidChunk(Exception):
     pass
-
-@dataclasses.dataclass
-class Cell:
-    family: str
-    qualifier: bytes
-    timestamp: int
-    labels: list[str]
-    value: bytes
-@dataclasses.dataclass
-class Row:
-    key: bytes
-    cells: list[Cell]
 
 class _ResetRow(Exception):
     pass
@@ -129,7 +118,7 @@ async def merge_rows(chunks):
                             buffer.append(c.value)
                         value = b''.join(buffer)
 
-                    cells.append(Cell(family, qualifier, ts, labels, value))
+                    cells.append(Cell(row_key, family, qualifier, value, ts, labels))
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break

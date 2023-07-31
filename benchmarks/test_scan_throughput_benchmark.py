@@ -82,9 +82,9 @@ async def populated_table(table):
     yield table
 
 
-@pytest.mark.parametrize("scan_size", [100, 10_000])
+@pytest.mark.parametrize("scan_size", [100])
 @pytest.mark.asyncio
-async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TEST_DURATION, batch_size=20):
+async def test_scan_throughput_benchmark(populated_table, scan_size, duration=TEST_DURATION, batch_size=100):
     """
     This benchmark measures the throughput of read_rows against
     a typical table
