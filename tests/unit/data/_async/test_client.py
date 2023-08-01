@@ -131,7 +131,7 @@ class TestBigtableDataClientAsync:
             assert called_options.api_endpoint == "foo.bar:1234"
             assert isinstance(called_options, ClientOptions)
         with mock.patch.object(
-            self._get_target_class(), "start_background_channel_refresh"
+            self._get_target_class(), "_start_background_channel_refresh"
         ) as start_background_refresh:
             client = self._make_one(client_options=client_options)
             start_background_refresh.assert_called_once()
@@ -231,29 +231,29 @@ class TestBigtableDataClientAsync:
             await client.close()
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test_start_background_channel_refresh_sync(self):
+    def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
         client = self._make_one(project="project-id")
         with pytest.raises(RuntimeError):
-            client.start_background_channel_refresh()
+            client._start_background_channel_refresh()
 
     @pytest.mark.asyncio
-    async def test_start_background_channel_refresh_tasks_exist(self):
+    async def test__start_background_channel_refresh_tasks_exist(self):
         # if tasks exist, should do nothing
         client = self._make_one(project="project-id")
         with mock.patch.object(asyncio, "create_task") as create_task:
-            client.start_background_channel_refresh()
+            client._start_background_channel_refresh()
             create_task.assert_not_called()
         await client.close()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
-    async def test_start_background_channel_refresh(self, pool_size):
+    async def test__start_background_channel_refresh(self, pool_size):
         # should create background tasks for each channel
         client = self._make_one(project="project-id", pool_size=pool_size)
         ping_and_warm = AsyncMock()
         client._ping_and_warm_instances = ping_and_warm
-        client.start_background_channel_refresh()
+        client._start_background_channel_refresh()
         assert len(client._channel_refresh_tasks) == pool_size
         for task in client._channel_refresh_tasks:
             assert isinstance(task, asyncio.Task)
@@ -267,7 +267,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.skipif(
         sys.version_info < (3, 8), reason="Task.name requires python3.8 or higher"
     )
-    async def test_start_background_channel_refresh_tasks_names(self):
+    async def test__start_background_channel_refresh_tasks_names(self):
         # if tasks exist, should do nothing
         pool_size = 3
         client = self._make_one(project="project-id", pool_size=pool_size)
@@ -569,7 +569,7 @@ class TestBigtableDataClientAsync:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = (
+        client_mock._start_background_channel_refresh.side_effect = (
             lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
         )
         mock_channels = [mock.Mock() for i in range(5)]
@@ -580,7 +580,7 @@ class TestBigtableDataClientAsync:
             client_mock, "instance-1", table_mock
         )
         # first call should start background refresh
-        assert client_mock.start_background_channel_refresh.call_count == 1
+        assert client_mock._start_background_channel_refresh.call_count == 1
         # ensure active_instances and instance_owners were updated properly
         expected_key = (
             "prefix/instance-1",
@@ -593,12 +593,12 @@ class TestBigtableDataClientAsync:
         assert expected_key == tuple(list(instance_owners)[0])
         # should be a new task set
         assert client_mock._channel_refresh_tasks
-        # # next call should not call start_background_channel_refresh again
+        # next call should not call _start_background_channel_refresh again
         table_mock2 = mock.Mock()
         await self._get_target_class()._register_instance(
             client_mock, "instance-2", table_mock2
         )
-        assert client_mock.start_background_channel_refresh.call_count == 1
+        assert client_mock._start_background_channel_refresh.call_count == 1
         # but it should call ping and warm with new instance key
         assert client_mock._ping_and_warm_instances.call_count == len(mock_channels)
         for channel in mock_channels:
@@ -655,7 +655,7 @@ class TestBigtableDataClientAsync:
         client_mock._active_instances = active_instances
         client_mock._instance_owners = instance_owners
         client_mock._channel_refresh_tasks = []
-        client_mock.start_background_channel_refresh.side_effect = (
+        client_mock._start_background_channel_refresh.side_effect = (
             lambda: client_mock._channel_refresh_tasks.append(mock.Mock)
         )
         mock_channels = [mock.Mock() for i in range(5)]
@@ -1239,7 +1239,7 @@ class TestReadRows:
             read_rows = table.client._gapic_client.read_rows
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream([])
             row_keys = [b"test_1", "test_2"]
-            row_ranges = RowRange("start", "end")
+            row_ranges = RowRange("1start", "2end")
             filter_ = {"test": "filter"}
             limit = 99
             query = ReadRowsQuery(
@@ -1846,12 +1846,12 @@ class TestReadRowsSharded:
         operation timeout should change between batches
         """
         from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.client import CONCURRENCY_LIMIT
+        from google.cloud.bigtable.data._async.client import _CONCURRENCY_LIMIT
 
-        assert CONCURRENCY_LIMIT == 10  # change this test if this changes
+        assert _CONCURRENCY_LIMIT == 10  # change this test if this changes
 
         n_queries = 90
-        expected_num_batches = n_queries // CONCURRENCY_LIMIT
+        expected_num_batches = n_queries // _CONCURRENCY_LIMIT
         query_list = [ReadRowsQuery() for _ in range(n_queries)]
 
         table_mock = AsyncMock()
@@ -1875,8 +1875,8 @@ class TestReadRowsSharded:
                 for batch_idx in range(expected_num_batches):
                     batch_kwargs = kwargs[
                         batch_idx
-                        * CONCURRENCY_LIMIT : (batch_idx + 1)
-                        * CONCURRENCY_LIMIT
+                        * _CONCURRENCY_LIMIT : (batch_idx + 1)
+                        * _CONCURRENCY_LIMIT
                     ]
                     for req_kwargs in batch_kwargs:
                         # each batch should have the same operation_timeout, and it should decrease in each batch
@@ -2737,12 +2737,12 @@ class TestCheckAndMutateRow:
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_predicate_object(self):
-        """predicate object should be converted to dict"""
+        """predicate filter should be passed to gapic request"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
 
         mock_predicate = mock.Mock()
-        fake_dict = {"fake": "dict"}
-        mock_predicate.to_dict.return_value = fake_dict
+        predicate_dict = {"predicate": "dict"}
+        mock_predicate._to_dict.return_value = predicate_dict
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
@@ -2757,8 +2757,8 @@ class TestCheckAndMutateRow:
                         false_case_mutations=[mock.Mock()],
                     )
                     kwargs = mock_gapic.call_args[1]
-                    assert kwargs["request"]["predicate_filter"] == fake_dict
-                    assert mock_predicate.to_dict.call_count == 1
+                    assert kwargs["request"]["predicate_filter"] == predicate_dict
+                    assert mock_predicate._to_dict.call_count == 1
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_mutations_parsing(self):
