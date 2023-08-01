@@ -14,10 +14,6 @@
 
 from __future__ import annotations
 
-from typing import (
-    Any,
-)
-
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
 from google.cloud.bigtable_v2.types import RowRange as RowRangePB
@@ -29,7 +25,6 @@ from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _make_metadata
 
 from google.api_core import retry_async as retries
@@ -170,7 +165,7 @@ class _ReadRowsOperationAsync:
           - _RowSetComplete: if there are no rows left to process after the revision
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None or (not row_set.row_ranges and not row_set.row_keys is None):
+        if row_set is None or (not row_set.row_ranges and row_set.row_keys is not None):
             last_seen = last_seen_row_key
             return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         # remove seen keys from user-specific key list
@@ -274,17 +269,17 @@ class _ReadRowsOperationAsync:
                             c = await it.__anext__()
 
                             while c.value_size > 0:
-                                f = c.family_name
-                                q = c.qualifier
-                                t = c.timestamp_micros
-                                l = c.labels
-                                if f and f != family:
+                                c_f = c.family_name
+                                c_q = c.qualifier
+                                c_t = c.timestamp_micros
+                                c_l = c.labels
+                                if c_f and c_f != family:
                                     raise InvalidChunk("family changed mid cell")
-                                if q and q != qualifier:
+                                if c_q and c_q != qualifier:
                                     raise InvalidChunk("qualifier changed mid cell")
-                                if t and t != ts:
+                                if c_t and c_t != ts:
                                     raise InvalidChunk("timestamp changed mid cell")
-                                if l and l != labels:
+                                if c_l and c_l != labels:
                                     raise InvalidChunk("labels changed mid cell")
 
                                 buffer.append(c.value)

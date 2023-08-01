@@ -113,7 +113,6 @@ def table_id(
       - init_table_id: The table ID to give to the test table, if pre-initialized table is not given with BIGTABLE_TEST_TABLE.
             Supplied by the init_table_id fixture.
     """
-    from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
     from google.api_core import retry
 

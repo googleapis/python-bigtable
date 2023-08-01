@@ -15,11 +15,10 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence, Generator, overload, Any
+from typing import Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
-from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
 # Type aliases used internally for readability.
 _family_type = str
