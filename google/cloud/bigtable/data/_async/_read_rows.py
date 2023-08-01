@@ -1,4 +1,3 @@
-
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,11 +37,12 @@ from google.api_core.retry_streaming_async import AsyncRetryableGenerator
 from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
 
+
 class _ResetRow(Exception):
     pass
 
 
-class _ReadRowsOperationAsync():
+class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -57,8 +57,8 @@ class _ReadRowsOperationAsync():
 
     def __init__(
         self,
-        query : ReadRowsQuery,
-        table : TableAsync,
+        query: ReadRowsQuery,
+        table: TableAsync,
         operation_timeout: float,
         attempt_timeout: float,
     ):
@@ -71,7 +71,7 @@ class _ReadRowsOperationAsync():
         if table.app_profile_id:
             self.request.app_profile_id = table.app_profile_id
         self.table = table
-        self._last_yielded_row_key : bytes | None = None
+        self._last_yielded_row_key: bytes | None = None
         self._remaining_count = self.request.rows_limit or None
         self._metadata = _make_metadata(
             table.table_name,
@@ -79,7 +79,9 @@ class _ReadRowsOperationAsync():
         )
 
     async def make_retry_stream(self):
-        stream, transient_errors = self._make_stream_helper(AsyncRetryableGenerator, self.read_rows_attempt)
+        stream, transient_errors = self._make_stream_helper(
+            AsyncRetryableGenerator, self.read_rows_attempt
+        )
         try:
             async for row in stream:
                 yield row
@@ -87,7 +89,9 @@ class _ReadRowsOperationAsync():
             self._raise_retry_error(transient_errors)
 
     async def make_retry_stream_as_list(self):
-        retry_fn, transient_errors = self._make_stream_helper(retries.retry_target, self.read_rows_attempt_as_list)
+        retry_fn, transient_errors = self._make_stream_helper(
+            retries.retry_target, self.read_rows_attempt_as_list
+        )
         try:
             return await retry_fn
         except core_exceptions.RetryError:
@@ -113,15 +117,15 @@ class _ReadRowsOperationAsync():
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
+
         def on_error_fn(exc):
             if predicate(exc):
                 transient_errors.append(exc)
+
         retry_fn = retry_wrapper(
             attempt_fn,
             predicate,
-            exponential_sleep_generator(
-                0.01, 60, multiplier=2
-            ),
+            exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             on_error_fn,
         )
@@ -139,7 +143,11 @@ class _ReadRowsOperationAsync():
                 return
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
-        s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen), metadata=self._metadata)
+        s = await self.table.client._gapic_client.read_rows(
+            self.request,
+            timeout=next(self.attempt_timeout_gen),
+            metadata=self._metadata,
+        )
         s = self.chunk_stream(s)
         return self.merge_rows(s)
 
@@ -162,15 +170,15 @@ class _ReadRowsOperationAsync():
           - _RowSetComplete: if there are no rows left to process after the revision
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None or (
-            not row_set.row_ranges and not row_set.row_keys is None
-        ):
+        if row_set is None or (not row_set.row_ranges and not row_set.row_keys is None):
             last_seen = last_seen_row_key
             return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         # remove seen keys from user-specific key list
-        adjusted_keys : list[bytes] = [k for k in row_set.row_keys if k > last_seen_row_key]
+        adjusted_keys: list[bytes] = [
+            k for k in row_set.row_keys if k > last_seen_row_key
+        ]
         # adjust ranges to ignore keys before last seen
-        adjusted_ranges : list[RowRangePB] = []
+        adjusted_ranges: list[RowRangePB] = []
         for row_range in row_set.row_ranges:
             end_key = row_range.end_key_closed or row_range.end_key_open
             if end_key is None or end_key > last_seen_row_key:
@@ -190,7 +198,7 @@ class _ReadRowsOperationAsync():
 
     @staticmethod
     async def chunk_stream(stream):
-        prev_key : bytes | None = None
+        prev_key: bytes | None = None
 
         async for resp in stream:
             resp = resp._pb
@@ -238,7 +246,7 @@ class _ReadRowsOperationAsync():
                     raise InvalidChunk("first row chunk is missing key")
 
                 # Cells
-                cells : list[Cell] = []
+                cells: list[Cell] = []
 
                 # shared per cell storage
                 family = c.family_name
@@ -256,7 +264,7 @@ class _ReadRowsOperationAsync():
                             qualifier = q
 
                         ts = c.timestamp_micros
-                        labels : list[str] | None = list(c.labels) if c.labels else None
+                        labels: list[str] | None = list(c.labels) if c.labels else None
                         value = c.value
 
                         # merge split cells
@@ -288,9 +296,11 @@ class _ReadRowsOperationAsync():
                                     raise _ResetRow()
                             else:
                                 buffer.append(c.value)
-                            value = b''.join(buffer)
+                            value = b"".join(buffer)
 
-                        cells.append(Cell(row_key, family, qualifier, value, ts, labels))
+                        cells.append(
+                            Cell(row_key, family, qualifier, value, ts, labels)
+                        )
                         if c.commit_row:
                             yield Row(row_key, cells)
                             self._last_yielded_row_key = row_key

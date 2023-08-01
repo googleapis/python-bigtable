@@ -91,8 +91,16 @@ def column_split_config():
     """
     return [(num * 1000).to_bytes(8, "big") for num in range(1, 10)]
 
+
 @pytest.fixture(scope="session")
-def table_id(table_admin_client, project_id, instance_id, column_family_config, init_table_id, column_split_config):
+def table_id(
+    table_admin_client,
+    project_id,
+    instance_id,
+    column_family_config,
+    init_table_id,
+    column_split_config,
+):
     """
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
 

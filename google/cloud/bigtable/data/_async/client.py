@@ -44,6 +44,7 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
+
 # from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 # from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
@@ -553,8 +554,8 @@ class TableAsync:
         # )
         # output_generator = ReadRowsAsyncIterator(row_merger)
         # add idle timeout to clear resources if generator is abandoned
-        #idle_timeout_seconds = 300
-        #await output_generator._start_idle_timer(idle_timeout_seconds)
+        # idle_timeout_seconds = 300
+        # await output_generator._start_idle_timer(idle_timeout_seconds)
         # return output_generator
         operation = _ReadRowsOperationAsync(
             query,
@@ -625,11 +626,14 @@ class TableAsync:
         #     attempt_timeout=attempt_timeout,
         # )
         # return await operation.make_retry_stream_as_list()
-        return [row async for row in await self.read_rows_stream(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-        )]
+        return [
+            row
+            async for row in await self.read_rows_stream(
+                query,
+                operation_timeout=operation_timeout,
+                attempt_timeout=attempt_timeout,
+            )
+        ]
 
     async def read_row(
         self,

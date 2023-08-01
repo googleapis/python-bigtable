@@ -89,7 +89,14 @@ class Row:
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
-                    new_cell = Cell(row_key, family.name, column.qualifier, cell.value, cell.timestamp_micros, list(cell.labels))
+                    new_cell = Cell(
+                        row_key,
+                        family.name,
+                        column.qualifier,
+                        cell.value,
+                        cell.timestamp_micros,
+                        list(cell.labels),
+                    )
                     cell_list.append(new_cell)
         instance = cls(row_key, [])
         instance.cells = cell_list
@@ -340,7 +347,15 @@ class Cell:
         "labels",
     )
 
-    def __init__(self, row_key: bytes, family: str, qualifier: bytes, value: bytes, timestamp_micros: int, labels: list[str] | None = None):
+    def __init__(
+        self,
+        row_key: bytes,
+        family: str,
+        qualifier: bytes,
+        value: bytes,
+        timestamp_micros: int,
+        labels: list[str] | None = None,
+    ):
         self.row_key = row_key
         self.family = family
         self.qualifier = qualifier

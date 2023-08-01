@@ -42,12 +42,14 @@ def init_table_id():
     """
     return f"test-table-{uuid.uuid4().hex}"
 
+
 @pytest.fixture(scope="session")
 def cluster_config(project_id):
     """
     Configuration for the clusters to use when creating a new instance
     """
     from google.cloud.bigtable_admin_v2 import types
+
     cluster = {
         "test-cluster": types.Cluster(
             location=f"projects/{project_id}/locations/us-central1-b",
@@ -98,6 +100,7 @@ class TempRowBuilder:
             ],
         }
         await self.table.client._gapic_client.mutate_rows(request)
+
 
 @pytest.mark.usefixtures("table")
 async def _retrieve_cell_value(table, row_key):
@@ -212,6 +215,7 @@ async def test_sample_row_keys(client, table, temp_rows, column_split_config):
     assert results[-1][0] == b""
     assert isinstance(results[-1][1], int)
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
@@ -231,6 +235,7 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
 
     # ensure cell is updated
     assert (await _retrieve_cell_value(table, row_key)) == new_value
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
@@ -259,6 +264,7 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
     assert len(batcher._staged_entries) == 0
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -283,6 +289,7 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
         assert len(batcher._staged_entries) == 0
         # ensure cell is updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
@@ -318,6 +325,7 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
         # ensure cells were updated
         assert (await _retrieve_cell_value(table, row_key)) == new_value
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
@@ -355,6 +363,7 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
         assert (await _retrieve_cell_value(table, row_key)) == new_value
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -391,6 +400,7 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
         # ensure cells were not updated
         assert (await _retrieve_cell_value(table, row_key)) == start_value
         assert (await _retrieve_cell_value(table, row_key2)) == start_value
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
@@ -433,6 +443,7 @@ async def test_read_modify_write_row_increment(
     # ensure that reading from server gives same value
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @pytest.mark.parametrize(
@@ -471,6 +482,7 @@ async def test_read_modify_write_row_append(
     # ensure that reading from server gives same value
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
@@ -507,6 +519,7 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     )
     # ensure that reading from server gives same value
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
@@ -555,6 +568,7 @@ async def test_check_and_mutate(
     expected_value = true_mutation_value if expected_result else false_mutation_value
     assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
+
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
@@ -574,6 +588,7 @@ async def test_read_rows_stream(table, temp_rows):
     with pytest.raises(StopAsyncIteration):
         await generator.__anext__()
 
+
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
@@ -588,6 +603,7 @@ async def test_read_rows(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"row_key_1"
     assert row_list[1].row_key == b"row_key_2"
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -610,6 +626,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
     assert row_list[1].row_key == b"c"
     assert row_list[2].row_key == b"b"
     assert row_list[3].row_key == b"d"
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -634,6 +651,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     assert row_list[0].row_key == b"b"
     assert row_list[1].row_key == b"c"
     assert row_list[2].row_key == b"d"
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -663,6 +681,7 @@ async def test_read_rows_sharded_filters_limits(table, temp_rows):
     assert row_list[1][0].labels == ["second"]
     assert row_list[2][0].labels == ["second"]
 
+
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
@@ -684,6 +703,7 @@ async def test_read_rows_range_query(table, temp_rows):
     assert row_list[0].row_key == b"b"
     assert row_list[1].row_key == b"c"
 
+
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
@@ -703,6 +723,7 @@ async def test_read_rows_single_key_query(table, temp_rows):
     assert len(row_list) == 2
     assert row_list[0].row_key == b"a"
     assert row_list[1].row_key == b"c"
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -727,6 +748,7 @@ async def test_read_rows_with_filter(table, temp_rows):
     for row in row_list:
         assert row[0].labels == [expected_label]
 
+
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_rows_stream_close(table, temp_rows):
@@ -745,6 +767,7 @@ async def test_read_rows_stream_close(table, temp_rows):
     with pytest.raises(StopAsyncIteration) as e:
         await generator.__anext__()
         assert "closed" in str(e)
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -767,6 +790,7 @@ async def test_read_rows_stream_inactive_timer(table, temp_rows):
         assert "inactivity" in str(e)
         assert "idle_timeout=0.1" in str(e)
 
+
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row(table, temp_rows):
@@ -780,6 +804,7 @@ async def test_read_row(table, temp_rows):
     assert isinstance(row, Row)
     assert row.row_key == b"row_key_1"
     assert row.cells[0].value == b"value"
+
 
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
@@ -795,6 +820,7 @@ async def test_read_row_missing(table):
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.read_row("")
         assert "Row key must be non-empty" in str(e)
+
 
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
@@ -814,6 +840,7 @@ async def test_read_row_w_filter(table, temp_rows):
     assert row.cells[0].value == b"value"
     assert row.cells[0].labels == [expected_label]
 
+
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_row_exists(table, temp_rows):
@@ -832,6 +859,7 @@ async def test_row_exists(table, temp_rows):
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.row_exists("")
         assert "Row kest must be non-empty" in str(e)
+
 
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
