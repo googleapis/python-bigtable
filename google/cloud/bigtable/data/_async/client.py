@@ -44,8 +44,8 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 # from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
-from google.cloud.bigtable.data._async._read_rows_igor import _ReadRowsOperationAsync
+# from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
+from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 import google.auth.credentials
 import google.auth._default
@@ -498,7 +498,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
-    ) -> ReadRowsAsyncIterator:
+    ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
@@ -617,13 +617,18 @@ class TableAsync:
         # rows = await start_operation(self, query)
         # return rows
         # return [row async for row in row_generator]
-        operation = _ReadRowsOperationAsync(
+        # operation = _ReadRowsOperationAsync(
+        #     query,
+        #     self,
+        #     operation_timeout=operation_timeout,
+        #     attempt_timeout=attempt_timeout,
+        # )
+        # return await operation.make_retry_stream_as_list()
+        return [row async for row in await self.read_rows_stream(
             query,
-            self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-        )
-        return await operation.make_retry_stream_as_list()
+        )]
 
     async def read_row(
         self,
