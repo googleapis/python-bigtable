@@ -24,6 +24,8 @@ from google.cloud.bigtable_v2.types import RowSet as RowSetPB
 from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 
 from google.cloud.bigtable.data.row import Row, Cell
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
+from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -55,8 +57,8 @@ class _ReadRowsOperationAsync():
 
     def __init__(
         self,
-        query,
-        table,
+        query : ReadRowsQuery,
+        table : TableAsync,
         operation_timeout: float,
         attempt_timeout: float,
     ):
@@ -69,7 +71,7 @@ class _ReadRowsOperationAsync():
         if table.app_profile_id:
             self.request.app_profile_id = table.app_profile_id
         self.table = table
-        self._last_yielded_row_key = None
+        self._last_yielded_row_key : bytes | None = None
         self._remaining_count = self.request.rows_limit or None
         self._metadata = _make_metadata(
             table.table_name,
@@ -135,7 +137,8 @@ class _ReadRowsOperationAsync():
                 )
             except _RowSetComplete:
                 return
-        self.request.rows_limit = self._remaining_count
+        if self._remaining_count is not None:
+            self.request.rows_limit = self._remaining_count
         s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen), metadata=self._metadata)
         s = self.chunk_stream(s)
         return self.merge_rows(s)
@@ -187,7 +190,7 @@ class _ReadRowsOperationAsync():
 
     @staticmethod
     async def chunk_stream(stream):
-        prev_key = None
+        prev_key : bytes | None = None
 
         async for resp in stream:
             resp = resp._pb
@@ -235,7 +238,7 @@ class _ReadRowsOperationAsync():
                     raise InvalidChunk("first row chunk is missing key")
 
                 # Cells
-                cells = []
+                cells : list[Cell] = []
 
                 # shared per cell storage
                 family = c.family_name
@@ -253,7 +256,7 @@ class _ReadRowsOperationAsync():
                             qualifier = q
 
                         ts = c.timestamp_micros
-                        labels = list(c.labels) if c.labels else None
+                        labels : list[str] | None = list(c.labels) if c.labels else None
                         value = c.value
 
                         # merge split cells

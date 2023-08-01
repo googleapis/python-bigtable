@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import (
     cast,
     Any,
+    AsyncIterable,
     Optional,
     Set,
     TYPE_CHECKING,
