@@ -195,7 +195,7 @@ async def test_mutation_set_cell(table, temp_rows):
 @pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_sample_row_keys(client, table, temp_rows):
+async def test_sample_row_keys(client, table, temp_rows, column_split_config):
     """
     Sample keys should return a single sample in small test tables
     """
@@ -203,10 +203,14 @@ async def test_sample_row_keys(client, table, temp_rows):
     await temp_rows.add_row(b"row_key_2")
 
     results = await table.sample_row_keys()
-    assert len(results) == 1
-    sample = results[0]
-    assert isinstance(sample[0], bytes)
-    assert isinstance(sample[1], int)
+    assert len(results) == len(column_split_config) + 1
+    # first keys should match the split config
+    for idx in range(len(column_split_config)):
+        assert results[idx][0] == column_split_config[idx]
+        assert isinstance(results[idx][1], int)
+    # last sample should be empty key
+    assert results[-1][0] == b""
+    assert isinstance(results[-1][1], int)
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
