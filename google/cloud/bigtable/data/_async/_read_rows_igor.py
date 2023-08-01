@@ -19,6 +19,10 @@ from typing import (
     Any,
 )
 
+from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
+from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
@@ -60,13 +64,13 @@ class _ReadRowsOperationAsync():
             attempt_timeout, operation_timeout
         )
         self.operation_timeout = operation_timeout
-        self.request = query._to_dict()
-        self.request["table_name"] = table.table_name
+        query_dict = query._to_dict() if not isinstance(query, dict) else query
+        self.request = ReadRowsRequestPB(**query_dict, table_name=table.table_name)
         if table.app_profile_id:
-            self.request["app_profile_id"] = table.app_profile_id
+            self.request.app_profile_id = table.app_profile_id
         self.table = table
         self._last_yielded_row_key = None
-        self._remaining_count = query.limit
+        self._remaining_count = self.request.rows_limit or None
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
@@ -125,13 +129,13 @@ class _ReadRowsOperationAsync():
         if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             try:
-                self._request["rows"] = self._revise_request_rowset(
-                    row_set=self._request.get("rows", None),
-                    last_seen_row_key=self._last_yielded_row_key
+                self.request.rows = self._revise_request_rowset(
+                    row_set=self.request.rows,
+                    last_seen_row_key=self._last_yielded_row_key,
                 )
             except _RowSetComplete:
                 return
-        self.request["rows_limit"] = self._remaining_count
+        self.request.rows_limit = self._remaining_count
         s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen), metadata=self._metadata)
         s = self.chunk_stream(s)
         return self.merge_rows(s)
@@ -142,9 +146,9 @@ class _ReadRowsOperationAsync():
 
     @staticmethod
     def _revise_request_rowset(
-        row_set: dict[str, Any] | None,
+        row_set: RowSetPB,
         last_seen_row_key: bytes,
-    ) -> dict[str, Any]:
+    ) -> RowSetPB:
         """
         Revise the rows in the request to avoid ones we've already processed.
 
@@ -156,40 +160,30 @@ class _ReadRowsOperationAsync():
         """
         # if user is doing a whole table scan, start a new one with the last seen key
         if row_set is None or (
-            len(row_set.get("row_ranges", [])) == 0
-            and len(row_set.get("row_keys", [])) == 0
+            not row_set.row_ranges and not row_set.row_keys is None
         ):
             last_seen = last_seen_row_key
-            return {
-                "row_keys": [],
-                "row_ranges": [{"start_key_open": last_seen}],
-            }
+            return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         # remove seen keys from user-specific key list
-        row_keys: list[bytes] = row_set.get("row_keys", [])
-        adjusted_keys = [k for k in row_keys if k > last_seen_row_key]
+        adjusted_keys : list[bytes] = [k for k in row_set.row_keys if k > last_seen_row_key]
         # adjust ranges to ignore keys before last seen
-        row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-        adjusted_ranges = []
-        for row_range in row_ranges:
-            end_key = row_range.get("end_key_closed", None) or row_range.get(
-                "end_key_open", None
-            )
+        adjusted_ranges : list[RowRangePB] = []
+        for row_range in row_set.row_ranges:
+            end_key = row_range.end_key_closed or row_range.end_key_open
             if end_key is None or end_key > last_seen_row_key:
                 # end range is after last seen key
                 new_range = row_range.copy()
-                start_key = row_range.get("start_key_closed", None) or row_range.get(
-                    "start_key_open", None
-                )
+                start_key = row_range.start_key_closed or row_range.start_key_open
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen
-                    new_range["start_key_open"] = last_seen_row_key
-                    new_range.pop("start_key_closed", None)
+                    new_range.start_key_open = last_seen_row_key
+                    new_range.start_key_closed = None
                 adjusted_ranges.append(new_range)
         if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
             # if the query is empty after revision, raise an exception
             # this will avoid an unwanted full table scan
             raise _RowSetComplete()
-        return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
+        return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
 
     @staticmethod
     async def chunk_stream(stream):
