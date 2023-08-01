@@ -75,7 +75,7 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data import ShardedQuery
 
 # used by read_rows_sharded to limit how many requests are attempted in parallel
-CONCURRENCY_LIMIT = 10
+_CONCURRENCY_LIMIT = 10
 
 # used to register instance data with the client for channel warming
 _WarmedInstanceKey = namedtuple(
@@ -155,7 +155,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         try:
-            self.start_background_channel_refresh()
+            self._start_background_channel_refresh()
         except RuntimeError:
             warnings.warn(
                 f"{self.__class__.__name__} should be started in an "
@@ -164,7 +164,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 stacklevel=2,
             )
 
-    def start_background_channel_refresh(self) -> None:
+    def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm each channel in the pool
         Raises:
@@ -310,7 +310,7 @@ class BigtableDataClientAsync(ClientWithProject):
                     await self._ping_and_warm_instances(channel, instance_key)
             else:
                 # refresh tasks aren't active. start them as background tasks
-                self.start_background_channel_refresh()
+                self._start_background_channel_refresh()
 
     async def _remove_instance_registration(
         self, instance_id: str, owner: TableAsync
@@ -389,7 +389,7 @@ class BigtableDataClientAsync(ClientWithProject):
         )
 
     async def __aenter__(self):
-        self.start_background_channel_refresh()
+        self._start_background_channel_refresh()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -494,7 +494,7 @@ class TableAsync:
 
     async def read_rows_stream(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
@@ -566,7 +566,7 @@ class TableAsync:
 
     async def read_rows(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
@@ -722,10 +722,10 @@ class TableAsync:
         timeout_generator = _attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
-        # submit shards in batches if the number of shards goes over CONCURRENCY_LIMIT
+        # submit shards in batches if the number of shards goes over _CONCURRENCY_LIMIT
         batched_queries = [
-            sharded_query[i : i + CONCURRENCY_LIMIT]
-            for i in range(0, len(sharded_query), CONCURRENCY_LIMIT)
+            sharded_query[i : i + _CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), _CONCURRENCY_LIMIT)
         ]
         # run batches and collect results
         results_list = []
@@ -1073,7 +1073,7 @@ class TableAsync:
     async def check_and_mutate_row(
         self,
         row_key: str | bytes,
-        predicate: RowFilter | dict[str, Any] | None,
+        predicate: RowFilter | None,
         *,
         true_case_mutations: Mutation | list[Mutation] | None = None,
         false_case_mutations: Mutation | list[Mutation] | None = None,
@@ -1126,12 +1126,12 @@ class TableAsync:
         ):
             false_case_mutations = [false_case_mutations]
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
-        if predicate is not None and not isinstance(predicate, dict):
-            predicate = predicate.to_dict()
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
             request={
-                "predicate_filter": predicate,
+                "predicate_filter": predicate._to_dict()
+                if predicate is not None
+                else None,
                 "true_mutations": true_case_dict,
                 "false_mutations": false_case_dict,
                 "table_name": self.table_name,
