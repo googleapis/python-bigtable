@@ -25,6 +25,7 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _make_metadata
 
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import AsyncRetryableGenerator
@@ -66,6 +67,10 @@ class _ReadRowsOperationAsync():
         self.table = table
         self._last_yielded_row_key = None
         self._remaining_count = query.limit
+        self._metadata = _make_metadata(
+            table.table_name,
+            table.app_profile_id,
+        )
 
     async def make_retry_stream(self):
         stream, transient_errors = self._make_stream_helper(AsyncRetryableGenerator, self.read_rows_attempt)
@@ -127,7 +132,7 @@ class _ReadRowsOperationAsync():
             except _RowSetComplete:
                 return
         self.request["rows_limit"] = self._remaining_count
-        s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen))
+        s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen), metadata=self._metadata)
         s = self.chunk_stream(s)
         return self.merge_rows(s)
 
@@ -217,7 +222,6 @@ class _ReadRowsOperationAsync():
 
     async def merge_rows(self, chunks):
         it = chunks.__aiter__()
-        # import pdb; pdb.set_trace()
 
         # For each row
         try:
