@@ -253,7 +253,7 @@ class _ReadRowsOperationAsync():
                             qualifier = q
 
                         ts = c.timestamp_micros
-                        labels = []  # list(c.labels)
+                        labels = list(c.labels)
                         value = c.value
 
                         # merge split cells
