@@ -22,9 +22,14 @@ from typing import (
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
-
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 
+from google.api_core import retry_async as retries
+from google.api_core.retry_streaming_async import AsyncRetryableGenerator
+from google.api_core.retry import exponential_sleep_generator
+from google.api_core import exceptions as core_exceptions
 
 class _ResetRow(Exception):
     pass
@@ -53,6 +58,7 @@ class _ReadRowsOperationAsync():
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
+        self.operation_timeout = operation_timeout
         self.request = query._to_dict()
         self.request["table_name"] = table.table_name
         if table.app_profile_id:
@@ -61,9 +67,54 @@ class _ReadRowsOperationAsync():
         self._last_yielded_row_key = None
         self._remaining_count = query.limit
 
-    @property
-    def stream(self):
-        return self.read_rows_attempt()
+    async def make_retry_stream(self):
+        stream, transient_errors = self._make_stream_helper(AsyncRetryableGenerator, self.read_rows_attempt)
+        try:
+            async for row in stream:
+                yield row
+        except core_exceptions.RetryError:
+            self._raise_retry_error(transient_errors)
+
+    async def make_retry_stream_as_list(self):
+        retry_fn, transient_errors = self._make_stream_helper(retries.retry_target, self.read_rows_attempt_as_list)
+        try:
+            return await retry_fn
+        except core_exceptions.RetryError:
+            self._raise_retry_error(transient_errors)
+
+    def _raise_retry_error(self, transient_errors):
+        timeout_value = self.operation_timeout
+        timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
+        error_str = f"operation_timeout{timeout_str} exceeded"
+        new_exc = core_exceptions.DeadlineExceeded(
+            error_str,
+        )
+        source_exc = None
+        if transient_errors:
+            source_exc = RetryExceptionGroup(transient_errors)
+        new_exc.__cause__ = source_exc
+        raise new_exc from source_exc
+
+    def _make_stream_helper(self, retry_wrapper, attempt_fn):
+        transient_errors = []
+        predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+            core_exceptions.Aborted,
+        )
+        def on_error_fn(exc):
+            if predicate(exc):
+                transient_errors.append(exc)
+        retry_fn = retry_wrapper(
+            attempt_fn,
+            predicate,
+            exponential_sleep_generator(
+                0.01, 60, multiplier=2
+            ),
+            self.operation_timeout,
+            on_error_fn,
+        )
+        return retry_fn, transient_errors
 
     async def read_rows_attempt(self):
         if self._last_yielded_row_key is not None:
@@ -79,6 +130,10 @@ class _ReadRowsOperationAsync():
         s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen))
         s = self.chunk_stream(s)
         return self.merge_rows(s)
+
+    async def read_rows_attempt_as_list(self):
+        stream = await self.read_rows_attempt()
+        return [row async for row in stream]
 
     @staticmethod
     def _revise_request_rowset(

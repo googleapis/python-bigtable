@@ -561,7 +561,8 @@ class TableAsync:
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
         )
-        return await operation.read_rows_attempt()
+        stream = operation.make_retry_stream()
+        return stream
 
     async def read_rows(
         self,
@@ -595,17 +596,34 @@ class TableAsync:
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        row_generator = await self.read_rows_stream(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
+
+        operation_timeout = (
+            operation_timeout or self.default_read_rows_operation_timeout
         )
+        attempt_timeout = (
+            attempt_timeout
+            or self.default_read_rows_attempt_timeout
+            or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
+        # row_generator = await self.read_rows_stream(
+        #     query,
+        #     operation_timeout=operation_timeout,
+        #     attempt_timeout=attempt_timeout,
+        # )
         # operation = row_generator._merger
         # row_list = await operation._as_list_fn()
         # return row_list
         # rows = await start_operation(self, query)
         # return rows
-        return [row async for row in row_generator]
+        # return [row async for row in row_generator]
+        operation = _ReadRowsOperationAsync(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+        )
+        return await operation.make_retry_stream_as_list()
 
     async def read_row(
         self,
