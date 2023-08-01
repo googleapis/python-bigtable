@@ -15,8 +15,13 @@
 
 from __future__ import annotations
 
+from typing import (
+    Any,
+)
+
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import _RowSetComplete
 
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
@@ -53,15 +58,78 @@ class _ReadRowsOperationAsync():
         if table.app_profile_id:
             self.request["app_profile_id"] = table.app_profile_id
         self.table = table
+        self._last_yielded_row_key = None
+        self._remaining_count = query.limit
 
     @property
     def stream(self):
         return self.read_rows_attempt()
 
     async def read_rows_attempt(self):
+        if self._last_yielded_row_key is not None:
+            # if this is a retry, try to trim down the request to avoid ones we've already processed
+            try:
+                self._request["rows"] = self._revise_request_rowset(
+                    row_set=self._request.get("rows", None),
+                    last_seen_row_key=self._last_yielded_row_key
+                )
+            except _RowSetComplete:
+                return
+        self.request["rows_limit"] = self._remaining_count
         s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen))
         s = self.chunk_stream(s)
         return self.merge_rows(s)
+
+    @staticmethod
+    def _revise_request_rowset(
+        row_set: dict[str, Any] | None,
+        last_seen_row_key: bytes,
+    ) -> dict[str, Any]:
+        """
+        Revise the rows in the request to avoid ones we've already processed.
+
+        Args:
+          - row_set: the row set from the request
+          - last_seen_row_key: the last row key encountered
+        Raises:
+          - _RowSetComplete: if there are no rows left to process after the revision
+        """
+        # if user is doing a whole table scan, start a new one with the last seen key
+        if row_set is None or (
+            len(row_set.get("row_ranges", [])) == 0
+            and len(row_set.get("row_keys", [])) == 0
+        ):
+            last_seen = last_seen_row_key
+            return {
+                "row_keys": [],
+                "row_ranges": [{"start_key_open": last_seen}],
+            }
+        # remove seen keys from user-specific key list
+        row_keys: list[bytes] = row_set.get("row_keys", [])
+        adjusted_keys = [k for k in row_keys if k > last_seen_row_key]
+        # adjust ranges to ignore keys before last seen
+        row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
+        adjusted_ranges = []
+        for row_range in row_ranges:
+            end_key = row_range.get("end_key_closed", None) or row_range.get(
+                "end_key_open", None
+            )
+            if end_key is None or end_key > last_seen_row_key:
+                # end range is after last seen key
+                new_range = row_range.copy()
+                start_key = row_range.get("start_key_closed", None) or row_range.get(
+                    "start_key_open", None
+                )
+                if start_key is None or start_key <= last_seen_row_key:
+                    # replace start key with last seen
+                    new_range["start_key_open"] = last_seen_row_key
+                    new_range.pop("start_key_closed", None)
+                adjusted_ranges.append(new_range)
+        if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
+            # if the query is empty after revision, raise an exception
+            # this will avoid an unwanted full table scan
+            raise _RowSetComplete()
+        return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
 
     @staticmethod
     async def chunk_stream(stream):
@@ -92,8 +160,7 @@ class _ReadRowsOperationAsync():
                 elif c.commit_row:
                     prev_key = current_key
 
-    @staticmethod
-    async def merge_rows(chunks):
+    async def merge_rows(self, chunks):
         it = chunks.__aiter__()
         # import pdb; pdb.set_trace()
 
@@ -170,6 +237,9 @@ class _ReadRowsOperationAsync():
                         cells.append(Cell(row_key, family, qualifier, value, ts, labels))
                         if c.commit_row:
                             yield Row(row_key, cells)
+                            self._last_yielded_row_key = row_key
+                            if self._remaining_count is not None:
+                                self._remaining_count -= 1
                             break
                         c = await it.__anext__()
                 except _ResetRow:
