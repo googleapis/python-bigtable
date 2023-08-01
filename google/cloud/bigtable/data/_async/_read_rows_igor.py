@@ -1,129 +1,178 @@
+
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from __future__ import annotations
+
 from google.cloud.bigtable.data.row import Row, Cell
+from google.cloud.bigtable.data.exceptions import InvalidChunk
 
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
-class InvalidChunk(Exception):
-    pass
 
 class _ResetRow(Exception):
     pass
 
-async def start_operation(table, query):
-    request = query._to_dict()
-    request["table_name"] = table.table_name
-    if table.app_profile_id:
-        request["app_profile_id"] = table.app_profile_id
-    s = await table.client._gapic_client.read_rows(request)
-    s = chunk_stream(s)
-    return [r async for r in merge_rows(s)]
 
-async def chunk_stream(stream):
-    prev_key = None
+class _ReadRowsOperationAsync():
+    """
+    ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
+    into a stream of Row objects.
 
-    async for resp in stream:
-        resp = resp._pb
+    ReadRowsOperation.merge_row_response_stream takes in a stream of ReadRowsResponse
+    and turns them into a stream of Row objects using an internal
+    StateMachine.
 
-        if resp.last_scanned_row_key:
-            if prev_key is not None and resp.last_scanned_row_key >= prev_key:
-                raise InvalidChunk("last scanned out of order")
-            prev_key = resp.last_scanned_row_key
+    ReadRowsOperation(request, client) handles row merging logic end-to-end, including
+    performing retries on stream errors.
+    """
 
-        current_key = None
+    def __init__(
+        self,
+        query,
+        table,
+        operation_timeout: float,
+        attempt_timeout: float,
+    ):
+        self.attempt_timeout_gen = _attempt_timeout_generator(
+            attempt_timeout, operation_timeout
+        )
+        self.request = query._to_dict()
+        self.request["table_name"] = table.table_name
+        if table.app_profile_id:
+            self.request["app_profile_id"] = table.app_profile_id
+        self.table = table
 
-        for c in resp.chunks:
-            if current_key is None:
-                current_key = c.row_key
+    @property
+    def stream(self):
+        return self.read_rows_attempt()
+
+    async def read_rows_attempt(self):
+        s = await self.table.client._gapic_client.read_rows(self.request, timeout=next(self.attempt_timeout_gen))
+        s = self.chunk_stream(s)
+        return self.merge_rows(s)
+
+    @staticmethod
+    async def chunk_stream(stream):
+        prev_key = None
+
+        async for resp in stream:
+            resp = resp._pb
+
+            if resp.last_scanned_row_key:
+                if prev_key is not None and resp.last_scanned_row_key >= prev_key:
+                    raise InvalidChunk("last scanned out of order")
+                prev_key = resp.last_scanned_row_key
+
+            current_key = None
+
+            for c in resp.chunks:
                 if current_key is None:
-                    raise InvalidChunk("first chunk is missing a row key")
-                elif prev_key and current_key <= prev_key:
-                    raise InvalidChunk("out of order row key")
+                    current_key = c.row_key
+                    if current_key is None:
+                        raise InvalidChunk("first chunk is missing a row key")
+                    elif prev_key and current_key <= prev_key:
+                        raise InvalidChunk("out of order row key")
 
-            yield c
+                yield c
 
-            if c.reset_row:
-                current_key = None
-            elif c.commit_row:
-                prev_key = current_key
+                if c.reset_row:
+                    current_key = None
+                elif c.commit_row:
+                    prev_key = current_key
 
-async def merge_rows(chunks):
-    it = chunks.__aiter__()
-    # import pdb; pdb.set_trace()
+    @staticmethod
+    async def merge_rows(chunks):
+        it = chunks.__aiter__()
+        # import pdb; pdb.set_trace()
 
-    # For each row
-    try:
-        while True:
-            c = await it.__anext__()
+        # For each row
+        try:
+            while True:
+                c = await it.__anext__()
 
-            # EOS
-            if c is None:
-                return
+                # EOS
+                if c is None:
+                    return
 
-            if c.reset_row:
-                continue
+                if c.reset_row:
+                    continue
 
-            row_key = c.row_key
+                row_key = c.row_key
 
-            if not row_key:
-                raise InvalidChunk("first row chunk is missing key")
+                if not row_key:
+                    raise InvalidChunk("first row chunk is missing key")
 
-            # Cells
-            cells = []
+                # Cells
+                cells = []
 
-            # shared per cell storage
-            family = c.family_name
-            qualifier = c.qualifier
+                # shared per cell storage
+                family = c.family_name
+                qualifier = c.qualifier
 
-            try:
-                # for each cell
-                while True:
-                    f = c.family_name
-                    q = c.qualifier
-                    if f:
-                        family = f
-                        qualifier = q
-                    if q:
-                        qualifier = q
+                try:
+                    # for each cell
+                    while True:
+                        f = c.family_name
+                        q = c.qualifier
+                        if f:
+                            family = f
+                            qualifier = q
+                        if q:
+                            qualifier = q
 
-                    ts = c.timestamp_micros
-                    labels = []  # list(c.labels)
-                    value = c.value
+                        ts = c.timestamp_micros
+                        labels = []  # list(c.labels)
+                        value = c.value
 
-                    # merge split cells
-                    if c.value_size > 0:
-                        buffer = [value]
-                        # throws when early eos
-                        c = await it.__anext__()
-
-                        while c.value_size > 0:
-                            f = c.family_name
-                            q = c.qualifier
-                            t = c.timestamp_micros
-                            l = c.labels
-                            if f and f != family:
-                                raise InvalidChunk("family changed mid cell")
-                            if q and q != qualifier:
-                                raise InvalidChunk("qualifier changed mid cell")
-                            if t and t != ts:
-                                raise InvalidChunk("timestamp changed mid cell")
-                            if l and l != labels:
-                                raise InvalidChunk("labels changed mid cell")
-
-                            buffer.append(c.value)
-
-                            # throws when premature end
+                        # merge split cells
+                        if c.value_size > 0:
+                            buffer = [value]
+                            # throws when early eos
                             c = await it.__anext__()
 
-                            if c.reset_row:
-                                raise _ResetRow()
-                        else:
-                            buffer.append(c.value)
-                        value = b''.join(buffer)
+                            while c.value_size > 0:
+                                f = c.family_name
+                                q = c.qualifier
+                                t = c.timestamp_micros
+                                l = c.labels
+                                if f and f != family:
+                                    raise InvalidChunk("family changed mid cell")
+                                if q and q != qualifier:
+                                    raise InvalidChunk("qualifier changed mid cell")
+                                if t and t != ts:
+                                    raise InvalidChunk("timestamp changed mid cell")
+                                if l and l != labels:
+                                    raise InvalidChunk("labels changed mid cell")
 
-                    cells.append(Cell(row_key, family, qualifier, value, ts, labels))
-                    if c.commit_row:
-                        yield Row(row_key, cells)
-                        break
-                    c = await it.__anext__()
-            except _ResetRow:
-                continue
-    except StopAsyncIteration:
-        pass
+                                buffer.append(c.value)
+
+                                # throws when premature end
+                                c = await it.__anext__()
+
+                                if c.reset_row:
+                                    raise _ResetRow()
+                            else:
+                                buffer.append(c.value)
+                            value = b''.join(buffer)
+
+                        cells.append(Cell(row_key, family, qualifier, value, ts, labels))
+                        if c.commit_row:
+                            yield Row(row_key, cells)
+                            break
+                        c = await it.__anext__()
+                except _ResetRow:
+                    continue
+        except StopAsyncIteration:
+            pass
