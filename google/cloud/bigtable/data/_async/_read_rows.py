@@ -20,7 +20,6 @@ from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -53,7 +52,7 @@ class _ReadRowsOperationAsync:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: TableAsync,
+        table: "TableAsync",
         operation_timeout: float,
         attempt_timeout: float,
     ):
@@ -265,10 +264,13 @@ class _ReadRowsOperationAsync:
                         # merge split cells
                         if c.value_size > 0:
                             buffer = [value]
-                            # throws when early eos
-                            c = await it.__anext__()
 
                             while c.value_size > 0:
+                                # throws when early eos
+                                c = await it.__anext__()
+                                if c.reset_row:
+                                    raise _ResetRow()
+
                                 c_f = c.family_name
                                 c_q = c.qualifier
                                 c_t = c.timestamp_micros
@@ -283,15 +285,9 @@ class _ReadRowsOperationAsync:
                                     raise InvalidChunk("labels changed mid cell")
 
                                 buffer.append(c.value)
-
-                                # throws when premature end
-                                c = await it.__anext__()
-
-                                if c.reset_row:
-                                    raise _ResetRow()
-                            else:
-                                buffer.append(c.value)
                             value = b"".join(buffer)
+                        else:
+                            value = c.value
 
                         cells.append(
                             Cell(row_key, family, qualifier, value, ts, labels)
