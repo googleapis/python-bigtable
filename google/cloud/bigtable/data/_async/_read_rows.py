@@ -1,3 +1,4 @@
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -286,9 +287,6 @@ class _ReadRowsOperationAsync:
 
                                 buffer.append(c.value)
                             value = b"".join(buffer)
-                        else:
-                            value = c.value
-
                         cells.append(
                             Cell(row_key, family, qualifier, value, ts, labels)
                         )
