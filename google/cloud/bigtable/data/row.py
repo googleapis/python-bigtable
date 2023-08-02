@@ -84,7 +84,6 @@ class Row:
         """
         row_key: bytes = row_pb.key
         cell_list: list[Cell] = []
-        new_cell = None
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
@@ -94,12 +93,10 @@ class Row:
                         column.qualifier,
                         cell.value,
                         cell.timestamp_micros,
-                        list(cell.labels),
+                        list(cell.labels) if cell.labels else None,
                     )
                     cell_list.append(new_cell)
-        instance = cls(row_key, [])
-        instance.cells = cell_list
-        return instance
+        return cls(row_key, cell_list)
 
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
@@ -355,6 +352,11 @@ class Cell:
         timestamp_micros: int,
         labels: list[str] | None = None,
     ):
+        """
+        Cell constructor
+        Cell objects are not intended to be constructed by users.
+        They are returned by the Bigtable backend.
+        """
         self.row_key = row_key
         self.family = family
         self.qualifier = qualifier
