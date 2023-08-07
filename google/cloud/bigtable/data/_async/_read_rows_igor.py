@@ -18,19 +18,19 @@ class Row:
 class _ResetRow(Exception):
     pass
 
-async def start_operation(table, query):
+def start_operation(table, query):
     request = query._to_dict()
     request["table_name"] = table.table_name
     if table.app_profile_id:
         request["app_profile_id"] = table.app_profile_id
-    s = await table.client._gapic_client.read_rows(request)
+    s = table.client._gapic_client.read_rows(request)
     s = chunk_stream(s)
-    return [r async for r in merge_rows(s)]
+    return merge_rows(s)
 
 async def chunk_stream(stream):
     prev_key = None
 
-    async for resp in stream:
+    async for resp in await stream:
         resp = resp._pb
 
         if resp.last_scanned_row_key:
