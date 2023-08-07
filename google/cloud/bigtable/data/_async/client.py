@@ -44,8 +44,6 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
-from google.cloud.bigtable.data._async._read_rows_igor import start_operation
 
 import google.auth.credentials
 import google.auth._default
@@ -498,7 +496,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
-    ) -> ReadRowsAsyncIterator:
+    ):
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
@@ -524,38 +522,23 @@ class TableAsync:
             - GoogleAPIError: raised if the request encounters an unrecoverable error
             - IdleTimeout: if iterator was abandoned
         """
-        # operation_timeout = (
-        #     operation_timeout or self.default_read_rows_operation_timeout
-        # )
-        # attempt_timeout = (
-        #     attempt_timeout
-        #     or self.default_read_rows_attempt_timeout
-        #     or operation_timeout
-        # )
-        # _validate_timeouts(operation_timeout, attempt_timeout)
+        operation_timeout = (
+            operation_timeout or self.default_read_rows_operation_timeout
+        )
+        attempt_timeout = (
+            attempt_timeout
+            or self.default_read_rows_attempt_timeout
+            or operation_timeout
+        )
+        _validate_timeouts(operation_timeout, attempt_timeout)
 
-        # request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
-        # request["table_name"] = self.table_name
-        # if self.app_profile_id:
-        #     request["app_profile_id"] = self.app_profile_id
-
-        # read_rows smart retries is implemented using a series of iterators:
-        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has attempt_timeout
-        # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
-        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, operation_timeout
-        # - ReadRowsAsyncIterator: adds idle_timeout, moves stats out of stream and into attribute
-        # row_merger = _ReadRowsOperationAsync(
-        #     request,
-        #     self.client._gapic_client,
-        #     operation_timeout=operation_timeout,
-        #     attempt_timeout=attempt_timeout,
-        # )
-        # output_generator = ReadRowsAsyncIterator(row_merger)
-        # add idle timeout to clear resources if generator is abandoned
-        #idle_timeout_seconds = 300
-        #await output_generator._start_idle_timer(idle_timeout_seconds)
-        # return output_generator
-        return start_operation(self, query)
+        row_merger = _ReadRowsOperationAsync(
+            query,
+            self,
+            operation_timeout=operation_timeout,
+            attempt_timeout=attempt_timeout,
+        )
+        return row_merger.start_operation()
 
     async def read_rows(
         self,
