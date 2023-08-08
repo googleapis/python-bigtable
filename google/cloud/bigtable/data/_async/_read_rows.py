@@ -86,7 +86,7 @@ class _ReadRowsOperationAsync:
                 transient_errors.append(exc)
 
         retry_fn = AsyncRetryableGenerator(
-            self.read_rows_attempt,
+            self.merge_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
@@ -97,26 +97,6 @@ class _ReadRowsOperationAsync:
                 yield row
         except core_exceptions.RetryError:
             self._raise_retry_error(transient_errors)
-
-    def read_rows_attempt(self):
-        if self._last_yielded_row_key is not None:
-            # if this is a retry, try to trim down the request to avoid ones we've already processed
-            try:
-                self.request.rows = self._revise_request_rowset(
-                    row_set=self.request.rows,
-                    last_seen_row_key=self._last_yielded_row_key,
-                )
-            except _RowSetComplete:
-                return
-        if self._remaining_count is not None:
-            self.request.rows_limit = self._remaining_count
-        s = self.table.client._gapic_client.read_rows(
-            self.request,
-            timeout=next(self.attempt_timeout_gen),
-            metadata=self._metadata,
-        )
-        s = self.chunk_stream(s)
-        return self.merge_rows(s)
 
     async def chunk_stream(self, stream):
         async for resp in await stream:
@@ -146,9 +126,24 @@ class _ReadRowsOperationAsync:
                     if self._remaining_count is not None:
                         self._remaining_count -= 1
 
-    @staticmethod
-    async def merge_rows(chunks):
-        it = chunks.__aiter__()
+    async def merge_rows_attempt(self):
+        if self._last_yielded_row_key is not None:
+            # if this is a retry, try to trim down the request to avoid ones we've already processed
+            try:
+                self.request.rows = self._revise_request_rowset(
+                    row_set=self.request.rows,
+                    last_seen_row_key=self._last_yielded_row_key,
+                )
+            except _RowSetComplete:
+                return
+        if self._remaining_count is not None:
+            self.request.rows_limit = self._remaining_count
+        s = self.table.client._gapic_client.read_rows(
+            self.request,
+            timeout=next(self.attempt_timeout_gen),
+            metadata=self._metadata,
+        )
+        it = self.chunk_stream(s).__aiter__()
         # For each row
         while True:
             try:
