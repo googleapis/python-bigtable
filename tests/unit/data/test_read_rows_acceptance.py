@@ -146,8 +146,7 @@ async def test_out_of_order_rows():
 
     instance = mock.Mock()
     instance._remaining_count = None
-    instance._last_yielded_row_key = b'a'
-    chunker = _ReadRowsOperationAsync.chunk_stream(_coro_wrapper(_row_stream()))
+    chunker = _ReadRowsOperationAsync.chunk_stream(_coro_wrapper(_row_stream()), b'b')
     merger = _ReadRowsOperationAsync.merge_rows(chunker)
     with pytest.raises(InvalidChunk):
         async for _ in merger:

@@ -95,14 +95,12 @@ class _ReadRowsOperationAsync:
         return self.merge_rows(s)
 
     @staticmethod
-    async def chunk_stream(stream):
-        prev_key = None
-
+    async def chunk_stream(stream, prev_key=None):
         async for resp in await stream:
             resp = resp._pb
 
             if resp.last_scanned_row_key:
-                if prev_key is not None and resp.last_scanned_row_key >= prev_key:
+                if prev_key is not None and resp.last_scanned_row_key <= prev_key:
                     raise InvalidChunk("last scanned out of order")
                 prev_key = resp.last_scanned_row_key
 
@@ -133,7 +131,6 @@ class _ReadRowsOperationAsync:
             except StopAsyncIteration:
                 # stream complete
                 return
-
             row_key = c.row_key
 
             if not row_key:
@@ -150,7 +147,9 @@ class _ReadRowsOperationAsync:
                 # for each cell
                 while True:
                     if c.reset_row:
-                        break
+                        if c.row_key or c.HasField("family_name") or c.HasField("qualifier") or c.timestamp_micros or c.labels or c.value:
+                            raise InvalidChunk("reset row with data")
+                        raise _ResetRow()
                     k = c.row_key
                     f = c.family_name.value
                     q = c.qualifier.value if c.HasField("qualifier") else None
@@ -163,10 +162,12 @@ class _ReadRowsOperationAsync:
                         else:
                             raise InvalidChunk("new family without qualifier")
                     elif q is not None:
+                        if family is None:
+                            raise InvalidChunk("new qualifier without family")
                         qualifier = q
 
                     ts = c.timestamp_micros
-                    labels = list(c.labels) if c.labels else []
+                    labels = c.labels if c.labels else []
                     value = c.value
 
                     # merge split cells
@@ -177,18 +178,21 @@ class _ReadRowsOperationAsync:
                             c = await it.__anext__()
 
                             t = c.timestamp_micros
-                            l = list(c.labels)
-                            if c.HasField("family_name") and f.family_name.value != family:
+                            l = c.labels
+                            k = c.row_key
+                            if c.HasField("family_name") and c.family_name.value != family:
                                 raise InvalidChunk("family changed mid cell")
-                            if c.HasField("qualifier") and q.qualifier.value != qualifier:
+                            if c.HasField("qualifier") and c.qualifier.value != qualifier:
                                 raise InvalidChunk("qualifier changed mid cell")
                             if t and t != ts:
                                 raise InvalidChunk("timestamp changed mid cell")
-                            if l and l != labels:
+                            if l and list(l) != labels:
                                 raise InvalidChunk("labels changed mid cell")
+                            if k and k != row_key:
+                                raise InvalidChunk("row key changed mid cell")
 
                             if c.reset_row:
-                                if c.value or c.value_size:
+                                if c.row_key or c.HasField("family_name") or c.HasField("qualifier") or c.timestamp_micros or c.labels or c.value:
                                     raise InvalidChunk("reset_row with non-empty value")
                                 raise _ResetRow()
                             buffer.append(c.value)
