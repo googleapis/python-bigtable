@@ -119,6 +119,8 @@ class _ReadRowsOperationAsync:
                     current_key = None
                 elif c.commit_row:
                     self._last_yielded_row_key = current_key
+                    if self._remaining_count is not None:
+                        self._remaining_count -= 1
 
     @staticmethod
     async def merge_rows(chunks):

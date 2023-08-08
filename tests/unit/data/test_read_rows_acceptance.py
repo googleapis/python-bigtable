@@ -68,6 +68,7 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
         results = []
         instance = mock.Mock()
         instance._last_yielded_row_key = None
+        instance._remaining_count = None
         chunker = _ReadRowsOperationAsync.chunk_stream(instance, _coro_wrapper(_scenerio_stream()))
         merger = _ReadRowsOperationAsync.merge_rows(chunker)
         async for row in merger:
