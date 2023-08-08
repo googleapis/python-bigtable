@@ -24,6 +24,7 @@ from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 
@@ -68,9 +69,28 @@ class _ReadRowsOperationAsync:
             table.table_name,
             table.app_profile_id,
         )
+        self._last_yielded_row_key = None
 
     def start_operation(self):
-        s = self.table.client._gapic_client.read_rows(self.request)
+        return self.read_rows_attempt()
+
+    def read_rows_attempt(self):
+        if self._last_yielded_row_key is not None:
+            # if this is a retry, try to trim down the request to avoid ones we've already processed
+            try:
+                self.request.rows = self._revise_request_rowset(
+                    row_set=self.request.rows,
+                    last_seen_row_key=self._last_yielded_row_key,
+                )
+            except _RowSetComplete:
+                return
+        if self._remaining_count is not None:
+            self.request.rows_limit = self._remaining_count
+        s = self.table.client._gapic_client.read_rows(
+            self.request,
+            timeout=next(self.attempt_timeout_gen),
+            metadata=self._metadata,
+        )
         s = self.chunk_stream(s)
         return self.merge_rows(s)
 
