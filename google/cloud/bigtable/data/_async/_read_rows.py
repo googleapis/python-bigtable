@@ -153,17 +153,17 @@ class _ReadRowsOperationAsync:
                         break
                     k = c.row_key
                     f = c.family_name.value
-                    q = c.qualifier if c.HasField("qualifier") else None
+                    q = c.qualifier.value if c.HasField("qualifier") else None
                     if k and k != row_key:
                         raise InvalidChunk("unexpected new row key")
                     if f:
                         family = f
                         if q is not None:
-                            qualifier = q.value
+                            qualifier = q
                         else:
                             raise InvalidChunk("new family without qualifier")
                     elif q is not None:
-                        qualifier = q.value
+                        qualifier = q
 
                     ts = c.timestamp_micros
                     labels = list(c.labels) if c.labels else []
@@ -172,18 +172,25 @@ class _ReadRowsOperationAsync:
                     # merge split cells
                     if c.value_size > 0:
                         buffer = [value]
-                        # throws when early eos
-                        c = await it.__anext__()
-
                         while c.value_size > 0:
-                            buffer.append(c.value)
-
                             # throws when premature end
                             c = await it.__anext__()
 
+                            t = c.timestamp_micros
+                            l = list(c.labels)
+                            if c.HasField("family_name") and f.family_name.value != family:
+                                raise InvalidChunk("family changed mid cell")
+                            if c.HasField("qualifier") and q.qualifier.value != qualifier:
+                                raise InvalidChunk("qualifier changed mid cell")
+                            if t and t != ts:
+                                raise InvalidChunk("timestamp changed mid cell")
+                            if l and l != labels:
+                                raise InvalidChunk("labels changed mid cell")
+
                             if c.reset_row:
+                                if c.value or c.value_size:
+                                    raise InvalidChunk("reset_row with non-empty value")
                                 raise _ResetRow()
-                        else:
                             buffer.append(c.value)
                         value = b''.join(buffer)
                     cells.append(
