@@ -146,7 +146,7 @@ class _ReadRowsOperationAsync:
                         qualifier = q.value
 
                     ts = c.timestamp_micros
-                    labels = list(c.labels)
+                    labels = list(c.labels) if c.labels else []
                     value = c.value
 
                     # merge split cells
@@ -156,17 +156,6 @@ class _ReadRowsOperationAsync:
                         c = await it.__anext__()
 
                         while c.value_size > 0:
-                            t = c.timestamp_micros
-                            l = list(c.labels)
-                            if c.HasField("family_name") and f.family_name.value != family:
-                                raise InvalidChunk("family changed mid cell")
-                            if c.HasField("qualifier") and q.qualifier.value != qualifier:
-                                raise InvalidChunk("qualifier changed mid cell")
-                            if t and t != ts:
-                                raise InvalidChunk("timestamp changed mid cell")
-                            if l and l != labels:
-                                raise InvalidChunk("labels changed mid cell")
-
                             buffer.append(c.value)
 
                             # throws when premature end
