@@ -78,7 +78,7 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count = self.request.rows_limit or None
 
-    def start_operation(self):
+    async def start_operation(self):
         transient_errors = []
 
         def on_error_fn(exc):
@@ -92,7 +92,11 @@ class _ReadRowsOperationAsync:
             self.operation_timeout,
             on_error_fn,
         )
-        return retry_fn
+        try:
+            async for row in retry_fn:
+                yield row
+        except core_exceptions.RetryError:
+            self._raise_retry_error(transient_errors)
 
     def read_rows_attempt(self):
         if self._last_yielded_row_key is not None:
