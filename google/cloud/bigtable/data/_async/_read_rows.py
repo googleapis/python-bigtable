@@ -28,6 +28,9 @@ from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 
+from google.api_core import retry_async as retries
+from google.api_core.retry_streaming_async import AsyncRetryableGenerator
+from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
 
 
@@ -63,16 +66,33 @@ class _ReadRowsOperationAsync:
         if table.app_profile_id:
             self.request.app_profile_id = table.app_profile_id
         self.table = table
-        self._last_yielded_row_key: bytes | None = None
-        self._remaining_count = self.request.rows_limit or None
+        self._predicate = retries.if_exception_type(
+            core_exceptions.DeadlineExceeded,
+            core_exceptions.ServiceUnavailable,
+            core_exceptions.Aborted,
+        )
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
         )
-        self._last_yielded_row_key = None
+        self._last_yielded_row_key: bytes | None = None
+        self._remaining_count = self.request.rows_limit or None
 
     def start_operation(self):
-        return self.read_rows_attempt()
+        transient_errors = []
+
+        def on_error_fn(exc):
+            if self.predicate(exc):
+                transient_errors.append(exc)
+
+        retry_fn = AsyncRetryableGenerator(
+            self.read_rows_attempt,
+            self._predicate,
+            exponential_sleep_generator(0.01, 60, multiplier=2),
+            self.operation_timeout,
+            on_error_fn,
+        )
+        return retry_fn
 
     def read_rows_attempt(self):
         if self._last_yielded_row_key is not None:
