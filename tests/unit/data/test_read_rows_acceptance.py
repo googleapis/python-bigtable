@@ -66,7 +66,9 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
 
     try:
         results = []
-        chunker = _ReadRowsOperationAsync.chunk_stream(_coro_wrapper(_scenerio_stream()))
+        instance = mock.Mock()
+        instance._last_yielded_row_key = None
+        chunker = _ReadRowsOperationAsync.chunk_stream(instance, _coro_wrapper(_scenerio_stream()))
         merger = _ReadRowsOperationAsync.merge_rows(chunker)
         async for row in merger:
             for cell in row:
@@ -146,7 +148,8 @@ async def test_out_of_order_rows():
 
     instance = mock.Mock()
     instance._remaining_count = None
-    chunker = _ReadRowsOperationAsync.chunk_stream(_coro_wrapper(_row_stream()), b'b')
+    instance._last_yielded_row_key = b'b'
+    chunker = _ReadRowsOperationAsync.chunk_stream(instance, _coro_wrapper(_row_stream()))
     merger = _ReadRowsOperationAsync.merge_rows(chunker)
     with pytest.raises(InvalidChunk):
         async for _ in merger:
@@ -308,7 +311,8 @@ async def _process_chunks(*chunks):
 
     instance = mock.Mock()
     instance._remaining_count = None
-    chunker = _ReadRowsOperationAsync.chunk_stream(_coro_wrapper(_row_stream()))
+    instance._last_yielded_row_key = None
+    chunker = _ReadRowsOperationAsync.chunk_stream(instance, _coro_wrapper(_row_stream()))
     merger = _ReadRowsOperationAsync.merge_rows(chunker)
     results = []
     async for row in merger:

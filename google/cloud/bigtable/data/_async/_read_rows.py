@@ -94,15 +94,14 @@ class _ReadRowsOperationAsync:
         s = self.chunk_stream(s)
         return self.merge_rows(s)
 
-    @staticmethod
-    async def chunk_stream(stream, prev_key=None):
+    async def chunk_stream(self, stream):
         async for resp in await stream:
             resp = resp._pb
 
             if resp.last_scanned_row_key:
-                if prev_key is not None and resp.last_scanned_row_key <= prev_key:
+                if self._last_yielded_row_key is not None and resp.last_scanned_row_key <= self._last_yielded_row_key:
                     raise InvalidChunk("last scanned out of order")
-                prev_key = resp.last_scanned_row_key
+                self._last_yielded_row_key = resp.last_scanned_row_key
 
             current_key = None
 
@@ -111,7 +110,7 @@ class _ReadRowsOperationAsync:
                     current_key = c.row_key
                     if current_key is None:
                         raise InvalidChunk("first chunk is missing a row key")
-                    elif prev_key and current_key <= prev_key:
+                    elif self._last_yielded_row_key and current_key <= self._last_yielded_row_key:
                         raise InvalidChunk("out of order row key")
 
                 yield c
@@ -119,7 +118,7 @@ class _ReadRowsOperationAsync:
                 if c.reset_row:
                     current_key = None
                 elif c.commit_row:
-                    prev_key = current_key
+                    self._last_yielded_row_key = current_key
 
     @staticmethod
     async def merge_rows(chunks):
