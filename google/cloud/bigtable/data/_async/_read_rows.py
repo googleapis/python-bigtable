@@ -106,85 +106,85 @@ class _ReadRowsOperationAsync:
     @staticmethod
     async def merge_rows(chunks):
         it = chunks.__aiter__()
-        # import pdb; pdb.set_trace()
-
         # For each row
-        try:
-            while True:
+        while True:
+            try:
                 c = await it.__anext__()
+            except StopAsyncIteration:
+                # stream complete
+                return
 
-                # EOS
-                if c is None:
-                    return
+            row_key = c.row_key
 
-                if c.reset_row:
-                    continue
+            if not row_key:
+                raise InvalidChunk("first row chunk is missing key")
 
-                row_key = c.row_key
+            # Cells
+            cells = []
 
-                if not row_key:
-                    raise InvalidChunk("first row chunk is missing key")
+            # shared per cell storage
+            family = None
+            qualifier = None
 
-                # Cells
-                cells = []
+            try:
+                # for each cell
+                while True:
+                    if c.reset_row:
+                        break
+                    k = c.row_key
+                    f = c.family_name if c.HasField("family_name") else None
+                    q = c.qualifier if c.HasField("qualifier") else None
+                    if k and k != row_key:
+                        raise InvalidChunk("unexpected new row key")
+                    if f is not None:
+                        family = f.value
+                        if q is not None:
+                            qualifier = q.value
+                        else:
+                            raise InvalidChunk("new family without qualifier")
+                    elif q is not None:
+                        qualifier = q.value
 
-                # shared per cell storage
-                family = c.family_name
-                qualifier = c.qualifier
+                    ts = c.timestamp_micros
+                    labels = list(c.labels)
+                    value = c.value
 
-                try:
-                    # for each cell
-                    while True:
-                        f = c.family_name
-                        q = c.qualifier
-                        if f:
-                            family = f
-                            qualifier = q
-                        if q:
-                            qualifier = q
+                    # merge split cells
+                    if c.value_size > 0:
+                        buffer = [value]
+                        # throws when early eos
+                        c = await it.__anext__()
 
-                        ts = c.timestamp_micros
-                        labels = []  # list(c.labels)
-                        value = c.value
+                        while c.value_size > 0:
+                            t = c.timestamp_micros
+                            l = list(c.labels)
+                            if c.HasField("family_name") and f.family_name.value != family:
+                                raise InvalidChunk("family changed mid cell")
+                            if c.HasField("qualifier") and q.qualifier.value != qualifier:
+                                raise InvalidChunk("qualifier changed mid cell")
+                            if t and t != ts:
+                                raise InvalidChunk("timestamp changed mid cell")
+                            if l and l != labels:
+                                raise InvalidChunk("labels changed mid cell")
 
-                        # merge split cells
-                        if c.value_size > 0:
-                            buffer = [value]
-                            # throws when early eos
+                            buffer.append(c.value)
+
+                            # throws when premature end
                             c = await it.__anext__()
 
-                            while c.value_size > 0:
-                                f = c.family_name
-                                q = c.qualifier
-                                t = c.timestamp_micros
-                                l = c.labels
-                                if f and f != family:
-                                    raise InvalidChunk("family changed mid cell")
-                                if q and q != qualifier:
-                                    raise InvalidChunk("qualifier changed mid cell")
-                                if t and t != ts:
-                                    raise InvalidChunk("timestamp changed mid cell")
-                                if l and l != labels:
-                                    raise InvalidChunk("labels changed mid cell")
-
-                                buffer.append(c.value)
-
-                                # throws when premature end
-                                c = await it.__anext__()
-
-                                if c.reset_row:
-                                    raise _ResetRow()
-                            else:
-                                buffer.append(c.value)
-                            value = b''.join(buffer)
-                        cells.append(
-                            Cell(row_key, family, qualifier, value, ts, labels)
-                        )
-                        if c.commit_row:
-                            yield Row(row_key, cells)
-                            break
-                        c = await it.__anext__()
-                except _ResetRow:
-                    continue
-        except StopAsyncIteration:
-            pass
+                            if c.reset_row:
+                                raise _ResetRow()
+                        else:
+                            buffer.append(c.value)
+                        value = b''.join(buffer)
+                    cells.append(
+                        Cell(row_key, family, qualifier, value, ts, labels)
+                    )
+                    if c.commit_row:
+                        yield Row(row_key, cells)
+                        break
+                    c = await it.__anext__()
+            except _ResetRow:
+                continue
+            except StopAsyncIteration:
+                raise InvalidChunk("premature end of stream")
