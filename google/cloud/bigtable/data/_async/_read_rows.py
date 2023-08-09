@@ -15,9 +15,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
+from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
 from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 
@@ -39,7 +40,8 @@ if TYPE_CHECKING:
 
 
 class _ResetRow(Exception):
-    pass
+    def __init__(self, chunk):
+        self.chunk = chunk
 
 
 class _ReadRowsOperationAsync:
@@ -83,7 +85,10 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count = self.request.rows_limit or None
 
-    async def start_operation(self):
+    async def start_operation(self) -> AsyncGenerator[Row, None]:
+        """
+        Start the read_rows operation, retrying on retryable errors.
+        """
         transient_errors = []
 
         def on_error_fn(exc):
@@ -103,7 +108,12 @@ class _ReadRowsOperationAsync:
         except core_exceptions.RetryError:
             self._raise_retry_error(transient_errors)
 
-    def read_rows_attempt(self):
+    def read_rows_attempt(self) -> AsyncGenerator[Row, None]:
+        """
+        single read_rows attempt. This function is intended to be wrapped
+        by retry logic to be called for each attempted.
+        """
+        # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             try:
@@ -112,22 +122,32 @@ class _ReadRowsOperationAsync:
                     last_seen_row_key=self._last_yielded_row_key,
                 )
             except _RowSetComplete:
-                return
+                # if we've already seen all the rows, we're done
+                return self.merge_rows(None)
+        # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
-        s = self.table.client._gapic_client.read_rows(
+        # create and return a new row merger
+        gapic_stream = self.table.client._gapic_client.read_rows(
             self.request,
             timeout=next(self.attempt_timeout_gen),
             metadata=self._metadata,
         )
-        s = self.chunk_stream(s)
-        return self.merge_rows(s)
+        chunked_stream = self.chunk_stream(gapic_stream)
+        return self.merge_rows(chunked_stream)
 
-
-    async def chunk_stream(self, stream):
+    async def chunk_stream(
+        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
+    ) -> AsyncGenerator[ReadRowsResponsePB.CellChunk, None]:
+        """
+        process chunks out of raw read_rows stream
+        """
         async for resp in await stream:
+            # extract proto from proto-plus wrapper
             resp = resp._pb
 
+            # handle last_scanned_row_key packets, sent when server
+            # has scanned past the end of the row range
             if resp.last_scanned_row_key:
                 if (
                     self._last_yielded_row_key is not None
@@ -137,7 +157,7 @@ class _ReadRowsOperationAsync:
                 self._last_yielded_row_key = resp.last_scanned_row_key
 
             current_key = None
-
+            # process each chunk in the response
             for c in resp.chunks:
                 if current_key is None:
                     current_key = c.row_key
@@ -154,12 +174,18 @@ class _ReadRowsOperationAsync:
                 if c.reset_row:
                     current_key = None
                 elif c.commit_row:
+                    # update row state after each commit
                     self._last_yielded_row_key = current_key
                     if self._remaining_count is not None:
                         self._remaining_count -= 1
 
     @staticmethod
-    async def merge_rows(chunks):
+    async def merge_rows(chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None):
+        """
+        Merge chunks into rows
+        """
+        if chunks is None:
+            return
         it = chunks.__aiter__()
         # For each row
         while True:
@@ -173,27 +199,17 @@ class _ReadRowsOperationAsync:
             if not row_key:
                 raise InvalidChunk("first row chunk is missing key")
 
-            # Cells
             cells = []
 
             # shared per cell storage
-            family : str | None = None
-            qualifier : bytes | None = None
+            family: str | None = None
+            qualifier: bytes | None = None
 
             try:
                 # for each cell
                 while True:
                     if c.reset_row:
-                        if (
-                            c.row_key
-                            or c.HasField("family_name")
-                            or c.HasField("qualifier")
-                            or c.timestamp_micros
-                            or c.labels
-                            or c.value
-                        ):
-                            raise InvalidChunk("reset row with data")
-                        raise _ResetRow()
+                        raise _ResetRow(c)
                     k = c.row_key
                     f = c.family_name.value
                     q = c.qualifier.value if c.HasField("qualifier") else None
@@ -242,28 +258,31 @@ class _ReadRowsOperationAsync:
                                 raise InvalidChunk("row key changed mid cell")
 
                             if c.reset_row:
-                                if (
-                                    c.row_key
-                                    or c.HasField("family_name")
-                                    or c.HasField("qualifier")
-                                    or c.timestamp_micros
-                                    or c.labels
-                                    or c.value
-                                ):
-                                    raise InvalidChunk("reset_row with non-empty value")
-                                raise _ResetRow()
+                                raise _ResetRow(c)
                             buffer.append(c.value)
                         value = b"".join(buffer)
                     if family is None:
                         raise InvalidChunk("missing family")
                     if qualifier is None:
                         raise InvalidChunk("missing qualifier")
-                    cells.append(Cell(value, row_key, family, qualifier, ts, list(labels)))
+                    cells.append(
+                        Cell(value, row_key, family, qualifier, ts, list(labels))
+                    )
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break
                     c = await it.__anext__()
-            except _ResetRow:
+            except _ResetRow as e:
+                c = e.chunk
+                if (
+                    c.row_key
+                    or c.HasField("family_name")
+                    or c.HasField("qualifier")
+                    or c.timestamp_micros
+                    or c.labels
+                    or c.value
+                ):
+                    raise InvalidChunk("reset row with data")
                 continue
             except StopAsyncIteration:
                 raise InvalidChunk("premature end of stream")
@@ -301,7 +320,7 @@ class _ReadRowsOperationAsync:
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen
                     new_range.start_key_open = last_seen_row_key
-                    new_range.start_key_closed = None
+                    new_range.start_key_closed = b''
                 adjusted_ranges.append(new_range)
         if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
             # if the query is empty after revision, raise an exception
@@ -309,7 +328,11 @@ class _ReadRowsOperationAsync:
             raise _RowSetComplete()
         return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
 
-    def _raise_retry_error(self, transient_errors):
+    def _raise_retry_error(self, transient_errors: list[Exception]) -> None:
+        """
+        If the retryable deadline is hit, wrap the raised exception
+        in a RetryExceptionGroup
+        """
         timeout_value = self.operation_timeout
         timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
         error_str = f"operation_timeout{timeout_str} exceeded"

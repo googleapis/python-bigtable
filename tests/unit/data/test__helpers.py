@@ -107,8 +107,10 @@ class TestConvertRetryDeadline:
     async def test_no_error(self, is_async):
         def test_func():
             return 1
+
         async def test_async():
             return test_func()
+
         func = test_async if is_async else test_func
         wrapped = _helpers._convert_retry_deadline(func, 0.1, is_async)
         result = await wrapped() if is_async else wrapped()
@@ -122,6 +124,7 @@ class TestConvertRetryDeadline:
 
         def test_func():
             raise RetryError("retry error", None)
+
         async def test_async():
             return test_func()
 
@@ -141,8 +144,10 @@ class TestConvertRetryDeadline:
 
         def test_func():
             raise RetryError("retry error", None)
+
         async def test_async():
             return test_func()
+
         func = test_async if is_async else test_func
 
         associated_errors = [RuntimeError("error1"), ZeroDivisionError("other")]
