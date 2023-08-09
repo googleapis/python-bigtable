@@ -240,7 +240,7 @@ class Test_FlowControl:
         Should submit request early, even if the flow control has room for more
         """
         with mock.patch(
-            "google.cloud.bigtable.data._async.mutations_batcher.MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            "google.cloud.bigtable.data._async.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
             max_limit,
         ):
             mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]

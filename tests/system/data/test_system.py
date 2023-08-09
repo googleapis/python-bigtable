@@ -19,7 +19,7 @@ import uuid
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
 
-from google.cloud.bigtable.data.read_modify_write_rules import MAX_INCREMENT_VALUE
+from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
@@ -410,9 +410,9 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
         (0, -100, -100),
         (0, 3000, 3000),
         (10, 4, 14),
-        (MAX_INCREMENT_VALUE, -MAX_INCREMENT_VALUE, 0),
-        (MAX_INCREMENT_VALUE, 2, -MAX_INCREMENT_VALUE),
-        (-MAX_INCREMENT_VALUE, -2, MAX_INCREMENT_VALUE),
+        (_MAX_INCREMENT_VALUE, -_MAX_INCREMENT_VALUE, 0),
+        (_MAX_INCREMENT_VALUE, 2, -_MAX_INCREMENT_VALUE),
+        (-_MAX_INCREMENT_VALUE, -2, _MAX_INCREMENT_VALUE),
     ],
 )
 @pytest.mark.asyncio

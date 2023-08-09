@@ -156,7 +156,7 @@ class Row:
         }
         """
         output = ["{"]
-        for family, qualifier in self.get_column_components():
+        for family, qualifier in self._get_column_components():
             cell_list = self[family, qualifier]
             line = [f"  (family={family!r}, qualifier={qualifier!r}): "]
             if len(cell_list) == 0:
@@ -171,16 +171,16 @@ class Row:
 
     def __repr__(self):
         cell_str_buffer = ["{"]
-        for family, qualifier in self.get_column_components():
+        for family, qualifier in self._get_column_components():
             cell_list = self[family, qualifier]
-            repr_list = [cell.to_dict() for cell in cell_list]
+            repr_list = [cell._to_dict() for cell in cell_list]
             cell_str_buffer.append(f"  ('{family}', {qualifier!r}): {repr_list},")
         cell_str_buffer.append("}")
         cell_str = "\n".join(cell_str_buffer)
         output = f"Row(key={self.row_key!r}, cells={cell_str})"
         return output
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation of the cell in the Bigtable Row
         proto format
@@ -191,7 +191,7 @@ class Row:
         for family_name, qualifier_dict in self._index.items():
             qualifier_list = []
             for qualifier_name, cell_list in qualifier_dict.items():
-                cell_dicts = [cell.to_dict() for cell in cell_list]
+                cell_dicts = [cell._to_dict() for cell in cell_list]
                 qualifier_list.append(
                     {"qualifier": qualifier_name, "cells": cell_dicts}
                 )
@@ -271,7 +271,7 @@ class Row:
         """
         return len(self.cells)
 
-    def get_column_components(self) -> list[tuple[str, bytes]]:
+    def _get_column_components(self) -> list[tuple[str, bytes]]:
         """
         Returns a list of (family, qualifier) pairs associated with the cells
 
@@ -291,8 +291,8 @@ class Row:
             return False
         if len(self.cells) != len(other.cells):
             return False
-        components = self.get_column_components()
-        other_components = other.get_column_components()
+        components = self._get_column_components()
+        other_components = other._get_column_components()
         if len(components) != len(other_components):
             return False
         if components != other_components:
@@ -370,7 +370,7 @@ class Cell:
         """
         return int.from_bytes(self.value, byteorder="big", signed=True)
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation of the cell in the Bigtable Cell
         proto format

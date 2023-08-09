@@ -176,7 +176,7 @@ class TestRow(unittest.TestCase):
         cell2 = self._make_cell()
         cell2.value = b"other"
         row = self._make_one(TEST_ROW_KEY, [cell1, cell2])
-        row_dict = row.to_dict()
+        row_dict = row._to_dict()
         expected_dict = {
             "key": TEST_ROW_KEY,
             "families": [
@@ -465,20 +465,20 @@ class TestRow(unittest.TestCase):
         )
         row_response = self._make_one(TEST_ROW_KEY, [cell, cell2, cell3])
 
-        self.assertEqual(len(row_response.get_column_components()), 2)
+        self.assertEqual(len(row_response._get_column_components()), 2)
         self.assertEqual(
-            row_response.get_column_components(),
+            row_response._get_column_components(),
             [(TEST_FAMILY_ID, TEST_QUALIFIER), (new_family_id, new_qualifier)],
         )
 
         row_response = self._make_one(TEST_ROW_KEY, [])
-        self.assertEqual(len(row_response.get_column_components()), 0)
-        self.assertEqual(row_response.get_column_components(), [])
+        self.assertEqual(len(row_response._get_column_components()), 0)
+        self.assertEqual(row_response._get_column_components(), [])
 
         row_response = self._make_one(TEST_ROW_KEY, [cell])
-        self.assertEqual(len(row_response.get_column_components()), 1)
+        self.assertEqual(len(row_response._get_column_components()), 1)
         self.assertEqual(
-            row_response.get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)]
+            row_response._get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)]
         )
 
     def test_index_of(self):
@@ -535,7 +535,7 @@ class TestCell(unittest.TestCase):
         from google.cloud.bigtable_v2.types import Cell
 
         cell = self._make_one()
-        cell_dict = cell.to_dict()
+        cell_dict = cell._to_dict()
         expected_dict = {
             "value": TEST_VALUE,
             "timestamp_micros": TEST_TIMESTAMP,
@@ -561,7 +561,7 @@ class TestCell(unittest.TestCase):
             TEST_TIMESTAMP,
             None,
         )
-        cell_dict = cell_no_labels.to_dict()
+        cell_dict = cell_no_labels._to_dict()
         expected_dict = {
             "value": TEST_VALUE,
             "timestamp_micros": TEST_TIMESTAMP,

@@ -17,7 +17,7 @@ from __future__ import annotations
 import abc
 
 # value must fit in 64-bit signed integer
-MAX_INCREMENT_VALUE = (1 << 63) - 1
+_MAX_INCREMENT_VALUE = (1 << 63) - 1
 
 
 class ReadModifyWriteRule(abc.ABC):
@@ -37,7 +37,7 @@ class IncrementRule(ReadModifyWriteRule):
     def __init__(self, family: str, qualifier: bytes | str, increment_amount: int = 1):
         if not isinstance(increment_amount, int):
             raise TypeError("increment_amount must be an integer")
-        if abs(increment_amount) > MAX_INCREMENT_VALUE:
+        if abs(increment_amount) > _MAX_INCREMENT_VALUE:
             raise ValueError(
                 "increment_amount must be between -2**63 and 2**63 (64-bit signed int)"
             )

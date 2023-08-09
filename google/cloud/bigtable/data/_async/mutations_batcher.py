@@ -27,7 +27,7 @@ from google.cloud.bigtable.data._helpers import _validate_timeouts
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import (
-    MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+    _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
@@ -144,7 +144,7 @@ class _FlowControlAsync:
                         self._has_capacity(next_count, next_size)
                         # make sure not to exceed per-request mutation count limits
                         and (batch_mutation_count + next_count)
-                        <= MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+                        <= _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
                     ):
                         # room for new mutation; add to batch
                         end_idx += 1
