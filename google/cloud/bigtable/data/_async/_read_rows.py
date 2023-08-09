@@ -258,7 +258,7 @@ class _ReadRowsOperationAsync:
                         raise InvalidChunk("missing family")
                     if qualifier is None:
                         raise InvalidChunk("missing qualifier")
-                    cells.append(Cell(row_key, family, qualifier, value, ts, list(labels)))
+                    cells.append(Cell(value, row_key, family, qualifier, ts, list(labels)))
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break

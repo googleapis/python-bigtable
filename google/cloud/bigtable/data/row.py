@@ -84,22 +84,19 @@ class Row:
         """
         row_key: bytes = row_pb.key
         cell_list: list[Cell] = []
-        new_cell = None
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
                     new_cell = Cell(
-                        row_key,
-                        family.name,
-                        column.qualifier,
-                        cell.value,
-                        cell.timestamp_micros,
-                        list(cell.labels) if cell.labels else [],
+                        value=cell.value,
+                        row_key=row_key,
+                        family=family.name,
+                        qualifier=column.qualifier,
+                        timestamp_micros=cell.timestamp_micros,
+                        labels=list(cell.labels) if cell.labels else None,
                     )
                     cell_list.append(new_cell)
-        instance = cls(row_key, [])
-        instance.cells = cell_list
-        return instance
+        return cls(row_key, cells=cell_list)
 
     def get_cells(
         self, family: str | None = None, qualifier: str | bytes | None = None
@@ -338,8 +335,8 @@ class Cell:
     """
 
     __slots__ = (
-        "row_key",
         "value",
+        "row_key",
         "family",
         "qualifier",
         "timestamp_micros",
@@ -348,17 +345,25 @@ class Cell:
 
     def __init__(
         self,
+        value: bytes,
         row_key: bytes,
         family: str,
-        qualifier: bytes,
-        value: bytes,
+        qualifier: bytes | str,
         timestamp_micros: int,
         labels: list[str] | None = None,
     ):
+        """
+        Cell constructor
+
+        Cell objects are not intended to be constructed by users.
+        They are returned by the Bigtable backend.
+        """
+        self.value = value
         self.row_key = row_key
         self.family = family
+        if isinstance(qualifier, str):
+            qualifier = qualifier.encode()
         self.qualifier = qualifier
-        self.value = value
         self.timestamp_micros = timestamp_micros
         self.labels = labels if labels is not None else []
 

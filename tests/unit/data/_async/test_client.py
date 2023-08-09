@@ -1233,6 +1233,8 @@ class TestReadRows:
     @pytest.mark.asyncio
     async def test_read_rows_query_matches_request(self, include_app_profile):
         from google.cloud.bigtable.data import RowRange
+        from google.cloud.bigtable.data.row_filters import PassAllFilter
+        from google.protobuf.json_format import MessageToDict
 
         app_profile_id = "app_profile_id" if include_app_profile else None
         async with self._make_table(app_profile_id=app_profile_id) as table:
@@ -1240,7 +1242,7 @@ class TestReadRows:
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream([])
             row_keys = [b"test_1", "test_2"]
             row_ranges = RowRange("1start", "2end")
-            filter_ = {"test": "filter"}
+            filter_ = PassAllFilter(True)
             limit = 99
             query = ReadRowsQuery(
                 row_keys=row_keys,
@@ -1251,7 +1253,8 @@ class TestReadRows:
 
             results = await table.read_rows(query, operation_timeout=3)
             assert len(results) == 0
-            call_request = read_rows.call_args_list[0][0][0]
+            proto = read_rows.call_args_list[0][0][0]
+            call_request = MessageToDict(proto._pb, preserving_proto_field_name=True)
             query_dict = query._to_dict()
             if include_app_profile:
                 assert set(call_request.keys()) == set(query_dict.keys()) | {

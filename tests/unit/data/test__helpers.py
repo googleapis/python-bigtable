@@ -103,39 +103,51 @@ class TestConvertRetryDeadline:
     """
 
     @pytest.mark.asyncio
-    async def test_no_error(self):
-        async def test_func():
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_no_error(self, is_async):
+        def test_func():
             return 1
-
-        wrapped = _helpers._convert_retry_deadline(test_func, 0.1)
-        assert await wrapped() == 1
+        async def test_async():
+            return test_func()
+        func = test_async if is_async else test_func
+        wrapped = _helpers._convert_retry_deadline(func, 0.1, is_async)
+        result = await wrapped() if is_async else wrapped()
+        assert result == 1
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("timeout", [0.1, 2.0, 30.0])
-    async def test_retry_error(self, timeout):
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_retry_error(self, timeout, is_async):
         from google.api_core.exceptions import RetryError, DeadlineExceeded
 
-        async def test_func():
+        def test_func():
             raise RetryError("retry error", None)
+        async def test_async():
+            return test_func()
 
-        wrapped = _helpers._convert_retry_deadline(test_func, timeout)
+        func = test_async if is_async else test_func
+        wrapped = _helpers._convert_retry_deadline(func, timeout, is_async=is_async)
         with pytest.raises(DeadlineExceeded) as e:
-            await wrapped()
+            await wrapped() if is_async else wrapped()
         assert e.value.__cause__ is None
         assert f"operation_timeout of {timeout}s exceeded" in str(e.value)
 
     @pytest.mark.asyncio
-    async def test_with_retry_errors(self):
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_with_retry_errors(self, is_async):
         from google.api_core.exceptions import RetryError, DeadlineExceeded
 
         timeout = 10.0
 
-        async def test_func():
+        def test_func():
             raise RetryError("retry error", None)
+        async def test_async():
+            return test_func()
+        func = test_async if is_async else test_func
 
         associated_errors = [RuntimeError("error1"), ZeroDivisionError("other")]
         wrapped = _helpers._convert_retry_deadline(
-            test_func, timeout, associated_errors
+            func, timeout, associated_errors, is_async
         )
         with pytest.raises(DeadlineExceeded) as e:
             await wrapped()
