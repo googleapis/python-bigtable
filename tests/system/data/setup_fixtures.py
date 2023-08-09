@@ -85,7 +85,9 @@ def instance_id(instance_admin_client, project_id, cluster_config):
 
 
 @pytest.fixture(scope="session")
-def table_id(table_admin_client, project_id, instance_id, column_family_config, init_table_id):
+def table_id(
+    table_admin_client, project_id, instance_id, column_family_config, init_table_id
+):
     """
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
 
@@ -98,7 +100,6 @@ def table_id(table_admin_client, project_id, instance_id, column_family_config, 
       - init_table_id: The table ID to give to the test table, if pre-initialized table is not given with BIGTABLE_TEST_TABLE.
             Supplied by the init_table_id fixture.
     """
-    from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
     from google.api_core import retry
 
@@ -120,7 +121,9 @@ def table_id(table_admin_client, project_id, instance_id, column_family_config, 
                 "parent": parent_path,
                 "table_id": init_table_id,
                 "table": {"column_families": column_family_config},
-                "initial_splits": [{"key": (num * 1000).to_bytes(8, "big")} for num in range(1,10)],
+                "initial_splits": [
+                    {"key": (num * 1000).to_bytes(8, "big")} for num in range(1, 10)
+                ],
             },
             retry=retry,
         )

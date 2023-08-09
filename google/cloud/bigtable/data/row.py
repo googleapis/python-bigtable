@@ -15,11 +15,10 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence, Generator, overload, Any
+from typing import Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
-from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
 
 # Type aliases used internally for readability.
 _family_type = str
@@ -58,20 +57,6 @@ class Row:
             _family_type, OrderedDict[_qualifier_type, list[Cell]]
         ] | None = None
 
-    @classmethod
-    def _from_chunks(cls, chunks):
-        first_chunk = chunks[0]
-        row_key = first_chunk.row_key
-
-        cell_list = []
-        start_idx = 0
-        for idx, this_chunk in enumerate(chunks):
-            if this_chunk.value_size == 0:
-                cell_list.append(Cell._from_chunks(row_key, chunks[start_idx:idx+1]))
-                start_idx = idx + 1
-        # TODO: make sure family and qualifer is populated for each cell
-        return cls(row_key, cell_list)
-
     @property
     def _index(
         self,
@@ -103,7 +88,14 @@ class Row:
         for family in row_pb.families:
             for column in family.columns:
                 for cell in column.cells:
-                    new_cell = Cell(row_key, family.name, column.qualifier, cell.value, cell.timestamp_micros, cell.labels)
+                    new_cell = Cell(
+                        row_key,
+                        family.name,
+                        column.qualifier,
+                        cell.value,
+                        cell.timestamp_micros,
+                        list(cell.labels) if cell.labels else [],
+                    )
                     cell_list.append(new_cell)
         instance = cls(row_key, [])
         instance.cells = cell_list
@@ -354,28 +346,21 @@ class Cell:
         "labels",
     )
 
-    def __init__(self, row_key: bytes, family: str, qualifier: bytes, value: bytes, timestamp_micros: int, labels: list[str] = None):
+    def __init__(
+        self,
+        row_key: bytes,
+        family: str,
+        qualifier: bytes,
+        value: bytes,
+        timestamp_micros: int,
+        labels: list[str] | None = None,
+    ):
         self.row_key = row_key
         self.family = family
         self.qualifier = qualifier
         self.value = value
         self.timestamp_micros = timestamp_micros
-        self.labels = labels
-
-    def _add_chunk(self, chunk: ReadRowsResponse.CellChunk):
-        self._chunks.append(chunk)
-
-    @classmethod
-    def _from_chunks(cls, row_key, chunks):
-        first_chunk = chunks[0]
-        family = first_chunk.family_name
-        qualifier = first_chunk.qualifier
-        timestamp_micros = first_chunk.timestamp_micros
-        labels = list(first_chunk.labels) if first_chunk.labels else None
-        working_value = first_chunk.value
-        for chunk in chunks[1:]:
-            working_value += chunk.value
-        return Cell(row_key, family, qualifier, working_value, timestamp_micros, labels)
+        self.labels = labels if labels is not None else []
 
     def __int__(self) -> int:
         """

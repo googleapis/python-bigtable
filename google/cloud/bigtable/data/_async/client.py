@@ -492,7 +492,7 @@ class TableAsync:
 
     async def read_rows_stream(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
@@ -542,7 +542,7 @@ class TableAsync:
 
     async def read_rows(
         self,
-        query: ReadRowsQuery | dict[str, Any],
+        query: ReadRowsQuery,
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,

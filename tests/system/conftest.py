@@ -16,6 +16,7 @@ Import pytest fixtures for setting up table for data client system tests
 """
 import sys
 import os
+
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(script_path)
 
