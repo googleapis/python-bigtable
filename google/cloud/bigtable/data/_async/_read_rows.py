@@ -68,10 +68,10 @@ class _ReadRowsOperationAsync:
             attempt_timeout, operation_timeout
         )
         self.operation_timeout = operation_timeout
-        query_dict = query._to_dict() if not isinstance(query, dict) else query
-        self.request = ReadRowsRequestPB(**query_dict, table_name=table.table_name)
-        if table.app_profile_id:
-            self.request.app_profile_id = table.app_profile_id
+        if isinstance(query, dict):
+            self.request = ReadRowsRequestPB(**query, table_name=table.table_name, app_profile_id=table.app_profile_id)
+        else:
+            self.request = query._to_pb(table)
         self.table = table
         self._predicate = retries.if_exception_type(
             core_exceptions.DeadlineExceeded,

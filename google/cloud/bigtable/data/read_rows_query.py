@@ -20,6 +20,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 from google.cloud.bigtable.data.row_filters import RowFilter
 
+from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.data import RowKeySamples
     from google.cloud.bigtable.data import ShardedQuery
@@ -279,16 +283,9 @@ class ReadRowsQuery:
 
         Args:
           - row_filter: a RowFilter to apply to this query
-              Can be a RowFilter object or a dict representation
         Returns:
           - a reference to this query for chaining
         """
-        if not (
-            isinstance(row_filter, dict)
-            or isinstance(row_filter, RowFilter)
-            or row_filter is None
-        ):
-            raise ValueError("row_filter must be a RowFilter or dict")
         self._filter = row_filter
 
     def add_key(self, row_key: str | bytes):
@@ -312,20 +309,14 @@ class ReadRowsQuery:
 
     def add_range(
         self,
-        row_range: RowRange | dict[str, bytes],
+        row_range: RowRange,
     ):
         """
         Add a range of row keys to this query.
 
         Args:
           - row_range: a range of row keys to add to this query
-              Can be a RowRange object or a dict representation in
-              RowRange proto format
         """
-        if not (isinstance(row_range, dict) or isinstance(row_range, RowRange)):
-            raise ValueError("row_range must be a RowRange or dict")
-        if isinstance(row_range, dict):
-            row_range = RowRange._from_dict(row_range)
         self.row_ranges.add(row_range)
 
     def shard(self, shard_keys: RowKeySamples) -> ShardedQuery:
@@ -477,6 +468,22 @@ class ReadRowsQuery:
         if self.limit is not None:
             final_dict["rows_limit"] = self.limit
         return final_dict
+
+    def _to_pb(self, table) -> ReadRowsRequestPB:
+        """
+        Convert this query into a dictionary that can be used to construct a
+        ReadRowsRequest protobuf
+        """
+        return ReadRowsRequestPB(
+            table_name=table.table_name,
+            app_profile_id=table.app_profile_id,
+            rows=RowSetPB(
+                row_keys=list(self.row_keys),
+                row_ranges=[RowRangePB(r._to_dict()) for r in self.row_ranges],
+            ),
+            filter=self._filter._to_pb() if self._filter else None,
+            rows_limit=self.limit,
+        )
 
     def __eq__(self, other):
         """
