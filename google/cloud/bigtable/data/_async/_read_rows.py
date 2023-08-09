@@ -293,10 +293,10 @@ class _ReadRowsOperationAsync:
         # adjust ranges to ignore keys before last seen
         adjusted_ranges: list[RowRangePB] = []
         for row_range in row_set.row_ranges:
-            end_key = row_range.end_key_closed or row_range.end_key_open
+            end_key = row_range.end_key_closed or row_range.end_key_open or None
             if end_key is None or end_key > last_seen_row_key:
                 # end range is after last seen key
-                new_range = row_range.copy()
+                new_range = RowRangePB(row_range)
                 start_key = row_range.start_key_closed or row_range.start_key_open
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen

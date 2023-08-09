@@ -47,37 +47,18 @@ class TestReadRowsOperation:
     def _make_one(self, *args, **kwargs):
         return self._get_target_class()(*args, **kwargs)
 
-    def test_ctor_defaults(self):
-        request = {}
-        client = mock.Mock()
-        client.read_rows = mock.Mock()
-        client.read_rows.return_value = None
-        default_operation_timeout = 600
-        time_gen_mock = mock.Mock()
-        with mock.patch(
-            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
-            time_gen_mock,
-        ):
-            instance = self._make_one(request, client)
-        assert time_gen_mock.call_count == 1
-        time_gen_mock.assert_called_once_with(None, default_operation_timeout)
-        assert instance.transient_errors == []
-        assert instance._last_emitted_row_key is None
-        assert instance._emit_count == 0
-        assert instance.operation_timeout == default_operation_timeout
-        retryable_fn = instance._partial_retryable
-        assert retryable_fn.func == instance._read_rows_retryable_attempt
-        assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == time_gen_mock.return_value
-        assert retryable_fn.args[2] == 0
-        assert client.read_rows.call_count == 0
-
     def test_ctor(self):
+        from google.cloud.bigtable.data import ReadRowsQuery
+
         row_limit = 91
-        request = {"rows_limit": row_limit}
+        query = ReadRowsQuery(limit=row_limit)
         client = mock.Mock()
         client.read_rows = mock.Mock()
         client.read_rows.return_value = None
+        table = mock.Mock()
+        table._client = client
+        table.table_name = "test_table"
+        table.app_profile_id = "test_profile"
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
@@ -86,8 +67,8 @@ class TestReadRowsOperation:
             time_gen_mock,
         ):
             instance = self._make_one(
-                request,
-                client,
+                query,
+                table,
                 operation_timeout=expected_operation_timeout,
                 attempt_timeout=expected_request_timeout,
             )
@@ -95,16 +76,14 @@ class TestReadRowsOperation:
         time_gen_mock.assert_called_once_with(
             expected_request_timeout, expected_operation_timeout
         )
-        assert instance.transient_errors == []
-        assert instance._last_emitted_row_key is None
-        assert instance._emit_count == 0
+        assert instance._last_yielded_row_key is None
+        assert instance._remaining_count == row_limit
         assert instance.operation_timeout == expected_operation_timeout
-        retryable_fn = instance._partial_retryable
-        assert retryable_fn.func == instance._read_rows_retryable_attempt
-        assert retryable_fn.args[0] == client.read_rows
-        assert retryable_fn.args[1] == time_gen_mock.return_value
-        assert retryable_fn.args[2] == row_limit
         assert client.read_rows.call_count == 0
+        assert instance._metadata == [("x-goog-request-params", "table_name=test_table&app_profile_id=test_profile")]
+        assert instance.request.table_name == table.table_name
+        assert instance.request.app_profile_id == table.app_profile_id
+        assert instance.request.rows_limit == row_limit
 
     def test___aiter__(self):
         request = {}
@@ -140,11 +119,17 @@ class TestReadRowsOperation:
         ],
     )
     def test_revise_request_rowset_keys(self, in_keys, last_key, expected):
-        sample_range = {"start_key_open": last_key}
-        row_set = {"row_keys": in_keys, "row_ranges": [sample_range]}
+        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+        in_keys = [key.encode("utf-8") for key in in_keys]
+        expected = [key.encode("utf-8") for key in expected]
+        last_key = last_key.encode("utf-8")
+
+        sample_range = RowRangePB(start_key_open=last_key)
+        row_set = RowSetPB(row_keys=in_keys, row_ranges=[sample_range])
         revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
-        assert revised["row_keys"] == expected
-        assert revised["row_ranges"] == [sample_range]
+        assert revised.row_keys == expected
+        assert revised.row_ranges == [sample_range]
 
     @pytest.mark.parametrize(
         "in_ranges,last_key,expected",
@@ -192,31 +177,45 @@ class TestReadRowsOperation:
         ],
     )
     def test_revise_request_rowset_ranges(self, in_ranges, last_key, expected):
-        next_key = last_key + "a"
-        row_set = {"row_keys": [next_key], "row_ranges": in_ranges}
+        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+        # convert to protobuf
+        next_key = (last_key + "a").encode("utf-8")
+        last_key = last_key.encode("utf-8")
+        in_ranges = [RowRangePB(**{k: v.encode("utf-8") for k, v in r.items()}) for r in in_ranges]
+        expected = [RowRangePB(**{k: v.encode("utf-8") for k, v in r.items()}) for r in expected]
+
+        row_set = RowSetPB(row_ranges=in_ranges, row_keys=[next_key])
         revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
-        assert revised["row_keys"] == [next_key]
-        assert revised["row_ranges"] == expected
+        assert revised.row_keys == [next_key]
+        assert revised.row_ranges == expected
 
     @pytest.mark.parametrize("last_key", ["a", "b", "c"])
     def test_revise_request_full_table(self, last_key):
-        row_set = {"row_keys": [], "row_ranges": []}
+        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+        # convert to protobuf
+        last_key = last_key.encode("utf-8")
+        row_set = RowSetPB()
         for selected_set in [row_set, None]:
             revised = self._get_target_class()._revise_request_rowset(
                 selected_set, last_key
             )
-            assert revised["row_keys"] == []
-            assert len(revised["row_ranges"]) == 1
-            assert revised["row_ranges"][0]["start_key_open"] == last_key
+            assert revised.row_keys == []
+            assert len(revised.row_ranges) == 1
+            assert revised.row_ranges[0] == RowRangePB(start_key_open=last_key)
 
     def test_revise_to_empty_rowset(self):
         """revising to an empty rowset should raise error"""
         from google.cloud.bigtable.data.exceptions import _RowSetComplete
+        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 
-        row_keys = ["a", "b", "c"]
-        row_set = {"row_keys": row_keys, "row_ranges": [{"end_key_open": "c"}]}
+        row_keys = [b"a", b"b", b"c"]
+        row_range = RowRangePB(end_key_open=b"c")
+        row_set = RowSetPB(row_keys=row_keys, row_ranges=[row_range])
         with pytest.raises(_RowSetComplete):
-            self._get_target_class()._revise_request_rowset(row_set, "d")
+            self._get_target_class()._revise_request_rowset(row_set, b"d")
 
     @pytest.mark.parametrize(
         "start_limit,emit_num,expected_limit",
@@ -239,9 +238,10 @@ class TestReadRowsOperation:
           should be raised (tested in test_revise_limit_over_limit)
         """
         import itertools
+        from google.cloud.bigtable.data import ReadRowsQuery
 
-        request = {"rows_limit": start_limit}
-        instance = self._make_one(request, mock.Mock())
+        query = ReadRowsQuery(limit=start_limit)
+        instance = self._make_one(query, mock.Mock(), 10, 10)
         instance._emit_count = emit_num
         instance._last_emitted_row_key = "a"
         gapic_mock = mock.Mock()
@@ -429,197 +429,197 @@ class MockStream(_ReadRowsOperationAsync):
         pass
 
 
-class TestReadRowsAsyncIterator:
-    async def mock_stream(self, size=10):
-        for i in range(size):
-            yield i
+# class TestReadRowsAsyncIterator:
+#     async def mock_stream(self, size=10):
+#         for i in range(size):
+#             yield i
 
-    def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
+#     def _make_one(self, *args, **kwargs):
+#         from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 
-        stream = MockStream(*args, **kwargs)
-        return ReadRowsAsyncIterator(stream)
+#         stream = MockStream(*args, **kwargs)
+#         return ReadRowsAsyncIterator(stream)
 
-    def test_ctor(self):
-        with mock.patch("time.monotonic", return_value=0):
-            iterator = self._make_one()
-            assert iterator._last_interaction_time == 0
-            assert iterator._idle_timeout_task is None
-            assert iterator.active is True
+#     def test_ctor(self):
+#         with mock.patch("time.monotonic", return_value=0):
+#             iterator = self._make_one()
+#             assert iterator._last_interaction_time == 0
+#             assert iterator._idle_timeout_task is None
+#             assert iterator.active is True
 
-    def test___aiter__(self):
-        iterator = self._make_one()
-        assert iterator.__aiter__() is iterator
+#     def test___aiter__(self):
+#         iterator = self._make_one()
+#         assert iterator.__aiter__() is iterator
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
-    )
-    @pytest.mark.asyncio
-    async def test__start_idle_timer(self):
-        """Should start timer coroutine"""
-        iterator = self._make_one()
-        expected_timeout = 10
-        with mock.patch("time.monotonic", return_value=1):
-            with mock.patch.object(iterator, "_idle_timeout_coroutine") as mock_coro:
-                await iterator._start_idle_timer(expected_timeout)
-                assert mock_coro.call_count == 1
-                assert mock_coro.call_args[0] == (expected_timeout,)
-        assert iterator._last_interaction_time == 1
-        assert iterator._idle_timeout_task is not None
+#     @pytest.mark.skipif(
+#         sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
+#     )
+#     @pytest.mark.asyncio
+#     async def test__start_idle_timer(self):
+#         """Should start timer coroutine"""
+#         iterator = self._make_one()
+#         expected_timeout = 10
+#         with mock.patch("time.monotonic", return_value=1):
+#             with mock.patch.object(iterator, "_idle_timeout_coroutine") as mock_coro:
+#                 await iterator._start_idle_timer(expected_timeout)
+#                 assert mock_coro.call_count == 1
+#                 assert mock_coro.call_args[0] == (expected_timeout,)
+#         assert iterator._last_interaction_time == 1
+#         assert iterator._idle_timeout_task is not None
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
-    )
-    @pytest.mark.asyncio
-    async def test__start_idle_timer_duplicate(self):
-        """Multiple calls should replace task"""
-        iterator = self._make_one()
-        with mock.patch.object(iterator, "_idle_timeout_coroutine") as mock_coro:
-            await iterator._start_idle_timer(1)
-            first_task = iterator._idle_timeout_task
-            await iterator._start_idle_timer(2)
-            second_task = iterator._idle_timeout_task
-            assert mock_coro.call_count == 2
+#     @pytest.mark.skipif(
+#         sys.version_info < (3, 8), reason="mock coroutine requires python3.8 or higher"
+#     )
+#     @pytest.mark.asyncio
+#     async def test__start_idle_timer_duplicate(self):
+#         """Multiple calls should replace task"""
+#         iterator = self._make_one()
+#         with mock.patch.object(iterator, "_idle_timeout_coroutine") as mock_coro:
+#             await iterator._start_idle_timer(1)
+#             first_task = iterator._idle_timeout_task
+#             await iterator._start_idle_timer(2)
+#             second_task = iterator._idle_timeout_task
+#             assert mock_coro.call_count == 2
 
-            assert first_task is not None
-            assert first_task != second_task
-            # old tasks hould be cancelled
-            with pytest.raises(asyncio.CancelledError):
-                await first_task
-            # new task should not be cancelled
-            await second_task
+#             assert first_task is not None
+#             assert first_task != second_task
+#             # old tasks hould be cancelled
+#             with pytest.raises(asyncio.CancelledError):
+#                 await first_task
+#             # new task should not be cancelled
+#             await second_task
 
-    @pytest.mark.asyncio
-    async def test__idle_timeout_coroutine(self):
-        from google.cloud.bigtable.data.exceptions import IdleTimeout
+#     @pytest.mark.asyncio
+#     async def test__idle_timeout_coroutine(self):
+#         from google.cloud.bigtable.data.exceptions import IdleTimeout
 
-        iterator = self._make_one()
-        await iterator._idle_timeout_coroutine(0.05)
-        await asyncio.sleep(0.1)
-        assert iterator.active is False
-        with pytest.raises(IdleTimeout):
-            await iterator.__anext__()
+#         iterator = self._make_one()
+#         await iterator._idle_timeout_coroutine(0.05)
+#         await asyncio.sleep(0.1)
+#         assert iterator.active is False
+#         with pytest.raises(IdleTimeout):
+#             await iterator.__anext__()
 
-    @pytest.mark.asyncio
-    async def test__idle_timeout_coroutine_extensions(self):
-        """touching the generator should reset the idle timer"""
-        iterator = self._make_one(items=list(range(100)))
-        await iterator._start_idle_timer(0.05)
-        for i in range(10):
-            # will not expire as long as it is in use
-            assert iterator.active is True
-            await iterator.__anext__()
-            await asyncio.sleep(0.03)
-        # now let it expire
-        await asyncio.sleep(0.5)
-        assert iterator.active is False
+#     @pytest.mark.asyncio
+#     async def test__idle_timeout_coroutine_extensions(self):
+#         """touching the generator should reset the idle timer"""
+#         iterator = self._make_one(items=list(range(100)))
+#         await iterator._start_idle_timer(0.05)
+#         for i in range(10):
+#             # will not expire as long as it is in use
+#             assert iterator.active is True
+#             await iterator.__anext__()
+#             await asyncio.sleep(0.03)
+#         # now let it expire
+#         await asyncio.sleep(0.5)
+#         assert iterator.active is False
 
-    @pytest.mark.asyncio
-    async def test___anext__(self):
-        num_rows = 10
-        iterator = self._make_one(items=list(range(num_rows)))
-        for i in range(num_rows):
-            assert await iterator.__anext__() == i
-        with pytest.raises(StopAsyncIteration):
-            await iterator.__anext__()
+#     @pytest.mark.asyncio
+#     async def test___anext__(self):
+#         num_rows = 10
+#         iterator = self._make_one(items=list(range(num_rows)))
+#         for i in range(num_rows):
+#             assert await iterator.__anext__() == i
+#         with pytest.raises(StopAsyncIteration):
+#             await iterator.__anext__()
 
-    @pytest.mark.asyncio
-    async def test___anext__with_deadline_error(self):
-        """
-        RetryErrors mean a deadline has been hit.
-        Should be wrapped in a DeadlineExceeded exception
-        """
-        from google.api_core import exceptions as core_exceptions
+#     @pytest.mark.asyncio
+#     async def test___anext__with_deadline_error(self):
+#         """
+#         RetryErrors mean a deadline has been hit.
+#         Should be wrapped in a DeadlineExceeded exception
+#         """
+#         from google.api_core import exceptions as core_exceptions
 
-        items = [1, core_exceptions.RetryError("retry error", None)]
-        expected_timeout = 99
-        iterator = self._make_one(items=items, operation_timeout=expected_timeout)
-        assert await iterator.__anext__() == 1
-        with pytest.raises(core_exceptions.DeadlineExceeded) as exc:
-            await iterator.__anext__()
-        assert f"operation_timeout of {expected_timeout:0.1f}s exceeded" in str(
-            exc.value
-        )
-        assert exc.value.__cause__ is None
+#         items = [1, core_exceptions.RetryError("retry error", None)]
+#         expected_timeout = 99
+#         iterator = self._make_one(items=items, operation_timeout=expected_timeout)
+#         assert await iterator.__anext__() == 1
+#         with pytest.raises(core_exceptions.DeadlineExceeded) as exc:
+#             await iterator.__anext__()
+#         assert f"operation_timeout of {expected_timeout:0.1f}s exceeded" in str(
+#             exc.value
+#         )
+#         assert exc.value.__cause__ is None
 
-    @pytest.mark.asyncio
-    async def test___anext__with_deadline_error_with_cause(self):
-        """
-        Transient errors should be exposed as an error group
-        """
-        from google.api_core import exceptions as core_exceptions
-        from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+#     @pytest.mark.asyncio
+#     async def test___anext__with_deadline_error_with_cause(self):
+#         """
+#         Transient errors should be exposed as an error group
+#         """
+#         from google.api_core import exceptions as core_exceptions
+#         from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
-        items = [1, core_exceptions.RetryError("retry error", None)]
-        expected_timeout = 99
-        errors = [RuntimeError("error1"), ValueError("error2")]
-        iterator = self._make_one(
-            items=items, operation_timeout=expected_timeout, errors=errors
-        )
-        assert await iterator.__anext__() == 1
-        with pytest.raises(core_exceptions.DeadlineExceeded) as exc:
-            await iterator.__anext__()
-        assert f"operation_timeout of {expected_timeout:0.1f}s exceeded" in str(
-            exc.value
-        )
-        error_group = exc.value.__cause__
-        assert isinstance(error_group, RetryExceptionGroup)
-        assert len(error_group.exceptions) == 2
-        assert error_group.exceptions[0] is errors[0]
-        assert error_group.exceptions[1] is errors[1]
-        assert "2 failed attempts" in str(error_group)
+#         items = [1, core_exceptions.RetryError("retry error", None)]
+#         expected_timeout = 99
+#         errors = [RuntimeError("error1"), ValueError("error2")]
+#         iterator = self._make_one(
+#             items=items, operation_timeout=expected_timeout, errors=errors
+#         )
+#         assert await iterator.__anext__() == 1
+#         with pytest.raises(core_exceptions.DeadlineExceeded) as exc:
+#             await iterator.__anext__()
+#         assert f"operation_timeout of {expected_timeout:0.1f}s exceeded" in str(
+#             exc.value
+#         )
+#         error_group = exc.value.__cause__
+#         assert isinstance(error_group, RetryExceptionGroup)
+#         assert len(error_group.exceptions) == 2
+#         assert error_group.exceptions[0] is errors[0]
+#         assert error_group.exceptions[1] is errors[1]
+#         assert "2 failed attempts" in str(error_group)
 
-    @pytest.mark.asyncio
-    async def test___anext__with_error(self):
-        """
-        Other errors should be raised as-is
-        """
-        from google.api_core import exceptions as core_exceptions
+#     @pytest.mark.asyncio
+#     async def test___anext__with_error(self):
+#         """
+#         Other errors should be raised as-is
+#         """
+#         from google.api_core import exceptions as core_exceptions
 
-        items = [1, core_exceptions.InternalServerError("mock error")]
-        iterator = self._make_one(items=items)
-        assert await iterator.__anext__() == 1
-        with pytest.raises(core_exceptions.InternalServerError) as exc:
-            await iterator.__anext__()
-        assert exc.value is items[1]
-        assert iterator.active is False
-        # next call should raise same error
-        with pytest.raises(core_exceptions.InternalServerError) as exc:
-            await iterator.__anext__()
+#         items = [1, core_exceptions.InternalServerError("mock error")]
+#         iterator = self._make_one(items=items)
+#         assert await iterator.__anext__() == 1
+#         with pytest.raises(core_exceptions.InternalServerError) as exc:
+#             await iterator.__anext__()
+#         assert exc.value is items[1]
+#         assert iterator.active is False
+#         # next call should raise same error
+#         with pytest.raises(core_exceptions.InternalServerError) as exc:
+#             await iterator.__anext__()
 
-    @pytest.mark.asyncio
-    async def test__finish_with_error(self):
-        iterator = self._make_one()
-        await iterator._start_idle_timer(10)
-        timeout_task = iterator._idle_timeout_task
-        assert await iterator.__anext__() == 0
-        assert iterator.active is True
-        err = ZeroDivisionError("mock error")
-        await iterator._finish_with_error(err)
-        assert iterator.active is False
-        assert iterator._error is err
-        assert iterator._idle_timeout_task is None
-        with pytest.raises(ZeroDivisionError) as exc:
-            await iterator.__anext__()
-            assert exc.value is err
-        # timeout task should be cancelled
-        with pytest.raises(asyncio.CancelledError):
-            await timeout_task
+#     @pytest.mark.asyncio
+#     async def test__finish_with_error(self):
+#         iterator = self._make_one()
+#         await iterator._start_idle_timer(10)
+#         timeout_task = iterator._idle_timeout_task
+#         assert await iterator.__anext__() == 0
+#         assert iterator.active is True
+#         err = ZeroDivisionError("mock error")
+#         await iterator._finish_with_error(err)
+#         assert iterator.active is False
+#         assert iterator._error is err
+#         assert iterator._idle_timeout_task is None
+#         with pytest.raises(ZeroDivisionError) as exc:
+#             await iterator.__anext__()
+#             assert exc.value is err
+#         # timeout task should be cancelled
+#         with pytest.raises(asyncio.CancelledError):
+#             await timeout_task
 
-    @pytest.mark.asyncio
-    async def test_aclose(self):
-        iterator = self._make_one()
-        await iterator._start_idle_timer(10)
-        timeout_task = iterator._idle_timeout_task
-        assert await iterator.__anext__() == 0
-        assert iterator.active is True
-        await iterator.aclose()
-        assert iterator.active is False
-        assert isinstance(iterator._error, StopAsyncIteration)
-        assert iterator._idle_timeout_task is None
-        with pytest.raises(StopAsyncIteration) as e:
-            await iterator.__anext__()
-            assert "closed" in str(e.value)
-        # timeout task should be cancelled
-        with pytest.raises(asyncio.CancelledError):
-            await timeout_task
+#     @pytest.mark.asyncio
+#     async def test_aclose(self):
+#         iterator = self._make_one()
+#         await iterator._start_idle_timer(10)
+#         timeout_task = iterator._idle_timeout_task
+#         assert await iterator.__anext__() == 0
+#         assert iterator.active is True
+#         await iterator.aclose()
+#         assert iterator.active is False
+#         assert isinstance(iterator._error, StopAsyncIteration)
+#         assert iterator._idle_timeout_task is None
+#         with pytest.raises(StopAsyncIteration) as e:
+#             await iterator.__anext__()
+#             assert "closed" in str(e.value)
+#         # timeout task should be cancelled
+#         with pytest.raises(asyncio.CancelledError):
+#             await timeout_task
