@@ -127,6 +127,8 @@ class _ReadRowsOperationAsync:
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
+        if self._remaining_count == 0:
+            return self.merge_rows(None)
         # create and return a new row merger
         gapic_stream = self.table.client._gapic_client.read_rows(
             self.request,
@@ -167,7 +169,7 @@ class _ReadRowsOperationAsync:
                         self._last_yielded_row_key
                         and current_key <= self._last_yielded_row_key
                     ):
-                        raise InvalidChunk("out of order row key")
+                        raise InvalidChunk("row keys should be strictly increasing")
 
                 yield c
 
@@ -176,6 +178,7 @@ class _ReadRowsOperationAsync:
                 elif c.commit_row:
                     # update row state after each commit
                     self._last_yielded_row_key = current_key
+                    current_key = None
                     if self._remaining_count is not None:
                         self._remaining_count -= 1
 
