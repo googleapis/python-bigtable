@@ -138,8 +138,8 @@ class _ReadRowsOperationAsync:
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
-        if self._remaining_count == 0:
-            return self.merge_rows(None)
+            if self._remaining_count == 0:
+                return self.merge_rows(None)
         # create and return a new row merger
         gapic_stream = self.table.client._gapic_client.read_rows(
             self.request,
