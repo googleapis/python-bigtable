@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
 
+from collections import deque
+
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -37,11 +39,6 @@ from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
-
-
-class _ResetRow(Exception):
-    def __init__(self, chunk):
-        self.chunk = chunk
 
 
 class _ReadRowsOperationAsync:
@@ -155,6 +152,7 @@ class _ReadRowsOperationAsync:
         """
         process chunks out of raw read_rows stream
         """
+        q = deque()
         async for resp in await stream:
             # extract proto from proto-plus wrapper
             resp = resp._pb
@@ -182,14 +180,25 @@ class _ReadRowsOperationAsync:
                     ):
                         raise InvalidChunk("row keys should be strictly increasing")
 
-                yield c
-
                 if c.reset_row:
+                    if c.row_key or c.HasField("family_name") or c.HasField("qualifier") or c.timestamp_micros or c.labels or c.value:
+                        raise InvalidChunk("reset row has extra fields")
+                    if not q:
+                        raise InvalidChunk("reset row with no prior chunks")
                     current_key = None
-                elif c.commit_row:
+                    q.clear()
+                    continue
+
+                q.append(c)
+
+                if c.commit_row:
                     # update row state after each commit
+                    while q:
+                        yield q.popleft()
                     self._last_yielded_row_key = current_key
                     current_key = None
+        if q:
+            raise InvalidChunk("finished with incomplete row")
 
     @staticmethod
     async def merge_rows(
@@ -222,8 +231,6 @@ class _ReadRowsOperationAsync:
             try:
                 # for each cell
                 while True:
-                    if c.reset_row:
-                        raise _ResetRow(c)
                     k = c.row_key
                     f = c.family_name.value
                     q = c.qualifier.value if c.HasField("qualifier") else None
@@ -271,8 +278,6 @@ class _ReadRowsOperationAsync:
                             if k and k != row_key:
                                 raise InvalidChunk("row key changed mid cell")
 
-                            if c.reset_row:
-                                raise _ResetRow(c)
                             buffer.append(c.value)
                         value = b"".join(buffer)
                     if family is None:
@@ -286,18 +291,6 @@ class _ReadRowsOperationAsync:
                         yield Row(row_key, cells)
                         break
                     c = await it.__anext__()
-            except _ResetRow as e:
-                c = e.chunk
-                if (
-                    c.row_key
-                    or c.HasField("family_name")
-                    or c.HasField("qualifier")
-                    or c.timestamp_micros
-                    or c.labels
-                    or c.value
-                ):
-                    raise InvalidChunk("reset row with data")
-                continue
             except StopAsyncIteration:
                 raise InvalidChunk("premature end of stream")
 
