@@ -69,7 +69,11 @@ class _ReadRowsOperationAsync:
         )
         self.operation_timeout = operation_timeout
         if isinstance(query, dict):
-            self.request = ReadRowsRequestPB(**query, table_name=table.table_name, app_profile_id=table.app_profile_id)
+            self.request = ReadRowsRequestPB(
+                **query,
+                table_name=table.table_name,
+                app_profile_id=table.app_profile_id,
+            )
         else:
             self.request = query._to_pb(table)
         self.table = table
@@ -105,8 +109,15 @@ class _ReadRowsOperationAsync:
         try:
             async for row in retry_fn:
                 yield row
+                if self._remaining_count is not None:
+                    self._remaining_count -= 1
+                    if self._remaining_count < 0:
+                        raise RuntimeError("emit count exceeds row limit")
         except core_exceptions.RetryError:
             self._raise_retry_error(transient_errors)
+        except GeneratorExit:
+            # propagate close to wrapped generator
+            await retry_fn.aclose()
 
     def read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
@@ -179,11 +190,11 @@ class _ReadRowsOperationAsync:
                     # update row state after each commit
                     self._last_yielded_row_key = current_key
                     current_key = None
-                    if self._remaining_count is not None:
-                        self._remaining_count -= 1
 
     @staticmethod
-    async def merge_rows(chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None):
+    async def merge_rows(
+        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
+    ):
         """
         Merge chunks into rows
         """
@@ -323,7 +334,6 @@ class _ReadRowsOperationAsync:
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen
                     new_range.start_key_open = last_seen_row_key
-                    new_range.start_key_closed = b''
                 adjusted_ranges.append(new_range)
         if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
             # if the query is empty after revision, raise an exception

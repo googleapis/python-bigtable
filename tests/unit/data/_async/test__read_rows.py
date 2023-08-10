@@ -88,29 +88,6 @@ class TestReadRowsOperation:
         assert instance.request.app_profile_id == table.app_profile_id
         assert instance.request.rows_limit == row_limit
 
-    def test___aiter__(self):
-        request = {}
-        client = mock.Mock()
-        client.read_rows = mock.Mock()
-        instance = self._make_one(request, client)
-        assert instance.__aiter__() is instance
-
-    @pytest.mark.asyncio
-    async def test_transient_error_capture(self):
-        from google.api_core import exceptions as core_exceptions
-
-        client = mock.Mock()
-        client.read_rows = mock.Mock()
-        test_exc = core_exceptions.Aborted("test")
-        test_exc2 = core_exceptions.DeadlineExceeded("test")
-        client.read_rows.side_effect = [test_exc, test_exc2]
-        instance = self._make_one({}, client)
-        with pytest.raises(RuntimeError):
-            await instance.__anext__()
-        assert len(instance.transient_errors) == 2
-        assert instance.transient_errors[0] == test_exc
-        assert instance.transient_errors[1] == test_exc2
-
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
         [
@@ -234,8 +211,8 @@ class TestReadRowsOperation:
             (10, 0, 10),
             (10, 1, 9),
             (10, 10, 0),
-            (0, 10, 0),
-            (0, 0, 0),
+            (None, 10, None),
+            (None, 0, None),
             (4, 2, 2),
         ],
     )
@@ -248,28 +225,24 @@ class TestReadRowsOperation:
         - if the number emitted exceeds the new limit, an exception should
           should be raised (tested in test_revise_limit_over_limit)
         """
-        import itertools
         from google.cloud.bigtable.data import ReadRowsQuery
 
-        query = ReadRowsQuery(limit=start_limit)
-        instance = self._make_one(query, mock.Mock(), 10, 10)
-        instance._emit_count = emit_num
-        instance._last_emitted_row_key = "a"
-        gapic_mock = mock.Mock()
-        gapic_mock.side_effect = [GeneratorExit("stop_fn")]
-        mock_timeout_gen = itertools.repeat(5)
+        async def mock_stream():
+            for i in range(emit_num):
+                yield i
 
-        attempt = instance._read_rows_retryable_attempt(
-            gapic_mock, mock_timeout_gen, start_limit
-        )
-        if start_limit != 0 and expected_limit == 0:
-            # if we emitted the expected number of rows, we should receive a StopAsyncIteration
-            with pytest.raises(StopAsyncIteration):
-                await attempt.__anext__()
-        else:
-            with pytest.raises(GeneratorExit):
-                await attempt.__anext__()
-            # assert request["rows_limit"] == expected_limit
+        query = ReadRowsQuery(limit=start_limit)
+        table = mock.Mock()
+        table.table_name = "table_name"
+        table.app_profile_id = "app_profile_id"
+        instance = self._make_one(query, table, 10, 10)
+        assert instance._remaining_count == start_limit
+        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+            mock_attempt.return_value = mock_stream()
+            # read emit_num rows
+            async for val in instance.start_operation():
+                pass
+        assert instance._remaining_count == expected_limit
 
     @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
     @pytest.mark.asyncio
@@ -278,66 +251,52 @@ class TestReadRowsOperation:
         Should raise runtime error if we get in state where emit_num > start_num
         (unless start_num == 0, which represents unlimited)
         """
-        import itertools
+        from google.cloud.bigtable.data import ReadRowsQuery
 
-        request = {"rows_limit": start_limit}
-        instance = self._make_one(request, mock.Mock())
-        instance._emit_count = emit_num
-        instance._last_emitted_row_key = "a"
-        mock_timeout_gen = itertools.repeat(5)
-        attempt = instance._read_rows_retryable_attempt(
-            mock.Mock(), mock_timeout_gen, start_limit
-        )
-        with pytest.raises(RuntimeError) as e:
-            await attempt.__anext__()
-        assert "emit count exceeds row limit" in str(e.value)
+        async def mock_stream():
+            for i in range(emit_num):
+                yield i
+
+        query = ReadRowsQuery(limit=start_limit)
+        table = mock.Mock()
+        table.table_name = "table_name"
+        table.app_profile_id = "app_profile_id"
+        instance = self._make_one(query, table, 10, 10)
+        assert instance._remaining_count == start_limit
+        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+            mock_attempt.return_value = mock_stream()
+            with pytest.raises(RuntimeError) as e:
+                # read emit_num rows
+                async for val in instance.start_operation():
+                    pass
+            assert "emit count exceeds row limit" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_aclose(self):
-        import asyncio
-
-        instance = self._make_one({}, mock.Mock())
-        await instance.aclose()
-        assert instance._stream is None
-        assert instance._last_emitted_row_key is None
-        with pytest.raises(asyncio.InvalidStateError):
-            await instance.__anext__()
-        # try calling a second time
-        await instance.aclose()
-
-    @pytest.mark.parametrize("limit", [1, 3, 10])
-    @pytest.mark.asyncio
-    async def test_retryable_attempt_hit_limit(self, limit):
         """
-        Stream should end after hitting the limit
+        should be able to close a stream safely with aclose.
+        Closed generators should raise StopAsyncIteration on next yield
         """
-        from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-        import itertools
 
-        instance = self._make_one({}, mock.Mock())
+        async def mock_stream():
+            while True:
+                yield 1
 
-        async def mock_gapic(*args, **kwargs):
-            # continuously return a single row
-            async def gen():
-                for i in range(limit * 2):
-                    chunk = ReadRowsResponse.CellChunk(
-                        row_key=str(i).encode(),
-                        family_name="family_name",
-                        qualifier=b"qualifier",
-                        commit_row=True,
-                    )
-                    yield ReadRowsResponse(chunks=[chunk])
-
-            return gen()
-
-        mock_timeout_gen = itertools.repeat(5)
-        gen = instance._read_rows_retryable_attempt(mock_gapic, mock_timeout_gen, limit)
-        # should yield values up to the limit
-        for i in range(limit):
+        instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
+        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+            wrapped_gen = mock_stream()
+            mock_attempt.return_value = wrapped_gen
+            gen = instance.start_operation()
+            # read one row
             await gen.__anext__()
-        # next value should be StopAsyncIteration
-        with pytest.raises(StopAsyncIteration):
-            await gen.__anext__()
+            await gen.aclose()
+            with pytest.raises(StopAsyncIteration):
+                await gen.__anext__()
+            # try calling a second time
+            await gen.aclose()
+            # ensure close was propagated to wrapped generator
+            with pytest.raises(StopAsyncIteration):
+                await wrapped_gen.__anext__()
 
     @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
@@ -345,70 +304,34 @@ class TestReadRowsOperation:
         Duplicate rows should cause an invalid chunk error
         """
         from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-        from google.cloud.bigtable.data.row import Row
         from google.cloud.bigtable.data.exceptions import InvalidChunk
+        from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-        async def mock_stream():
-            while True:
-                yield Row(b"dup_key", cells=[])
-                yield Row(b"dup_key", cells=[])
+        row_key = b"duplicate"
 
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "merge_row_response_stream"
-        ) as mock_stream_fn:
-            mock_stream_fn.return_value = mock_stream()
-            instance = self._make_one({}, mock.AsyncMock())
-            first_row = await instance.__anext__()
-            assert first_row.row_key == b"dup_key"
-            with pytest.raises(InvalidChunk) as exc:
-                await instance.__anext__()
-            assert "Last emitted row key out of order" in str(exc.value)
+        async def mock_awaitable_stream():
+            async def mock_stream():
+                while True:
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
+                        ]
+                    )
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
+                        ]
+                    )
 
-    @pytest.mark.asyncio
-    async def test_retryable_ignore_last_scanned_rows(self):
-        """
-        Last scanned rows should not be emitted
-        """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-        from google.cloud.bigtable.data.row import Row, _LastScannedRow
+            return mock_stream()
 
-        async def mock_stream():
-            while True:
-                yield Row(b"key1", cells=[])
-                yield _LastScannedRow(b"key2_ignored")
-                yield Row(b"key3", cells=[])
-
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "merge_row_response_stream"
-        ) as mock_stream_fn:
-            mock_stream_fn.return_value = mock_stream()
-            instance = self._make_one({}, mock.AsyncMock())
-            first_row = await instance.__anext__()
-            assert first_row.row_key == b"key1"
-            second_row = await instance.__anext__()
-            assert second_row.row_key == b"key3"
-
-    @pytest.mark.asyncio
-    async def test_retryable_cancel_on_close(self):
-        """Underlying gapic call should be cancelled when stream is closed"""
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-        from google.cloud.bigtable.data.row import Row
-
-        async def mock_stream():
-            while True:
-                yield Row(b"key1", cells=[])
-
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "merge_row_response_stream"
-        ) as mock_stream_fn:
-            mock_stream_fn.return_value = mock_stream()
-            mock_gapic = mock.AsyncMock()
-            mock_call = await mock_gapic.read_rows()
-            instance = self._make_one({}, mock_gapic)
-            await instance.__anext__()
-            assert mock_call.cancel.call_count == 0
-            await instance.aclose()
-            assert mock_call.cancel.call_count == 1
+        instance = mock.Mock()
+        instance._last_yielded_row_key = None
+        stream = _ReadRowsOperationAsync.chunk_stream(instance, mock_awaitable_stream())
+        await stream.__anext__()
+        with pytest.raises(InvalidChunk) as exc:
+            await stream.__anext__()
+        assert "row keys should be strictly increasing" in str(exc.value)
 
 
 class MockStream(_ReadRowsOperationAsync):
