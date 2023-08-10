@@ -396,9 +396,6 @@ class TestReadRowsQuery:
         assert query.filter is None
         query.filter = RowFilterChain()
         assert query.filter == RowFilterChain()
-        with pytest.raises(ValueError) as exc:
-            query.filter = 1
-        assert str(exc.value) == "row_filter must be a RowFilter or dict"
 
     def test_set_limit(self):
         query = self._make_one()
@@ -501,17 +498,6 @@ class TestReadRowsQuery:
         query.add_range(input_range2)
         assert len(query.row_ranges) == 2
 
-    def test_add_range_dict(self):
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        query = self._make_one()
-        assert query.row_ranges == set()
-        input_range = {"start_key_closed": b"test_row"}
-        query.add_range(input_range)
-        assert len(query.row_ranges) == 1
-        range_obj = RowRange._from_dict(input_range)
-        assert range_obj in query.row_ranges
-
     def test_to_dict_rows_default(self):
         # dictionary should be in rowset proto format
         from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
@@ -541,7 +527,7 @@ class TestReadRowsQuery:
         query.add_range(RowRange("test_row3"))
         query.add_range(RowRange(start_key=None, end_key="test_row5"))
         query.add_range(RowRange(b"test_row6", b"test_row7", False, True))
-        query.add_range({})
+        query.add_range(RowRange())
         query.add_key("test_row")
         query.add_key(b"test_row2")
         query.add_key("test_row3")

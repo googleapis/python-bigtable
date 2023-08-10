@@ -185,7 +185,7 @@ class TestMutateRowsOperation:
         except Exception as e:
             found_exc = e
         assert client.mutate_rows.call_count == 1
-        assert type(found_exc) == exc_type
+        assert type(found_exc) is exc_type
         assert found_exc == expected_exception
         assert len(instance.errors) == 2
         assert len(instance.remaining_indices) == 0

@@ -85,8 +85,21 @@ def instance_id(instance_admin_client, project_id, cluster_config):
 
 
 @pytest.fixture(scope="session")
+def column_split_config():
+    """
+    specify initial splits to create when creating a new test table
+    """
+    return [(num * 1000).to_bytes(8, "big") for num in range(1, 10)]
+
+
+@pytest.fixture(scope="session")
 def table_id(
-    table_admin_client, project_id, instance_id, column_family_config, init_table_id
+    table_admin_client,
+    project_id,
+    instance_id,
+    column_family_config,
+    init_table_id,
+    column_split_config,
 ):
     """
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
@@ -99,6 +112,7 @@ def table_id(
             Supplied by the init_column_families fixture.
       - init_table_id: The table ID to give to the test table, if pre-initialized table is not given with BIGTABLE_TEST_TABLE.
             Supplied by the init_table_id fixture.
+      - column_split_config: A list of row keys to use as initial splits when creating the test table.
     """
     from google.api_core import exceptions
     from google.api_core import retry
@@ -121,9 +135,7 @@ def table_id(
                 "parent": parent_path,
                 "table_id": init_table_id,
                 "table": {"column_families": column_family_config},
-                "initial_splits": [
-                    {"key": (num * 1000).to_bytes(8, "big")} for num in range(1, 10)
-                ],
+                "initial_splits": [{"key": key} for key in column_split_config],
             },
             retry=retry,
         )

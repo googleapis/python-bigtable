@@ -957,7 +957,7 @@ class TableAsync:
         retry_wrapped = retry(self.client._gapic_client.mutate_row)
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
         deadline_wrapped = _convert_retry_deadline(
-            retry_wrapped, operation_timeout, transient_errors
+            retry_wrapped, operation_timeout, transient_errors, is_async=True
         )
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
