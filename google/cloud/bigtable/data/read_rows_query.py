@@ -186,6 +186,8 @@ class ReadRowsQuery:
     Class to encapsulate details of a read row request
     """
 
+    slots = ("_limit", "_filter", "_row_set")
+
     def __init__(
         self,
         row_keys: list[str | bytes] | str | bytes | None = None,
