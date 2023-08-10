@@ -60,13 +60,9 @@ class RowRange:
         # check for invalid combinations of arguments
         if start_is_inclusive is None:
             start_is_inclusive = True
-        elif start_key is None:
-            raise ValueError("start_is_inclusive must be set with start_key")
 
         if end_is_inclusive is None:
             end_is_inclusive = False
-        elif end_key is None:
-            raise ValueError("end_is_inclusive must be set with end_key")
         # ensure that start_key and end_key are bytes
         if isinstance(start_key, str):
             start_key = start_key.encode()
@@ -113,7 +109,7 @@ class RowRange:
         Returns whether the range is inclusive of the start key.
         Returns True if the range is unbounded on the left.
         """
-        return bool(self._pb.start_key_closed)
+        return not bool(self._pb.start_key_open)
 
     @property
     def end_is_inclusive(self) -> bool:
@@ -121,36 +117,11 @@ class RowRange:
         Returns whether the range is inclusive of the end key.
         Returns True if the range is unbounded on the right.
         """
-        return bool(self._pb.end_key_closed)
-
-    def _to_dict(self) -> dict[str, bytes]:
-        """Converts this object to a dictionary"""
-        output = {}
-        if self.start_key is not None:
-            key = "start_key_closed" if self.start_is_inclusive else "start_key_open"
-            output[key] = self.start_key
-        if self.end_key is not None:
-            key = "end_key_closed" if self.end_is_inclusive else "end_key_open"
-            output[key] = self.end_key
-        return output
+        return not bool(self._pb.end_key_open)
 
     def _to_pb(self) -> RowRangePB:
         """Converts this object to a protobuf"""
         return self._pb
-
-    @classmethod
-    def _from_dict(cls, data: dict[str, bytes]) -> RowRange:
-        """Creates a RowRange from a dictionary"""
-        start_key = data.get("start_key_closed", data.get("start_key_open"))
-        end_key = data.get("end_key_closed", data.get("end_key_open"))
-        start_is_inclusive = "start_key_closed" in data if start_key else None
-        end_is_inclusive = "end_key_closed" in data if end_key else None
-        return cls(
-            start_key,
-            end_key,
-            start_is_inclusive,
-            end_is_inclusive,
-        )
 
     @classmethod
     def _from_pb(cls, data: RowRangePB) -> RowRange:
@@ -159,12 +130,27 @@ class RowRange:
         instance._pb = data
         return instance
 
+    @classmethod
+    def _from_dict(cls, data: dict[str, bytes | str]) -> RowRange:
+        """Creates a RowRange from a protobuf"""
+        formatted_data = {
+            k: v.encode() if isinstance(v, str) else v for k, v in data.items()
+        }
+        instance = cls()
+        instance._pb = RowRangePB(**formatted_data)
+        return instance
+
     def __bool__(self) -> bool:
         """
         Empty RowRanges (representing a full table scan) are falsy, because
         they can be substituted with None. Non-empty RowRanges are truthy.
         """
-        return bool(self._pb.start_key_closed or self._pb.start_key_open or self._pb.end_key_closed or self._pb.end_key_open)
+        return bool(
+            self._pb.start_key_closed
+            or self._pb.start_key_open
+            or self._pb.end_key_closed
+            or self._pb.end_key_open
+        )
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, RowRange):
@@ -218,8 +204,10 @@ class ReadRowsQuery:
                 default: None (no limit)
           - row_filter: a RowFilter to apply to the query
         """
-        row_ranges = row_ranges or []
-        row_keys = row_keys or []
+        if row_keys is None:
+            row_keys = []
+        if row_ranges is None:
+            row_ranges = []
         if not isinstance(row_ranges, list):
             row_ranges = [row_ranges]
         if not isinstance(row_keys, list):
@@ -228,8 +216,8 @@ class ReadRowsQuery:
         self._row_set = RowSetPB(
             row_keys=row_keys, row_ranges=[r._pb for r in row_ranges]
         )
-        self._limit = limit or None
-        self._filter = row_filter
+        self.limit = limit or None
+        self.filter = row_filter
 
     @property
     def row_keys(self) -> list[bytes]:
@@ -275,7 +263,7 @@ class ReadRowsQuery:
         Returns:
           - a reference to this query for chaining
         """
-        self._filter = row_filter if row_filter else None
+        self._filter = row_filter
 
     def add_key(self, row_key: str | bytes):
         """
@@ -294,7 +282,8 @@ class ReadRowsQuery:
             row_key = row_key.encode()
         elif not isinstance(row_key, bytes):
             raise ValueError("row_key must be string or bytes")
-        self._row_set.row_keys.append(row_key)
+        if row_key not in self._row_set.row_keys:
+            self._row_set.row_keys.append(row_key)
 
     def add_range(
         self,
@@ -306,7 +295,8 @@ class ReadRowsQuery:
         Args:
           - row_range: a range of row keys to add to this query
         """
-        self._row_set.row_ranges.append(row_range._pb)
+        if row_range not in self.row_ranges:
+            self._row_set.row_ranges.append(row_range._pb)
 
     def shard(self, shard_keys: RowKeySamples) -> ShardedQuery:
         """
@@ -435,32 +425,6 @@ class ReadRowsQuery:
                 )
                 results.append((this_segment, new_range))
             return results
-
-    def _to_dict(self) -> dict[str, Any]:
-        """
-        Convert this query into a dictionary that can be used to construct a
-        ReadRowsRequest protobuf
-        """
-        row_ranges = []
-        for r in self.row_ranges:
-            dict_range = r._to_dict() if isinstance(r, RowRange) else r
-            row_ranges.append(dict_range)
-        row_keys = list(self.row_keys)
-        row_keys.sort()
-        row_set = {"row_keys": row_keys, "row_ranges": row_ranges}
-        final_dict: dict[str, Any] = {
-            "rows": row_set,
-        }
-        dict_filter = (
-            self.filter._to_dict()
-            if isinstance(self.filter, RowFilter)
-            else self.filter
-        )
-        if dict_filter:
-            final_dict["filter"] = dict_filter
-        if self.limit is not None:
-            final_dict["rows_limit"] = self.limit
-        return final_dict
 
     def _to_pb(self, table) -> ReadRowsRequestPB:
         """

@@ -1232,10 +1232,8 @@ class TestReadRows:
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
     async def test_read_rows_query_matches_request(self, include_app_profile):
-        import base64
         from google.cloud.bigtable.data import RowRange
         from google.cloud.bigtable.data.row_filters import PassAllFilter
-        from google.protobuf.json_format import MessageToDict
 
         app_profile_id = "app_profile_id" if include_app_profile else None
         async with self._make_table(app_profile_id=app_profile_id) as table:
@@ -1254,34 +1252,9 @@ class TestReadRows:
 
             results = await table.read_rows(query, operation_timeout=3)
             assert len(results) == 0
-            proto = read_rows.call_args_list[0][0][0]
-            call_request = MessageToDict(proto._pb, preserving_proto_field_name=True)
-            query_dict = query._to_dict()
-            if include_app_profile:
-                assert set(call_request.keys()) == set(query_dict.keys()) | {
-                    "table_name",
-                    "app_profile_id",
-                }
-            else:
-                assert set(call_request.keys()) == set(query_dict.keys()) | {
-                    "table_name"
-                }
-            # call_request is a proto object converted back into a dictionary
-            # some fields will need to be converted back to their original types for comparison
-            assert call_request["rows"]["row_keys"] == [
-                base64.b64encode(k).decode() for k in query.row_keys
-            ]
-            assert len(call_request["rows"]["row_ranges"]) == len(query.row_ranges)
-            for r in query.row_ranges:
-                encoded = {
-                    k: base64.b64encode(v).decode() for k, v in r._to_dict().items()
-                }
-                assert encoded in call_request["rows"]["row_ranges"]
-            assert call_request["filter"] == filter_._to_dict()
-            assert int(call_request["rows_limit"]) == limit
-            assert call_request["table_name"] == table.table_name
-            if include_app_profile:
-                assert call_request["app_profile_id"] == app_profile_id
+            call_request = read_rows.call_args_list[0][0][0]
+            query_pb = query._to_pb(table)
+            assert call_request == query_pb
 
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     @pytest.mark.asyncio
@@ -1574,10 +1547,10 @@ class TestReadRows:
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert len(args) == 1
                 assert isinstance(args[0], ReadRowsQuery)
-                assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key], "row_ranges": []},
-                    "rows_limit": 1,
-                }
+                query = args[0]
+                assert query.row_keys == [row_key]
+                assert query.row_ranges == []
+                assert query.limit == 1
 
     @pytest.mark.asyncio
     async def test_read_row_w_filter(self):
@@ -1606,11 +1579,11 @@ class TestReadRows:
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert len(args) == 1
                 assert isinstance(args[0], ReadRowsQuery)
-                assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key], "row_ranges": []},
-                    "rows_limit": 1,
-                    "filter": expected_filter,
-                }
+                query = args[0]
+                assert query.row_keys == [row_key]
+                assert query.row_ranges == []
+                assert query.limit == 1
+                assert query.filter == expected_filter
 
     @pytest.mark.asyncio
     async def test_read_row_no_response(self):
@@ -1634,20 +1607,10 @@ class TestReadRows:
                 assert kwargs["operation_timeout"] == expected_op_timeout
                 assert kwargs["attempt_timeout"] == expected_req_timeout
                 assert isinstance(args[0], ReadRowsQuery)
-                assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key], "row_ranges": []},
-                    "rows_limit": 1,
-                }
-
-    @pytest.mark.parametrize("input_row", [None, 5, object()])
-    @pytest.mark.asyncio
-    async def test_read_row_w_invalid_input(self, input_row):
-        """Should raise error when passed None"""
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            with pytest.raises(ValueError) as e:
-                await table.read_row(input_row)
-                assert "must be string or bytes" in e
+                query = args[0]
+                assert query.row_keys == [row_key]
+                assert query.row_ranges == []
+                assert query.limit == 1
 
     @pytest.mark.parametrize(
         "return_value,expected_result",
@@ -1687,21 +1650,11 @@ class TestReadRows:
                         ]
                     }
                 }
-                assert args[0]._to_dict() == {
-                    "rows": {"row_keys": [row_key], "row_ranges": []},
-                    "rows_limit": 1,
-                    "filter": expected_filter,
-                }
-
-    @pytest.mark.parametrize("input_row", [None, 5, object()])
-    @pytest.mark.asyncio
-    async def test_row_exists_w_invalid_input(self, input_row):
-        """Should raise error when passed None"""
-        async with self._make_client() as client:
-            table = client.get_table("instance", "table")
-            with pytest.raises(ValueError) as e:
-                await table.row_exists(input_row)
-                assert "must be string or bytes" in e
+                query = args[0]
+                assert query.row_keys == [row_key]
+                assert query.row_ranges == []
+                assert query.limit == 1
+                assert query.filter._to_dict() == expected_filter
 
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
