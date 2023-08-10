@@ -224,24 +224,24 @@ class ReadRowsQuery:
             row_ranges = [row_ranges]
         if not isinstance(row_keys, list):
             row_keys = [row_keys]
-        self._row_set = RowSetPB(row_keys=row_keys, row_ranges=[r._pb for r in row_ranges])
-        self._pb = ReadRowsRequestPB(
-            rows=self._row_set,
-            filter=row_filter._to_pb() if row_filter else None,
-            rows_limit=limit,
+        row_keys = [key.encode() if isinstance(key, str) else key for key in row_keys]
+        self._row_set = RowSetPB(
+            row_keys=row_keys, row_ranges=[r._pb for r in row_ranges]
         )
+        self._limit = limit or None
+        self._filter = row_filter
 
     @property
     def row_keys(self) -> list[bytes]:
-        return self._pb.rows.row_keys
+        return list(self._row_set.row_keys)
 
     @property
     def row_ranges(self) -> list[RowRange]:
-        return [RowRange._from_pb(r) for r in self._pb.rows.row_ranges]
+        return [RowRange._from_pb(r) for r in self._row_set.row_ranges]
 
     @property
     def limit(self) -> int | None:
-        return self._pb.rows_limit or None
+        return self._limit or None
 
     @limit.setter
     def limit(self, new_limit: int | None):
@@ -259,11 +259,11 @@ class ReadRowsQuery:
         """
         if new_limit is not None and new_limit < 0:
             raise ValueError("limit must be >= 0")
-        self._pb.rows_limit = new_limit or 0
+        self._limit = new_limit
 
     @property
     def filter(self) -> RowFilter | None:
-        return self._pb.filter
+        return self._filter
 
     @filter.setter
     def filter(self, row_filter: RowFilter | None):
@@ -275,7 +275,7 @@ class ReadRowsQuery:
         Returns:
           - a reference to this query for chaining
         """
-        self._pb.filter = row_filter._to_pb() if row_filter else None
+        self._filter = row_filter if row_filter else None
 
     def add_key(self, row_key: str | bytes):
         """
@@ -294,7 +294,7 @@ class ReadRowsQuery:
             row_key = row_key.encode()
         elif not isinstance(row_key, bytes):
             raise ValueError("row_key must be string or bytes")
-        self._pb.rows.row_keys.append(row_key)
+        self._row_set.row_keys.append(row_key)
 
     def add_range(
         self,
@@ -306,7 +306,7 @@ class ReadRowsQuery:
         Args:
           - row_range: a range of row keys to add to this query
         """
-        self._pb.rows.row_ranges.append(row_range._pb)
+        self._row_set.row_ranges.append(row_range._pb)
 
     def shard(self, shard_keys: RowKeySamples) -> ShardedQuery:
         """
@@ -467,10 +467,13 @@ class ReadRowsQuery:
         Convert this query into a dictionary that can be used to construct a
         ReadRowsRequest protobuf
         """
-        # self._pb.table_name = table.table_name
-        # if table.app_profile_id:
-        #     self._pb.app_profile_id = table.app_profile_id
-        return ReadRowsRequestPB(self._pb, table_name=table.table_name, app_profile_id=table.app_profile_id)
+        return ReadRowsRequestPB(
+            table_name=table.table_name,
+            app_profile_id=table.app_profile_id,
+            filter=self.filter._to_pb() if self.filter else None,
+            rows_limit=self.limit or 0,
+            rows=self._row_set,
+        )
 
     def __eq__(self, other):
         """
