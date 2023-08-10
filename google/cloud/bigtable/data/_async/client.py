@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import (
     cast,
     Any,
+    AsyncIterable,
     Optional,
     Set,
     TYPE_CHECKING,
@@ -496,7 +497,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
-    ):
+    ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
