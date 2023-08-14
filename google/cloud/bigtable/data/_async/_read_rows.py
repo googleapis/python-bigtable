@@ -57,6 +57,17 @@ class _ReadRowsOperationAsync:
     performing retries on stream errors.
     """
 
+    __slots__ = (
+        "attempt_timeout_gen",
+        "operation_timeout",
+        "request",
+        "table",
+        "_predicate",
+        "_metadata",
+        "_last_yielded_row_key",
+        "_remaining_count",
+    )
+
     def __init__(
         self,
         query: ReadRowsQuery,

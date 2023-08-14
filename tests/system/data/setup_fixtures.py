@@ -65,7 +65,7 @@ def instance_id(instance_admin_client, project_id, cluster_config):
         return
 
     # create a new temporary test instance
-    instance_id = f"python-bigtable-test-instance-{uuid.uuid4().hex}"
+    instance_id = f"python-bigtable-tests-{uuid.uuid4().hex[:6]}"
     try:
         operation = instance_admin_client.create_instance(
             parent=f"projects/{project_id}",
@@ -145,9 +145,7 @@ def table_id(
     yield init_table_id
     print(f"Deleting table: {parent_path}/tables/{init_table_id}")
     try:
-        table_admin_client.delete_table(
-            name=f"{parent_path}/tables/{init_table_id}"
-        )
+        table_admin_client.delete_table(name=f"{parent_path}/tables/{init_table_id}")
     except exceptions.NotFound:
         print(f"Table {init_table_id} not found, skipping deletion")
 

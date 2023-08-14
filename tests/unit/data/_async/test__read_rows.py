@@ -235,10 +235,12 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
-        assert instance._remaining_count == start_limit
-        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+        with mock.patch.object(
+            _ReadRowsOperationAsync, "read_rows_attempt"
+        ) as mock_attempt:
             mock_attempt.return_value = mock_stream()
+            instance = self._make_one(query, table, 10, 10)
+            assert instance._remaining_count == start_limit
             # read emit_num rows
             async for val in instance.start_operation():
                 pass
@@ -261,10 +263,12 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
-        assert instance._remaining_count == start_limit
-        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+        with mock.patch.object(
+            _ReadRowsOperationAsync, "read_rows_attempt"
+        ) as mock_attempt:
             mock_attempt.return_value = mock_stream()
+            instance = self._make_one(query, table, 10, 10)
+            assert instance._remaining_count == start_limit
             with pytest.raises(RuntimeError) as e:
                 # read emit_num rows
                 async for val in instance.start_operation():
@@ -282,8 +286,10 @@ class TestReadRowsOperation:
             while True:
                 yield 1
 
-        instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
-        with mock.patch.object(instance, "read_rows_attempt") as mock_attempt:
+        with mock.patch.object(
+            _ReadRowsOperationAsync, "read_rows_attempt"
+        ) as mock_attempt:
+            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
             wrapped_gen = mock_stream()
             mock_attempt.return_value = wrapped_gen
             gen = instance.start_operation()
