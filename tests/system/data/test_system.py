@@ -53,7 +53,7 @@ def cluster_config(project_id):
     cluster = {
         "test-cluster": types.Cluster(
             location=f"projects/{project_id}/locations/us-central1-b",
-            serve_nodes=3,
+            serve_nodes=1,
         )
     }
     return cluster
