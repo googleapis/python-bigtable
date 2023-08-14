@@ -1338,55 +1338,6 @@ class TestReadRows:
                     < 0.05
                 )
 
-    # @pytest.mark.asyncio
-    # async def test_read_rows_idle_timeout(self):
-    #     from google.cloud.bigtable.data._async.client import ReadRowsAsyncIterator
-    #     from google.cloud.bigtable_v2.services.bigtable.async_client import (
-    #         BigtableAsyncClient,
-    #     )
-    #     from google.cloud.bigtable.data.exceptions import IdleTimeout
-    #     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
-    #     chunks = [
-    #         self._make_chunk(row_key=b"test_1"),
-    #         self._make_chunk(row_key=b"test_2"),
-    #     ]
-    #     with mock.patch.object(BigtableAsyncClient, "read_rows") as read_rows:
-    #         read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-    #             chunks
-    #         )
-    #         with mock.patch.object(
-    #             ReadRowsAsyncIterator, "_start_idle_timer"
-    #         ) as start_idle_timer:
-    #             client = self._make_client()
-    #             table = client.get_table("instance", "table")
-    #             query = ReadRowsQuery()
-    #             gen = await table.read_rows_stream(query)
-    #         # should start idle timer on creation
-    #         start_idle_timer.assert_called_once()
-    #     with mock.patch.object(
-    #         _ReadRowsOperationAsync, "aclose", AsyncMock()
-    #     ) as aclose:
-    #         # start idle timer with our own value
-    #         await gen._start_idle_timer(0.1)
-    #         # should timeout after being abandoned
-    #         await gen.__anext__()
-    #         await asyncio.sleep(0.2)
-    #         # generator should be expired
-    #         assert not gen.active
-    #         assert type(gen._error) == IdleTimeout
-    #         assert gen._idle_timeout_task is None
-    #         await client.close()
-    #         with pytest.raises(IdleTimeout) as e:
-    #             await gen.__anext__()
-
-    #         expected_msg = (
-    #             "Timed out waiting for next Row to be consumed. (idle_timeout=0.1s)"
-    #         )
-    #         assert e.value.message == expected_msg
-    #         aclose.assert_called_once()
-    #         aclose.assert_awaited()
-
     @pytest.mark.parametrize(
         "exc_type",
         [
