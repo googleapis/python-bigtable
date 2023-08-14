@@ -771,28 +771,6 @@ async def test_read_rows_stream_close(table, temp_rows):
         await generator.__anext__()
 
 
-# @pytest.mark.usefixtures("table")
-# @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
-# @pytest.mark.asyncio
-# async def test_read_rows_stream_inactive_timer(table, temp_rows):
-#     """
-#     Ensure that the read_rows_stream method works
-#     """
-#     from google.cloud.bigtable.data.exceptions import IdleTimeout
-
-#     await temp_rows.add_row(b"row_key_1")
-#     await temp_rows.add_row(b"row_key_2")
-
-#     generator = await table.read_rows_stream({})
-#     await generator._start_idle_timer(0.05)
-#     await asyncio.sleep(0.2)
-#     assert generator.active is False
-#     with pytest.raises(IdleTimeout) as e:
-#         await generator.__anext__()
-#         assert "inactivity" in str(e)
-#         assert "idle_timeout=0.1" in str(e)
-
-
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row(table, temp_rows):

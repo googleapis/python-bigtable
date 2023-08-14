@@ -98,7 +98,7 @@ class _ReadRowsOperationAsync:
             table.app_profile_id,
         )
         self._last_yielded_row_key: bytes | None = None
-        self._remaining_count = self.request.rows_limit or None
+        self._remaining_count: int | None = self.request.rows_limit or None
 
     async def start_operation(self) -> AsyncGenerator[Row, None]:
         """
@@ -110,15 +110,15 @@ class _ReadRowsOperationAsync:
             if self._predicate(exc):
                 transient_errors.append(exc)
 
-        retry_fn = AsyncRetryableGenerator(
-            self.read_rows_attempt,
+        retry_gen = AsyncRetryableGenerator(
+            self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             on_error_fn,
         )
         try:
-            async for row in retry_fn:
+            async for row in retry_gen:
                 yield row
                 if self._remaining_count is not None:
                     self._remaining_count -= 1
@@ -128,12 +128,14 @@ class _ReadRowsOperationAsync:
             self._raise_retry_error(transient_errors)
         except GeneratorExit:
             # propagate close to wrapped generator
-            await retry_fn.aclose()
+            await retry_gen.aclose()
 
-    def read_rows_attempt(self) -> AsyncGenerator[Row, None]:
+    def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
-        single read_rows attempt. This function is intended to be wrapped
-        by retry logic to be called for each attempted.
+        Attempt a single read_rows rpc call.
+        This function is intended to be wrapped by retry logic,
+        which will call this function until it succeeds or
+        a non-retryable error is raised.
         """
         # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
@@ -246,10 +248,14 @@ class _ReadRowsOperationAsync:
                             qualifier = q
                         else:
                             raise InvalidChunk("new family without qualifier")
+                    elif family is None:
+                        raise InvalidChunk("missing family")
                     elif q is not None:
                         if family is None:
                             raise InvalidChunk("new qualifier without family")
                         qualifier = q
+                    elif qualifier is None:
+                        raise InvalidChunk("missing qualifier")
 
                     ts = c.timestamp_micros
                     labels = c.labels if c.labels else []
@@ -286,10 +292,6 @@ class _ReadRowsOperationAsync:
                                 raise _ResetRow(c)
                             buffer.append(c.value)
                         value = b"".join(buffer)
-                    if family is None:
-                        raise InvalidChunk("missing family")
-                    if qualifier is None:
-                        raise InvalidChunk("missing qualifier")
                     cells.append(
                         Cell(value, row_key, family, qualifier, ts, list(labels))
                     )
