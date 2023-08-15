@@ -104,31 +104,39 @@ class _ReadRowsOperationAsync:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
-        transient_errors = []
 
-        def on_error_fn(exc):
-            if self._predicate(exc):
-                transient_errors.append(exc)
+        def _exc_factory(exc_list:list[Exception], is_timeout:bool, timeout_val:float):
+            """
+            Build retry error based on exceptions encountered during operation
+            """
+            if is_timeout:
+                # if failed due to timeout, raise deadline exceeded as primary exception
+                source_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {timeout_val} exceeded")
+            elif exc_list:
+                # otherwise, raise non-retryable error as primary exception
+                source_exc = exc_list.pop()
+            else:
+                source_exc = RuntimeError("failed with unspecified exception")
+            cause_exc = None
+            if exc_list:
+                # use the retry exception group as the cause of the exception
+                cause_exc = RetryExceptionGroup(exc_list)
+            source_exc.__cause__ = cause_exc
+            return source_exc, cause_exc
 
         retry_gen = AsyncRetryableGenerator(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
-            on_error_fn,
+            exception_factory=_exc_factory
         )
-        try:
-            async for row in retry_gen:
-                yield row
-                if self._remaining_count is not None:
-                    self._remaining_count -= 1
-                    if self._remaining_count < 0:
-                        raise RuntimeError("emit count exceeds row limit")
-        except core_exceptions.RetryError:
-            self._raise_retry_error(transient_errors)
-        except GeneratorExit:
-            # propagate close to wrapped generator
-            await retry_gen.aclose()
+        async for row in retry_gen:
+            yield row
+            if self._remaining_count is not None:
+                self._remaining_count -= 1
+                if self._remaining_count < 0:
+                    raise RuntimeError("emit count exceeds row limit")
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
@@ -353,20 +361,3 @@ class _ReadRowsOperationAsync:
             # this will avoid an unwanted full table scan
             raise _RowSetComplete()
         return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
-
-    def _raise_retry_error(self, transient_errors: list[Exception]) -> None:
-        """
-        If the retryable deadline is hit, wrap the raised exception
-        in a RetryExceptionGroup
-        """
-        timeout_value = self.operation_timeout
-        timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
-        error_str = f"operation_timeout{timeout_str} exceeded"
-        new_exc = core_exceptions.DeadlineExceeded(
-            error_str,
-        )
-        source_exc = None
-        if transient_errors:
-            source_exc = RetryExceptionGroup(transient_errors)
-        new_exc.__cause__ = source_exc
-        raise new_exc from source_exc
