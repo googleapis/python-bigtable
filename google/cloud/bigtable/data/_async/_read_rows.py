@@ -111,16 +111,14 @@ class _ReadRowsOperationAsync:
             """
             if is_timeout:
                 # if failed due to timeout, raise deadline exceeded as primary exception
-                source_exc = core_exceptions.DeadlineExceeded(f"operation_timeout of {timeout_val} exceeded")
+                source_exc: Exception = core_exceptions.DeadlineExceeded(f"operation_timeout of {timeout_val} exceeded")
             elif exc_list:
                 # otherwise, raise non-retryable error as primary exception
                 source_exc = exc_list.pop()
             else:
                 source_exc = RuntimeError("failed with unspecified exception")
-            cause_exc = None
-            if exc_list:
-                # use the retry exception group as the cause of the exception
-                cause_exc = RetryExceptionGroup(exc_list)
+            # use the retry exception group as the cause of the exception
+            cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
             source_exc.__cause__ = cause_exc
             return source_exc, cause_exc
 
