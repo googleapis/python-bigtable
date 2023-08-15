@@ -100,7 +100,7 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    async def start_operation(self) -> AsyncGenerator[Row, None]:
+    def start_operation(self) -> AsyncGenerator[Row, None]:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
@@ -124,19 +124,13 @@ class _ReadRowsOperationAsync:
             source_exc.__cause__ = cause_exc
             return source_exc, cause_exc
 
-        retry_gen = AsyncRetryableGenerator(
+        return AsyncRetryableGenerator(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             exception_factory=_exc_factory
         )
-        async for row in retry_gen:
-            yield row
-            if self._remaining_count is not None:
-                self._remaining_count -= 1
-                if self._remaining_count < 0:
-                    raise RuntimeError("emit count exceeds row limit")
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
@@ -210,6 +204,10 @@ class _ReadRowsOperationAsync:
                 elif c.commit_row:
                     # update row state after each commit
                     self._last_yielded_row_key = current_key
+                    if self._remaining_count is not None:
+                        self._remaining_count -= 1
+                        if self._remaining_count < 0:
+                            raise InvalidChunk("emit count exceeds row limit")
                     current_key = None
 
     @staticmethod
