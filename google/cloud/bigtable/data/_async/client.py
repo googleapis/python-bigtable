@@ -174,7 +174,7 @@ class BigtableDataClientAsync(ClientWithProject):
         else:
             # attempt to start background channel refresh tasks
             try:
-                self.start_background_channel_refresh()
+                self._start_background_channel_refresh()
             except RuntimeError:
                 warnings.warn(
                     f"{self.__class__.__name__} should be started in an "
