@@ -99,7 +99,7 @@ class _BigtableExceptionGroup(ExceptionGroup if is_311_plus else Exception):  # 
                         "| The above exception was the direct cause of the following exception:"
                     )
                     message_parts.append("| ")
-                # attach error message for this sub-exception 
+                # attach error message for this sub-exception
                 # if the subexception is also a _BigtableExceptionGroup,
                 # error messages will be nested
                 message_parts.extend(f"| {type(e).__name__}: {e}".splitlines())
