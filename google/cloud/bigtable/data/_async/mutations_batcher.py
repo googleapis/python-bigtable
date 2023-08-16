@@ -23,10 +23,11 @@ from collections import deque
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data._helpers import _validate_timeouts
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import (
-    MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
+    _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
@@ -143,7 +144,7 @@ class _FlowControlAsync:
                         self._has_capacity(next_count, next_size)
                         # make sure not to exceed per-request mutation count limits
                         and (batch_mutation_count + next_count)
-                        <= MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+                        <= _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
                     ):
                         # room for new mutation; add to batch
                         end_idx += 1
@@ -189,7 +190,7 @@ class MutationsBatcherAsync:
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
-        batch_per_request_timeout: float | None = None,
+        batch_attempt_timeout: float | None = None,
     ):
         """
         Args:
@@ -202,26 +203,20 @@ class MutationsBatcherAsync:
           - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
           - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
-              table default_operation_timeout will be used
-          - batch_per_request_timeout: timeout for each individual request, in seconds. If None,
-              table default_per_request_timeout will be used
+              table default_mutate_rows_operation_timeout will be used
+          - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
+              table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
+              if that is also None.
         """
         self._operation_timeout: float = (
-            batch_operation_timeout or table.default_operation_timeout
+            batch_operation_timeout or table.default_mutate_rows_operation_timeout
         )
-        self._per_request_timeout: float = (
-            batch_per_request_timeout
-            or table.default_per_request_timeout
+        self._attempt_timeout: float = (
+            batch_attempt_timeout
+            or table.default_mutate_rows_attempt_timeout
             or self._operation_timeout
         )
-        if self._operation_timeout <= 0:
-            raise ValueError("batch_operation_timeout must be greater than 0")
-        if self._per_request_timeout <= 0:
-            raise ValueError("batch_per_request_timeout must be greater than 0")
-        if self._per_request_timeout > self._operation_timeout:
-            raise ValueError(
-                "batch_per_request_timeout must be less than batch_operation_timeout"
-            )
+        _validate_timeouts(self._operation_timeout, self._attempt_timeout)
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
@@ -346,7 +341,7 @@ class MutationsBatcherAsync:
 
         Args:
           - batch: list of RowMutationEntry objects to send to server
-          - timeout: timeout in seconds. Used as operation_timeout and per_request_timeout.
+          - timeout: timeout in seconds. Used as operation_timeout and attempt_timeout.
               If not given, will use table defaults
         Returns:
           - list of FailedMutationEntryError objects for mutations that failed.
@@ -361,7 +356,7 @@ class MutationsBatcherAsync:
                 self._table,
                 batch,
                 operation_timeout=self._operation_timeout,
-                per_request_timeout=self._per_request_timeout,
+                attempt_timeout=self._attempt_timeout,
             )
             await operation.start()
         except MutationsExceptionGroup as e:
