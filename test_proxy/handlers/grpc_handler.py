@@ -15,9 +15,9 @@ class TestProxyGrpcServer(test_proxy_pb2_grpc.CloudBigtableV2TestProxyServicer):
 
     Due to issues with using protoc-compiled protos and client-library
     proto-plus objects in the same process, this server defers requests to
-    matching methods in  a TestProxyClientHandler instance in a separate
+    matching methods in a TestProxyClientHandler instance in a separate
     process.
-    This happens invisbly in the decorator @defer_to_client, with the
+    This happens invisbly in the decorator @delegate_to_client_handler, with the
     results attached to each request as a client_response kwarg
     """
 

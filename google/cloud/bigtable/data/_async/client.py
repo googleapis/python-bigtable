@@ -152,7 +152,6 @@ class BigtableDataClientAsync(ClientWithProject):
         # keep track of table objects associated with each instance
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
-        # attempt to start background tasks
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)

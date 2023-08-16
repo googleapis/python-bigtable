@@ -162,27 +162,31 @@ if __name__ == "__main__":
     response_queue_pool = [multiprocessing.Queue() for _ in range(100)]
     request_q = multiprocessing.Queue()
 
-    # run client in forground and proxy in background
-    # breakpoints can be attached to client_handler_process
-    proxy = multiprocessing.Process(
-        target=grpc_server_process,
-        args=(
-            request_q,
-            response_queue_pool,
-            port
-        ),
-    )
-    proxy.start()
-    client_handler_process(request_q, response_queue_pool, use_legacy_client)
-
-    # uncomment to run proxy in foreground instead
-    # client = multiprocessing.Process(
-    #     target=client_handler_process,
-    #     args=(
-    #         request_q,
-    #         response_queue_pool,
-    #     ),
-    # )
-    # client.start()
-    # grpc_server_process(request_q, response_queue_pool, port)
-    # client.join()
+    CLIENT_IS_FOREGROUND=bool(os.environ.get("CLIENT_IS_FOREGROUND", True))
+    if CLIENT_IS_FOREGROUND:
+        # run client in forground and proxy in background
+        # breakpoints can be attached to handlers/client_handler_data.py
+        proxy = multiprocessing.Process(
+            target=grpc_server_process,
+            args=(
+                request_q,
+                response_queue_pool,
+                port
+            ),
+        )
+        proxy.start()
+        client_handler_process(request_q, response_queue_pool, use_legacy_client)
+        proxy.join()
+    else:
+        # run proxy in forground and client in background
+        # breakpoints can be attached to handlers/grpc_handler.py
+        client = multiprocessing.Process(
+            target=client_handler_process,
+            args=(
+                request_q,
+                response_queue_pool,
+            ),
+        )
+        client.start()
+        grpc_server_process(request_q, response_queue_pool, port)
+        client.join()
