@@ -25,40 +25,11 @@ except ImportError:  # pragma: NO COVER
     import mock  # type: ignore
 
 
-class TestBigtableExceptionGroup:
+class TracebackTests311:
     """
-    Subclass for MutationsExceptionGroup, RetryExceptionGroup, and ShardedReadRowsExceptionGroup
+    Provides a set of tests that should be run on python 3.11 and above,
+    to verify that the exception traceback looks as expected
     """
-
-    def _get_class(self):
-        from google.cloud.bigtable.data.exceptions import _BigtableExceptionGroup
-
-        return _BigtableExceptionGroup
-
-    def _make_one(self, message="test_message", excs=None):
-        if excs is None:
-            excs = [RuntimeError("mock")]
-
-        return self._get_class()(message, excs=excs)
-
-    def test_raise(self):
-        """
-        Create exception in raise statement, which calls __new__ and __init__
-        """
-        test_msg = "test message"
-        test_excs = [Exception(test_msg)]
-        with pytest.raises(self._get_class()) as e:
-            raise self._get_class()(test_msg, test_excs)
-        assert str(e.value) == test_msg
-        assert list(e.value.exceptions) == test_excs
-
-    def test_raise_empty_list(self):
-        """
-        Empty exception lists are not supported
-        """
-        with pytest.raises(ValueError) as e:
-            raise self._make_one(excs=[])
-        assert "non-empty sequence" in str(e.value)
 
     @pytest.mark.skipif(
         sys.version_info < (3, 11), reason="requires python3.11 or higher"
@@ -71,11 +42,51 @@ class TestBigtableExceptionGroup:
 
         sub_exc1 = RuntimeError("first sub exception")
         sub_exc2 = ZeroDivisionError("second sub exception")
+        sub_group = self._make_one(excs=[sub_exc2])
+        exc_group = self._make_one(excs=[sub_exc1, sub_group])
+
+        expected_traceback = (
+            f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
+            "  +-+---------------- 1 ----------------",
+            "    | RuntimeError: first sub exception",
+            "    +---------------- 2 ----------------",
+            f"    | google.cloud.bigtable.data.exceptions.{type(sub_group).__name__}: {str(sub_group)}",
+            "    +-+---------------- 1 ----------------",
+            "      | ZeroDivisionError: second sub exception",
+            "      +------------------------------------",
+        )
+        exception_caught = False
+        try:
+            raise exc_group
+        except self._get_class():
+            exception_caught = True
+            tb = traceback.format_exc()
+            tb_relevant_lines = tuple(tb.splitlines()[3:])
+            assert expected_traceback == tb_relevant_lines
+        assert exception_caught
+
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="requires python3.11 or higher"
+    )
+    def test_311_traceback_with_cause(self):
+        """
+        traceback should display nicely with sub-exceptions with __cause__ set
+        """
+        import traceback
+
+        sub_exc1 = RuntimeError("first sub exception")
+        cause_exc = ImportError("cause exception")
+        sub_exc1.__cause__ = cause_exc
+        sub_exc2 = ZeroDivisionError("second sub exception")
         exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
 
         expected_traceback = (
             f"  | google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {str(exc_group)}",
             "  +-+---------------- 1 ----------------",
+            "    | ImportError: cause exception",
+            "    | ",
+            "    | The above exception was the direct cause of the following exception:",
+            "    | ",
             "    | RuntimeError: first sub exception",
             "    +---------------- 2 ----------------",
             "    | ZeroDivisionError: second sub exception",
@@ -104,6 +115,126 @@ class TestBigtableExceptionGroup:
         runtime_error, others = instance.split(lambda e: isinstance(e, RuntimeError))
         assert runtime_error.exceptions[0] == exceptions[0]
         assert others.exceptions[0] == exceptions[1]
+
+
+class TracebackTests310:
+    """
+    Provides a set of tests that should be run on python 3.10 and under,
+    to verify that the exception traceback looks as expected
+    """
+
+    @pytest.mark.skipif(
+        sys.version_info >= (3, 11), reason="requires python3.10 or lower"
+    )
+    def test_310_traceback(self):
+        """
+        Exception customizations should not break rich exception group traceback in python 3.10
+        """
+        import traceback
+
+        sub_exc1 = RuntimeError("first sub exception")
+        sub_exc2 = ZeroDivisionError("second sub exception")
+        sub_group = self._make_one(excs=[sub_exc2])
+        exc_group = self._make_one(excs=[sub_exc1, sub_group])
+        found_message = str(exc_group).splitlines()[0]
+        found_sub_message = str(sub_group).splitlines()[0]
+
+        expected_traceback = (
+            f"google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {found_message}",
+            "--+----------------  1 ----------------",
+            "  | RuntimeError: first sub exception",
+            "  +----------------  2 ----------------",
+            f"  | {type(sub_group).__name__}: {found_sub_message}",
+            "  --+----------------  1 ----------------",
+            "    | ZeroDivisionError: second sub exception",
+            "    +------------------------------------",
+        )
+        exception_caught = False
+        try:
+            raise exc_group
+        except self._get_class():
+            exception_caught = True
+            tb = traceback.format_exc()
+            tb_relevant_lines = tuple(tb.splitlines()[3:])
+            assert expected_traceback == tb_relevant_lines
+        assert exception_caught
+
+    @pytest.mark.skipif(
+        sys.version_info >= (3, 11), reason="requires python3.10 or lower"
+    )
+    def test_310_traceback_with_cause(self):
+        """
+        traceback should display nicely with sub-exceptions with __cause__ set
+        """
+        import traceback
+
+        sub_exc1 = RuntimeError("first sub exception")
+        cause_exc = ImportError("cause exception")
+        sub_exc1.__cause__ = cause_exc
+        sub_exc2 = ZeroDivisionError("second sub exception")
+        exc_group = self._make_one(excs=[sub_exc1, sub_exc2])
+        found_message = str(exc_group).splitlines()[0]
+
+        expected_traceback = (
+            f"google.cloud.bigtable.data.exceptions.{type(exc_group).__name__}: {found_message}",
+            "--+----------------  1 ----------------",
+            "  | ImportError: cause exception",
+            "  | ",
+            "  | The above exception was the direct cause of the following exception:",
+            "  | ",
+            "  | RuntimeError: first sub exception",
+            "  +----------------  2 ----------------",
+            "  | ZeroDivisionError: second sub exception",
+            "  +------------------------------------",
+        )
+        exception_caught = False
+        try:
+            raise exc_group
+        except self._get_class():
+            exception_caught = True
+            tb = traceback.format_exc()
+            tb_relevant_lines = tuple(tb.splitlines()[3:])
+            assert expected_traceback == tb_relevant_lines
+        assert exception_caught
+
+
+class TestBigtableExceptionGroup(TracebackTests311, TracebackTests310):
+    """
+    Subclass for MutationsExceptionGroup, RetryExceptionGroup, and ShardedReadRowsExceptionGroup
+    """
+
+    def _get_class(self):
+        from google.cloud.bigtable.data.exceptions import _BigtableExceptionGroup
+
+        return _BigtableExceptionGroup
+
+    def _make_one(self, message="test_message", excs=None):
+        if excs is None:
+            excs = [RuntimeError("mock")]
+
+        return self._get_class()(message, excs=excs)
+
+    def test_raise(self):
+        """
+        Create exception in raise statement, which calls __new__ and __init__
+        """
+        test_msg = "test message"
+        test_excs = [Exception(test_msg)]
+        with pytest.raises(self._get_class()) as e:
+            raise self._get_class()(test_msg, test_excs)
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == test_msg
+        assert list(e.value.exceptions) == test_excs
+
+    def test_raise_empty_list(self):
+        """
+        Empty exception lists are not supported
+        """
+        with pytest.raises(ValueError) as e:
+            raise self._make_one(excs=[])
+        assert "non-empty sequence" in str(e.value)
 
     def test_exception_handling(self):
         """
@@ -151,7 +282,10 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, total_entries)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
 
     def test_raise_custom_message(self):
@@ -162,7 +296,10 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
         exception_list = [Exception()]
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, 5, message=custom_message)
-        assert str(e.value) == custom_message
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == custom_message
         assert list(e.value.exceptions) == exception_list
 
     @pytest.mark.parametrize(
@@ -222,7 +359,10 @@ class TestMutationsExceptionGroup(TestBigtableExceptionGroup):
             raise self._get_class().from_truncated_lists(
                 first_list, second_list, total_excs, entry_count
             )
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == first_list + second_list
 
 
@@ -241,11 +381,11 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
     @pytest.mark.parametrize(
         "exception_list,expected_message",
         [
-            ([Exception()], "1 failed attempt: Exception"),
-            ([Exception(), RuntimeError()], "2 failed attempts. Latest: RuntimeError"),
+            ([Exception()], "1 failed attempt"),
+            ([Exception(), RuntimeError()], "2 failed attempts"),
             (
                 [Exception(), ValueError("test")],
-                "2 failed attempts. Latest: ValueError",
+                "2 failed attempts",
             ),
             (
                 [
@@ -253,7 +393,7 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
                         [Exception(), ValueError("test")]
                     )
                 ],
-                "1 failed attempt: RetryExceptionGroup",
+                "1 failed attempt",
             ),
         ],
     )
@@ -263,7 +403,10 @@ class TestRetryExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
 
 
@@ -299,7 +442,10 @@ class TestShardedReadRowsExceptionGroup(TestBigtableExceptionGroup):
         """
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(exception_list, succeeded, total_entries)
-        assert str(e.value) == expected_message
+        found_message = str(e.value).splitlines()[
+            0
+        ]  # added to prase out subexceptions in <3.11
+        assert found_message == expected_message
         assert list(e.value.exceptions) == exception_list
         assert e.value.successful_rows == succeeded
 
@@ -323,10 +469,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed idempotent mutation entry at index 2 with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed idempotent mutation entry at index 2"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -343,10 +486,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed non-idempotent mutation entry at index 2 with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed non-idempotent mutation entry at index 2"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -361,10 +501,7 @@ class TestFailedMutationEntryError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_entry, test_exc)
-        assert (
-            str(e.value)
-            == "Failed idempotent mutation entry with cause: ValueError('test')"
-        )
+        assert str(e.value) == "Failed idempotent mutation entry"
         assert e.value.index == test_idx
         assert e.value.entry == test_entry
         assert e.value.__cause__ == test_exc
@@ -391,7 +528,7 @@ class TestFailedQueryShardError:
         test_exc = ValueError("test")
         with pytest.raises(self._get_class()) as e:
             raise self._get_class()(test_idx, test_query, test_exc)
-        assert str(e.value) == "Failed query at index 2 with cause: ValueError('test')"
+        assert str(e.value) == "Failed query at index 2"
         assert e.value.index == test_idx
         assert e.value.query == test_query
         assert e.value.__cause__ == test_exc
