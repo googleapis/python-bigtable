@@ -25,7 +25,7 @@ from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
 # mutate_rows requests are limited to this number of mutations
-from google.cloud.bigtable.data.mutations import MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 if TYPE_CHECKING:
     from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -52,23 +52,23 @@ class _MutateRowsOperationAsync:
         table: "TableAsync",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
-        per_request_timeout: float | None,
+        attempt_timeout: float | None,
     ):
         """
         Args:
           - gapic_client: the client to use for the mutate_rows call
           - table: the table associated with the request
           - mutation_entries: a list of RowMutationEntry objects to send to the server
-          - operation_timeout: the timeout t o use for the entire operation, in seconds.
-          - per_request_timeout: the timeoutto use for each mutate_rows attempt, in seconds.
+          - operation_timeout: the timeout to use for the entire operation, in seconds.
+          - attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
         """
         # check that mutations are within limits
         total_mutations = sum(len(entry.mutations) for entry in mutation_entries)
-        if total_mutations > MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
+        if total_mutations > _MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
             raise ValueError(
                 "mutate_rows requests can contain at most "
-                f"{MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
+                f"{_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across "
                 f"all entries. Found {total_mutations}."
             )
         # create partial function to pass to trigger rpc call
@@ -99,7 +99,7 @@ class _MutateRowsOperationAsync:
         self._operation = _convert_retry_deadline(retry_wrapped, operation_timeout)
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(
-            per_request_timeout, operation_timeout
+            attempt_timeout, operation_timeout
         )
         self.mutations = mutation_entries
         self.remaining_indices = list(range(len(self.mutations)))
@@ -186,8 +186,8 @@ class _MutateRowsOperationAsync:
             # already handled, and update remaining_indices if mutation is retryable
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
-                # bubble up exception to be handled by retry wrapper
-                raise
+            # bubble up exception to be handled by retry wrapper
+            raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry

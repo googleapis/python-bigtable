@@ -32,34 +32,52 @@ class TestRowRange:
 
     def test_ctor_start_end(self):
         row_range = self._make_one("test_row", "test_row2")
-        assert row_range.start.key == "test_row".encode()
-        assert row_range.end.key == "test_row2".encode()
-        assert row_range.start.is_inclusive is True
-        assert row_range.end.is_inclusive is False
+        assert row_range._start.key == "test_row".encode()
+        assert row_range._end.key == "test_row2".encode()
+        assert row_range._start.is_inclusive is True
+        assert row_range._end.is_inclusive is False
+        assert row_range.start_key == "test_row".encode()
+        assert row_range.end_key == "test_row2".encode()
+        assert row_range.start_is_inclusive is True
+        assert row_range.end_is_inclusive is False
 
     def test_ctor_start_only(self):
         row_range = self._make_one("test_row3")
-        assert row_range.start.key == "test_row3".encode()
-        assert row_range.start.is_inclusive is True
-        assert row_range.end is None
+        assert row_range.start_key == "test_row3".encode()
+        assert row_range.start_is_inclusive is True
+        assert row_range.end_key is None
+        assert row_range.end_is_inclusive is True
 
     def test_ctor_end_only(self):
         row_range = self._make_one(end_key="test_row4")
-        assert row_range.end.key == "test_row4".encode()
-        assert row_range.end.is_inclusive is False
-        assert row_range.start is None
+        assert row_range.end_key == "test_row4".encode()
+        assert row_range.end_is_inclusive is False
+        assert row_range.start_key is None
+        assert row_range.start_is_inclusive is True
+
+    def test_ctor_empty_strings(self):
+        """
+        empty strings should be treated as None
+        """
+        row_range = self._make_one("", "")
+        assert row_range._start is None
+        assert row_range._end is None
+        assert row_range.start_key is None
+        assert row_range.end_key is None
+        assert row_range.start_is_inclusive is True
+        assert row_range.end_is_inclusive is True
 
     def test_ctor_inclusive_flags(self):
         row_range = self._make_one("test_row5", "test_row6", False, True)
-        assert row_range.start.key == "test_row5".encode()
-        assert row_range.end.key == "test_row6".encode()
-        assert row_range.start.is_inclusive is False
-        assert row_range.end.is_inclusive is True
+        assert row_range.start_key == "test_row5".encode()
+        assert row_range.end_key == "test_row6".encode()
+        assert row_range.start_is_inclusive is False
+        assert row_range.end_is_inclusive is True
 
     def test_ctor_defaults(self):
         row_range = self._make_one()
-        assert row_range.start is None
-        assert row_range.end is None
+        assert row_range.start_key is None
+        assert row_range.end_key is None
 
     def test_ctor_flags_only(self):
         with pytest.raises(ValueError) as exc:
@@ -83,6 +101,9 @@ class TestRowRange:
         with pytest.raises(ValueError) as exc:
             self._make_one("1", 2)
         assert str(exc.value) == "end_key must be a string or bytes"
+        with pytest.raises(ValueError) as exc:
+            self._make_one("2", "1")
+        assert str(exc.value) == "start_key must be less than or equal to end_key"
 
     def test__to_dict_defaults(self):
         row_range = self._make_one("test_row", "test_row2")
@@ -143,8 +164,8 @@ class TestRowRange:
 
         row_range = RowRange._from_dict(input_dict)
         assert row_range._to_dict().keys() == input_dict.keys()
-        found_start = row_range.start
-        found_end = row_range.end
+        found_start = row_range._start
+        found_end = row_range._end
         if expected_start is None:
             assert found_start is None
             assert start_is_inclusive is None
@@ -176,7 +197,7 @@ class TestRowRange:
 
         row_range_from_dict = RowRange._from_dict(dict_repr)
         row_range_from_points = RowRange._from_points(
-            row_range_from_dict.start, row_range_from_dict.end
+            row_range_from_dict._start, row_range_from_dict._end
         )
         assert row_range_from_points._to_dict() == row_range_from_dict._to_dict()
 
@@ -238,6 +259,86 @@ class TestRowRange:
         row_range = RowRange._from_dict(dict_repr)
         assert bool(row_range) is expected
 
+    def test__eq__(self):
+        """
+        test that row ranges can be compared for equality
+        """
+        from google.cloud.bigtable.data.read_rows_query import RowRange
+
+        range1 = RowRange("1", "2")
+        range1_dup = RowRange("1", "2")
+        range2 = RowRange("1", "3")
+        range_w_empty = RowRange(None, "2")
+        assert range1 == range1_dup
+        assert range1 != range2
+        assert range1 != range_w_empty
+        range_1_w_inclusive_start = RowRange("1", "2", start_is_inclusive=True)
+        range_1_w_exclusive_start = RowRange("1", "2", start_is_inclusive=False)
+        range_1_w_inclusive_end = RowRange("1", "2", end_is_inclusive=True)
+        range_1_w_exclusive_end = RowRange("1", "2", end_is_inclusive=False)
+        assert range1 == range_1_w_inclusive_start
+        assert range1 == range_1_w_exclusive_end
+        assert range1 != range_1_w_exclusive_start
+        assert range1 != range_1_w_inclusive_end
+
+    @pytest.mark.parametrize(
+        "dict_repr,expected",
+        [
+            (
+                {"start_key_closed": "test_row", "end_key_open": "test_row2"},
+                "[b'test_row', b'test_row2')",
+            ),
+            (
+                {"start_key_open": "test_row", "end_key_closed": "test_row2"},
+                "(b'test_row', b'test_row2']",
+            ),
+            ({"start_key_open": b"a"}, "(b'a', +inf]"),
+            ({"end_key_closed": b"b"}, "[-inf, b'b']"),
+            ({"end_key_open": b"b"}, "[-inf, b'b')"),
+            ({}, "[-inf, +inf]"),
+        ],
+    )
+    def test___str__(self, dict_repr, expected):
+        """
+        test string representations of row ranges
+        """
+        from google.cloud.bigtable.data.read_rows_query import RowRange
+
+        row_range = RowRange._from_dict(dict_repr)
+        assert str(row_range) == expected
+
+    @pytest.mark.parametrize(
+        "dict_repr,expected",
+        [
+            (
+                {"start_key_closed": "test_row", "end_key_open": "test_row2"},
+                "RowRange(start_key=b'test_row', end_key=b'test_row2')",
+            ),
+            (
+                {"start_key_open": "test_row", "end_key_closed": "test_row2"},
+                "RowRange(start_key=b'test_row', end_key=b'test_row2', start_is_inclusive=False, end_is_inclusive=True)",
+            ),
+            (
+                {"start_key_open": b"a"},
+                "RowRange(start_key=b'a', end_key=None, start_is_inclusive=False)",
+            ),
+            (
+                {"end_key_closed": b"b"},
+                "RowRange(start_key=None, end_key=b'b', end_is_inclusive=True)",
+            ),
+            ({"end_key_open": b"b"}, "RowRange(start_key=None, end_key=b'b')"),
+            ({}, "RowRange(start_key=None, end_key=None)"),
+        ],
+    )
+    def test___repr__(self, dict_repr, expected):
+        """
+        test repr representations of row ranges
+        """
+        from google.cloud.bigtable.data.read_rows_query import RowRange
+
+        row_range = RowRange._from_dict(dict_repr)
+        assert repr(row_range) == expected
+
 
 class TestReadRowsQuery:
     @staticmethod
@@ -298,24 +399,6 @@ class TestReadRowsQuery:
         with pytest.raises(ValueError) as exc:
             query.filter = 1
         assert str(exc.value) == "row_filter must be a RowFilter or dict"
-
-    def test_set_filter_dict(self):
-        from google.cloud.bigtable.data.row_filters import RowSampleFilter
-        from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
-
-        filter1 = RowSampleFilter(0.5)
-        filter1_dict = filter1.to_dict()
-        query = self._make_one()
-        assert query.filter is None
-        query.filter = filter1_dict
-        assert query.filter == filter1_dict
-        output = query._to_dict()
-        assert output["filter"] == filter1_dict
-        proto_output = ReadRowsRequest(**output)
-        assert proto_output.filter == filter1._to_pb()
-
-        query.filter = None
-        assert query.filter is None
 
     def test_set_limit(self):
         query = self._make_one()
@@ -698,13 +781,18 @@ class TestReadRowsQuery:
             ((), ("a",), False),
             (("a",), (), False),
             (("a",), ("a",), True),
+            (("a",), (["a", b"a"],), True),  # duplicate keys
+            ((["a"],), (["a", "b"],), False),
+            ((["a", "b"],), (["a", "b"],), True),
+            ((["a", b"b"],), ([b"a", "b"],), True),
             (("a",), (b"a",), True),
             (("a",), ("b",), False),
             (("a",), ("a", ["b"]), False),
-            (("a", ["b"]), ("a", ["b"]), True),
+            (("a", "b"), ("a", ["b"]), True),
             (("a", ["b"]), ("a", ["b", "c"]), False),
             (("a", ["b", "c"]), ("a", [b"b", "c"]), True),
             (("a", ["b", "c"], 1), ("a", ["b", b"c"], 1), True),
+            (("a", ["b"], 1), ("a", ["b", b"b", "b"], 1), True),  # duplicate ranges
             (("a", ["b"], 1), ("a", ["b"], 2), False),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1, {"a": "b"}), True),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1), False),
