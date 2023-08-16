@@ -47,10 +47,10 @@ class RowFilter(ABC):
 
         Returns: The converted current object.
         """
-        return data_v2_pb2.RowFilter(**self.to_dict())
+        return data_v2_pb2.RowFilter(**self._to_dict())
 
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         pass
 
@@ -91,7 +91,7 @@ class SinkFilter(_BoolFilter):
                  of a :class:`ConditionalRowFilter`.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"sink": self.flag}
 
@@ -105,7 +105,7 @@ class PassAllFilter(_BoolFilter):
                  completeness.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"pass_all_filter": self.flag}
 
@@ -118,7 +118,7 @@ class BlockAllFilter(_BoolFilter):
                  temporarily disabling just part of a filter.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"block_all_filter": self.flag}
 
@@ -175,7 +175,7 @@ class RowKeyRegexFilter(_RegexFilter):
                   since the row key is already specified.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"row_key_regex_filter": self.regex}
 
@@ -199,7 +199,7 @@ class RowSampleFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"row_sample_filter": self.sample}
 
@@ -222,7 +222,7 @@ class FamilyNameRegexFilter(_RegexFilter):
                   used as a literal.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"family_name_regex_filter": self.regex}
 
@@ -248,7 +248,7 @@ class ColumnQualifierRegexFilter(_RegexFilter):
                   match this regex (irrespective of column family).
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"column_qualifier_regex_filter": self.regex}
 
@@ -282,9 +282,9 @@ class TimestampRange(object):
 
         Returns: The converted current object.
         """
-        return data_v2_pb2.TimestampRange(**self.to_dict())
+        return data_v2_pb2.TimestampRange(**self._to_dict())
 
-    def to_dict(self) -> dict[str, int]:
+    def _to_dict(self) -> dict[str, int]:
         """Converts the timestamp range to a dict representation."""
         timestamp_range_kwargs = {}
         if self.start is not None:
@@ -330,9 +330,9 @@ class TimestampRangeFilter(RowFilter):
         """
         return data_v2_pb2.RowFilter(timestamp_range_filter=self.range_._to_pb())
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"timestamp_range_filter": self.range_.to_dict()}
+        return {"timestamp_range_filter": self.range_._to_dict()}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(start={self.range_.start!r}, end={self.range_.end!r})"
@@ -426,10 +426,10 @@ class ColumnRangeFilter(RowFilter):
 
         Returns: The converted current object.
         """
-        column_range = data_v2_pb2.ColumnRange(**self.range_to_dict())
+        column_range = data_v2_pb2.ColumnRange(**self._range_to_dict())
         return data_v2_pb2.RowFilter(column_range_filter=column_range)
 
-    def range_to_dict(self) -> dict[str, str | bytes]:
+    def _range_to_dict(self) -> dict[str, str | bytes]:
         """Converts the column range range to a dict representation."""
         column_range_kwargs: dict[str, str | bytes] = {}
         column_range_kwargs["family_name"] = self.family_id
@@ -447,9 +447,9 @@ class ColumnRangeFilter(RowFilter):
             column_range_kwargs[key] = _to_bytes(self.end_qualifier)
         return column_range_kwargs
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"column_range_filter": self.range_to_dict()}
+        return {"column_range_filter": self._range_to_dict()}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(family_id='{self.family_id}', start_qualifier={self.start_qualifier!r}, end_qualifier={self.end_qualifier!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
@@ -476,7 +476,7 @@ class ValueRegexFilter(_RegexFilter):
                   match this regex.  String values will be encoded as ASCII.
     """
 
-    def to_dict(self) -> dict[str, bytes]:
+    def _to_dict(self) -> dict[str, bytes]:
         """Converts the row filter to a dict representation."""
         return {"value_regex_filter": self.regex}
 
@@ -620,10 +620,10 @@ class ValueRangeFilter(RowFilter):
 
         Returns: The converted current object.
         """
-        value_range = data_v2_pb2.ValueRange(**self.range_to_dict())
+        value_range = data_v2_pb2.ValueRange(**self._range_to_dict())
         return data_v2_pb2.RowFilter(value_range_filter=value_range)
 
-    def range_to_dict(self) -> dict[str, bytes]:
+    def _range_to_dict(self) -> dict[str, bytes]:
         """Converts the value range range to a dict representation."""
         value_range_kwargs = {}
         if self.start_value is not None:
@@ -640,9 +640,9 @@ class ValueRangeFilter(RowFilter):
             value_range_kwargs[key] = _to_bytes(self.end_value)
         return value_range_kwargs
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"value_range_filter": self.range_to_dict()}
+        return {"value_range_filter": self._range_to_dict()}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(start_value={self.start_value!r}, end_value={self.end_value!r}, inclusive_start={self.inclusive_start}, inclusive_end={self.inclusive_end})"
@@ -680,7 +680,7 @@ class CellsRowOffsetFilter(_CellCountFilter):
     :param num_cells: Skips the first N cells of the row.
     """
 
-    def to_dict(self) -> dict[str, int]:
+    def _to_dict(self) -> dict[str, int]:
         """Converts the row filter to a dict representation."""
         return {"cells_per_row_offset_filter": self.num_cells}
 
@@ -692,7 +692,7 @@ class CellsRowLimitFilter(_CellCountFilter):
     :param num_cells: Matches only the first N cells of the row.
     """
 
-    def to_dict(self) -> dict[str, int]:
+    def _to_dict(self) -> dict[str, int]:
         """Converts the row filter to a dict representation."""
         return {"cells_per_row_limit_filter": self.num_cells}
 
@@ -706,7 +706,7 @@ class CellsColumnLimitFilter(_CellCountFilter):
                       timestamps of each cell.
     """
 
-    def to_dict(self) -> dict[str, int]:
+    def _to_dict(self) -> dict[str, int]:
         """Converts the row filter to a dict representation."""
         return {"cells_per_column_limit_filter": self.num_cells}
 
@@ -720,7 +720,7 @@ class StripValueTransformerFilter(_BoolFilter):
                  transformer than a generic query / filter.
     """
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
         return {"strip_value_transformer": self.flag}
 
@@ -755,7 +755,7 @@ class ApplyLabelFilter(RowFilter):
     def __ne__(self, other):
         return not self == other
 
-    def to_dict(self) -> dict[str, str]:
+    def _to_dict(self) -> dict[str, str]:
         """Converts the row filter to a dict representation."""
         return {"apply_label_transformer": self.label}
 
@@ -841,9 +841,9 @@ class RowFilterChain(_FilterCombination):
         )
         return data_v2_pb2.RowFilter(chain=chain)
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"chain": {"filters": [f.to_dict() for f in self.filters]}}
+        return {"chain": {"filters": [f._to_dict() for f in self.filters]}}
 
 
 class RowFilterUnion(_FilterCombination):
@@ -869,9 +869,9 @@ class RowFilterUnion(_FilterCombination):
         )
         return data_v2_pb2.RowFilter(interleave=interleave)
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"interleave": {"filters": [f.to_dict() for f in self.filters]}}
+        return {"interleave": {"filters": [f._to_dict() for f in self.filters]}}
 
 
 class ConditionalRowFilter(RowFilter):
@@ -939,18 +939,18 @@ class ConditionalRowFilter(RowFilter):
         condition = data_v2_pb2.RowFilter.Condition(**condition_kwargs)
         return data_v2_pb2.RowFilter(condition=condition)
 
-    def condition_to_dict(self) -> dict[str, Any]:
+    def _condition_to_dict(self) -> dict[str, Any]:
         """Converts the condition to a dict representation."""
-        condition_kwargs = {"predicate_filter": self.predicate_filter.to_dict()}
+        condition_kwargs = {"predicate_filter": self.predicate_filter._to_dict()}
         if self.true_filter is not None:
-            condition_kwargs["true_filter"] = self.true_filter.to_dict()
+            condition_kwargs["true_filter"] = self.true_filter._to_dict()
         if self.false_filter is not None:
-            condition_kwargs["false_filter"] = self.false_filter.to_dict()
+            condition_kwargs["false_filter"] = self.false_filter._to_dict()
         return condition_kwargs
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Converts the row filter to a dict representation."""
-        return {"condition": self.condition_to_dict()}
+        return {"condition": self._condition_to_dict()}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(predicate_filter={self.predicate_filter!r}, true_filter={self.true_filter!r}, false_filter={self.false_filter!r})"

@@ -143,3 +143,42 @@ class TestConvertRetryDeadline:
         assert isinstance(cause, bigtable_exceptions.RetryExceptionGroup)
         assert cause.exceptions == tuple(associated_errors)
         assert f"operation_timeout of {timeout}s exceeded" in str(e.value)
+
+
+class TestValidateTimeouts:
+    def test_validate_timeouts_error_messages(self):
+        with pytest.raises(ValueError) as e:
+            _helpers._validate_timeouts(operation_timeout=1, attempt_timeout=-1)
+        assert "attempt_timeout must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            _helpers._validate_timeouts(operation_timeout=-1, attempt_timeout=1)
+        assert "operation_timeout must be greater than 0" in str(e.value)
+
+    @pytest.mark.parametrize(
+        "args,expected",
+        [
+            ([1, None, False], False),
+            ([1, None, True], True),
+            ([1, 1, False], True),
+            ([1, 1, True], True),
+            ([1, 1], True),
+            ([1, None], False),
+            ([2, 1], True),
+            ([0, 1], False),
+            ([1, 0], False),
+            ([60, None], False),
+            ([600, None], False),
+            ([600, 600], True),
+        ],
+    )
+    def test_validate_with_inputs(self, args, expected):
+        """
+        test whether an exception is thrown with different inputs
+        """
+        success = False
+        try:
+            _helpers._validate_timeouts(*args)
+            success = True
+        except ValueError:
+            pass
+        assert success == expected
