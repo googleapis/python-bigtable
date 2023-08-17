@@ -4,7 +4,13 @@ The CBT test proxy is intended for running conformance tests for Cloud Bigtable 
 
 ## Option 1: Run Tests with Nox
 
-You can run the conformance tests in a single line by calling `nox -s conformance_tests` from the repo root
+You can run the conformance tests in a single line by calling `nox -s conformance` from the repo root
+
+
+```
+cd python-bigtable/test_proxy
+nox -s conformance
+```
 
 ## Option 2: Run processes manually
 

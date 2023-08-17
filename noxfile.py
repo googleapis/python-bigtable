@@ -40,7 +40,7 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-asyncio",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES = [
-    # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
+    "git+https://github.com/googleapis/python-api-core.git@retry_generators"
 ]
 UNIT_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []
@@ -55,7 +55,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "google-cloud-testutils",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES = [
-    # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
+    "git+https://github.com/googleapis/python-api-core.git@retry_generators"
 ]
 SYSTEM_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []
@@ -70,6 +70,7 @@ nox.options.sessions = [
     "unit",
     "system_emulated",
     "system",
+    "conformance",
     "mypy",
     "cover",
     "lint",
@@ -138,10 +139,12 @@ def mypy(session):
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
-        "google/cloud/bigtable/data",
+        "google/cloud/bigtable",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
+        "--exclude",
+        "google/cloud/bigtable/deprecated",
         "--exclude",
         "tests/system/v2_client",
         "--exclude",
@@ -277,8 +280,9 @@ def system_emulated(session):
         # Stop Emulator
         os.killpg(os.getpgid(p.pid), signal.SIGKILL)
 
+
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-def conformance_tests(session):
+def conformance(session):
     """
     Run the set of shared bigtable conformance tests
     """
@@ -296,6 +300,7 @@ def conformance_tests(session):
             print("downloading copy of test repo")
             session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR)
         session.run("bash", "-e", "run_tests.sh", external=True)
+
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system(session):
@@ -335,6 +340,7 @@ def system(session):
             "py.test",
             "--quiet",
             f"--junitxml=system_{session.python}_sponge_log.xml",
+            "--ignore=tests/system/v2_client",
             system_test_folder_path,
             *session.posargs,
         )
@@ -385,9 +391,10 @@ def docfx(session):
 
     session.install("-e", ".")
     session.install(
-        "gcp-sphinx-docfx-yaml",
+        "sphinx==4.0.1",
         "alabaster",
         "recommonmark",
+        "gcp-sphinx-docfx-yaml",
     )
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
@@ -480,6 +487,11 @@ def prerelease_deps(session):
         "python", "-c", "import google.protobuf; print(google.protobuf.__version__)"
     )
     session.run("python", "-c", "import grpc; print(grpc.__version__)")
+
+    # TODO: remove adter merging api-core
+    session.install(
+        "--upgrade", "--no-deps", "--force-reinstall", *UNIT_TEST_EXTERNAL_DEPENDENCIES
+    )
 
     session.run("py.test", "tests/unit")
 
