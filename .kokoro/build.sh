@@ -52,6 +52,7 @@ fi
 
 # install golang for conformance tests
 if [[ "${NOX_SESSION}" == "conformance" ]]; then
+  apt update
   apt install -y golang
   export GOPATH=$HOME/go
   export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
