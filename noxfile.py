@@ -298,6 +298,7 @@ def conformance(session):
             session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
         session.run("bash", "-e", "run_tests.sh", external=True)
 
+
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system(session):
     """Run the system test suite."""
