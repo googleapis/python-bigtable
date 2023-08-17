@@ -231,7 +231,18 @@ class TestReadRowsOperation:
         async def awaitable_stream():
             async def mock_stream():
                 for i in range(emit_num):
-                    yield ReadRowsResponse(chunks=[ReadRowsResponse.CellChunk(row_key=str(i).encode(), family_name="b", qualifier=b"c", value=b"d", commit_row=True)])
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(
+                                row_key=str(i).encode(),
+                                family_name="b",
+                                qualifier=b"c",
+                                value=b"d",
+                                commit_row=True,
+                            )
+                        ]
+                    )
+
             return mock_stream()
 
         query = ReadRowsQuery(limit=start_limit)
@@ -259,7 +270,18 @@ class TestReadRowsOperation:
         async def awaitable_stream():
             async def mock_stream():
                 for i in range(emit_num):
-                    yield ReadRowsResponse(chunks=[ReadRowsResponse.CellChunk(row_key=str(i).encode(), family_name="b", qualifier=b"c", value=b"d", commit_row=True)])
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(
+                                row_key=str(i).encode(),
+                                family_name="b",
+                                qualifier=b"c",
+                                value=b"d",
+                                commit_row=True,
+                            )
+                        ]
+                    )
+
             return mock_stream()
 
         query = ReadRowsQuery(limit=start_limit)
