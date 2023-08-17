@@ -52,10 +52,11 @@ fi
 
 # install golang for conformance tests
 if [[ "${NOX_SESSION}" == "conformance" ]]; then
-  apt update
-  apt install -y golang
+  wget  https://go.dev/dl/go1.20.2.linux-amd64.tar.gz
+  tar -C /usr/local -xzf go1.20.2.linux-amd64.tar.gz
+  export GOROOT=/usr/local/go
+  export PATH=$PATH:$GOROOT/bin
   export GOPATH=$HOME/go
-  export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
   go version
 fi
 
