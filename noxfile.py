@@ -296,7 +296,7 @@ def conformance(session):
         clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
         if not os.path.exists(clone_dir):
             print("downloading copy of test repo")
-            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR)
+            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR, external=True)
         session.run("bash", "-e", "run_tests.sh", external=True)
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
