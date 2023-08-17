@@ -326,34 +326,6 @@ class TestReadRowsOperation:
                 await wrapped_gen.__anext__()
 
     @pytest.mark.asyncio
-    async def test_aclose(self):
-        """
-        should be able to close a stream safely with aclose.
-        Closed generators should raise StopAsyncIteration on next yield
-        """
-        async def mock_stream():
-            while True:
-                yield 1
-
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "_read_rows_attempt"
-        ) as mock_attempt:
-            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
-            wrapped_gen = mock_stream()
-            mock_attempt.return_value = wrapped_gen
-            gen = instance.start_operation()
-            # read one row
-            await gen.__anext__()
-            await gen.aclose()
-            with pytest.raises(StopAsyncIteration):
-                await gen.__anext__()
-            # try calling a second time
-            await gen.aclose()
-            # ensure close was propagated to wrapped generator
-            with pytest.raises(StopAsyncIteration):
-                await wrapped_gen.__anext__()
-
-    @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
         """
         Duplicate rows should cause an invalid chunk error
