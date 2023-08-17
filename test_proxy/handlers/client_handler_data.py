@@ -107,7 +107,7 @@ class TestProxyClientHandler:
         kwargs["operation_timeout"] = kwargs.get("operation_timeout", self.per_operation_timeout) or 20
         result_list = await table.read_rows(request, **kwargs)
         # pack results back into protobuf-parsable format
-        serialized_response = [row.to_dict() for row in result_list]
+        serialized_response = [row._to_dict() for row in result_list]
         return serialized_response
 
     @error_safe
@@ -119,7 +119,7 @@ class TestProxyClientHandler:
         result_row = await table.read_row(row_key, **kwargs)
         # pack results back into protobuf-parsable format
         if result_row:
-            return result_row.to_dict()
+            return result_row._to_dict()
         else:
             return "None"
 
@@ -161,14 +161,15 @@ class TestProxyClientHandler:
                 true_mutations.append(Mutation._from_dict(mut_dict))
             except ValueError:
                 # invalid mutation type. Conformance test may be sending generic empty request
-                true_mutations.append(SetCell("", "", "", -1))
+                mutation = SetCell("", "", "", 0)
+                true_mutations.append(mutation)
         false_mutations = []
         for mut_dict in request.get("false_mutations", []):
             try:
                 false_mutations.append(Mutation._from_dict(mut_dict))
             except ValueError:
                 # invalid mutation type. Conformance test may be sending generic empty request
-                false_mutations.append(SetCell("", "", "", -1))
+                false_mutations.append(SetCell("", "", "", 0))
         predicate_filter = request.get("predicate_filter", None)
         result = await table.check_and_mutate_row(
             row_key,
@@ -199,7 +200,7 @@ class TestProxyClientHandler:
         result = await table.read_modify_write_row(row_key, rules, **kwargs)
         # pack results back into protobuf-parsable format
         if result:
-            return result.to_dict()
+            return result._to_dict()
         else:
             return "None"
 
