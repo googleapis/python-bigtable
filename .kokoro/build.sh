@@ -50,6 +50,14 @@ if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]]; then
   trap cleanup EXIT HUP
 fi
 
+# install golang for conformance tests
+if [[ "${NOX_SESSION}" == "conformance" ]]; then
+  apt install -y golang
+  export GOPATH=$HOME/go
+  export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+  go version
+fi
+
 # If NOX_SESSION is set, it only runs the specified session,
 # otherwise run all the sessions.
 if [[ -n "${NOX_SESSION:-}" ]]; then
