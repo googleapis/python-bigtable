@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Import pytest fixtures for setting up table for data client system tests
+"""
+import sys
+import os
 
-from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-from google.cloud.bigtable.data._async.client import TableAsync
+script_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(script_path)
 
-from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
-
-
-__all__ = [
-    "BigtableDataClientAsync",
-    "TableAsync",
-    "MutationsBatcherAsync",
+pytest_plugins = [
+    "data.setup_fixtures",
 ]

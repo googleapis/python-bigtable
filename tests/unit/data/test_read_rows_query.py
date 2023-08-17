@@ -32,10 +32,6 @@ class TestRowRange:
 
     def test_ctor_start_end(self):
         row_range = self._make_one("test_row", "test_row2")
-        assert row_range._start.key == "test_row".encode()
-        assert row_range._end.key == "test_row2".encode()
-        assert row_range._start.is_inclusive is True
-        assert row_range._end.is_inclusive is False
         assert row_range.start_key == "test_row".encode()
         assert row_range.end_key == "test_row2".encode()
         assert row_range.start_is_inclusive is True
@@ -60,8 +56,6 @@ class TestRowRange:
         empty strings should be treated as None
         """
         row_range = self._make_one("", "")
-        assert row_range._start is None
-        assert row_range._end is None
         assert row_range.start_key is None
         assert row_range.end_key is None
         assert row_range.start_is_inclusive is True
@@ -79,20 +73,6 @@ class TestRowRange:
         assert row_range.start_key is None
         assert row_range.end_key is None
 
-    def test_ctor_flags_only(self):
-        with pytest.raises(ValueError) as exc:
-            self._make_one(start_is_inclusive=True, end_is_inclusive=True)
-        assert str(exc.value) == "start_is_inclusive must be set with start_key"
-        with pytest.raises(ValueError) as exc:
-            self._make_one(start_is_inclusive=False, end_is_inclusive=False)
-        assert str(exc.value) == "start_is_inclusive must be set with start_key"
-        with pytest.raises(ValueError) as exc:
-            self._make_one(start_is_inclusive=False)
-        assert str(exc.value) == "start_is_inclusive must be set with start_key"
-        with pytest.raises(ValueError) as exc:
-            self._make_one(end_is_inclusive=True)
-        assert str(exc.value) == "end_is_inclusive must be set with end_key"
-
     def test_ctor_invalid_keys(self):
         # test with invalid keys
         with pytest.raises(ValueError) as exc:
@@ -104,138 +84,6 @@ class TestRowRange:
         with pytest.raises(ValueError) as exc:
             self._make_one("2", "1")
         assert str(exc.value) == "start_key must be less than or equal to end_key"
-
-    def test__to_dict_defaults(self):
-        row_range = self._make_one("test_row", "test_row2")
-        expected = {
-            "start_key_closed": b"test_row",
-            "end_key_open": b"test_row2",
-        }
-        assert row_range._to_dict() == expected
-
-    def test__to_dict_inclusive_flags(self):
-        row_range = self._make_one("test_row", "test_row2", False, True)
-        expected = {
-            "start_key_open": b"test_row",
-            "end_key_closed": b"test_row2",
-        }
-        assert row_range._to_dict() == expected
-
-    @pytest.mark.parametrize(
-        "input_dict,expected_start,expected_end,start_is_inclusive,end_is_inclusive",
-        [
-            (
-                {"start_key_closed": "test_row", "end_key_open": "test_row2"},
-                b"test_row",
-                b"test_row2",
-                True,
-                False,
-            ),
-            (
-                {"start_key_closed": b"test_row", "end_key_open": b"test_row2"},
-                b"test_row",
-                b"test_row2",
-                True,
-                False,
-            ),
-            (
-                {"start_key_open": "test_row", "end_key_closed": "test_row2"},
-                b"test_row",
-                b"test_row2",
-                False,
-                True,
-            ),
-            ({"start_key_open": b"a"}, b"a", None, False, None),
-            ({"end_key_closed": b"b"}, None, b"b", None, True),
-            ({"start_key_closed": "a"}, b"a", None, True, None),
-            ({"end_key_open": b"b"}, None, b"b", None, False),
-            ({}, None, None, None, None),
-        ],
-    )
-    def test__from_dict(
-        self,
-        input_dict,
-        expected_start,
-        expected_end,
-        start_is_inclusive,
-        end_is_inclusive,
-    ):
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        row_range = RowRange._from_dict(input_dict)
-        assert row_range._to_dict().keys() == input_dict.keys()
-        found_start = row_range._start
-        found_end = row_range._end
-        if expected_start is None:
-            assert found_start is None
-            assert start_is_inclusive is None
-        else:
-            assert found_start.key == expected_start
-            assert found_start.is_inclusive == start_is_inclusive
-        if expected_end is None:
-            assert found_end is None
-            assert end_is_inclusive is None
-        else:
-            assert found_end.key == expected_end
-            assert found_end.is_inclusive == end_is_inclusive
-
-    @pytest.mark.parametrize(
-        "dict_repr",
-        [
-            {"start_key_closed": "test_row", "end_key_open": "test_row2"},
-            {"start_key_closed": b"test_row", "end_key_open": b"test_row2"},
-            {"start_key_open": "test_row", "end_key_closed": "test_row2"},
-            {"start_key_open": b"a"},
-            {"end_key_closed": b"b"},
-            {"start_key_closed": "a"},
-            {"end_key_open": b"b"},
-            {},
-        ],
-    )
-    def test__from_points(self, dict_repr):
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        row_range_from_dict = RowRange._from_dict(dict_repr)
-        row_range_from_points = RowRange._from_points(
-            row_range_from_dict._start, row_range_from_dict._end
-        )
-        assert row_range_from_points._to_dict() == row_range_from_dict._to_dict()
-
-    @pytest.mark.parametrize(
-        "first_dict,second_dict,should_match",
-        [
-            (
-                {"start_key_closed": "a", "end_key_open": "b"},
-                {"start_key_closed": "a", "end_key_open": "b"},
-                True,
-            ),
-            (
-                {"start_key_closed": "a", "end_key_open": "b"},
-                {"start_key_closed": "a", "end_key_open": "c"},
-                False,
-            ),
-            (
-                {"start_key_closed": "a", "end_key_open": "b"},
-                {"start_key_closed": "a", "end_key_closed": "b"},
-                False,
-            ),
-            (
-                {"start_key_closed": b"a", "end_key_open": b"b"},
-                {"start_key_closed": "a", "end_key_open": "b"},
-                True,
-            ),
-            ({}, {}, True),
-            ({"start_key_closed": "a"}, {}, False),
-            ({"start_key_closed": "a"}, {"start_key_closed": "a"}, True),
-            ({"start_key_closed": "a"}, {"start_key_open": "a"}, False),
-        ],
-    )
-    def test___hash__(self, first_dict, second_dict, should_match):
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        row_range1 = RowRange._from_dict(first_dict)
-        row_range2 = RowRange._from_dict(second_dict)
-        assert (hash(row_range1) == hash(row_range2)) == should_match
 
     @pytest.mark.parametrize(
         "dict_repr,expected",
@@ -352,8 +200,8 @@ class TestReadRowsQuery:
 
     def test_ctor_defaults(self):
         query = self._make_one()
-        assert query.row_keys == set()
-        assert query.row_ranges == set()
+        assert query.row_keys == list()
+        assert query.row_ranges == list()
         assert query.filter is None
         assert query.limit is None
 
@@ -396,9 +244,6 @@ class TestReadRowsQuery:
         assert query.filter is None
         query.filter = RowFilterChain()
         assert query.filter == RowFilterChain()
-        with pytest.raises(ValueError) as exc:
-            query.filter = 1
-        assert str(exc.value) == "row_filter must be a RowFilter or dict"
 
     def test_set_limit(self):
         query = self._make_one()
@@ -408,7 +253,7 @@ class TestReadRowsQuery:
         query.limit = 9
         assert query.limit == 9
         query.limit = 0
-        assert query.limit == 0
+        assert query.limit is None
         with pytest.raises(ValueError) as exc:
             query.limit = -1
         assert str(exc.value) == "limit must be >= 0"
@@ -418,7 +263,7 @@ class TestReadRowsQuery:
 
     def test_add_key_str(self):
         query = self._make_one()
-        assert query.row_keys == set()
+        assert query.row_keys == list()
         input_str = "test_row"
         query.add_key(input_str)
         assert len(query.row_keys) == 1
@@ -431,7 +276,7 @@ class TestReadRowsQuery:
 
     def test_add_key_bytes(self):
         query = self._make_one()
-        assert query.row_keys == set()
+        assert query.row_keys == list()
         input_bytes = b"test_row"
         query.add_key(input_bytes)
         assert len(query.row_keys) == 1
@@ -444,7 +289,7 @@ class TestReadRowsQuery:
 
     def test_add_rows_batch(self):
         query = self._make_one()
-        assert query.row_keys == set()
+        assert query.row_keys == list()
         input_batch = ["test_row", b"test_row2", "test_row3"]
         for k in input_batch:
             query.add_key(k)
@@ -471,24 +316,11 @@ class TestReadRowsQuery:
             query.add_key(["s"])
         assert str(exc.value) == "row_key must be string or bytes"
 
-    def test_duplicate_rows(self):
-        # should only hold one of each input key
-        key_1 = b"test_row"
-        key_2 = b"test_row2"
-        query = self._make_one(row_keys=[key_1, key_1, key_2])
-        assert len(query.row_keys) == 2
-        assert key_1 in query.row_keys
-        assert key_2 in query.row_keys
-        key_3 = "test_row3"
-        for i in range(10):
-            query.add_key(key_3)
-        assert len(query.row_keys) == 3
-
     def test_add_range(self):
         from google.cloud.bigtable.data.read_rows_query import RowRange
 
         query = self._make_one()
-        assert query.row_ranges == set()
+        assert query.row_ranges == list()
         input_range = RowRange(start_key=b"test_row")
         query.add_range(input_range)
         assert len(query.row_ranges) == 1
@@ -498,83 +330,6 @@ class TestReadRowsQuery:
         assert len(query.row_ranges) == 2
         assert input_range in query.row_ranges
         assert input_range2 in query.row_ranges
-        query.add_range(input_range2)
-        assert len(query.row_ranges) == 2
-
-    def test_add_range_dict(self):
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        query = self._make_one()
-        assert query.row_ranges == set()
-        input_range = {"start_key_closed": b"test_row"}
-        query.add_range(input_range)
-        assert len(query.row_ranges) == 1
-        range_obj = RowRange._from_dict(input_range)
-        assert range_obj in query.row_ranges
-
-    def test_to_dict_rows_default(self):
-        # dictionary should be in rowset proto format
-        from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
-
-        query = self._make_one()
-        output = query._to_dict()
-        assert isinstance(output, dict)
-        assert len(output.keys()) == 1
-        expected = {"rows": {"row_keys": [], "row_ranges": []}}
-        assert output == expected
-
-        request_proto = ReadRowsRequest(**output)
-        assert request_proto.rows.row_keys == []
-        assert request_proto.rows.row_ranges == []
-        assert not request_proto.filter
-        assert request_proto.rows_limit == 0
-
-    def test_to_dict_rows_populated(self):
-        # dictionary should be in rowset proto format
-        from google.cloud.bigtable_v2.types.bigtable import ReadRowsRequest
-        from google.cloud.bigtable.data.row_filters import PassAllFilter
-        from google.cloud.bigtable.data.read_rows_query import RowRange
-
-        row_filter = PassAllFilter(False)
-        query = self._make_one(limit=100, row_filter=row_filter)
-        query.add_range(RowRange("test_row", "test_row2"))
-        query.add_range(RowRange("test_row3"))
-        query.add_range(RowRange(start_key=None, end_key="test_row5"))
-        query.add_range(RowRange(b"test_row6", b"test_row7", False, True))
-        query.add_range({})
-        query.add_key("test_row")
-        query.add_key(b"test_row2")
-        query.add_key("test_row3")
-        query.add_key(b"test_row3")
-        query.add_key(b"test_row4")
-        output = query._to_dict()
-        assert isinstance(output, dict)
-        request_proto = ReadRowsRequest(**output)
-        rowset_proto = request_proto.rows
-        # check rows
-        assert len(rowset_proto.row_keys) == 4
-        assert rowset_proto.row_keys[0] == b"test_row"
-        assert rowset_proto.row_keys[1] == b"test_row2"
-        assert rowset_proto.row_keys[2] == b"test_row3"
-        assert rowset_proto.row_keys[3] == b"test_row4"
-        # check ranges
-        assert len(rowset_proto.row_ranges) == 5
-        assert {
-            "start_key_closed": b"test_row",
-            "end_key_open": b"test_row2",
-        } in output["rows"]["row_ranges"]
-        assert {"start_key_closed": b"test_row3"} in output["rows"]["row_ranges"]
-        assert {"end_key_open": b"test_row5"} in output["rows"]["row_ranges"]
-        assert {
-            "start_key_open": b"test_row6",
-            "end_key_closed": b"test_row7",
-        } in output["rows"]["row_ranges"]
-        assert {} in output["rows"]["row_ranges"]
-        # check limit
-        assert request_proto.rows_limit == 100
-        # check filter
-        filter_proto = request_proto.filter
-        assert filter_proto == row_filter._to_pb()
 
     def _parse_query_string(self, query_string):
         from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery, RowRange
@@ -781,7 +536,6 @@ class TestReadRowsQuery:
             ((), ("a",), False),
             (("a",), (), False),
             (("a",), ("a",), True),
-            (("a",), (["a", b"a"],), True),  # duplicate keys
             ((["a"],), (["a", "b"],), False),
             ((["a", "b"],), (["a", "b"],), True),
             ((["a", b"b"],), ([b"a", "b"],), True),
@@ -792,7 +546,6 @@ class TestReadRowsQuery:
             (("a", ["b"]), ("a", ["b", "c"]), False),
             (("a", ["b", "c"]), ("a", [b"b", "c"]), True),
             (("a", ["b", "c"], 1), ("a", ["b", b"c"], 1), True),
-            (("a", ["b"], 1), ("a", ["b", b"b", "b"], 1), True),  # duplicate ranges
             (("a", ["b"], 1), ("a", ["b"], 2), False),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1, {"a": "b"}), True),
             (("a", ["b"], 1, {"a": "b"}), ("a", ["b"], 1), False),
@@ -833,4 +586,4 @@ class TestReadRowsQuery:
     def test_empty_row_set(self):
         """Empty strings should be treated as keys inputs"""
         query = self._make_one(row_keys="")
-        assert query.row_keys == {b""}
+        assert query.row_keys == [b""]

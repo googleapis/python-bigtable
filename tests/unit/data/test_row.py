@@ -481,20 +481,6 @@ class TestRow(unittest.TestCase):
             row_response._get_column_components(), [(TEST_FAMILY_ID, TEST_QUALIFIER)]
         )
 
-    def test_index_of(self):
-        # given a cell, should find index in underlying list
-        cell_list = [self._make_cell(value=str(i).encode()) for i in range(10)]
-        sorted(cell_list)
-        row_response = self._make_one(TEST_ROW_KEY, cell_list)
-
-        self.assertEqual(row_response.index(cell_list[0]), 0)
-        self.assertEqual(row_response.index(cell_list[5]), 5)
-        self.assertEqual(row_response.index(cell_list[9]), 9)
-        with self.assertRaises(ValueError):
-            row_response.index(self._make_cell())
-        with self.assertRaises(ValueError):
-            row_response.index(None)
-
 
 class TestCell(unittest.TestCase):
     @staticmethod

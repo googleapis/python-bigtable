@@ -12,39 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import annotations
 
-from typing import (
-    List,
-    Any,
-    AsyncIterable,
-    AsyncIterator,
-    AsyncGenerator,
-    Iterator,
-    Callable,
-    Awaitable,
-)
-import sys
-import time
-import asyncio
-from functools import partial
-from grpc.aio import RpcContext
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
 
-from google.cloud.bigtable_v2.types.bigtable import ReadRowsResponse
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable.data.row import Row, _LastScannedRow
+from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
+from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
+from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+
+from google.cloud.bigtable.data.row import Row, Cell
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
-from google.cloud.bigtable.data.exceptions import IdleTimeout
-from google.cloud.bigtable.data._read_rows_state_machine import _StateMachine
-from google.api_core import retry_async as retries
-from google.api_core import exceptions as core_exceptions
-from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _make_metadata
+
+from google.api_core import retry_async as retries
+from google.api_core.retry_streaming_async import retry_target_stream
+from google.api_core.retry import exponential_sleep_generator
+from google.api_core import exceptions as core_exceptions
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data._async.client import TableAsync
 
 
-class _ReadRowsOperationAsync(AsyncIterable[Row]):
+class _ResetRow(Exception):
+    def __init__(self, chunk):
+        self.chunk = chunk
+
+
+class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
     into a stream of Row objects.
@@ -57,160 +57,254 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
     performing retries on stream errors.
     """
 
+    __slots__ = (
+        "attempt_timeout_gen",
+        "operation_timeout",
+        "request",
+        "table",
+        "_predicate",
+        "_metadata",
+        "_last_yielded_row_key",
+        "_remaining_count",
+    )
+
     def __init__(
         self,
-        request: dict[str, Any],
-        client: BigtableAsyncClient,
-        *,
-        operation_timeout: float = 600.0,
-        attempt_timeout: float | None = None,
+        query: ReadRowsQuery,
+        table: "TableAsync",
+        operation_timeout: float,
+        attempt_timeout: float,
     ):
-        """
-        Args:
-          - request: the request dict to send to the Bigtable API
-          - client: the Bigtable client to use to make the request
-          - operation_timeout: the timeout to use for the entire operation, in seconds
-          - attempt_timeout: the timeout to use when waiting for each individual grpc request, in seconds
-                If not specified, defaults to operation_timeout
-        """
-        self._last_emitted_row_key: bytes | None = None
-        self._emit_count = 0
-        self._request = request
-        self.operation_timeout = operation_timeout
-        # use generator to lower per-attempt timeout as we approach operation_timeout deadline
-        attempt_timeout_gen = _attempt_timeout_generator(
+        self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
-        row_limit = request.get("rows_limit", 0)
-        # lock in paramters for retryable wrapper
-        self._partial_retryable = partial(
-            self._read_rows_retryable_attempt,
-            client.read_rows,
-            attempt_timeout_gen,
-            row_limit,
-        )
-        predicate = retries.if_exception_type(
+        self.operation_timeout = operation_timeout
+        if isinstance(query, dict):
+            self.request = ReadRowsRequestPB(
+                **query,
+                table_name=table.table_name,
+                app_profile_id=table.app_profile_id,
+            )
+        else:
+            self.request = query._to_pb(table)
+        self.table = table
+        self._predicate = retries.if_exception_type(
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
-
-        def on_error_fn(exc):
-            if predicate(exc):
-                self.transient_errors.append(exc)
-
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            timeout=self.operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-            on_error=on_error_fn,
-            is_stream=True,
+        self._metadata = _make_metadata(
+            table.table_name,
+            table.app_profile_id,
         )
-        self._stream: AsyncGenerator[Row, None] | None = retry(
-            self._partial_retryable
-        )()
-        # contains the list of errors that were retried
-        self.transient_errors: List[Exception] = []
+        self._last_yielded_row_key: bytes | None = None
+        self._remaining_count: int | None = self.request.rows_limit or None
 
-    def __aiter__(self) -> AsyncIterator[Row]:
-        """Implements the AsyncIterable interface"""
-        return self
-
-    async def __anext__(self) -> Row:
-        """Implements the AsyncIterator interface"""
-        if self._stream is not None:
-            return await self._stream.__anext__()
-        else:
-            raise asyncio.InvalidStateError("stream is closed")
-
-    async def aclose(self):
-        """Close the stream and release resources"""
-        if self._stream is not None:
-            await self._stream.aclose()
-        self._stream = None
-        self._emitted_seen_row_key = None
-
-    async def _read_rows_retryable_attempt(
-        self,
-        gapic_fn: Callable[..., Awaitable[AsyncIterable[ReadRowsResponse]]],
-        timeout_generator: Iterator[float],
-        total_row_limit: int,
-    ) -> AsyncGenerator[Row, None]:
+    def start_operation(self) -> AsyncGenerator[Row, None]:
         """
-        Retryable wrapper for merge_rows. This function is called each time
-        a retry is attempted.
-
-        Some fresh state is created on each retry:
-          - grpc network stream
-          - state machine to hold merge chunks received from stream
-        Some state is shared between retries:
-          - _last_emitted_row_key is used to ensure that
-            duplicate rows are not emitted
-          - request is stored and (potentially) modified on each retry
+        Start the read_rows operation, retrying on retryable errors.
         """
-        if self._last_emitted_row_key is not None:
+        return retry_target_stream(
+            self._read_rows_attempt,
+            self._predicate,
+            exponential_sleep_generator(0.01, 60, multiplier=2),
+            self.operation_timeout,
+            exception_factory=self._build_exception,
+        )
+
+    def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
+        """
+        Attempt a single read_rows rpc call.
+        This function is intended to be wrapped by retry logic,
+        which will call this function until it succeeds or
+        a non-retryable error is raised.
+        """
+        # revise request keys and ranges between attempts
+        if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
             try:
-                self._request["rows"] = _ReadRowsOperationAsync._revise_request_rowset(
-                    row_set=self._request.get("rows", None),
-                    last_seen_row_key=self._last_emitted_row_key,
+                self.request.rows = self._revise_request_rowset(
+                    row_set=self.request.rows,
+                    last_seen_row_key=self._last_yielded_row_key,
                 )
             except _RowSetComplete:
-                # if there are no rows left to process, we're done
-                # This is not expected to happen often, but could occur if
-                # a retry is triggered quickly after the last row is emitted
-                return
-            # revise next request's row limit based on number emitted
-            if total_row_limit:
-                new_limit = total_row_limit - self._emit_count
-                if new_limit == 0:
-                    # we have hit the row limit, so we're done
-                    return
-                elif new_limit < 0:
-                    raise RuntimeError("unexpected state: emit count exceeds row limit")
-                else:
-                    self._request["rows_limit"] = new_limit
-        metadata = _make_metadata(
-            self._request.get("table_name", None),
-            self._request.get("app_profile_id", None),
+                # if we've already seen all the rows, we're done
+                return self.merge_rows(None)
+        # revise the limit based on number of rows already yielded
+        if self._remaining_count is not None:
+            self.request.rows_limit = self._remaining_count
+            if self._remaining_count == 0:
+                return self.merge_rows(None)
+        # create and return a new row merger
+        gapic_stream = self.table.client._gapic_client.read_rows(
+            self.request,
+            timeout=next(self.attempt_timeout_gen),
+            metadata=self._metadata,
         )
-        new_gapic_stream: RpcContext = await gapic_fn(
-            self._request,
-            timeout=next(timeout_generator),
-            metadata=metadata,
-        )
-        try:
-            state_machine = _StateMachine()
-            stream = _ReadRowsOperationAsync.merge_row_response_stream(
-                new_gapic_stream, state_machine
-            )
-            # run until we get a timeout or the stream is exhausted
-            async for new_item in stream:
+        chunked_stream = self.chunk_stream(gapic_stream)
+        return self.merge_rows(chunked_stream)
+
+    async def chunk_stream(
+        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
+    ) -> AsyncGenerator[ReadRowsResponsePB.CellChunk, None]:
+        """
+        process chunks out of raw read_rows stream
+        """
+        async for resp in await stream:
+            # extract proto from proto-plus wrapper
+            resp = resp._pb
+
+            # handle last_scanned_row_key packets, sent when server
+            # has scanned past the end of the row range
+            if resp.last_scanned_row_key:
                 if (
-                    self._last_emitted_row_key is not None
-                    and new_item.row_key <= self._last_emitted_row_key
+                    self._last_yielded_row_key is not None
+                    and resp.last_scanned_row_key <= self._last_yielded_row_key
                 ):
-                    raise InvalidChunk("Last emitted row key out of order")
-                # don't yeild _LastScannedRow markers; they
-                # should only update last_seen_row_key
-                if not isinstance(new_item, _LastScannedRow):
-                    yield new_item
-                    self._emit_count += 1
-                self._last_emitted_row_key = new_item.row_key
-                if total_row_limit and self._emit_count >= total_row_limit:
-                    return
-        except (Exception, GeneratorExit) as exc:
-            # ensure grpc stream is closed
-            new_gapic_stream.cancel()
-            raise exc
+                    raise InvalidChunk("last scanned out of order")
+                self._last_yielded_row_key = resp.last_scanned_row_key
+
+            current_key = None
+            # process each chunk in the response
+            for c in resp.chunks:
+                if current_key is None:
+                    current_key = c.row_key
+                    if current_key is None:
+                        raise InvalidChunk("first chunk is missing a row key")
+                    elif (
+                        self._last_yielded_row_key
+                        and current_key <= self._last_yielded_row_key
+                    ):
+                        raise InvalidChunk("row keys should be strictly increasing")
+
+                yield c
+
+                if c.reset_row:
+                    current_key = None
+                elif c.commit_row:
+                    # update row state after each commit
+                    self._last_yielded_row_key = current_key
+                    if self._remaining_count is not None:
+                        self._remaining_count -= 1
+                        if self._remaining_count < 0:
+                            raise InvalidChunk("emit count exceeds row limit")
+                    current_key = None
+
+    @staticmethod
+    async def merge_rows(
+        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
+    ):
+        """
+        Merge chunks into rows
+        """
+        if chunks is None:
+            return
+        it = chunks.__aiter__()
+        # For each row
+        while True:
+            try:
+                c = await it.__anext__()
+            except StopAsyncIteration:
+                # stream complete
+                return
+            row_key = c.row_key
+
+            if not row_key:
+                raise InvalidChunk("first row chunk is missing key")
+
+            cells = []
+
+            # shared per cell storage
+            family: str | None = None
+            qualifier: bytes | None = None
+
+            try:
+                # for each cell
+                while True:
+                    if c.reset_row:
+                        raise _ResetRow(c)
+                    k = c.row_key
+                    f = c.family_name.value
+                    q = c.qualifier.value if c.HasField("qualifier") else None
+                    if k and k != row_key:
+                        raise InvalidChunk("unexpected new row key")
+                    if f:
+                        family = f
+                        if q is not None:
+                            qualifier = q
+                        else:
+                            raise InvalidChunk("new family without qualifier")
+                    elif family is None:
+                        raise InvalidChunk("missing family")
+                    elif q is not None:
+                        if family is None:
+                            raise InvalidChunk("new qualifier without family")
+                        qualifier = q
+                    elif qualifier is None:
+                        raise InvalidChunk("missing qualifier")
+
+                    ts = c.timestamp_micros
+                    labels = c.labels if c.labels else []
+                    value = c.value
+
+                    # merge split cells
+                    if c.value_size > 0:
+                        buffer = [value]
+                        while c.value_size > 0:
+                            # throws when premature end
+                            c = await it.__anext__()
+
+                            t = c.timestamp_micros
+                            cl = c.labels
+                            k = c.row_key
+                            if (
+                                c.HasField("family_name")
+                                and c.family_name.value != family
+                            ):
+                                raise InvalidChunk("family changed mid cell")
+                            if (
+                                c.HasField("qualifier")
+                                and c.qualifier.value != qualifier
+                            ):
+                                raise InvalidChunk("qualifier changed mid cell")
+                            if t and t != ts:
+                                raise InvalidChunk("timestamp changed mid cell")
+                            if cl and cl != labels:
+                                raise InvalidChunk("labels changed mid cell")
+                            if k and k != row_key:
+                                raise InvalidChunk("row key changed mid cell")
+
+                            if c.reset_row:
+                                raise _ResetRow(c)
+                            buffer.append(c.value)
+                        value = b"".join(buffer)
+                    cells.append(
+                        Cell(value, row_key, family, qualifier, ts, list(labels))
+                    )
+                    if c.commit_row:
+                        yield Row(row_key, cells)
+                        break
+                    c = await it.__anext__()
+            except _ResetRow as e:
+                c = e.chunk
+                if (
+                    c.row_key
+                    or c.HasField("family_name")
+                    or c.HasField("qualifier")
+                    or c.timestamp_micros
+                    or c.labels
+                    or c.value
+                ):
+                    raise InvalidChunk("reset row with data")
+                continue
+            except StopAsyncIteration:
+                raise InvalidChunk("premature end of stream")
 
     @staticmethod
     def _revise_request_rowset(
-        row_set: dict[str, Any] | None,
+        row_set: RowSetPB,
         last_seen_row_key: bytes,
-    ) -> dict[str, Any]:
+    ) -> RowSetPB:
         """
         Revise the rows in the request to avoid ones we've already processed.
 
@@ -221,183 +315,59 @@ class _ReadRowsOperationAsync(AsyncIterable[Row]):
           - _RowSetComplete: if there are no rows left to process after the revision
         """
         # if user is doing a whole table scan, start a new one with the last seen key
-        if row_set is None or (
-            len(row_set.get("row_ranges", [])) == 0
-            and len(row_set.get("row_keys", [])) == 0
-        ):
+        if row_set is None or (not row_set.row_ranges and row_set.row_keys is not None):
             last_seen = last_seen_row_key
-            return {
-                "row_keys": [],
-                "row_ranges": [{"start_key_open": last_seen}],
-            }
+            return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         # remove seen keys from user-specific key list
-        row_keys: list[bytes] = row_set.get("row_keys", [])
-        adjusted_keys = [k for k in row_keys if k > last_seen_row_key]
+        adjusted_keys: list[bytes] = [
+            k for k in row_set.row_keys if k > last_seen_row_key
+        ]
         # adjust ranges to ignore keys before last seen
-        row_ranges: list[dict[str, Any]] = row_set.get("row_ranges", [])
-        adjusted_ranges = []
-        for row_range in row_ranges:
-            end_key = row_range.get("end_key_closed", None) or row_range.get(
-                "end_key_open", None
-            )
+        adjusted_ranges: list[RowRangePB] = []
+        for row_range in row_set.row_ranges:
+            end_key = row_range.end_key_closed or row_range.end_key_open or None
             if end_key is None or end_key > last_seen_row_key:
                 # end range is after last seen key
-                new_range = row_range.copy()
-                start_key = row_range.get("start_key_closed", None) or row_range.get(
-                    "start_key_open", None
-                )
+                new_range = RowRangePB(row_range)
+                start_key = row_range.start_key_closed or row_range.start_key_open
                 if start_key is None or start_key <= last_seen_row_key:
                     # replace start key with last seen
-                    new_range["start_key_open"] = last_seen_row_key
-                    new_range.pop("start_key_closed", None)
+                    new_range.start_key_open = last_seen_row_key
                 adjusted_ranges.append(new_range)
         if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
             # if the query is empty after revision, raise an exception
             # this will avoid an unwanted full table scan
             raise _RowSetComplete()
-        return {"row_keys": adjusted_keys, "row_ranges": adjusted_ranges}
+        return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
 
     @staticmethod
-    async def merge_row_response_stream(
-        response_generator: AsyncIterable[ReadRowsResponse],
-        state_machine: _StateMachine,
-    ) -> AsyncGenerator[Row, None]:
+    def _build_exception(
+        exc_list: list[Exception], is_timeout: bool, timeout_val: float
+    ) -> tuple[Exception, Exception | None]:
         """
-        Consume chunks from a ReadRowsResponse stream into a set of Rows
+        Build retry error based on exceptions encountered during operation
 
         Args:
-          - response_generator: AsyncIterable of ReadRowsResponse objects. Typically
-                this is a stream of chunks from the Bigtable API
+          - exc_list: list of exceptions encountered during operation
+          - is_timeout: whether the operation failed due to timeout
+          - timeout_val: the operation timeout value in seconds, for constructing
+                the error message
         Returns:
-            - AsyncGenerator of Rows
-        Raises:
-            - InvalidChunk: if the chunk stream is invalid
+          - tuple of the exception to raise, and a cause exception if applicable
         """
-        async for row_response in response_generator:
-            # unwrap protoplus object for increased performance
-            response_pb = row_response._pb
-            last_scanned = response_pb.last_scanned_row_key
-            # if the server sends a scan heartbeat, notify the state machine.
-            if last_scanned:
-                yield state_machine.handle_last_scanned_row(last_scanned)
-            # process new chunks through the state machine.
-            for chunk in response_pb.chunks:
-                complete_row = state_machine.handle_chunk(chunk)
-                if complete_row is not None:
-                    yield complete_row
-            # TODO: handle request stats
-        if not state_machine.is_terminal_state():
-            # read rows is complete, but there's still data in the merger
-            raise InvalidChunk("read_rows completed with partial state remaining")
-
-
-class ReadRowsAsyncIterator(AsyncIterable[Row]):
-    """
-    Async iterator for ReadRows responses.
-
-    Supports the AsyncIterator protocol for use in async for loops,
-    along with:
-      - `aclose` for closing the underlying stream
-      - `active` for checking if the iterator is still active
-      - an internal idle timer for closing the stream after a period of inactivity
-    """
-
-    def __init__(self, merger: _ReadRowsOperationAsync):
-        self._merger: _ReadRowsOperationAsync = merger
-        self._error: Exception | None = None
-        self._last_interaction_time = time.monotonic()
-        self._idle_timeout_task: asyncio.Task[None] | None = None
-        # wrap merger with a wrapper that properly formats exceptions
-        self._next_fn = _convert_retry_deadline(
-            self._merger.__anext__,
-            self._merger.operation_timeout,
-            self._merger.transient_errors,
+        if is_timeout:
+            # if failed due to timeout, raise deadline exceeded as primary exception
+            source_exc: Exception = core_exceptions.DeadlineExceeded(
+                f"operation_timeout of {timeout_val} exceeded"
+            )
+        elif exc_list:
+            # otherwise, raise non-retryable error as primary exception
+            source_exc = exc_list.pop()
+        else:
+            source_exc = RuntimeError("failed with unspecified exception")
+        # use the retry exception group as the cause of the exception
+        cause_exc: Exception | None = (
+            RetryExceptionGroup(exc_list) if exc_list else None
         )
-
-    async def _start_idle_timer(self, idle_timeout: float):
-        """
-        Start a coroutine that will cancel a stream if no interaction
-        with the iterator occurs for the specified number of seconds.
-
-        Subsequent access to the iterator will raise an IdleTimeout exception.
-
-        Args:
-          - idle_timeout: number of seconds of inactivity before cancelling the stream
-        """
-        self._last_interaction_time = time.monotonic()
-        if self._idle_timeout_task is not None:
-            self._idle_timeout_task.cancel()
-        self._idle_timeout_task = asyncio.create_task(
-            self._idle_timeout_coroutine(idle_timeout)
-        )
-        if sys.version_info >= (3, 8):
-            self._idle_timeout_task.name = f"{self.__class__.__name__}.idle_timeout"
-
-    @property
-    def active(self):
-        """
-        Returns True if the iterator is still active and has not been closed
-        """
-        return self._error is None
-
-    async def _idle_timeout_coroutine(self, idle_timeout: float):
-        """
-        Coroutine that will cancel a stream if no interaction with the iterator
-        in the last `idle_timeout` seconds.
-        """
-        while self.active:
-            next_timeout = self._last_interaction_time + idle_timeout
-            await asyncio.sleep(next_timeout - time.monotonic())
-            if (
-                self._last_interaction_time + idle_timeout < time.monotonic()
-                and self.active
-            ):
-                # idle timeout has expired
-                await self._finish_with_error(
-                    IdleTimeout(
-                        (
-                            "Timed out waiting for next Row to be consumed. "
-                            f"(idle_timeout={idle_timeout:0.1f}s)"
-                        )
-                    )
-                )
-
-    def __aiter__(self):
-        """Implement the async iterator protocol."""
-        return self
-
-    async def __anext__(self) -> Row:
-        """
-        Implement the async iterator potocol.
-
-        Return the next item in the stream if active, or
-        raise an exception if the stream has been closed.
-        """
-        if self._error is not None:
-            raise self._error
-        try:
-            self._last_interaction_time = time.monotonic()
-            return await self._next_fn()
-        except Exception as e:
-            await self._finish_with_error(e)
-            raise e
-
-    async def _finish_with_error(self, e: Exception):
-        """
-        Helper function to close the stream and clean up resources
-        after an error has occurred.
-        """
-        if self.active:
-            await self._merger.aclose()
-            self._error = e
-        if self._idle_timeout_task is not None:
-            self._idle_timeout_task.cancel()
-            self._idle_timeout_task = None
-
-    async def aclose(self):
-        """
-        Support closing the stream with an explicit call to aclose()
-        """
-        await self._finish_with_error(
-            StopAsyncIteration(f"{self.__class__.__name__} closed")
-        )
+        source_exc.__cause__ = cause_exc
+        return source_exc, cause_exc

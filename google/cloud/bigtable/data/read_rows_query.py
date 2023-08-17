@@ -17,34 +17,23 @@ from typing import TYPE_CHECKING, Any
 from bisect import bisect_left
 from bisect import bisect_right
 from collections import defaultdict
-from dataclasses import dataclass
 from google.cloud.bigtable.data.row_filters import RowFilter
+
+from google.cloud.bigtable_v2.types import RowRange as RowRangePB
+from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data import RowKeySamples
     from google.cloud.bigtable.data import ShardedQuery
 
 
-@dataclass
-class _RangePoint:
-    """Model class for a point in a row range"""
-
-    key: bytes
-    is_inclusive: bool
-
-    def __hash__(self) -> int:
-        return hash((self.key, self.is_inclusive))
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, _RangePoint):
-            return NotImplemented
-        return self.key == other.key and self.is_inclusive == other.is_inclusive
-
-
 class RowRange:
     """
     Represents a range of keys in a ReadRowsQuery
     """
+
+    __slots__ = ("_pb",)
 
     def __init__(
         self,
@@ -71,13 +60,9 @@ class RowRange:
         # check for invalid combinations of arguments
         if start_is_inclusive is None:
             start_is_inclusive = True
-        elif start_key is None:
-            raise ValueError("start_is_inclusive must be set with start_key")
 
         if end_is_inclusive is None:
             end_is_inclusive = False
-        elif end_key is None:
-            raise ValueError("end_is_inclusive must be set with end_key")
         # ensure that start_key and end_key are bytes
         if isinstance(start_key, str):
             start_key = start_key.encode()
@@ -91,28 +76,32 @@ class RowRange:
         if start_key is not None and end_key is not None and start_key > end_key:
             raise ValueError("start_key must be less than or equal to end_key")
 
-        self._start: _RangePoint | None = (
-            _RangePoint(start_key, start_is_inclusive)
-            if start_key is not None
-            else None
-        )
-        self._end: _RangePoint | None = (
-            _RangePoint(end_key, end_is_inclusive) if end_key is not None else None
-        )
+        init_dict = {}
+        if start_key is not None:
+            if start_is_inclusive:
+                init_dict["start_key_closed"] = start_key
+            else:
+                init_dict["start_key_open"] = start_key
+        if end_key is not None:
+            if end_is_inclusive:
+                init_dict["end_key_closed"] = end_key
+            else:
+                init_dict["end_key_open"] = end_key
+        self._pb = RowRangePB(**init_dict)
 
     @property
     def start_key(self) -> bytes | None:
         """
         Returns the start key of the range. If None, the range is unbounded on the left.
         """
-        return self._start.key if self._start is not None else None
+        return self._pb.start_key_closed or self._pb.start_key_open or None
 
     @property
     def end_key(self) -> bytes | None:
         """
         Returns the end key of the range. If None, the range is unbounded on the right.
         """
-        return self._end.key if self._end is not None else None
+        return self._pb.end_key_closed or self._pb.end_key_open or None
 
     @property
     def start_is_inclusive(self) -> bool:
@@ -120,7 +109,7 @@ class RowRange:
         Returns whether the range is inclusive of the start key.
         Returns True if the range is unbounded on the left.
         """
-        return self._start.is_inclusive if self._start is not None else True
+        return not bool(self._pb.start_key_open)
 
     @property
     def end_is_inclusive(self) -> bool:
@@ -128,61 +117,45 @@ class RowRange:
         Returns whether the range is inclusive of the end key.
         Returns True if the range is unbounded on the right.
         """
-        return self._end.is_inclusive if self._end is not None else True
+        return not bool(self._pb.end_key_open)
 
-    def _to_dict(self) -> dict[str, bytes]:
-        """Converts this object to a dictionary"""
-        output = {}
-        if self._start is not None:
-            key = "start_key_closed" if self.start_is_inclusive else "start_key_open"
-            output[key] = self._start.key
-        if self._end is not None:
-            key = "end_key_closed" if self.end_is_inclusive else "end_key_open"
-            output[key] = self._end.key
-        return output
-
-    def __hash__(self) -> int:
-        return hash((self._start, self._end))
+    def _to_pb(self) -> RowRangePB:
+        """Converts this object to a protobuf"""
+        return self._pb
 
     @classmethod
-    def _from_dict(cls, data: dict[str, bytes]) -> RowRange:
-        """Creates a RowRange from a dictionary"""
-        start_key = data.get("start_key_closed", data.get("start_key_open"))
-        end_key = data.get("end_key_closed", data.get("end_key_open"))
-        start_is_inclusive = "start_key_closed" in data if start_key else None
-        end_is_inclusive = "end_key_closed" in data if end_key else None
-        return cls(
-            start_key,
-            end_key,
-            start_is_inclusive,
-            end_is_inclusive,
-        )
+    def _from_pb(cls, data: RowRangePB) -> RowRange:
+        """Creates a RowRange from a protobuf"""
+        instance = cls()
+        instance._pb = data
+        return instance
 
     @classmethod
-    def _from_points(
-        cls, start: _RangePoint | None, end: _RangePoint | None
-    ) -> RowRange:
-        """Creates a RowRange from two RangePoints"""
-        kwargs: dict[str, Any] = {}
-        if start is not None:
-            kwargs["start_key"] = start.key
-            kwargs["start_is_inclusive"] = start.is_inclusive
-        if end is not None:
-            kwargs["end_key"] = end.key
-            kwargs["end_is_inclusive"] = end.is_inclusive
-        return cls(**kwargs)
+    def _from_dict(cls, data: dict[str, bytes | str]) -> RowRange:
+        """Creates a RowRange from a protobuf"""
+        formatted_data = {
+            k: v.encode() if isinstance(v, str) else v for k, v in data.items()
+        }
+        instance = cls()
+        instance._pb = RowRangePB(**formatted_data)
+        return instance
 
     def __bool__(self) -> bool:
         """
         Empty RowRanges (representing a full table scan) are falsy, because
         they can be substituted with None. Non-empty RowRanges are truthy.
         """
-        return self._start is not None or self._end is not None
+        return bool(
+            self._pb.start_key_closed
+            or self._pb.start_key_open
+            or self._pb.end_key_closed
+            or self._pb.end_key_open
+        )
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, RowRange):
             return NotImplemented
-        return self._start == other._start and self._end == other._end
+        return self._pb == other._pb
 
     def __str__(self) -> str:
         """
@@ -202,7 +175,7 @@ class RowRange:
         if self.start_is_inclusive is False:
             # only show start_is_inclusive if it is different from the default
             args_list.append(f"start_is_inclusive={self.start_is_inclusive}")
-        if self.end_is_inclusive is True and self._end is not None:
+        if self.end_is_inclusive is True and self.end_key is not None:
             # only show end_is_inclusive if it is different from the default
             args_list.append(f"end_is_inclusive={self.end_is_inclusive}")
         return f"RowRange({', '.join(args_list)})"
@@ -212,6 +185,8 @@ class ReadRowsQuery:
     """
     Class to encapsulate details of a read row request
     """
+
+    slots = ("_limit", "_filter", "_row_set")
 
     def __init__(
         self,
@@ -231,24 +206,32 @@ class ReadRowsQuery:
                 default: None (no limit)
           - row_filter: a RowFilter to apply to the query
         """
-        self.row_keys: set[bytes] = set()
-        self.row_ranges: set[RowRange] = set()
-        if row_ranges is not None:
-            if isinstance(row_ranges, RowRange):
-                row_ranges = [row_ranges]
-            for r in row_ranges:
-                self.add_range(r)
-        if row_keys is not None:
-            if not isinstance(row_keys, list):
-                row_keys = [row_keys]
-            for k in row_keys:
-                self.add_key(k)
-        self.limit: int | None = limit
-        self.filter: RowFilter | None = row_filter
+        if row_keys is None:
+            row_keys = []
+        if row_ranges is None:
+            row_ranges = []
+        if not isinstance(row_ranges, list):
+            row_ranges = [row_ranges]
+        if not isinstance(row_keys, list):
+            row_keys = [row_keys]
+        row_keys = [key.encode() if isinstance(key, str) else key for key in row_keys]
+        self._row_set = RowSetPB(
+            row_keys=row_keys, row_ranges=[r._pb for r in row_ranges]
+        )
+        self.limit = limit or None
+        self.filter = row_filter
+
+    @property
+    def row_keys(self) -> list[bytes]:
+        return list(self._row_set.row_keys)
+
+    @property
+    def row_ranges(self) -> list[RowRange]:
+        return [RowRange._from_pb(r) for r in self._row_set.row_ranges]
 
     @property
     def limit(self) -> int | None:
-        return self._limit
+        return self._limit or None
 
     @limit.setter
     def limit(self, new_limit: int | None):
@@ -279,16 +262,9 @@ class ReadRowsQuery:
 
         Args:
           - row_filter: a RowFilter to apply to this query
-              Can be a RowFilter object or a dict representation
         Returns:
           - a reference to this query for chaining
         """
-        if not (
-            isinstance(row_filter, dict)
-            or isinstance(row_filter, RowFilter)
-            or row_filter is None
-        ):
-            raise ValueError("row_filter must be a RowFilter or dict")
         self._filter = row_filter
 
     def add_key(self, row_key: str | bytes):
@@ -308,25 +284,21 @@ class ReadRowsQuery:
             row_key = row_key.encode()
         elif not isinstance(row_key, bytes):
             raise ValueError("row_key must be string or bytes")
-        self.row_keys.add(row_key)
+        if row_key not in self._row_set.row_keys:
+            self._row_set.row_keys.append(row_key)
 
     def add_range(
         self,
-        row_range: RowRange | dict[str, bytes],
+        row_range: RowRange,
     ):
         """
         Add a range of row keys to this query.
 
         Args:
           - row_range: a range of row keys to add to this query
-              Can be a RowRange object or a dict representation in
-              RowRange proto format
         """
-        if not (isinstance(row_range, dict) or isinstance(row_range, RowRange)):
-            raise ValueError("row_range must be a RowRange or dict")
-        if isinstance(row_range, dict):
-            row_range = RowRange._from_dict(row_range)
-        self.row_ranges.add(row_range)
+        if row_range not in self.row_ranges:
+            self._row_set.row_ranges.append(row_range._pb)
 
     def shard(self, shard_keys: RowKeySamples) -> ShardedQuery:
         """
@@ -392,24 +364,24 @@ class ReadRowsQuery:
           - a list of tuples, containing a segment index and a new sub-range.
         """
         # 1. find the index of the segment the start key belongs to
-        if orig_range._start is None:
+        if orig_range.start_key is None:
             # if range is open on the left, include first segment
             start_segment = 0
         else:
             # use binary search to find the segment the start key belongs to
             # bisect method determines how we break ties when the start key matches a split point
             # if inclusive, bisect_left to the left segment, otherwise bisect_right
-            bisect = bisect_left if orig_range._start.is_inclusive else bisect_right
-            start_segment = bisect(split_points, orig_range._start.key)
+            bisect = bisect_left if orig_range.start_is_inclusive else bisect_right
+            start_segment = bisect(split_points, orig_range.start_key)
 
         # 2. find the index of the segment the end key belongs to
-        if orig_range._end is None:
+        if orig_range.end_key is None:
             # if range is open on the right, include final segment
             end_segment = len(split_points)
         else:
             # use binary search to find the segment the end key belongs to.
             end_segment = bisect_left(
-                split_points, orig_range._end.key, lo=start_segment
+                split_points, orig_range.end_key, lo=start_segment
             )
             # note: end_segment will always bisect_left, because split points represent inclusive ends
             # whether the end_key is includes the split point or not, the result is the same segment
@@ -424,18 +396,22 @@ class ReadRowsQuery:
             # 3a. add new range for first segment this_range spans
             # first range spans from start_key to the split_point representing the last key in the segment
             last_key_in_first_segment = split_points[start_segment]
-            start_range = RowRange._from_points(
-                start=orig_range._start,
-                end=_RangePoint(last_key_in_first_segment, is_inclusive=True),
+            start_range = RowRange(
+                start_key=orig_range.start_key,
+                start_is_inclusive=orig_range.start_is_inclusive,
+                end_key=last_key_in_first_segment,
+                end_is_inclusive=True,
             )
             results.append((start_segment, start_range))
             # 3b. add new range for last segment this_range spans
             # we start the final range using the end key from of the previous segment, with is_inclusive=False
             previous_segment = end_segment - 1
             last_key_before_segment = split_points[previous_segment]
-            end_range = RowRange._from_points(
-                start=_RangePoint(last_key_before_segment, is_inclusive=False),
-                end=orig_range._end,
+            end_range = RowRange(
+                start_key=last_key_before_segment,
+                start_is_inclusive=False,
+                end_key=orig_range.end_key,
+                end_is_inclusive=orig_range.end_is_inclusive,
             )
             results.append((end_segment, end_range))
             # 3c. add new spanning range to all segments other than the first and last
@@ -452,31 +428,18 @@ class ReadRowsQuery:
                 results.append((this_segment, new_range))
             return results
 
-    def _to_dict(self) -> dict[str, Any]:
+    def _to_pb(self, table) -> ReadRowsRequestPB:
         """
         Convert this query into a dictionary that can be used to construct a
         ReadRowsRequest protobuf
         """
-        row_ranges = []
-        for r in self.row_ranges:
-            dict_range = r._to_dict() if isinstance(r, RowRange) else r
-            row_ranges.append(dict_range)
-        row_keys = list(self.row_keys)
-        row_keys.sort()
-        row_set = {"row_keys": row_keys, "row_ranges": row_ranges}
-        final_dict: dict[str, Any] = {
-            "rows": row_set,
-        }
-        dict_filter = (
-            self.filter._to_dict()
-            if isinstance(self.filter, RowFilter)
-            else self.filter
+        return ReadRowsRequestPB(
+            table_name=table.table_name,
+            app_profile_id=table.app_profile_id,
+            filter=self.filter._to_pb() if self.filter else None,
+            rows_limit=self.limit or 0,
+            rows=self._row_set,
         )
-        if dict_filter:
-            final_dict["filter"] = dict_filter
-        if self.limit is not None:
-            final_dict["rows_limit"] = self.limit
-        return final_dict
 
     def __eq__(self, other):
         """

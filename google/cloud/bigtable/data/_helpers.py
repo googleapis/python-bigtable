@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from typing import Callable, Any
-from inspect import iscoroutinefunction
 import time
 
 from google.api_core import exceptions as core_exceptions
@@ -63,10 +62,14 @@ def _attempt_timeout_generator(
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
 
+# TODO:replace this function with an exception_factory passed into the retry when
+# feature is merged:
+# https://github.com/googleapis/python-bigtable/blob/ea5b4f923e42516729c57113ddbe28096841b952/google/cloud/bigtable/data/_async/_read_rows.py#L130
 def _convert_retry_deadline(
     func: Callable[..., Any],
     timeout_value: float | None = None,
     retry_errors: list[Exception] | None = None,
+    is_async: bool = False,
 ):
     """
     Decorator to convert RetryErrors raised by api_core.retry into
@@ -108,7 +111,7 @@ def _convert_retry_deadline(
         except core_exceptions.RetryError:
             handle_error()
 
-    return wrapper_async if iscoroutinefunction(func) else wrapper
+    return wrapper_async if is_async else wrapper
 
 
 def _validate_timeouts(
