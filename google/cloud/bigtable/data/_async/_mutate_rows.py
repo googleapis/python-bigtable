@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import asyncio
 import functools
 
 from google.api_core import exceptions as core_exceptions
@@ -183,6 +184,13 @@ class _MutateRowsOperationAsync:
                         self._handle_entry_error(orig_idx, entry_error)
                     # remove processed entry from active list
                     del active_request_indices[result.index]
+        except asyncio.CancelledError:
+            # when retry wrapper timeout expires, the operation is cancelled
+            # make sure incomplete indices are tracked, 
+            # but don't record exception (it will be raised by wrapper)
+            # TODO: remove asyncio.wait_for in retry wrapper. Let grpc call handle expiration
+            self.remaining_indices.extend(active_request_indices.values())
+            raise
         except Exception as exc:
             # add this exception to list for each mutation that wasn't
             # already handled, and update remaining_indices if mutation is retryable
