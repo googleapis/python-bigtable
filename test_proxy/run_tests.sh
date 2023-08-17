@@ -16,6 +16,17 @@ function finish {
 }
 trap finish EXIT
 
+# attempt install golang if not installed
+if [[ ! -x "$(command -v go)" ]]; then
+  echo "Installing golang..."
+  wget  https://go.dev/dl/go1.20.2.linux-amd64.tar.gz
+  tar -C /usr/local -xzf go1.20.2.linux-amd64.tar.gz
+  export GOROOT=/usr/local/go
+  export PATH=$PATH:$GOROOT/bin
+  export GOPATH=$HOME/go
+  go version
+fi
+
 # ensure the working dir is the script's folder
 SCRIPT_DIR=$(realpath $(dirname "$0"))
 cd $SCRIPT_DIR
