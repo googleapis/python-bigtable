@@ -31,7 +31,7 @@ from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 
 from google.api_core import retry_async as retries
-from google.api_core.retry_streaming_async import AsyncRetryableGenerator
+from google.api_core.retry_streaming_async import retry_target_stream
 from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
 
@@ -100,35 +100,17 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    async def start_operation(self) -> AsyncGenerator[Row, None]:
+    def start_operation(self) -> AsyncGenerator[Row, None]:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
-        transient_errors = []
-
-        def on_error_fn(exc):
-            if self._predicate(exc):
-                transient_errors.append(exc)
-
-        retry_gen = AsyncRetryableGenerator(
+        return retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
-            on_error_fn,
+            exception_factory=self._build_exception,
         )
-        try:
-            async for row in retry_gen:
-                yield row
-                if self._remaining_count is not None:
-                    self._remaining_count -= 1
-                    if self._remaining_count < 0:
-                        raise RuntimeError("emit count exceeds row limit")
-        except core_exceptions.RetryError:
-            self._raise_retry_error(transient_errors)
-        except GeneratorExit:
-            # propagate close to wrapped generator
-            await retry_gen.aclose()
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
@@ -202,6 +184,10 @@ class _ReadRowsOperationAsync:
                 elif c.commit_row:
                     # update row state after each commit
                     self._last_yielded_row_key = current_key
+                    if self._remaining_count is not None:
+                        self._remaining_count -= 1
+                        if self._remaining_count < 0:
+                            raise InvalidChunk("emit count exceeds row limit")
                     current_key = None
 
     @staticmethod
@@ -354,19 +340,34 @@ class _ReadRowsOperationAsync:
             raise _RowSetComplete()
         return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
 
-    def _raise_retry_error(self, transient_errors: list[Exception]) -> None:
+    @staticmethod
+    def _build_exception(
+        exc_list: list[Exception], is_timeout: bool, timeout_val: float
+    ) -> tuple[Exception, Exception | None]:
         """
-        If the retryable deadline is hit, wrap the raised exception
-        in a RetryExceptionGroup
+        Build retry error based on exceptions encountered during operation
+
+        Args:
+          - exc_list: list of exceptions encountered during operation
+          - is_timeout: whether the operation failed due to timeout
+          - timeout_val: the operation timeout value in seconds, for constructing
+                the error message
+        Returns:
+          - tuple of the exception to raise, and a cause exception if applicable
         """
-        timeout_value = self.operation_timeout
-        timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
-        error_str = f"operation_timeout{timeout_str} exceeded"
-        new_exc = core_exceptions.DeadlineExceeded(
-            error_str,
+        if is_timeout:
+            # if failed due to timeout, raise deadline exceeded as primary exception
+            source_exc: Exception = core_exceptions.DeadlineExceeded(
+                f"operation_timeout of {timeout_val} exceeded"
+            )
+        elif exc_list:
+            # otherwise, raise non-retryable error as primary exception
+            source_exc = exc_list.pop()
+        else:
+            source_exc = RuntimeError("failed with unspecified exception")
+        # use the retry exception group as the cause of the exception
+        cause_exc: Exception | None = (
+            RetryExceptionGroup(exc_list) if exc_list else None
         )
-        source_exc = None
-        if transient_errors:
-            source_exc = RetryExceptionGroup(transient_errors)
-        new_exc.__cause__ = source_exc
-        raise new_exc from source_exc
+        source_exc.__cause__ = cause_exc
+        return source_exc, cause_exc

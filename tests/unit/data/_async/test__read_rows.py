@@ -226,24 +226,34 @@ class TestReadRowsOperation:
           should be raised (tested in test_revise_limit_over_limit)
         """
         from google.cloud.bigtable.data import ReadRowsQuery
+        from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-        async def mock_stream():
-            for i in range(emit_num):
-                yield i
+        async def awaitable_stream():
+            async def mock_stream():
+                for i in range(emit_num):
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(
+                                row_key=str(i).encode(),
+                                family_name="b",
+                                qualifier=b"c",
+                                value=b"d",
+                                commit_row=True,
+                            )
+                        ]
+                    )
+
+            return mock_stream()
 
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "_read_rows_attempt"
-        ) as mock_attempt:
-            mock_attempt.return_value = mock_stream()
-            instance = self._make_one(query, table, 10, 10)
-            assert instance._remaining_count == start_limit
-            # read emit_num rows
-            async for val in instance.start_operation():
-                pass
+        instance = self._make_one(query, table, 10, 10)
+        assert instance._remaining_count == start_limit
+        # read emit_num rows
+        async for val in instance.chunk_stream(awaitable_stream()):
+            pass
         assert instance._remaining_count == expected_limit
 
     @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
@@ -254,26 +264,37 @@ class TestReadRowsOperation:
         (unless start_num == 0, which represents unlimited)
         """
         from google.cloud.bigtable.data import ReadRowsQuery
+        from google.cloud.bigtable_v2.types import ReadRowsResponse
+        from google.cloud.bigtable.data.exceptions import InvalidChunk
 
-        async def mock_stream():
-            for i in range(emit_num):
-                yield i
+        async def awaitable_stream():
+            async def mock_stream():
+                for i in range(emit_num):
+                    yield ReadRowsResponse(
+                        chunks=[
+                            ReadRowsResponse.CellChunk(
+                                row_key=str(i).encode(),
+                                family_name="b",
+                                qualifier=b"c",
+                                value=b"d",
+                                commit_row=True,
+                            )
+                        ]
+                    )
+
+            return mock_stream()
 
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        with mock.patch.object(
-            _ReadRowsOperationAsync, "_read_rows_attempt"
-        ) as mock_attempt:
-            mock_attempt.return_value = mock_stream()
-            instance = self._make_one(query, table, 10, 10)
-            assert instance._remaining_count == start_limit
-            with pytest.raises(RuntimeError) as e:
-                # read emit_num rows
-                async for val in instance.start_operation():
-                    pass
-            assert "emit count exceeds row limit" in str(e.value)
+        instance = self._make_one(query, table, 10, 10)
+        assert instance._remaining_count == start_limit
+        with pytest.raises(InvalidChunk) as e:
+            # read emit_num rows
+            async for val in instance.chunk_stream(awaitable_stream()):
+                pass
+        assert "emit count exceeds row limit" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_aclose(self):
@@ -333,6 +354,7 @@ class TestReadRowsOperation:
 
         instance = mock.Mock()
         instance._last_yielded_row_key = None
+        instance._remaining_count = None
         stream = _ReadRowsOperationAsync.chunk_stream(instance, mock_awaitable_stream())
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:

@@ -62,6 +62,9 @@ def _attempt_timeout_generator(
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
 
+# TODO:replace this function with an exception_factory passed into the retry when
+# feature is merged:
+# https://github.com/googleapis/python-bigtable/blob/ea5b4f923e42516729c57113ddbe28096841b952/google/cloud/bigtable/data/_async/_read_rows.py#L130
 def _convert_retry_deadline(
     func: Callable[..., Any],
     timeout_value: float | None = None,
