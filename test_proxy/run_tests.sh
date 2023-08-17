@@ -11,10 +11,6 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-function finish {
-  kill -- -$$  2> /dev/null # kill all child processes
-}
-trap finish EXIT
 
 # attempt install golang if not installed
 if [[ ! -x "$(command -v go)" ]]; then
@@ -40,6 +36,11 @@ fi
 
 # start proxy
 python test_proxy.py --port $PROXY_SERVER_PORT &
+PROXY_PID=$!
+function finish {
+  kill $PROXY_PID 
+}
+trap finish EXIT
 
 # run tests
 pushd cloud-bigtable-clients-test/tests
