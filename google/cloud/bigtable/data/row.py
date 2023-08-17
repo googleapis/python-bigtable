@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Sequence, Generator, overload, Any
+from typing import Generator, overload, Any
 from functools import total_ordering
 
 from google.cloud.bigtable_v2.types import Row as RowPB
@@ -25,7 +25,7 @@ _family_type = str
 _qualifier_type = bytes
 
 
-class Row(Sequence["Cell"]):
+class Row:
     """
     Model class for row data returned from server
 
@@ -307,21 +307,6 @@ class Row(Sequence["Cell"]):
         Implements `!=` operator
         """
         return not self == other
-
-
-class _LastScannedRow(Row):
-    """A value used to indicate a scanned row that is not returned as part of
-    a query.
-
-    This is used internally to indicate progress in a scan, and improve retry
-    performance. It is not intended to be used directly by users.
-    """
-
-    def __init__(self, row_key):
-        super().__init__(row_key, [])
-
-    def __eq__(self, other):
-        return isinstance(other, _LastScannedRow)
 
 
 @total_ordering

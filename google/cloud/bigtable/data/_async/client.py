@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import (
     cast,
     Any,
+    AsyncIterable,
     Optional,
     Set,
     TYPE_CHECKING,
@@ -44,7 +45,6 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import ReadRowsAsyncIterator
 
 import google.auth.credentials
 import google.auth._default
@@ -497,7 +497,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
-    ) -> ReadRowsAsyncIterator:
+    ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
@@ -533,27 +533,13 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
-        request = query._to_dict() if isinstance(query, ReadRowsQuery) else query
-        request["table_name"] = self.table_name
-        if self.app_profile_id:
-            request["app_profile_id"] = self.app_profile_id
-
-        # read_rows smart retries is implemented using a series of iterators:
-        # - client.read_rows: outputs raw ReadRowsResponse objects from backend. Has attempt_timeout
-        # - ReadRowsOperation.merge_row_response_stream: parses chunks into rows
-        # - ReadRowsOperation.retryable_merge_rows: adds retries, caching, revised requests, operation_timeout
-        # - ReadRowsAsyncIterator: adds idle_timeout, moves stats out of stream and into attribute
         row_merger = _ReadRowsOperationAsync(
-            request,
-            self.client._gapic_client,
+            query,
+            self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
         )
-        output_generator = ReadRowsAsyncIterator(row_merger)
-        # add idle timeout to clear resources if generator is abandoned
-        idle_timeout_seconds = 300
-        await output_generator._start_idle_timer(idle_timeout_seconds)
-        return output_generator
+        return row_merger.start_operation()
 
     async def read_rows(
         self,
@@ -592,8 +578,7 @@ class TableAsync:
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
         )
-        results = [row async for row in row_generator]
-        return results
+        return [row async for row in row_generator]
 
     async def read_row(
         self,
@@ -846,7 +831,7 @@ class TableAsync:
             return [(s.row_key, s.offset_bytes) async for s in results]
 
         wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc), operation_timeout, transient_errors
+            retry(execute_rpc), operation_timeout, transient_errors, is_async=True
         )
         return await wrapped_fn()
 
@@ -973,7 +958,7 @@ class TableAsync:
         retry_wrapped = retry(self.client._gapic_client.mutate_row)
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
         deadline_wrapped = _convert_retry_deadline(
-            retry_wrapped, operation_timeout, transient_errors
+            retry_wrapped, operation_timeout, transient_errors, is_async=True
         )
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc

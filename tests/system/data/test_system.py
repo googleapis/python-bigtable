@@ -14,7 +14,6 @@
 
 import pytest
 import pytest_asyncio
-import os
 import asyncio
 import uuid
 from google.api_core import retry
@@ -27,131 +26,37 @@ TEST_FAMILY_2 = "test-family-2"
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.stop()
-    loop.close()
-
-
-@pytest.fixture(scope="session")
-def instance_admin_client():
-    """Client for interacting with the Instance Admin API."""
-    from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
-
-    with BigtableInstanceAdminClient() as client:
-        yield client
-
-
-@pytest.fixture(scope="session")
-def table_admin_client():
-    """Client for interacting with the Table Admin API."""
-    from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
-
-    with BigtableTableAdminClient() as client:
-        yield client
-
-
-@pytest.fixture(scope="session")
-def instance_id(instance_admin_client, project_id):
+def column_family_config():
     """
-    Returns BIGTABLE_TEST_INSTANCE if set, otherwise creates a new temporary instance for the test session
+    specify column families to create when creating a new test table
     """
     from google.cloud.bigtable_admin_v2 import types
-    from google.api_core import exceptions
 
-    # use user-specified instance if available
-    user_specified_instance = os.getenv("BIGTABLE_TEST_INSTANCE")
-    if user_specified_instance:
-        print("Using user-specified instance: {}".format(user_specified_instance))
-        yield user_specified_instance
-        return
-
-    # create a new temporary test instance
-    instance_id = "test-instance"
-    try:
-        operation = instance_admin_client.create_instance(
-            parent=f"projects/{project_id}",
-            instance_id=instance_id,
-            instance=types.Instance(
-                display_name="Test Instance",
-                labels={"python-system-test": "true"},
-            ),
-            clusters={
-                "test-cluster": types.Cluster(
-                    location=f"projects/{project_id}/locations/us-central1-b",
-                    serve_nodes=3,
-                )
-            },
-        )
-        operation.result(timeout=240)
-    except exceptions.AlreadyExists:
-        pass
-    yield instance_id
-    instance_admin_client.delete_instance(
-        name=f"projects/{project_id}/instances/{instance_id}"
-    )
+    return {TEST_FAMILY: types.ColumnFamily(), TEST_FAMILY_2: types.ColumnFamily()}
 
 
 @pytest.fixture(scope="session")
-def table_id(table_admin_client, project_id, instance_id):
+def init_table_id():
     """
-    Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
+    The table_id to use when creating a new test table
+    """
+    return f"test-table-{uuid.uuid4().hex}"
+
+
+@pytest.fixture(scope="session")
+def cluster_config(project_id):
+    """
+    Configuration for the clusters to use when creating a new instance
     """
     from google.cloud.bigtable_admin_v2 import types
-    from google.api_core import exceptions
-    from google.api_core import retry
 
-    # use user-specified instance if available
-    user_specified_table = os.getenv("BIGTABLE_TEST_TABLE")
-    if user_specified_table:
-        print("Using user-specified table: {}".format(user_specified_table))
-        yield user_specified_table
-        return
-
-    table_id = "test-table"
-    retry = retry.Retry(
-        predicate=retry.if_exception_type(exceptions.FailedPrecondition)
-    )
-    try:
-        table_admin_client.create_table(
-            parent=f"projects/{project_id}/instances/{instance_id}",
-            table_id=table_id,
-            table=types.Table(
-                column_families={
-                    TEST_FAMILY: types.ColumnFamily(),
-                    TEST_FAMILY_2: types.ColumnFamily(),
-                },
-            ),
-            retry=retry,
+    cluster = {
+        "test-cluster": types.Cluster(
+            location=f"projects/{project_id}/locations/us-central1-b",
+            serve_nodes=1,
         )
-    except exceptions.AlreadyExists:
-        pass
-    yield table_id
-    table_admin_client.delete_table(
-        name=f"projects/{project_id}/instances/{instance_id}/tables/{table_id}"
-    )
-
-
-@pytest_asyncio.fixture(scope="session")
-async def client():
-    from google.cloud.bigtable.data import BigtableDataClientAsync
-
-    project = os.getenv("GOOGLE_CLOUD_PROJECT") or None
-    async with BigtableDataClientAsync(project=project) as client:
-        yield client
-
-
-@pytest.fixture(scope="session")
-def project_id(client):
-    """Returns the project ID from the client."""
-    yield client.project
-
-
-@pytest_asyncio.fixture(scope="session")
-async def table(client, table_id, instance_id):
-    async with client.get_table(instance_id, table_id) as table:
-        yield table
+    }
+    return cluster
 
 
 class TempRowBuilder:
@@ -197,6 +102,7 @@ class TempRowBuilder:
         await self.table.client._gapic_client.mutate_rows(request)
 
 
+@pytest.mark.usefixtures("table")
 async def _retrieve_cell_value(table, row_key):
     """
     Helper to read an individual row
@@ -231,6 +137,7 @@ async def _create_row_and_mutation(
     return row_key, mutation
 
 
+@pytest.mark.usefixtures("table")
 @pytest_asyncio.fixture(scope="function")
 async def temp_rows(table):
     builder = TempRowBuilder(table)
@@ -238,6 +145,8 @@ async def temp_rows(table):
     await builder.delete_rows()
 
 
+@pytest.mark.usefixtures("table")
+@pytest.mark.usefixtures("client")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
@@ -249,6 +158,8 @@ async def test_ping_and_warm_gapic(client, table):
     await client._gapic_client.ping_and_warm(request)
 
 
+@pytest.mark.usefixtures("table")
+@pytest.mark.usefixtures("client")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_ping_and_warm(client, table):
@@ -265,6 +176,7 @@ async def test_ping_and_warm(client, table):
     assert results[0] is None
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutation_set_cell(table, temp_rows):
@@ -282,9 +194,11 @@ async def test_mutation_set_cell(table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
-async def test_sample_row_keys(client, table, temp_rows):
+async def test_sample_row_keys(client, table, temp_rows, column_split_config):
     """
     Sample keys should return a single sample in small test tables
     """
@@ -292,12 +206,18 @@ async def test_sample_row_keys(client, table, temp_rows):
     await temp_rows.add_row(b"row_key_2")
 
     results = await table.sample_row_keys()
-    assert len(results) == 1
-    sample = results[0]
-    assert isinstance(sample[0], bytes)
-    assert isinstance(sample[1], int)
+    assert len(results) == len(column_split_config) + 1
+    # first keys should match the split config
+    for idx in range(len(column_split_config)):
+        assert results[idx][0] == column_split_config[idx]
+        assert isinstance(results[idx][1], int)
+    # last sample should be empty key
+    assert results[-1][0] == b""
+    assert isinstance(results[-1][1], int)
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_bulk_mutations_set_cell(client, table, temp_rows):
     """
@@ -317,6 +237,8 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_context_manager(client, table, temp_rows):
@@ -343,6 +265,8 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
     assert len(batcher._staged_entries) == 0
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_timer_flush(client, table, temp_rows):
@@ -367,6 +291,8 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
         assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_count_flush(client, table, temp_rows):
@@ -401,6 +327,8 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
@@ -436,6 +364,8 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
         assert (await _retrieve_cell_value(table, row_key2)) == new_value2
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_no_flush(client, table, temp_rows):
@@ -472,6 +402,8 @@ async def test_mutations_batcher_no_flush(client, table, temp_rows):
         assert (await _retrieve_cell_value(table, row_key2)) == start_value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @pytest.mark.parametrize(
     "start,increment,expected",
     [
@@ -512,6 +444,8 @@ async def test_read_modify_write_row_increment(
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @pytest.mark.parametrize(
     "start,append,expected",
     [
@@ -549,6 +483,8 @@ async def test_read_modify_write_row_append(
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_modify_write_row_chained(client, table, temp_rows):
     """
@@ -585,6 +521,8 @@ async def test_read_modify_write_row_chained(client, table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == result[0].value
 
 
+@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("table")
 @pytest.mark.parametrize(
     "start_val,predicate_range,expected_result",
     [
@@ -631,6 +569,7 @@ async def test_check_and_mutate(
     assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_stream(table, temp_rows):
@@ -650,6 +589,7 @@ async def test_read_rows_stream(table, temp_rows):
         await generator.__anext__()
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows(table, temp_rows):
@@ -665,6 +605,7 @@ async def test_read_rows(table, temp_rows):
     assert row_list[1].row_key == b"row_key_2"
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_simple(table, temp_rows):
@@ -687,6 +628,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
     assert row_list[3].row_key == b"d"
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_from_sample(table, temp_rows):
@@ -711,6 +653,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
     assert row_list[2].row_key == b"d"
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_filters_limits(table, temp_rows):
@@ -739,6 +682,7 @@ async def test_read_rows_sharded_filters_limits(table, temp_rows):
     assert row_list[2][0].labels == ["second"]
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_range_query(table, temp_rows):
@@ -760,6 +704,7 @@ async def test_read_rows_range_query(table, temp_rows):
     assert row_list[1].row_key == b"c"
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_single_key_query(table, temp_rows):
@@ -780,6 +725,7 @@ async def test_read_rows_single_key_query(table, temp_rows):
     assert row_list[1].row_key == b"c"
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_with_filter(table, temp_rows):
@@ -803,46 +749,29 @@ async def test_read_rows_with_filter(table, temp_rows):
         assert row[0].labels == [expected_label]
 
 
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_rows_stream_close(table, temp_rows):
     """
     Ensure that the read_rows_stream can be closed
     """
+    from google.cloud.bigtable.data import ReadRowsQuery
+
     await temp_rows.add_row(b"row_key_1")
     await temp_rows.add_row(b"row_key_2")
-
     # full table scan
-    generator = await table.read_rows_stream({})
+    query = ReadRowsQuery()
+    generator = await table.read_rows_stream(query)
+    # grab first row
     first_row = await generator.__anext__()
     assert first_row.row_key == b"row_key_1"
+    # close stream early
     await generator.aclose()
-    assert generator.active is False
-    with pytest.raises(StopAsyncIteration) as e:
+    with pytest.raises(StopAsyncIteration):
         await generator.__anext__()
-        assert "closed" in str(e)
 
 
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
-@pytest.mark.asyncio
-async def test_read_rows_stream_inactive_timer(table, temp_rows):
-    """
-    Ensure that the read_rows_stream method works
-    """
-    from google.cloud.bigtable.data.exceptions import IdleTimeout
-
-    await temp_rows.add_row(b"row_key_1")
-    await temp_rows.add_row(b"row_key_2")
-
-    generator = await table.read_rows_stream({})
-    await generator._start_idle_timer(0.05)
-    await asyncio.sleep(0.2)
-    assert generator.active is False
-    with pytest.raises(IdleTimeout) as e:
-        await generator.__anext__()
-        assert "inactivity" in str(e)
-        assert "idle_timeout=0.1" in str(e)
-
-
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row(table, temp_rows):
     """
@@ -857,6 +786,7 @@ async def test_read_row(table, temp_rows):
     assert row.cells[0].value == b"value"
 
 
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row_missing(table):
     """
@@ -872,6 +802,7 @@ async def test_read_row_missing(table):
         assert "Row key must be non-empty" in str(e)
 
 
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row_w_filter(table, temp_rows):
     """
@@ -890,6 +821,7 @@ async def test_read_row_w_filter(table, temp_rows):
     assert row.cells[0].labels == [expected_label]
 
 
+@pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_row_exists(table, temp_rows):
     from google.api_core import exceptions
@@ -909,6 +841,7 @@ async def test_row_exists(table, temp_rows):
         assert "Row kest must be non-empty" in str(e)
 
 
+@pytest.mark.usefixtures("table")
 @retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.parametrize(
     "cell_value,filter_input,expect_match",
