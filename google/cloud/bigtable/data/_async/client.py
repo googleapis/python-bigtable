@@ -122,7 +122,7 @@ class BigtableDataClientAsync(ClientWithProject):
         BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
-        client_info.client_library_version = client_info.gapic_version
+        client_info.client_library_version = self._client_version()
         # parse client options
         if type(client_options) is dict:
             client_options = client_options_lib.from_dict(client_options)
@@ -162,6 +162,13 @@ class BigtableDataClientAsync(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
+
+    @staticmethod
+    def _client_version() -> str:
+        """
+        Helper function to return the client version string for this client
+        """
+        return f"{google.cloud.bigtable.__version__}-data-async"
 
     def _start_background_channel_refresh(self) -> None:
         """
