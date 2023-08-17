@@ -170,7 +170,6 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         return f"{google.cloud.bigtable.__version__}-data-async"
 
-
     def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm each channel in the pool
