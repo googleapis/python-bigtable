@@ -277,6 +277,25 @@ def system_emulated(session):
         # Stop Emulator
         os.killpg(os.getpgid(p.pid), signal.SIGKILL)
 
+@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+def conformance_tests(session):
+    """
+    Run the set of shared bigtable conformance tests
+    """
+    TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
+    CLONE_REPO_DIR = "cloud-bigtable-clients-test"
+    # install dependencies
+    constraints_path = str(
+        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
+    )
+    install_unittest_dependencies(session, "-c", constraints_path)
+    with session.chdir("test_proxy"):
+        # download the conformance test suite
+        clone_dir = os.path.join(CURRENT_DIRECTORY, CLONE_REPO_DIR)
+        if not os.path.exists(clone_dir):
+            print("downloading copy of test repo")
+            session.run("git", "clone", TEST_REPO_URL, CLONE_REPO_DIR)
+        session.run("bash", "-e", "run_tests.sh", external=True)
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system(session):
