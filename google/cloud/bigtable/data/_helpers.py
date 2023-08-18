@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Callable, Any
 import time
+import random
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -60,6 +61,39 @@ def _attempt_timeout_generator(
     deadline = operation_timeout + time.monotonic()
     while True:
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
+
+
+def _exponential_sleep_generator(
+    initial: float = 0.01,
+    maximum: float = 60,
+    multiplier: float = 2,
+    min_increase: float = 0.001,
+):
+    """
+    Generates sleep intervals for exponential backoff on failed rpc attempts.
+
+    Based on google.api_core.retry.exponential_sleep_generator,
+    but with the added constraint that each sleep interval must be strictly
+    greater than the previous one.
+
+    Args:
+        initial: The minimum amount of time to delay, in seconds. This must
+            be greater than 0.
+        maximum: The maximum amount of time to delay, in seconds.
+        multiplier: The multiplier applied to the delay.
+        min_increase: The minimum amount of time to increase the delay,
+            in seconds.
+    Yields:
+        float: successive sleep intervals for exponential backoff, in seconds.
+    """
+    delay_ceil = initial
+    delay_floor = initial
+    next_sleep = initial
+    while True:
+        yield next_sleep
+        delay_ceil = min(delay_ceil * multiplier, maximum)
+        delay_floor = min(next_sleep + min_increase, delay_ceil)
+        next_sleep = random.uniform(delay_floor, delay_ceil)
 
 
 # TODO:replace this function with an exception_factory passed into the retry when
