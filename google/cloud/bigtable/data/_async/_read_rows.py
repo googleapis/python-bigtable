@@ -29,10 +29,10 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _exponential_sleep_generator
 
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
-from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
@@ -107,7 +107,7 @@ class _ReadRowsOperationAsync:
         return retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
-            exponential_sleep_generator(0.01, 60, multiplier=2),
+            _exponential_sleep_generator(),
             self.operation_timeout,
             exception_factory=self._build_exception,
         )

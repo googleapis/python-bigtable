@@ -32,6 +32,7 @@ import sys
 import random
 import os
 
+from functools import partial
 from collections import namedtuple
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
@@ -62,9 +63,10 @@ from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationA
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import _exponential_sleep_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
@@ -835,16 +837,6 @@ class TableAsync:
             if predicate(exc):
                 transient_errors.append(exc)
 
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-            on_error=on_error_fn,
-            is_stream=False,
-        )
-
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
@@ -857,8 +849,16 @@ class TableAsync:
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
+        retry_wrapped = partial(
+            retries.retry_target,
+            target=execute_rpc,
+            predicate=predicate,
+            on_error=on_error_fn,
+            sleep_generator=_exponential_sleep_generator(),
+            timeout=operation_timeout,
+        )
         wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc), operation_timeout, transient_errors, is_async=True
+            retry_wrapped, operation_timeout, transient_errors, is_async=True
         )
         return await wrapped_fn()
 
@@ -973,25 +973,29 @@ class TableAsync:
             if predicate(exc):
                 transient_errors.append(exc)
 
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            on_error=on_error_fn,
-            timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
+        # create gapic request
+        gapic_fn = partial(
+            self.client._gapic_client.mutate_row,
+            request,
+            timeout=attempt_timeout,
+            metadata=_make_metadata(self.table_name, self.app_profile_id),
+            retry=None
         )
         # wrap rpc in retry logic
-        retry_wrapped = retry(self.client._gapic_client.mutate_row)
+        retry_wrapped = partial(
+            retries.retry_target,
+            target=gapic_fn,
+            predicate=predicate,
+            on_error=on_error_fn,
+            sleep_generator=_exponential_sleep_generator(),
+            timeout=operation_timeout,
+        )
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
         deadline_wrapped = _convert_retry_deadline(
             retry_wrapped, operation_timeout, transient_errors, is_async=True
         )
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
-        await deadline_wrapped(
-            request, timeout=attempt_timeout, metadata=metadata, retry=None
-        )
+        await deadline_wrapped()
 
     async def bulk_mutate_rows(
         self,
