@@ -186,7 +186,7 @@ class _MutateRowsOperationAsync:
                     del active_request_indices[result.index]
         except asyncio.CancelledError:
             # when retry wrapper timeout expires, the operation is cancelled
-            # make sure incomplete indices are tracked, 
+            # make sure incomplete indices are tracked,
             # but don't record exception (it will be raised by wrapper)
             # TODO: remove asyncio.wait_for in retry wrapper. Let grpc call handle expiration
             self.remaining_indices.extend(active_request_indices.values())
