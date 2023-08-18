@@ -104,7 +104,7 @@ def _exponential_sleep_generator(
     while True:
         yield next_sleep
         lower_bound = min(next_sleep + min_increase, maximum)
-        upper_bound = min(max(lower_bound, upper_bound * multiplier), maximum)
+        upper_bound = min(max(upper_bound * multiplier, lower_bound), maximum)
         next_sleep = random.uniform(lower_bound, upper_bound)
 
 
