@@ -134,7 +134,7 @@ class TestExponentialSleepGenerator:
             ((1, 3, 2, 0.5), [1, 2, 3, 3]),  # test with smaller min_increase
             ((0.92, 3, 2, 0), [0.92, 1.84, 3, 3]),  # test with min_increase of 0
             ((1, 5000, 10, 0.5), [1, 10, 100, 1000]),  # test with larger multiplier
-            ((1, 25, 1.5, 5), [1, 6, 11, 16.5, 25]),  # test with larger min increase
+            ((1, 20, 1.5, 5), [1, 6, 11, 16.5, 20]),  # test with larger min increase
             ((1, 5, 1, 0), [1, 1, 1, 1]),  # test with multiplier of 1
             ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase with multiplier of 1
         ],
@@ -168,11 +168,31 @@ class TestExponentialSleepGenerator:
         ],
     )
     def test_exponential_sleep_generator_bad_arguments(self, kwargs, exc_msg):
+        """
+        Test that _exponential_sleep_generator raises ValueError when given unexpected 0 or negative values
+        """
         with pytest.raises(ValueError) as excinfo:
             gen = _helpers._exponential_sleep_generator(**kwargs)
             # start generator
             next(gen)
         assert exc_msg in str(excinfo.value)
+
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        {"multiplier": 1}, {"multiplier": 1.1}, {"multiplier": 2},
+        {"min_increase": 0}, {"min_increase": 0.1}, {"min_increase": 100},
+        {"multiplier": 1, "min_increase": 0}, {"multiplier": 1, "min_increase": 4},
+    ])
+    def test_exponential_sleep_generator_always_increases(self, kwargs):
+        """
+        Generate a bunch of sleep values without random mocked, to ensure they always increase
+        """
+        gen = _helpers._exponential_sleep_generator(**kwargs, maximum=float("inf"))
+        last = next(gen)
+        for i in range(100):
+            current = next(gen)
+            assert current >= last
+            last = current
 
 
 class TestConvertRetryDeadline:
