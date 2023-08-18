@@ -12,13 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 
-# attempt install golang if not installed
+# attempt download golang if not found
 if [[ ! -x "$(command -v go)" ]]; then
-  echo "Installing golang..."
+  echo "Downloading golang..."
   wget  https://go.dev/dl/go1.20.2.linux-amd64.tar.gz
-  tar -C /usr/local -xzf go1.20.2.linux-amd64.tar.gz
-  export GOROOT=/usr/local/go
-  export PATH=$PATH:$GOROOT/bin
+  tar -xzf go1.20.2.linux-amd64.tar.gz
+  export GOROOT=$(pwd)/go
+  export PATH=$GOROOT/bin:$PATH
   export GOPATH=$HOME/go
   go version
 fi
