@@ -979,7 +979,7 @@ class TableAsync:
             request,
             timeout=attempt_timeout,
             metadata=_make_metadata(self.table_name, self.app_profile_id),
-            retry=None
+            retry=None,
         )
         # wrap rpc in retry logic
         retry_wrapped = partial(

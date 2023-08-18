@@ -67,7 +67,7 @@ def _exponential_sleep_generator(
     initial: float = 0.01,
     maximum: float = 60,
     multiplier: float = 2,
-    min_increase: float = 0.001,
+    min_increase: float = 0.01,
 ):
     """
     Generates sleep intervals for exponential backoff on failed rpc attempts.
@@ -77,23 +77,35 @@ def _exponential_sleep_generator(
     greater than the previous one.
 
     Args:
-        initial: The minimum amount of time to delay, in seconds. This must
-            be greater than 0.
-        maximum: The maximum amount of time to delay, in seconds.
-        multiplier: The multiplier applied to the delay.
+        initial: The starting delay value, in seconds. Subsequent values will
+            always be less than this value. Must be > 0.
+        maximum: The maximum amount of time to delay, in seconds. Must be
+            >= initial.
+        multiplier: The multiplier applied to the delay. Modifies the upper range
+            of sleep values that may be returned.  Must be >= 1.
         min_increase: The minimum amount of time to increase the delay,
-            in seconds.
+            in seconds. Modifies the lower range of sleep values that may be
+            returned. Min_increase will not be applied if it would cause the
+            value to exceed maximum. Must be >= 0.
     Yields:
         float: successive sleep intervals for exponential backoff, in seconds.
     """
-    delay_ceil = initial
-    delay_floor = initial
+    if initial <= 0:
+        raise ValueError("initial must be > 0")
+    if multiplier < 1:
+        raise ValueError("multiplier must be >= 1")
+    if maximum < initial:
+        raise ValueError("maximum must be >= initial")
+    if min_increase < 0:
+        raise ValueError("min_increase must be >= 0")
+    lower_bound = initial
+    upper_bound = initial
     next_sleep = initial
     while True:
         yield next_sleep
-        delay_ceil = min(delay_ceil * multiplier, maximum)
-        delay_floor = min(next_sleep + min_increase, delay_ceil)
-        next_sleep = random.uniform(delay_floor, delay_ceil)
+        lower_bound = min(next_sleep + min_increase, maximum)
+        upper_bound = min(max(lower_bound, upper_bound * multiplier), maximum)
+        next_sleep = random.uniform(lower_bound, upper_bound)
 
 
 # TODO:replace this function with an exception_factory passed into the retry when

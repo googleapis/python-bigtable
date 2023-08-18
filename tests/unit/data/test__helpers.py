@@ -97,6 +97,84 @@ class TestAttemptTimeoutGenerator:
             expected_value -= sleep_time
 
 
+class TestExponentialSleepGenerator:
+    @mock.patch("random.uniform", autospec=True, side_effect=lambda m, n: m)
+    @pytest.mark.parametrize(
+        "args,expected",
+        [
+            ((), [0.01, 0.02, 0.03, 0.04, 0.05]),  # test defaults
+            ((1, 3, 2, 1), [1, 2, 3, 3, 3]),  # test hitting limit
+            ((1, 3, 2, 0.5), [1, 1.5, 2, 2.5, 3, 3]),  # test with smaller min_increase
+            ((0.92, 3, 2, 0), [0.92, 0.92, 0.92]),  # test with min_increase of 0
+            ((1, 3, 10, 0.5), [1, 1.5, 2, 2.5, 3, 3]),  # test with larger multiplier
+            ((1, 25, 1.5, 5), [1, 6, 11, 16, 21, 25]),  # test with larger min increase
+            ((1, 5, 1, 0), [1, 1, 1, 1]),  # test with multiplier of 1
+            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase with multiplier of 1
+        ],
+    )
+    def test_exponential_sleep_generator_lower_bound(self, uniform, args, expected):
+        """
+        Test that _exponential_sleep_generator generated expected values when random.uniform is mocked to return
+        the lower bound of the range
+
+        Each yield should consistently be min_increase above the last
+        """
+        import itertools
+
+        gen = _helpers._exponential_sleep_generator(*args)
+        result = list(itertools.islice(gen, len(expected)))
+        assert result == expected
+
+    @mock.patch("random.uniform", autospec=True, side_effect=lambda m, n: n)
+    @pytest.mark.parametrize(
+        "args,expected",
+        [
+            ((), [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28]),  # test defaults
+            ((1, 3, 2, 1), [1, 2, 3, 3, 3]),  # test hitting limit
+            ((1, 3, 2, 0.5), [1, 2, 3, 3]),  # test with smaller min_increase
+            ((0.92, 3, 2, 0), [0.92, 1.84, 3, 3]),  # test with min_increase of 0
+            ((1, 5000, 10, 0.5), [1, 10, 100, 1000]),  # test with larger multiplier
+            ((1, 25, 1.5, 5), [1, 6, 11, 16.5, 25]),  # test with larger min increase
+            ((1, 5, 1, 0), [1, 1, 1, 1]),  # test with multiplier of 1
+            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase with multiplier of 1
+        ],
+    )
+    def test_exponential_sleep_generator_upper_bound(self, uniform, args, expected):
+        """
+        Test that _exponential_sleep_generator generated expected values when random.uniform is mocked to return
+        the upper bound of the range
+
+        Each yield should be scaled by multiplier
+        """
+        import itertools
+
+        gen = _helpers._exponential_sleep_generator(*args)
+        result = list(itertools.islice(gen, len(expected)))
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "kwargs,exc_msg",
+        [
+            ({"initial": 0}, "initial must be > 0"),
+            ({"initial": -1}, "initial must be > 0"),
+            ({"multiplier": 0}, "multiplier must be >= 1"),
+            ({"multiplier": -1}, "multiplier must be >= 1"),
+            ({"multiplier": 0.9}, "multiplier must be >= 1"),
+            ({"min_increase": -1}, "min_increase must be >= 0"),
+            ({"min_increase": -0.1}, "min_increase must be >= 0"),
+            ({"initial": 1, "maximum": 0}, "maximum must be >= initial"),
+            ({"initial": 2, "maximum": 1}, "maximum must be >= initial"),
+            ({"initial": 2, "maximum": 1.99}, "maximum must be >= initial"),
+        ],
+    )
+    def test_exponential_sleep_generator_bad_arguments(self, kwargs, exc_msg):
+        with pytest.raises(ValueError) as excinfo:
+            gen = _helpers._exponential_sleep_generator(**kwargs)
+            # start generator
+            next(gen)
+        assert exc_msg in str(excinfo.value)
+
+
 class TestConvertRetryDeadline:
     """
     Test _convert_retry_deadline wrapper
