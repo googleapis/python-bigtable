@@ -285,13 +285,13 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.read_rows]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.read_rows
+        ]
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -376,13 +376,13 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.sample_row_keys]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.sample_row_keys
+        ]
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -488,14 +488,14 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.mutate_row]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.mutate_row
+        ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -595,14 +595,14 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.mutate_rows]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.mutate_rows
+        ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -746,14 +746,14 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.check_and_mutate_row]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.check_and_mutate_row
+        ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -837,13 +837,13 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.ping_and_warm]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.ping_and_warm
+        ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (
-            _cached_to_metadata((("name", request.name),)),
-        )
+        metadata = tuple(metadata) + (_cached_to_metadata((("name", request.name),)),)
 
         # Send the request.
         response = await rpc(
@@ -955,14 +955,14 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[self._client._transport.read_modify_write_row]
+        rpc = self._client._transport._wrapped_methods[
+            self._client._transport.read_modify_write_row
+        ]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -1044,7 +1044,9 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.GenerateInitialChangeStreamPartitionsRequest):
+        if not isinstance(
+            request, bigtable.GenerateInitialChangeStreamPartitionsRequest
+        ):
             request = bigtable.GenerateInitialChangeStreamPartitionsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
@@ -1065,9 +1067,7 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -1164,9 +1164,7 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata(
-                (("table_name", request.table_name),)
-            ),
+            _cached_to_metadata((("table_name", request.table_name),)),
         )
 
         # Send the request.
@@ -1191,8 +1189,12 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
 
+
 @functools.lru_cache(32)
 def _cached_to_metadata(params, qualified_enums=True):
-    return gapic_v1.routing_header.to_grpc_metadata(params, qualified_enums=qualified_enums)
+    return gapic_v1.routing_header.to_grpc_metadata(
+        params, qualified_enums=qualified_enums
+    )
+
 
 __all__ = ("BigtableAsyncClient",)

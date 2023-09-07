@@ -574,8 +574,6 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             ),
         }
 
-
-
     def close(self):
         return self.grpc_channel.close()
 
