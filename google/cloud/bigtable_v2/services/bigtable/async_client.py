@@ -272,7 +272,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.ReadRowsRequest(request)
+        if not isinstance(request, bigtable.ReadRowsRequest):
+            request = bigtable.ReadRowsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -362,7 +363,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.SampleRowKeysRequest(request)
+        if not isinstance(request, bigtable.SampleRowKeysRequest):
+            request = bigtable.SampleRowKeysRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -469,7 +471,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.MutateRowRequest(request)
+        if not isinstance(request, bigtable.MutateRowRequest):
+            request = bigtable.MutateRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -577,7 +580,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.MutateRowsRequest(request)
+        if not isinstance(request, bigtable.MutateRowsRequest):
+            request = bigtable.MutateRowsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -721,7 +725,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.CheckAndMutateRowRequest(request)
+        if not isinstance(request, bigtable.CheckAndMutateRowRequest):
+            request = bigtable.CheckAndMutateRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -819,7 +824,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.PingAndWarmRequest(request)
+        if not isinstance(request, bigtable.PingAndWarmRequest):
+            request = bigtable.PingAndWarmRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -932,7 +938,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.ReadModifyWriteRowRequest(request)
+        if not isinstance(request, bigtable.ReadModifyWriteRowRequest):
+            request = bigtable.ReadModifyWriteRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1036,7 +1043,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.GenerateInitialChangeStreamPartitionsRequest(request)
+        if not isinstance(request, bigtable.GenerateInitialChangeStreamPartitionsRequest):
+            request = bigtable.GenerateInitialChangeStreamPartitionsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1134,7 +1142,8 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        request = bigtable.ReadChangeStreamRequest(request)
+        if not isinstance(request, bigtable.ReadChangeStreamRequest):
+            request = bigtable.ReadChangeStreamRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
