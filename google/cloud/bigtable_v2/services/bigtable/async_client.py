@@ -283,12 +283,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.read_rows,
-            default_timeout=43200.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
-
+        rpc = self._client._transport._wrapped_methods[self._client._transport.read_rows]
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
@@ -378,12 +373,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.sample_row_keys,
-            default_timeout=60.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
-
+        rpc = self._client._transport._wrapped_methods[self._client._transport.sample_row_keys]
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
@@ -494,21 +484,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.mutate_row,
-            default_retry=retries.Retry(
-                initial=0.01,
-                maximum=60.0,
-                multiplier=2,
-                predicate=retries.if_exception_type(
-                    core_exceptions.DeadlineExceeded,
-                    core_exceptions.ServiceUnavailable,
-                ),
-                deadline=60.0,
-            ),
-            default_timeout=60.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        rpc = self._client._transport._wrapped_methods[self._client._transport.mutate_row]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -614,11 +590,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.mutate_rows,
-            default_timeout=600.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        rpc = self._client._transport._wrapped_methods[self._client._transport.mutate_rows]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -768,11 +740,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.check_and_mutate_row,
-            default_timeout=20.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        rpc = self._client._transport._wrapped_methods[self._client._transport.check_and_mutate_row]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -862,11 +830,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.ping_and_warm,
-            default_timeout=None,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        rpc = self._client._transport._wrapped_methods[self._client._transport.ping_and_warm]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -983,11 +947,7 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = gapic_v1.method_async.wrap_method(
-            self._client._transport.read_modify_write_row,
-            default_timeout=20.0,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        rpc = self._client._transport._wrapped_methods[self._client._transport.read_modify_write_row]
 
         # Certain fields should be provided within the metadata header;
         # add these here.
