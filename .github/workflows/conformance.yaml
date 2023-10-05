@@ -25,7 +25,8 @@ jobs:
     strategy:
       matrix:
         py-version: [ 3.7, 3.11 ]
-        use-legacy-client: [ "false", "true" ]
+        client-type: [ "v3", "Legacy" ]
+    name: "Conformance Tests ${{ matrix.client-type }} - ${{ matrix.py-version }}"
     steps:
     - uses: actions/checkout@v3
     - uses: actions/checkout@v3
@@ -45,5 +46,5 @@ jobs:
     - run: .kokoro/conformance.sh
       name: "Conformance Tests"
       env:
-        USE_LEGACY_CLIENT: ${{ matrix.use-legacy-client }}
+        CLIENT_TYPE: ${{ matrix.client-type }}
 

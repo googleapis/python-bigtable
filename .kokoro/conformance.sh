@@ -20,7 +20,7 @@ set -eo pipefail
 cd $(dirname $0)/..
 
 ARGS=""
-if [[ "$USE_LEGACY_CLIENT" == "true" ]]; then
+if [[ "${CLIENT_TYPE^^}" == "LEGACY" ]]; then
   ARGS="--legacy-client"
   echo "Using legacy client"
 fi
