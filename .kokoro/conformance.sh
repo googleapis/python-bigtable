@@ -27,14 +27,13 @@ fi
 
 # Build and start the proxy in a separate process
 PROXY_PORT=9999
-nohup python ./test_proxy/test_proxy.py --port $PROXY_PORT $ARGS &
+pushd test_proxy
+nohup python test_proxy.py --port $PROXY_PORT $ARGS &
 proxyPID=$!
+popd
 
 # Run the conformance test
-pushd .
-pwd
-ls
-cd cloud-bigtable-clients-test/tests
+pushd cloud-bigtable-clients-test/tests
 eval "go test -v -proxy_addr=:$PROXY_PORT"
 RETURN_CODE=$?
 popd
