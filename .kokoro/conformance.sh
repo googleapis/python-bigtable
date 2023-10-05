@@ -27,10 +27,8 @@ fi
 
 # Build and start the proxy in a separate process
 PROXY_PORT=9999
-pushd test_proxy
-nohup python testproxy --port $PROXY_PORT $ARGS &
+nohup python ./test_proxy/test_proxy.py --port $PROXY_PORT $ARGS &
 proxyPID=$!
-popd
 
 # Run the conformance test
 pushd .
