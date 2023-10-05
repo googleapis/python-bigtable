@@ -50,4 +50,5 @@ jobs:
       name: "run tests"
       env:
         CLIENT_TYPE: ${{ matrix.client-type }}
+        PYTHONUNBUFFERED: 1
 
