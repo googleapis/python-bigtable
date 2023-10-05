@@ -24,14 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        py-version: [ 3.7, 3.11 ]
+        py-version: [ 3.8 ]
         client-type: [ "v3", "Legacy" ]
     name: "${{ matrix.client-type }} client / python ${{ matrix.py-version }}"
     steps:
     - uses: actions/checkout@v3
-      name: checkout python-bigtable
+      name: "Checkout python-bigtable"
     - uses: actions/checkout@v3
-      name: checkout conformance tests
+      name: "Checkout conformance tests"
       with:
         repository: googleapis/cloud-bigtable-clients-test
         ref: main
@@ -44,10 +44,10 @@ jobs:
         go-version: '>=1.20.2'
     - run: chmod +x .kokoro/conformance.sh
     - run: pip install -e .
-      name: install python-bigtable from HEAD
+      name: "Install python-bigtable from HEAD"
     - run: go version
     - run: .kokoro/conformance.sh
-      name: "run tests"
+      name: "Run tests"
       env:
         CLIENT_TYPE: ${{ matrix.client-type }}
         PYTHONUNBUFFERED: 1
