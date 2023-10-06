@@ -204,4 +204,8 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
     @client_handler.error_safe
     async def SampleRowKeys(self, request, **kwargs):
-        raise NotImplementedError()
+        table_id = request["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+        response = list(table.sample_row_keys())
+        return response
