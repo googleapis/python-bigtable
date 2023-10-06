@@ -30,7 +30,6 @@ def error_safe(func):
                 raise RuntimeError("client is closed")
             return await func(self, *args, **kwargs)
         except (Exception, NotImplementedError) as e:
-            breakpoint()
             # exceptions should be raised in grpc_server_process
             encoded = encode_exception(e)
             return encoded
