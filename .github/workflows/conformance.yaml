@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         py-version: [ 3.8 ]
-        client-type: [ "v3", "Legacy" ]
+        client-type: [ "Async v3", "Legacy" ]
     name: "${{ matrix.client-type }} client / python ${{ matrix.py-version }}"
     steps:
     - uses: actions/checkout@v3
