@@ -80,8 +80,28 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         return row_list
 
     @client_handler.error_safe
-    async def ReadRow(self, request, **kwargs):
-        raise NotImplementedError
+    async def ReadRow(self, row_key, **kwargs):
+        table_id = kwargs["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+
+        row = table.read_row(row_key)
+        # parse results into proto formatted dict
+        dict_val = {"row_key": row.row_key}
+        for family, family_cells in row.cells.items():
+            family_dict = {"name": family}
+            for qualifier, qualifier_cells in family_cells.items():
+                column_dict = {"qualifier": qualifier}
+                for cell in qualifier_cells:
+                    cell_dict = {
+                        "value": cell.value,
+                        "timestamp_micros": cell.timestamp.timestamp() * 1000000,
+                        "labels": cell.labels,
+                    }
+                    column_dict.setdefault("cells", []).append(cell_dict)
+                family_dict.setdefault("columns", []).append(column_dict)
+            dict_val.setdefault("families", []).append(family_dict)
+        return dict_val
 
     @client_handler.error_safe
     async def MutateRow(self, request, **kwargs):
