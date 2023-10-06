@@ -199,6 +199,7 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
     @client_handler.error_safe
     async def ReadModifyWriteRow(self, request, **kwargs):
         from google.cloud.bigtable.row import AppendRow
+        from google.cloud._helpers import _microseconds_from_datetime
         table_id = request["table_name"].split("/")[-1]
         instance = self.client.instance(self.instance_id)
         table = instance.table(table_id)
@@ -211,7 +212,18 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
                 new_row.append_cell_value(family, qualifier, rule_dict["append_value"])
             else:
                 new_row.increment_cell_value(family, qualifier, rule_dict["increment_amount"])
-        return new_row.commit()
+        raw_result = new_row.commit()
+        result_families = []
+        for family, column_dict in raw_result.items():
+            result_columns = []
+            for column, cell_list in column_dict.items():
+                result_cells = []
+                for cell_tuple in cell_list:
+                    cell_dict = {"value": cell_tuple[0], "timestamp_micros": _microseconds_from_datetime(cell_tuple[1])}
+                    result_cells.append(cell_dict)
+                result_columns.append({"qualifier": column, "cells": result_cells})
+            result_families.append({"name": family, "columns": result_columns})
+        return {"key": row_key, "families": result_families}
 
     @client_handler.error_safe
     async def SampleRowKeys(self, request, **kwargs):
