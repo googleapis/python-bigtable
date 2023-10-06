@@ -105,6 +105,7 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
     @client_handler.error_safe
     async def MutateRow(self, request, **kwargs):
+        from datetime import datetime
         from google.cloud.bigtable.row import DirectRow
         table_id = request["table_name"].split("/")[-1]
         instance = self.client.instance(self.instance_id)
@@ -112,24 +113,23 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         row_key = request["row_key"]
         new_row = DirectRow(row_key, table)
         for m_dict in request.get("mutations", []):
+            details = m_dict.get("set_cell") or m_dict.get("delete_from_column") or m_dict.get("delete_from_family") or m_dict.get("delete_from_row")
+            timestamp = datetime.fromtimestamp(details.get("timestamp_micros")) if details.get("timestamp_micros") else None
             if m_dict.get("set_cell"):
-                details = m_dict["set_cell"]
-                new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=details["timestamp_micros"])
+                new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=timestamp)
             elif m_dict.get("delete_from_column"):
-                details = m_dict["delete_from_column"]
-                new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=details["timestamp_micros"])
+                new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=timestamp)
             elif m_dict.get("delete_from_family"):
-                details = m_dict["delete_from_family"]
-                new_row.delete_cells(details["family_name"], timestamp=details["timestamp_micros"])
+                new_row.delete_cells(details["family_name"], timestamp=timestamp)
             elif m_dict.get("delete_from_row"):
                 new_row.delete()
-        async with self.measure_call():
-            table.mutate_rows([new_row])
+        table.mutate_rows([new_row])
         return "OK"
 
     @client_handler.error_safe
     async def BulkMutateRows(self, request, **kwargs):
         from google.cloud.bigtable.row import DirectRow
+        from datetime import datetime
         table_id = request["table_name"].split("/")[-1]
         instance = self.client.instance(self.instance_id)
         table = instance.table(table_id)
@@ -137,21 +137,19 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         for entry in request.get("entries", []):
             row_key = entry["row_key"]
             new_row = DirectRow(row_key, table)
-            for m_dict in entry.get("mutations", {}):
+            for m_dict in entry.get("mutations"):
+                details = m_dict.get("set_cell") or m_dict.get("delete_from_column") or m_dict.get("delete_from_family") or m_dict.get("delete_from_row")
+                timestamp = datetime.fromtimestamp(details.get("timestamp_micros")) if details.get("timestamp_micros") else None
                 if m_dict.get("set_cell"):
-                    details = m_dict["set_cell"]
-                    new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=details.get("timestamp_micros",None))
+                    new_row.set_cell(details["family_name"], details["column_qualifier"], details["value"], timestamp=timestamp)
                 elif m_dict.get("delete_from_column"):
-                    details = m_dict["delete_from_column"]
-                    new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=details["timestamp_micros"])
+                    new_row.delete_cell(details["family_name"], details["column_qualifier"], timestamp=timestamp)
                 elif m_dict.get("delete_from_family"):
-                    details = m_dict["delete_from_family"]
-                    new_row.delete_cells(details["family_name"], timestamp=details["timestamp_micros"])
+                    new_row.delete_cells(details["family_name"], timestamp=timestamp)
                 elif m_dict.get("delete_from_row"):
                     new_row.delete()
             rows.append(new_row)
-        async with self.measure_call():
-            table.mutate_rows(rows)
+        table.mutate_rows(rows)
         return "OK"
 
     @client_handler.error_safe
