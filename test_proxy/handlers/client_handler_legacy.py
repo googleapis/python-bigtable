@@ -231,4 +231,5 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         instance = self.client.instance(self.instance_id)
         table = instance.table(table_id)
         response = list(table.sample_row_keys())
-        return response
+        tuple_response = [(s.row_key, s.offset_bytes) for s in response]
+        return tuple_response
