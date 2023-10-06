@@ -200,7 +200,20 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
 
     @client_handler.error_safe
     async def ReadModifyWriteRow(self, request, **kwargs):
-        raise NotImplementedError()
+        from google.cloud.bigtable.row import AppendRow
+        table_id = request["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+        row_key = request["row_key"]
+        new_row = AppendRow(row_key, table)
+        for rule_dict in request.get("rules", []):
+            qualifier = rule_dict["column_qualifier"]
+            family = rule_dict["family_name"]
+            if "append_value" in rule_dict:
+                new_row.append_cell_value(family, qualifier, rule_dict["append_value"])
+            else:
+                new_row.increment_cell_value(family, qualifier, rule_dict["increment_amount"])
+        return new_row.commit()
 
     @client_handler.error_safe
     async def SampleRowKeys(self, request, **kwargs):
