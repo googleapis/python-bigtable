@@ -19,22 +19,25 @@ set -eo pipefail
 ## cd to the parent directory, i.e. the root of the git repo
 cd $(dirname $0)/..
 
-ARGS=""
+PROXY_ARGS=""
+TEST_ARGS=""
 if [[ "${CLIENT_TYPE^^}" == "LEGACY" ]]; then
-  ARGS="--legacy-client"
   echo "Using legacy client"
+  PROXY_ARGS="--legacy-client"
+  # legacy client does not expose mutate_row. Disable those tests
+  TEST_ARGS="-skip TestMutateRow_"
 fi
 
 # Build and start the proxy in a separate process
 PROXY_PORT=9999
 pushd test_proxy
-nohup python test_proxy.py --port $PROXY_PORT $ARGS &
+nohup python test_proxy.py --port $PROXY_PORT $PROXY_ARGS &
 proxyPID=$!
 popd
 
 # Run the conformance test
 pushd cloud-bigtable-clients-test/tests
-eval "go test -v -proxy_addr=:$PROXY_PORT"
+eval "go test -v -proxy_addr=:$PROXY_PORT $TEST_ARGS"
 RETURN_CODE=$?
 popd
 
