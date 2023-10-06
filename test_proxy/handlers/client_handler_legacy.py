@@ -80,6 +80,10 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
         return row_list
 
     @client_handler.error_safe
+    async def ReadRow(self, request, **kwargs):
+        raise NotImplementedError
+
+    @client_handler.error_safe
     async def MutateRow(self, request, **kwargs):
         from google.cloud.bigtable.row import DirectRow
         table_id = request["table_name"].split("/")[-1]
@@ -130,3 +134,54 @@ class LegacyTestProxyClientHandler(client_handler.TestProxyClientHandler):
             table.mutate_rows(rows)
         return "OK"
 
+    @client_handler.error_safe
+    async def CheckAndMutateRow(self, request, **kwargs):
+        from google.cloud.bigtable.row import ConditionalRow
+        from google.cloud.bigtable.row_filters import PassAllFilter
+        table_id = request["table_name"].split("/")[-1]
+        instance = self.client.instance(self.instance_id)
+        table = instance.table(table_id)
+
+        predicate_filter = request.get("predicate_filter", PassAllFilter(True))
+        new_row = ConditionalRow(request["row_key"], table, predicate_filter)
+
+        combined_mutations = [{"state": True, **m} for m in request.get("true_mutations", [])]
+        combined_mutations.extend([{"state": False, **m} for m in request.get("false_mutations", [])])
+        for mut_dict in combined_mutations:
+            if "set_cell" in mut_dict:
+                details = mut_dict["set_cell"]
+                new_row.set_cell(
+                    details.get("family_name", ""),
+                    details.get("column_qualifier", ""),
+                    details.get("value", ""),
+                    timestamp=details.get("timestamp_micros", None),
+                    state=mut_dict["state"],
+                )
+            elif "delete_from_column" in mut_dict:
+                details = mut_dict["delete_from_column"]
+                new_row.delete_cell(
+                    details.get("family_name", ""),
+                    details.get("column_qualifier", ""),
+                    timestamp=details.get("timestamp_micros", None),
+                    state=mut_dict["state"],
+                )
+            elif "delete_from_family" in mut_dict:
+                details = mut_dict["delete_from_family"]
+                new_row.delete_cells(
+                    details.get("family_name", ""),
+                    timestamp=details.get("timestamp_micros", None),
+                    state=mut_dict["state"],
+                )
+            elif "delete_from_row" in mut_dict:
+                new_row.delete(state=mut_dict["state"])
+            else:
+                raise RuntimeError(f"Unknown mutation type: {mut_dict}")
+            return new_row.commit()
+
+    @client_handler.error_safe
+    async def ReadModifyWriteRow(self, request, **kwargs):
+        raise NotImplementedError()
+
+    @client_handler.error_safe
+    async def SampleRowKeys(self, request, **kwargs):
+        raise NotImplementedError()
