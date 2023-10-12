@@ -35,14 +35,18 @@ nohup python test_proxy.py --port $PROXY_PORT $PROXY_ARGS &
 proxyPID=$!
 popd
 
+# Kill proxy on exit
+function cleanup() {
+    echo "Cleanup testbench";
+    kill $proxyPID
+}
+trap cleanup EXIT
+
 # Run the conformance test
 pushd cloud-bigtable-clients-test/tests
 eval "go test -v -proxy_addr=:$PROXY_PORT $TEST_ARGS"
 RETURN_CODE=$?
 popd
-
-# Stop the proxy
-kill $proxyPID
 
 echo "exiting with ${RETURN_CODE}"
 exit ${RETURN_CODE}
