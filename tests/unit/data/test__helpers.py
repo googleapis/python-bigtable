@@ -177,12 +177,20 @@ class TestExponentialSleepGenerator:
             next(gen)
         assert exc_msg in str(excinfo.value)
 
-    @pytest.mark.parametrize("kwargs", [
-        {},
-        {"multiplier": 1}, {"multiplier": 1.1}, {"multiplier": 2},
-        {"min_increase": 0}, {"min_increase": 0.1}, {"min_increase": 100},
-        {"multiplier": 1, "min_increase": 0}, {"multiplier": 1, "min_increase": 4},
-    ])
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},
+            {"multiplier": 1},
+            {"multiplier": 1.1},
+            {"multiplier": 2},
+            {"min_increase": 0},
+            {"min_increase": 0.1},
+            {"min_increase": 100},
+            {"multiplier": 1, "min_increase": 0},
+            {"multiplier": 1, "min_increase": 4},
+        ],
+    )
     def test_exponential_sleep_generator_always_increases(self, kwargs):
         """
         Generate a bunch of sleep values without random mocked, to ensure they always increase
