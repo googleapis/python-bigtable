@@ -950,16 +950,8 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
-        if isinstance(row_key, str):
-            row_key = row_key.encode("utf-8")
-        request = {"table_name": self.table_name, "row_key": row_key}
-        if self.app_profile_id:
-            request["app_profile_id"] = self.app_profile_id
-
         if isinstance(mutations, Mutation):
             mutations = [mutations]
-        request["mutations"] = [mutation._to_dict() for mutation in mutations]
-
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
@@ -993,7 +985,13 @@ class TableAsync:
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         # trigger rpc
         await deadline_wrapped(
-            request, timeout=attempt_timeout, metadata=metadata, retry=None
+            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+            mutations=[mutation._to_pb() for mutation in mutations],
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
+            timeout=attempt_timeout,
+            metadata=metadata,
+            retry=None
         )
 
     async def bulk_mutate_rows(

@@ -2029,18 +2029,17 @@ class TestMutateRow:
                     )
                     assert mock_gapic.call_count == 1
                     kwargs = mock_gapic.call_args_list[0].kwargs
-                    request = mock_gapic.call_args[0][0]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert request["row_key"] == b"row_key"
+                    assert kwargs["row_key"] == b"row_key"
                     formatted_mutations = (
-                        [mutation._to_dict() for mutation in mutation_arg]
+                        [mutation._to_pb() for mutation in mutation_arg]
                         if isinstance(mutation_arg, list)
-                        else [mutation_arg._to_dict()]
+                        else [mutation_arg._to_pb()]
                     )
-                    assert request["mutations"] == formatted_mutations
+                    assert kwargs["mutations"] == formatted_mutations
                     assert kwargs["timeout"] == expected_attempt_timeout
                     # make sure gapic layer is not retrying
                     assert kwargs["retry"] is None
