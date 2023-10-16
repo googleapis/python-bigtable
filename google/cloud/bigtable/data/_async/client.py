@@ -995,7 +995,7 @@ class TableAsync:
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
             metadata=metadata,
-            retry=None
+            retry=None,
         )
 
     async def bulk_mutate_rows(
@@ -1032,6 +1032,7 @@ class TableAsync:
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
+            - ValueError if invalid arguments are provided
         """
         operation_timeout = (
             operation_timeout or self.default_mutate_rows_operation_timeout

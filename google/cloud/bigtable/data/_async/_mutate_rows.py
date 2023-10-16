@@ -43,6 +43,7 @@ class _EntryWithProto:
     """
     A dataclass to hold a RowMutationEntry and its corresponding proto representation.
     """
+
     entry: RowMutationEntry
     proto: types_pb.MutateRowsRequest.Entry
 
@@ -164,9 +165,7 @@ class _MutateRowsOperationAsync:
               retry after the attempt is complete
           - GoogleAPICallError: if the gapic rpc fails
         """
-        request_entries = [
-            self.mutations[idx].proto for idx in self.remaining_indices
-        ]
+        request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
         # track mutations in this request that have not been finalized yet
         active_request_indices = {
             req_idx: orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)
