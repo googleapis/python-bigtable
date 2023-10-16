@@ -1093,29 +1093,24 @@ class TableAsync:
         operation_timeout = operation_timeout or self.default_operation_timeout
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
-        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if true_case_mutations is not None and not isinstance(
             true_case_mutations, list
         ):
             true_case_mutations = [true_case_mutations]
-        true_case_dict = [m._to_dict() for m in true_case_mutations or []]
+        true_case_list = [m._to_pb() for m in true_case_mutations or []]
         if false_case_mutations is not None and not isinstance(
             false_case_mutations, list
         ):
             false_case_mutations = [false_case_mutations]
-        false_case_dict = [m._to_dict() for m in false_case_mutations or []]
+        false_case_list = [m._to_pb() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.check_and_mutate_row(
-            request={
-                "predicate_filter": predicate._to_dict()
-                if predicate is not None
-                else None,
-                "true_mutations": true_case_dict,
-                "false_mutations": false_case_dict,
-                "table_name": self.table_name,
-                "row_key": row_key,
-                "app_profile_id": self.app_profile_id,
-            },
+            true_mutations=true_case_list,
+            false_mutations=false_case_list,
+            predicate_filter=predicate._to_pb() if predicate is not None else None,
+            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
             metadata=metadata,
             timeout=operation_timeout,
         )
