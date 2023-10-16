@@ -951,12 +951,11 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
-        if mutations and not isinstance(mutations, list):
-            mutations = [mutations]
-        if not mutations:
+        mutations_list = mutations if isinstance(mutations, list) else [mutations]
+        if not mutations_list:
             raise ValueError("No mutations provided")
 
-        if all(mutation.is_idempotent() for mutation in mutations):
+        if all(mutation.is_idempotent() for mutation in mutations_list):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
@@ -990,7 +989,7 @@ class TableAsync:
         # trigger rpc
         await deadline_wrapped(
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            mutations=[mutation._to_pb() for mutation in mutations],
+            mutations=[mutation._to_pb() for mutation in mutations_list],
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,

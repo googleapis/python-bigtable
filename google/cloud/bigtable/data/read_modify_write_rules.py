@@ -69,7 +69,7 @@ class AppendValueRule(ReadModifyWriteRule):
         super().__init__(family, qualifier)
         self.append_value = append_value
 
-    def _to_dict(self) -> dict[str, str | bytes]:
+    def _to_dict(self) -> dict[str, str | bytes | int]:
         return {
             "family_name": self.family,
             "column_qualifier": self.qualifier,
