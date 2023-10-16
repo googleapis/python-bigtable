@@ -132,6 +132,10 @@ class BigtableDataClientAsync(ClientWithProject):
         client_options = cast(
             Optional[client_options_lib.ClientOptions], client_options
         )
+        self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
+        if self._emulator_host is not None and credentials is None:
+            # use insecure channel if emulator is set
+            credentials = google.auth.credentials.AnonymousCredentials()
         # initialize client
         ClientWithProject.__init__(
             self,
@@ -155,7 +159,6 @@ class BigtableDataClientAsync(ClientWithProject):
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
         if self._emulator_host is not None:
             # connect to an emulator host
             warnings.warn(
