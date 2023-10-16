@@ -943,6 +943,7 @@ class TableAsync:
                  GoogleAPIError exceptions from any retries that failed
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
+            - ValueError if invalid arguments are provided
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
         attempt_timeout = (
@@ -950,8 +951,11 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
-        if isinstance(mutations, Mutation):
+        if mutations and not isinstance(mutations, list):
             mutations = [mutations]
+        if not mutations:
+            raise ValueError("No mutations provided")
+
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(

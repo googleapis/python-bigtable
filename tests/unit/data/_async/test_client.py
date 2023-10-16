@@ -2142,7 +2142,7 @@ class TestMutateRow:
                 with mock.patch.object(
                     client._gapic_client, "mutate_row", AsyncMock()
                 ) as read_rows:
-                    await table.mutate_row("rk", {})
+                    await table.mutate_row("rk", mock.Mock())
                 kwargs = read_rows.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
@@ -2155,6 +2155,15 @@ class TestMutateRow:
                     assert "app_profile_id=profile" in goog_metadata
                 else:
                     assert "app_profile_id=" not in goog_metadata
+
+    @pytest.mark.parametrize("mutations", [[], None])
+    @pytest.mark.asyncio
+    async def test_mutate_row_no_mutations(self, mutations):
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with pytest.raises(ValueError) as e:
+                    await table.mutate_row("key", mutations=mutations)
+                    assert e.value.args[0] == "No mutations provided"
 
 
 class TestBulkMutateRows:
