@@ -2748,18 +2748,18 @@ class TestReadModifyWriteRow:
         [
             (
                 AppendValueRule("f", "c", b"1"),
-                [AppendValueRule("f", "c", b"1")._to_dict()],
+                [AppendValueRule("f", "c", b"1")._to_pb()],
             ),
             (
                 [AppendValueRule("f", "c", b"1")],
-                [AppendValueRule("f", "c", b"1")._to_dict()],
+                [AppendValueRule("f", "c", b"1")._to_pb()],
             ),
-            (IncrementRule("f", "c", 1), [IncrementRule("f", "c", 1)._to_dict()]),
+            (IncrementRule("f", "c", 1), [IncrementRule("f", "c", 1)._to_pb()]),
             (
                 [AppendValueRule("f", "c", b"1"), IncrementRule("f", "c", 1)],
                 [
-                    AppendValueRule("f", "c", b"1")._to_dict(),
-                    IncrementRule("f", "c", 1)._to_dict(),
+                    AppendValueRule("f", "c", b"1")._to_pb(),
+                    IncrementRule("f", "c", 1)._to_pb(),
                 ],
             ),
         ],
@@ -2777,7 +2777,7 @@ class TestReadModifyWriteRow:
                     await table.read_modify_write_row("key", call_rules)
                 assert mock_gapic.call_count == 1
                 found_kwargs = mock_gapic.call_args_list[0][1]
-                assert found_kwargs["request"]["rules"] == expected_rules
+                assert found_kwargs["rules"] == expected_rules
 
     @pytest.mark.parametrize("rules", [[], None])
     @pytest.mark.asyncio
@@ -2801,15 +2801,14 @@ class TestReadModifyWriteRow:
                 ) as mock_gapic:
                     await table.read_modify_write_row(row_key, mock.Mock())
                     assert mock_gapic.call_count == 1
-                    found_kwargs = mock_gapic.call_args_list[0][1]
-                    request = found_kwargs["request"]
+                    kwargs = mock_gapic.call_args_list[0][1]
                     assert (
-                        request["table_name"]
+                        kwargs["table_name"]
                         == f"projects/{project}/instances/{instance}/tables/{table_id}"
                     )
-                    assert request["app_profile_id"] is None
-                    assert request["row_key"] == row_key.encode()
-                    assert found_kwargs["timeout"] > 1
+                    assert kwargs["app_profile_id"] is None
+                    assert kwargs["row_key"] == row_key.encode()
+                    assert kwargs["timeout"] > 1
 
     @pytest.mark.asyncio
     async def test_read_modify_write_call_overrides(self):
@@ -2829,11 +2828,10 @@ class TestReadModifyWriteRow:
                         operation_timeout=expected_timeout,
                     )
                     assert mock_gapic.call_count == 1
-                    found_kwargs = mock_gapic.call_args_list[0][1]
-                    request = found_kwargs["request"]
-                    assert request["app_profile_id"] is profile_id
-                    assert request["row_key"] == row_key
-                    assert found_kwargs["timeout"] == expected_timeout
+                    kwargs = mock_gapic.call_args_list[0][1]
+                    assert kwargs["app_profile_id"] is profile_id
+                    assert kwargs["row_key"] == row_key
+                    assert kwargs["timeout"] == expected_timeout
 
     @pytest.mark.asyncio
     async def test_read_modify_write_string_key(self):
@@ -2845,8 +2843,8 @@ class TestReadModifyWriteRow:
                 ) as mock_gapic:
                     await table.read_modify_write_row(row_key, mock.Mock())
                     assert mock_gapic.call_count == 1
-                    found_kwargs = mock_gapic.call_args_list[0][1]
-                    assert found_kwargs["request"]["row_key"] == row_key.encode()
+                    kwargs = mock_gapic.call_args_list[0][1]
+                    assert kwargs["row_key"] == row_key.encode()
 
     @pytest.mark.asyncio
     async def test_read_modify_write_row_building(self):

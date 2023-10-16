@@ -1145,25 +1145,21 @@ class TableAsync:
                 operation
         Raises:
             - GoogleAPIError exceptions from grpc call
+            - ValueError if invalid arguments are provided
         """
         operation_timeout = operation_timeout or self.default_operation_timeout
-        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         if rules is not None and not isinstance(rules, list):
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        # concert to dict representation
-        rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
         result = await self.client._gapic_client.read_modify_write_row(
-            request={
-                "rules": rules_dict,
-                "table_name": self.table_name,
-                "row_key": row_key,
-                "app_profile_id": self.app_profile_id,
-            },
+            rules=[rule._to_pb() for rule in rules],
+            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+            table_name=self.table_name,
+            app_profile_id=self.app_profile_id,
             metadata=metadata,
             timeout=operation_timeout,
         )
