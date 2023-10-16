@@ -104,7 +104,7 @@ class _MutateRowsOperationAsync:
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
-        self.mutations = mutation_entries
+        self.mutations = [(m, m._to_pb()) for m in mutation_entries]
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
 
@@ -135,7 +135,7 @@ class _MutateRowsOperationAsync:
                     cause_exc = exc_list[0]
                 else:
                     cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
-                entry = self.mutations[idx]
+                entry = self.mutations[idx][0]
                 all_errors.append(
                     bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
                 )
@@ -154,7 +154,7 @@ class _MutateRowsOperationAsync:
           - GoogleAPICallError: if the gapic rpc fails
         """
         request_entries = [
-            self.mutations[idx]._to_dict() for idx in self.remaining_indices
+            self.mutations[idx][1] for idx in self.remaining_indices
         ]
         # track mutations in this request that have not been finalized yet
         active_request_indices = {
@@ -213,7 +213,7 @@ class _MutateRowsOperationAsync:
           - idx: the index of the mutation that failed
           - exc: the exception to add to the list
         """
-        entry = self.mutations[idx]
+        entry = self.mutations[idx][0]
         self.errors.setdefault(idx, []).append(exc)
         if (
             entry.is_idempotent()

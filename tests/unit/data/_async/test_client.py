@@ -2229,7 +2229,7 @@ class TestBulkMutateRows:
                         kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert kwargs["entries"] == [bulk_mutation._to_dict()]
+                    assert kwargs["entries"] == [bulk_mutation._to_pb()]
                     assert kwargs["timeout"] == expected_attempt_timeout
 
     @pytest.mark.asyncio
@@ -2253,8 +2253,8 @@ class TestBulkMutateRows:
                         kwargs["table_name"]
                         == "projects/project/instances/instance/tables/table"
                     )
-                    assert kwargs["entries"][0] == entry_1._to_dict()
-                    assert kwargs["entries"][1] == entry_2._to_dict()
+                    assert kwargs["entries"][0] == entry_1._to_pb()
+                    assert kwargs["entries"][1] == entry_2._to_pb()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
