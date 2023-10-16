@@ -109,7 +109,7 @@ class TestExponentialSleepGenerator:
             ((1, 3, 10, 0.5), [1, 1.5, 2, 2.5, 3, 3]),  # test with larger multiplier
             ((1, 25, 1.5, 5), [1, 6, 11, 16, 21, 25]),  # test with larger min increase
             ((1, 5, 1, 0), [1, 1, 1, 1]),  # test with multiplier of 1
-            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase with multiplier of 1
+            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase of 1 and multiplier of 1
         ],
     )
     def test_exponential_sleep_generator_lower_bound(self, uniform, args, expected):
@@ -136,7 +136,7 @@ class TestExponentialSleepGenerator:
             ((1, 5000, 10, 0.5), [1, 10, 100, 1000]),  # test with larger multiplier
             ((1, 20, 1.5, 5), [1, 6, 11, 16.5, 20]),  # test with larger min increase
             ((1, 5, 1, 0), [1, 1, 1, 1]),  # test with multiplier of 1
-            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase with multiplier of 1
+            ((1, 5, 1, 1), [1, 2, 3, 4]),  # test with min_increase of 1 and multiplier of 1
         ],
     )
     def test_exponential_sleep_generator_upper_bound(self, uniform, args, expected):
