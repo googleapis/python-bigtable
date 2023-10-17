@@ -951,9 +951,9 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
-        mutations_list = mutations if isinstance(mutations, list) else [mutations]
-        if not mutations_list:
+        if not mutations:
             raise ValueError("No mutations provided")
+        mutations_list = mutations if isinstance(mutations, list) else [mutations]
 
         if all(mutation.is_idempotent() for mutation in mutations_list):
             # mutations are all idempotent and safe to retry
