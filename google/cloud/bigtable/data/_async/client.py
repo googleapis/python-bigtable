@@ -21,6 +21,7 @@ from typing import (
     AsyncIterable,
     Optional,
     Set,
+    Sequence,
     TYPE_CHECKING,
 )
 
@@ -48,6 +49,9 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 from google.api_core import retry_async as retries
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+from google.cloud.bigtable.data._async._read_rows import (
+    DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
+)
 
 import google.auth.credentials
 import google.auth._default
@@ -527,12 +531,15 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
+        retryable_error_codes: Sequence[int | type[Exception]]
+        | None = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_error_codes list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -544,6 +551,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_read_rows_attempt_timeout,
                 or the operation_timeout if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -563,11 +574,17 @@ class TableAsync:
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
 
+        retryable_excs: list[type[Exception]] = [
+            e if isinstance(e, type) else type(core_exceptions.from_grpc_status(e, ""))
+            for e in retryable_error_codes or []
+        ]
+
         row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_exceptions=retryable_excs,
         )
         return row_merger.start_operation()
 
@@ -577,13 +594,16 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]]
+        | None = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Retruns results as a list of Row objects when the request is complete.
         For streamed results, use read_rows_stream.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_error_codes list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -595,6 +615,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_read_rows_attempt_timeout,
                 or the operation_timeout if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
             - a list of Rows returned by the query
         Raises:
@@ -607,6 +631,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_error_codes=retryable_error_codes,
         )
         return [row async for row in row_generator]
 
@@ -617,11 +642,14 @@ class TableAsync:
         row_filter: RowFilter | None = None,
         operation_timeout: int | float | None = None,
         attempt_timeout: int | float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]]
+        | None = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
     ) -> Row | None:
         """
         Read a single row from the table, based on the specified key.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_error_codes list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -633,6 +661,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
                 if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
             - a Row object if the row exists, otherwise None
         Raises:
@@ -648,6 +680,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_error_codes=retryable_error_codes,
         )
         if len(results) == 0:
             return None
@@ -659,6 +692,8 @@ class TableAsync:
         *,
         operation_timeout: int | float | None = None,
         attempt_timeout: int | float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]]
+        | None = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -683,6 +718,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
                 if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
@@ -718,6 +757,7 @@ class TableAsync:
                     query,
                     operation_timeout=batch_operation_timeout,
                     attempt_timeout=min(attempt_timeout, batch_operation_timeout),
+                    retryable_error_codes=retryable_error_codes,
                 )
                 for query in batch
             ]
@@ -746,10 +786,13 @@ class TableAsync:
         *,
         operation_timeout: int | float | None = None,
         attempt_timeout: int | float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]]
+        | None = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
     ) -> bool:
         """
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
+
         Args:
             - row_key: the key of the row to check
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -760,6 +803,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_read_rows_attempt_timeout, or the operation_timeout
                 if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Returns:
             - a bool indicating whether the row exists
         Raises:
@@ -779,6 +826,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_error_codes=retryable_error_codes,
         )
         return len(results) > 0
 
