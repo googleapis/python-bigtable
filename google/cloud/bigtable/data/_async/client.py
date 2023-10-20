@@ -1047,8 +1047,8 @@ class TableAsync:
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Only idempotent mutations will be retried.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                If None, uses the Table's default_retryable_error_codes, which defaults
+                to 4 (DeadlineExceeded), and 14 (ServiceUnavailable)
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -1075,7 +1075,7 @@ class TableAsync:
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
-                *_errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes)
+                *_errors_from_codes(retryable_error_codes, self.default_retryable_error_codes)
             )
         else:
             # mutations should not be retried
