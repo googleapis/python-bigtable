@@ -23,7 +23,7 @@ from collections import deque
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
-from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _get_timeouts
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import (
@@ -208,15 +208,7 @@ class MutationsBatcherAsync:
               If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
         """
-        self._operation_timeout: float = (
-            batch_operation_timeout or table.default_mutate_rows_operation_timeout
-        )
-        self._attempt_timeout: float = (
-            batch_attempt_timeout
-            or table.default_mutate_rows_attempt_timeout
-            or self._operation_timeout
-        )
-        _validate_timeouts(self._operation_timeout, self._attempt_timeout)
+        self._operation_timeout, self._attempt_timeout = _get_timeouts(batch_operation_timeout, batch_attempt_timeout, table.default_mutate_rows_operation_timeout, table.default_mutate_rows_attempt_timeout)
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []

@@ -13,7 +13,7 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Any
+from typing import Callable, Literal, Any
 import time
 
 from google.api_core import exceptions as core_exceptions
@@ -112,6 +112,19 @@ def _convert_retry_deadline(
             handle_error()
 
     return wrapper_async if is_async else wrapper
+
+
+def _get_timeouts(operation: float | Literal["TABLE_DEFAULT"], attempt: float | None | Literal["TABLE_DEFAULT"], table_operation: float, table_attempt: float | None) -> tuple[float, float]:
+    final_operation = operation if isinstance(operation, float) else table_operation
+    if attempt is None:
+        final_attempt = final_operation
+    elif attempt == "TABLE_DEFAULT":
+        final_attempt = table_attempt if table_attempt is not None else final_operation
+    else:
+        final_attempt = attempt
+
+    _validate_timeouts(final_operation, final_attempt, allow_none=False)
+    return final_operation, final_attempt
 
 
 def _validate_timeouts(
