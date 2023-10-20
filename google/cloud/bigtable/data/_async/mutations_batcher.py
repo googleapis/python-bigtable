@@ -347,9 +347,6 @@ class MutationsBatcherAsync:
           - list of FailedMutationEntryError objects for mutations that failed.
               FailedMutationEntryError objects will not contain index information
         """
-        request = {"table_name": self._table.table_name}
-        if self._table.app_profile_id:
-            request["app_profile_id"] = self._table.app_profile_id
         try:
             operation = _MutateRowsOperationAsync(
                 self._table.client._gapic_client,
