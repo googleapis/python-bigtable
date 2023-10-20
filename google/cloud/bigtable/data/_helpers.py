@@ -13,7 +13,7 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Any
+from typing import Callable, Sequence, Any
 import time
 
 from google.api_core import exceptions as core_exceptions
@@ -135,3 +135,14 @@ def _validate_timeouts(
     elif attempt_timeout is not None:
         if attempt_timeout <= 0:
             raise ValueError("attempt_timeout must be greater than 0")
+
+def _errors_from_codes(
+    call_codes: Sequence["grpc.StatusCode" | int | type[Exception]],
+    table_default_codes: Sequence["grpc.StatusCode" | int | type[Exception]]
+) -> list[type[Exception]]:
+    retry_codes = call_codes if call_codes is not None else table_default_codes
+    return [
+        e if isinstance(e, type) else type(core_exceptions.from_grpc_status(e, ""))
+        for e in retry_codes
+    ]
+

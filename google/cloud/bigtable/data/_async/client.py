@@ -63,6 +63,7 @@ from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationA
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _errors_from_codes
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -622,11 +623,7 @@ class TableAsync:
             or operation_timeout
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
-
-        retryable_excs : list[type[Exception]] = [
-            e if isinstance(e, type) else type(core_exceptions.from_grpc_status(e, ""))
-            for e in retryable_error_codes or self.default_read_rows_retryable_error_codes
-        ]
+        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_read_rows_retryable_error_codes)
 
         row_merger = _ReadRowsOperationAsync(
             query,
@@ -1013,6 +1010,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None
     ):
         """
          Mutates a row atomically.
@@ -1034,6 +1032,12 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_attempt_timeout, or the operation_timeout
                 if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                Only idempotent mutations will be retried.
+                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
+                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -1060,8 +1064,7 @@ class TableAsync:
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
+                *_errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes)
             )
         else:
             # mutations should not be retried
@@ -1099,6 +1102,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -1124,6 +1128,11 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_mutate_rows_attempt_timeout,
                 or the operation_timeout if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
+                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -1137,6 +1146,7 @@ class TableAsync:
             or operation_timeout
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
+        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes),
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
@@ -1144,6 +1154,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
+            retryable_exceptions=retryable_excs,
         )
         await operation.start()
 
