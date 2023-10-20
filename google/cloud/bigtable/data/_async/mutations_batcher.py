@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Literal, TYPE_CHECKING
 import asyncio
 import atexit
 import warnings
@@ -189,8 +189,8 @@ class MutationsBatcherAsync:
         flush_limit_bytes: int = 20 * _MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | None = None,
-        batch_attempt_timeout: float | None = None,
+        batch_operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        batch_attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
     ):
         """
         Args:
@@ -202,11 +202,11 @@ class MutationsBatcherAsync:
           - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
           - flow_control_max_mutation_count: Maximum number of inflight mutations.
           - flow_control_max_bytes: Maximum number of inflight bytes.
-          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds. If None,
-              table default_mutate_rows_operation_timeout will be used
-          - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
-              table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
-              if that is also None.
+          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds.
+              If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_operation_timeout.
+          - batch_attempt_timeout: timeout for each individual request, in seconds.
+              If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
+              If None, defaults to batch_operation_timeout.
         """
         self._operation_timeout: float = (
             batch_operation_timeout or table.default_mutate_rows_operation_timeout
