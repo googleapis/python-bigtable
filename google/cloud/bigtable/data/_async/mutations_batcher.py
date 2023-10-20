@@ -33,6 +33,7 @@ from google.cloud.bigtable.data._async._mutate_rows import (
 from google.cloud.bigtable.data.mutations import Mutation
 
 if TYPE_CHECKING:
+    import grpc
     from google.cloud.bigtable.data._async.client import TableAsync
 
 # used to make more readable default values
@@ -192,7 +193,7 @@ class MutationsBatcherAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
         batch_attempt_timeout: float | None = None,
-        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None
+        batch_retryable_error_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | None = None
     ):
         """
         Args:

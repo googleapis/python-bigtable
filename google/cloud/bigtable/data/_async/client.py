@@ -397,9 +397,9 @@ class BigtableDataClientAsync(ClientWithProject):
         default_mutate_rows_attempt_timeout: float | None = None,
         default_operation_timeout: float = 60,
         default_attempt_timeout: float | None = None,
-        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERROR_CODES,
-        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERROR_CODES,
-        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERROR_CODES,
+        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
+        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
+        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
     ) -> TableAsync:
         """
         Returns a table instance for making data API requests
@@ -479,9 +479,9 @@ class TableAsync:
         default_mutate_rows_attempt_timeout: float | None = 60,
         default_operation_timeout: float = 60,
         default_attempt_timeout: float | None = 20,
-        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERROR_CODES,
-        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERROR_CODES,
-        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERROR_CODES,
+        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
+        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
+        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
     ):
         """
         Initialize a Table instance
@@ -1157,7 +1157,7 @@ class TableAsync:
             or operation_timeout
         )
         _validate_timeouts(operation_timeout, attempt_timeout)
-        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes),
+        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes)
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,

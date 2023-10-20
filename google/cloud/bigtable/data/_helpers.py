@@ -11,18 +11,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+Helper functions used in various places in the library.
+"""
 from __future__ import annotations
 
-from typing import Callable, Sequence, Any
+from typing import Callable, Sequence, Any, TYPE_CHECKING
 import time
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
-"""
-Helper functions used in various places in the library.
-"""
-
+if TYPE_CHECKING:
+    import grpc
 
 def _make_metadata(
     table_name: str, app_profile_id: str | None
@@ -137,7 +138,7 @@ def _validate_timeouts(
             raise ValueError("attempt_timeout must be greater than 0")
 
 def _errors_from_codes(
-    call_codes: Sequence["grpc.StatusCode" | int | type[Exception]],
+    call_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | None,
     table_default_codes: Sequence["grpc.StatusCode" | int | type[Exception]]
 ) -> list[type[Exception]]:
     retry_codes = call_codes if call_codes is not None else table_default_codes
