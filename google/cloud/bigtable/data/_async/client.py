@@ -969,6 +969,7 @@ class TableAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
         batch_attempt_timeout: float | None = None,
+        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -989,6 +990,11 @@ class TableAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
               table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
               if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
+                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
@@ -1001,6 +1007,7 @@ class TableAsync:
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=batch_operation_timeout,
             batch_attempt_timeout=batch_attempt_timeout,
+            batch_retryable_error_codes=batch_retryable_error_codes,
         )
 
     async def mutate_row(

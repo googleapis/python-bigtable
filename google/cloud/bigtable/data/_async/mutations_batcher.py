@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Sequence, TYPE_CHECKING
 import asyncio
 import atexit
 import warnings
@@ -24,6 +24,7 @@ from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _errors_from_codes
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import (
@@ -191,6 +192,7 @@ class MutationsBatcherAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | None = None,
         batch_attempt_timeout: float | None = None,
+        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None
     ):
         """
         Args:
@@ -207,6 +209,11 @@ class MutationsBatcherAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
               table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
               if that is also None.
+          - batch_retryable_error_codes: a list of errors that will be retried if encountered.
+              Can be passed as a sequence of grpc.StatusCodes, int representations, or
+              the corresponding GoogleApiCallError Exception types.
+              If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
+              to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
         self._operation_timeout: float = (
             batch_operation_timeout or table.default_mutate_rows_operation_timeout
@@ -217,6 +224,7 @@ class MutationsBatcherAsync:
             or self._operation_timeout
         )
         _validate_timeouts(self._operation_timeout, self._attempt_timeout)
+        self._retryable_errors: list[type[Exception]] = _errors_from_codes(batch_retryable_error_codes, table.default_mutate_rows_retryable_error_codes)
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
@@ -357,6 +365,7 @@ class MutationsBatcherAsync:
                 batch,
                 operation_timeout=self._operation_timeout,
                 attempt_timeout=self._attempt_timeout,
+                retryable_exceptions=self._retryable_errors,
             )
             await operation.start()
         except MutationsExceptionGroup as e:
