@@ -114,7 +114,12 @@ def _convert_retry_deadline(
     return wrapper_async if is_async else wrapper
 
 
-def _get_timeouts(operation: float | Literal["TABLE_DEFAULT"], attempt: float | None | Literal["TABLE_DEFAULT"], table_operation: float, table_attempt: float | None) -> tuple[float, float]:
+def _get_timeouts(
+    operation: float | Literal["TABLE_DEFAULT"],
+    attempt: float | None | Literal["TABLE_DEFAULT"],
+    table_operation: float,
+    table_attempt: float | None,
+) -> tuple[float, float]:
     final_operation = operation if isinstance(operation, float) else table_operation
     if attempt is None:
         final_attempt = final_operation

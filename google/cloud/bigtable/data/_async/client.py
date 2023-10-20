@@ -86,6 +86,8 @@ _WarmedInstanceKey = namedtuple(
     "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
 )
 
+TABLE_DEFAULT = Literal["TABLE_DEFAULT"]
+
 
 class BigtableDataClientAsync(ClientWithProject):
     def __init__(
@@ -527,8 +529,8 @@ class TableAsync:
         self,
         query: ReadRowsQuery,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -555,7 +557,12 @@ class TableAsync:
             - GoogleAPIError: raised if the request encounters an unrecoverable error
             - IdleTimeout: if iterator was abandoned
         """
-        operation_timeout, attempt_timeout = _get_timeouts(operation_timeout, attempt_timeout, self.default_read_rows_operation_timeout, self.default_read_rows_attempt_timeout)
+        operation_timeout, attempt_timeout = _get_timeouts(
+            operation_timeout,
+            attempt_timeout,
+            self.default_read_rows_operation_timeout,
+            self.default_read_rows_attempt_timeout,
+        )
 
         row_merger = _ReadRowsOperationAsync(
             query,
@@ -569,8 +576,8 @@ class TableAsync:
         self,
         query: ReadRowsQuery,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -609,8 +616,8 @@ class TableAsync:
         row_key: str | bytes,
         *,
         row_filter: RowFilter | None = None,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> Row | None:
         """
         Read a single row from the table, based on the specified key.
@@ -651,8 +658,8 @@ class TableAsync:
         self,
         sharded_query: ShardedQuery,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -684,7 +691,12 @@ class TableAsync:
         if not sharded_query:
             raise ValueError("empty sharded_query")
         # reduce operation_timeout between batches
-        operation_timeout, attempt_timeout = _get_timeouts(operation_timeout, attempt_timeout, self.default_read_rows_operation_timeout, self.default_read_rows_attempt_timeout)
+        operation_timeout, attempt_timeout = _get_timeouts(
+            operation_timeout,
+            attempt_timeout,
+            self.default_read_rows_operation_timeout,
+            self.default_read_rows_attempt_timeout,
+        )
         timeout_generator = _attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
@@ -730,8 +742,8 @@ class TableAsync:
         self,
         row_key: str | bytes,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> bool:
         """
         Return a boolean indicating whether the specified row exists in the table.
@@ -771,8 +783,8 @@ class TableAsync:
     async def sample_row_keys(
         self,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -803,7 +815,12 @@ class TableAsync:
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         # prepare timeouts
-        operation_timeout, attempt_timeout = _get_timeouts(operation_timeout, attempt_timeout, self.default_operation_timeout, self.default_attempt_timeout)
+        operation_timeout, attempt_timeout = _get_timeouts(
+            operation_timeout,
+            attempt_timeout,
+            self.default_operation_timeout,
+            self.default_attempt_timeout,
+        )
         attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
@@ -854,8 +871,8 @@ class TableAsync:
         flush_limit_bytes: int = 20 * _MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        batch_attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        batch_operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        batch_attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -895,8 +912,8 @@ class TableAsync:
         row_key: str | bytes,
         mutations: list[Mutation] | Mutation,
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ):
         """
          Mutates a row atomically.
@@ -925,7 +942,12 @@ class TableAsync:
              - GoogleAPIError: raised on non-idempotent operations that cannot be
                  safely retried.
         """
-        operation_timeout, attempt_timeout = _get_timeouts(operation_timeout, attempt_timeout, self.default_operation_timeout, self.default_attempt_timeout)
+        operation_timeout, attempt_timeout = _get_timeouts(
+            operation_timeout,
+            attempt_timeout,
+            self.default_operation_timeout,
+            self.default_attempt_timeout,
+        )
 
         if isinstance(row_key, str):
             row_key = row_key.encode("utf-8")
@@ -977,8 +999,8 @@ class TableAsync:
         self,
         mutation_entries: list[RowMutationEntry],
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        attempt_timeout: float | None | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
+        attempt_timeout: float | None | TABLE_DEFAULT = "TABLE_DEFAULT",
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -1008,7 +1030,12 @@ class TableAsync:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
         """
-        operation_timeout, attempt_timeout = _get_timeouts(operation_timeout, attempt_timeout, self.default_mutate_rows_operation_timeout, self.default_mutate_rows_attempt_timeout)
+        operation_timeout, attempt_timeout = _get_timeouts(
+            operation_timeout,
+            attempt_timeout,
+            self.default_mutate_rows_operation_timeout,
+            self.default_mutate_rows_attempt_timeout,
+        )
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
@@ -1061,7 +1088,11 @@ class TableAsync:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        operation_timeout = operation_timeout if isinstance(operation_timeout, float) else self.default_operation_timeout
+        operation_timeout = (
+            operation_timeout
+            if isinstance(operation_timeout, float)
+            else self.default_operation_timeout
+        )
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
@@ -1097,7 +1128,7 @@ class TableAsync:
         row_key: str | bytes,
         rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
         *,
-        operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        operation_timeout: float | TABLE_DEFAULT = "TABLE_DEFAULT",
     ) -> Row:
         """
         Reads and modifies a row atomically according to input ReadModifyWriteRules,
@@ -1114,7 +1145,7 @@ class TableAsync:
                 Rules are applied in order, meaning that earlier rules will affect the
                 results of later ones.
             - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will not be retried. 
+                Failed requests will not be retried.
                 If TABLE_DEFAULT, defaults to the Table's default_operation_timeout
         Returns:
             - Row: containing cell data that was modified as part of the
@@ -1122,7 +1153,11 @@ class TableAsync:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        operation_timeout = operation_timeout if isinstance(operation_timeout, float) else self.default_operation_timeout
+        operation_timeout = (
+            operation_timeout
+            if isinstance(operation_timeout, float)
+            else self.default_operation_timeout
+        )
         row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
