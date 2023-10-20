@@ -881,6 +881,7 @@ class TableAsync:
         *,
         operation_timeout: float | None = None,
         attempt_timeout: float | None = None,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | None = None,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -902,6 +903,11 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 If None, defaults to the Table's default_attempt_timeout, or the operation_timeout
                 if that is also None.
+            - retryable_error_codes: a list of errors that will be retried if encountered.
+                Can be passed as a sequence of grpc.StatusCodes, int representations, or
+                the corresponding GoogleApiCallError Exception types.
+                If None, uses the Table's default_retryable_error_codes, which defaults
+                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
@@ -921,10 +927,8 @@ class TableAsync:
             attempt_timeout, operation_timeout
         )
         # prepare retryable
-        predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-        )
+        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_retryable_error_codes)
+        predicate = retries.if_exception_type(*retryable_excs)
         transient_errors = []
 
         def on_error_fn(exc):
@@ -990,11 +994,11 @@ class TableAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds. If None,
               table default_mutate_rows_attempt_timeout will be used, or batch_operation_timeout
               if that is also None.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
-                Can be passed as a sequence of grpc.StatusCodes, int representations, or
-                the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+          - batch_retryable_error_codes: a list of errors that will be retried if encountered.
+              Can be passed as a sequence of grpc.StatusCodes, int representations, or
+              the corresponding GoogleApiCallError Exception types.
+              If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
+              to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
