@@ -21,7 +21,6 @@ from typing import (
     AsyncIterable,
     Awaitable,
     Sequence,
-    Type,
 )
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
@@ -44,12 +43,6 @@ from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
-
-DEFAULT_READ_ROWS_RETRYABLE_ERRORS = (
-    core_exceptions.DeadlineExceeded,
-    core_exceptions.ServiceUnavailable,
-    core_exceptions.Aborted,
-)
 
 
 class _ResetRow(Exception):
@@ -87,9 +80,7 @@ class _ReadRowsOperationAsync:
         table: "TableAsync",
         operation_timeout: float,
         attempt_timeout: float,
-        retryable_exceptions: Sequence[
-            Type[Exception]
-        ] = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
+        retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
