@@ -114,17 +114,27 @@ def _convert_retry_deadline(
     return wrapper_async if is_async else wrapper
 
 
-def _get_timeouts(
-    operation: float | Literal["TABLE_DEFAULT"],
-    attempt: float | None | Literal["TABLE_DEFAULT"],
-    table_operation: float,
-    table_attempt: float | None,
-) -> tuple[float, float]:
-    final_operation = operation if isinstance(operation, float) else table_operation
+def _get_timeouts(operation: float | "_TABLE_DEFAULT", attempt: float | None | "_TABLE_DEFAULT", table) -> tuple[float, float]:
+    # TODO: docstring
+    # TODO: use enum for _TABLE_DEFAULT
+    if operation == "DEFAULT":
+        final_operation = table.default_operation_timeout
+    elif operation == "READ_ROWS_DEFAULT":
+        final_operation = table.default_read_rows_operation_timeout
+    elif operation == "MUTATE_ROWS_DEFAULT":
+        final_operation = table.default_mutate_rows_operation_timeout
+    else:
+        final_operation = operation
+
+    if attempt == "DEFAULT":
+        attempt = table.default_attempt_timeout
+    elif attempt == "READ_ROWS_DEFAULT":
+        attempt = table.default_read_rows_attempt_timeout
+    elif attempt == "MUTATE_ROWS_DEFAULT":
+        attempt = table.default_mutate_rows_attempt_timeout
+
     if attempt is None:
         final_attempt = final_operation
-    elif attempt == "TABLE_DEFAULT":
-        final_attempt = table_attempt if table_attempt is not None else final_operation
     else:
         final_attempt = attempt
 

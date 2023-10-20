@@ -189,10 +189,8 @@ class MutationsBatcherAsync:
         flush_limit_bytes: int = 20 * _MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
-        batch_attempt_timeout: float
-        | None
-        | Literal["TABLE_DEFAULT"] = "TABLE_DEFAULT",
+        batch_operation_timeout: float | "_TABLE_DEFAULT" = "MUTATE_ROWS_DEFAULT",
+        batch_attempt_timeout: float | None | "_TABLE_DEFAULT" = "MUTATE_ROWS_DEFAULT",
     ):
         """
         Args:
@@ -210,12 +208,7 @@ class MutationsBatcherAsync:
               If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
         """
-        self._operation_timeout, self._attempt_timeout = _get_timeouts(
-            batch_operation_timeout,
-            batch_attempt_timeout,
-            table.default_mutate_rows_operation_timeout,
-            table.default_mutate_rows_attempt_timeout,
-        )
+        self._operation_timeout, self._attempt_timeout = _get_timeouts(batch_operation_timeout, batch_attempt_timeout, table)
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
