@@ -79,6 +79,7 @@ class _MutateRowsOperationAsync:
             table_name=table.table_name,
             app_profile_id=table.app_profile_id,
             metadata=metadata,
+            retry=None,
         )
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
