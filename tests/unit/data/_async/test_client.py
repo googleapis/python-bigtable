@@ -1905,11 +1905,12 @@ class TestSampleRowKeys:
                     await table.sample_row_keys(attempt_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
-                    assert len(kwargs) == 4
+                    assert len(kwargs) == 5
                     assert kwargs["timeout"] == expected_timeout
                     assert kwargs["app_profile_id"] == expected_profile
                     assert kwargs["table_name"] == table.table_name
                     assert kwargs["metadata"] is not None
+                    assert kwargs["retry"] is None
 
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
