@@ -208,7 +208,9 @@ class MutationsBatcherAsync:
               If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
         """
-        self._operation_timeout, self._attempt_timeout = _get_timeouts(batch_operation_timeout, batch_attempt_timeout, table)
+        self._operation_timeout, self._attempt_timeout = _get_timeouts(
+            batch_operation_timeout, batch_attempt_timeout, table
+        )
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []

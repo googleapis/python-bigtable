@@ -114,7 +114,9 @@ def _convert_retry_deadline(
     return wrapper_async if is_async else wrapper
 
 
-def _get_timeouts(operation: float | "_TABLE_DEFAULT", attempt: float | None | "_TABLE_DEFAULT", table) -> tuple[float, float]:
+def _get_timeouts(
+    operation: float | "_TABLE_DEFAULT", attempt: float | None | "_TABLE_DEFAULT", table
+) -> tuple[float, float]:
     # TODO: docstring
     # TODO: use enum for _TABLE_DEFAULT
     if operation == "DEFAULT":
