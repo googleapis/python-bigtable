@@ -147,6 +147,8 @@ def _get_timeouts(
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
 
+    attempt will use operation value if None, or if larger than operation.
+
     Will call _validate_timeouts on the outputs, and raise ValueError if the
     resulting timeouts are invalid.
 
@@ -157,6 +159,7 @@ def _get_timeouts(
     Returns:
         - A tuple of (operation_timeout, attempt_timeout)
     """
+    # load table defaults if necessary
     if operation == TABLE_DEFAULT.DEFAULT:
         final_operation = table.default_operation_timeout
     elif operation == TABLE_DEFAULT.READ_ROWS:
@@ -165,7 +168,6 @@ def _get_timeouts(
         final_operation = table.default_mutate_rows_operation_timeout
     else:
         final_operation = operation
-
     if attempt == TABLE_DEFAULT.DEFAULT:
         attempt = table.default_attempt_timeout
     elif attempt == TABLE_DEFAULT.READ_ROWS:
@@ -174,9 +176,11 @@ def _get_timeouts(
         attempt = table.default_mutate_rows_attempt_timeout
 
     if attempt is None:
+        # no timeout specified, use operation timeout for both
         final_attempt = final_operation
     else:
-        final_attempt = attempt
+        # cap attempt timeout at operation timeout
+        final_attempt = min(attempt, final_operation) if final_operation else attempt
 
     _validate_timeouts(final_operation, final_attempt, allow_none=False)
     return final_operation, final_attempt
@@ -196,6 +200,8 @@ def _validate_timeouts(
     Raises:
       - ValueError if operation_timeout or attempt_timeout are invalid.
     """
+    if operation_timeout is None:
+        raise ValueError("operation_timeout cannot be None")
     if operation_timeout <= 0:
         raise ValueError("operation_timeout must be greater than 0")
     if not allow_none and attempt_timeout is None:
