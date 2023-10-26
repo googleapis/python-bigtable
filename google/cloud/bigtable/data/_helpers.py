@@ -144,7 +144,19 @@ def _convert_retry_deadline(
 def _get_timeouts(
     operation: float | TABLE_DEFAULT, attempt: float | None | TABLE_DEFAULT, table
 ) -> tuple[float, float]:
-    # TODO: docstring
+    """
+    Convert passed in timeout values to floats, using table defaults if necessary.
+
+    Will call _validate_timeouts on the outputs, and raise ValueError if the
+    resulting timeouts are invalid.
+
+    Args:
+        - operation: The timeout value to use for the entire operation, in seconds.
+        - attempt: The timeout value to use for each attempt, in seconds.
+        - table: The table to use for default values.
+    Returns:
+        - A tuple of (operation_timeout, attempt_timeout)
+    """
     if operation == TABLE_DEFAULT.DEFAULT:
         final_operation = table.default_operation_timeout
     elif operation == TABLE_DEFAULT.READ_ROWS:
