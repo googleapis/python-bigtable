@@ -13,8 +13,11 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Any
+from typing import Callable, List, Tuple, Any
 import time
+import enum
+from collections import namedtuple
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -22,6 +25,30 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 """
 Helper functions used in various places in the library.
 """
+
+# Type alias for the output of sample_keys
+RowKeySamples = List[Tuple[bytes, int]]
+
+# type alias for the output of query.shard()
+ShardedQuery = List[ReadRowsQuery]
+
+# used by read_rows_sharded to limit how many requests are attempted in parallel
+_CONCURRENCY_LIMIT = 10
+
+# used to register instance data with the client for channel warming
+_WarmedInstanceKey = namedtuple(
+    "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
+)
+
+
+# enum used on method calls when table defaults should be used
+class TABLE_DEFAULT(enum.Enum):
+    # default for mutate_row, sample_row_keys, check_and_mutate_row, and read_modify_write_row
+    DEFAULT = "DEFAULT"
+    # default for read_rows, read_rows_stream, read_rows_sharded, row_exists, and read_row
+    READ_ROWS = "READ_ROWS_DEFAULT"
+    # default for bulk_mutate_rows and mutations_batcher
+    MUTATE_ROWS = "MUTATE_ROWS_DEFAULT"
 
 
 def _make_metadata(
@@ -114,6 +141,51 @@ def _convert_retry_deadline(
     return wrapper_async if is_async else wrapper
 
 
+def _get_timeouts(
+    operation: float | TABLE_DEFAULT, attempt: float | None | TABLE_DEFAULT, table
+) -> tuple[float, float]:
+    """
+    Convert passed in timeout values to floats, using table defaults if necessary.
+
+    attempt will use operation value if None, or if larger than operation.
+
+    Will call _validate_timeouts on the outputs, and raise ValueError if the
+    resulting timeouts are invalid.
+
+    Args:
+        - operation: The timeout value to use for the entire operation, in seconds.
+        - attempt: The timeout value to use for each attempt, in seconds.
+        - table: The table to use for default values.
+    Returns:
+        - A tuple of (operation_timeout, attempt_timeout)
+    """
+    # load table defaults if necessary
+    if operation == TABLE_DEFAULT.DEFAULT:
+        final_operation = table.default_operation_timeout
+    elif operation == TABLE_DEFAULT.READ_ROWS:
+        final_operation = table.default_read_rows_operation_timeout
+    elif operation == TABLE_DEFAULT.MUTATE_ROWS:
+        final_operation = table.default_mutate_rows_operation_timeout
+    else:
+        final_operation = operation
+    if attempt == TABLE_DEFAULT.DEFAULT:
+        attempt = table.default_attempt_timeout
+    elif attempt == TABLE_DEFAULT.READ_ROWS:
+        attempt = table.default_read_rows_attempt_timeout
+    elif attempt == TABLE_DEFAULT.MUTATE_ROWS:
+        attempt = table.default_mutate_rows_attempt_timeout
+
+    if attempt is None:
+        # no timeout specified, use operation timeout for both
+        final_attempt = final_operation
+    else:
+        # cap attempt timeout at operation timeout
+        final_attempt = min(attempt, final_operation) if final_operation else attempt
+
+    _validate_timeouts(final_operation, final_attempt, allow_none=False)
+    return final_operation, final_attempt
+
+
 def _validate_timeouts(
     operation_timeout: float, attempt_timeout: float | None, allow_none: bool = False
 ):
@@ -128,6 +200,8 @@ def _validate_timeouts(
     Raises:
       - ValueError if operation_timeout or attempt_timeout are invalid.
     """
+    if operation_timeout is None:
+        raise ValueError("operation_timeout cannot be None")
     if operation_timeout <= 0:
         raise ValueError("operation_timeout must be greater than 0")
     if not allow_none and attempt_timeout is None:
