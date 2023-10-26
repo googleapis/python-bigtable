@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from typing import List, Tuple
-
 from google.cloud.bigtable import gapic_version as package_version
 
 from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
@@ -44,10 +41,10 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
-# Type alias for the output of sample_keys
-RowKeySamples = List[Tuple[bytes, int]]
-# type alias for the output of query.shard()
-ShardedQuery = List[ReadRowsQuery]
+from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import RowKeySamples
+from google.cloud.bigtable.data._helpers import ShardedQuery
+
 
 __version__: str = package_version.__version__
 
@@ -74,4 +71,5 @@ __all__ = (
     "MutationsExceptionGroup",
     "ShardedReadRowsExceptionGroup",
     "ShardedQuery",
+    "TABLE_DEFAULT",
 )
