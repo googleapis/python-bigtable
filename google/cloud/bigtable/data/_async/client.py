@@ -76,8 +76,8 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._types import RowKeySamples
-    from google.cloud.bigtable.data._types import ShardedQuery
+    from google.cloud.bigtable.data._helpers import RowKeySamples
+    from google.cloud.bigtable.data._helpers import ShardedQuery
 
 
 class BigtableDataClientAsync(ClientWithProject):
