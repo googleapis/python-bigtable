@@ -214,8 +214,7 @@ class MutationsBatcherAsync:
           - batch_retryable_error_codes: a list of errors that will be retried if encountered.
               Can be passed as a sequence of grpc.StatusCodes, int representations, or
               the corresponding GoogleApiCallError Exception types.
-              If TABLE_DEFAULT, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
-              to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+              Defaults to the Table's default_mutate_rows_retryable_error_codes.
         """
         self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table

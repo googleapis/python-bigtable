@@ -598,8 +598,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                Defaults to the Table's default_read_rows_retryable_error_codes
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -653,8 +652,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                Defaults to the Table's default_read_rows_retryable_error_codes.
         Returns:
             - a list of Rows returned by the query
         Raises:
@@ -699,8 +697,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                Defaults to the Table's default_read_rows_retryable_error_codes.
         Returns:
             - a Row object if the row exists, otherwise None
         Raises:
@@ -756,8 +753,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                Defaults to the Table's default_read_rows_retryable_error_codes.
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
@@ -835,8 +831,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_read_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+                Defaults to the Table's default_read_rows_retryable_error_codes.
         Returns:
             - a bool indicating whether the row exists
         Raises:
@@ -890,8 +885,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+                Defaults to the Table's default_retryable_error_codes.
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
@@ -978,8 +972,7 @@ class TableAsync:
           - batch_retryable_error_codes: a list of errors that will be retried if encountered.
               Can be passed as a sequence of grpc.StatusCodes, int representations, or
               the corresponding GoogleApiCallError Exception types.
-              If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
-              to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+              Defaults to the Table's default_mutate_rows_retryable_error_codes.
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
@@ -1028,8 +1021,7 @@ class TableAsync:
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Only idempotent mutations will be retried.
-                If None, uses the Table's default_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded), and 14 (ServiceUnavailable)
+                Defaults to the Table's default_retryable_error_codes.
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -1122,8 +1114,7 @@ class TableAsync:
             - retryable_error_codes: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                If None, uses the Table's default_mutate_rows_retryable_error_codes, which defaults
-                to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+                Defaults to the Table's default_mutate_rows_retryable_error_codes
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
