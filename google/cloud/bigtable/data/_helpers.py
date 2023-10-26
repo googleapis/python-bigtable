@@ -166,11 +166,11 @@ def _get_timeouts(
     else:
         final_operation = operation
 
-    if attempt == "DEFAULT":
+    if attempt == TABLE_DEFAULT.DEFAULT:
         attempt = table.default_attempt_timeout
-    elif attempt == "READ_ROWS_DEFAULT":
+    elif attempt == TABLE_DEFAULT.READ_ROWS:
         attempt = table.default_read_rows_attempt_timeout
-    elif attempt == "MUTATE_ROWS_DEFAULT":
+    elif attempt == TABLE_DEFAULT.MUTATE_ROWS:
         attempt = table.default_mutate_rows_attempt_timeout
 
     if attempt is None:
