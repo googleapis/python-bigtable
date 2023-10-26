@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Literal, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 import asyncio
 import atexit
 import warnings
@@ -24,6 +24,7 @@ from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_timeouts
+from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._mutate_rows import (
@@ -189,8 +190,8 @@ class MutationsBatcherAsync:
         flush_limit_bytes: int = 20 * _MB_SIZE,
         flow_control_max_mutation_count: int = 100_000,
         flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | "_TABLE_DEFAULT" = "MUTATE_ROWS_DEFAULT",
-        batch_attempt_timeout: float | None | "_TABLE_DEFAULT" = "MUTATE_ROWS_DEFAULT",
+        batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Args:

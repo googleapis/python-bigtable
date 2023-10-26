@@ -21,7 +21,6 @@ from typing import (
     AsyncIterable,
     Optional,
     Set,
-    Literal,
     TYPE_CHECKING,
 )
 
@@ -32,9 +31,7 @@ import warnings
 import sys
 import random
 import os
-import enum
 
-from collections import namedtuple
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -61,37 +58,26 @@ from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
+from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_timeouts
+from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
+
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data import RowKeySamples
-    from google.cloud.bigtable.data import ShardedQuery
-
-# used by read_rows_sharded to limit how many requests are attempted in parallel
-_CONCURRENCY_LIMIT = 10
-
-# used to register instance data with the client for channel warming
-_WarmedInstanceKey = namedtuple(
-    "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
-)
-
-
-class TABLE_DEFAULT(enum.Enum):
-    DEFAULT = "DEFAULT"
-    READ_ROWS = "READ_ROWS_DEFAULT"
-    MUTATE_ROWS = "MUTATE_ROWS_DEFAULT"
+    from google.cloud.bigtable.data._types import RowKeySamples
+    from google.cloud.bigtable.data._types import ShardedQuery
 
 
 class BigtableDataClientAsync(ClientWithProject):
@@ -1077,7 +1063,7 @@ class TableAsync:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        operation_timeout._ = _get_timeouts(operation_timeout, None, self)
+        operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if true_case_mutations is not None and not isinstance(
             true_case_mutations, list
@@ -1136,7 +1122,7 @@ class TableAsync:
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        operation_timeout._ = _get_timeouts(operation_timeout, None, self)
+        operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")

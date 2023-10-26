@@ -13,8 +13,11 @@
 #
 from __future__ import annotations
 
-from typing import Callable, Literal, Any
+from typing import Callable, List, Tuple, Any
 import time
+import enum
+from collections import namedtuple
+from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
@@ -22,6 +25,30 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 """
 Helper functions used in various places in the library.
 """
+
+# Type alias for the output of sample_keys
+RowKeySamples = List[Tuple[bytes, int]]
+
+# type alias for the output of query.shard()
+ShardedQuery = List[ReadRowsQuery]
+
+# used by read_rows_sharded to limit how many requests are attempted in parallel
+_CONCURRENCY_LIMIT = 10
+
+# used to register instance data with the client for channel warming
+_WarmedInstanceKey = namedtuple(
+    "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
+)
+
+
+# enum used on method calls when table defaults should be used
+class TABLE_DEFAULT(enum.Enum):
+    # default for mutate_row, sample_row_keys, check_and_mutate_row, and read_modify_write_row
+    DEFAULT = "DEFAULT"
+    # default for read_rows, read_rows_stream, read_rows_sharded, row_exists, and read_row
+    READ_ROWS = "READ_ROWS_DEFAULT"
+    # default for bulk_mutate_rows and mutations_batcher
+    MUTATE_ROWS = "MUTATE_ROWS_DEFAULT"
 
 
 def _make_metadata(
@@ -115,15 +142,14 @@ def _convert_retry_deadline(
 
 
 def _get_timeouts(
-    operation: float | "_TABLE_DEFAULT", attempt: float | None | "_TABLE_DEFAULT", table
+    operation: float | TABLE_DEFAULT, attempt: float | None | TABLE_DEFAULT, table
 ) -> tuple[float, float]:
     # TODO: docstring
-    # TODO: use enum for _TABLE_DEFAULT
-    if operation == "DEFAULT":
+    if operation == TABLE_DEFAULT.DEFAULT:
         final_operation = table.default_operation_timeout
-    elif operation == "READ_ROWS_DEFAULT":
+    elif operation == TABLE_DEFAULT.READ_ROWS:
         final_operation = table.default_read_rows_operation_timeout
-    elif operation == "MUTATE_ROWS_DEFAULT":
+    elif operation == TABLE_DEFAULT.MUTATE_ROWS:
         final_operation = table.default_mutate_rows_operation_timeout
     else:
         final_operation = operation
