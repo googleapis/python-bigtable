@@ -14,6 +14,9 @@
 
 import pytest
 import asyncio
+import google.api_core.exceptions as core_exceptions
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data import TABLE_DEFAULT
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -1119,3 +1122,63 @@ class TestMutationsBatcherAsync:
         # then, the newest slots should be filled with the last items of the input list
         for i in range(1, newest_list_diff + 1):
             assert mock_batcher._newest_exceptions[-i] == input_list[-i]
+
+    @pytest.mark.asyncio
+    # test different inputs for retryable exceptions
+    @pytest.mark.parametrize(
+        "input_retryables,expected_retryables",
+        [
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                [
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                ],
+            ),
+            (
+                TABLE_DEFAULT.DEFAULT,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            ([], []),
+            ([4], [core_exceptions.DeadlineExceeded]),
+        ],
+    )
+    async def test_customizable_retryable_errors(
+        self, input_retryables, expected_retryables
+    ):
+        """
+        Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
+        down to the gapic layer.
+        """
+        from google.cloud.bigtable.data._async.client import TableAsync
+
+        with mock.patch(
+            "google.api_core.retry_async.if_exception_type"
+        ) as predicate_builder_mock:
+            with mock.patch(
+                "google.api_core.retry_async.retry_target"
+            ) as retry_fn_mock:
+                table = None
+                with mock.patch("asyncio.create_task"):
+                    table = TableAsync(mock.Mock(), "instance", "table")
+                async with self._make_one(
+                    table, batch_retryable_errors=input_retryables
+                ) as instance:
+                    assert instance._retryable_errors == expected_retryables
+                    expected_predicate = lambda a: a in expected_retryables
+                    predicate_builder_mock.return_value = expected_predicate
+                    retry_fn_mock.side_effect = RuntimeError("stop early")
+                    mutation = _make_mutation(count=1, size=1)
+                    await instance._execute_mutate_rows([mutation])
+                    # passed in errors should be used to build the predicate
+                    predicate_builder_mock.assert_called_once_with(
+                        *expected_retryables, _MutateRowsIncomplete
+                    )
+                    retry_call_args = retry_fn_mock.call_args_list[0].args
+                    # output of if_exception_type should be sent in to retry constructor
+                    assert retry_call_args[1] is expected_predicate

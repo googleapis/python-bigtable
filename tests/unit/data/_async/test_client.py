@@ -26,6 +26,8 @@ from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
@@ -1131,6 +1133,116 @@ class TestTableAsync:
         with pytest.raises(RuntimeError) as e:
             TableAsync(client, "instance-id", "table-id")
         assert e.match("TableAsync must be created within an async event loop context.")
+
+    @pytest.mark.asyncio
+    # iterate over all retryable rpcs
+    @pytest.mark.parametrize(
+        "fn_name,fn_args,retry_fn_path,extra_retryables",
+        [
+            (
+                "read_rows_stream",
+                (ReadRowsQuery(),),
+                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                (),
+            ),
+            (
+                "read_rows",
+                (ReadRowsQuery(),),
+                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                (),
+            ),
+            (
+                "read_row",
+                (b"row_key",),
+                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                (),
+            ),
+            (
+                "read_rows_sharded",
+                ([ReadRowsQuery()],),
+                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                (),
+            ),
+            (
+                "row_exists",
+                (b"row_key",),
+                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                (),
+            ),
+            ("sample_row_keys", (), "google.api_core.retry_async.retry_target", ()),
+            (
+                "mutate_row",
+                (b"row_key", []),
+                "google.api_core.retry_async.retry_target",
+                (),
+            ),
+            (
+                "bulk_mutate_rows",
+                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
+                "google.api_core.retry_async.retry_target",
+                (_MutateRowsIncomplete,),
+            ),
+        ],
+    )
+    # test different inputs for retryable exceptions
+    @pytest.mark.parametrize(
+        "input_retryables,expected_retryables",
+        [
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                [
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                ],
+            ),
+            (
+                TABLE_DEFAULT.DEFAULT,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            ([], []),
+            ([4], [core_exceptions.DeadlineExceeded]),
+        ],
+    )
+    async def test_customizable_retryable_errors(
+        self,
+        input_retryables,
+        expected_retryables,
+        fn_name,
+        fn_args,
+        retry_fn_path,
+        extra_retryables,
+    ):
+        """
+        Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
+        down to the gapic layer.
+        """
+        from google.cloud.bigtable.data import BigtableDataClientAsync
+
+        with mock.patch(
+            "google.api_core.retry_async.if_exception_type"
+        ) as predicate_builder_mock:
+            with mock.patch(retry_fn_path) as retry_fn_mock:
+                async with BigtableDataClientAsync() as client:
+                    table = client.get_table("instance-id", "table-id")
+                    expected_predicate = lambda a: a in expected_retryables
+                    predicate_builder_mock.return_value = expected_predicate
+                    retry_fn_mock.side_effect = RuntimeError("stop early")
+                    with pytest.raises(Exception):
+                        # we expect an exception from attempting to call the mock
+                        test_fn = table.__getattribute__(fn_name)
+                        await test_fn(*fn_args, retryable_errors=input_retryables)
+                    # passed in errors should be used to build the predicate
+                    predicate_builder_mock.assert_called_once_with(
+                        *expected_retryables, *extra_retryables
+                    )
+                    retry_call_args = retry_fn_mock.call_args_list[0].args
+                    # output of if_exception_type should be sent in to retry constructor
+                    assert retry_call_args[1] is expected_predicate
 
 
 class TestReadRows:
