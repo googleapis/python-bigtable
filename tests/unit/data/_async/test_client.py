@@ -1329,6 +1329,7 @@ class TestReadRows:
                 # check timeouts
                 for _, call_kwargs in read_rows.call_args_list[:-1]:
                     assert call_kwargs["timeout"] == per_request_t
+                    assert call_kwargs["retry"] is None
                 # last timeout should be adjusted to account for the time spent
                 assert (
                     abs(
@@ -1884,6 +1885,7 @@ class TestSampleRowKeys:
                     _, kwargs = sample_row_keys.call_args
                     assert abs(kwargs["timeout"] - expected_timeout) < 0.1
                     assert result == []
+                    assert kwargs["retry"] is None
 
     @pytest.mark.asyncio
     async def test_sample_row_keys_gapic_params(self):
@@ -1905,11 +1907,12 @@ class TestSampleRowKeys:
                     await table.sample_row_keys(attempt_timeout=expected_timeout)
                     args, kwargs = sample_row_keys.call_args
                     assert len(args) == 0
-                    assert len(kwargs) == 4
+                    assert len(kwargs) == 5
                     assert kwargs["timeout"] == expected_timeout
                     assert kwargs["app_profile_id"] == expected_profile
                     assert kwargs["table_name"] == table.table_name
                     assert kwargs["metadata"] is not None
+                    assert kwargs["retry"] is None
 
     @pytest.mark.parametrize("include_app_profile", [True, False])
     @pytest.mark.asyncio
@@ -2231,6 +2234,7 @@ class TestBulkMutateRows:
                     )
                     assert kwargs["entries"] == [bulk_mutation._to_dict()]
                     assert kwargs["timeout"] == expected_attempt_timeout
+                    assert kwargs["retry"] is None
 
     @pytest.mark.asyncio
     async def test_bulk_mutate_rows_multiple_entries(self):
@@ -2595,6 +2599,7 @@ class TestCheckAndMutateRow:
                     ]
                     assert request["app_profile_id"] == app_profile
                     assert kwargs["timeout"] == operation_timeout
+                    assert kwargs["retry"] is None
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_bad_timeout(self):
@@ -2678,6 +2683,7 @@ class TestCheckAndMutateRow:
                     kwargs = mock_gapic.call_args[1]
                     assert kwargs["request"]["predicate_filter"] == predicate_dict
                     assert mock_predicate._to_dict.call_count == 1
+                    assert kwargs["retry"] is None
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_mutations_parsing(self):
@@ -2781,6 +2787,7 @@ class TestReadModifyWriteRow:
                 assert mock_gapic.call_count == 1
                 found_kwargs = mock_gapic.call_args_list[0][1]
                 assert found_kwargs["request"]["rules"] == expected_rules
+                assert found_kwargs["retry"] is None
 
     @pytest.mark.parametrize("rules", [[], None])
     @pytest.mark.asyncio
