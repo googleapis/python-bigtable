@@ -46,7 +46,9 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 from google.api_core import retry_async as retries
-from google.api_core import exceptions as core_exceptions
+from google.api_core.exceptions import DeadlineExceeded
+from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.exceptions import Aborted
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 import google.auth.credentials
@@ -80,18 +82,6 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
-
-# errors to retry in read_rows operations
-DEFAULT_READ_ROWS_RETRYABLE_ERRORS = (
-    core_exceptions.DeadlineExceeded,
-    core_exceptions.ServiceUnavailable,
-    core_exceptions.Aborted,
-)
-
-DEFAULT_RETRYABLE_ERRORS = (
-    core_exceptions.DeadlineExceeded,
-    core_exceptions.ServiceUnavailable,
-)
 
 
 class BigtableDataClientAsync(ClientWithProject):
@@ -392,9 +382,16 @@ class BigtableDataClientAsync(ClientWithProject):
         default_mutate_rows_attempt_timeout: float | None = None,
         default_operation_timeout: float = 60,
         default_attempt_timeout: float | None = None,
-        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
-        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
-        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
+        default_read_rows_retryable_errors: Sequence[
+            grpc.StatusCode | int | type[Exception]
+        ] = (DeadlineExceeded, ServiceUnavailable, Aborted),
+        default_mutate_rows_retryable_errors: Sequence[
+            grpc.StatusCode | int | type[Exception]
+        ] = (DeadlineExceeded, ServiceUnavailable),
+        default_retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+        ),
     ) -> TableAsync:
         """
         Returns a table instance for making data API requests
@@ -419,17 +416,17 @@ class BigtableDataClientAsync(ClientWithProject):
                 seconds. If not set, defaults to 60 seconds
             default_attempt_timeout: The default timeout for all other individual rpc
                 requests, in seconds. If not set, defaults to 20 seconds
-            default_read_rows_retryable_error_codes: a list of errors that will be retried 
+            default_read_rows_retryable_errors: a list of errors that will be retried
                 if encountered during read_rows and related operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
-            default_mutate_rows_retryable_error_codes: a list of errors that will be retried
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
                 if encountered during mutate_rows and related operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
-            default_retryable_error_codes: a list of errors that will be retried if
+            default_retryable_errors: a list of errors that will be retried if
                 encountered during all other operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
@@ -474,9 +471,16 @@ class TableAsync:
         default_mutate_rows_attempt_timeout: float | None = 60,
         default_operation_timeout: float = 60,
         default_attempt_timeout: float | None = 20,
-        default_read_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_READ_ROWS_RETRYABLE_ERRORS,
-        default_mutate_rows_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
-        default_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] = DEFAULT_RETRYABLE_ERRORS,
+        default_read_rows_retryable_errors: Sequence[
+            grpc.StatusCode | int | type[Exception]
+        ] = (DeadlineExceeded, ServiceUnavailable, Aborted),
+        default_mutate_rows_retryable_errors: Sequence[
+            grpc.StatusCode | int | type[Exception]
+        ] = (DeadlineExceeded, ServiceUnavailable),
+        default_retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+        ),
     ):
         """
         Initialize a Table instance
@@ -503,17 +507,17 @@ class TableAsync:
                 seconds. If not set, defaults to 60 seconds
             default_attempt_timeout: The default timeout for all other individual rpc
                 requests, in seconds. If not set, defaults to 20 seconds
-            default_read_rows_retryable_error_codes: a list of errors that will be retried 
+            default_read_rows_retryable_errors: a list of errors that will be retried
                 if encountered during read_rows and related operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
-            default_mutate_rows_retryable_error_codes: a list of errors that will be retried
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
                 if encountered during mutate_rows and related operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
-            default_retryable_error_codes: a list of errors that will be retried if
+            default_retryable_errors: a list of errors that will be retried if
                 encountered during all other operations.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
@@ -556,9 +560,13 @@ class TableAsync:
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
-        self.default_read_rows_retryable_error_codes = default_read_rows_retryable_error_codes or ()
-        self.default_mutate_rows_retryable_error_codes = default_mutate_rows_retryable_error_codes or ()
-        self.default_retryable_error_codes = default_retryable_error_codes or ()
+        self.default_read_rows_retryable_errors = (
+            default_read_rows_retryable_errors or ()
+        )
+        self.default_mutate_rows_retryable_errors = (
+            default_mutate_rows_retryable_errors or ()
+        )
+        self.default_retryable_errors = default_retryable_errors or ()
 
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
@@ -576,14 +584,15 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
 
         Failed requests within operation_timeout will be retried based on the
-        retryable_error_codes list until operation_timeout is reached.
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -595,10 +604,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_read_rows_retryable_error_codes
+                Defaults to the Table's default_read_rows_retryable_errors
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -611,7 +620,7 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
 
         row_merger = _ReadRowsOperationAsync(
             query,
@@ -628,7 +637,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -636,7 +646,7 @@ class TableAsync:
         For streamed results, use read_rows_stream.
 
         Failed requests within operation_timeout will be retried based on the
-        retryable_error_codes list until operation_timeout is reached.
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -650,10 +660,10 @@ class TableAsync:
                 If None, defaults to operation_timeout.
                 If None, defaults to the Table's default_read_rows_attempt_timeout,
                 or the operation_timeout if that is also None.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_read_rows_retryable_error_codes.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a list of Rows returned by the query
         Raises:
@@ -666,7 +676,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-            retryable_error_codes=retryable_error_codes,
+            retryable_errors=retryable_errors,
         )
         return [row async for row in row_generator]
 
@@ -677,13 +687,14 @@ class TableAsync:
         row_filter: RowFilter | None = None,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> Row | None:
         """
         Read a single row from the table, based on the specified key.
 
         Failed requests within operation_timeout will be retried based on the
-        retryable_error_codes list until operation_timeout is reached.
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -695,10 +706,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_read_rows_retryable_error_codes.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a Row object if the row exists, otherwise None
         Raises:
@@ -714,7 +725,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-            retryable_error_codes=retryable_error_codes,
+            retryable_errors=retryable_errors,
         )
         if len(results) == 0:
             return None
@@ -726,7 +737,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -751,10 +763,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_read_rows_retryable_error_codes.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
@@ -784,7 +796,7 @@ class TableAsync:
                     query,
                     operation_timeout=batch_operation_timeout,
                     attempt_timeout=min(attempt_timeout, batch_operation_timeout),
-                    retryable_error_codes=retryable_error_codes,
+                    retryable_errors=retryable_errors,
                 )
                 for query in batch
             ]
@@ -813,7 +825,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> bool:
         """
         Return a boolean indicating whether the specified row exists in the table.
@@ -829,10 +842,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_read_rows_retryable_error_codes.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a bool indicating whether the row exists
         Raises:
@@ -852,7 +865,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-            retryable_error_codes=retryable_error_codes,
+            retryable_errors=retryable_errors,
         )
         return len(results) > 0
 
@@ -861,7 +874,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -883,10 +897,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_retryable_error_codes.
+                Defaults to the Table's default_retryable_errors.
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
@@ -903,7 +917,7 @@ class TableAsync:
             attempt_timeout, operation_timeout
         )
         # prepare retryable
-        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
         transient_errors = []
 
@@ -949,7 +963,8 @@ class TableAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS
+        batch_retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -970,10 +985,10 @@ class TableAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds.
               Defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
-          - batch_retryable_error_codes: a list of errors that will be retried if encountered.
+          - batch_retryable_errors: a list of errors that will be retried if encountered.
               Can be passed as a sequence of grpc.StatusCodes, int representations, or
               the corresponding GoogleApiCallError Exception types.
-              Defaults to the Table's default_mutate_rows_retryable_error_codes.
+              Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
@@ -986,7 +1001,7 @@ class TableAsync:
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=batch_operation_timeout,
             batch_attempt_timeout=batch_attempt_timeout,
-            batch_retryable_error_codes=batch_retryable_error_codes,
+            batch_retryable_errors=batch_retryable_errors,
         )
 
     async def mutate_row(
@@ -996,7 +1011,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ):
         """
          Mutates a row atomically.
@@ -1018,11 +1034,11 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
                 Only idempotent mutations will be retried.
-                Defaults to the Table's default_retryable_error_codes.
+                Defaults to the Table's default_retryable_errors.
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -1047,7 +1063,7 @@ class TableAsync:
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
-                *_get_retryable_errors(retryable_error_codes, self)
+                *_get_retryable_errors(retryable_errors, self)
             )
         else:
             # mutations should not be retried
@@ -1085,7 +1101,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -1111,10 +1128,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_mutate_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
-            - retryable_error_codes: a list of errors that will be retried if encountered.
+            - retryable_errors: a list of errors that will be retried if encountered.
                 Can be passed as a sequence of grpc.StatusCodes, int representations, or
                 the corresponding GoogleApiCallError Exception types.
-                Defaults to the Table's default_mutate_rows_retryable_error_codes
+                Defaults to the Table's default_mutate_rows_retryable_errors
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -1122,7 +1139,7 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,

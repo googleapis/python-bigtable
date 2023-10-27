@@ -194,7 +194,8 @@ class MutationsBatcherAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_error_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS
+        batch_retryable_errors: Sequence["grpc.StatusCode" | int | type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Args:
@@ -211,15 +212,17 @@ class MutationsBatcherAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds.
               If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
-          - batch_retryable_error_codes: a list of errors that will be retried if encountered.
+          - batch_retryable_errors: a list of errors that will be retried if encountered.
               Can be passed as a sequence of grpc.StatusCodes, int representations, or
               the corresponding GoogleApiCallError Exception types.
-              Defaults to the Table's default_mutate_rows_retryable_error_codes.
+              Defaults to the Table's default_mutate_rows_retryable_errors.
         """
         self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table
         )
-        self._retryable_errors: list[type[Exception]] = _get_retryable_errors(batch_retryable_error_codes, table)
+        self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
+            batch_retryable_errors, table
+        )
 
         self.closed: bool = False
         self._table = table

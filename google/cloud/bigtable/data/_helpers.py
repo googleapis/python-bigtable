@@ -149,7 +149,9 @@ def _convert_retry_deadline(
 
 
 def _get_timeouts(
-        operation: float | TABLE_DEFAULT, attempt: float | None | TABLE_DEFAULT, table: "TableAsync"
+    operation: float | TABLE_DEFAULT,
+    attempt: float | None | TABLE_DEFAULT,
+    table: "TableAsync",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
@@ -224,11 +226,11 @@ def _get_retryable_errors(
 ) -> list[type[Exception]]:
     # load table defaults if necessary
     if call_codes == TABLE_DEFAULT.DEFAULT:
-        call_codes = table.default_retryable_error_codes
+        call_codes = table.default_retryable_errors
     elif call_codes == TABLE_DEFAULT.READ_ROWS:
-        call_codes = table.default_read_rows_retryable_error_codes
+        call_codes = table.default_read_rows_retryable_errors
     elif call_codes == TABLE_DEFAULT.MUTATE_ROWS:
-        call_codes = table.default_mutate_rows_retryable_error_codes
+        call_codes = table.default_mutate_rows_retryable_errors
 
     return [
         e if isinstance(e, type) else type(core_exceptions.from_grpc_status(e, ""))
