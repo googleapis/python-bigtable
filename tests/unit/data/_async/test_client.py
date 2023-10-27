@@ -842,6 +842,39 @@ class TestBigtableDataClientAsync:
         await client.close()
 
     @pytest.mark.asyncio
+    async def test_get_table_arg_passthrough(self):
+        """
+        All arguments passed in get_table should be sent to constructor
+        """
+        async with self._make_one(project="project-id") as client:
+            with mock.patch(
+                "google.cloud.bigtable.data._async.client.TableAsync.__init__",
+            ) as mock_constructor:
+                mock_constructor.return_value = None
+                assert not client._active_instances
+                expected_table_id = "table-id"
+                expected_instance_id = "instance-id"
+                expected_app_profile_id = "app-profile-id"
+                expected_args = (1, "test", {"test": 2})
+                expected_kwargs = {"hello": "world", "test": 2}
+
+                client.get_table(
+                    expected_instance_id,
+                    expected_table_id,
+                    expected_app_profile_id,
+                    *expected_args,
+                    **expected_kwargs,
+                )
+                mock_constructor.assert_called_once_with(
+                    client,
+                    expected_instance_id,
+                    expected_table_id,
+                    expected_app_profile_id,
+                    *expected_args,
+                    **expected_kwargs,
+                )
+
+    @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
