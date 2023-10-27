@@ -13,6 +13,8 @@
 #
 
 import pytest
+import grpc
+from google.api_core import exceptions as core_exceptions
 import google.cloud.bigtable.data._helpers as _helpers
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 import google.cloud.bigtable.data.exceptions as bigtable_exceptions
@@ -264,3 +266,49 @@ class TestGetTimeouts:
             setattr(fake_table, f"default_{key}_timeout", input_table[key])
         with pytest.raises(ValueError):
             _helpers._get_timeouts(input_times[0], input_times[1], fake_table)
+
+
+class TestGetRetryableErrors:
+    @pytest.mark.parametrize(
+        "input_codes,input_table,expected",
+        [
+            ((), {}, []),
+            ((Exception,), {}, [Exception]),
+            (TABLE_DEFAULT.DEFAULT, {"default": [Exception]}, [Exception]),
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                {"default_read_rows": (RuntimeError, ValueError)},
+                [RuntimeError, ValueError],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                {"default_mutate_rows": (ValueError,)},
+                [ValueError],
+            ),
+            ((4,), {}, [core_exceptions.DeadlineExceeded]),
+            (
+                [grpc.StatusCode.DEADLINE_EXCEEDED],
+                {},
+                [core_exceptions.DeadlineExceeded],
+            ),
+            (
+                (14, grpc.StatusCode.ABORTED, RuntimeError),
+                {},
+                [
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                    RuntimeError,
+                ],
+            ),
+        ],
+    )
+    def test_get_retryable_errors(self, input_codes, input_table, expected):
+        """
+        test input/output mappings for a variety of valid inputs
+        """
+        fake_table = mock.Mock()
+        for key in input_table.keys():
+            # set the default fields in our fake table mock
+            setattr(fake_table, f"{key}_retryable_errors", input_table[key])
+        result = _helpers._get_retryable_errors(input_codes, fake_table)
+        assert result == expected
