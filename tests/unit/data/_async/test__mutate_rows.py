@@ -100,9 +100,10 @@ class TestMutateRowsOperation:
         assert client.mutate_rows.call_count == 1
         # gapic_fn should call with table details
         inner_kwargs = client.mutate_rows.call_args[1]
-        assert len(inner_kwargs) == 3
+        assert len(inner_kwargs) == 4
         assert inner_kwargs["table_name"] == table.table_name
         assert inner_kwargs["app_profile_id"] == table.app_profile_id
+        assert inner_kwargs["retry"] is None
         metadata = inner_kwargs["metadata"]
         assert len(metadata) == 1
         assert metadata[0][0] == "x-goog-request-params"

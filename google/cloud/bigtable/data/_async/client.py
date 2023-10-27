@@ -917,6 +917,7 @@ class TableAsync:
                 app_profile_id=self.app_profile_id,
                 timeout=next(attempt_timeout_gen),
                 metadata=metadata,
+                retry=None,
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
@@ -1190,6 +1191,7 @@ class TableAsync:
             },
             metadata=metadata,
             timeout=operation_timeout,
+            retry=None,
         )
         return result.predicate_matched
 
@@ -1243,6 +1245,7 @@ class TableAsync:
             },
             metadata=metadata,
             timeout=operation_timeout,
+            retry=None,
         )
         # construct Row from result
         return Row._from_pb(result.row)
