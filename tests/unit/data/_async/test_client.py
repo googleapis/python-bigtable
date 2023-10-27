@@ -1229,7 +1229,7 @@ class TestTableAsync:
             with mock.patch(retry_fn_path) as retry_fn_mock:
                 async with BigtableDataClientAsync() as client:
                     table = client.get_table("instance-id", "table-id")
-                    expected_predicate = lambda a: a in expected_retryables
+                    expected_predicate = lambda a: a in expected_retryables  # noqa
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     with pytest.raises(Exception):

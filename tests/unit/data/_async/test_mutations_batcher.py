@@ -1170,7 +1170,7 @@ class TestMutationsBatcherAsync:
                     table, batch_retryable_errors=input_retryables
                 ) as instance:
                     assert instance._retryable_errors == expected_retryables
-                    expected_predicate = lambda a: a in expected_retryables
+                    expected_predicate = lambda a: a in expected_retryables  # noqa
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = _make_mutation(count=1, size=1)
