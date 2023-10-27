@@ -65,7 +65,7 @@ from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _validate_timeouts
-from google.cloud.bigtable.data._helpers import _errors_from_codes
+from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
@@ -576,7 +576,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.READ_ROWS = TABLE_DEFAULT.READ_ROWS
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -611,6 +611,7 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
+        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
 
         row_merger = _ReadRowsOperationAsync(
             query,
@@ -627,7 +628,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.READ_ROWS = TABLE_DEFAULT.READ_ROWS
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -676,7 +677,7 @@ class TableAsync:
         row_filter: RowFilter | None = None,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.READ_ROWS = TABLE_DEFAULT.READ_ROWS,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> Row | None:
         """
         Read a single row from the table, based on the specified key.
@@ -725,7 +726,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.READ_ROWS = TABLE_DEFAULT.READ_ROWS,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -812,7 +813,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.READ_ROWS = TABLE_DEFAULT.READ_ROWS,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> bool:
         """
         Return a boolean indicating whether the specified row exists in the table.
@@ -860,7 +861,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -902,7 +903,7 @@ class TableAsync:
             attempt_timeout, operation_timeout
         )
         # prepare retryable
-        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_retryable_error_codes)
+        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
         predicate = retries.if_exception_type(*retryable_excs)
         transient_errors = []
 
@@ -948,7 +949,7 @@ class TableAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.MUTATE_ROWS = TABLE_DEFAULT.MUTATE_ROWS
+        batch_retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -995,7 +996,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.DEFAULT = TABLE_DEFAULT.DEFAULT
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT
     ):
         """
          Mutates a row atomically.
@@ -1046,7 +1047,7 @@ class TableAsync:
         if all(mutation.is_idempotent() for mutation in mutations):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
-                *_errors_from_codes(retryable_error_codes, self.default_retryable_error_codes)
+                *_get_retryable_errors(retryable_error_codes, self)
             )
         else:
             # mutations should not be retried
@@ -1084,8 +1085,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT.MUTATE_ROWS = TABLE_DEFAULT.MUTATE_ROWS,
-
+        retryable_error_codes: Sequence[grpc.StatusCode | int | type[Exception]] | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -1122,7 +1122,7 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        retryable_excs = _errors_from_codes(retryable_error_codes, self.default_mutate_rows_retryable_error_codes)
+        retryable_excs = _get_retryable_errors(retryable_error_codes, self)
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
