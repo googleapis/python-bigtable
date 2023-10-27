@@ -1874,7 +1874,10 @@ class TestSampleRowKeys:
         expected_timeout = 99
         async with self._make_client() as client:
             async with client.get_table(
-                "i", "t", default_operation_timeout=expected_timeout
+                "i",
+                "t",
+                default_operation_timeout=expected_timeout,
+                default_attempt_timeout=expected_timeout,
             ) as table:
                 with mock.patch.object(
                     table.client._gapic_client, "sample_row_keys", AsyncMock()

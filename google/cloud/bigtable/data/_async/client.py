@@ -411,13 +411,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 the corresponding GoogleApiCallError Exception types.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return TableAsync(
-            self,
-            instance_id,
-            table_id,
-            *args,
-            **kwargs,
-        )
+        return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
     async def __aenter__(self):
         self._start_background_channel_refresh()

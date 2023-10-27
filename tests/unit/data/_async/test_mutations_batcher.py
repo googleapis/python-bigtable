@@ -286,10 +286,17 @@ class TestMutationsBatcherAsync:
         return MutationsBatcherAsync
 
     def _make_one(self, table=None, **kwargs):
+        from google.api_core.exceptions import DeadlineExceeded
+        from google.api_core.exceptions import ServiceUnavailable
+
         if table is None:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 10
+            table.default_mutate_rows_retryable_errors = (
+                DeadlineExceeded,
+                ServiceUnavailable,
+            )
 
         return self._get_target_class()(table, **kwargs)
 
@@ -302,6 +309,7 @@ class TestMutationsBatcherAsync:
         table = mock.Mock()
         table.default_mutate_rows_operation_timeout = 10
         table.default_mutate_rows_attempt_timeout = 8
+        table.default_mutate_rows_retryable_errors = [Exception]
         async with self._make_one(table) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -323,6 +331,9 @@ class TestMutationsBatcherAsync:
             assert (
                 instance._attempt_timeout == table.default_mutate_rows_attempt_timeout
             )
+            assert (
+                instance._retryable_errors == table.default_mutate_rows_retryable_errors
+            )
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == 5
@@ -343,6 +354,7 @@ class TestMutationsBatcherAsync:
         flow_control_max_bytes = 12
         operation_timeout = 11
         attempt_timeout = 2
+        retryable_errors = [Exception]
         async with self._make_one(
             table,
             flush_interval=flush_interval,
@@ -352,6 +364,7 @@ class TestMutationsBatcherAsync:
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=operation_timeout,
             batch_attempt_timeout=attempt_timeout,
+            batch_retryable_errors=retryable_errors,
         ) as instance:
             assert instance._table == table
             assert instance.closed is False
@@ -371,6 +384,7 @@ class TestMutationsBatcherAsync:
             assert instance._entries_processed_since_last_raise == 0
             assert instance._operation_timeout == operation_timeout
             assert instance._attempt_timeout == attempt_timeout
+            assert instance._retryable_errors == retryable_errors
             await asyncio.sleep(0)
             assert flush_timer_mock.call_count == 1
             assert flush_timer_mock.call_args[0][0] == flush_interval
@@ -386,6 +400,7 @@ class TestMutationsBatcherAsync:
         table = mock.Mock()
         table.default_mutate_rows_operation_timeout = 10
         table.default_mutate_rows_attempt_timeout = 8
+        table.default_mutate_rows_retryable_errors = ()
         flush_interval = None
         flush_limit_count = None
         flush_limit_bytes = None
@@ -442,7 +457,7 @@ class TestMutationsBatcherAsync:
         batcher_init_signature.pop("table")
         # both should have same number of arguments
         assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
-        assert len(get_batcher_signature) == 7  # update if expected params change
+        assert len(get_batcher_signature) == 8  # update if expected params change
         # both should have same argument names
         assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
         # both should have same default values
@@ -882,6 +897,7 @@ class TestMutationsBatcherAsync:
         table.app_profile_id = "test-app-profile"
         table.default_mutate_rows_operation_timeout = 17
         table.default_mutate_rows_attempt_timeout = 13
+        table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
@@ -911,6 +927,7 @@ class TestMutationsBatcherAsync:
         table = mock.Mock()
         table.default_mutate_rows_operation_timeout = 17
         table.default_mutate_rows_attempt_timeout = 13
+        table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
             result = await instance._execute_mutate_rows(batch)
