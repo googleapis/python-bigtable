@@ -370,31 +370,10 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
-    def get_table(
-        self,
-        instance_id: str,
-        table_id: str,
-        app_profile_id: str | None = None,
-        *,
-        default_read_rows_operation_timeout: float = 600,
-        default_read_rows_attempt_timeout: float | None = None,
-        default_mutate_rows_operation_timeout: float = 600,
-        default_mutate_rows_attempt_timeout: float | None = None,
-        default_operation_timeout: float = 60,
-        default_attempt_timeout: float | None = None,
-        default_read_rows_retryable_errors: Sequence[
-            grpc.StatusCode | int | type[Exception]
-        ] = (DeadlineExceeded, ServiceUnavailable, Aborted),
-        default_mutate_rows_retryable_errors: Sequence[
-            grpc.StatusCode | int | type[Exception]
-        ] = (DeadlineExceeded, ServiceUnavailable),
-        default_retryable_errors: Sequence[grpc.StatusCode | int | type[Exception]] = (
-            DeadlineExceeded,
-            ServiceUnavailable,
-        ),
-    ) -> TableAsync:
+    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
-        Returns a table instance for making data API requests
+        Returns a table instance for making data API requests. All arguments are passed
+        directly to the TableAsync constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -436,9 +415,8 @@ class BigtableDataClientAsync(ClientWithProject):
             self,
             instance_id,
             table_id,
-            app_profile_id,
-            default_operation_timeout=default_operation_timeout,
-            default_attempt_timeout=default_attempt_timeout,
+            *args,
+            **kwargs,
         )
 
     async def __aenter__(self):
