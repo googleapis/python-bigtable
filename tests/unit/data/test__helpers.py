@@ -14,6 +14,7 @@
 
 import pytest
 import google.cloud.bigtable.data._helpers as _helpers
+from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 import google.cloud.bigtable.data.exceptions as bigtable_exceptions
 
 import mock
@@ -199,3 +200,67 @@ class TestValidateTimeouts:
         except ValueError:
             pass
         assert success == expected
+
+
+class TestGetTimeouts:
+    @pytest.mark.parametrize(
+        "input_times,input_table,expected",
+        [
+            ((2, 1), {}, (2, 1)),
+            ((2, 4), {}, (2, 2)),
+            ((2, None), {}, (2, 2)),
+            (
+                (TABLE_DEFAULT.DEFAULT, TABLE_DEFAULT.DEFAULT),
+                {"operation": 3, "attempt": 2},
+                (3, 2),
+            ),
+            (
+                (TABLE_DEFAULT.READ_ROWS, TABLE_DEFAULT.READ_ROWS),
+                {"read_rows_operation": 3, "read_rows_attempt": 2},
+                (3, 2),
+            ),
+            (
+                (TABLE_DEFAULT.MUTATE_ROWS, TABLE_DEFAULT.MUTATE_ROWS),
+                {"mutate_rows_operation": 3, "mutate_rows_attempt": 2},
+                (3, 2),
+            ),
+            ((10, TABLE_DEFAULT.DEFAULT), {"attempt": None}, (10, 10)),
+            ((10, TABLE_DEFAULT.DEFAULT), {"attempt": 5}, (10, 5)),
+            ((10, TABLE_DEFAULT.DEFAULT), {"attempt": 100}, (10, 10)),
+            ((TABLE_DEFAULT.DEFAULT, 10), {"operation": 12}, (12, 10)),
+            ((TABLE_DEFAULT.DEFAULT, 10), {"operation": 3}, (3, 3)),
+        ],
+    )
+    def test_get_timeouts(self, input_times, input_table, expected):
+        """
+        test input/output mappings for a variety of valid inputs
+        """
+        fake_table = mock.Mock()
+        for key in input_table.keys():
+            # set the default fields in our fake table mock
+            setattr(fake_table, f"default_{key}_timeout", input_table[key])
+        t1, t2 = _helpers._get_timeouts(input_times[0], input_times[1], fake_table)
+        assert t1 == expected[0]
+        assert t2 == expected[1]
+
+    @pytest.mark.parametrize(
+        "input_times,input_table",
+        [
+            ([0, 1], {}),
+            ([1, 0], {}),
+            ([None, 1], {}),
+            ([TABLE_DEFAULT.DEFAULT, 1], {"operation": None}),
+            ([TABLE_DEFAULT.DEFAULT, 1], {"operation": 0}),
+            ([1, TABLE_DEFAULT.DEFAULT], {"attempt": 0}),
+        ],
+    )
+    def test_get_timeouts_invalid(self, input_times, input_table):
+        """
+        test with inputs that should raise error during validation step
+        """
+        fake_table = mock.Mock()
+        for key in input_table.keys():
+            # set the default fields in our fake table mock
+            setattr(fake_table, f"default_{key}_timeout", input_table[key])
+        with pytest.raises(ValueError):
+            _helpers._get_timeouts(input_times[0], input_times[1], fake_table)
