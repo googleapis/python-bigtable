@@ -75,6 +75,7 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
+from google.cloud.bigtable.data._metrics import _BigtableOpenTelemetryMetrics
 
 
 if TYPE_CHECKING:
@@ -508,7 +509,7 @@ class TableAsync:
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
-        self._metrics = _BigtableClientSideMetrics()
+        self._metrics = _BigtableOpenTelemetryMetrics(self.client.project, instance_id, app_profile_id)
 
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:

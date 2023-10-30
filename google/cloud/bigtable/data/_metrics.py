@@ -101,3 +101,50 @@ class _BigtableClientSideMetrics():
     def _on_operation_complete(self, op: _OperationMetric) -> None:
         del self._active_ops[op.op_id]
 
+
+class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
+
+    def __init__(self, project_id:str, instance_id:str, app_profile_id:str | None):
+        super().__init__()
+        from opentelemetry import metrics
+
+        meter = metrics.get_meter(__name__)
+        self.op_latency = meter.create_histogram(
+            name="op_latency",
+            description="A distribution of latency of each client method call, across all of it's RPC attempts. Tagged by operation name and final response status.",
+            unit="ms",
+        )
+        self.completed_ops = meter.create_counter(
+            name="completed_ops",
+            description="The total count of method invocations. Tagged by operation name and final response status",
+            unit="1",
+        )
+        self.read_rows_first_row_latency = meter.create_histogram(
+            name="read_rows_first_row_latency",
+            description="A distribution of the latency of receiving the first row in a ReadRows operation.",
+            unit="ms",
+        )
+        self.attempt_latency = meter.create_histogram(
+            name="attempt_latency",
+            description="A distribution of latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
+            unit="ms",
+        )
+        self.attempts_per_op = meter.create_histogram(
+            name="attempts_per_op",
+            description="A distribution of attempts that each operation required, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
+        )
+        self.shared_labels = {"bigtable_project_id": project_id, "bigtable_instance_id": instance_id}
+        if app_profile_id:
+            self.shared_labels["bigtable_app_profile_id"] = app_profile_id
+
+
+
+    def _on_operation_complete(self, op: _OperationMetric) -> None:
+        labels = {"op_name": op.op_type.value, "status": op.final_status.value, **self.shared_labels}
+
+        self.completed_ops.add(1, labels)
+        self.attempts_per_op.record(len(op.attempts), labels)
+        self.op_latency.record(op.end_time - op.start_time, labels)
+        for attempt in op.attempts:
+            labels["status"] = attempt.end_status.value
+            self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
