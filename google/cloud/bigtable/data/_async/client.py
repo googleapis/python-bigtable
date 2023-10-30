@@ -74,6 +74,8 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
+from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -506,6 +508,8 @@ class TableAsync:
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
+        self._metrics = _BigtableClientSideMetrics()
+
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
@@ -557,6 +561,7 @@ class TableAsync:
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metrics=self._metrics,
         )
         return row_merger.start_operation()
 

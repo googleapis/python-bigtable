@@ -18,7 +18,8 @@ from uuid import uuid4
 from uuid import UUID
 import time
 from dataclasses import dataclass
-from grpc import Status
+from dataclasses import field
+from grpc import StatusCode
 
 OperationID = UUID
 
@@ -29,43 +30,63 @@ class _OperationType(Enum):
 
 
 @dataclass
-class _Attempt:
+class _AttemptMetric:
     start_time: float
     first_response_time: float | None = None
     end_time: float | None = None
-    end_status: Status | None = None
+    end_status: StatusCode | None = None
+
+    def end_with_status(self, status: StatusCode) -> None:
+        if self.end_status is not None:
+            raise ValueError("Attempted to end an attempt twice.")
+        self.end_time = time.monotonic()
+        self.end_status = status
 
 
 @dataclass
-class _MetricOperation:
-    name: _OperationType
+class _OperationMetric:
+    op_type: _OperationType
     start_time: float
-    attempts: list[_Attempt] = []
+    op_id: OperationID = field(default_factory=uuid4)
+    attempts: list[_AttemptMetric] = field(default_factory=list)
+    end_time: float | None = None
+    final_status: StatusCode | None = None
+
+    def reset(self) -> None:
+        self.start_time = time.monotonic()
+        self.attempts = []
+        self.end_time = None
+        self.final_status = None
+
+    def start_attempt(self) -> _AttemptMetric:
+        attempt = _AttemptMetric(start_time=time.monotonic())
+        self.attempts.append(attempt)
+        return attempt
+
+    def end_attempt_with_status(self, _AttemptMetric, status:StatusCode) -> None:
+        _AttemptMetric.end_with_status(status)
+
+    def end_with_status(self, status: StatusCode) -> None:
+        if self.final_status is not None:
+            raise ValueError("Attempted to end an operation twice.")
+        self.end_time = time.monotonic()
+        self.final_status = status
+        last_attempt = self.attempts[-1]
+        if last_attempt.end_status is not None:
+            raise ValueError("Last attempt already ended")
+        last_attempt.end_with_status(status)
 
 
 class _BigtableClientSideMetrics():
 
     def __init__(self):
-        self._active_ops: dict[OperationID, _MetricOperation] = {}
+        self._active_ops: dict[OperationID, _OperationMetric] = {}
 
-    def record_operation_start(self, op_type:_OperationType) -> OperationID:
+    def start_operation(self, op_type:_OperationType) -> _OperationMetric:
         start_time = time.monotonic()
-        op_id = uuid4()
-        first_attempt = _Attempt(start_time=start_time)
-        self._active_ops[op_id] = _MetricOperation(op_type, start_time, [first_attempt])
-        return op_id
+        new_op = _OperationMetric(op_type=op_type, start_time=start_time)
+        self._active_ops[new_op.op_id] = new_op
+        return new_op
 
-    def record_operation_end(self, op_id:OperationID, status:Status) -> None:
-        del self._active_ops[op_id]
-
-    def record_attempt_start(self, op_id:OperationID) -> None:
-        start_time = time.monotonic()
-        self._active_ops[op_id].attempts.append(_Attempt(start_time=start_time))
-
-    def record_attempt_first_response(self, op_id:OperationID) -> None:
-        self._active_ops[op_id].attempts[-1].first_response_time = time.monotonic()
-
-    def record_attempt_end(self, op_id:OperationID, status:Status) -> None:
-        op = self._active_ops[op_id]
-        op.attempts[-1].end_status = status
-        op.attempts[-1].end_time = time.monotonic()
+    def get_operation(self, op_id:OperationID) -> _OperationMetric:
+        return self._active_ops[op_id]

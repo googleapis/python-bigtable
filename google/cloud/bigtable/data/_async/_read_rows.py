@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
 
+from grpc import StatusCode
+
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -29,6 +31,8 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
+from google.cloud.bigtable.data._metrics import _OperationType
 
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
@@ -37,6 +41,9 @@ from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._metrics import _OperationMetric
+    from google.cloud.bigtable.data._metrics import OperationID
+    from google.cloud.bigtable.data._metrics import _AttemptMetric
 
 
 class _ResetRow(Exception):
@@ -66,6 +73,9 @@ class _ReadRowsOperationAsync:
         "_metadata",
         "_last_yielded_row_key",
         "_remaining_count",
+        "_retryable_errors",
+        "_metrics",
+        "_operation_id",
     )
 
     def __init__(
@@ -74,6 +84,7 @@ class _ReadRowsOperationAsync:
         table: "TableAsync",
         operation_timeout: float,
         attempt_timeout: float,
+        metrics: _BigtableClientSideMetrics,
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
@@ -88,28 +99,44 @@ class _ReadRowsOperationAsync:
         else:
             self.request = query._to_pb(table)
         self.table = table
-        self._predicate = retries.if_exception_type(
+        self._retryable_errors = (
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
+        self._predicate = retries.if_exception_type(*self._retryable_errors)
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
         )
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
+        self._metrics = metrics
+        self._operation_id: OperationID | None = None
 
     def start_operation(self) -> AsyncGenerator[Row, None]:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
+        new_operation = self._metrics.start_operation(_OperationType.READ_ROWS)
+        self._operation_id = new_operation.op_id
+
+        def on_error(exc):
+            status = exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
+            if isinstance(exc, self._retryable_errors):
+                # retryable error: end attempt
+                self._operation_metric.end_attempt_with_status(status)
+            else:
+                # terminal error: end operation
+                self._operation_metric.end_with_status(status)
+
         return retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             exception_factory=self._build_exception,
+            on_error=on_error,
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
@@ -119,6 +146,9 @@ class _ReadRowsOperationAsync:
         which will call this function until it succeeds or
         a non-retryable error is raised.
         """
+        # register metric start
+        operation_metric = self._metrics.get_operation(self._operation_id)
+        operation_metric.start_attempt()
         # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
@@ -129,12 +159,12 @@ class _ReadRowsOperationAsync:
                 )
             except _RowSetComplete:
                 # if we've already seen all the rows, we're done
-                return self.merge_rows(None)
+                return self.merge_rows(None, operation_metric)
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
-                return self.merge_rows(None)
+                return self.merge_rows(None, operation_metric)
         # create and return a new row merger
         gapic_stream = self.table.client._gapic_client.read_rows(
             self.request,
@@ -143,7 +173,7 @@ class _ReadRowsOperationAsync:
             retry=None,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream)
+        return self.merge_rows(chunked_stream, operation_metric)
 
     async def chunk_stream(
         self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
@@ -193,12 +223,14 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     async def merge_rows(
-        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
+        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None,
+        operation: _OperationMetric,
     ):
         """
         Merge chunks into rows
         """
         if chunks is None:
+            operation.end_with_status(StatusCode.OK)
             return
         it = chunks.__aiter__()
         # For each row
@@ -207,6 +239,7 @@ class _ReadRowsOperationAsync:
                 c = await it.__anext__()
             except StopAsyncIteration:
                 # stream complete
+                operation.end_with_status(StatusCode.OK)
                 return
             row_key = c.row_key
 
