@@ -47,6 +47,7 @@ class _AttemptMetric:
 class _OperationMetric:
     op_type: _OperationType
     start_time: float
+    on_complete: callable | None = None
     op_id: OperationID = field(default_factory=uuid4)
     attempts: list[_AttemptMetric] = field(default_factory=list)
     end_time: float | None = None
@@ -75,6 +76,8 @@ class _OperationMetric:
         if last_attempt.end_status is not None:
             raise ValueError("Last attempt already ended")
         last_attempt.end_with_status(status)
+        if self.on_complete:
+            self.on_complete(self)
 
 
 class _BigtableClientSideMetrics():
@@ -84,9 +87,17 @@ class _BigtableClientSideMetrics():
 
     def start_operation(self, op_type:_OperationType) -> _OperationMetric:
         start_time = time.monotonic()
-        new_op = _OperationMetric(op_type=op_type, start_time=start_time)
+        new_op = _OperationMetric(
+            op_type=op_type,
+            start_time=start_time,
+            on_complete=self._on_operation_complete,
+        )
         self._active_ops[new_op.op_id] = new_op
         return new_op
 
     def get_operation(self, op_id:OperationID) -> _OperationMetric:
         return self._active_ops[op_id]
+
+    def _on_operation_complete(self, op: _OperationMetric) -> None:
+        del self._active_ops[op.op_id]
+
