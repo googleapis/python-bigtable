@@ -31,6 +31,7 @@ class _OperationType(Enum):
 @dataclass
 class _Attempt:
     start_time: float
+    first_response_time: float | None = None
     end_time: float | None = None
     end_status: Status | None = None
 
@@ -60,6 +61,9 @@ class _BigtableClientSideMetrics():
     def record_attempt_start(self, op_id:OperationID) -> None:
         start_time = time.monotonic()
         self._active_ops[op_id].attempts.append(_Attempt(start_time=start_time))
+
+    def record_attempt_first_response(self, op_id:OperationID) -> None:
+        self._active_ops[op_id].attempts[-1].first_response_time = time.monotonic()
 
     def record_attempt_end(self, op_id:OperationID, status:Status) -> None:
         op = self._active_ops[op_id]
