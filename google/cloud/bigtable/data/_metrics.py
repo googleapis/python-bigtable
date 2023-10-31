@@ -13,6 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+from typing import Callable, Any
+
 from enum import Enum
 from uuid import uuid4
 from uuid import UUID
@@ -60,7 +62,7 @@ class _AttemptMetric:
 class _OperationMetric:
     op_type: _OperationType
     start_time: float
-    on_complete: callable | None = None
+    on_complete: Callable[[_OperationMetric, StatusCode], None] | None = None
     op_id: OperationID = field(default_factory=uuid4)
     attempts: list[_AttemptMetric] = field(default_factory=list)
     end_time: float | None = None
@@ -77,8 +79,9 @@ class _OperationMetric:
         self.attempts.append(attempt)
         return attempt
 
-    def end_attempt_with_status(self, _AttemptMetric, status:StatusCode) -> None:
-        _AttemptMetric.end_with_status(status)
+    def end_attempt_with_status(self, status:StatusCode) -> None:
+        attempt = self.attempts[-1]
+        attempt.end_with_status(status)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         if self.final_status is not None:
@@ -90,12 +93,14 @@ class _OperationMetric:
             raise ValueError("Last attempt already ended")
         last_attempt.end_with_status(self.final_status)
         if self.on_complete:
-            self.on_complete(self)
+            self.on_complete(self, self.final_status)
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
 
-    def wrap_async_attempt_fn(self, fn:callable, predicate:callable=lambda e: False) -> callable:
+    def wrap_async_attempt_fn(
+            self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
+    ) -> Callable[..., Any]:
         async def wrapped_fn(*args, **kwargs):
             self.start_attempt()
             try:
@@ -129,7 +134,7 @@ class _BigtableClientSideMetrics():
     def get_operation(self, op_id:OperationID) -> _OperationMetric:
         return self._active_ops[op_id]
 
-    def _on_operation_complete(self, op: _OperationMetric) -> None:
+    def _on_operation_complete(self, op: _OperationMetric, final_status: StatusCode) -> None:
         del self._active_ops[op.op_id]
 
 
@@ -168,10 +173,8 @@ class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
-
-
-    def _on_operation_complete(self, op: _OperationMetric) -> None:
-        labels = {"op_name": op.op_type.value, "status": op.final_status.value, **self.shared_labels}
+    def _on_operation_complete(self, op: _OperationMetric, final_status: StatusCode) -> None:
+        labels = {"op_name": op.op_type.value, "status": final_status, **self.shared_labels}
 
         self.completed_ops.add(1, labels)
         self.attempts_per_op.record(len(op.attempts), labels)

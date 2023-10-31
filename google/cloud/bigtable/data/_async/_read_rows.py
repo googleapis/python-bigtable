@@ -122,10 +122,10 @@ class _ReadRowsOperationAsync:
         def on_error(exc):
             if isinstance(exc, self._retryable_errors):
                 # retryable error: end attempt
-                self._operation_metric.end_attempt_with_status(exc)
+                new_operation.end_attempt_with_status(exc)
             else:
                 # terminal error: end operation
-                self._operation_metric.end_with_status(exc)
+                new_operation.end_with_status(exc)
 
         return retry_target_stream(
             self._read_rows_attempt,

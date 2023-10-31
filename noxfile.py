@@ -53,6 +53,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "pytest",
     "pytest-asyncio",
     "google-cloud-testutils",
+    "opentelemetry-api",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES = [
     # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
