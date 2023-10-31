@@ -1026,6 +1026,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
+            self._metrics,
         )
         await operation.start()
 

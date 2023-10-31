@@ -21,12 +21,21 @@ from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
 
+import google.cloud.bigtable.data.exceptions as bt_exceptions
+
 OperationID = UUID
 
 
 class _OperationType(Enum):
     """Enum for the type of operation being performed."""
     READ_ROWS = "read_rows"
+    BULK_MUTATE = "bulk_mutate"
+
+
+def _exc_to_status(exc:Exception) -> StatusCode:
+    if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
+        exc = exc.exceptions[0].__cause__
+    return exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
 
 
 @dataclass
@@ -36,11 +45,11 @@ class _AttemptMetric:
     end_time: float | None = None
     end_status: StatusCode | None = None
 
-    def end_with_status(self, status: StatusCode) -> None:
+    def end_with_status(self, status: StatusCode | Exception) -> None:
         if self.end_status is not None:
             raise ValueError("Attempted to end an attempt twice.")
+        self.end_status = _exc_to_status(status) if isinstance(status, Exception) else status
         self.end_time = time.monotonic()
-        self.end_status = status
 
 
 @dataclass
@@ -67,17 +76,20 @@ class _OperationMetric:
     def end_attempt_with_status(self, _AttemptMetric, status:StatusCode) -> None:
         _AttemptMetric.end_with_status(status)
 
-    def end_with_status(self, status: StatusCode) -> None:
+    def end_with_status(self, status: StatusCode | Exception) -> None:
         if self.final_status is not None:
             raise ValueError("Attempted to end an operation twice.")
         self.end_time = time.monotonic()
-        self.final_status = status
+        self.final_status = _exc_to_status(status) if isinstance(status, Exception) else status
         last_attempt = self.attempts[-1]
         if last_attempt.end_status is not None:
             raise ValueError("Last attempt already ended")
-        last_attempt.end_with_status(status)
+        last_attempt.end_with_status(self.final_status)
         if self.on_complete:
             self.on_complete(self)
+
+    def end_with_success(self):
+        return self.end_with_status(StatusCode.OK)
 
 
 class _BigtableClientSideMetrics():

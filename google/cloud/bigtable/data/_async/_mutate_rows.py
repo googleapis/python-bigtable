@@ -24,6 +24,7 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._metrics import _OperationType
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -34,6 +35,10 @@ if TYPE_CHECKING:
     )
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
+    from google.cloud.bigtable.data._metrics import _OperationMetric
+    from google.cloud.bigtable.data._metrics import OperationID
+    from google.cloud.bigtable.data._metrics import _AttemptMetric
 
 
 class _MutateRowsOperationAsync:
@@ -54,6 +59,7 @@ class _MutateRowsOperationAsync:
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
+        metrics: _BigtableClientSideMetrics,
     ):
         """
         Args:
@@ -108,6 +114,9 @@ class _MutateRowsOperationAsync:
         self.mutations = mutation_entries
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
+        # set up metrics
+        self._metrics = metrics
+        self._operation_id: OperationID | None = None
 
     async def start(self):
         """
@@ -117,6 +126,8 @@ class _MutateRowsOperationAsync:
           - MutationsExceptionGroup: if any mutations failed
         """
         try:
+            new_operation = self._metrics.start_operation(_OperationType.BULK_MUTATE)
+            self._operation_id = new_operation.op_id
             # trigger mutate_rows
             await self._operation()
         except Exception as exc:
@@ -141,9 +152,13 @@ class _MutateRowsOperationAsync:
                     bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
                 )
             if all_errors:
-                raise bt_exceptions.MutationsExceptionGroup(
+                combined_exc = bt_exceptions.MutationsExceptionGroup(
                     all_errors, len(self.mutations)
                 )
+                new_operation.end_with_status(combined_exc)
+                raise combined_exc
+            else:
+                new_operation.end_with_success()
 
     async def _run_attempt(self):
         """
@@ -154,10 +169,13 @@ class _MutateRowsOperationAsync:
               retry after the attempt is complete
           - GoogleAPICallError: if the gapic rpc fails
         """
+        # register attempt start
+        operation_metric = self._metrics.get_operation(self._operation_id)
+        attempt_metric = operation_metric.start_attempt()
+        # track mutations in this request that have not been finalized yet
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
         ]
-        # track mutations in this request that have not been finalized yet
         active_request_indices = {
             req_idx: orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)
         }
@@ -197,12 +215,16 @@ class _MutateRowsOperationAsync:
             # already handled, and update remaining_indices if mutation is retryable
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
+            # record attempt failure metric
+            attempt_metric.end_with_status(exc)
             # bubble up exception to be handled by retry wrapper
             raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
-            raise bt_exceptions._MutateRowsIncomplete
+            last_exc = self.errors[self.remaining_indices[-1]][-1]
+            attempt_metric.end_with_status(last_exc)
+            raise bt_exceptions._MutateRowsIncomplete()
 
     def _handle_entry_error(self, idx: int, exc: Exception):
         """

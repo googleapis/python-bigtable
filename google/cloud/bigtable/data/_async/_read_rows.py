@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
 
-from grpc import StatusCode
-
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -122,13 +120,12 @@ class _ReadRowsOperationAsync:
         self._operation_id = new_operation.op_id
 
         def on_error(exc):
-            status = exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
             if isinstance(exc, self._retryable_errors):
                 # retryable error: end attempt
-                self._operation_metric.end_attempt_with_status(status)
+                self._operation_metric.end_attempt_with_status(exc)
             else:
                 # terminal error: end operation
-                self._operation_metric.end_with_status(status)
+                self._operation_metric.end_with_status(exc)
 
         return retry_target_stream(
             self._read_rows_attempt,
@@ -230,7 +227,7 @@ class _ReadRowsOperationAsync:
         Merge chunks into rows
         """
         if chunks is None:
-            operation.end_with_status(StatusCode.OK)
+            operation.end_with_success()
             return
         it = chunks.__aiter__()
         # For each row
@@ -239,7 +236,7 @@ class _ReadRowsOperationAsync:
                 c = await it.__anext__()
             except StopAsyncIteration:
                 # stream complete
-                operation.end_with_status(StatusCode.OK)
+                operation.end_with_success()
                 return
             row_key = c.row_key
 
