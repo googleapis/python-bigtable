@@ -28,8 +28,8 @@ OperationID = UUID
 
 class _OperationType(Enum):
     """Enum for the type of operation being performed."""
-    READ_ROWS = "read_rows"
-    BULK_MUTATE = "bulk_mutate"
+    READ_ROWS = "Bigtable.ReadRows"
+    BULK_MUTATE = "Bigtable.MutateRows"
 
 
 def _exc_to_status(exc:Exception) -> StatusCode:
