@@ -76,6 +76,7 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
 from google.cloud.bigtable.data._metrics import _BigtableOpenTelemetryMetrics
+from google.cloud.bigtable.data._metrics import _OperationType
 
 
 if TYPE_CHECKING:
@@ -847,10 +848,14 @@ class TableAsync:
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
-        wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc), operation_timeout, transient_errors, is_async=True
+        # wrap rpc in retry and metric collection logic
+        operation = self._metrics.start_operation(_OperationType.SAMPLE_ROW_KEYS)
+        metric_wrapped = operation.wrap_async_attempt_fn(execute_rpc, predicate)
+        retry_wrapped = retry(metric_wrapped)
+        deadline_wrapped = _convert_retry_deadline(
+            retry_wrapped, operation_timeout, transient_errors, is_async=True
         )
-        return await wrapped_fn()
+        return await deadline_wrapped()
 
     def mutations_batcher(
         self,
@@ -969,8 +974,11 @@ class TableAsync:
             multiplier=2,
             maximum=60,
         )
-        # wrap rpc in retry logic
-        retry_wrapped = retry(self.client._gapic_client.mutate_row)
+
+        # wrap rpc in retry and metric collection logic
+        operation = self._metrics.start_operation(_OperationType.MUTATE_ROW)
+        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.mutate_row, predicate)
+        retry_wrapped = retry(metric_wrapped)
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
         deadline_wrapped = _convert_retry_deadline(
             retry_wrapped, operation_timeout, transient_errors, is_async=True
@@ -1084,7 +1092,10 @@ class TableAsync:
             false_case_mutations = [false_case_mutations]
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
-        result = await self.client._gapic_client.check_and_mutate_row(
+
+        operation = self._metrics.start_operation(_OperationType.CHECK_AND_MUTATE)
+        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.check_and_mutate_row)
+        result = await metric_wrapped(
             request={
                 "predicate_filter": predicate._to_dict()
                 if predicate is not None
@@ -1142,7 +1153,11 @@ class TableAsync:
         # concert to dict representation
         rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
-        result = await self.client._gapic_client.read_modify_write_row(
+
+        operation = self._metrics.start_operation(_OperationType.READ_MODIFY_WRITE)
+        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.read_modify_write_row)
+
+        result = await metric_wrapped(
             request={
                 "rules": rules_dict,
                 "table_name": self.table_name,

@@ -29,7 +29,11 @@ OperationID = UUID
 class _OperationType(Enum):
     """Enum for the type of operation being performed."""
     READ_ROWS = "Bigtable.ReadRows"
+    SAMPLE_ROW_KEYS = "Bigtable.SampleRowKeys"
     BULK_MUTATE = "Bigtable.MutateRows"
+    MUTATE_ROW = "Bigtable.MutateRow"
+    CHECK_AND_MUTATE = "Bigtable.CheckAndMutateRow"
+    READ_MODIFY_WRITE = "Bigtable.ReadModifyWriteRow"
 
 
 def _exc_to_status(exc:Exception) -> StatusCode:
@@ -90,6 +94,21 @@ class _OperationMetric:
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
+
+    def wrap_async_attempt_fn(self, fn:callable, predicate:callable=lambda e: False) -> callable:
+        async def wrapped_fn(*args, **kwargs):
+            self.start_attempt()
+            try:
+                results = await fn(*args, **kwargs)
+                self.end_with_success()
+                return results
+            except Exception as e:
+                if predicate(e):
+                    self.end_attempt_with_status(e)
+                else:
+                    self.end_with_status(e)
+                raise
+        return wrapped_fn
 
 
 class _BigtableClientSideMetrics():
