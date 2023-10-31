@@ -39,9 +39,8 @@ from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
-    from google.cloud.bigtable.data._metrics import _OperationMetric
+    from google.cloud.bigtable.data._metrics import _ActiveOperationMetric
     from google.cloud.bigtable.data._metrics import OperationID
-    from google.cloud.bigtable.data._metrics import _AttemptMetric
 
 
 class _ResetRow(Exception):
@@ -221,7 +220,7 @@ class _ReadRowsOperationAsync:
     @staticmethod
     async def merge_rows(
         chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None,
-        operation: _OperationMetric,
+        operation: _ActiveOperationMetric,
     ):
         """
         Merge chunks into rows

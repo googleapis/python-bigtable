@@ -44,56 +44,72 @@ def _exc_to_status(exc:Exception) -> StatusCode:
     return exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
 
 
-@dataclass
-class _AttemptMetric:
+@dataclass(frozen=True)
+class _CompletedAttemptMetric:
     start_time: float
-    first_response_time: float | None = None
-    end_time: float | None = None
-    end_status: StatusCode | None = None
+    end_time: float
+    end_status: StatusCode
 
-    def end_with_status(self, status: StatusCode | Exception) -> None:
-        if self.end_status is not None:
-            raise ValueError("Attempted to end an attempt twice.")
-        self.end_status = _exc_to_status(status) if isinstance(status, Exception) else status
-        self.end_time = time.monotonic()
+
+@dataclass(frozen=True)
+class _CompletedOperationMetric:
+    active_data: _ActiveOperationMetric
+    end_time: float
+    final_status: StatusCode
 
 
 @dataclass
-class _OperationMetric:
+class _ActiveOperationMetric:
     op_type: _OperationType
     start_time: float
-    on_complete: Callable[[_OperationMetric, StatusCode], None] | None = None
+    on_complete: Callable[[_CompletedOperationMetric], None] | None = None
     op_id: OperationID = field(default_factory=uuid4)
-    attempts: list[_AttemptMetric] = field(default_factory=list)
-    end_time: float | None = None
-    final_status: StatusCode | None = None
+    active_attempt_start_time: float | None = None
+    completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
+    was_completed: bool = False
 
     def reset(self) -> None:
+        if self.was_completed:
+            raise ValueError("Operation cannot be reset after completion")
         self.start_time = time.monotonic()
-        self.attempts = []
-        self.end_time = None
-        self.final_status = None
+        self.completed_attempts = []
+        self.active_attempt_start_time = None
 
-    def start_attempt(self) -> _AttemptMetric:
-        attempt = _AttemptMetric(start_time=time.monotonic())
-        self.attempts.append(attempt)
-        return attempt
+    def start_attempt(self) -> int:
+        if self.was_completed:
+            raise ValueError("Operation already completed")
+        if self.active_attempt_start_time is not None:
+            raise ValueError("Incomplete attempt already exists")
 
-    def end_attempt_with_status(self, status:StatusCode) -> None:
-        attempt = self.attempts[-1]
-        attempt.end_with_status(status)
+        self.active_attempt_start_time = time.monotonic()
+        return len(self.completed_attempts)
+
+    def end_attempt_with_status(self, status:StatusCode | Exception) -> None:
+        if self.was_completed:
+            raise ValueError("Operation already completed")
+        if self.active_attempt_start_time is None:
+            raise ValueError("No active attempt")
+
+        new_attempt = _CompletedAttemptMetric(
+            start_time=self.active_attempt_start_time,
+            end_time=time.monotonic(),
+            end_status=_exc_to_status(status) if isinstance(status, Exception) else status
+        )
+        self.completed_attempts.append(new_attempt)
+        self.active_attempt_start_time = None
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
-        if self.final_status is not None:
-            raise ValueError("Attempted to end an operation twice.")
-        self.end_time = time.monotonic()
-        self.final_status = _exc_to_status(status) if isinstance(status, Exception) else status
-        last_attempt = self.attempts[-1]
-        if last_attempt.end_status is not None:
-            raise ValueError("Last attempt already ended")
-        last_attempt.end_with_status(self.final_status)
-        if self.on_complete:
-            self.on_complete(self, self.final_status)
+        if self.was_completed:
+            raise ValueError("Operation already completed")
+        self.end_attempt_with_status(status)
+        self.was_completed = True
+        finalized = _CompletedOperationMetric(
+            active_data=self,
+            end_time=time.monotonic(),
+            final_status=_exc_to_status(status) if isinstance(status, Exception) else status
+        )
+        if self.on_complete is not None:
+            self.on_complete(finalized)
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
@@ -119,11 +135,11 @@ class _OperationMetric:
 class _BigtableClientSideMetrics():
 
     def __init__(self):
-        self._active_ops: dict[OperationID, _OperationMetric] = {}
+        self._active_ops: dict[OperationID, _ActiveOperationMetric] = {}
 
-    def start_operation(self, op_type:_OperationType) -> _OperationMetric:
+    def start_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
         start_time = time.monotonic()
-        new_op = _OperationMetric(
+        new_op = _ActiveOperationMetric(
             op_type=op_type,
             start_time=start_time,
             on_complete=self._on_operation_complete,
@@ -131,11 +147,11 @@ class _BigtableClientSideMetrics():
         self._active_ops[new_op.op_id] = new_op
         return new_op
 
-    def get_operation(self, op_id:OperationID) -> _OperationMetric:
+    def get_operation(self, op_id:OperationID) -> _ActiveOperationMetric:
         return self._active_ops[op_id]
 
-    def _on_operation_complete(self, op: _OperationMetric, final_status: StatusCode) -> None:
-        del self._active_ops[op.op_id]
+    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+        del self._active_ops[op.active_data.op_id]
 
 
 class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
@@ -173,12 +189,12 @@ class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
-    def _on_operation_complete(self, op: _OperationMetric, final_status: StatusCode) -> None:
-        labels = {"op_name": op.op_type.value, "status": final_status, **self.shared_labels}
+    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+        labels = {"op_name": op.active_data.op_type.value, "status": op.final_status, **self.shared_labels}
 
         self.completed_ops.add(1, labels)
-        self.attempts_per_op.record(len(op.attempts), labels)
-        self.op_latency.record(op.end_time - op.start_time, labels)
-        for attempt in op.attempts:
+        self.attempts_per_op.record(len(op.active_data.completed_attempts), labels)
+        self.op_latency.record(op.end_time - op.active_data.start_time, labels)
+        for attempt in op.active_data.completed_attempts:
             labels["status"] = attempt.end_status.value
-            self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
+            self.attempt_latency.record(attempt.end_time - attempt.start_time, labels)

@@ -36,9 +36,8 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._async.client import TableAsync
     from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
-    from google.cloud.bigtable.data._metrics import _OperationMetric
+    from google.cloud.bigtable.data._metrics import _ActiveOperationMetric
     from google.cloud.bigtable.data._metrics import OperationID
-    from google.cloud.bigtable.data._metrics import _AttemptMetric
 
 
 class _MutateRowsOperationAsync:
@@ -171,7 +170,7 @@ class _MutateRowsOperationAsync:
         """
         # register attempt start
         operation_metric = self._metrics.get_operation(self._operation_id)
-        attempt_metric = operation_metric.start_attempt()
+        operation_metric.start_attempt()
         # track mutations in this request that have not been finalized yet
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
@@ -216,14 +215,14 @@ class _MutateRowsOperationAsync:
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
             # record attempt failure metric
-            attempt_metric.end_with_status(exc)
+            operation_metric.end_attempt_with_status(exc)
             # bubble up exception to be handled by retry wrapper
             raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
             last_exc = self.errors[self.remaining_indices[-1]][-1]
-            attempt_metric.end_with_status(last_exc)
+            operation_metric.end_attempt_with_status(last_exc)
             raise bt_exceptions._MutateRowsIncomplete()
 
     def _handle_entry_error(self, idx: int, exc: Exception):
