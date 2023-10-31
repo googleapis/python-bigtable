@@ -15,10 +15,13 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
+import time
+import warnings
+import os
+
 from enum import Enum
 from uuid import uuid4
 from uuid import UUID
-import time
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
@@ -26,6 +29,8 @@ from grpc import StatusCode
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 
 OperationID = UUID
+
+ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 
 
 class _OperationType(Enum):
@@ -36,12 +41,6 @@ class _OperationType(Enum):
     MUTATE_ROW = "Bigtable.MutateRow"
     CHECK_AND_MUTATE = "Bigtable.CheckAndMutateRow"
     READ_MODIFY_WRITE = "Bigtable.ReadModifyWriteRow"
-
-
-def _exc_to_status(exc:Exception) -> StatusCode:
-    if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
-        exc = exc.exceptions[0].__cause__
-    return exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -62,7 +61,7 @@ class _CompletedOperationMetric:
 class _ActiveOperationMetric:
     op_type: _OperationType
     start_time: float
-    on_complete: Callable[[_CompletedOperationMetric], None] | None = None
+    on_complete: Callable[[_CompletedOperationMetric], None]
     op_id: OperationID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
@@ -70,46 +69,44 @@ class _ActiveOperationMetric:
 
     def reset(self) -> None:
         if self.was_completed:
-            raise ValueError("Operation cannot be reset after completion")
+            return self._handle_error("Operation cannot be reset after completion")
         self.start_time = time.monotonic()
         self.completed_attempts = []
         self.active_attempt_start_time = None
 
-    def start_attempt(self) -> int:
+    def start_attempt(self) -> None:
         if self.was_completed:
-            raise ValueError("Operation already completed")
+            return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is not None:
-            raise ValueError("Incomplete attempt already exists")
+            return self._handle_error("Incomplete attempt already exists")
 
         self.active_attempt_start_time = time.monotonic()
-        return len(self.completed_attempts)
 
     def end_attempt_with_status(self, status:StatusCode | Exception) -> None:
         if self.was_completed:
-            raise ValueError("Operation already completed")
+            return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is None:
-            raise ValueError("No active attempt")
+            return self._handle_error("No active attempt")
 
         new_attempt = _CompletedAttemptMetric(
             start_time=self.active_attempt_start_time,
             end_time=time.monotonic(),
-            end_status=_exc_to_status(status) if isinstance(status, Exception) else status
+            end_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt_start_time = None
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         if self.was_completed:
-            raise ValueError("Operation already completed")
+            return self._handle_error("Operation already completed")
         self.end_attempt_with_status(status)
         self.was_completed = True
         finalized = _CompletedOperationMetric(
             active_data=self,
             end_time=time.monotonic(),
-            final_status=_exc_to_status(status) if isinstance(status, Exception) else status
+            final_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
-        if self.on_complete is not None:
-            self.on_complete(finalized)
+        self.on_complete(finalized)
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
@@ -130,6 +127,20 @@ class _ActiveOperationMetric:
                     self.end_with_status(e)
                 raise
         return wrapped_fn
+
+    @staticmethod
+    def _exc_to_status(exc:Exception) -> StatusCode:
+        if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
+            exc = exc.exceptions[0].__cause__
+        return exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
+
+    @staticmethod
+    def _handle_error(message:str) -> None:
+        full_message = f"Error in Bigtable Metrics: {message}"
+        if ALLOW_METRIC_EXCEPTIONS:
+            raise ValueError(full_message)
+        else:
+            warnings.warn(full_message, stacklevel=3)
 
 
 class _BigtableClientSideMetrics():
