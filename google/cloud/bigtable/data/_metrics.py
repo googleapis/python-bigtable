@@ -161,6 +161,14 @@ class _BigtableClientSideMetrics():
     def get_operation(self, op_id:OperationID) -> _ActiveOperationMetric:
         return self._active_ops[op_id]
 
+    @staticmethod
+    def create_metrics_instance(*args, **kwargs):
+        try:
+            metrics = _BigtableOpenTelemetryMetrics(*args, **kwargs)
+        except ImportError:
+            metrics = _BigtableClientSideMetrics()
+        return metrics
+
     def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         del self._active_ops[op.active_data.op_id]
 
