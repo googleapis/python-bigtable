@@ -49,15 +49,8 @@ class _OperationType(Enum):
 @dataclass(frozen=True)
 class _CompletedAttemptMetric:
     start_time: float
-    end_time: float
+    duration: float
     end_status: StatusCode
-
-
-@dataclass(frozen=True)
-class _CompletedOperationMetric:
-    active_data: _ActiveOperationMetric
-    end_time: float
-    final_status: StatusCode
 
 
 @dataclass
@@ -93,7 +86,7 @@ class _ActiveOperationMetric:
 
         new_attempt = _CompletedAttemptMetric(
             start_time=self.active_attempt_start_time,
-            end_time=time.monotonic(),
+            duration=time.monotonic() - self.active_attempt_start_time,
             end_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
         self.completed_attempts.append(new_attempt)
@@ -105,9 +98,12 @@ class _ActiveOperationMetric:
         self.end_attempt_with_status(status)
         self.was_completed = True
         finalized = _CompletedOperationMetric(
-            active_data=self,
-            end_time=time.monotonic(),
-            final_status=self._exc_to_status(status) if isinstance(status, Exception) else status
+            op_type=self.op_type,
+            start_time=self.start_time,
+            op_id=self.op_id,
+            completed_attempts=self.completed_attempts,
+            duration=time.monotonic() - self.start_time,
+            final_status=self._exc_to_status(status) if isinstance(status, Exception) else status,
         )
         for handler in self._handlers:
             handler.on_operation_complete(finalized)
@@ -181,6 +177,16 @@ class _ActiveOperationMetric:
             return wrapped_fn
 
 
+@dataclass(frozen=True)
+class _CompletedOperationMetric:
+    op_type: _OperationType
+    start_time: float
+    duration: float
+    op_id: UUID
+    completed_attempts: list[_CompletedAttemptMetric]
+    final_status: StatusCode
+
+
 class BigtableClientSideMetrics():
 
     def __init__(self, **kwargs):
@@ -248,14 +254,14 @@ class _OpenTelemetryHandler(_MetricsHandler):
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        labels = {"op_name": op.active_data.op_type.value, "status": op.final_status, **self.shared_labels}
+        labels = {"op_name": op.op_type.value, "status": op.final_status, **self.shared_labels}
 
         self.completed_ops.add(1, labels)
-        self.attempts_per_op.record(len(op.active_data.completed_attempts), labels)
-        self.op_latency.record(op.end_time - op.active_data.start_time, labels)
-        for attempt in op.active_data.completed_attempts:
+        self.attempts_per_op.record(len(op.completed_attempts), labels)
+        self.op_latency.record(op.duration, labels)
+        for attempt in op.completed_attempts:
             labels["status"] = attempt.end_status.value
-            self.attempt_latency.record(attempt.end_time - attempt.start_time, labels)
+            self.attempt_latency.record(attempt.duration, labels)
 
 
 class _StdoutHandler(_MetricsHandler):
@@ -264,7 +270,7 @@ class _StdoutHandler(_MetricsHandler):
         self._completed_ops = {}
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        current_list = self._completed_ops.setdefault(op.active_data.op_type, [])
+        current_list = self._completed_ops.setdefault(op.op_type, [])
         current_list.append(op)
         self.print()
 
@@ -272,8 +278,8 @@ class _StdoutHandler(_MetricsHandler):
         print("Bigtable Metrics:")
         for ops_type, ops_list in self._completed_ops.items():
             count = len(ops_list)
-            total_latency = sum([op.end_time - op.active_data.start_time for op in ops_list])
-            total_attempts = sum([len(op.active_data.completed_attempts) for op in ops_list])
+            total_latency = sum([op.duration for op in ops_list])
+            total_attempts = sum([len(op.completed_attempts) for op in ops_list])
             avg_latency = total_latency / count
             avg_attempts = total_attempts / count
             print(f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}")
