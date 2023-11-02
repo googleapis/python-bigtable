@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Any
+from typing import Callable, Any, TYPE_CHECKING
 
 import time
 import warnings
@@ -22,14 +22,15 @@ import abc
 
 from enum import Enum
 from uuid import uuid4
-from uuid import UUID
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 
-OperationID = UUID
+if TYPE_CHECKING:
+    from uuid import UUID
+
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 PRINT_METRICS = os.getenv("BIGTABLE_PRINT_METRICS", False)
@@ -63,7 +64,7 @@ class _CompletedOperationMetric:
 class _ActiveOperationMetric:
     op_type: _OperationType
     start_time: float
-    op_id: OperationID = field(default_factory=uuid4)
+    op_id: UUID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
