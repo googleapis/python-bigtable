@@ -31,6 +31,7 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 OperationID = UUID
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
+PRINT_METRICS = os.getenv("BIGTABLE_PRINT_METRICS", False)
 
 
 class _OperationType(Enum):
@@ -145,6 +146,9 @@ class _ActiveOperationMetric:
 
 class _BigtableClientSideMetrics():
 
+    def __init__(self, **kwargs):
+        pass
+
     def create_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
         start_time = time.monotonic()
         new_op = _ActiveOperationMetric(
@@ -155,12 +159,19 @@ class _BigtableClientSideMetrics():
         return new_op
 
     @staticmethod
-    def create_metrics_instance(*args, **kwargs) -> _BigtableClientSideMetrics:
-        try:
-            metrics: _BigtableClientSideMetrics = _BigtableOpenTelemetryMetrics(*args, **kwargs)
-        except ImportError:
-            metrics = _BigtableClientSideMetrics()
-        return metrics
+    def create_metrics_instance(
+        cls:type[_BigtableClientSideMetrics] | None = None, **kwargs
+    ) -> _BigtableClientSideMetrics:
+        if cls is None:
+            if PRINT_METRICS:
+                cls = _StdoutMetrics
+            else:
+                try:
+                    obj = _BigtableOpenTelemetryMetrics(**kwargs)
+                    return obj
+                except ImportError:
+                    cls = _BigtableClientSideMetrics
+        return cls(**kwargs)
 
     def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         pass
@@ -210,3 +221,24 @@ class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
         for attempt in op.active_data.completed_attempts:
             labels["status"] = attempt.end_status.value
             self.attempt_latency.record(attempt.end_time - attempt.start_time, labels)
+
+class _StdoutMetrics(_BigtableClientSideMetrics):
+
+    def __init__(self, *args, **kwargs):
+        self._completed_ops = {}
+
+    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+        current_list = self._completed_ops.setdefault(op.active_data.op_type, [])
+        current_list.append(op)
+        self.print()
+
+    def print(self):
+        print("Bigtable Metrics:")
+        for ops_type, ops_list in self._completed_ops.items():
+            count = len(ops_list)
+            total_latency = sum([op.end_time - op.active_data.start_time for op in ops_list])
+            total_attempts = sum([len(op.active_data.completed_attempts) for op in ops_list])
+            avg_latency = total_latency / count
+            avg_attempts = total_attempts / count
+            print(f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}")
+        print()
