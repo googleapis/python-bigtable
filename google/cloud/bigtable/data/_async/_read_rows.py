@@ -29,8 +29,6 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
-from google.cloud.bigtable.data._metrics import _BigtableClientSideMetrics
-from google.cloud.bigtable.data._metrics import _OperationType
 
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
@@ -40,7 +38,6 @@ from google.api_core import exceptions as core_exceptions
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
     from google.cloud.bigtable.data._metrics import _ActiveOperationMetric
-    from google.cloud.bigtable.data._metrics import OperationID
 
 
 class _ResetRow(Exception):

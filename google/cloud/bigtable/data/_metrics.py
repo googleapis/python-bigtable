@@ -18,6 +18,7 @@ from typing import Callable, Any
 import time
 import warnings
 import os
+import abc
 
 from enum import Enum
 from uuid import uuid4
@@ -62,11 +63,11 @@ class _CompletedOperationMetric:
 class _ActiveOperationMetric:
     op_type: _OperationType
     start_time: float
-    _controller: _BigtableClientSideMetrics
     op_id: OperationID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
+    _handlers: list[_MetricsHandler] = field(default_factory=list)
 
     def start(self) -> None:
         if self.was_completed:
@@ -107,7 +108,8 @@ class _ActiveOperationMetric:
             end_time=time.monotonic(),
             final_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
-        self._controller._on_operation_complete(finalized)
+        for handler in self._handlers:
+            handler.on_operation_complete(finalized)
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
@@ -144,40 +146,38 @@ class _ActiveOperationMetric:
             warnings.warn(full_message, stacklevel=3)
 
 
-class _BigtableClientSideMetrics():
+class BigtableClientSideMetrics():
 
     def __init__(self, **kwargs):
-        pass
+        self.handlers: list[_MetricsHandler] = []
+        if PRINT_METRICS:
+            self.handlers.append(_StdoutHandler(**kwargs))
+        try:
+            ot_handler = _OpenTelemetryHandler(**kwargs)
+            self.handlers.append(ot_handler)
+        except ImportError:
+            pass
+
+    def add_handler(self, handler:_MetricsHandler) -> None:
+        self.handlers.append(handler)
 
     def create_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
         start_time = time.monotonic()
         new_op = _ActiveOperationMetric(
             op_type=op_type,
             start_time=start_time,
-            _controller=self,
+            _handlers=self.handlers,
         )
         return new_op
 
-    @staticmethod
-    def create_metrics_instance(
-        cls:type[_BigtableClientSideMetrics] | None = None, **kwargs
-    ) -> _BigtableClientSideMetrics:
-        if cls is None:
-            if PRINT_METRICS:
-                cls = _StdoutMetrics
-            else:
-                try:
-                    obj = _BigtableOpenTelemetryMetrics(**kwargs)
-                    return obj
-                except ImportError:
-                    cls = _BigtableClientSideMetrics
-        return cls(**kwargs)
 
-    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        pass
+class _MetricsHandler(abc.ABC):
+
+    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+        raise NotImplementedError
 
 
-class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
+class _OpenTelemetryHandler(_MetricsHandler):
 
     def __init__(self, project_id:str, instance_id:str, app_profile_id:str | None):
         super().__init__()
@@ -212,7 +212,7 @@ class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
-    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         labels = {"op_name": op.active_data.op_type.value, "status": op.final_status, **self.shared_labels}
 
         self.completed_ops.add(1, labels)
@@ -222,12 +222,13 @@ class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
             labels["status"] = attempt.end_status.value
             self.attempt_latency.record(attempt.end_time - attempt.start_time, labels)
 
-class _StdoutMetrics(_BigtableClientSideMetrics):
+
+class _StdoutHandler(_MetricsHandler):
 
     def __init__(self, *args, **kwargs):
         self._completed_ops = {}
 
-    def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         current_list = self._completed_ops.setdefault(op.active_data.op_type, [])
         current_list.append(op)
         self.print()
