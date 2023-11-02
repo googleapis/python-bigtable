@@ -134,7 +134,7 @@ def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
     session.install(
-        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
+        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests", "opentelemetry-api"
     )
     session.install("google-cloud-testutils")
     session.run(
