@@ -115,23 +115,6 @@ class _ActiveOperationMetric:
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
 
-    def wrap_async_attempt_fn(
-            self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
-    ) -> Callable[..., Any]:
-        async def wrapped_fn(*args, **kwargs):
-            self.start_attempt()
-            try:
-                results = await fn(*args, **kwargs)
-                self.end_with_success()
-                return results
-            except Exception as e:
-                if predicate(e):
-                    self.end_attempt_with_status(e)
-                else:
-                    self.end_with_status(e)
-                raise
-        return wrapped_fn
-
     @staticmethod
     def _exc_to_status(exc:Exception) -> StatusCode:
         if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
@@ -145,6 +128,57 @@ class _ActiveOperationMetric:
             raise ValueError(full_message)
         else:
             warnings.warn(full_message, stacklevel=3)
+
+    async def __aenter__(self):
+        return self._AsyncContextManager(self)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.__exit__(exc_type, exc_val, exc_tb)
+
+    def __enter__(self):
+        return self._ContextManager(self)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val is None:
+            self.end_with_success()
+        else:
+            self.end_with_status(exc_val)
+
+    class _AsyncContextManager:
+
+        def __init__(self, operation:_ActiveOperationMetric):
+            self.operation = operation
+
+        def wrap_attempt_fn(
+                self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
+        ) -> Callable[..., Any]:
+            async def wrapped_fn(*args, **kwargs):
+                self.operation.start_attempt()
+                try:
+                    return await fn(*args, **kwargs)
+                except Exception as e:
+                    if predicate(e):
+                        self.operation.end_attempt_with_status(e)
+                    raise
+            return wrapped_fn
+
+    class _ContextManager:
+
+        def __init__(self, operation:_ActiveOperationMetric):
+            self.operation = operation
+
+        def wrap_attempt_fn(
+                self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
+        ) -> Callable[..., Any]:
+            def wrapped_fn(*args, **kwargs):
+                self.operation.start_attempt()
+                try:
+                    return fn(*args, **kwargs)
+                except Exception as e:
+                    if predicate(e):
+                        self.operation.end_attempt_with_status(e)
+                    raise
+            return wrapped_fn
 
 
 class BigtableClientSideMetrics():

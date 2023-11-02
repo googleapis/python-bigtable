@@ -850,13 +850,13 @@ class TableAsync:
             return [(s.row_key, s.offset_bytes) async for s in results]
 
         # wrap rpc in retry and metric collection logic
-        operation = self._metrics.create_operation(_OperationType.SAMPLE_ROW_KEYS)
-        metric_wrapped = operation.wrap_async_attempt_fn(execute_rpc, predicate)
-        retry_wrapped = retry(metric_wrapped)
-        deadline_wrapped = _convert_retry_deadline(
-            retry_wrapped, operation_timeout, transient_errors, is_async=True
-        )
-        return await deadline_wrapped()
+        async with self._metrics.create_operation(_OperationType.SAMPLE_ROW_KEYS) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(execute_rpc, predicate)
+            retry_wrapped = retry(metric_wrapped)
+            deadline_wrapped = _convert_retry_deadline(
+                retry_wrapped, operation_timeout, transient_errors, is_async=True
+            )
+            return await deadline_wrapped()
 
     def mutations_batcher(
         self,
@@ -977,18 +977,18 @@ class TableAsync:
         )
 
         # wrap rpc in retry and metric collection logic
-        operation = self._metrics.create_operation(_OperationType.MUTATE_ROW)
-        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.mutate_row, predicate)
-        retry_wrapped = retry(metric_wrapped)
-        # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-        deadline_wrapped = _convert_retry_deadline(
-            retry_wrapped, operation_timeout, transient_errors, is_async=True
-        )
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
-        # trigger rpc
-        await deadline_wrapped(
-            request, timeout=attempt_timeout, metadata=metadata, retry=None
-        )
+        async with self._metrics.create_operation(_OperationType.MUTATE_ROW) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.mutate_row, predicate)
+            retry_wrapped = retry(metric_wrapped)
+            # convert RetryErrors from retry wrapper into DeadlineExceeded errors
+            deadline_wrapped = _convert_retry_deadline(
+                retry_wrapped, operation_timeout, transient_errors, is_async=True
+            )
+            metadata = _make_metadata(self.table_name, self.app_profile_id)
+            # trigger rpc
+            await deadline_wrapped(
+                request, timeout=attempt_timeout, metadata=metadata, retry=None
+            )
 
     async def bulk_mutate_rows(
         self,
@@ -1094,24 +1094,24 @@ class TableAsync:
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        operation = self._metrics.create_operation(_OperationType.CHECK_AND_MUTATE)
-        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.check_and_mutate_row)
-        result = await metric_wrapped(
-            request={
-                "predicate_filter": predicate._to_dict()
-                if predicate is not None
-                else None,
-                "true_mutations": true_case_dict,
-                "false_mutations": false_case_dict,
-                "table_name": self.table_name,
-                "row_key": row_key,
-                "app_profile_id": self.app_profile_id,
-            },
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        return result.predicate_matched
+        async with self._metrics.create_operation(_OperationType.CHECK_AND_MUTATE) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.check_and_mutate_row)
+            result = await metric_wrapped(
+                request={
+                    "predicate_filter": predicate._to_dict()
+                    if predicate is not None
+                    else None,
+                    "true_mutations": true_case_dict,
+                    "false_mutations": false_case_dict,
+                    "table_name": self.table_name,
+                    "row_key": row_key,
+                    "app_profile_id": self.app_profile_id,
+                },
+                metadata=metadata,
+                timeout=operation_timeout,
+                retry=None,
+            )
+            return result.predicate_matched
 
     async def read_modify_write_row(
         self,
@@ -1155,22 +1155,22 @@ class TableAsync:
         rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        operation = self._metrics.create_operation(_OperationType.READ_MODIFY_WRITE)
-        metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.read_modify_write_row)
+        async with self._metrics.create_operation(_OperationType.READ_MODIFY_WRITE) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.read_modify_write_row)
 
-        result = await metric_wrapped(
-            request={
-                "rules": rules_dict,
-                "table_name": self.table_name,
-                "row_key": row_key,
-                "app_profile_id": self.app_profile_id,
-            },
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        # construct Row from result
-        return Row._from_pb(result.row)
+            result = await metric_wrapped(
+                request={
+                    "rules": rules_dict,
+                    "table_name": self.table_name,
+                    "row_key": row_key,
+                    "app_profile_id": self.app_profile_id,
+                },
+                metadata=metadata,
+                timeout=operation_timeout,
+                retry=None,
+            )
+            # construct Row from result
+            return Row._from_pb(result.row)
 
     async def close(self):
         """
