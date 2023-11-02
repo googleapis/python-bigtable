@@ -61,7 +61,7 @@ class _CompletedOperationMetric:
 class _ActiveOperationMetric:
     op_type: _OperationType
     start_time: float
-    on_complete: Callable[[_CompletedOperationMetric], None]
+    _controller: _BigtableClientSideMetrics
     op_id: OperationID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
@@ -106,7 +106,7 @@ class _ActiveOperationMetric:
             end_time=time.monotonic(),
             final_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
-        self.on_complete(finalized)
+        self._controller._on_operation_complete(finalized)
 
     def end_with_success(self):
         return self.end_with_status(StatusCode.OK)
@@ -145,21 +145,14 @@ class _ActiveOperationMetric:
 
 class _BigtableClientSideMetrics():
 
-    def __init__(self):
-        self._active_ops: dict[OperationID, _ActiveOperationMetric] = {}
-
     def create_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
         start_time = time.monotonic()
         new_op = _ActiveOperationMetric(
             op_type=op_type,
             start_time=start_time,
-            on_complete=self._on_operation_complete,
+            _controller=self,
         )
-        self._active_ops[new_op.op_id] = new_op
         return new_op
-
-    def get_operation(self, op_id:OperationID) -> _ActiveOperationMetric:
-        return self._active_ops[op_id]
 
     @staticmethod
     def create_metrics_instance(*args, **kwargs) -> _BigtableClientSideMetrics:
@@ -170,7 +163,7 @@ class _BigtableClientSideMetrics():
         return metrics
 
     def _on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        del self._active_ops[op.active_data.op_id]
+        pass
 
 
 class _BigtableOpenTelemetryMetrics(_BigtableClientSideMetrics):
