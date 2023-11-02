@@ -37,7 +37,7 @@ class _OperationType(Enum):
     """Enum for the type of operation being performed."""
     READ_ROWS = "Bigtable.ReadRows"
     SAMPLE_ROW_KEYS = "Bigtable.SampleRowKeys"
-    BULK_MUTATE = "Bigtable.MutateRows"
+    BULK_MUTATE_ROWS = "Bigtable.MutateRows"
     MUTATE_ROW = "Bigtable.MutateRow"
     CHECK_AND_MUTATE = "Bigtable.CheckAndMutateRow"
     READ_MODIFY_WRITE = "Bigtable.ReadModifyWriteRow"
@@ -67,12 +67,12 @@ class _ActiveOperationMetric:
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
 
-    def reset(self) -> None:
+    def start(self) -> None:
         if self.was_completed:
             return self._handle_error("Operation cannot be reset after completion")
+        if self.completed_attempts or self.active_attempt_start_time:
+            return self._handle_error("Cannot restart operation with active attempts")
         self.start_time = time.monotonic()
-        self.completed_attempts = []
-        self.active_attempt_start_time = None
 
     def start_attempt(self) -> None:
         if self.was_completed:
@@ -148,7 +148,7 @@ class _BigtableClientSideMetrics():
     def __init__(self):
         self._active_ops: dict[OperationID, _ActiveOperationMetric] = {}
 
-    def start_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
+    def create_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
         start_time = time.monotonic()
         new_op = _ActiveOperationMetric(
             op_type=op_type,
@@ -162,9 +162,9 @@ class _BigtableClientSideMetrics():
         return self._active_ops[op_id]
 
     @staticmethod
-    def create_metrics_instance(*args, **kwargs):
+    def create_metrics_instance(*args, **kwargs) -> _BigtableClientSideMetrics:
         try:
-            metrics = _BigtableOpenTelemetryMetrics(*args, **kwargs)
+            metrics: _BigtableClientSideMetrics = _BigtableOpenTelemetryMetrics(*args, **kwargs)
         except ImportError:
             metrics = _BigtableClientSideMetrics()
         return metrics

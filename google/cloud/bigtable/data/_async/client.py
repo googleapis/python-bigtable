@@ -562,7 +562,7 @@ class TableAsync:
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-            metrics=self._metrics,
+            metrics=self._metrics.create_operation(_OperationType.READ_ROWS)
         )
         return row_merger.start_operation()
 
@@ -848,7 +848,7 @@ class TableAsync:
             return [(s.row_key, s.offset_bytes) async for s in results]
 
         # wrap rpc in retry and metric collection logic
-        operation = self._metrics.start_operation(_OperationType.SAMPLE_ROW_KEYS)
+        operation = self._metrics.create_operation(_OperationType.SAMPLE_ROW_KEYS)
         metric_wrapped = operation.wrap_async_attempt_fn(execute_rpc, predicate)
         retry_wrapped = retry(metric_wrapped)
         deadline_wrapped = _convert_retry_deadline(
@@ -975,7 +975,7 @@ class TableAsync:
         )
 
         # wrap rpc in retry and metric collection logic
-        operation = self._metrics.start_operation(_OperationType.MUTATE_ROW)
+        operation = self._metrics.create_operation(_OperationType.MUTATE_ROW)
         metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.mutate_row, predicate)
         retry_wrapped = retry(metric_wrapped)
         # convert RetryErrors from retry wrapper into DeadlineExceeded errors
@@ -1033,7 +1033,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
-            self._metrics,
+            self._metrics.create_operation(_OperationType.BULK_MUTATE_ROWS),
         )
         await operation.start()
 
@@ -1092,7 +1092,7 @@ class TableAsync:
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        operation = self._metrics.start_operation(_OperationType.CHECK_AND_MUTATE)
+        operation = self._metrics.create_operation(_OperationType.CHECK_AND_MUTATE)
         metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.check_and_mutate_row)
         result = await metric_wrapped(
             request={
@@ -1153,7 +1153,7 @@ class TableAsync:
         rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        operation = self._metrics.start_operation(_OperationType.READ_MODIFY_WRITE)
+        operation = self._metrics.create_operation(_OperationType.READ_MODIFY_WRITE)
         metric_wrapped = operation.wrap_async_attempt_fn(self.client._gapic_client.read_modify_write_row)
 
         result = await metric_wrapped(

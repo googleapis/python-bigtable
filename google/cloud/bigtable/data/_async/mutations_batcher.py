@@ -31,6 +31,7 @@ from google.cloud.bigtable.data._async._mutate_rows import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
+from google.cloud.bigtable.data._metrics import _OperationType
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
@@ -352,7 +353,7 @@ class MutationsBatcherAsync:
                 batch,
                 operation_timeout=self._operation_timeout,
                 attempt_timeout=self._attempt_timeout,
-                metrics=self._table._metrics,
+                metrics=self._table._metrics.create_operation(_OperationType.BULK_MUTATE_ROWS),
             )
             await operation.start()
         except MutationsExceptionGroup as e:

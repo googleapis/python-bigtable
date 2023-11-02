@@ -58,7 +58,7 @@ class _MutateRowsOperationAsync:
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
-        metrics: _BigtableClientSideMetrics,
+        metrics: _ActiveOperationMetric,
     ):
         """
         Args:
@@ -114,8 +114,7 @@ class _MutateRowsOperationAsync:
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
         # set up metrics
-        self._metrics = metrics
-        self._operation_id: OperationID | None = None
+        self._operation_metrics = metrics
 
     async def start(self):
         """
@@ -125,9 +124,8 @@ class _MutateRowsOperationAsync:
           - MutationsExceptionGroup: if any mutations failed
         """
         try:
-            new_operation = self._metrics.start_operation(_OperationType.BULK_MUTATE)
-            self._operation_id = new_operation.op_id
             # trigger mutate_rows
+            self._operation_metrics.start()
             await self._operation()
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
@@ -154,10 +152,10 @@ class _MutateRowsOperationAsync:
                 combined_exc = bt_exceptions.MutationsExceptionGroup(
                     all_errors, len(self.mutations)
                 )
-                new_operation.end_with_status(combined_exc)
+                self._operation_metrics.end_with_status(combined_exc)
                 raise combined_exc
             else:
-                new_operation.end_with_success()
+                self._operation_metrics.end_with_success()
 
     async def _run_attempt(self):
         """
@@ -169,8 +167,7 @@ class _MutateRowsOperationAsync:
           - GoogleAPICallError: if the gapic rpc fails
         """
         # register attempt start
-        operation_metric = self._metrics.get_operation(self._operation_id)
-        operation_metric.start_attempt()
+        self._operation_metrics.start_attempt()
         # track mutations in this request that have not been finalized yet
         request_entries = [
             self.mutations[idx]._to_dict() for idx in self.remaining_indices
@@ -215,14 +212,14 @@ class _MutateRowsOperationAsync:
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
             # record attempt failure metric
-            operation_metric.end_attempt_with_status(exc)
+            self._operation_metrics.end_attempt_with_status(exc)
             # bubble up exception to be handled by retry wrapper
             raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
             last_exc = self.errors[self.remaining_indices[-1]][-1]
-            operation_metric.end_attempt_with_status(last_exc)
+            self._operation_metrics.end_attempt_with_status(last_exc)
             raise bt_exceptions._MutateRowsIncomplete()
 
     def _handle_entry_error(self, idx: int, exc: Exception):

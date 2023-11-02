@@ -71,8 +71,7 @@ class _ReadRowsOperationAsync:
         "_last_yielded_row_key",
         "_remaining_count",
         "_retryable_errors",
-        "_metrics",
-        "_operation_id",
+        "_operation_metrics",
     )
 
     def __init__(
@@ -81,7 +80,7 @@ class _ReadRowsOperationAsync:
         table: "TableAsync",
         operation_timeout: float,
         attempt_timeout: float,
-        metrics: _BigtableClientSideMetrics,
+        metrics: _ActiveOperationMetric,
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
@@ -108,23 +107,21 @@ class _ReadRowsOperationAsync:
         )
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
-        self._metrics = metrics
-        self._operation_id: OperationID | None = None
+        self._operation_metrics = metrics
 
     def start_operation(self) -> AsyncGenerator[Row, None]:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
-        new_operation = self._metrics.start_operation(_OperationType.READ_ROWS)
-        self._operation_id = new_operation.op_id
+        self._operation_metrics.start()
 
         def on_error(exc):
             if isinstance(exc, self._retryable_errors):
                 # retryable error: end attempt
-                new_operation.end_attempt_with_status(exc)
+                self._operation_metrics.end_attempt_with_status(exc)
             else:
                 # terminal error: end operation
-                new_operation.end_with_status(exc)
+                self._operation_metrics.end_with_status(exc)
 
         return retry_target_stream(
             self._read_rows_attempt,
@@ -143,8 +140,7 @@ class _ReadRowsOperationAsync:
         a non-retryable error is raised.
         """
         # register metric start
-        operation_metric = self._metrics.get_operation(self._operation_id)
-        operation_metric.start_attempt()
+        self._operation_metrics.start_attempt()
         # revise request keys and ranges between attempts
         if self._last_yielded_row_key is not None:
             # if this is a retry, try to trim down the request to avoid ones we've already processed
@@ -155,12 +151,12 @@ class _ReadRowsOperationAsync:
                 )
             except _RowSetComplete:
                 # if we've already seen all the rows, we're done
-                return self.merge_rows(None, operation_metric)
+                return self.merge_rows(None, self._operation_metrics)
         # revise the limit based on number of rows already yielded
         if self._remaining_count is not None:
             self.request.rows_limit = self._remaining_count
             if self._remaining_count == 0:
-                return self.merge_rows(None, operation_metric)
+                return self.merge_rows(None, self._operation_metrics)
         # create and return a new row merger
         gapic_stream = self.table.client._gapic_client.read_rows(
             self.request,
@@ -169,7 +165,7 @@ class _ReadRowsOperationAsync:
             retry=None,
         )
         chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream, operation_metric)
+        return self.merge_rows(chunked_stream, self._operation_metrics)
 
     async def chunk_stream(
         self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
