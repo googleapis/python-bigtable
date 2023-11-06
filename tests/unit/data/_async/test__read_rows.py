@@ -60,6 +60,7 @@ class TestReadRowsOperation:
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
+        metrics = mock.Mock()
         with mock.patch(
             "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
             time_gen_mock,
@@ -69,6 +70,7 @@ class TestReadRowsOperation:
                 table,
                 operation_timeout=expected_operation_timeout,
                 attempt_timeout=expected_request_timeout,
+                metrics=metrics,
             )
         assert time_gen_mock.call_count == 1
         time_gen_mock.assert_called_once_with(
@@ -87,6 +89,7 @@ class TestReadRowsOperation:
         assert instance.request.table_name == table.table_name
         assert instance.request.app_profile_id == table.app_profile_id
         assert instance.request.rows_limit == row_limit
+        assert instance._operation_metrics == metrics
 
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
@@ -249,7 +252,7 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
+        instance = self._make_one(query, table, 10, 10, mock.Mock())
         assert instance._remaining_count == start_limit
         # read emit_num rows
         async for val in instance.chunk_stream(awaitable_stream()):
@@ -288,7 +291,7 @@ class TestReadRowsOperation:
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
+        instance = self._make_one(query, table, 10, 10, mock.Mock())
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
             # read emit_num rows
@@ -310,7 +313,7 @@ class TestReadRowsOperation:
         with mock.patch.object(
             _ReadRowsOperationAsync, "_read_rows_attempt"
         ) as mock_attempt:
-            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
+            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1, mock.Mock())
             wrapped_gen = mock_stream()
             mock_attempt.return_value = wrapped_gen
             gen = instance.start_operation()
