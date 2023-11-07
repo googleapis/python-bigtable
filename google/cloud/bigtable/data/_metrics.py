@@ -228,6 +228,9 @@ class BigtableClientSideMetrics():
 
 class _MetricsHandler():
 
+    def __init__(self, **kwargs):
+        pass
+
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         pass
 
@@ -236,7 +239,7 @@ class _MetricsHandler():
 
 class _OpenTelemetryHandler(_MetricsHandler):
 
-    def __init__(self, project_id:str, instance_id:str, app_profile_id:str | None):
+    def __init__(self, *, project_id:str, instance_id:str, app_profile_id:str | None, client_uid:str | None=None, **kwargs):
         super().__init__()
         from opentelemetry import metrics
 
@@ -267,9 +270,9 @@ class _OpenTelemetryHandler(_MetricsHandler):
         )
         self.shared_labels = {
             "bigtable_project_id": project_id,
-            "bigtable_instance_id": instance_id
+            "bigtable_instance_id": instance_id,
             "client_name": f"python-bigtable/{bigtable_version}",
-            "client_uid": str(uuid4()),
+            "client_uid": client_uid or str(uuid4()),
         }
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
@@ -290,7 +293,7 @@ class _OpenTelemetryHandler(_MetricsHandler):
 
 class _StdoutHandler(_MetricsHandler):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self._completed_ops = {}
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
