@@ -170,7 +170,11 @@ class _ReadRowsOperationAsync:
         """
         process chunks out of raw read_rows stream
         """
+        is_first_chunk = True
         async for resp in await stream:
+            if is_first_chunk:
+                is_first_chunk = False
+                self._operation_metrics.attempt_first_response()
             # extract proto from proto-plus wrapper
             resp = resp._pb
 

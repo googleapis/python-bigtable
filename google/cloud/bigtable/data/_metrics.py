@@ -18,7 +18,6 @@ from typing import Callable, Any, TYPE_CHECKING
 import time
 import warnings
 import os
-import abc
 
 from enum import Enum
 from uuid import uuid4
@@ -51,6 +50,7 @@ class _CompletedAttemptMetric:
     start_time: float
     duration: float
     end_status: StatusCode
+    first_response_latency: float | None = None
 
 
 @dataclass
@@ -59,6 +59,7 @@ class _ActiveOperationMetric:
     start_time: float
     op_id: UUID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
+    active_attempt_first_response_time: float | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
     _handlers: list[_MetricsHandler] = field(default_factory=list)
@@ -78,14 +79,26 @@ class _ActiveOperationMetric:
 
         self.active_attempt_start_time = time.monotonic()
 
+    def attempt_first_response(self) -> None:
+        if self.was_completed:
+            return self._handle_error("Operation already completed")
+        elif self.active_attempt_start_time is None:
+            return self._handle_error("No active attempt")
+        elif self.active_attempt_first_response_time is not None:
+            return self._handle_error("Attempt already received first response")
+        self.attempt_first_response_time = time.monotonic()
+
     def end_attempt_with_status(self, status:StatusCode | Exception) -> None:
         if self.was_completed:
             return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is None:
             return self._handle_error("No active attempt")
+        
+        first_response_latency = self.active_attempt_first_response_time - self.active_attempt_start_time if self.active_attempt_first_response_time else None
 
         new_attempt = _CompletedAttemptMetric(
             start_time=self.active_attempt_start_time,
+            first_response_latency=first_response_latency,
             duration=time.monotonic() - self.active_attempt_start_time,
             end_status=self._exc_to_status(status) if isinstance(status, Exception) else status
         )
@@ -212,11 +225,13 @@ class BigtableClientSideMetrics():
         return new_op
 
 
-class _MetricsHandler(abc.ABC):
+class _MetricsHandler():
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        raise NotImplementedError
+        pass
 
+    def on_attempt_complete(self, attempt: _CompletedAttemptMetric, operation: _ActiveOperationMetric) -> None:
+        pass
 
 class _OpenTelemetryHandler(_MetricsHandler):
 
@@ -259,9 +274,12 @@ class _OpenTelemetryHandler(_MetricsHandler):
         self.completed_ops.add(1, labels)
         self.attempts_per_op.record(len(op.completed_attempts), labels)
         self.op_latency.record(op.duration, labels)
-        for attempt in op.completed_attempts:
-            labels["status"] = attempt.end_status.value
-            self.attempt_latency.record(attempt.duration, labels)
+
+    def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
+        labels = {"op_name": op.op_type.value, "status": attempt.end_status.value, **self.shared_labels}
+        self.attempt_latency.record(attempt.duration, labels)
+        if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
+            self.read_rows_first_row_latency.record(attempt.first_response_latency, labels)
 
 
 class _StdoutHandler(_MetricsHandler):
