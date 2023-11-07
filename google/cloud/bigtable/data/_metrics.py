@@ -26,6 +26,7 @@ from dataclasses import field
 from grpc import StatusCode
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
+from google.cloud.bigtable import __version__ as bigtable_version
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -264,7 +265,12 @@ class _OpenTelemetryHandler(_MetricsHandler):
             name="attempts_per_op",
             description="A distribution of attempts that each operation required, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
         )
-        self.shared_labels = {"bigtable_project_id": project_id, "bigtable_instance_id": instance_id}
+        self.shared_labels = {
+            "bigtable_project_id": project_id,
+            "bigtable_instance_id": instance_id
+            "client_name": f"python-bigtable/{bigtable_version}",
+            "client_uid": str(uuid4()),
+        }
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
