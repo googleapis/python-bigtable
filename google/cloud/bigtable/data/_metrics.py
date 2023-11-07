@@ -94,7 +94,7 @@ class _ActiveOperationMetric:
             return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is None:
             return self._handle_error("No active attempt")
-        
+
         first_response_latency = self.active_attempt_first_response_time - self.active_attempt_start_time if self.active_attempt_first_response_time else None
 
         new_attempt = _CompletedAttemptMetric(
@@ -105,6 +105,8 @@ class _ActiveOperationMetric:
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt_start_time = None
+        for handler in self._handlers:
+            handler.on_attempt_complete(new_attempt, self)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         if self.was_completed:
@@ -236,6 +238,7 @@ class _MetricsHandler():
 
     def on_attempt_complete(self, attempt: _CompletedAttemptMetric, operation: _ActiveOperationMetric) -> None:
         pass
+
 
 class _OpenTelemetryHandler(_MetricsHandler):
 
