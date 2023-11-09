@@ -248,28 +248,23 @@ class _OpenTelemetryHandler(_MetricsHandler):
 
         meter = metrics.get_meter(__name__)
         self.op_latency = meter.create_histogram(
-            name="op_latency",
+            name="operation_latencies",
             description="A distribution of latency of each client method call, across all of it's RPC attempts. Tagged by operation name and final response status.",
             unit="ms",
         )
-        self.completed_ops = meter.create_counter(
-            name="completed_ops",
-            description="The total count of method invocations. Tagged by operation name and final response status",
-            unit="1",
-        )
-        self.read_rows_first_row_latency = meter.create_histogram(
-            name="read_rows_first_row_latency",
+        self.first_response_latency = meter.create_histogram(
+            name="first_response_latencies",
             description="A distribution of the latency of receiving the first row in a ReadRows operation.",
             unit="ms",
         )
         self.attempt_latency = meter.create_histogram(
-            name="attempt_latency",
+            name="attempt_latencies",
             description="A distribution of latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
             unit="ms",
         )
-        self.attempts_per_op = meter.create_histogram(
-            name="attempts_per_op",
-            description="A distribution of attempts that each operation required, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
+        self.retry_count = meter.create_histogram(
+            name="retry_count",
+            description="A distribution of additional RPCs sent after the initial attempt, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
         )
         self.shared_labels = {
             "bigtable_project_id": project_id,
@@ -283,15 +278,14 @@ class _OpenTelemetryHandler(_MetricsHandler):
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         labels = {"op_name": op.op_type.value, "status": op.final_status, **self.shared_labels}
 
-        self.completed_ops.add(1, labels)
-        self.attempts_per_op.record(len(op.completed_attempts), labels)
+        self.retry_count.record(len(op.completed_attempts) - 1, labels)
         self.op_latency.record(op.duration, labels)
 
     def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
         labels = {"op_name": op.op_type.value, "status": attempt.end_status.value, **self.shared_labels}
         self.attempt_latency.record(attempt.duration, labels)
         if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
-            self.read_rows_first_row_latency.record(attempt.first_response_latency, labels)
+            self.first_response_latency.record(attempt.first_response_latency, labels)
 
 
 class _StdoutHandler(_MetricsHandler):
