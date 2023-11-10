@@ -61,6 +61,8 @@ class _ActiveOperationMetric:
     op_id: UUID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     active_attempt_first_response_time: float | None = None
+    cluster_id: str | None = None
+    zone: str | None = None
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
     _handlers: list[_MetricsHandler] = field(default_factory=list)
@@ -79,6 +81,17 @@ class _ActiveOperationMetric:
             return self._handle_error("Incomplete attempt already exists")
 
         self.active_attempt_start_time = time.monotonic()
+
+    def add_call_metadata(self, metadata):
+        if self.cluster_id is None or self.zone is None:
+            bigtable_metadata = metadata.get('x-goog-ext-425905942-bin')
+            if bigtable_metadata:
+                decoded = ''.join(c if c.isprintable() else ' ' for c in bigtable_metadata.decode('utf-8'))
+                cluster_id, zone = decoded.split()
+                if cluster_id:
+                    self.cluster_id = cluster_id
+                if zone:
+                    self.zone = zone
 
     def attempt_first_response(self) -> None:
         if self.was_completed:
@@ -120,6 +133,8 @@ class _ActiveOperationMetric:
             completed_attempts=self.completed_attempts,
             duration=time.monotonic() - self.start_time,
             final_status=self._exc_to_status(status) if isinstance(status, Exception) else status,
+            cluster_id=self.cluster_id,
+            zone=self.zone or 'global',
         )
         for handler in self._handlers:
             handler.on_operation_complete(finalized)
@@ -145,12 +160,6 @@ class _ActiveOperationMetric:
         return self._AsyncContextManager(self)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.__exit__(exc_type, exc_val, exc_tb)
-
-    def __enter__(self):
-        return self._ContextManager(self)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val is None:
             self.end_with_success()
         else:
@@ -161,35 +170,44 @@ class _ActiveOperationMetric:
         def __init__(self, operation:_ActiveOperationMetric):
             self.operation = operation
 
+        def add_call_metadata(self, metadata):
+            self.operation.add_call_metadata(metadata)
+
         def wrap_attempt_fn(
-                self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
+            self,
+            fn:Callable[..., Any],
+            retryable_predicate:Callable[BaseException, bool] = lambda e: False,
+            *,
+            extract_call_metadata:bool = True,
         ) -> Callable[..., Any]:
+            """
+            Wraps a function call, tracing metadata along the way
+
+            Typically, the wrapped function will be a gapic rpc call
+
+            Args:
+              - fn: The function to wrap
+              - retryable_predicate: Tells us whether an exception is retryable.
+                  Should be the same predicate used in the retry.Retry wrapper
+              - extract_call_metadata: If True, the call will be treated as a
+                  grpc function, and will automatically extract trailing_metadata
+                  from the Call object on success.
+            """
             async def wrapped_fn(*args, **kwargs):
+                call = None
                 self.operation.start_attempt()
                 try:
-                    return await fn(*args, **kwargs)
+                    call = fn(*args, **kwargs)
+                    return await call
                 except Exception as e:
-                    if predicate(e):
+                    if retryable_predicate(e):
                         self.operation.end_attempt_with_status(e)
                     raise
-            return wrapped_fn
-
-    class _ContextManager:
-
-        def __init__(self, operation:_ActiveOperationMetric):
-            self.operation = operation
-
-        def wrap_attempt_fn(
-                self, fn:Callable[..., Any], predicate:Callable[..., bool] = lambda e: False
-        ) -> Callable[..., Any]:
-            def wrapped_fn(*args, **kwargs):
-                self.operation.start_attempt()
-                try:
-                    return fn(*args, **kwargs)
-                except Exception as e:
-                    if predicate(e):
-                        self.operation.end_attempt_with_status(e)
-                    raise
+                finally:
+                    # capture trailing metadata
+                    if extract_call_metadata and call is not None:
+                        metadata = await call.trailing_metadata()
+                        self.operation.add_call_metadata(metadata)
             return wrapped_fn
 
 
@@ -201,6 +219,8 @@ class _CompletedOperationMetric:
     op_id: UUID
     completed_attempts: list[_CompletedAttemptMetric]
     final_status: StatusCode
+    cluster_id: str | None
+    zone: str
 
 
 class BigtableClientSideMetrics():

@@ -839,19 +839,27 @@ class TableAsync:
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        async def execute_rpc():
-            results = await self.client._gapic_client.sample_row_keys(
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                timeout=next(attempt_timeout_gen),
-                metadata=metadata,
-                retry=None,
-            )
-            return [(s.row_key, s.offset_bytes) async for s in results]
+
 
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(_OperationType.SAMPLE_ROW_KEYS) as operation:
-            metric_wrapped = operation.wrap_attempt_fn(execute_rpc, predicate)
+
+            async def execute_rpc():
+                stream = await self.client._gapic_client.sample_row_keys(
+                    table_name=self.table_name,
+                    app_profile_id=self.app_profile_id,
+                    timeout=next(attempt_timeout_gen),
+                    metadata=metadata,
+                    retry=None,
+                )
+                samples = [(s.row_key, s.offset_bytes) async for s in stream]
+                # send trailing metadata to metric collector
+                trailing_metadata = await stream.trailing_metadata()
+                operation.add_call_metadata(trailing_metadata)
+                # return results
+                return samples
+
+            metric_wrapped = operation.wrap_attempt_fn(execute_rpc, predicate, extract_call_metadata=False)
             retry_wrapped = retry(metric_wrapped)
             deadline_wrapped = _convert_retry_deadline(
                 retry_wrapped, operation_timeout, transient_errors, is_async=True
