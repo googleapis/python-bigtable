@@ -403,7 +403,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    async def mutate_row(
+    def mutate_row(
         self,
         request: Optional[Union[bigtable.MutateRowRequest, dict]] = None,
         *,
@@ -518,16 +518,13 @@ class BigtableAsyncClient:
             ),
         )
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def mutate_rows(
         self,
@@ -639,7 +636,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    async def check_and_mutate_row(
+    def check_and_mutate_row(
         self,
         request: Optional[Union[bigtable.CheckAndMutateRowRequest, dict]] = None,
         *,
@@ -782,18 +779,15 @@ class BigtableAsyncClient:
             ),
         )
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-        # Done; return the response.
-        return response
-
-    async def ping_and_warm(
+    def ping_and_warm(
         self,
         request: Optional[Union[bigtable.PingAndWarmRequest, dict]] = None,
         *,
@@ -874,18 +868,15 @@ class BigtableAsyncClient:
             gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
         )
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-        # Done; return the response.
-        return response
-
-    async def read_modify_write_row(
+    def read_modify_write_row(
         self,
         request: Optional[Union[bigtable.ReadModifyWriteRowRequest, dict]] = None,
         *,
@@ -997,16 +988,13 @@ class BigtableAsyncClient:
             ),
         )
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def generate_initial_change_stream_partitions(
         self,
@@ -1101,16 +1089,13 @@ class BigtableAsyncClient:
             ),
         )
 
-        # Send the request.
-        response = rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def read_change_stream(
         self,
