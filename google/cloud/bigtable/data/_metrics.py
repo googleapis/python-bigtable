@@ -83,6 +83,7 @@ class _ActiveOperationMetric:
         self.active_attempt_start_time = time.monotonic()
 
     def add_call_metadata(self, metadata):
+        # TODO: can I use this as attempt end?
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get('x-goog-ext-425905942-bin')
             if bigtable_metadata:

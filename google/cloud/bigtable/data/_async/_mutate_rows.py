@@ -183,20 +183,26 @@ class _MutateRowsOperationAsync:
                 timeout=next(self.timeout_generator),
                 entries=request_entries,
             )
-            async for result_list in result_generator:
-                for result in result_list.entries:
-                    # convert sub-request index to global index
-                    orig_idx = active_request_indices[result.index]
-                    entry_error = core_exceptions.from_grpc_status(
-                        result.status.code,
-                        result.status.message,
-                        details=result.status.details,
-                    )
-                    if result.status.code != 0:
-                        # mutation failed; update error list (and remaining_indices if retryable)
-                        self._handle_entry_error(orig_idx, entry_error)
-                    # remove processed entry from active list
-                    del active_request_indices[result.index]
+            try:
+                async for result_list in result_generator:
+                    for result in result_list.entries:
+                        # convert sub-request index to global index
+                        orig_idx = active_request_indices[result.index]
+                        entry_error = core_exceptions.from_grpc_status(
+                            result.status.code,
+                            result.status.message,
+                            details=result.status.details,
+                        )
+                        if result.status.code != 0:
+                            # mutation failed; update error list (and remaining_indices if retryable)
+                            self._handle_entry_error(orig_idx, entry_error)
+                        # remove processed entry from active list
+                        del active_request_indices[result.index]
+            finally:
+                # send trailing metadata to metrics
+                result_generator.cancel()
+                metadata = await result_generator.trailing_metadata()
+                self._operation_metrics.add_call_metadata(metadata)
         except asyncio.CancelledError:
             # when retry wrapper timeout expires, the operation is cancelled
             # make sure incomplete indices are tracked,

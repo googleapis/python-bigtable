@@ -171,48 +171,56 @@ class _ReadRowsOperationAsync:
         process chunks out of raw read_rows stream
         """
         is_first_chunk = True
-        async for resp in await stream:
-            if is_first_chunk:
-                is_first_chunk = False
-                self._operation_metrics.attempt_first_response()
-            # extract proto from proto-plus wrapper
-            resp = resp._pb
+        call = await stream
+        try:
+            async for resp in call:
+                if is_first_chunk:
+                    is_first_chunk = False
+                    self._operation_metrics.attempt_first_response()
+                # extract proto from proto-plus wrapper
+                resp = resp._pb
 
-            # handle last_scanned_row_key packets, sent when server
-            # has scanned past the end of the row range
-            if resp.last_scanned_row_key:
-                if (
-                    self._last_yielded_row_key is not None
-                    and resp.last_scanned_row_key <= self._last_yielded_row_key
-                ):
-                    raise InvalidChunk("last scanned out of order")
-                self._last_yielded_row_key = resp.last_scanned_row_key
-
-            current_key = None
-            # process each chunk in the response
-            for c in resp.chunks:
-                if current_key is None:
-                    current_key = c.row_key
-                    if current_key is None:
-                        raise InvalidChunk("first chunk is missing a row key")
-                    elif (
-                        self._last_yielded_row_key
-                        and current_key <= self._last_yielded_row_key
+                # handle last_scanned_row_key packets, sent when server
+                # has scanned past the end of the row range
+                if resp.last_scanned_row_key:
+                    if (
+                        self._last_yielded_row_key is not None
+                        and resp.last_scanned_row_key <= self._last_yielded_row_key
                     ):
-                        raise InvalidChunk("row keys should be strictly increasing")
+                        raise InvalidChunk("last scanned out of order")
+                    self._last_yielded_row_key = resp.last_scanned_row_key
 
-                yield c
+                current_key = None
+                # process each chunk in the response
+                for c in resp.chunks:
+                    if current_key is None:
+                        current_key = c.row_key
+                        if current_key is None:
+                            raise InvalidChunk("first chunk is missing a row key")
+                        elif (
+                            self._last_yielded_row_key
+                            and current_key <= self._last_yielded_row_key
+                        ):
+                            raise InvalidChunk("row keys should be strictly increasing")
 
-                if c.reset_row:
-                    current_key = None
-                elif c.commit_row:
-                    # update row state after each commit
-                    self._last_yielded_row_key = current_key
-                    if self._remaining_count is not None:
-                        self._remaining_count -= 1
-                        if self._remaining_count < 0:
-                            raise InvalidChunk("emit count exceeds row limit")
-                    current_key = None
+                    yield c
+
+                    if c.reset_row:
+                        current_key = None
+                    elif c.commit_row:
+                        # update row state after each commit
+                        self._last_yielded_row_key = current_key
+                        if self._remaining_count is not None:
+                            self._remaining_count -= 1
+                            if self._remaining_count < 0:
+                                raise InvalidChunk("emit count exceeds row limit")
+                        current_key = None
+        finally:
+            # ensure stream is closed
+            call.cancel()
+            # send trailing metadata to metrics
+            metadata = await call.trailing_metadata()
+            self._operation_metrics.add_call_metadata(metadata)
 
     @staticmethod
     async def merge_rows(
