@@ -170,13 +170,9 @@ class _ReadRowsOperationAsync:
         """
         process chunks out of raw read_rows stream
         """
-        is_first_chunk = True
         call = await stream
         try:
             async for resp in call:
-                if is_first_chunk:
-                    is_first_chunk = False
-                    self._operation_metrics.attempt_first_response()
                 # extract proto from proto-plus wrapper
                 resp = resp._pb
 
@@ -234,6 +230,7 @@ class _ReadRowsOperationAsync:
             operation.end_with_success()
             return
         it = chunks.__aiter__()
+        is_first_row = True
         # For each row
         while True:
             try:
@@ -317,6 +314,10 @@ class _ReadRowsOperationAsync:
                         Cell(value, row_key, family, qualifier, ts, list(labels))
                     )
                     if c.commit_row:
+                        if is_first_row:
+                            # record first row latency in metrics
+                            is_first_row = False
+                            operation.attempt_first_response()
                         yield Row(row_key, cells)
                         break
                     c = await it.__anext__()
