@@ -74,8 +74,8 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
-from google.cloud.bigtable.data._metrics import BigtableClientSideMetrics
-from google.cloud.bigtable.data._metrics import _OperationType
+from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+from google.cloud.bigtable.data._metrics import OperationType
 
 
 if TYPE_CHECKING:
@@ -509,7 +509,7 @@ class TableAsync:
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
-        self._metrics = BigtableClientSideMetrics(
+        self._metrics = BigtableClientSideMetricsController(
             project_id=self.client.project, instance_id=instance_id, table_id=table_id, app_profile_id=app_profile_id
         )
 
@@ -564,7 +564,7 @@ class TableAsync:
         # used so that read_row can disable is_streaming flag
         metric_operation = kwargs.pop("metric_operation", None)
         if metric_operation is None:
-            metric_operation = self._metrics.create_operation(_OperationType.READ_ROWS, is_streaming=True)
+            metric_operation = self._metrics.create_operation(OperationType.READ_ROWS, is_streaming=True)
 
         row_merger = _ReadRowsOperationAsync(
             query,
@@ -649,7 +649,7 @@ class TableAsync:
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
-        metric_operation = self._metrics.create_operation(_OperationType.READ_ROWS, is_streaming=False)
+        metric_operation = self._metrics.create_operation(OperationType.READ_ROWS, is_streaming=False)
         query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
         results = await self.read_rows(
             query,
@@ -853,7 +853,7 @@ class TableAsync:
 
 
         # wrap rpc in retry and metric collection logic
-        async with self._metrics.create_operation(_OperationType.SAMPLE_ROW_KEYS) as operation:
+        async with self._metrics.create_operation(OperationType.SAMPLE_ROW_KEYS) as operation:
 
             async def execute_rpc():
                 stream = await self.client._gapic_client.sample_row_keys(
@@ -996,7 +996,7 @@ class TableAsync:
         )
 
         # wrap rpc in retry and metric collection logic
-        async with self._metrics.create_operation(_OperationType.MUTATE_ROW) as operation:
+        async with self._metrics.create_operation(OperationType.MUTATE_ROW) as operation:
             metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.mutate_row, predicate)
             retry_wrapped = retry(metric_wrapped)
             # convert RetryErrors from retry wrapper into DeadlineExceeded errors
@@ -1054,7 +1054,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
-            self._metrics.create_operation(_OperationType.BULK_MUTATE_ROWS),
+            self._metrics.create_operation(OperationType.BULK_MUTATE_ROWS),
         )
         await operation.start()
 
@@ -1113,7 +1113,7 @@ class TableAsync:
         false_case_dict = [m._to_dict() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        async with self._metrics.create_operation(_OperationType.CHECK_AND_MUTATE) as operation:
+        async with self._metrics.create_operation(OperationType.CHECK_AND_MUTATE) as operation:
             metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.check_and_mutate_row)
             result = await metric_wrapped(
                 request={
@@ -1174,7 +1174,7 @@ class TableAsync:
         rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        async with self._metrics.create_operation(_OperationType.READ_MODIFY_WRITE) as operation:
+        async with self._metrics.create_operation(OperationType.READ_MODIFY_WRITE) as operation:
             metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.read_modify_write_row)
 
             result = await metric_wrapped(

@@ -26,19 +26,16 @@ from dataclasses import field
 from grpc import StatusCode
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
-from google.cloud.bigtable import __version__ as bigtable_version
-
-from google.api.monitored_resource_pb2 import MonitoredResource
 
 if TYPE_CHECKING:
     from uuid import UUID
+    from google.cloud.bigtable.data._metrics.handlers._base import _MetricsHandler
 
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
-PRINT_METRICS = os.getenv("BIGTABLE_PRINT_METRICS", False)
 
 
-class _OperationType(Enum):
+class OperationType(Enum):
     """Enum for the type of operation being performed."""
     READ_ROWS = "Bigtable.ReadRows"
     SAMPLE_ROW_KEYS = "Bigtable.SampleRowKeys"
@@ -49,23 +46,36 @@ class _OperationType(Enum):
 
 
 @dataclass(frozen=True)
-class _CompletedAttemptMetric:
+class CompletedAttemptMetric:
     start_time: float
     duration: float
     end_status: StatusCode
     first_response_latency: float | None = None
 
 
+@dataclass(frozen=True)
+class CompletedOperationMetric:
+    op_type: OperationType
+    start_time: float
+    duration: float
+    op_id: UUID
+    completed_attempts: list[CompletedAttemptMetric]
+    final_status: StatusCode
+    cluster_id: str | None
+    zone: str
+    is_streaming: bool
+
+
 @dataclass
-class _ActiveOperationMetric:
-    op_type: _OperationType
+class ActiveOperationMetric:
+    op_type: OperationType
     start_time: float
     op_id: UUID = field(default_factory=uuid4)
     active_attempt_start_time: float | None = None
     active_attempt_first_response_time: float | None = None
     cluster_id: str | None = None
     zone: str | None = None
-    completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
+    completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
     _handlers: list[_MetricsHandler] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
@@ -86,7 +96,6 @@ class _ActiveOperationMetric:
         self.active_attempt_start_time = time.monotonic()
 
     def add_call_metadata(self, metadata):
-        # TODO: can I use this as attempt end?
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get('x-goog-ext-425905942-bin')
             if bigtable_metadata:
@@ -114,7 +123,7 @@ class _ActiveOperationMetric:
 
         first_response_latency = self.active_attempt_first_response_time - self.active_attempt_start_time if self.active_attempt_first_response_time else None
 
-        new_attempt = _CompletedAttemptMetric(
+        new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt_start_time,
             first_response_latency=first_response_latency,
             duration=time.monotonic() - self.active_attempt_start_time,
@@ -130,7 +139,7 @@ class _ActiveOperationMetric:
             return self._handle_error("Operation already completed")
         self.end_attempt_with_status(status)
         self.was_completed = True
-        finalized = _CompletedOperationMetric(
+        finalized = CompletedOperationMetric(
             op_type=self.op_type,
             start_time=self.start_time,
             op_id=self.op_id,
@@ -172,7 +181,7 @@ class _ActiveOperationMetric:
 
     class _AsyncContextManager:
 
-        def __init__(self, operation:_ActiveOperationMetric):
+        def __init__(self, operation:ActiveOperationMetric):
             self.operation = operation
 
         def add_call_metadata(self, metadata):
@@ -208,140 +217,10 @@ class _ActiveOperationMetric:
                     if retryable_predicate(e):
                         self.operation.end_attempt_with_status(e)
                     raise
+
                 finally:
                     # capture trailing metadata
                     if extract_call_metadata and call is not None:
                         metadata = await call.trailing_metadata()
                         self.operation.add_call_metadata(metadata)
             return wrapped_fn
-
-
-@dataclass(frozen=True)
-class _CompletedOperationMetric:
-    op_type: _OperationType
-    start_time: float
-    duration: float
-    op_id: UUID
-    completed_attempts: list[_CompletedAttemptMetric]
-    final_status: StatusCode
-    cluster_id: str | None
-    zone: str
-    is_streaming: bool
-
-
-class BigtableClientSideMetrics():
-
-    def __init__(self, **kwargs):
-        self.handlers: list[_MetricsHandler] = []
-        if PRINT_METRICS:
-            self.handlers.append(_StdoutHandler(**kwargs))
-        try:
-            ot_handler = _OpenTelemetryHandler(**kwargs)
-            self.handlers.append(ot_handler)
-        except ImportError:
-            pass
-
-    def add_handler(self, handler:_MetricsHandler) -> None:
-        self.handlers.append(handler)
-
-    def create_operation(self, op_type:_OperationType, is_streaming:bool = False) -> _ActiveOperationMetric:
-        start_time = time.monotonic()
-        new_op = _ActiveOperationMetric(
-            op_type=op_type,
-            start_time=start_time,
-            _handlers=self.handlers,
-            is_streaming=is_streaming,
-        )
-        return new_op
-
-
-class _MetricsHandler():
-
-    def __init__(self, **kwargs):
-        pass
-
-    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        pass
-
-    def on_attempt_complete(self, attempt: _CompletedAttemptMetric, operation: _ActiveOperationMetric) -> None:
-        pass
-
-
-class _OpenTelemetryHandler(_MetricsHandler):
-
-    def __init__(self, *, project_id:str, instance_id:str, table_id:str, app_profile_id:str | None, client_uid:str | None=None, **kwargs):
-        super().__init__()
-        from opentelemetry import metrics
-
-        meter = metrics.get_meter(__name__)
-        self.op_latency = meter.create_histogram(
-            name="operation_latencies",
-            description="A distribution of latency of each client method call, across all of it's RPC attempts. Tagged by operation name and final response status.",
-            unit="ms",
-        )
-        self.first_response_latency = meter.create_histogram(
-            name="first_response_latencies",
-            description="A distribution of the latency of receiving the first row in a ReadRows operation.",
-            unit="ms",
-        )
-        self.attempt_latency = meter.create_histogram(
-            name="attempt_latencies",
-            description="A distribution of latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
-            unit="ms",
-        )
-        self.retry_count = meter.create_histogram(
-            name="retry_count",
-            description="A distribution of additional RPCs sent after the initial attempt, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
-        )
-        self.shared_labels = {
-            "client_name": f"python-bigtable/{bigtable_version}",
-            "client_uid": client_uid or str(uuid4()),
-        }
-        if app_profile_id:
-            self.shared_labels["bigtable_app_profile_id"] = app_profile_id
-        self.monitored_resource_labels = {
-            "project": project_id,
-            "instance": instance_id,
-            "table": table_id,
-        }
-
-    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        labels = {"method": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
-        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
-        if op.cluster_id is not None:
-            monitored_resource.labels["cluster"] = op.cluster_id
-
-        self.op_latency.record(op.duration, labels)
-        self.retry_count.record(len(op.completed_attempts) - 1, labels)
-
-    def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
-        labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
-        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
-        if op.cluster_id is not None:
-            monitored_resource.labels["cluster"] = op.cluster_id
-
-        self.attempt_latency.record(attempt.duration, labels)
-        if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
-            self.first_response_latency.record(attempt.first_response_latency, labels)
-
-
-class _StdoutHandler(_MetricsHandler):
-
-    def __init__(self, **kwargs):
-        self._completed_ops = {}
-
-    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        current_list = self._completed_ops.setdefault(op.op_type, [])
-        current_list.append(op)
-        self.print()
-
-    def print(self):
-        print("Bigtable Metrics:")
-        for ops_type, ops_list in self._completed_ops.items():
-            count = len(ops_list)
-            total_latency = sum([op.duration for op in ops_list])
-            total_attempts = sum([len(op.completed_attempts) for op in ops_list])
-            avg_latency = total_latency / count
-            avg_attempts = total_attempts / count
-            print(f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}")
-        print()

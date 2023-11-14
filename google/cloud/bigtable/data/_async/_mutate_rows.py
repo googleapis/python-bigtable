@@ -24,7 +24,6 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._metrics import _OperationType
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -35,7 +34,7 @@ if TYPE_CHECKING:
     )
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._async.client import TableAsync
-    from google.cloud.bigtable.data._metrics import _ActiveOperationMetric
+    from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
 
 class _MutateRowsOperationAsync:
@@ -56,7 +55,7 @@ class _MutateRowsOperationAsync:
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
-        metrics: _ActiveOperationMetric,
+        metrics: ActiveOperationMetric,
     ):
         """
         Args:
