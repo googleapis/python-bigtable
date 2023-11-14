@@ -16,16 +16,25 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMet
 
 
 class StdoutMetricsHandler(MetricsHandler):
+    """
+    Prints a table of metric data after each operation, for debugging purposes.
+    """
 
     def __init__(self, **kwargs):
         self._completed_ops = {}
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
+        """
+        After each operation, update the state and print the metrics table.
+        """
         current_list = self._completed_ops.setdefault(op.op_type, [])
         current_list.append(op)
         self.print()
 
     def print(self):
+        """
+        Print the current state of the metrics table.
+        """
         print("Bigtable Metrics:")
         for ops_type, ops_list in self._completed_ops.items():
             count = len(ops_list)

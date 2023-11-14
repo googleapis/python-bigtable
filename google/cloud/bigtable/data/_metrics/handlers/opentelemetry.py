@@ -25,6 +25,20 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
+    """
+    Maintains a set of OpenTelemetry metrics for the Bigtable client library,
+    and updates them with each completed operation and attempt.
+
+    The OpenTelemetry metrics that are tracked are as follows:
+      - operation_latencies: latency of each client method call, over all of it's attempts.
+      - first_response_latencies: latency of receiving the first row in a ReadRows operation.
+      - attempt_latencies: latency of each client attempt RPC.
+      - retry_count: Number of additional RPCs sent after the initial attempt.
+      - server_latencies: latency recorded on the server side for each attempt.
+      - application_latencies: the time spent waiting for the application to process the next response.
+      - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
+      - connectivity_error_count: number of attempts that failed to reach Google's network.
+    """
 
     def __init__(self, *, project_id:str, instance_id:str, table_id:str, app_profile_id:str | None, client_uid:str | None = None, **kwargs):
         super().__init__()
@@ -63,6 +77,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
+        """
+        Update the metrics associated with a completed operation:
+          - operation_latencies
+          - retry_count
+        """
         labels = {"method": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
         monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
         if op.cluster_id is not None:
@@ -72,6 +91,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.retry_count.record(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric) -> None:
+        """
+        Update the metrics associated with a completed attempt:
+          - attempt_latencies
+          - first_response_latencies
+        """
         labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
         monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
         if op.cluster_id is not None:

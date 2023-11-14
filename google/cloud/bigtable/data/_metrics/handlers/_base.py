@@ -17,6 +17,11 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 
 
 class MetricsHandler():
+    """
+    Base class for all metrics handlers. Metrics handlers will receive callbacks
+    when operations and attempts are completed, and can use this information to
+    update some external metrics system.
+    """
 
     def __init__(self, **kwargs):
         pass

@@ -47,6 +47,9 @@ class OperationType(Enum):
 
 @dataclass(frozen=True)
 class CompletedAttemptMetric:
+    """
+    A dataclass representing the data associated with a completed rpc attempt.
+    """
     start_time: float
     duration: float
     end_status: StatusCode
@@ -55,6 +58,9 @@ class CompletedAttemptMetric:
 
 @dataclass(frozen=True)
 class CompletedOperationMetric:
+    """
+    A dataclass representing the data associated with a completed rpc operation.
+    """
     op_type: OperationType
     start_time: float
     duration: float
@@ -68,6 +74,10 @@ class CompletedOperationMetric:
 
 @dataclass
 class ActiveOperationMetric:
+    """
+    A dataclass representing the data associated with an rpc operation that is
+    currently in progress.
+    """
     op_type: OperationType
     start_time: float
     op_id: UUID = field(default_factory=uuid4)
@@ -81,6 +91,13 @@ class ActiveOperationMetric:
     is_streaming: bool = False  # only True for read_rows operations
 
     def start(self) -> None:
+        """
+        Optionally called to mark the start of the operation. If not called,
+        the operation will be started at initialization.
+
+        If the operation was completed or has active attempts, will raise an
+        exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        """
         if self.was_completed:
             return self._handle_error("Operation cannot be reset after completion")
         if self.completed_attempts or self.active_attempt_start_time:
@@ -88,6 +105,12 @@ class ActiveOperationMetric:
         self.start_time = time.monotonic()
 
     def start_attempt(self) -> None:
+        """
+        Called to initiate a new attempt for the operation.
+
+        If the operation was completed or there is already an active attempt,
+        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        """
         if self.was_completed:
             return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is not None:
@@ -95,7 +118,23 @@ class ActiveOperationMetric:
 
         self.active_attempt_start_time = time.monotonic()
 
-    def add_call_metadata(self, metadata):
+    def add_call_metadata(self, metadata: dict[str, bytes]) -> None:
+        """
+        Attach trailing metadata to the active attempt.
+
+        If not called, default values for the metadata will be used.
+
+        If the operation was completed or there is no active attempt,
+        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+
+        Args:
+          - metadata: the metadata as extracted from the grpc call
+        """
+        if self.was_completed:
+            return self._handle_error("Operation already completed")
+        if self.active_attempt_start_time is None:
+            return self._handle_error("No active attempt")
+
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get('x-goog-ext-425905942-bin')
             if bigtable_metadata:
@@ -107,6 +146,14 @@ class ActiveOperationMetric:
                     self.zone = zone
 
     def attempt_first_response(self) -> None:
+        """
+        Called to mark the timestamp of the first completed response for the
+        active attempt.
+
+        If the operation was completed, there is no active attempt, or the
+        active attempt already has a first response time, will raise an
+        exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        """
         if self.was_completed:
             return self._handle_error("Operation already completed")
         elif self.active_attempt_start_time is None:
@@ -116,6 +163,17 @@ class ActiveOperationMetric:
         self.attempt_first_response_time = time.monotonic()
 
     def end_attempt_with_status(self, status:StatusCode | Exception) -> None:
+        """
+        Called to mark the end of a failed attempt for the operation.
+
+        If the operation was completed or there is no active attempt,
+        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+
+        Causes on_attempt_completed to be called for each registered handler.
+
+        Args:
+          - status: The status of the attempt.
+        """
         if self.was_completed:
             return self._handle_error("Operation already completed")
         if self.active_attempt_start_time is None:
@@ -135,9 +193,22 @@ class ActiveOperationMetric:
             handler.on_attempt_complete(new_attempt, self)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
+        """
+        Called to mark the end of the operation. If there is an active attempt,
+        end_attempt_with_status will be called with the same status.
+
+        If the operation was already completed, will raise an exception or
+        warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+
+        Causes on_operation_completed to be called for each registered handler.
+
+        Args:
+          - status: The status of the operation.
+        """
         if self.was_completed:
             return self._handle_error("Operation already completed")
-        self.end_attempt_with_status(status)
+        if self.active_attempt_start_time is not None:
+            self.end_attempt_with_status(status)
         self.was_completed = True
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
@@ -154,16 +225,36 @@ class ActiveOperationMetric:
             handler.on_operation_complete(finalized)
 
     def end_with_success(self):
+        """
+        Called to mark the end of the operation with a successful status.
+
+        If the operation was already completed, will raise an exception or
+        warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+
+        Causes on_operation_completed to be called for each registered handler.
+        """
         return self.end_with_status(StatusCode.OK)
 
     @staticmethod
     def _exc_to_status(exc:Exception) -> StatusCode:
+        """
+        Extracts the grpc status code from an exception.
+
+        Args:
+          - exc: The exception to extract the status code from.
+        """
         if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
             exc = exc.exceptions[0].__cause__
         return exc.grpc_status_code if hasattr(exc, "grpc_status_code") else StatusCode.UNKNOWN
 
     @staticmethod
     def _handle_error(message:str) -> None:
+        """
+        Raises an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+
+        Args:
+          - message: The message to include in the exception or warning.
+        """
         full_message = f"Error in Bigtable Metrics: {message}"
         if ALLOW_METRIC_EXCEPTIONS:
             raise ValueError(full_message)
@@ -171,20 +262,38 @@ class ActiveOperationMetric:
             warnings.warn(full_message, stacklevel=3)
 
     async def __aenter__(self):
+        """
+        Implements the async context manager protocol for wrapping unary calls
+        """
         return self._AsyncContextManager(self)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Implements the async context manager protocol for wrapping unary calls
+
+        The operation is automatically ended on exit, with the status determined
+        by the exception type and value.
+        """
         if exc_val is None:
             self.end_with_success()
         else:
             self.end_with_status(exc_val)
 
     class _AsyncContextManager:
+        """
+        Inner class for async context manager protocol
+
+        This class provides functions for wrapping unary gapic functions,
+        and automatically tracking the metrics associated with the call
+        """
 
         def __init__(self, operation:ActiveOperationMetric):
             self.operation = operation
 
         def add_call_metadata(self, metadata):
+            """
+            Pass through trailing metadata to the wrapped operation
+            """
             self.operation.add_call_metadata(metadata)
 
         def wrap_attempt_fn(
