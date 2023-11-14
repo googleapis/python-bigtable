@@ -66,6 +66,7 @@ class _ActiveOperationMetric:
     completed_attempts: list[_CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
     _handlers: list[_MetricsHandler] = field(default_factory=list)
+    is_streaming: bool = False  # only True for read_rows operations
 
     def start(self) -> None:
         if self.was_completed:
@@ -136,6 +137,7 @@ class _ActiveOperationMetric:
             final_status=self._exc_to_status(status) if isinstance(status, Exception) else status,
             cluster_id=self.cluster_id,
             zone=self.zone or 'global',
+            is_streaming=self.is_streaming,
         )
         for handler in self._handlers:
             handler.on_operation_complete(finalized)
@@ -222,6 +224,7 @@ class _CompletedOperationMetric:
     final_status: StatusCode
     cluster_id: str | None
     zone: str
+    is_streaming: bool
 
 
 class BigtableClientSideMetrics():
@@ -239,12 +242,13 @@ class BigtableClientSideMetrics():
     def add_handler(self, handler:_MetricsHandler) -> None:
         self.handlers.append(handler)
 
-    def create_operation(self, op_type:_OperationType) -> _ActiveOperationMetric:
+    def create_operation(self, op_type:_OperationType, is_streaming:bool = False) -> _ActiveOperationMetric:
         start_time = time.monotonic()
         new_op = _ActiveOperationMetric(
             op_type=op_type,
             start_time=start_time,
             _handlers=self.handlers,
+            is_streaming=is_streaming,
         )
         return new_op
 
@@ -297,13 +301,13 @@ class _OpenTelemetryHandler(_MetricsHandler):
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        labels = {"op_name": op.op_type.value, "status": op.final_status, **self.shared_labels}
+        labels = {"op_name": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
 
         self.retry_count.record(len(op.completed_attempts) - 1, labels)
         self.op_latency.record(op.duration, labels)
 
     def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
-        labels = {"op_name": op.op_type.value, "status": attempt.end_status.value, **self.shared_labels}
+        labels = {"op_name": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
         self.attempt_latency.record(attempt.duration, labels)
         if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
             self.first_response_latency.record(attempt.first_response_latency, labels)

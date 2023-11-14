@@ -529,6 +529,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        **kwargs,
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -559,12 +560,18 @@ class TableAsync:
             operation_timeout, attempt_timeout, self
         )
 
+        # extract metric operation if passed down through kwargs
+        # used so that read_row can disable is_streaming flag
+        metric_operation = kwargs.pop("metric_operation", None)
+        if metric_operation is None:
+            metric_operation = self._metrics.create_operation(_OperationType.READ_ROWS, is_streaming=True)
+
         row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
-            metrics=self._metrics.create_operation(_OperationType.READ_ROWS)
+            metrics=metric_operation,
         )
         return row_merger.start_operation()
 
@@ -574,6 +581,7 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        **kwargs
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -604,6 +612,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            **kwargs,
         )
         return [row async for row in row_generator]
 
@@ -640,11 +649,13 @@ class TableAsync:
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
+        metric_operation = self._metrics.create_operation(_OperationType.READ_ROWS, is_streaming=False)
         query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metric_operation=metric_operation,
         )
         if len(results) == 0:
             return None
