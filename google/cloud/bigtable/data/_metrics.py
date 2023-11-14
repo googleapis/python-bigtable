@@ -292,8 +292,6 @@ class _OpenTelemetryHandler(_MetricsHandler):
             description="A distribution of additional RPCs sent after the initial attempt, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
         )
         self.shared_labels = {
-            "bigtable_project_id": project_id,
-            "bigtable_instance_id": instance_id,
             "client_name": f"python-bigtable/{bigtable_version}",
             "client_uid": client_uid or str(uuid4()),
         }
@@ -301,13 +299,13 @@ class _OpenTelemetryHandler(_MetricsHandler):
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
-        labels = {"op_name": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
+        labels = {"method": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
 
         self.retry_count.record(len(op.completed_attempts) - 1, labels)
         self.op_latency.record(op.duration, labels)
 
     def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
-        labels = {"op_name": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
+        labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
         self.attempt_latency.record(attempt.duration, labels)
         if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
             self.first_response_latency.record(attempt.first_response_latency, labels)
