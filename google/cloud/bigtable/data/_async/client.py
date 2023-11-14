@@ -510,7 +510,7 @@ class TableAsync:
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
         self._metrics = BigtableClientSideMetrics(
-            project_id=self.client.project, instance_id=instance_id, app_profile_id=app_profile_id
+            project_id=self.client.project, instance_id=instance_id, table_id=table_id, app_profile_id=app_profile_id
         )
 
         # raises RuntimeError if called outside of an async context (no running event loop)

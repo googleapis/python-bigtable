@@ -28,6 +28,8 @@ from grpc import StatusCode
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable import __version__ as bigtable_version
 
+from google.api.monitored_resource_pb2 import MonitoredResource
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -267,7 +269,7 @@ class _MetricsHandler():
 
 class _OpenTelemetryHandler(_MetricsHandler):
 
-    def __init__(self, *, project_id:str, instance_id:str, app_profile_id:str | None, client_uid:str | None=None, **kwargs):
+    def __init__(self, *, project_id:str, instance_id:str, table_id:str, app_profile_id:str | None, client_uid:str | None=None, **kwargs):
         super().__init__()
         from opentelemetry import metrics
 
@@ -297,15 +299,27 @@ class _OpenTelemetryHandler(_MetricsHandler):
         }
         if app_profile_id:
             self.shared_labels["bigtable_app_profile_id"] = app_profile_id
+        self.monitored_resource_labels = {
+            "project": project_id,
+            "instance": instance_id,
+            "table": table_id,
+        }
 
     def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
         labels = {"method": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
+        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
+        if op.cluster_id is not None:
+            monitored_resource.labels["cluster"] = op.cluster_id
 
-        self.retry_count.record(len(op.completed_attempts) - 1, labels)
         self.op_latency.record(op.duration, labels)
+        self.retry_count.record(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
         labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
+        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
+        if op.cluster_id is not None:
+            monitored_resource.labels["cluster"] = op.cluster_id
+
         self.attempt_latency.record(attempt.duration, labels)
         if op.op_type == _OperationType.READ_ROWS and attempt.first_response_latency is not None:
             self.first_response_latency.record(attempt.first_response_latency, labels)
