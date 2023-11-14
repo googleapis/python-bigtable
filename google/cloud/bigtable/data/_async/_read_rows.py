@@ -67,7 +67,6 @@ class _ReadRowsOperationAsync:
         "_metadata",
         "_last_yielded_row_key",
         "_remaining_count",
-        "_retryable_errors",
         "_operation_metrics",
     )
 
@@ -92,12 +91,11 @@ class _ReadRowsOperationAsync:
         else:
             self.request = query._to_pb(table)
         self.table = table
-        self._retryable_errors = (
+        self._predicate = retries.if_exception_type(
             core_exceptions.DeadlineExceeded,
             core_exceptions.ServiceUnavailable,
             core_exceptions.Aborted,
         )
-        self._predicate = retries.if_exception_type(*self._retryable_errors)
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
@@ -112,21 +110,13 @@ class _ReadRowsOperationAsync:
         """
         self._operation_metrics.start()
 
-        def on_error(exc):
-            if isinstance(exc, self._retryable_errors):
-                # retryable error: end attempt
-                self._operation_metrics.end_attempt_with_status(exc)
-            else:
-                # terminal error: end operation
-                self._operation_metrics.end_with_status(exc)
-
         return retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             exception_factory=self._build_exception,
-            on_error=on_error,
+            on_error=self._operation_metrics.build_on_error_fn(self._predicate),
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:

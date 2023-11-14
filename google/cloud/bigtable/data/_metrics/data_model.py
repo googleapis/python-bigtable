@@ -235,10 +235,42 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
+    def build_on_error_fn(
+        self,
+        predicate: Callable[[Exception], bool],
+        wrapped_on_error: Callable[[Exception], None] | None = None
+    ) -> Callable[[Exception], None]:
+        """
+        Construct an on_error function that can be passed in to api_core Retry objects, and terminates
+        operations and attempts based on the exceptions encountered.
+
+        Args:
+          - predicate: A function that takes an exception and returns True if the exception is retryable.
+              If retryable, the attempt should be finalized, but the operation continues. If not retryable,
+              they will both be finalized. Predicate object should be the same as the one passed to the
+              api_core Retry object.
+          - wapped_on_error: An optional secondary on_error function to be called after the metrics are handled.
+        """
+        def on_error(exc: Exception) -> None:
+            if predicate(exc):
+                # retryable exception: end attempt
+                self.end_attempt_with_status(exc)
+            else:
+                # terminal exception: end the operation
+                self.end_with_status(exc)
+            if wrapped_on_error:
+                wrapped_on_error(exc)
+        return on_error
+
     @staticmethod
     def _exc_to_status(exc:Exception) -> StatusCode:
         """
         Extracts the grpc status code from an exception.
+
+        Exception groups and wrappers will be parsed to find the underlying
+        grpc Exception.
+
+        If the exception is not a grpc exception, will return StatusCode.UNKNOWN.
 
         Args:
           - exc: The exception to extract the status code from.
