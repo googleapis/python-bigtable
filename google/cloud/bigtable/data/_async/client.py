@@ -850,8 +850,6 @@ class TableAsync:
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-
-
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(OperationType.SAMPLE_ROW_KEYS) as operation:
 
@@ -864,9 +862,9 @@ class TableAsync:
                     retry=None,
                 )
                 samples = [(s.row_key, s.offset_bytes) async for s in stream]
-                # send trailing metadata to metric collector
-                trailing_metadata = await stream.trailing_metadata()
-                operation.add_call_metadata(trailing_metadata)
+                # send metadata to metric collector
+                call_metadata = await stream.trailing_metadata() + await stream.initial_metadata()
+                operation.add_call_metadata(call_metadata)
                 # return results
                 return samples
 

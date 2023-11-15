@@ -205,7 +205,7 @@ class _ReadRowsOperationAsync:
             # ensure stream is closed
             call.cancel()
             # send trailing metadata to metrics
-            metadata = await call.trailing_metadata()
+            metadata = await call.trailing_metadata() + await call.initial_metadata()
             self._operation_metrics.add_call_metadata(metadata)
 
     @staticmethod

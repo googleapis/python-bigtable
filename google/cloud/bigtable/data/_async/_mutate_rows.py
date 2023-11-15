@@ -200,7 +200,7 @@ class _MutateRowsOperationAsync:
             finally:
                 # send trailing metadata to metrics
                 result_generator.cancel()
-                metadata = await result_generator.trailing_metadata()
+                metadata = await result_generator.trailing_metadata() + result_generator.initial_metadata()
                 self._operation_metrics.add_call_metadata(metadata)
         except asyncio.CancelledError:
             # when retry wrapper timeout expires, the operation is cancelled
