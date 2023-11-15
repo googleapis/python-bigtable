@@ -60,9 +60,17 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
             unit="ms",
         )
-        self.retry_count = meter.create_histogram(
+        self.retry_count = meter.create_counter(
             name="retry_count",
-            description="A distribution of additional RPCs sent after the initial attempt, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
+            description="A count of additional RPCs sent after the initial attempt. Under normal circumstances, this will be 1.",
+        )
+        self.server_latency = meter.create_histogram(
+            name="server_latencies",
+            description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
+        )
+        self.connectivity_error_count = meter.create_counter(
+            name="connectivity_error_count",
+            description="A count of the number of attempts that failed to reach Google's network.",
         )
         self.server_latency = meter.create_histogram(
             name="server_latencies",
