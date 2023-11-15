@@ -34,7 +34,7 @@ class BigtableClientSideMetricsController():
     registered with the handlers associated with this controller.
     """
 
-    def __init__(self, handlers:list[MetricsHandler]=None, **kwargs):
+    def __init__(self, handlers:list[MetricsHandler]|None=None, **kwargs):
         """
         Initializes the metrics controller.
 

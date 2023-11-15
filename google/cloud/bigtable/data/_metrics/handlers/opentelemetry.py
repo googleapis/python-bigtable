@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from google.api.monitored_resource_pb2 import MonitoredResource
+from google.api.monitored_resource_pb2 import MonitoredResource  # type: ignore
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
@@ -100,7 +100,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             monitored_resource.labels["cluster"] = op.cluster_id
 
         self.op_latency.record(op.duration, labels)
-        self.retry_count.record(len(op.completed_attempts) - 1, labels)
+        self.retry_count.add(len(op.completed_attempts)-1, labels)
 
     def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric) -> None:
         """
@@ -123,4 +123,4 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.connectivity_error_count.record(1, labels)
+            self.connectivity_error_count.add(1, labels)

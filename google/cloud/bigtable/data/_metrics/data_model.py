@@ -30,7 +30,7 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 
 if TYPE_CHECKING:
     from uuid import UUID
-    from google.cloud.bigtable.data._metrics.handlers._base import _MetricsHandler
+    from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
@@ -100,7 +100,7 @@ class ActiveOperationMetric:
     zone: str | None = None
     completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
-    _handlers: list[_MetricsHandler] = field(default_factory=list)
+    _handlers: list[MetricsHandler] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
 
     def start(self) -> None:
@@ -150,7 +150,7 @@ class ActiveOperationMetric:
 
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get(BIGTABLE_METADATA_KEY)
-            if bigtable_metadata:
+            if bigtable_metadata and isinstance(bigtable_metadata, bytes):
                 decoded = ''.join(c if c.isprintable() else ' ' for c in bigtable_metadata.decode('utf-8'))
                 cluster_id, zone = decoded.split()
                 if cluster_id:
@@ -158,7 +158,7 @@ class ActiveOperationMetric:
                 if zone:
                     self.zone = zone
         timing_header = metadata.get(SERVER_TIMING_METADATA_KEY)
-        if timing_header:
+        if timing_header and isinstance(timing_header, str):
             timing_data = SERVER_TIMING_REGEX.match(timing_header)
             if timing_data:
                 # convert from milliseconds to seconds
@@ -349,7 +349,7 @@ class ActiveOperationMetric:
         def wrap_attempt_fn(
             self,
             fn:Callable[..., Any],
-            retryable_predicate:Callable[BaseException, bool] = lambda e: False,
+            retryable_predicate:Callable[[BaseException], bool] = lambda e: False,
             *,
             extract_call_metadata:bool = True,
         ) -> Callable[..., Any]:
