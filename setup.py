@@ -43,6 +43,9 @@ dependencies = [
     "proto-plus >= 1.22.0, <2.0.0dev",
     "proto-plus >= 1.22.2, <2.0.0dev; python_version>='3.11'",
     "protobuf>=3.19.5,<5.0.0dev,!=3.20.0,!=3.20.1,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5",
+    "googleapis-common-protos[grpc] >= 1.57.0, <2.0.0dev",
+    "opentelemetry-api >= 1.0.0, <2.0.0dev",
+    "opentelemetry-sdk >= 1.0.0, <2.0.0dev",
 ]
 extras = {"libcst": "libcst >= 0.2.5"}
 
