@@ -35,9 +35,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - attempt_latencies: latency of each client attempt RPC.
       - retry_count: Number of additional RPCs sent after the initial attempt.
       - server_latencies: latency recorded on the server side for each attempt.
+      - connectivity_error_count: number of attempts that failed to reach Google's network.
       - application_latencies: the time spent waiting for the application to process the next response.
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
-      - connectivity_error_count: number of attempts that failed to reach Google's network.
     """
 
     def __init__(self, *, project_id:str, instance_id:str, table_id:str, app_profile_id:str | None, client_uid:str | None = None, **kwargs):
@@ -47,7 +47,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         meter = metrics.get_meter(__name__)
         self.op_latency = meter.create_histogram(
             name="operation_latencies",
-            description="A distribution of latency of each client method call, across all of it's RPC attempts. Tagged by operation name and final response status.",
+            description="A distribution of the latency of each client method call, across all of it's RPC attempts",
             unit="ms",
         )
         self.first_response_latency = meter.create_histogram(
@@ -57,12 +57,16 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         )
         self.attempt_latency = meter.create_histogram(
             name="attempt_latencies",
-            description="A distribution of latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
+            description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
             unit="ms",
         )
         self.retry_count = meter.create_histogram(
             name="retry_count",
             description="A distribution of additional RPCs sent after the initial attempt, tagged by operation name and final operation status. Under normal circumstances, this will be 1.",
+        )
+        self.server_latency = meter.create_histogram(
+            name="server_latencies",
+            description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
         )
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
@@ -95,6 +99,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         Update the metrics associated with a completed attempt:
           - attempt_latencies
           - first_response_latencies
+          - server_latencies
+          - connectivity_error_count
         """
         labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
         monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
@@ -104,3 +110,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.attempt_latency.record(attempt.duration, labels)
         if op.op_type == OperationType.READ_ROWS and attempt.first_response_latency is not None:
             self.first_response_latency.record(attempt.first_response_latency, labels)
+        if attempt.gfe_latency is not None:
+            self.server_latency.record(attempt.gfe_latency, labels)
+        else:
+            # gfe headers not attached. Record a connectivity error.
+            # TODO: this should not be recorded as an error when direct path is enabled
+            self.connectivity_error_count.record(1, labels)
