@@ -34,6 +34,7 @@ from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
 from google.api_core.retry import exponential_sleep_generator
 from google.api_core import exceptions as core_exceptions
+from google.api_core.grpc_helpers_async import GrpcAsyncStream
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
@@ -155,7 +156,7 @@ class _ReadRowsOperationAsync:
         return self.merge_rows(chunked_stream, self._operation_metrics)
 
     async def chunk_stream(
-        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
+        self, stream: Awaitable[GrpcAsyncStream[ReadRowsResponsePB]]
     ) -> AsyncGenerator[ReadRowsResponsePB.CellChunk, None]:
         """
         process chunks out of raw read_rows stream

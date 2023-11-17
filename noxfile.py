@@ -133,6 +133,7 @@ def format(session):
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
+    session.install("-e", "python-api-core")
     session.install(
         "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests", "opentelemetry-api"
     )

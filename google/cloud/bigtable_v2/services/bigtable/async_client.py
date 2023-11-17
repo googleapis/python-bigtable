@@ -36,6 +36,7 @@ from google.api_core.client_options import ClientOptions
 from google.api_core import exceptions as core_exceptions
 from google.api_core import gapic_v1
 from google.api_core import retry as retries
+from google.api_core.grpc_helpers_async import GrpcAsyncStream
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
@@ -221,7 +222,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.ReadRowsResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.ReadRowsResponse]]:
         r"""Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
         each. Depending on their size, rows and cells may be
@@ -317,7 +318,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.SampleRowKeysResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.SampleRowKeysResponse]]:
         r"""Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
@@ -536,7 +537,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.MutateRowsResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.MutateRowsResponse]]:
         r"""Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
@@ -1008,7 +1009,7 @@ class BigtableAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> Awaitable[
-        AsyncIterable[bigtable.GenerateInitialChangeStreamPartitionsResponse]
+        GrpcAsyncStream[bigtable.GenerateInitialChangeStreamPartitionsResponse]
     ]:
         r"""NOTE: This API is intended to be used by Apache Beam BigtableIO.
         Returns the current list of partitions that make up the table's
@@ -1106,7 +1107,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.ReadChangeStreamResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.ReadChangeStreamResponse]]:
         r"""NOTE: This API is intended to be used by Apache Beam
         BigtableIO. Reads changes from a table's change stream.
         Changes will reflect both user-initiated mutations and
