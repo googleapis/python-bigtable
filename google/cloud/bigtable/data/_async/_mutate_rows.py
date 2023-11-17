@@ -99,7 +99,8 @@ class _MutateRowsOperationAsync:
             multiplier=2,
             maximum=60,
         )
-        retry_wrapped = retry(self._run_attempt)
+        # TODO: fix typing after streaming retries are finalized
+        retry_wrapped = retry(self._run_attempt)  # type: ignore
         self._operation = _convert_retry_deadline(
             retry_wrapped, operation_timeout, is_async=True
         )

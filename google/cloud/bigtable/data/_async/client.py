@@ -873,7 +873,8 @@ class TableAsync:
                 return samples
 
             metric_wrapped = operation.wrap_attempt_fn(execute_rpc, predicate, extract_call_metadata=False)
-            retry_wrapped = retry(metric_wrapped)
+            # TODO: fix typing after streaming retries are finalized
+            retry_wrapped = retry(metric_wrapped)  # type: ignore
             deadline_wrapped = _convert_retry_deadline(
                 retry_wrapped, operation_timeout, transient_errors, is_async=True
             )
@@ -1000,7 +1001,8 @@ class TableAsync:
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(OperationType.MUTATE_ROW) as operation:
             metric_wrapped = operation.wrap_attempt_fn(self.client._gapic_client.mutate_row, predicate)
-            retry_wrapped = retry(metric_wrapped)
+            # TODO: fix typing after streaming retries are finalized
+            retry_wrapped = retry(metric_wrapped)  # type: ignore
             # convert RetryErrors from retry wrapper into DeadlineExceeded errors
             deadline_wrapped = _convert_retry_deadline(
                 retry_wrapped, operation_timeout, transient_errors, is_async=True
