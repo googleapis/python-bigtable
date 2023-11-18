@@ -72,10 +72,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             name="connectivity_error_count",
             description="A count of the number of attempts that failed to reach Google's network.",
         )
-        self.server_latency = meter.create_histogram(
-            name="server_latencies",
-            description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
-        )
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
             "client_uid": client_uid or str(uuid4()),
@@ -94,33 +90,27 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - operation_latencies
           - retry_count
         """
-        labels = {"method": op.op_type.value, "status": op.final_status, "streaming": op.is_streaming, **self.shared_labels}
+        labels = {"method": op.op_type.value, "status": op.final_status.value, "streaming": op.is_streaming, **self.shared_labels}
         monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
         self.op_latency.record(op.duration, labels)
-        self.retry_count.add(len(op.completed_attempts)-1, labels)
+        self.retry_count.add(len(op.completed_attempts) - 1, labels)
+        for attempt in op.completed_attempts:
+            # Update the metrics associated with a completed attempt:
+            #   - attempt_latencies
+            #   - first_response_latencies
+            #   - server_latencies
+            #   - connectivity_error_count
+            labels['status'] = attempt.end_status.value
 
-    def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric) -> None:
-        """
-        Update the metrics associated with a completed attempt:
-          - attempt_latencies
-          - first_response_latencies
-          - server_latencies
-          - connectivity_error_count
-        """
-        labels = {"method": op.op_type.value, "status": attempt.end_status.value, "streaming":op.is_streaming, **self.shared_labels}
-        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
-        if op.cluster_id is not None:
-            monitored_resource.labels["cluster"] = op.cluster_id
-
-        self.attempt_latency.record(attempt.duration, labels)
-        if op.op_type == OperationType.READ_ROWS and attempt.first_response_latency is not None:
-            self.first_response_latency.record(attempt.first_response_latency, labels)
-        if attempt.gfe_latency is not None:
-            self.server_latency.record(attempt.gfe_latency, labels)
-        else:
-            # gfe headers not attached. Record a connectivity error.
-            # TODO: this should not be recorded as an error when direct path is enabled
-            self.connectivity_error_count.add(1, labels)
+            self.attempt_latency.record(attempt.duration, labels)
+            if op.op_type == OperationType.READ_ROWS and attempt.first_response_latency is not None:
+                self.first_response_latency.record(attempt.first_response_latency, labels)
+            if attempt.gfe_latency is not None:
+                self.server_latency.record(attempt.gfe_latency, labels)
+            else:
+                # gfe headers not attached. Record a connectivity error.
+                # TODO: this should not be recorded as an error when direct path is enabled
+                self.connectivity_error_count.add(1, labels)
