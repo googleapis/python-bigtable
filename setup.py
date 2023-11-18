@@ -37,7 +37,7 @@ version = version["__version__"]
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-api-core @ git+https://github.com/googleapis/python-api-core.git@retry_generators",  # TODO: change to >= after streaming retries is merged
+    "google-api-core[grpc] @ git+https://github.com/googleapis/python-api-core.git@retry_generators",  # TODO: change to >= after streaming retries is merged
     "google-cloud-core >= 1.4.1, <3.0.0dev",
     "grpc-google-iam-v1 >= 0.12.4, <1.0.0dev",
     "proto-plus >= 1.22.0, <2.0.0dev",
