@@ -1128,6 +1128,7 @@ class TestReadRows:
         )
         client_mock._gapic_client.table_path.return_value = kwargs["table_id"]
         client_mock._gapic_client.instance_path.return_value = kwargs["instance_id"]
+        client_mock.project = 'test-project'
         return TableAsync(client_mock, *args, **kwargs)
 
     def _make_stats(self):
@@ -1188,6 +1189,12 @@ class TestReadRows:
 
             def cancel(self):
                 pass
+
+            async def trailing_metadata(self):
+                return grpc.aio.Metadata()
+
+            async def initial_metadata(self):
+                return grpc.aio.Metadata()
 
         return mock_stream(chunk_list, sleep_time)
 
@@ -1824,11 +1831,38 @@ class TestSampleRowKeys:
 
         return BigtableDataClientAsync(*args, **kwargs)
 
-    async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
+    def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
         from google.cloud.bigtable_v2.types import SampleRowKeysResponse
 
-        for value in sample_list:
-            yield SampleRowKeysResponse(row_key=value[0], offset_bytes=value[1])
+        class mock_stream:
+            def __init__(self, sample_list):
+                self.sample_list = sample_list
+                self.idx = -1
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                self.idx += 1
+                if len(self.sample_list) > self.idx:
+                    sample = self.sample_list[self.idx]
+                    if isinstance(sample, Exception):
+                        raise sample
+                    else:
+                        return SampleRowKeysResponse(row_key=sample[0], offset_bytes=sample[1])
+
+                raise StopAsyncIteration
+
+            def cancel(self):
+                pass
+
+            async def trailing_metadata(self):
+                return grpc.aio.Metadata()
+
+            async def initial_metadata(self):
+                return grpc.aio.Metadata()
+
+        return mock_stream(sample_list)
 
     @pytest.mark.asyncio
     async def test_sample_row_keys(self):
