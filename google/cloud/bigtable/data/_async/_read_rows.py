@@ -33,6 +33,7 @@ from google.cloud.bigtable.data._helpers import _make_metadata
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
 from google.api_core.retry import exponential_sleep_generator
+from google.api_core.retry import RetryFailureReason
 from google.api_core import exceptions as core_exceptions
 from google.api_core.grpc_helpers_async import GrpcAsyncStream
 
@@ -369,7 +370,7 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     def _build_exception(
-        exc_list: list[Exception], is_timeout: bool, timeout_val: float
+        exc_list: list[Exception], reason:RetryFailureReason, timeout_val: float | None
     ) -> tuple[Exception, Exception | None]:
         """
         Build retry error based on exceptions encountered during operation
@@ -382,10 +383,11 @@ class _ReadRowsOperationAsync:
         Returns:
           - tuple of the exception to raise, and a cause exception if applicable
         """
-        if is_timeout:
+        if reason == RetryFailureReason.TIMEOUT:
             # if failed due to timeout, raise deadline exceeded as primary exception
+            timeout_val_str = f"of {timeout_val:.1f}s " if timeout_val else ""
             source_exc: Exception = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {timeout_val} exceeded"
+                f"operation_timeout {timeout_val_str}exceeded"
             )
         elif exc_list:
             # otherwise, raise non-retryable error as primary exception
