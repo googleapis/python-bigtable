@@ -484,6 +484,9 @@ class MutationsBatcherAsync:
             if isinstance(result, Exception):
                 # will receive Exception objects if request task fails. Add to list
                 found_errors.append(result)
+            elif isinstance(result, BaseException):
+                # BaseException won't be encountered in normal execution. Raise immediately
+                raise result
             elif result:
                 # completed requests will return a list of FailedMutationEntryError
                 for e in result:
