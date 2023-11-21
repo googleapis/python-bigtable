@@ -481,13 +481,9 @@ class MutationsBatcherAsync:
         all_results = await asyncio.gather(*tasks, return_exceptions=True)
         found_errors = []
         for result in all_results:
-            if isinstance(result, BaseException):
-                if isinstance(result, Exception):
-                    # will receive Exception objects if request task fails. Add to list
-                    found_errors.append(result)
-                else:
-                    # we don't expect non-Exception BaseException objects
-                    raise result
+            if isinstance(result, Exception):
+                # will receive Exception objects if request task fails. Add to list
+                found_errors.append(result)
             elif result:
                 # completed requests will return a list of FailedMutationEntryError
                 for e in result:

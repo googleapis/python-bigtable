@@ -222,7 +222,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
-    ) -> list[BaseException | None]:
+    ) -> list[Exception | None]:
         """
         Prepares the backend for requests on a channel
 
@@ -725,12 +725,8 @@ class TableAsync:
             ]
             batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
             for result in batch_result:
-                if isinstance(result, BaseException):
-                    if isinstance(result, Exception):
-                        error_dict[shard_idx] = result
-                    else:
-                        # We don't expect any non-Exception BaseException results
-                        raise result
+                if isinstance(result, Exception):
+                    error_dict[shard_idx] = result
                 else:
                     results_list.extend(result)
                 shard_idx += 1
@@ -848,7 +844,6 @@ class TableAsync:
             multiplier=2,
             maximum=60,
             on_error=on_error_fn,
-            is_stream=False,
         )
 
         # prepare request
