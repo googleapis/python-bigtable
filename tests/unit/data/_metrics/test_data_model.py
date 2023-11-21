@@ -560,3 +560,45 @@ class TestActiveOperationMetric:
         # otherwise, do nothing
         with mock.patch("google.cloud.bigtable.data._metrics.data_model.LOGGER", None):
             type(self._make_one(object()))._handle_error(input_message)
+
+    @pytest.mark.asyncio
+    async def test_async_context_manager(self):
+        """
+        Should implement context manager protocol
+        """
+        metric = self._make_one(object())
+        with mock.patch.object(metric, "end_with_success") as end_with_success_mock:
+            end_with_success_mock.side_effect = lambda: metric.end_with_status(object())
+            async with metric as context:
+                assert isinstance(context, type(metric)._AsyncContextManager)
+                assert context.operation == metric
+                # inside context manager, still active
+                assert end_with_success_mock.call_count == 0
+                assert metric.state == State.CREATED
+            # outside context manager, should be ended
+            assert end_with_success_mock.call_count == 1
+            assert metric.state == State.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_async_context_manager_exception(self):
+        """
+        Exception within context manager causes end_with_status to be called with error
+        """
+        expected_exc = ValueError("expected")
+        metric = self._make_one(object())
+        with mock.patch.object(metric, "end_with_status") as end_with_status_mock:
+            try:
+                async with metric as context:
+                    assert isinstance(context, type(metric)._AsyncContextManager)
+                    assert context.operation == metric
+                    # inside context manager, still active
+                    assert end_with_status_mock.call_count == 0
+                    assert metric.state == State.CREATED
+                    raise expected_exc
+            except ValueError as e:
+                assert e == expected_exc
+            # outside context manager, should be ended
+            assert end_with_status_mock.call_count == 1
+            assert end_with_status_mock.call_args[0][0] == expected_exc
+            assert len(end_with_status_mock.call_args[0]) == 1
+
