@@ -120,7 +120,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             #   - connectivity_error_count
             labels["status"] = attempt.end_status.value
 
-            self.attempt_latency.record(attempt.duration, labels)
+            self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
             if (
                 op.op_type == OperationType.READ_ROWS
                 and attempt.first_response_latency is not None

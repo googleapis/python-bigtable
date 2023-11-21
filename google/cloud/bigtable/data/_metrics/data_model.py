@@ -60,7 +60,7 @@ class CompletedAttemptMetric:
     """
 
     start_time: float
-    duration: float
+    end_time: float
     end_status: StatusCode
     first_response_latency: float | None = None
     gfe_latency: float | None = None
@@ -209,7 +209,7 @@ class ActiveOperationMetric:
         new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt.start_time,
             first_response_latency=self.active_attempt.first_response_latency,
-            duration=time.monotonic() - self.active_attempt.start_time,
+            end_time=time.monotonic(),
             end_status=self._exc_to_status(status)
             if isinstance(status, Exception)
             else status,
