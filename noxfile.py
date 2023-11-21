@@ -135,7 +135,12 @@ def mypy(session):
     session.install("-e", ".")
     session.install("-e", "python-api-core")
     session.install(
-        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests", "opentelemetry-api"
+        "mypy",
+        "types-setuptools",
+        "types-protobuf",
+        "types-mock",
+        "types-requests",
+        "opentelemetry-api",
     )
     session.install("google-cloud-testutils")
     session.run(

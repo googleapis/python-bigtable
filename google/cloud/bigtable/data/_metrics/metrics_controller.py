@@ -17,7 +17,9 @@ import time
 import os
 
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-from google.cloud.bigtable.data._metrics.handlers.opentelemetry import OpenTelemetryMetricsHandler
+from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
+    OpenTelemetryMetricsHandler,
+)
 from google.cloud.bigtable.data._metrics.handlers.stdout import StdoutMetricsHandler
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
@@ -26,7 +28,7 @@ from google.cloud.bigtable.data._metrics.data_model import OperationType
 PRINT_METRICS = os.getenv("BIGTABLE_PRINT_METRICS", False)
 
 
-class BigtableClientSideMetricsController():
+class BigtableClientSideMetricsController:
     """
     BigtableClientSideMetricsController is responsible for managing the
     lifecycle of the metrics system. The Bigtable client library will
@@ -34,7 +36,7 @@ class BigtableClientSideMetricsController():
     registered with the handlers associated with this controller.
     """
 
-    def __init__(self, handlers:list[MetricsHandler]|None=None, **kwargs):
+    def __init__(self, handlers: list[MetricsHandler] | None = None, **kwargs):
         """
         Initializes the metrics controller.
 
@@ -53,7 +55,7 @@ class BigtableClientSideMetricsController():
             except ImportError:
                 pass
 
-    def add_handler(self, handler:MetricsHandler) -> None:
+    def add_handler(self, handler: MetricsHandler) -> None:
         """
         Add a new handler to the list of handlers.
 
@@ -62,7 +64,9 @@ class BigtableClientSideMetricsController():
         """
         self.handlers.append(handler)
 
-    def create_operation(self, op_type:OperationType, is_streaming:bool = False) -> ActiveOperationMetric:
+    def create_operation(
+        self, op_type: OperationType, is_streaming: bool = False
+    ) -> ActiveOperationMetric:
         """
         Creates a new operation and registers it with the subscribed handlers.
 

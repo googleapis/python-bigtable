@@ -1183,7 +1183,7 @@ class TestReadRows:
         )
         client_mock._gapic_client.table_path.return_value = kwargs["table_id"]
         client_mock._gapic_client.instance_path.return_value = kwargs["instance_id"]
-        client_mock.project = 'test-project'
+        client_mock.project = "test-project"
         return TableAsync(client_mock, *args, **kwargs)
 
     def _make_stats(self):
@@ -1221,7 +1221,10 @@ class TestReadRows:
     ):
         from google.cloud.bigtable_v2 import ReadRowsResponse
 
-        pb_list = [c if isinstance(c, Exception) else ReadRowsResponse(chunks=[c]) for c in chunk_list]
+        pb_list = [
+            c if isinstance(c, Exception) else ReadRowsResponse(chunks=[c])
+            for c in chunk_list
+        ]
         return mock_grpc_call(stream_response=pb_list, sleep_time=sleep_time)
 
     async def execute_fn(self, table, *args, **kwargs):
@@ -1859,7 +1862,10 @@ class TestSampleRowKeys:
 
     def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):
         from google.cloud.bigtable_v2.types import SampleRowKeysResponse
-        pb_list = [SampleRowKeysResponse(row_key=s[0], offset_bytes=s[1]) for s in sample_list]
+
+        pb_list = [
+            SampleRowKeysResponse(row_key=s[0], offset_bytes=s[1]) for s in sample_list
+        ]
 
         return mock_grpc_call(stream_response=pb_list)
 
@@ -2176,7 +2182,9 @@ class TestMutateRow:
         profile = "profile" if include_app_profile else None
         async with self._make_client() as client:
             async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(client._gapic_client, "mutate_row") as gapic_mock:
+                with mock.patch.object(
+                    client._gapic_client, "mutate_row"
+                ) as gapic_mock:
                     gapic_mock.return_value = mock_grpc_call()
                     await table.mutate_row("rk", {})
                 kwargs = gapic_mock.call_args_list[0].kwargs
@@ -2755,11 +2763,16 @@ class TestCheckAndMutateRow:
     async def test_check_and_mutate_metadata(self, include_app_profile):
         """request should attach metadata headers"""
         from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
+
         profile = "profile" if include_app_profile else None
         async with self._make_client() as client:
             async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(client._gapic_client, "check_and_mutate_row") as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(CheckAndMutateRowResponse())
+                with mock.patch.object(
+                    client._gapic_client, "check_and_mutate_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = mock_grpc_call(
+                        CheckAndMutateRowResponse()
+                    )
                     await table.check_and_mutate_row(b"key", mock.Mock())
                 kwargs = mock_gapic.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
@@ -2808,12 +2821,16 @@ class TestReadModifyWriteRow:
         Test that the gapic call is called with given rules
         """
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
                 with mock.patch.object(
-                    client._gapic_client, "read_modify_write_row",
+                    client._gapic_client,
+                    "read_modify_write_row",
                 ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(ReadModifyWriteRowResponse())
+                    mock_gapic.return_value = mock_grpc_call(
+                        ReadModifyWriteRowResponse()
+                    )
                     await table.read_modify_write_row("key", call_rules)
                 assert mock_gapic.call_count == 1
                 found_kwargs = mock_gapic.call_args_list[0][1]
@@ -2832,6 +2849,7 @@ class TestReadModifyWriteRow:
     @pytest.mark.asyncio
     async def test_read_modify_write_call_defaults(self):
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+
         instance = "instance1"
         table_id = "table1"
         project = "project1"
@@ -2841,7 +2859,9 @@ class TestReadModifyWriteRow:
                 with mock.patch.object(
                     client._gapic_client, "read_modify_write_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(ReadModifyWriteRowResponse())
+                    mock_gapic.return_value = mock_grpc_call(
+                        ReadModifyWriteRowResponse()
+                    )
                     await table.read_modify_write_row(row_key, mock.Mock())
                     assert mock_gapic.call_count == 1
                     found_kwargs = mock_gapic.call_args_list[0][1]
@@ -2857,6 +2877,7 @@ class TestReadModifyWriteRow:
     @pytest.mark.asyncio
     async def test_read_modify_write_call_overrides(self):
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+
         row_key = b"row_key1"
         expected_timeout = 12345
         profile_id = "profile1"
@@ -2867,7 +2888,9 @@ class TestReadModifyWriteRow:
                 with mock.patch.object(
                     client._gapic_client, "read_modify_write_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(ReadModifyWriteRowResponse())
+                    mock_gapic.return_value = mock_grpc_call(
+                        ReadModifyWriteRowResponse()
+                    )
                     await table.read_modify_write_row(
                         row_key,
                         mock.Mock(),
@@ -2883,13 +2906,16 @@ class TestReadModifyWriteRow:
     @pytest.mark.asyncio
     async def test_read_modify_write_string_key(self):
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+
         row_key = "string_row_key1"
         async with self._make_client() as client:
             async with client.get_table("instance", "table_id") as table:
                 with mock.patch.object(
                     client._gapic_client, "read_modify_write_row"
                 ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(ReadModifyWriteRowResponse())
+                    mock_gapic.return_value = mock_grpc_call(
+                        ReadModifyWriteRowResponse()
+                    )
                     await table.read_modify_write_row(row_key, mock.Mock())
                     assert mock_gapic.call_count == 1
                     found_kwargs = mock_gapic.call_args_list[0][1]
@@ -2921,11 +2947,16 @@ class TestReadModifyWriteRow:
     async def test_read_modify_write_metadata(self, include_app_profile):
         """request should attach metadata headers"""
         from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
+
         profile = "profile" if include_app_profile else None
         async with self._make_client() as client:
             async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(client._gapic_client, "read_modify_write_row") as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(ReadModifyWriteRowResponse())
+                with mock.patch.object(
+                    client._gapic_client, "read_modify_write_row"
+                ) as mock_gapic:
+                    mock_gapic.return_value = mock_grpc_call(
+                        ReadModifyWriteRowResponse()
+                    )
                     await table.read_modify_write_row("key", mock.Mock())
                 kwargs = mock_gapic.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]

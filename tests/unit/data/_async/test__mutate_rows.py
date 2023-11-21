@@ -71,9 +71,14 @@ class TestMutateRowsOperation:
         if error_dict is None:
             error_dict = {}
         responses = [
-            MutateRowsResponse(entries=[
-                MutateRowsResponse.Entry(index=idx, status=status_pb2.Status(code=error_dict.get(idx, 0)))
-            ]) for idx, _ in enumerate(mutation_list)
+            MutateRowsResponse(
+                entries=[
+                    MutateRowsResponse.Entry(
+                        index=idx, status=status_pb2.Status(code=error_dict.get(idx, 0))
+                    )
+                ]
+            )
+            for idx, _ in enumerate(mutation_list)
         ]
         mock_fn.return_value = mock_grpc_call(stream_response=responses)
         return mock_fn
@@ -141,7 +146,9 @@ class TestMutateRowsOperation:
         attempt_timeout = 0.01
         metrics = mock.Mock()
         # no errors if at limit
-        self._make_one(client, table, entries, operation_timeout, attempt_timeout, metrics)
+        self._make_one(
+            client, table, entries, operation_timeout, attempt_timeout, metrics
+        )
         # raise error after crossing
         with pytest.raises(ValueError) as e:
             self._make_one(
@@ -191,7 +198,12 @@ class TestMutateRowsOperation:
         found_exc = None
         try:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout, mock.Mock()
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                mock.Mock(),
             )
             await instance._run_attempt()
         except Exception as e:
@@ -227,7 +239,12 @@ class TestMutateRowsOperation:
             found_exc = None
             try:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout, mock.Mock()
+                    client,
+                    table,
+                    entries,
+                    operation_timeout,
+                    operation_timeout,
+                    mock.Mock(),
                 )
                 await instance.start()
             except MutationsExceptionGroup as e:
@@ -265,7 +282,12 @@ class TestMutateRowsOperation:
         ) as attempt_mock:
             attempt_mock.side_effect = [expected_cause] * num_retries + [None]
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout, mock.Mock()
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                mock.Mock(),
             )
             await instance.start()
             assert attempt_mock.call_count == num_retries + 1
@@ -292,7 +314,12 @@ class TestMutateRowsOperation:
             found_exc = None
             try:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout, mock.Mock()
+                    client,
+                    table,
+                    entries,
+                    operation_timeout,
+                    operation_timeout,
+                    mock.Mock(),
                 )
                 await instance.start()
             except MutationsExceptionGroup as e:

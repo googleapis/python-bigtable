@@ -19,9 +19,7 @@ from google.api.monitored_resource_pb2 import MonitoredResource  # type: ignore
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
-from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
-from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
@@ -40,7 +38,16 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
     """
 
-    def __init__(self, *, project_id:str, instance_id:str, table_id:str, app_profile_id:str | None, client_uid:str | None = None, **kwargs):
+    def __init__(
+        self,
+        *,
+        project_id: str,
+        instance_id: str,
+        table_id: str,
+        app_profile_id: str | None,
+        client_uid: str | None = None,
+        **kwargs,
+    ):
         super().__init__()
         from opentelemetry import metrics
 
@@ -90,8 +97,16 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - operation_latencies
           - retry_count
         """
-        labels = {"method": op.op_type.value, "status": op.final_status.value, "streaming": op.is_streaming, **self.shared_labels}
-        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
+        labels = {
+            "method": op.op_type.value,
+            "status": op.final_status.value,
+            "streaming": op.is_streaming,
+            **self.shared_labels,
+        }
+        monitored_resource = MonitoredResource(
+            type="bigtable_client_raw",
+            labels={"zone": op.zone, **self.monitored_resource_labels},
+        )
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
@@ -103,11 +118,16 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             #   - first_response_latencies
             #   - server_latencies
             #   - connectivity_error_count
-            labels['status'] = attempt.end_status.value
+            labels["status"] = attempt.end_status.value
 
             self.attempt_latency.record(attempt.duration, labels)
-            if op.op_type == OperationType.READ_ROWS and attempt.first_response_latency is not None:
-                self.first_response_latency.record(attempt.first_response_latency, labels)
+            if (
+                op.op_type == OperationType.READ_ROWS
+                and attempt.first_response_latency is not None
+            ):
+                self.first_response_latency.record(
+                    attempt.first_response_latency, labels
+                )
             if attempt.gfe_latency is not None:
                 self.server_latency.record(attempt.gfe_latency, labels)
             else:

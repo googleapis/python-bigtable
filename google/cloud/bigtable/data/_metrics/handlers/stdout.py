@@ -42,5 +42,7 @@ class StdoutMetricsHandler(MetricsHandler):
             total_attempts = sum([len(op.completed_attempts) for op in ops_list])
             avg_latency = total_latency / count
             avg_attempts = total_attempts / count
-            print(f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}")
+            print(
+                f"{ops_type}: count: {count}, avg latency: {avg_latency:.2f}, avg attempts: {avg_attempts:.1f}"
+            )
         print()

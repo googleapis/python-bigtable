@@ -66,7 +66,9 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=test_case.chunks)])
+        stream = mock_grpc_call(
+            stream_response=[ReadRowsResponse(chunks=test_case.chunks)]
+        )
         chunker = _ReadRowsOperationAsync.chunk_stream(instance, stream)
         merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
         async for row in merger:
@@ -96,9 +98,13 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
         table = client.get_table("instance", "table")
         await table._register_instance_task  # to avoid warning
         results = []
-        with mock.patch.object(table.client._gapic_client, "read_rows", mock.AsyncMock()) as read_rows:
+        with mock.patch.object(
+            table.client._gapic_client, "read_rows", mock.AsyncMock()
+        ) as read_rows:
             # run once, then return error on retry
-            stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=[c]) for c in test_case.chunks])
+            stream = mock_grpc_call(
+                stream_response=[ReadRowsResponse(chunks=[c]) for c in test_case.chunks]
+            )
             read_rows.return_value = stream
             async for row in await table.read_rows_stream(query={}):
                 for cell in row:
@@ -125,7 +131,8 @@ async def test_out_of_order_rows():
     instance._remaining_count = None
     instance._last_yielded_row_key = b"b"
     chunker = _ReadRowsOperationAsync.chunk_stream(
-        instance, mock_grpc_call(stream_response=[ReadRowsResponse(last_scanned_row_key=b"a")])
+        instance,
+        mock_grpc_call(stream_response=[ReadRowsResponse(last_scanned_row_key=b"a")]),
     )
     merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
     with pytest.raises(InvalidChunk):

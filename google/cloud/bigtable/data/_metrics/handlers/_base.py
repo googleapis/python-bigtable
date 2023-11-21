@@ -16,7 +16,7 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMet
 from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 
 
-class MetricsHandler():
+class MetricsHandler:
     """
     Base class for all metrics handlers. Metrics handlers will receive callbacks
     when operations and attempts are completed, and can use this information to
@@ -29,5 +29,7 @@ class MetricsHandler():
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         pass
 
-    def on_attempt_complete(self, attempt: CompletedAttemptMetric, operation: ActiveOperationMetric) -> None:
+    def on_attempt_complete(
+        self, attempt: CompletedAttemptMetric, operation: ActiveOperationMetric
+    ) -> None:
         pass

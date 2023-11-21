@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
+from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -370,7 +370,7 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     def _build_exception(
-        exc_list: list[Exception], reason:RetryFailureReason, timeout_val: float | None
+        exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
     ) -> tuple[Exception, Exception | None]:
         """
         Build retry error based on exceptions encountered during operation

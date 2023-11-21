@@ -239,8 +239,19 @@ class TestReadRowsOperation:
         instance = self._make_one(query, table, 10, 10, mock.Mock())
         assert instance._remaining_count == start_limit
         # read emit_num rows
-        chunks = [ReadRowsResponse.CellChunk(row_key=str(i).encode(), family_name="b", qualifier=b"c", value=b"d", commit_row=True) for i in range(emit_num)]
-        stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks])
+        chunks = [
+            ReadRowsResponse.CellChunk(
+                row_key=str(i).encode(),
+                family_name="b",
+                qualifier=b"c",
+                value=b"d",
+                commit_row=True,
+            )
+            for i in range(emit_num)
+        ]
+        stream = mock_grpc_call(
+            stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+        )
         async for val in instance.chunk_stream(stream):
             pass
         assert instance._remaining_count == expected_limit
@@ -264,8 +275,19 @@ class TestReadRowsOperation:
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
             # read emit_num rows
-            chunks = [ReadRowsResponse.CellChunk(row_key=str(i).encode(), family_name="b", qualifier=b"c", value=b"d", commit_row=True) for i in range(emit_num)]
-            stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks])
+            chunks = [
+                ReadRowsResponse.CellChunk(
+                    row_key=str(i).encode(),
+                    family_name="b",
+                    qualifier=b"c",
+                    value=b"d",
+                    commit_row=True,
+                )
+                for i in range(emit_num)
+            ]
+            stream = mock_grpc_call(
+                stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+            )
             async for val in instance.chunk_stream(stream):
                 pass
         assert "emit count exceeds row limit" in str(e.value)
@@ -292,7 +314,7 @@ class TestReadRowsOperation:
             await gen.aclose()
             # ensure close was propagated to wrapped generator
             with pytest.raises(StopAsyncIteration):
-                test = await call.__anext__()
+                await call.__anext__()
 
     @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
@@ -309,7 +331,9 @@ class TestReadRowsOperation:
         instance._last_yielded_row_key = None
         instance._remaining_count = None
         chunks = [ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)] * 2
-        grpc_call = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks])
+        grpc_call = mock_grpc_call(
+            stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+        )
         stream = _ReadRowsOperationAsync.chunk_stream(instance, grpc_call)
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:

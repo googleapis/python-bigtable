@@ -353,7 +353,9 @@ class MutationsBatcherAsync:
                 batch,
                 operation_timeout=self._operation_timeout,
                 attempt_timeout=self._attempt_timeout,
-                metrics=self._table._metrics.create_operation(OperationType.BULK_MUTATE_ROWS),
+                metrics=self._table._metrics.create_operation(
+                    OperationType.BULK_MUTATE_ROWS
+                ),
             )
             await operation.start()
         except MutationsExceptionGroup as e:
