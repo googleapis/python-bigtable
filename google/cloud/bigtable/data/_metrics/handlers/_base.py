@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
-from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 
 
 class MetricsHandler:
@@ -27,9 +25,4 @@ class MetricsHandler:
         pass
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
-        pass
-
-    def on_attempt_complete(
-        self, attempt: CompletedAttemptMetric, operation: ActiveOperationMetric
-    ) -> None:
         pass

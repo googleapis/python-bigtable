@@ -198,8 +198,6 @@ class ActiveOperationMetric:
         If the operation was completed or there is no active attempt,
         will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
 
-        Causes on_attempt_completed to be called for each registered handler.
-
         Args:
           - status: The status of the attempt.
         """
@@ -219,8 +217,6 @@ class ActiveOperationMetric:
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt = None
-        for handler in self._handlers:
-            handler.on_attempt_complete(new_attempt, self)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         """
