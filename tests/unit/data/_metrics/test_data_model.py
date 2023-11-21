@@ -182,7 +182,6 @@ class TestActiveOperationMetric:
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
-
     @pytest.mark.parametrize("start_cluster,start_zone,metadata_field,end_cluster,end_zone", [
         (None,None, None, None, None),
         ("orig_cluster", "orig_zone", None, "orig_cluster", "orig_zone"),
@@ -227,7 +226,7 @@ class TestActiveOperationMetric:
         If the x-goog-ext-425905942-bin field is present, but not structured properly,
         _handle_error should be called
 
-        Extra fields should not result in parsing error
+        Extra fields should not result in parsingerror
         """
         import grpc
         cls = type(self._make_one(mock.Mock()))
@@ -283,3 +282,174 @@ class TestActiveOperationMetric:
             assert metric.cluster_id is None
             assert metric.zone is None
 
+    def test_attempt_first_response(self):
+        cls = type(self._make_one(mock.Mock()))
+        with mock.patch.object(cls, "_handle_error") as mock_handle_error:
+            metric = self._make_one(mock.Mock())
+            metric.start_attempt()
+            metric.active_attempt.start_time = 0
+            metric.attempt_first_response()
+            got_latency = metric.active_attempt.first_response_latency
+            # latency should be equal to current time
+            assert abs(got_latency - time.monotonic()) < 0.001
+            # should remain in ACTIVE_ATTEMPT state after completing
+            assert metric.state == State.ACTIVE_ATTEMPT
+            # no errors encountered
+            assert mock_handle_error.call_count == 0
+            # calling it again should cause an error
+            metric.attempt_first_response()
+            assert mock_handle_error.call_count == 1
+            assert mock_handle_error.call_args[0][0] == "Attempt already received first response"
+            # value should not be changed
+            assert metric.active_attempt.first_response_latency == got_latency
+
+    def test_end_attempt_with_status(self):
+        """
+        ending the attempt should:
+        - add one to completed_attempts
+        - reset active_attempt to None
+        - update state
+        """
+        expected_latency = 9
+        expected_start_time = 7
+        expected_status = object()
+        expected_gfe_latency = 5
+
+        metric = self._make_one(mock.Mock())
+        assert metric.active_attempt is None
+        assert len(metric.completed_attempts) == 0
+        metric.start_attempt()
+        metric.active_attempt.start_time = expected_start_time
+        metric.active_attempt.gfe_latency = expected_gfe_latency
+        metric.active_attempt.first_response_latency = expected_latency
+        metric.end_attempt_with_status(expected_status)
+        assert len(metric.completed_attempts) == 1
+        got_attempt = metric.completed_attempts[0]
+        assert got_attempt.start_time == expected_start_time
+        assert got_attempt.first_response_latency == expected_latency
+        assert time.monotonic() - got_attempt.end_time < 0.001
+        assert got_attempt.end_status == expected_status
+        assert got_attempt.gfe_latency == expected_gfe_latency
+        # state should be changed to BETWEEN_ATTEMPTS
+        assert metric.state == State.BETWEEN_ATTEMPTS
+
+    def test_end_attempt_with_status_w_exception(self):
+        """
+        exception inputs should be converted to grpc status objects
+        """
+        input_status = ValueError("test")
+        expected_status = object()
+
+        metric = self._make_one(mock.Mock())
+        metric.start_attempt()
+        with mock.patch.object(metric, "_exc_to_status", return_value=expected_status) as mock_exc_to_status:
+            metric.end_attempt_with_status(input_status)
+            assert mock_exc_to_status.call_count == 1
+            assert mock_exc_to_status.call_args[0][0] == input_status
+            assert metric.completed_attempts[0].end_status == expected_status
+
+    def test_end_with_status(self):
+        """
+        ending the operation should:
+        - end active attempt
+        - mark operation as completed
+        - update handlers
+        """
+        from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
+        expected_attempt_start_time = 7
+        expected_attempt_first_response_latency = 9
+        expected_attempt_gfe_latency = 5
+
+        expected_status = object()
+        expected_type = object()
+        expected_start_time = 0
+        expected_cluster = object()
+        expected_zone = object()
+        is_streaming = object()
+
+        handlers = [mock.Mock(), mock.Mock()]
+        metric = self._make_one(expected_type, handlers=handlers,start_time=expected_start_time)
+        metric.cluster_id = expected_cluster
+        metric.zone = expected_zone
+        metric.is_streaming = is_streaming
+        attempt = ActiveAttemptMetric(
+            start_time=expected_attempt_start_time,
+            first_response_latency=expected_attempt_first_response_latency,
+            gfe_latency=expected_attempt_gfe_latency,
+        )
+        metric.active_attempt = attempt
+        metric.end_with_status(expected_status)
+        # test that ActiveOperation was updated to terminal state
+        assert metric.state == State.COMPLETED
+        assert metric.was_completed is True
+        assert metric.active_attempt is None
+        assert len(metric.completed_attempts) == 1
+        # check that finalized operation was passed to handlers
+        for h in handlers:
+            assert h.on_operation_complete.call_count == 1
+            assert len(h.on_operation_complete.call_args[0]) == 1
+            called_with = h.on_operation_complete.call_args[0][0]
+            assert called_with.op_type == expected_type
+            assert called_with.start_time == expected_start_time
+            assert called_with.op_id == metric.op_id
+            assert time.monotonic() - called_with.duration < 0.001
+            assert called_with.final_status == expected_status
+            assert called_with.cluster_id == expected_cluster
+            assert called_with.zone == expected_zone
+            assert called_with.is_streaming == is_streaming
+            # check the attempt
+            assert len(called_with.completed_attempts) == 1
+            final_attempt = called_with.completed_attempts[0]
+            assert final_attempt.start_time == expected_attempt_start_time
+            assert final_attempt.first_response_latency == expected_attempt_first_response_latency
+            assert final_attempt.gfe_latency == expected_attempt_gfe_latency
+            assert final_attempt.end_status == expected_status
+            assert time.monotonic() - final_attempt.end_time < 0.001
+
+    def test_end_with_status_w_exception(self):
+        """
+        exception inputs should be converted to grpc status objects
+        """
+        input_status = ValueError("test")
+        expected_status = object()
+        handlers = [mock.Mock()]
+
+        metric = self._make_one(mock.Mock(), handlers=handlers)
+        metric.start_attempt()
+        with mock.patch.object(metric, "_exc_to_status", return_value=expected_status) as mock_exc_to_status:
+            metric.end_with_status(input_status)
+            assert mock_exc_to_status.call_count == 1
+            assert mock_exc_to_status.call_args[0][0] == input_status
+            assert metric.completed_attempts[0].end_status == expected_status
+            final_op = handlers[0].on_operation_complete.call_args[0][0]
+            assert final_op.final_status == expected_status
+
+    def test_end_with_success(self):
+        """
+        end with success should be a pass-through helper for end_with_status
+        """
+        from grpc import StatusCode
+
+        inner_result = object()
+
+        metric = self._make_one(mock.Mock())
+        with mock.patch.object(metric, "end_with_status") as mock_end_with_status:
+            mock_end_with_status.return_value = inner_result
+            got_result = metric.end_with_success()
+            assert mock_end_with_status.call_count == 1
+            assert mock_end_with_status.call_args[0][0] == StatusCode.OK
+            assert got_result is inner_result
+
+    def test_end_on_empty_operation(self):
+        """
+        Should be able to end an operation without any attempts
+        """
+        from grpc import StatusCode
+        handlers = [mock.Mock()]
+        metric = self._make_one(mock.Mock(), handlers=handlers)
+        metric.end_with_success()
+        assert metric.state == State.COMPLETED
+        assert metric.was_completed is True
+        final_op = handlers[0].on_operation_complete.call_args[0][0]
+        assert final_op.final_status == StatusCode.OK
+        assert final_op.completed_attempts == []

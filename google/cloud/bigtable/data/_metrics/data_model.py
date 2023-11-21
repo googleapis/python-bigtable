@@ -249,8 +249,9 @@ class ActiveOperationMetric:
         """
         if self.state == OperationState.COMPLETED:
             return self._handle_error(INVALID_STATE_ERROR.format("end_with_status", self.state))
-        elif self.state == OperationState.ACTIVE_ATTEMPT:
-            self.end_attempt_with_status(status)
+        final_status = self._exc_to_status(status) if isinstance(status, Exception) else status
+        if self.state == OperationState.ACTIVE_ATTEMPT:
+            self.end_attempt_with_status(final_status)
         self.was_completed = True
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
@@ -258,9 +259,7 @@ class ActiveOperationMetric:
             op_id=self.op_id,
             completed_attempts=self.completed_attempts,
             duration=time.monotonic() - self.start_time,
-            final_status=self._exc_to_status(status)
-            if isinstance(status, Exception)
-            else status,
+            final_status=final_status,
             cluster_id=self.cluster_id,
             zone=self.zone or "global",
             is_streaming=self.is_streaming,
