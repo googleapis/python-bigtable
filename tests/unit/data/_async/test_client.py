@@ -58,6 +58,10 @@ class mock_grpc_call:
 
     def __await__(self):
         response = yield from self._future.__await__()
+        if response is None:
+            # await is a no-op for streaming calls
+            return self
+        # otherwise return unary response
         return response
 
     def __aiter__(self):
@@ -67,7 +71,7 @@ class mock_grpc_call:
         self.stream_idx += 1
         if self.stream_idx < len(self.stream_response):
             await asyncio.sleep(self.sleep_time)
-            next_val =  self.stream_response[self.stream_idx]
+            next_val = self.stream_response[self.stream_idx]
             if isinstance(next_val, Exception):
                 raise next_val
             return next_val
@@ -75,6 +79,17 @@ class mock_grpc_call:
 
     def cancel(self):
         pass
+
+    async def asend(self, val):
+        """
+        implement generator protocol, so retries will treat this as a generator
+        i.e, call aclose at end of stream
+        """
+        return await self.__anext__()
+
+    async def aclose(self):
+        # simulate closing streams by jumping to the end
+        self.stream_idx = len(self.stream_response)
 
     async def trailing_metadata(self):
         return grpc.aio.Metadata()
@@ -2203,10 +2218,7 @@ class TestBulkMutateRows:
             for i in range(len(response_list))
         ]
 
-        async def generator():
-            yield MutateRowsResponse(entries=entries)
-
-        return generator()
+        return mock_grpc_call(stream_response=[MutateRowsResponse(entries=entries)])
 
     @pytest.mark.asyncio
     @pytest.mark.asyncio

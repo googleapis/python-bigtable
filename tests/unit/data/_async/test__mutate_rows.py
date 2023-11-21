@@ -18,6 +18,8 @@ from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.rpc import status_pb2
 import google.api_core.exceptions as core_exceptions
 
+from .test_client import mock_grpc_call
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -54,6 +56,7 @@ class TestMutateRowsOperation:
 
     async def _mock_stream(self, mutation_list, error_dict):
         for idx, entry in enumerate(mutation_list):
+
             code = error_dict.get(idx, 0)
             yield MutateRowsResponse(
                 entries=[
@@ -67,9 +70,12 @@ class TestMutateRowsOperation:
         mock_fn = AsyncMock()
         if error_dict is None:
             error_dict = {}
-        mock_fn.side_effect = lambda *args, **kwargs: self._mock_stream(
-            mutation_list, error_dict
-        )
+        responses = [
+            MutateRowsResponse(entries=[
+                MutateRowsResponse.Entry(index=idx, status=status_pb2.Status(code=error_dict.get(idx, 0)))
+            ]) for idx, _ in enumerate(mutation_list)
+        ]
+        mock_fn.return_value = mock_grpc_call(stream_response=responses)
         return mock_fn
 
     def test_ctor(self):

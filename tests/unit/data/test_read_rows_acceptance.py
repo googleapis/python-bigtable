@@ -27,6 +27,7 @@ from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data.row import Row
 
 from ..v2_client.test_row_merger import ReadRowsTest, TestFile
+from ._async.test_client import mock_grpc_call
 
 
 def parse_readrows_acceptance_tests():
@@ -60,18 +61,13 @@ def extract_results_from_row(row: Row):
 )
 @pytest.mark.asyncio
 async def test_row_merger_scenario(test_case: ReadRowsTest):
-    async def _scenerio_stream():
-        for chunk in test_case.chunks:
-            yield ReadRowsResponse(chunks=[chunk])
-
     try:
         results = []
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        chunker = _ReadRowsOperationAsync.chunk_stream(
-            instance, _coro_wrapper(_scenerio_stream())
-        )
+        stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=test_case.chunks)])
+        chunker = _ReadRowsOperationAsync.chunk_stream(instance, stream)
         merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
         async for row in merger:
             for cell in row:
@@ -95,36 +91,15 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
 )
 @pytest.mark.asyncio
 async def test_read_rows_scenario(test_case: ReadRowsTest):
-    async def _make_gapic_stream(chunk_list: list[ReadRowsResponse]):
-        from google.cloud.bigtable_v2 import ReadRowsResponse
-
-        class mock_stream:
-            def __init__(self, chunk_list):
-                self.chunk_list = chunk_list
-                self.idx = -1
-
-            def __aiter__(self):
-                return self
-
-            async def __anext__(self):
-                self.idx += 1
-                if len(self.chunk_list) > self.idx:
-                    chunk = self.chunk_list[self.idx]
-                    return ReadRowsResponse(chunks=[chunk])
-                raise StopAsyncIteration
-
-            def cancel(self):
-                pass
-
-        return mock_stream(chunk_list)
-
     try:
         client = BigtableDataClientAsync()
         table = client.get_table("instance", "table")
+        await table._register_instance_task  # to avoid warning
         results = []
-        with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
+        with mock.patch.object(table.client._gapic_client, "read_rows", mock.AsyncMock()) as read_rows:
             # run once, then return error on retry
-            read_rows.return_value = _make_gapic_stream(test_case.chunks)
+            stream = mock_grpc_call(stream_response=[ReadRowsResponse(chunks=[c]) for c in test_case.chunks])
+            read_rows.return_value = stream
             async for row in await table.read_rows_stream(query={}):
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
@@ -146,14 +121,11 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
 
 @pytest.mark.asyncio
 async def test_out_of_order_rows():
-    async def _row_stream():
-        yield ReadRowsResponse(last_scanned_row_key=b"a")
-
     instance = mock.Mock()
     instance._remaining_count = None
     instance._last_yielded_row_key = b"b"
     chunker = _ReadRowsOperationAsync.chunk_stream(
-        instance, _coro_wrapper(_row_stream())
+        instance, mock_grpc_call(stream_response=[ReadRowsResponse(last_scanned_row_key=b"a")])
     )
     merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
     with pytest.raises(InvalidChunk):
@@ -308,19 +280,12 @@ async def test_mid_cell_labels_change():
         )
 
 
-async def _coro_wrapper(stream):
-    return stream
-
-
 async def _process_chunks(*chunks):
-    async def _row_stream():
-        yield ReadRowsResponse(chunks=chunks)
-
     instance = mock.Mock()
     instance._remaining_count = None
     instance._last_yielded_row_key = None
     chunker = _ReadRowsOperationAsync.chunk_stream(
-        instance, _coro_wrapper(_row_stream())
+        instance, mock_grpc_call(stream_response=[ReadRowsResponse(chunks=chunks)])
     )
     merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
     results = []
