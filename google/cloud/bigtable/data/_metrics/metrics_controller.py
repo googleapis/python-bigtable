@@ -75,10 +75,8 @@ class BigtableClientSideMetricsController:
           - is_streaming: Whether the operation is a streaming operation. Should only be
                 True for ReadRows operations.
         """
-        start_time = time.monotonic()
         new_op = ActiveOperationMetric(
             op_type=op_type,
-            start_time=start_time,
             _handlers=self.handlers,
             is_streaming=is_streaming,
         )

@@ -41,6 +41,10 @@ SERVER_TIMING_METADATA_KEY = "server-timing"
 
 SERVER_TIMING_REGEX = re.compile(r"gfet4t7; dur=(\d+)")
 
+OPERATION_COMPLETE_ERROR = "Operation already completed"
+NO_ATTEMPT_ERROR = "No active attempt"
+HAS_ATTEMPT_ERROR = "Attempt already in progress"
+
 
 class OperationType(Enum):
     """Enum for the type of operation being performed."""
@@ -98,14 +102,14 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    start_time: float
+    start_time: float = field(default_factory=time.monotonic)
     op_id: UUID = field(default_factory=uuid4)
     active_attempt: ActiveAttemptMetric | None = None
     cluster_id: str | None = None
     zone: str | None = None
     completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
     was_completed: bool = False
-    _handlers: list[MetricsHandler] = field(default_factory=list)
+    handlers: list[MetricsHandler] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
 
     def start(self) -> None:
@@ -117,9 +121,9 @@ class ActiveOperationMetric:
         exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
         """
         if self.was_completed:
-            return self._handle_error("Operation cannot be reset after completion")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         if self.completed_attempts or self.active_attempt:
-            return self._handle_error("Cannot restart operation with active attempts")
+            return self._handle_error(HAS_ATTEMPT_ERROR)
         self.start_time = time.monotonic()
 
     def start_attempt(self) -> None:
@@ -130,9 +134,9 @@ class ActiveOperationMetric:
         will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
         """
         if self.was_completed:
-            return self._handle_error("Operation already completed")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         if self.active_attempt is not None:
-            return self._handle_error("Incomplete attempt already exists")
+            return self._handle_error(HAS_ATTEMPT_ERROR)
 
         self.active_attempt = ActiveAttemptMetric()
 
@@ -149,9 +153,9 @@ class ActiveOperationMetric:
           - metadata: the metadata as extracted from the grpc call
         """
         if self.was_completed:
-            return self._handle_error("Operation already completed")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         if self.active_attempt is None:
-            return self._handle_error("No active attempt")
+            return self._handle_error(NO_ATTEMPT_ERROR)
 
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get(BIGTABLE_METADATA_KEY)
@@ -182,9 +186,9 @@ class ActiveOperationMetric:
         exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
         """
         if self.was_completed:
-            return self._handle_error("Operation already completed")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         elif self.active_attempt is None:
-            return self._handle_error("No active attempt")
+            return self._handle_error(NO_ATTEMPT_ERROR)
         elif self.active_attempt.first_response_latency is not None:
             return self._handle_error("Attempt already received first response")
         self.active_attempt.first_response_latency = (
@@ -202,9 +206,9 @@ class ActiveOperationMetric:
           - status: The status of the attempt.
         """
         if self.was_completed:
-            return self._handle_error("Operation already completed")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         if self.active_attempt is None:
-            return self._handle_error("No active attempt")
+            return self._handle_error(NO_ATTEMPT_ERROR)
 
         new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt.start_time,
@@ -232,7 +236,7 @@ class ActiveOperationMetric:
           - status: The status of the operation.
         """
         if self.was_completed:
-            return self._handle_error("Operation already completed")
+            return self._handle_error(OPERATION_COMPLETE_ERROR)
         if self.active_attempt is not None:
             self.end_attempt_with_status(status)
         self.was_completed = True
@@ -249,7 +253,7 @@ class ActiveOperationMetric:
             zone=self.zone or "global",
             is_streaming=self.is_streaming,
         )
-        for handler in self._handlers:
+        for handler in self.handlers:
             handler.on_operation_complete(finalized)
 
     def end_with_success(self):
