@@ -16,9 +16,9 @@ from __future__ import annotations
 from typing import Callable, Any, TYPE_CHECKING
 
 import time
-import warnings
 import os
 import re
+import logging
 
 from enum import Enum
 from uuid import uuid4
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
-
+LOGGER = logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
 
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
@@ -321,12 +321,12 @@ class ActiveOperationMetric:
           - exc: The exception to extract the status code from.
         """
         if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
-            exc = exc.exceptions[0].__cause__
-        return (
-            exc.grpc_status_code
-            if hasattr(exc, "grpc_status_code")
-            else StatusCode.UNKNOWN
-        )
+            exc = exc.exceptions[-1]
+        if hasattr(exc, "grpc_status_code"):
+            return exc.grpc_status_code
+        if exc.__cause__ and hasattr(exc.__cause__, "grpc_status_code"):
+            return exc.__cause__.grpc_status_code
+        return StatusCode.UNKNOWN
 
     @staticmethod
     def _handle_error(message: str) -> None:
@@ -339,8 +339,8 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         if ALLOW_METRIC_EXCEPTIONS:
             raise ValueError(full_message)
-        else:
-            warnings.warn(full_message, stacklevel=3)
+        if LOGGER:
+            LOGGER.warning(full_message)
 
     async def __aenter__(self):
         """
