@@ -63,20 +63,10 @@ class BigtableClientSideMetricsController:
         """
         self.handlers.append(handler)
 
-    def create_operation(
-        self, op_type: OperationType, is_streaming: bool = False
-    ) -> ActiveOperationMetric:
+    def create_operation(self, op_type:OperationType, **kwargs) -> ActiveOperationMetric:
         """
         Creates a new operation and registers it with the subscribed handlers.
-
-        Args:
-          - op_type: The type of operation to create.
-          - is_streaming: Whether the operation is a streaming operation. Should only be
-                True for ReadRows operations.
         """
-        new_op = ActiveOperationMetric(
-            op_type=op_type,
-            handlers=self.handlers,
-            is_streaming=is_streaming,
-        )
+        handlers = self.handlers + kwargs.pop("handlers", [])
+        new_op = ActiveOperationMetric(op_type, **kwargs, handlers=handlers)
         return new_op

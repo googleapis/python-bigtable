@@ -119,9 +119,9 @@ class ActiveOperationMetric:
     cluster_id: str | None = None
     zone: str | None = None
     completed_attempts: list[CompletedAttemptMetric] = field(default_factory=list)
-    handlers: list[MetricsHandler] = field(default_factory=list)
     is_streaming: bool = False  # only True for read_rows operations
     was_completed: bool = False
+    handlers: list[MetricsHandler] = field(default_factory=list)
 
     @property
     def state(self) -> OperationState:
