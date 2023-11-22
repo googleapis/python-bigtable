@@ -15,7 +15,7 @@ from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 
-class StdoutMetricsHandler(MetricsHandler):
+class _StdoutMetricsHandler(MetricsHandler):
     """
     Prints a table of metric data after each operation, for debugging purposes.
     """
