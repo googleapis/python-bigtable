@@ -14,7 +14,7 @@
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
     OpenTelemetryMetricsHandler,
 )
-from google.cloud.bigtable.data._metrics.handlers.stdout import StdoutMetricsHandler
+from google.cloud.bigtable.data._metrics.handlers._stdout import _StdoutMetricsHandler
 from google.cloud.bigtable.data._metrics.metrics_controller import (
     BigtableClientSideMetricsController,
 )
@@ -25,7 +25,7 @@ from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 __all__ = (
     "BigtableClientSideMetricsController",
     "OpenTelemetryMetricsHandler",
-    "StdoutMetricsHandler",
+    "_StdoutMetricsHandler",
     "OperationType",
     "ActiveOperationMetric",
 )
