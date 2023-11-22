@@ -124,7 +124,7 @@ class TestActiveOperationMetric:
     @pytest.mark.parametrize("method,args,valid_states,error_method_name", [
         ("start", (), (State.CREATED,), None),
         ("start_attempt", (), (State.CREATED, State.BETWEEN_ATTEMPTS), None),
-        ("add_call_metadata", ({},), (State.ACTIVE_ATTEMPT,), None),
+        ("add_response_metadata", ({},), (State.ACTIVE_ATTEMPT,), None),
         ("attempt_first_response", (), (State.ACTIVE_ATTEMPT,), None),
         ("end_attempt_with_status", (mock.Mock(),), (State.ACTIVE_ATTEMPT,), None),
         ("end_with_status", (mock.Mock(),), (State.CREATED, State.ACTIVE_ATTEMPT,State.BETWEEN_ATTEMPTS,), None),
@@ -192,9 +192,9 @@ class TestActiveOperationMetric:
         (None, "filled", b"cluster zone", "cluster", "zone"),
         ("filled", None, b"cluster zone", "cluster", "zone"),
     ])
-    def test_add_call_metadata_cbt_header(self, start_cluster, start_zone, metadata_field, end_cluster, end_zone):
+    def test_add_response_metadata_cbt_header(self, start_cluster, start_zone, metadata_field, end_cluster, end_zone):
         """
-        calling add_call_metadata should update fields based on grpc response metadata
+        calling add_response_metadata should update fields based on grpc response metadata
         The x-goog-ext-425905942-bin field contains cluster and zone info
         """
         import grpc
@@ -206,7 +206,7 @@ class TestActiveOperationMetric:
             metadata = grpc.aio.Metadata()
             if metadata_field:
                 metadata['x-goog-ext-425905942-bin'] = metadata_field
-            metric.add_call_metadata(metadata)
+            metric.add_response_metadata(metadata)
             assert metric.cluster_id == end_cluster
             assert metric.zone == end_zone
             # should remain in ACTIVE_ATTEMPT state after completing
@@ -220,7 +220,7 @@ class TestActiveOperationMetric:
         b"cluster",
         "cluster zone",  # expect bytes
     ])
-    def test_add_call_metadata_cbt_header_w_error(self, metadata_field):
+    def test_add_response_metadata_cbt_header_w_error(self, metadata_field):
         """
         If the x-goog-ext-425905942-bin field is present, but not structured properly,
         _handle_error should be called
@@ -236,7 +236,7 @@ class TestActiveOperationMetric:
             metric.active_attempt = mock.Mock()
             metadata = grpc.aio.Metadata()
             metadata['x-goog-ext-425905942-bin'] = metadata_field
-            metric.add_call_metadata(metadata)
+            metric.add_response_metadata(metadata)
             # should remain in ACTIVE_ATTEMPT state after completing
             assert metric.state == State.ACTIVE_ATTEMPT
             # no errors encountered
@@ -254,9 +254,9 @@ class TestActiveOperationMetric:
         ("gfet4t7;", None),
         ("", None),
     ])
-    def test_add_call_metadata_server_timing_header(self, metadata_field, expected_latency):
+    def test_add_response_metadata_server_timing_header(self, metadata_field, expected_latency):
         """
-        calling add_call_metadata should update fields based on grpc response metadata
+        calling add_response_metadata should update fields based on grpc response metadata
         The server-timing field contains gfle latency info
         """
         import grpc
@@ -268,7 +268,7 @@ class TestActiveOperationMetric:
             metadata = grpc.aio.Metadata()
             if metadata_field:
                 metadata['server-timing'] = metadata_field
-            metric.add_call_metadata(metadata)
+            metric.add_response_metadata(metadata)
             if metric.active_attempt.gfe_latency is None:
                 assert expected_latency is None
             else:
@@ -604,16 +604,16 @@ class TestActiveOperationMetric:
     @pytest.mark.asyncio
     async def test_metadata_passthrough(self):
         """
-        add_call_metadata in context manager should defer to wrapped operation
+        add_response_metadata in context manager should defer to wrapped operation
         """
         inner_result = object()
         fake_metadata = object()
 
         metric = self._make_one(mock.Mock())
-        with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+        with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
             mock_add_metadata.return_value = inner_result
             async with metric as context:
-                result = context.add_call_metadata(fake_metadata)
+                result = context.add_response_metadata(fake_metadata)
                 assert result == inner_result
                 assert mock_add_metadata.call_count == 1
                 assert mock_add_metadata.call_args[0][0] == fake_metadata
@@ -656,7 +656,7 @@ class TestActiveOperationMetric:
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_success_extract_call_metadata(self):
         """
-        When extract_call_metadata is True, should call add_call_metadata
+        When extract_call_metadata is True, should call add_response_metadata
         on operation with output of wrapped function
         """
         from .._async.test_client import mock_grpc_call
@@ -666,7 +666,7 @@ class TestActiveOperationMetric:
             mock_call = mock_grpc_call()
             inner_fn = lambda *args, **kwargs: mock_call  # noqa
             wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+            with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
                 # make the wrapped call
                 result = await wrapped_fn()
                 assert result == mock_call
@@ -678,7 +678,7 @@ class TestActiveOperationMetric:
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_extract_call_metadata(self):
         """
-        When extract_call_metadata is True, should call add_call_metadata
+        When extract_call_metadata is True, should call add_response_metadata
         on operation with output of wrapped function, even if failed
         """
         mock_call = mock.AsyncMock()
@@ -688,7 +688,7 @@ class TestActiveOperationMetric:
         metric = self._make_one(object())
         async with metric as context:
             wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+            with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
                 # make the wrapped call. expect exception when awaiting on mock_call
                 with pytest.raises(TypeError):
                     await wrapped_fn()
@@ -697,6 +697,7 @@ class TestActiveOperationMetric:
                 assert mock_call.initial_metadata.call_count == 1
                 assert mock_add_metadata.call_args[0][0] == 3 + 4
 
+    @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_extract_call_metadata_no_mock(self):
         """
         Make sure the metadata is accessible after a failed attempt

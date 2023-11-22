@@ -157,7 +157,7 @@ class ActiveOperationMetric:
 
         self.active_attempt = ActiveAttemptMetric()
 
-    def add_call_metadata(self, metadata: dict[str, bytes | str]) -> None:
+    def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
         """
         Attach trailing metadata to the active attempt.
 
@@ -170,7 +170,7 @@ class ActiveOperationMetric:
           - metadata: the metadata as extracted from the grpc call
         """
         if self.state != OperationState.ACTIVE_ATTEMPT:
-            return self._handle_error(INVALID_STATE_ERROR.format("add_call_metadata", self.state))
+            return self._handle_error(INVALID_STATE_ERROR.format("add_response_metadata", self.state))
 
         if self.cluster_id is None or self.zone is None:
             bigtable_metadata = metadata.get(BIGTABLE_METADATA_KEY)
@@ -371,11 +371,11 @@ class ActiveOperationMetric:
         def __init__(self, operation: ActiveOperationMetric):
             self.operation = operation
 
-        def add_call_metadata(self, metadata):
+        def add_response_metadata(self, metadata):
             """
             Pass through trailing metadata to the wrapped operation
             """
-            return self.operation.add_call_metadata(metadata)
+            return self.operation.add_response_metadata(metadata)
 
         def wrap_attempt_fn(
             self,
@@ -411,7 +411,7 @@ class ActiveOperationMetric:
                             await call.trailing_metadata()
                             + await call.initial_metadata()
                         )
-                        self.operation.add_call_metadata(metadata)
+                        self.operation.add_response_metadata(metadata)
                     if encountered_exc is not None:
                         # end attempt. Let higher levels decide when to end operation
                         self.operation.end_attempt_with_status(encountered_exc)

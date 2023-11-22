@@ -877,7 +877,7 @@ class TableAsync:
                 call_metadata = (
                     await stream.trailing_metadata() + await stream.initial_metadata()
                 )
-                operation.add_call_metadata(call_metadata)
+                operation.add_response_metadata(call_metadata)
                 # return results
                 return samples
 
