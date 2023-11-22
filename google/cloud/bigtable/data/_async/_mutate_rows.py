@@ -16,10 +16,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 import asyncio
+from dataclasses import dataclass
 import functools
 
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry_async as retries
+import google.cloud.bigtable_v2.types.bigtable as types_pb
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
@@ -35,6 +37,16 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._async.client import TableAsync
     from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
+
+@dataclass
+class _EntryWithProto:
+    """
+    A dataclass to hold a RowMutationEntry and its corresponding proto representation.
+    """
+
+    entry: RowMutationEntry
+    proto: types_pb.MutateRowsRequest.Entry
 
 
 class _MutateRowsOperationAsync:
@@ -108,7 +120,7 @@ class _MutateRowsOperationAsync:
         self.timeout_generator = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
-        self.mutations = mutation_entries
+        self.mutations = [_EntryWithProto(m, m._to_pb()) for m in mutation_entries]
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
         # set up metrics
@@ -142,7 +154,7 @@ class _MutateRowsOperationAsync:
                     cause_exc = exc_list[0]
                 else:
                     cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
-                entry = self.mutations[idx]
+                entry = self.mutations[idx].entry
                 all_errors.append(
                     bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
                 )
@@ -166,10 +178,8 @@ class _MutateRowsOperationAsync:
         """
         # register attempt start
         self._operation_metrics.start_attempt()
+        request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
         # track mutations in this request that have not been finalized yet
-        request_entries = [
-            self.mutations[idx]._to_dict() for idx in self.remaining_indices
-        ]
         active_request_indices = {
             req_idx: orig_idx for req_idx, orig_idx in enumerate(self.remaining_indices)
         }
@@ -239,7 +249,7 @@ class _MutateRowsOperationAsync:
           - idx: the index of the mutation that failed
           - exc: the exception to add to the list
         """
-        entry = self.mutations[idx]
+        entry = self.mutations[idx].entry
         self.errors.setdefault(idx, []).append(exc)
         if (
             entry.is_idempotent()

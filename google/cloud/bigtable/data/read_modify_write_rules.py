@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import abc
 
+import google.cloud.bigtable_v2.types.data as data_pb
+
 # value must fit in 64-bit signed integer
 _MAX_INCREMENT_VALUE = (1 << 63) - 1
 
@@ -29,8 +31,11 @@ class ReadModifyWriteRule(abc.ABC):
         self.qualifier = qualifier
 
     @abc.abstractmethod
-    def _to_dict(self):
+    def _to_dict(self) -> dict[str, str | bytes | int]:
         raise NotImplementedError
+
+    def _to_pb(self) -> data_pb.ReadModifyWriteRule:
+        return data_pb.ReadModifyWriteRule(**self._to_dict())
 
 
 class IncrementRule(ReadModifyWriteRule):
@@ -44,7 +49,7 @@ class IncrementRule(ReadModifyWriteRule):
         super().__init__(family, qualifier)
         self.increment_amount = increment_amount
 
-    def _to_dict(self):
+    def _to_dict(self) -> dict[str, str | bytes | int]:
         return {
             "family_name": self.family,
             "column_qualifier": self.qualifier,
@@ -64,7 +69,7 @@ class AppendValueRule(ReadModifyWriteRule):
         super().__init__(family, qualifier)
         self.append_value = append_value
 
-    def _to_dict(self):
+    def _to_dict(self) -> dict[str, str | bytes | int]:
         return {
             "family_name": self.family,
             "column_qualifier": self.qualifier,

@@ -968,22 +968,17 @@ class TableAsync:
                  GoogleAPICallError exceptions from any retries that failed
              - GoogleAPICallError: raised on non-idempotent operations that cannot be
                  safely retried.
+            - ValueError if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
 
-        if isinstance(row_key, str):
-            row_key = row_key.encode("utf-8")
-        request = {"table_name": self.table_name, "row_key": row_key}
-        if self.app_profile_id:
-            request["app_profile_id"] = self.app_profile_id
+        if not mutations:
+            raise ValueError("No mutations provided")
+        mutations_list = mutations if isinstance(mutations, list) else [mutations]
 
-        if isinstance(mutations, Mutation):
-            mutations = [mutations]
-        request["mutations"] = [mutation._to_dict() for mutation in mutations]
-
-        if all(mutation.is_idempotent() for mutation in mutations):
+        if all(mutation.is_idempotent() for mutation in mutations_list):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
                 core_exceptions.DeadlineExceeded,
@@ -1023,7 +1018,13 @@ class TableAsync:
             metadata = _make_metadata(self.table_name, self.app_profile_id)
             # trigger rpc
             await deadline_wrapped(
-                request, timeout=attempt_timeout, metadata=metadata, retry=None
+                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                mutations=[mutation._to_pb() for mutation in mutations_list],
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=attempt_timeout,
+                metadata=metadata,
+                retry=None,
             )
 
     async def bulk_mutate_rows(
@@ -1060,6 +1061,7 @@ class TableAsync:
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
+            - ValueError if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
@@ -1117,17 +1119,16 @@ class TableAsync:
             - GoogleAPICallError exceptions from grpc call
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
-        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if true_case_mutations is not None and not isinstance(
             true_case_mutations, list
         ):
             true_case_mutations = [true_case_mutations]
-        true_case_dict = [m._to_dict() for m in true_case_mutations or []]
+        true_case_list = [m._to_pb() for m in true_case_mutations or []]
         if false_case_mutations is not None and not isinstance(
             false_case_mutations, list
         ):
             false_case_mutations = [false_case_mutations]
-        false_case_dict = [m._to_dict() for m in false_case_mutations or []]
+        false_case_list = [m._to_pb() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
         async with self._metrics.create_operation(
@@ -1137,16 +1138,12 @@ class TableAsync:
                 self.client._gapic_client.check_and_mutate_row
             )
             result = await metric_wrapped(
-                request={
-                    "predicate_filter": predicate._to_dict()
-                    if predicate is not None
-                    else None,
-                    "true_mutations": true_case_dict,
-                    "false_mutations": false_case_dict,
-                    "table_name": self.table_name,
-                    "row_key": row_key,
-                    "app_profile_id": self.app_profile_id,
-                },
+                true_mutations=true_case_list,
+                false_mutations=false_case_list,
+                predicate_filter=predicate._to_pb() if predicate is not None else None,
+                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
                 metadata=metadata,
                 timeout=operation_timeout,
                 retry=None,
@@ -1182,17 +1179,15 @@ class TableAsync:
                 operation
         Raises:
             - GoogleAPICallError exceptions from grpc call
+            - ValueError if invalid arguments are provided
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
-        row_key = row_key.encode("utf-8") if isinstance(row_key, str) else row_key
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         if rules is not None and not isinstance(rules, list):
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        # concert to dict representation
-        rules_dict = [rule._to_dict() for rule in rules]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
         async with self._metrics.create_operation(
@@ -1203,12 +1198,10 @@ class TableAsync:
             )
 
             result = await metric_wrapped(
-                request={
-                    "rules": rules_dict,
-                    "table_name": self.table_name,
-                    "row_key": row_key,
-                    "app_profile_id": self.app_profile_id,
-                },
+                rules=[rule._to_pb() for rule in rules],
+                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
                 metadata=metadata,
                 timeout=operation_timeout,
                 retry=None,

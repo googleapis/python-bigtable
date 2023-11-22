@@ -307,6 +307,42 @@ class TestSetCell:
         assert got_inner_dict["value"] == expected_value
         assert len(got_inner_dict.keys()) == 4
 
+    def test__to_pb(self):
+        """ensure proto representation is as expected"""
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        expected_value = b"test-value"
+        expected_timestamp = 123456789
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_value, expected_timestamp
+        )
+        got_pb = instance._to_pb()
+        assert isinstance(got_pb, data_pb.Mutation)
+        assert got_pb.set_cell.family_name == expected_family
+        assert got_pb.set_cell.column_qualifier == expected_qualifier
+        assert got_pb.set_cell.timestamp_micros == expected_timestamp
+        assert got_pb.set_cell.value == expected_value
+
+    def test__to_pb_server_timestamp(self):
+        """test with server side timestamp -1 value"""
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        expected_value = b"test-value"
+        expected_timestamp = -1
+        instance = self._make_one(
+            expected_family, expected_qualifier, expected_value, expected_timestamp
+        )
+        got_pb = instance._to_pb()
+        assert isinstance(got_pb, data_pb.Mutation)
+        assert got_pb.set_cell.family_name == expected_family
+        assert got_pb.set_cell.column_qualifier == expected_qualifier
+        assert got_pb.set_cell.timestamp_micros == expected_timestamp
+        assert got_pb.set_cell.value == expected_value
+
     @pytest.mark.parametrize(
         "timestamp,expected_value",
         [
@@ -406,6 +442,18 @@ class TestDeleteRangeFromColumn:
         if end is not None:
             assert time_range_dict["end_timestamp_micros"] == end
 
+    def test__to_pb(self):
+        """ensure proto representation is as expected"""
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        expected_family = "test-family"
+        expected_qualifier = b"test-qualifier"
+        instance = self._make_one(expected_family, expected_qualifier)
+        got_pb = instance._to_pb()
+        assert isinstance(got_pb, data_pb.Mutation)
+        assert got_pb.delete_from_column.family_name == expected_family
+        assert got_pb.delete_from_column.column_qualifier == expected_qualifier
+
     def test_is_idempotent(self):
         """is_idempotent is always true"""
         instance = self._make_one(
@@ -445,6 +493,16 @@ class TestDeleteAllFromFamily:
         assert len(got_inner_dict.keys()) == 1
         assert got_inner_dict["family_name"] == expected_family
 
+    def test__to_pb(self):
+        """ensure proto representation is as expected"""
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        expected_family = "test-family"
+        instance = self._make_one(expected_family)
+        got_pb = instance._to_pb()
+        assert isinstance(got_pb, data_pb.Mutation)
+        assert got_pb.delete_from_family.family_name == expected_family
+
     def test_is_idempotent(self):
         """is_idempotent is always true"""
         instance = self._make_one("test-family")
@@ -476,6 +534,15 @@ class TestDeleteFromRow:
         got_dict = instance._to_dict()
         assert list(got_dict.keys()) == ["delete_from_row"]
         assert len(got_dict["delete_from_row"].keys()) == 0
+
+    def test__to_pb(self):
+        """ensure proto representation is as expected"""
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        instance = self._make_one()
+        got_pb = instance._to_pb()
+        assert isinstance(got_pb, data_pb.Mutation)
+        assert "delete_from_row" in str(got_pb)
 
     def test_is_idempotent(self):
         """is_idempotent is always true"""
@@ -549,6 +616,23 @@ class TestRowMutationEntry:
         }
         assert instance._to_dict() == expected_result
         assert mutation_mock._to_dict.call_count == n_mutations
+
+    def test__to_pb(self):
+        from google.cloud.bigtable_v2.types.bigtable import MutateRowsRequest
+        from google.cloud.bigtable_v2.types.data import Mutation
+
+        expected_key = "row_key"
+        mutation_mock = mock.Mock()
+        n_mutations = 3
+        expected_mutations = [mutation_mock for i in range(n_mutations)]
+        for mock_mutations in expected_mutations:
+            mock_mutations._to_pb.return_value = Mutation()
+        instance = self._make_one(expected_key, expected_mutations)
+        pb_result = instance._to_pb()
+        assert isinstance(pb_result, MutateRowsRequest.Entry)
+        assert pb_result.row_key == b"row_key"
+        assert pb_result.mutations == [Mutation()] * n_mutations
+        assert mutation_mock._to_pb.call_count == n_mutations
 
     @pytest.mark.parametrize(
         "mutations,result",

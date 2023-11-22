@@ -19,8 +19,11 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from sys import getsizeof
 
+import google.cloud.bigtable_v2.types.bigtable as types_pb
+import google.cloud.bigtable_v2.types.data as data_pb
 
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
+
 
 # special value for SetCell mutation timestamps. If set, server will assign a timestamp
 _SERVER_SIDE_TIMESTAMP = -1
@@ -35,6 +38,12 @@ class Mutation(ABC):
     @abstractmethod
     def _to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
+
+    def _to_pb(self) -> data_pb.Mutation:
+        """
+        Convert the mutation to protobuf
+        """
+        return data_pb.Mutation(**self._to_dict())
 
     def is_idempotent(self) -> bool:
         """
@@ -220,6 +229,12 @@ class RowMutationEntry:
             "row_key": self.row_key,
             "mutations": [mutation._to_dict() for mutation in self.mutations],
         }
+
+    def _to_pb(self) -> types_pb.MutateRowsRequest.Entry:
+        return types_pb.MutateRowsRequest.Entry(
+            row_key=self.row_key,
+            mutations=[mutation._to_pb() for mutation in self.mutations],
+        )
 
     def is_idempotent(self) -> bool:
         """Check if the mutation is idempotent"""
