@@ -497,6 +497,8 @@ class TableAsync:
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
+        # NOTE: any changes to the signature of this method should also be reflected
+        # in client.get_table()
         # validate timeouts
         _validate_timeouts(
             default_operation_timeout, default_attempt_timeout, allow_none=True
