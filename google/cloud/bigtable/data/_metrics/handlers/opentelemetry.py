@@ -19,7 +19,10 @@ from google.api.monitored_resource_pb2 import MonitoredResource  # type: ignore
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
+from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
+from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
+from google.cloud.bigtable.data._metrics.data_model import DEFAULT_ZONE
 
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
@@ -112,25 +115,40 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
 
         self.op_latency.record(op.duration, labels)
         self.retry_count.add(len(op.completed_attempts) - 1, labels)
-        for attempt in op.completed_attempts:
-            # Update the metrics associated with a completed attempt:
-            #   - attempt_latencies
-            #   - first_response_latencies
-            #   - server_latencies
-            #   - connectivity_error_count
-            labels["status"] = attempt.end_status.value
 
-            self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
-            if (
-                op.op_type == OperationType.READ_ROWS
-                and attempt.first_response_latency is not None
-            ):
-                self.first_response_latency.record(
-                    attempt.first_response_latency, labels
-                )
-            if attempt.gfe_latency is not None:
-                self.server_latency.record(attempt.gfe_latency, labels)
-            else:
-                # gfe headers not attached. Record a connectivity error.
-                # TODO: this should not be recorded as an error when direct path is enabled
-                self.connectivity_error_count.add(1, labels)
+    def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric):
+        """
+        Update the metrics associated with a completed attempt:
+          - attempt_latencies
+          - first_response_latencies
+          - server_latencies
+          - connectivity_error_count
+        """
+        labels = {
+            "method": op.op_type.value,
+            "status": attempt.end_status.value,
+            "streaming": op.is_streaming,
+            **self.shared_labels,
+        }
+        monitored_resource = MonitoredResource(
+
+            type="bigtable_client_raw",
+            labels={"zone": op.zone or DEFAULT_ZONE, **self.monitored_resource_labels},
+        )
+        if op.cluster_id is not None:
+            monitored_resource.labels["cluster"] = op.cluster_id
+
+        self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
+        if (
+            op.op_type == OperationType.READ_ROWS
+            and attempt.first_response_latency is not None
+        ):
+            self.first_response_latency.record(
+                attempt.first_response_latency, labels
+            )
+        if attempt.gfe_latency is not None:
+            self.server_latency.record(attempt.gfe_latency, labels)
+        else:
+            # gfe headers not attached. Record a connectivity error.
+            # TODO: this should not be recorded as an error when direct path is enabled
+            self.connectivity_error_count.add(1, labels)

@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 LOGGER = logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
 
+DEFAULT_ZONE = "global"
+
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
 
@@ -233,6 +235,8 @@ class ActiveOperationMetric:
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt = None
+        for handler in self.handlers:
+            handler.on_attempt_complete(new_attempt, self)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         """
@@ -261,7 +265,7 @@ class ActiveOperationMetric:
             duration=time.monotonic() - self.start_time,
             final_status=final_status,
             cluster_id=self.cluster_id,
-            zone=self.zone or "global",
+            zone=self.zone or DEFAULT_ZONE,
             is_streaming=self.is_streaming,
         )
         for handler in self.handlers:
