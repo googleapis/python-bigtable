@@ -75,6 +75,7 @@ class TestMutateRowsOperation:
         """
         test that constructor sets all the attributes correctly
         """
+        from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
         from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
         from google.api_core.exceptions import DeadlineExceeded
         from google.api_core.exceptions import ServiceUnavailable
@@ -103,7 +104,8 @@ class TestMutateRowsOperation:
         assert str(table.table_name) in metadata[0][1]
         assert str(table.app_profile_id) in metadata[0][1]
         # entries should be passed down
-        assert instance.mutations == entries
+        entries_w_pb = [_EntryWithProto(e, e._to_pb()) for e in entries]
+        assert instance.mutations == entries_w_pb
         # timeout_gen should generate per-attempt timeout
         assert next(instance.timeout_generator) == attempt_timeout
         # ensure predicate is set
@@ -306,7 +308,7 @@ class TestMutateRowsOperation:
         assert mock_gapic_fn.call_count == 1
         _, kwargs = mock_gapic_fn.call_args
         assert kwargs["timeout"] == expected_timeout
-        assert kwargs["entries"] == [mutation._to_dict()]
+        assert kwargs["entries"] == [mutation._to_pb()]
 
     @pytest.mark.asyncio
     async def test_run_attempt_empty_request(self):
