@@ -291,7 +291,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -382,7 +384,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -495,7 +499,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -602,7 +608,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -753,7 +761,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -843,7 +853,9 @@ class BigtableAsyncClient:
 
         # Certain fields should be provided within the metadata header;
         # add these here.
-        metadata = tuple(metadata) + (_cached_to_metadata((("name", request.name),)),)
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("name", request.name),)),
+        )
 
         # Send the request.
         response = await rpc(
@@ -962,7 +974,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -1067,7 +1081,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -1164,7 +1180,9 @@ class BigtableAsyncClient:
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
-            _cached_to_metadata((("table_name", request.table_name),)),
+            gapic_v1.routing_header.to_grpc_metadata(
+                (("table_name", request.table_name),)
+            ),
         )
 
         # Send the request.
@@ -1188,13 +1206,6 @@ class BigtableAsyncClient:
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
-
-
-@functools.lru_cache(32)
-def _cached_to_metadata(params, qualified_enums=True):
-    return gapic_v1.routing_header.to_grpc_metadata(
-        params, qualified_enums=qualified_enums
-    )
 
 
 __all__ = ("BigtableAsyncClient",)
