@@ -205,7 +205,7 @@ class _MutateRowsOperationAsync:
                     await result_generator.trailing_metadata()
                     + await result_generator.initial_metadata()
                 )
-                self._operation_metrics.add_call_metadata(metadata)
+                self._operation_metrics.add_response_metadata(metadata)
         except asyncio.CancelledError:
             # when retry wrapper timeout expires, the operation is cancelled
             # make sure incomplete indices are tracked,

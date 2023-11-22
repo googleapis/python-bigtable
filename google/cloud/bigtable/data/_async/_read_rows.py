@@ -208,7 +208,7 @@ class _ReadRowsOperationAsync:
             call.cancel()
             # send trailing metadata to metrics
             metadata = await call.trailing_metadata() + await call.initial_metadata()
-            self._operation_metrics.add_call_metadata(metadata)
+            self._operation_metrics.add_response_metadata(metadata)
 
     @staticmethod
     async def merge_rows(
