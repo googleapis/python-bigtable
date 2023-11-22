@@ -652,6 +652,7 @@ class TestActiveOperationMetric:
         assert len(metric.completed_attempts) == 1
         assert metric.completed_attempts[0].end_status == StatusCode.OK
 
+
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_success_extract_call_metadata(self):
         """
@@ -680,25 +681,39 @@ class TestActiveOperationMetric:
         When extract_call_metadata is True, should call add_call_metadata
         on operation with output of wrapped function, even if failed
         """
+        mock_call = mock.AsyncMock()
+        mock_call.trailing_metadata.return_value = 3
+        mock_call.initial_metadata.return_value = 4
+        inner_fn = lambda *args, **kwargs: mock_call  # noqa
         metric = self._make_one(object())
         async with metric as context:
-            mock_call = mock.AsyncMock()
-            mock_call.trailing_metadata.return_value = 3
-            mock_call.initial_metadata.return_value = 4
-            inner_fn = lambda *args, **kwargs: mock_call  # noqa
             wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
             with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
-                # make the wrapped call
-                try:
+                # make the wrapped call. expect exception when awaiting on mock_call
+                with pytest.raises(TypeError):
                     await wrapped_fn()
-                except TypeError:
-                    # expect exception when awaiting on mock_call
-                    pass
                 assert mock_add_metadata.call_count == 1
                 assert mock_call.trailing_metadata.call_count == 1
                 assert mock_call.initial_metadata.call_count == 1
                 assert mock_add_metadata.call_args[0][0] == 3 + 4
 
+    async def test_wrap_attempt_fn_failed_extract_call_metadata_no_mock(self):
+        """
+        Make sure the metadata is accessible after a failed attempt
+        """
+        import grpc
+        mock_call = mock.AsyncMock()
+        mock_call.trailing_metadata.return_value = grpc.aio.Metadata()
+        mock_call.initial_metadata.return_value = grpc.aio.Metadata(("server-timing", "gfet4t7; dur=5000"))
+        inner_fn = lambda *args, **kwargs: mock_call  # noqa
+        metric = self._make_one(object())
+        async with metric as context:
+            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
+            with pytest.raises(TypeError):
+                await wrapped_fn()
+            assert metric.active_attempt is None
+            assert len(metric.completed_attempts) == 1
+            assert metric.completed_attempts[0].gfe_latency == 5
 
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_attempt(self):

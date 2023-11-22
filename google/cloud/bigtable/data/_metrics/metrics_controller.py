@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-import time
 import os
 
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
@@ -77,7 +76,7 @@ class BigtableClientSideMetricsController:
         """
         new_op = ActiveOperationMetric(
             op_type=op_type,
-            _handlers=self.handlers,
+            handlers=self.handlers,
             is_streaming=is_streaming,
         )
         return new_op

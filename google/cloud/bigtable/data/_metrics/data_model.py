@@ -394,16 +394,15 @@ class ActiveOperationMetric:
                   grpc function, and will automatically extract trailing_metadata
                   from the Call object on success.
             """
-
             async def wrapped_fn(*args, **kwargs):
+                encountered_exc: Exception | None = None
                 call = None
                 self.operation.start_attempt()
                 try:
                     call = fn(*args, **kwargs)
                     return await call
                 except Exception as e:
-                    self.operation.end_attempt_with_status(e)
-                    # let higher layers choose to end operation or retry
+                    encountered_exc = e
                     raise
                 finally:
                     # capture trailing metadata
@@ -413,5 +412,8 @@ class ActiveOperationMetric:
                             + await call.initial_metadata()
                         )
                         self.operation.add_call_metadata(metadata)
+                    if encountered_exc is not None:
+                        # end attempt. Let higher levels decide when to end operation
+                        self.operation.end_attempt_with_status(encountered_exc)
 
             return wrapped_fn

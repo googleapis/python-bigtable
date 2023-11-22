@@ -1781,8 +1781,9 @@ class TestReadRowsSharded:
                 with mock.patch.object(
                     client._gapic_client, "read_rows", AsyncMock()
                 ) as read_rows:
+                    read_rows.return_value = mock_grpc_call()
                     await table.read_rows_sharded([ReadRowsQuery()])
-                kwargs = read_rows.call_args_list[0].kwargs
+                    kwargs = read_rows.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
@@ -1963,8 +1964,9 @@ class TestSampleRowKeys:
                 with mock.patch.object(
                     client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as read_rows:
+                    read_rows.return_value = self._make_gapic_stream([])
                     await table.sample_row_keys()
-                kwargs = read_rows.call_args_list[0].kwargs
+                    kwargs = read_rows.call_args_list[0].kwargs
                 metadata = kwargs["metadata"]
                 goog_metadata = None
                 for key, value in metadata:
