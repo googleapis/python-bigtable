@@ -17,7 +17,6 @@ import pytest
 import mock
 from uuid import UUID
 
-from google.cloud.bigtable.data._metrics.data_model import OperationType
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
 
 
@@ -602,3 +601,146 @@ class TestActiveOperationMetric:
             assert end_with_status_mock.call_args[0][0] == expected_exc
             assert len(end_with_status_mock.call_args[0]) == 1
 
+    @pytest.mark.asyncio
+    async def test_metadata_passthrough(self):
+        """
+        add_call_metadata in context manager should defer to wrapped operation
+        """
+        inner_result = object()
+        fake_metadata = object()
+
+        metric = self._make_one(mock.Mock())
+        with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+            mock_add_metadata.return_value = inner_result
+            async with metric as context:
+                result = context.add_call_metadata(fake_metadata)
+                assert result == inner_result
+                assert mock_add_metadata.call_count == 1
+                assert mock_add_metadata.call_args[0][0] == fake_metadata
+                assert len(mock_add_metadata.call_args[0]) == 1
+
+    @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_success(self):
+        """
+        Context manager's wrap_attempt_fn should wrap an arbitrary function
+        in operation instrumentation
+
+        Test successful call
+        - should return the result of the wrapped function
+        - should call end_with_success
+        """
+        from grpc import StatusCode
+        metric = self._make_one(object())
+        async with metric as context:
+            mock_call = mock.AsyncMock()
+            mock_args = (1, 2, 3)
+            mock_kwargs = {"a": 1, "b": 2}
+            inner_fn = lambda *args, **kwargs: mock_call(*args, **kwargs)  # noqa
+            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=False)
+            # make the wrapped call
+            result = await wrapped_fn(*mock_args, **mock_kwargs)
+            assert result == mock_call.return_value
+            assert mock_call.call_count == 1
+            assert mock_call.call_args[0] == mock_args
+            assert mock_call.call_args[1] == mock_kwargs
+            assert mock_call.await_count == 1
+            # operation should be still in progress after wrapped fn
+            # let context manager close it, in case we need to add metadata, etc
+            assert metric.state == State.ACTIVE_ATTEMPT
+        # make sure the operation is complete after exiting context manager
+        assert metric.state == State.COMPLETED
+        assert len(metric.completed_attempts) == 1
+        assert metric.completed_attempts[0].end_status == StatusCode.OK
+
+    @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_success_extract_call_metadata(self):
+        """
+        When extract_call_metadata is True, should call add_call_metadata
+        on operation with output of wrapped function
+        """
+        from .._async.test_client import mock_grpc_call
+
+        metric = self._make_one(object())
+        async with metric as context:
+            mock_call = mock_grpc_call()
+            inner_fn = lambda *args, **kwargs: mock_call  # noqa
+            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
+            with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+                # make the wrapped call
+                result = await wrapped_fn()
+                assert result == mock_call
+                assert mock_add_metadata.call_count == 1
+            # try again without mock
+            result = await wrapped_fn()
+            assert result == mock_call
+
+    @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_failed_extract_call_metadata(self):
+        """
+        When extract_call_metadata is True, should call add_call_metadata
+        on operation with output of wrapped function, even if failed
+        """
+        metric = self._make_one(object())
+        async with metric as context:
+            mock_call = mock.AsyncMock()
+            mock_call.trailing_metadata.return_value = 3
+            mock_call.initial_metadata.return_value = 4
+            inner_fn = lambda *args, **kwargs: mock_call  # noqa
+            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
+            with mock.patch.object(metric, "add_call_metadata") as mock_add_metadata:
+                # make the wrapped call
+                try:
+                    await wrapped_fn()
+                except TypeError:
+                    # expect exception when awaiting on mock_call
+                    pass
+                assert mock_add_metadata.call_count == 1
+                assert mock_call.trailing_metadata.call_count == 1
+                assert mock_call.initial_metadata.call_count == 1
+                assert mock_add_metadata.call_args[0][0] == 3 + 4
+
+
+    @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_failed_attempt(self):
+        """
+        failed attempts should call operation.end_attempt with error
+        """
+        from grpc import StatusCode
+        metric = self._make_one(object())
+        async with metric as context:
+            wrapped_fn = context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False)
+            # make the wrapped call. expect type error when awaiting response of mock
+            with pytest.raises(TypeError):
+                await wrapped_fn()
+            # should have one failed attempt, but operation still in progress
+            assert len(metric.completed_attempts) == 1
+            assert metric.state == State.BETWEEN_ATTEMPTS
+            assert metric.active_attempt is None
+            # unknown status from type error
+            assert metric.completed_attempts[0].end_status == StatusCode.UNKNOWN
+        # make sure operation is closed on end
+        assert metric.state == State.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_with_retry(self):
+        """
+        wrap_attampt_fn is meant to be used with retry object. Test using them together
+        """
+        from grpc import StatusCode
+        from google.api_core.retry_async import AsyncRetry
+        from google.api_core.exceptions import RetryError
+        metric = self._make_one(object())
+        with pytest.raises(RetryError):
+            # should eventually fail due to timeout
+            async with metric as context:
+                always_retry = lambda x: True  # noqa
+                retry_obj = AsyncRetry(predicate=always_retry, timeout=0.05, maximum=0.001)
+                # mock.Mock will fail on await
+                double_wrapped_fn = retry_obj(context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False))
+                await double_wrapped_fn()
+        # make sure operation ended with expected state
+        assert metric.state == State.COMPLETED
+        # we expect > 30 retries in 0.05 seconds
+        assert len(metric.completed_attempts) > 5
+        # unknown error due to TyperError
+        assert metric.completed_attempts[-1].end_status == StatusCode.UNKNOWN

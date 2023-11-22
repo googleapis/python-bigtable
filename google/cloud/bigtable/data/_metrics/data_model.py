@@ -375,12 +375,11 @@ class ActiveOperationMetric:
             """
             Pass through trailing metadata to the wrapped operation
             """
-            self.operation.add_call_metadata(metadata)
+            return self.operation.add_call_metadata(metadata)
 
         def wrap_attempt_fn(
             self,
             fn: Callable[..., Any],
-            retryable_predicate: Callable[[BaseException], bool] = lambda e: False,
             *,
             extract_call_metadata: bool = True,
         ) -> Callable[..., Any]:
@@ -391,8 +390,6 @@ class ActiveOperationMetric:
 
             Args:
               - fn: The function to wrap
-              - retryable_predicate: Tells us whether an exception is retryable.
-                  Should be the same predicate used in the retry.Retry wrapper
               - extract_call_metadata: If True, the call will be treated as a
                   grpc function, and will automatically extract trailing_metadata
                   from the Call object on success.
@@ -405,10 +402,9 @@ class ActiveOperationMetric:
                     call = fn(*args, **kwargs)
                     return await call
                 except Exception as e:
-                    if retryable_predicate(e):
-                        self.operation.end_attempt_with_status(e)
+                    self.operation.end_attempt_with_status(e)
+                    # let higher layers choose to end operation or retry
                     raise
-
                 finally:
                     # capture trailing metadata
                     if extract_call_metadata and call is not None:

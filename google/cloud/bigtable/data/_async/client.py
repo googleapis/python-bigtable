@@ -882,7 +882,7 @@ class TableAsync:
                 return samples
 
             metric_wrapped = operation.wrap_attempt_fn(
-                execute_rpc, predicate, extract_call_metadata=False
+                execute_rpc, extract_call_metadata=False
             )
             retry_wrapped = retry(metric_wrapped)
             deadline_wrapped = _convert_retry_deadline(
@@ -1013,7 +1013,7 @@ class TableAsync:
             OperationType.MUTATE_ROW
         ) as operation:
             metric_wrapped = operation.wrap_attempt_fn(
-                self.client._gapic_client.mutate_row, predicate
+                self.client._gapic_client.mutate_row
             )
             retry_wrapped = retry(metric_wrapped)
             # convert RetryErrors from retry wrapper into DeadlineExceeded errors

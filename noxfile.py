@@ -218,6 +218,7 @@ def default(session):
         "--cov-fail-under=0",
         os.path.join("tests", "unit"),
         *session.posargs,
+        env={"BIGTABLE_METRICS_EXCEPTIONS": "true"},
     )
 
 
