@@ -55,28 +55,29 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         from opentelemetry import metrics
 
         meter = metrics.get_meter(__name__)
-        self.op_latency = meter.create_histogram(
+        self.operation_latencies = meter.create_histogram(
             name="operation_latencies",
             description="A distribution of the latency of each client method call, across all of it's RPC attempts",
             unit="ms",
         )
-        self.first_response_latency = meter.create_histogram(
+        self.first_response_latencies = meter.create_histogram(
             name="first_response_latencies",
             description="A distribution of the latency of receiving the first row in a ReadRows operation.",
             unit="ms",
         )
-        self.attempt_latency = meter.create_histogram(
+        self.attempt_latencies = meter.create_histogram(
             name="attempt_latencies",
-            description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to op_latency. However, when the client receives transient errors, op_latency will be the sum of all attempt_latencies and the exponential delays.",
+            description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to operation_latencies. However, when the client receives transient errors, operation_latencies will be the sum of all attempt_latencies and the exponential delays.",
             unit="ms",
         )
         self.retry_count = meter.create_counter(
             name="retry_count",
             description="A count of additional RPCs sent after the initial attempt. Under normal circumstances, this will be 1.",
         )
-        self.server_latency = meter.create_histogram(
+        self.server_latencies = meter.create_histogram(
             name="server_latencies",
             description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
+            unit="ms",
         )
         self.connectivity_error_count = meter.create_counter(
             name="connectivity_error_count",
@@ -87,7 +88,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "client_uid": client_uid or str(uuid4()),
         }
         if app_profile_id:
-            self.shared_labels["bigtable_app_profile_id"] = app_profile_id
+            self.shared_labels["app_profile"] = app_profile_id
         self.monitored_resource_labels = {
             "project": project_id,
             "instance": instance_id,
@@ -113,7 +114,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
-        self.op_latency.record(op.duration, labels)
+        self.operation_latencies.record(op.duration, labels)
         self.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric):
@@ -131,23 +132,22 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             **self.shared_labels,
         }
         monitored_resource = MonitoredResource(
-
             type="bigtable_client_raw",
             labels={"zone": op.zone or DEFAULT_ZONE, **self.monitored_resource_labels},
         )
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
-        self.attempt_latency.record(attempt.end_time-attempt.start_time, labels)
+        self.attempt_latencies.record(attempt.end_time-attempt.start_time, labels)
         if (
             op.op_type == OperationType.READ_ROWS
             and attempt.first_response_latency is not None
         ):
-            self.first_response_latency.record(
+            self.first_response_latencies.record(
                 attempt.first_response_latency, labels
             )
         if attempt.gfe_latency is not None:
-            self.server_latency.record(attempt.gfe_latency, labels)
+            self.server_latencies.record(attempt.gfe_latency, labels)
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
