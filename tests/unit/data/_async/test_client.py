@@ -1024,6 +1024,8 @@ class TestTableAsync:
         from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1077,6 +1079,10 @@ class TestTableAsync:
             table.default_mutate_rows_attempt_timeout
             == expected_mutate_rows_attempt_timeout
         )
+        # check metrics object
+        assert isinstance(client._metrics, BigtableClientSideMetricsController)
+        assert len(client._metrics.handlers) == 1
+        assert isinstance(client._metrics.handlers[0], OpenTelemetryMetricsHandler)
         # ensure task reaches completion
         await table._register_instance_task
         assert table._register_instance_task.done()
