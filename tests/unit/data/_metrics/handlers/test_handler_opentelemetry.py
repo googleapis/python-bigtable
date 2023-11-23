@@ -20,6 +20,18 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 
+class Test_OpenTelemetryInstrumentSingleton:
+
+    def test_singleton(self):
+        """
+        Should be able to create multiple instances that map to the same singleton
+        """
+        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentSingleton
+        instance1 = _OpenTelemetryInstrumentSingleton()
+        instance2 = _OpenTelemetryInstrumentSingleton()
+        assert instance1 is instance2
+
+
 class TestOpenTelemetryMetricsHandler:
 
     def setup_otel(self):
@@ -54,8 +66,10 @@ class TestOpenTelemetryMetricsHandler:
         """
         from opentelemetry.metrics import Counter
         from opentelemetry.metrics import Histogram
+        from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
         instance = self._make_one()
-        metric = getattr(instance, metric_name)
+        assert instance.otel is OpenTelemetryMetricsHandler()
+        metric = getattr(instance.otel, metric_name)
         assert metric.name == metric_name
         if kind == "counter":
             assert isinstance(metric, Counter)
@@ -129,7 +143,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(expected_op_type, is_streaming=expected_streaming)
 
         instance = self._make_one()
-        metric = getattr(instance, metric_name)
+        metric = getattr(instance.otel, metric_name)
         record_fn = "record" if kind == "histogram" else "add"
         with mock.patch.object(metric, record_fn) as record:
             instance.on_attempt_complete(attempt, op)
@@ -167,7 +181,7 @@ class TestOpenTelemetryMetricsHandler:
             is_streaming=expected_streaming,
         )
         instance = self._make_one()
-        metric = getattr(instance, metric_name)
+        metric = getattr(instance.otel, metric_name)
         record_fn = "record" if kind == "histogram" else "add"
         with mock.patch.object(metric, record_fn) as record:
             instance.on_operation_complete(op)
@@ -191,7 +205,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
-        with mock.patch.object(instance.attempt_latencies, "record") as record:
+        with mock.patch.object(instance.otel.attempt_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_latency
@@ -206,7 +220,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(OperationType.READ_ROWS)
 
         instance = self._make_one()
-        with mock.patch.object(instance.first_response_latencies, "record") as record:
+        with mock.patch.object(instance.otel.first_response_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_first_response_latency
@@ -220,7 +234,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
-        with mock.patch.object(instance.server_latencies, "record") as record:
+        with mock.patch.object(instance.otel.server_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_latency
@@ -234,7 +248,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
-        with mock.patch.object(instance.connectivity_error_count, "add") as add:
+        with mock.patch.object(instance.otel.connectivity_error_count, "add") as add:
             instance.on_attempt_complete(attempt, op)
             assert add.call_count == 1
             assert add.call_args[0][0] == 1
@@ -256,7 +270,7 @@ class TestOpenTelemetryMetricsHandler:
         )
 
         instance = self._make_one()
-        with mock.patch.object(instance.operation_latencies, "record") as record:
+        with mock.patch.object(instance.otel.operation_latencies, "record") as record:
             instance.on_operation_complete(op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_latency
@@ -280,7 +294,7 @@ class TestOpenTelemetryMetricsHandler:
         )
 
         instance = self._make_one()
-        with mock.patch.object(instance.retry_count, "add") as add:
+        with mock.patch.object(instance.otel.retry_count, "add") as add:
             instance.on_operation_complete(op)
             assert add.call_count == 1
             assert add.call_args[0][0] == expected_count

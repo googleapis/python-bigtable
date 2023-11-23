@@ -24,34 +24,17 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import DEFAULT_ZONE
 
-
-class OpenTelemetryMetricsHandler(MetricsHandler):
+class _OpenTelemetryInstrumentSingleton:
     """
-    Maintains a set of OpenTelemetry metrics for the Bigtable client library,
-    and updates them with each completed operation and attempt.
-
-    The OpenTelemetry metrics that are tracked are as follows:
-      - operation_latencies: latency of each client method call, over all of it's attempts.
-      - first_response_latencies: latency of receiving the first row in a ReadRows operation.
-      - attempt_latencies: latency of each client attempt RPC.
-      - retry_count: Number of additional RPCs sent after the initial attempt.
-      - server_latencies: latency recorded on the server side for each attempt.
-      - connectivity_error_count: number of attempts that failed to reach Google's network.
-      - application_latencies: the time spent waiting for the application to process the next response.
-      - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
+    Singleton class that holds OpenTelelmetry instrument objects,
+    so that multiple Tables can write to the same metrics.
     """
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(_OpenTelemetryInstrumentSingleton, cls).__new__(cls)
+        return cls.instance
 
-    def __init__(
-        self,
-        *,
-        project_id: str,
-        instance_id: str,
-        table_id: str,
-        app_profile_id: str | None,
-        client_uid: str | None = None,
-        **kwargs,
-    ):
-        super().__init__()
+    def __init__(self):
         from opentelemetry import metrics
 
         meter = metrics.get_meter(__name__)
@@ -83,12 +66,45 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             name="connectivity_error_count",
             description="A count of the number of attempts that failed to reach Google's network.",
         )
+
+class OpenTelemetryMetricsHandler(MetricsHandler):
+    """
+    Maintains a set of OpenTelemetry metrics for the Bigtable client library,
+    and updates them with each completed operation and attempt.
+
+    The OpenTelemetry metrics that are tracked are as follows:
+      - operation_latencies: latency of each client method call, over all of it's attempts.
+      - first_response_latencies: latency of receiving the first row in a ReadRows operation.
+      - attempt_latencies: latency of each client attempt RPC.
+      - retry_count: Number of additional RPCs sent after the initial attempt.
+      - server_latencies: latency recorded on the server side for each attempt.
+      - connectivity_error_count: number of attempts that failed to reach Google's network.
+      - application_latencies: the time spent waiting for the application to process the next response.
+      - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
+    """
+
+    def __init__(
+        self,
+        *,
+        project_id: str,
+        instance_id: str,
+        table_id: str,
+        app_profile_id: str | None,
+        client_uid: str | None = None,
+        **kwargs,
+    ):
+        super().__init__()
+        # otel singleton holds shared instruments
+        self.otel = _OpenTelemetryInstrumentSingleton()
+
+        # fixed labels sent with each metric update
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
             "client_uid": client_uid or str(uuid4()),
         }
         if app_profile_id:
             self.shared_labels["app_profile"] = app_profile_id
+        # fixed labels for monitored resource associated with table
         self.monitored_resource_labels = {
             "project": project_id,
             "instance": instance_id,
@@ -114,8 +130,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
-        self.operation_latencies.record(op.duration, labels)
-        self.retry_count.add(len(op.completed_attempts) - 1, labels)
+        self.otel.operation_latencies.record(op.duration, labels)
+        self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric):
         """
@@ -138,17 +154,17 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         if op.cluster_id is not None:
             monitored_resource.labels["cluster"] = op.cluster_id
 
-        self.attempt_latencies.record(attempt.end_time-attempt.start_time, labels)
+        self.otel.attempt_latencies.record(attempt.end_time-attempt.start_time, labels)
         if (
             op.op_type == OperationType.READ_ROWS
             and attempt.first_response_latency is not None
         ):
-            self.first_response_latencies.record(
+            self.otel.first_response_latencies.record(
                 attempt.first_response_latency, labels
             )
         if attempt.gfe_latency is not None:
-            self.server_latencies.record(attempt.gfe_latency, labels)
+            self.otel.server_latencies.record(attempt.gfe_latency, labels)
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.connectivity_error_count.add(1, labels)
+            self.otel.connectivity_error_count.add(1, labels)
