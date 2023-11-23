@@ -34,8 +34,6 @@ class TestActiveOperationMetric:
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
         assert metric.start_time - time.monotonic() < 0.1
-        assert metric.op_id is not None
-        assert isinstance(metric.op_id, UUID)
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -50,7 +48,6 @@ class TestActiveOperationMetric:
         """
         expected_type = mock.Mock()
         expected_start_time = 12
-        expected_op_id = 5
         expected_active_attempt = mock.Mock()
         expected_cluster_id = "cluster"
         expected_zone = "zone"
@@ -61,7 +58,6 @@ class TestActiveOperationMetric:
         metric = self._make_one(
             op_type=expected_type,
             start_time=expected_start_time,
-            op_id=expected_op_id,
             active_attempt=expected_active_attempt,
             cluster_id=expected_cluster_id,
             zone=expected_zone,
@@ -72,7 +68,6 @@ class TestActiveOperationMetric:
         )
         assert metric.op_type == expected_type
         assert metric.start_time == expected_start_time
-        assert metric.op_id == expected_op_id
         assert metric.active_attempt == expected_active_attempt
         assert metric.cluster_id == expected_cluster_id
         assert metric.zone == expected_zone
@@ -390,7 +385,6 @@ class TestActiveOperationMetric:
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
             assert called_with.start_time == expected_start_time
-            assert called_with.op_id == metric.op_id
             assert time.monotonic() - called_with.duration < 0.001
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster

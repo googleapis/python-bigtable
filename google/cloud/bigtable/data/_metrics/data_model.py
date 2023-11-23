@@ -87,7 +87,6 @@ class CompletedOperationMetric:
     op_type: OperationType
     start_time: float
     duration: float
-    op_id: UUID
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
     cluster_id: str | None
@@ -114,7 +113,6 @@ class ActiveOperationMetric:
 
     op_type: OperationType
     start_time: float = field(default_factory=time.monotonic)
-    op_id: UUID = field(default_factory=uuid4)
     active_attempt: ActiveAttemptMetric | None = None
     cluster_id: str | None = None
     zone: str | None = None
@@ -260,7 +258,6 @@ class ActiveOperationMetric:
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
             start_time=self.start_time,
-            op_id=self.op_id,
             completed_attempts=self.completed_attempts,
             duration=time.monotonic() - self.start_time,
             final_status=final_status,
