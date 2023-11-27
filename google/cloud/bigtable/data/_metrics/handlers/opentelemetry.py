@@ -21,7 +21,7 @@ from google.cloud.bigtable.data._metrics.data_model import OperationType
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
-from google.cloud.bigtable.data._metrics.data_model import DEFAULT_ZONE
+
 
 class _OpenTelemetryInstrumentSingleton:
     """
@@ -103,7 +103,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
         if app_profile_id:
             self.shared_labels["app_profile"] = app_profile_id
-
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         """

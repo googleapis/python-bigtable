@@ -37,6 +37,7 @@ ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 LOGGER = logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
 
 DEFAULT_ZONE = "global"
+DEFAULT_CLUSTER_ID = "unspecified"
 
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
@@ -89,7 +90,7 @@ class CompletedOperationMetric:
     duration: float
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
-    cluster_id: str | None
+    cluster_id: str
     zone: str
     is_streaming: bool
 
@@ -261,7 +262,7 @@ class ActiveOperationMetric:
             completed_attempts=self.completed_attempts,
             duration=time.monotonic() - self.start_time,
             final_status=final_status,
-            cluster_id=self.cluster_id,
+            cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
             is_streaming=self.is_streaming,
         )
