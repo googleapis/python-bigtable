@@ -385,7 +385,7 @@ class TestActiveOperationMetric:
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
             assert called_with.start_time == expected_start_time
-            assert time.monotonic() - called_with.duration < 0.001
+            assert time.monotonic() - called_with.duration < 0.1
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone

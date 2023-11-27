@@ -66,9 +66,9 @@ class TestOpenTelemetryMetricsHandler:
         """
         from opentelemetry.metrics import Counter
         from opentelemetry.metrics import Histogram
-        from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
+        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentSingleton
         instance = self._make_one()
-        assert instance.otel is OpenTelemetryMetricsHandler()
+        assert instance.otel is _OpenTelemetryInstrumentSingleton()
         metric = getattr(instance.otel, metric_name)
         assert metric.name == metric_name
         if kind == "counter":
@@ -79,8 +79,7 @@ class TestOpenTelemetryMetricsHandler:
 
     def test_ctor_labels(self):
         """
-        should create dicts with with client name and uid,
-        and monitored resurce labels
+        should create dicts with with client name and uid, and shared labels
         """
         from google.cloud.bigtable import __version__
         expected_project = "p"
@@ -101,10 +100,15 @@ class TestOpenTelemetryMetricsHandler:
         assert instance.shared_labels["app_profile"] == expected_app_profile
         assert len(instance.shared_labels) == 3
 
-        assert instance.monitored_resource_labels["project"] == expected_project
-        assert instance.monitored_resource_labels["instance"] == expected_instance
-        assert instance.monitored_resource_labels["table"] == expected_table
-        assert len(instance.monitored_resource_labels) == 3
+    def test_ctor_shared_otel_singleton(self):
+        """
+        Two instances should be writing to the same metrics
+        """
+        instance1 = self._make_one()
+        instance2 = self._make_one()
+        assert instance1 is not instance2
+        assert instance1.otel is instance2.otel
+        assert instance1.otel.attempt_latencies is instance2.otel.attempt_latencies
 
     def ctor_defaults(self):
         """
