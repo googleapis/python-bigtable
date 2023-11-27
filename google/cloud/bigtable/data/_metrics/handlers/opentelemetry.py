@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from google.api.monitored_resource_pb2 import MonitoredResource  # type: ignore
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
@@ -104,12 +103,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
         if app_profile_id:
             self.shared_labels["app_profile"] = app_profile_id
-        # fixed labels for monitored resource associated with table
-        self.monitored_resource_labels = {
-            "project": project_id,
-            "instance": instance_id,
-            "table": table_id,
-        }
+
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         """
@@ -123,12 +117,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "streaming": op.is_streaming,
             **self.shared_labels,
         }
-        monitored_resource = MonitoredResource(
-            type="bigtable_client_raw",
-            labels={"zone": op.zone, **self.monitored_resource_labels},
-        )
-        if op.cluster_id is not None:
-            monitored_resource.labels["cluster"] = op.cluster_id
 
         self.otel.operation_latencies.record(op.duration, labels)
         self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
@@ -147,12 +135,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "streaming": op.is_streaming,
             **self.shared_labels,
         }
-        monitored_resource = MonitoredResource(
-            type="bigtable_client_raw",
-            labels={"zone": op.zone or DEFAULT_ZONE, **self.monitored_resource_labels},
-        )
-        if op.cluster_id is not None:
-            monitored_resource.labels["cluster"] = op.cluster_id
 
         self.otel.attempt_latencies.record(attempt.end_time-attempt.start_time, labels)
         if (
