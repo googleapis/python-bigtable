@@ -1018,7 +1018,7 @@ class TableAsync:
             metadata = _make_metadata(self.table_name, self.app_profile_id)
             # trigger rpc
             await deadline_wrapped(
-                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                row_key=row_key.encode() if isinstance(row_key, str) else row_key,
                 mutations=[mutation._to_pb() for mutation in mutations_list],
                 table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
@@ -1141,7 +1141,7 @@ class TableAsync:
                 true_mutations=true_case_list,
                 false_mutations=false_case_list,
                 predicate_filter=predicate._to_pb() if predicate is not None else None,
-                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                row_key=row_key.encode() if isinstance(row_key, str) else row_key,
                 table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
                 metadata=metadata,
@@ -1199,7 +1199,7 @@ class TableAsync:
 
             result = await metric_wrapped(
                 rules=[rule._to_pb() for rule in rules],
-                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                row_key=row_key.encode() if isinstance(row_key, str) else row_key,
                 table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
                 metadata=metadata,

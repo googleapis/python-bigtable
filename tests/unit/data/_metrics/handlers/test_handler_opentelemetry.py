@@ -21,52 +21,66 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMet
 
 
 class Test_OpenTelemetryInstrumentSingleton:
-
     def test_singleton(self):
         """
         Should be able to create multiple instances that map to the same singleton
         """
-        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentSingleton
+        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
+            _OpenTelemetryInstrumentSingleton,
+        )
+
         instance1 = _OpenTelemetryInstrumentSingleton()
         instance2 = _OpenTelemetryInstrumentSingleton()
         assert instance1 is instance2
 
 
 class TestOpenTelemetryMetricsHandler:
-
     def setup_otel(self):
         """
         Create a concrete MeterProvider in the environment
         """
         from opentelemetry import metrics
         from opentelemetry.sdk.metrics import MeterProvider
+
         metrics.set_meter_provider(MeterProvider())
 
     def _make_one(self, **kwargs):
         from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
+
         if not kwargs:
             # create defaults
-            kwargs = {"project_id": "p", "instance_id": "i", "table_id": "t", "app_profile_id": "a"}
+            kwargs = {
+                "project_id": "p",
+                "instance_id": "i",
+                "table_id": "t",
+                "app_profile_id": "a",
+            }
         self.setup_otel()
         return OpenTelemetryMetricsHandler(**kwargs)
 
-    @pytest.mark.parametrize("metric_name,kind", [
-        ("operation_latencies", "histogram"),
-        ("first_response_latencies", "histogram"),
-        ("attempt_latencies", "histogram"),
-        ("retry_count", "count"),
-        ("server_latencies", "histogram"),
-        ("connectivity_error_count", "count"),
-        # ("application_latencies", "histogram"),
-        # ("throttling_latencies", "histogram"),
-    ])
+    @pytest.mark.parametrize(
+        "metric_name,kind",
+        [
+            ("operation_latencies", "histogram"),
+            ("first_response_latencies", "histogram"),
+            ("attempt_latencies", "histogram"),
+            ("retry_count", "count"),
+            ("server_latencies", "histogram"),
+            ("connectivity_error_count", "count"),
+            # ("application_latencies", "histogram"),
+            # ("throttling_latencies", "histogram"),
+        ],
+    )
     def test_ctor_creates_metrics(self, metric_name, kind):
         """
         Make sure each expected metric is created
         """
         from opentelemetry.metrics import Counter
         from opentelemetry.metrics import Histogram
-        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentSingleton
+        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
+            _OpenTelemetryInstrumentSingleton,
+        )
+
         instance = self._make_one()
         assert instance.otel is _OpenTelemetryInstrumentSingleton()
         metric = getattr(instance.otel, metric_name)
@@ -82,6 +96,7 @@ class TestOpenTelemetryMetricsHandler:
         should create dicts with with client name and uid, and shared labels
         """
         from google.cloud.bigtable import __version__
+
         expected_project = "p"
         expected_instance = "i"
         expected_table = "t"
@@ -125,25 +140,35 @@ class TestOpenTelemetryMetricsHandler:
         assert "app_profile" not in instance.shared_labels
         assert len(instance.shared_labels) == 2
 
-    @pytest.mark.parametrize("metric_name,kind", [
-        ("first_response_latencies", "histogram"),
-        ("attempt_latencies", "histogram"),
-        ("server_latencies", "histogram"),
-        ("connectivity_error_count", "count"),
-        # ("application_latencies", "histogram"),
-        # ("throttling_latencies", "histogram"),
-    ])
+    @pytest.mark.parametrize(
+        "metric_name,kind",
+        [
+            ("first_response_latencies", "histogram"),
+            ("attempt_latencies", "histogram"),
+            ("server_latencies", "histogram"),
+            ("connectivity_error_count", "count"),
+            # ("application_latencies", "histogram"),
+            # ("throttling_latencies", "histogram"),
+        ],
+    )
     def test_attempt_update_labels(self, metric_name, kind):
         """
         test that each attempt metric is sending the set of expected labels
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
+
         expected_op_type = OperationType.READ_ROWS
         expected_status = mock.Mock()
         expected_streaming = mock.Mock()
         # server_latencies only shows up if gfe_latency is set
         gfe_latency = 1 if metric_name == "server_latencies" else None
-        attempt = CompletedAttemptMetric(start_time=0, end_time=1, end_status=expected_status,gfe_latency=gfe_latency,first_response_latency=1)
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            end_time=1,
+            end_status=expected_status,
+            gfe_latency=gfe_latency,
+            first_response_latency=1,
+        )
         op = ActiveOperationMetric(expected_op_type, is_streaming=expected_streaming)
 
         instance = self._make_one()
@@ -162,15 +187,19 @@ class TestOpenTelemetryMetricsHandler:
                 assert k in found_labels
                 assert found_labels[k] == instance.shared_labels[k]
 
-    @pytest.mark.parametrize("metric_name,kind", [
-        ("operation_latencies", "histogram"),
-        ("retry_count", "count"),
-    ])
+    @pytest.mark.parametrize(
+        "metric_name,kind",
+        [
+            ("operation_latencies", "histogram"),
+            ("retry_count", "count"),
+        ],
+    )
     def test_operation_update_labels(self, metric_name, kind):
         """
         test that each operation metric is sending the set of expected labels
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
+
         expected_op_type = OperationType.READ_ROWS
         expected_status = mock.Mock()
         expected_streaming = mock.Mock()
@@ -205,7 +234,9 @@ class TestOpenTelemetryMetricsHandler:
         update attempt_latencies on attempt completion
         """
         expected_latency = 123
-        attempt = CompletedAttemptMetric(start_time=0, end_time=expected_latency, end_status=mock.Mock())
+        attempt = CompletedAttemptMetric(
+            start_time=0, end_time=expected_latency, end_status=mock.Mock()
+        )
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
@@ -219,12 +250,20 @@ class TestOpenTelemetryMetricsHandler:
         update first_response_latency on attempt completion
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
+
         expected_first_response_latency = 123
-        attempt = CompletedAttemptMetric(start_time=0, end_time=1, end_status=mock.Mock(), first_response_latency=expected_first_response_latency)
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            end_time=1,
+            end_status=mock.Mock(),
+            first_response_latency=expected_first_response_latency,
+        )
         op = ActiveOperationMetric(OperationType.READ_ROWS)
 
         instance = self._make_one()
-        with mock.patch.object(instance.otel.first_response_latencies, "record") as record:
+        with mock.patch.object(
+            instance.otel.first_response_latencies, "record"
+        ) as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_first_response_latency
@@ -234,7 +273,12 @@ class TestOpenTelemetryMetricsHandler:
         update server_latency on attempt completion
         """
         expected_latency = 456
-        attempt = CompletedAttemptMetric(start_time=0, end_time=expected_latency, end_status=mock.Mock(), gfe_latency=expected_latency)
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            end_time=expected_latency,
+            end_status=mock.Mock(),
+            gfe_latency=expected_latency,
+        )
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
@@ -248,7 +292,9 @@ class TestOpenTelemetryMetricsHandler:
         update connectivity_error_count on attempt completion
         """
         # error connectivity is logged when gfe_latency is None
-        attempt = CompletedAttemptMetric(start_time=0, end_time=1, end_status=mock.Mock(), gfe_latency=None)
+        attempt = CompletedAttemptMetric(
+            start_time=0, end_time=1, end_status=mock.Mock(), gfe_latency=None
+        )
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()

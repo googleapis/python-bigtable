@@ -1024,7 +1024,9 @@ class TestTableAsync:
         from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
-        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
         from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
 
         expected_table_id = "table-id"

@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Any, TYPE_CHECKING
+from typing import Callable, Any, cast, TYPE_CHECKING
 
 import time
 import os
@@ -21,7 +21,6 @@ import re
 import logging
 
 from enum import Enum
-from uuid import uuid4
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
@@ -29,12 +28,13 @@ from grpc import StatusCode
 import google.cloud.bigtable.data.exceptions as bt_exceptions
 
 if TYPE_CHECKING:
-    from uuid import UUID
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
-LOGGER = logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
+LOGGER = (
+    logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
+)
 
 DEFAULT_ZONE = "global"
 DEFAULT_CLUSTER_ID = "unspecified"
@@ -60,6 +60,7 @@ class OperationType(Enum):
 
 class OperationState(Enum):
     """Enum for the state of the active operation."""
+
     CREATED = 0
     ACTIVE_ATTEMPT = 1
     BETWEEN_ATTEMPTS = 2
@@ -153,8 +154,13 @@ class ActiveOperationMetric:
         If the operation was completed or there is already an active attempt,
         will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
         """
-        if self.state != OperationState.BETWEEN_ATTEMPTS and self.state != OperationState.CREATED:
-            return self._handle_error(INVALID_STATE_ERROR.format("start_attempt", self.state))
+        if (
+            self.state != OperationState.BETWEEN_ATTEMPTS
+            and self.state != OperationState.CREATED
+        ):
+            return self._handle_error(
+                INVALID_STATE_ERROR.format("start_attempt", self.state)
+            )
 
         self.active_attempt = ActiveAttemptMetric()
 
@@ -171,10 +177,13 @@ class ActiveOperationMetric:
           - metadata: the metadata as extracted from the grpc call
         """
         if self.state != OperationState.ACTIVE_ATTEMPT:
-            return self._handle_error(INVALID_STATE_ERROR.format("add_response_metadata", self.state))
+            return self._handle_error(
+                INVALID_STATE_ERROR.format("add_response_metadata", self.state)
+            )
 
         if self.cluster_id is None or self.zone is None:
-            bigtable_metadata = metadata.get(BIGTABLE_METADATA_KEY)
+            # BIGTABLE_METADATA_KEY should give a binary string with cluster_id and zone
+            bigtable_metadata = cast(bytes, metadata.get(BIGTABLE_METADATA_KEY))
             if bigtable_metadata:
                 try:
                     decoded = "".join(
@@ -185,11 +194,14 @@ class ActiveOperationMetric:
                     self.cluster_id = split_data[0]
                     self.zone = split_data[1]
                 except (AttributeError, IndexError):
-                    self._handle_error(f"Failed to decode {BIGTABLE_METADATA_KEY} metadata: {bigtable_metadata}")
-        timing_header = metadata.get(SERVER_TIMING_METADATA_KEY)
+                    self._handle_error(
+                        f"Failed to decode {BIGTABLE_METADATA_KEY} metadata: {bigtable_metadata!r}"
+                    )
+        # SERVER_TIMING_METADATA_KEY should give a string with the server-latency headers
+        timing_header = cast(str, metadata.get(SERVER_TIMING_METADATA_KEY))
         if timing_header:
             timing_data = SERVER_TIMING_REGEX.match(timing_header)
-            if timing_data:
+            if timing_data and self.active_attempt:
                 # convert from milliseconds to seconds
                 self.active_attempt.gfe_latency = float(timing_data.group(1)) / 1000
 
@@ -202,9 +214,11 @@ class ActiveOperationMetric:
         active attempt already has a first response time, will raise an
         exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
         """
-        if self.state != OperationState.ACTIVE_ATTEMPT:
-            return self._handle_error(INVALID_STATE_ERROR.format("attempt_first_response", self.state))
-        elif self.active_attempt.first_response_latency is not None:
+        if self.state != OperationState.ACTIVE_ATTEMPT or self.active_attempt is None:
+            return self._handle_error(
+                INVALID_STATE_ERROR.format("attempt_first_response", self.state)
+            )
+        if self.active_attempt.first_response_latency is not None:
             return self._handle_error("Attempt already received first response")
         self.active_attempt.first_response_latency = (
             time.monotonic() - self.active_attempt.start_time
@@ -220,8 +234,10 @@ class ActiveOperationMetric:
         Args:
           - status: The status of the attempt.
         """
-        if self.state != OperationState.ACTIVE_ATTEMPT:
-            return self._handle_error(INVALID_STATE_ERROR.format("end_attempt_with_status", self.state))
+        if self.state != OperationState.ACTIVE_ATTEMPT or self.active_attempt is None:
+            return self._handle_error(
+                INVALID_STATE_ERROR.format("end_attempt_with_status", self.state)
+            )
 
         new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt.start_time,
@@ -251,8 +267,12 @@ class ActiveOperationMetric:
           - status: The status of the operation.
         """
         if self.state == OperationState.COMPLETED:
-            return self._handle_error(INVALID_STATE_ERROR.format("end_with_status", self.state))
-        final_status = self._exc_to_status(status) if isinstance(status, Exception) else status
+            return self._handle_error(
+                INVALID_STATE_ERROR.format("end_with_status", self.state)
+            )
+        final_status = (
+            self._exc_to_status(status) if isinstance(status, Exception) else status
+        )
         if self.state == OperationState.ACTIVE_ATTEMPT:
             self.end_attempt_with_status(final_status)
         self.was_completed = True
@@ -396,6 +416,7 @@ class ActiveOperationMetric:
                   grpc function, and will automatically extract trailing_metadata
                   from the Call object on success.
             """
+
             async def wrapped_fn(*args, **kwargs):
                 encountered_exc: Exception | None = None
                 call = None

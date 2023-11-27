@@ -28,8 +28,9 @@ class _OpenTelemetryInstrumentSingleton:
     Singleton class that holds OpenTelelmetry instrument objects,
     so that multiple Tables can write to the same metrics.
     """
+
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, "instance"):
             cls.instance = super(_OpenTelemetryInstrumentSingleton, cls).__new__(cls)
         return cls.instance
 
@@ -65,6 +66,7 @@ class _OpenTelemetryInstrumentSingleton:
             name="connectivity_error_count",
             description="A count of the number of attempts that failed to reach Google's network.",
         )
+
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
     """
@@ -120,7 +122,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.otel.operation_latencies.record(op.duration, labels)
         self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
-    def on_attempt_complete(self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric):
+    def on_attempt_complete(
+        self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
+    ):
         """
         Update the metrics associated with a completed attempt:
           - attempt_latencies
@@ -135,7 +139,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             **self.shared_labels,
         }
 
-        self.otel.attempt_latencies.record(attempt.end_time-attempt.start_time, labels)
+        self.otel.attempt_latencies.record(
+            attempt.end_time - attempt.start_time, labels
+        )
         if (
             op.op_type == OperationType.READ_ROWS
             and attempt.first_response_latency is not None

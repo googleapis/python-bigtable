@@ -14,10 +14,12 @@
 
 import mock
 
-class TestBigtableClientSideMetricsController:
 
+class TestBigtableClientSideMetricsController:
     def _make_one(self, *args, **kwargs):
-        from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
 
         return BigtableClientSideMetricsController(*args, **kwargs)
 
@@ -27,7 +29,9 @@ class TestBigtableClientSideMetricsController:
         """
         from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
 
-        instance = self._make_one(project_id="p", instance_id="i", table_id="t", app_profile_id="a")
+        instance = self._make_one(
+            project_id="p", instance_id="i", table_id="t", app_profile_id="a"
+        )
         assert len(instance.handlers) == 1
         assert isinstance(instance.handlers[0], OpenTelemetryMetricsHandler)
 
@@ -38,8 +42,12 @@ class TestBigtableClientSideMetricsController:
         from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
         from google.cloud.bigtable.data._metrics import _StdoutMetricsHandler
 
-        with mock.patch("google.cloud.bigtable.data._metrics.metrics_controller.PRINT_METRICS", True):
-            controller = self._make_one(project_id="p", instance_id="i", table_id="t", app_profile_id="a")
+        with mock.patch(
+            "google.cloud.bigtable.data._metrics.metrics_controller.PRINT_METRICS", True
+        ):
+            controller = self._make_one(
+                project_id="p", instance_id="i", table_id="t", app_profile_id="a"
+            )
             assert len(controller.handlers) == 2
             assert OpenTelemetryMetricsHandler in [type(h) for h in controller.handlers]
             assert _StdoutMetricsHandler in [type(h) for h in controller.handlers]
@@ -66,13 +74,16 @@ class TestBigtableClientSideMetricsController:
 
     def test_create_operation_mock(self):
         """
-         All args should be passed through, as well as the handlers
+        All args should be passed through, as well as the handlers
         """
         from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
         controller = self._make_one(handlers=[object()])
         arg = object()
         kwargs = {"a": 1, "b": 2}
-        with mock.patch("google.cloud.bigtable.data._metrics.ActiveOperationMetric.__init__") as mock_op:
+        with mock.patch(
+            "google.cloud.bigtable.data._metrics.ActiveOperationMetric.__init__"
+        ) as mock_op:
             mock_op.return_value = None
             op = controller.create_operation(arg, **kwargs)
             assert isinstance(op, ActiveOperationMetric)
@@ -81,12 +92,15 @@ class TestBigtableClientSideMetricsController:
 
     def test_create_operation(self):
         from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
         handler = object()
         expected_type = object()
         expected_is_streaming = True
         expected_zone = object()
         controller = self._make_one(handlers=[handler])
-        op = controller.create_operation(expected_type, is_streaming=expected_is_streaming, zone=expected_zone)
+        op = controller.create_operation(
+            expected_type, is_streaming=expected_is_streaming, zone=expected_zone
+        )
         assert isinstance(op, ActiveOperationMetric)
         assert op.op_type is expected_type
         assert op.is_streaming is expected_is_streaming
@@ -95,7 +109,6 @@ class TestBigtableClientSideMetricsController:
         assert op.handlers[0] is handler
 
     def test_create_operation_multiple_handlers(self):
-        from google.cloud.bigtable.data._metrics import ActiveOperationMetric
         orig_handler = object()
         new_handler = object()
         controller = self._make_one(handlers=[orig_handler])

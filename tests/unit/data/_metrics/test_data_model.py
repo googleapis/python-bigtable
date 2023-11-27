@@ -15,15 +15,14 @@
 import time
 import pytest
 import mock
-from uuid import UUID
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
 
 
 class TestActiveOperationMetric:
-
     def _make_one(self, *args, **kwargs):
         from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
+
         return ActiveOperationMetric(*args, **kwargs)
 
     def test_ctor_defaults(self):
@@ -115,16 +114,37 @@ class TestActiveOperationMetric:
                     else:
                         assert metric.state == State.CREATED
 
-
-    @pytest.mark.parametrize("method,args,valid_states,error_method_name", [
-        ("start", (), (State.CREATED,), None),
-        ("start_attempt", (), (State.CREATED, State.BETWEEN_ATTEMPTS), None),
-        ("add_response_metadata", ({},), (State.ACTIVE_ATTEMPT,), None),
-        ("attempt_first_response", (), (State.ACTIVE_ATTEMPT,), None),
-        ("end_attempt_with_status", (mock.Mock(),), (State.ACTIVE_ATTEMPT,), None),
-        ("end_with_status", (mock.Mock(),), (State.CREATED, State.ACTIVE_ATTEMPT,State.BETWEEN_ATTEMPTS,), None),
-        ("end_with_success", (), (State.CREATED, State.ACTIVE_ATTEMPT,State.BETWEEN_ATTEMPTS,), "end_with_status"),
-    ], ids=lambda x: x if isinstance(x, str) else "")
+    @pytest.mark.parametrize(
+        "method,args,valid_states,error_method_name",
+        [
+            ("start", (), (State.CREATED,), None),
+            ("start_attempt", (), (State.CREATED, State.BETWEEN_ATTEMPTS), None),
+            ("add_response_metadata", ({},), (State.ACTIVE_ATTEMPT,), None),
+            ("attempt_first_response", (), (State.ACTIVE_ATTEMPT,), None),
+            ("end_attempt_with_status", (mock.Mock(),), (State.ACTIVE_ATTEMPT,), None),
+            (
+                "end_with_status",
+                (mock.Mock(),),
+                (
+                    State.CREATED,
+                    State.ACTIVE_ATTEMPT,
+                    State.BETWEEN_ATTEMPTS,
+                ),
+                None,
+            ),
+            (
+                "end_with_success",
+                (),
+                (
+                    State.CREATED,
+                    State.ACTIVE_ATTEMPT,
+                    State.BETWEEN_ATTEMPTS,
+                ),
+                "end_with_status",
+            ),
+        ],
+        ids=lambda x: x if isinstance(x, str) else "",
+    )
     def test_error_invalid_states(self, method, args, valid_states, error_method_name):
         """
         each method only works for certain states. Make sure _handle_error is called for invalid states
@@ -145,7 +165,10 @@ class TestActiveOperationMetric:
                 return_obj = getattr(metric, method)(*args)
                 assert return_obj is None
                 assert mock_handle_error.call_count == 1
-                assert mock_handle_error.call_args[0][0] == f"Invalid state for {error_method_name}: {state}"
+                assert (
+                    mock_handle_error.call_args[0][0]
+                    == f"Invalid state for {error_method_name}: {state}"
+                )
 
     def test_start(self):
         """
@@ -165,6 +188,7 @@ class TestActiveOperationMetric:
         calling start_attempt should create a new emptu atempt metric
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
+
         metric = self._make_one(mock.Mock())
         assert metric.active_attempt is None
         metric.start_attempt()
@@ -176,31 +200,45 @@ class TestActiveOperationMetric:
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
-    @pytest.mark.parametrize("start_cluster,start_zone,metadata_field,end_cluster,end_zone", [
-        (None,None, None, None, None),
-        ("orig_cluster", "orig_zone", None, "orig_cluster", "orig_zone"),
-        (None,None, b"cluster zone", "cluster", "zone"),
-        (None,None, b'\n\rus-central1-b\x12\x0ctest-cluster', "us-central1-b", "test-cluster"),
-        ("orig_cluster","orig_zone", b"new_new", "orig_cluster", "orig_zone"),
-        (None,None, b"", None, None),
-        (None,None, b"cluster zone future", "cluster", "zone"),
-        (None, "filled", b"cluster zone", "cluster", "zone"),
-        ("filled", None, b"cluster zone", "cluster", "zone"),
-    ])
-    def test_add_response_metadata_cbt_header(self, start_cluster, start_zone, metadata_field, end_cluster, end_zone):
+    @pytest.mark.parametrize(
+        "start_cluster,start_zone,metadata_field,end_cluster,end_zone",
+        [
+            (None, None, None, None, None),
+            ("orig_cluster", "orig_zone", None, "orig_cluster", "orig_zone"),
+            (None, None, b"cluster zone", "cluster", "zone"),
+            (
+                None,
+                None,
+                b"\n\rus-central1-b\x12\x0ctest-cluster",
+                "us-central1-b",
+                "test-cluster",
+            ),
+            ("orig_cluster", "orig_zone", b"new_new", "orig_cluster", "orig_zone"),
+            (None, None, b"", None, None),
+            (None, None, b"cluster zone future", "cluster", "zone"),
+            (None, "filled", b"cluster zone", "cluster", "zone"),
+            ("filled", None, b"cluster zone", "cluster", "zone"),
+        ],
+    )
+    def test_add_response_metadata_cbt_header(
+        self, start_cluster, start_zone, metadata_field, end_cluster, end_zone
+    ):
         """
         calling add_response_metadata should update fields based on grpc response metadata
         The x-goog-ext-425905942-bin field contains cluster and zone info
         """
         import grpc
+
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
-            metric = self._make_one(mock.Mock(), cluster_id=start_cluster, zone=start_zone)
+            metric = self._make_one(
+                mock.Mock(), cluster_id=start_cluster, zone=start_zone
+            )
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency = None
             metadata = grpc.aio.Metadata()
             if metadata_field:
-                metadata['x-goog-ext-425905942-bin'] = metadata_field
+                metadata["x-goog-ext-425905942-bin"] = metadata_field
             metric.add_response_metadata(metadata)
             assert metric.cluster_id == end_cluster
             assert metric.zone == end_zone
@@ -211,10 +249,13 @@ class TestActiveOperationMetric:
             # gfe latency should not be touched
             assert metric.active_attempt.gfe_latency is None
 
-    @pytest.mark.parametrize("metadata_field", [
-        b"cluster",
-        "cluster zone",  # expect bytes
-    ])
+    @pytest.mark.parametrize(
+        "metadata_field",
+        [
+            b"cluster",
+            "cluster zone",  # expect bytes
+        ],
+    )
     def test_add_response_metadata_cbt_header_w_error(self, metadata_field):
         """
         If the x-goog-ext-425905942-bin field is present, but not structured properly,
@@ -223,6 +264,7 @@ class TestActiveOperationMetric:
         Extra fields should not result in parsingerror
         """
         import grpc
+
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(mock.Mock())
@@ -230,31 +272,40 @@ class TestActiveOperationMetric:
             metric.zone = None
             metric.active_attempt = mock.Mock()
             metadata = grpc.aio.Metadata()
-            metadata['x-goog-ext-425905942-bin'] = metadata_field
+            metadata["x-goog-ext-425905942-bin"] = metadata_field
             metric.add_response_metadata(metadata)
             # should remain in ACTIVE_ATTEMPT state after completing
             assert metric.state == State.ACTIVE_ATTEMPT
             # no errors encountered
             assert mock_handle_error.call_count == 1
-            assert mock_handle_error.call_args[0][0] == f"Failed to decode x-goog-ext-425905942-bin metadata: {metadata_field}"
+            assert (
+                mock_handle_error.call_args[0][0]
+                == f"Failed to decode x-goog-ext-425905942-bin metadata: {metadata_field}"
+            )
 
-    @pytest.mark.parametrize("metadata_field,expected_latency", [
-        (None, None),
-        ("gfet4t7; dur=1000", 1),
-        ("gfet4t7; dur=1000.0", 1),
-        ("gfet4t7; dur=1000.1", 1.0001),
-        ("gfet4t7; dur=1000 dur=2000", 2),
-        ("gfet4t7; dur=0", 0),
-        ("gfet4t7; dur=empty", None),
-        ("gfet4t7;", None),
-        ("", None),
-    ])
-    def test_add_response_metadata_server_timing_header(self, metadata_field, expected_latency):
+    @pytest.mark.parametrize(
+        "metadata_field,expected_latency",
+        [
+            (None, None),
+            ("gfet4t7; dur=1000", 1),
+            ("gfet4t7; dur=1000.0", 1),
+            ("gfet4t7; dur=1000.1", 1.0001),
+            ("gfet4t7; dur=1000 dur=2000", 2),
+            ("gfet4t7; dur=0", 0),
+            ("gfet4t7; dur=empty", None),
+            ("gfet4t7;", None),
+            ("", None),
+        ],
+    )
+    def test_add_response_metadata_server_timing_header(
+        self, metadata_field, expected_latency
+    ):
         """
         calling add_response_metadata should update fields based on grpc response metadata
         The server-timing field contains gfle latency info
         """
         import grpc
+
         cls = type(self._make_one(mock.Mock()))
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(mock.Mock())
@@ -262,7 +313,7 @@ class TestActiveOperationMetric:
             metric.active_attempt.gfe_latency = None
             metadata = grpc.aio.Metadata()
             if metadata_field:
-                metadata['server-timing'] = metadata_field
+                metadata["server-timing"] = metadata_field
             metric.add_response_metadata(metadata)
             if metric.active_attempt.gfe_latency is None:
                 assert expected_latency is None
@@ -293,7 +344,10 @@ class TestActiveOperationMetric:
             # calling it again should cause an error
             metric.attempt_first_response()
             assert mock_handle_error.call_count == 1
-            assert mock_handle_error.call_args[0][0] == "Attempt already received first response"
+            assert (
+                mock_handle_error.call_args[0][0]
+                == "Attempt already received first response"
+            )
             # value should not be changed
             assert metric.active_attempt.first_response_latency == got_latency
 
@@ -336,7 +390,9 @@ class TestActiveOperationMetric:
 
         metric = self._make_one(mock.Mock())
         metric.start_attempt()
-        with mock.patch.object(metric, "_exc_to_status", return_value=expected_status) as mock_exc_to_status:
+        with mock.patch.object(
+            metric, "_exc_to_status", return_value=expected_status
+        ) as mock_exc_to_status:
             metric.end_attempt_with_status(input_status)
             assert mock_exc_to_status.call_count == 1
             assert mock_exc_to_status.call_args[0][0] == input_status
@@ -350,6 +406,7 @@ class TestActiveOperationMetric:
         - update handlers
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
+
         expected_attempt_start_time = 7
         expected_attempt_first_response_latency = 9
         expected_attempt_gfe_latency = 5
@@ -362,7 +419,9 @@ class TestActiveOperationMetric:
         is_streaming = object()
 
         handlers = [mock.Mock(), mock.Mock()]
-        metric = self._make_one(expected_type, handlers=handlers,start_time=expected_start_time)
+        metric = self._make_one(
+            expected_type, handlers=handlers, start_time=expected_start_time
+        )
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
         metric.is_streaming = is_streaming
@@ -394,7 +453,10 @@ class TestActiveOperationMetric:
             assert len(called_with.completed_attempts) == 1
             final_attempt = called_with.completed_attempts[0]
             assert final_attempt.start_time == expected_attempt_start_time
-            assert final_attempt.first_response_latency == expected_attempt_first_response_latency
+            assert (
+                final_attempt.first_response_latency
+                == expected_attempt_first_response_latency
+            )
             assert final_attempt.gfe_latency == expected_attempt_gfe_latency
             assert final_attempt.end_status == expected_status
             assert time.monotonic() - final_attempt.end_time < 0.001
@@ -409,7 +471,9 @@ class TestActiveOperationMetric:
 
         metric = self._make_one(mock.Mock(), handlers=handlers)
         metric.start_attempt()
-        with mock.patch.object(metric, "_exc_to_status", return_value=expected_status) as mock_exc_to_status:
+        with mock.patch.object(
+            metric, "_exc_to_status", return_value=expected_status
+        ) as mock_exc_to_status:
             metric.end_with_status(input_status)
             assert mock_exc_to_status.call_count == 1
             assert mock_exc_to_status.call_args[0][0] == input_status
@@ -438,6 +502,7 @@ class TestActiveOperationMetric:
         Should be able to end an operation without any attempts
         """
         from grpc import StatusCode
+
         handlers = [mock.Mock()]
         metric = self._make_one(mock.Mock(), handlers=handlers)
         metric.end_with_success()
@@ -479,7 +544,7 @@ class TestActiveOperationMetric:
             cls.build_on_error_fn(
                 mock.Mock(),
                 predicate=lambda x: pred_val,
-                wrapped_on_error=mock_wrapped_on_error
+                wrapped_on_error=mock_wrapped_on_error,
             )(input_exc)
             assert mock_wrapped_on_error.call_count == 1
             assert mock_wrapped_on_error.call_args[0][0] == input_exc
@@ -500,28 +565,37 @@ class TestActiveOperationMetric:
         assert cls._exc_to_status(ValueError()) == StatusCode.UNKNOWN
         assert cls._exc_to_status(RuntimeError()) == StatusCode.UNKNOWN
         # grpc status code for grpc errors
-        assert cls._exc_to_status(core_exc.InvalidArgument('msg')) == StatusCode.INVALID_ARGUMENT
-        assert cls._exc_to_status(core_exc.NotFound('msg')) == StatusCode.NOT_FOUND
-        assert cls._exc_to_status(core_exc.AlreadyExists('msg')) == StatusCode.ALREADY_EXISTS
-        assert cls._exc_to_status(core_exc.PermissionDenied('msg')) == StatusCode.PERMISSION_DENIED
-        cause_exc = core_exc.AlreadyExists('msg')
-        w_cause = core_exc.DeadlineExceeded('msg')
+        assert (
+            cls._exc_to_status(core_exc.InvalidArgument("msg"))
+            == StatusCode.INVALID_ARGUMENT
+        )
+        assert cls._exc_to_status(core_exc.NotFound("msg")) == StatusCode.NOT_FOUND
+        assert (
+            cls._exc_to_status(core_exc.AlreadyExists("msg"))
+            == StatusCode.ALREADY_EXISTS
+        )
+        assert (
+            cls._exc_to_status(core_exc.PermissionDenied("msg"))
+            == StatusCode.PERMISSION_DENIED
+        )
+        cause_exc = core_exc.AlreadyExists("msg")
+        w_cause = core_exc.DeadlineExceeded("msg")
         w_cause.__cause__ = cause_exc
         assert cls._exc_to_status(w_cause) == StatusCode.DEADLINE_EXCEEDED
         # use cause if available
-        w_cause = ValueError('msg')
+        w_cause = ValueError("msg")
         w_cause.__cause__ = cause_exc
         cause_exc.grpc_status_code = object()
         custom_excs = [
             bt_exc.FailedMutationEntryError(1, mock.Mock(), cause=cause_exc),
             bt_exc.FailedQueryShardError(1, {}, cause=cause_exc),
-            w_cause
+            w_cause,
         ]
         for exc in custom_excs:
             assert cls._exc_to_status(exc) == cause_exc.grpc_status_code, exc
         # extract most recent exception for bigtable exception groups
         exc_groups = [
-            bt_exc._BigtableExceptionGroup('', [ValueError(), cause_exc]),
+            bt_exc._BigtableExceptionGroup("", [ValueError(), cause_exc]),
             bt_exc.RetryExceptionGroup([RuntimeError(), cause_exc]),
             bt_exc.ShardedReadRowsExceptionGroup(
                 [bt_exc.FailedQueryShardError(1, {}, cause=cause_exc)], [], 2
@@ -540,12 +614,17 @@ class TestActiveOperationMetric:
         input_message = "test message"
         expected_message = f"Error in Bigtable Metrics: {input_message}"
         # if ALLOW_METRIC_EXCEPTIONS is set, raise the exception
-        with mock.patch("google.cloud.bigtable.data._metrics.data_model.ALLOW_METRIC_EXCEPTIONS", True):
+        with mock.patch(
+            "google.cloud.bigtable.data._metrics.data_model.ALLOW_METRIC_EXCEPTIONS",
+            True,
+        ):
             with pytest.raises(ValueError) as e:
                 type(self._make_one(object()))._handle_error(input_message)
             assert e.value.args[0] == expected_message
         # if LOGGER is populated, log the exception
-        with mock.patch("google.cloud.bigtable.data._metrics.data_model.LOGGER") as logger_mock:
+        with mock.patch(
+            "google.cloud.bigtable.data._metrics.data_model.LOGGER"
+        ) as logger_mock:
             type(self._make_one(object()))._handle_error(input_message)
             assert logger_mock.warning.call_count == 1
             assert logger_mock.warning.call_args[0][0] == expected_message
@@ -624,6 +703,7 @@ class TestActiveOperationMetric:
         - should call end_with_success
         """
         from grpc import StatusCode
+
         metric = self._make_one(object())
         async with metric as context:
             mock_call = mock.AsyncMock()
@@ -646,7 +726,6 @@ class TestActiveOperationMetric:
         assert len(metric.completed_attempts) == 1
         assert metric.completed_attempts[0].end_status == StatusCode.OK
 
-
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_success_extract_call_metadata(self):
         """
@@ -660,7 +739,9 @@ class TestActiveOperationMetric:
             mock_call = mock_grpc_call()
             inner_fn = lambda *args, **kwargs: mock_call  # noqa
             wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
+            with mock.patch.object(
+                metric, "add_response_metadata"
+            ) as mock_add_metadata:
                 # make the wrapped call
                 result = await wrapped_fn()
                 assert result == mock_call
@@ -682,7 +763,9 @@ class TestActiveOperationMetric:
         metric = self._make_one(object())
         async with metric as context:
             wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
-            with mock.patch.object(metric, "add_response_metadata") as mock_add_metadata:
+            with mock.patch.object(
+                metric, "add_response_metadata"
+            ) as mock_add_metadata:
                 # make the wrapped call. expect exception when awaiting on mock_call
                 with pytest.raises(TypeError):
                     await wrapped_fn()
@@ -697,9 +780,12 @@ class TestActiveOperationMetric:
         Make sure the metadata is accessible after a failed attempt
         """
         import grpc
+
         mock_call = mock.AsyncMock()
         mock_call.trailing_metadata.return_value = grpc.aio.Metadata()
-        mock_call.initial_metadata.return_value = grpc.aio.Metadata(("server-timing", "gfet4t7; dur=5000"))
+        mock_call.initial_metadata.return_value = grpc.aio.Metadata(
+            ("server-timing", "gfet4t7; dur=5000")
+        )
         inner_fn = lambda *args, **kwargs: mock_call  # noqa
         metric = self._make_one(object())
         async with metric as context:
@@ -716,9 +802,12 @@ class TestActiveOperationMetric:
         failed attempts should call operation.end_attempt with error
         """
         from grpc import StatusCode
+
         metric = self._make_one(object())
         async with metric as context:
-            wrapped_fn = context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False)
+            wrapped_fn = context.wrap_attempt_fn(
+                mock.Mock(), extract_call_metadata=False
+            )
             # make the wrapped call. expect type error when awaiting response of mock
             with pytest.raises(TypeError):
                 await wrapped_fn()
@@ -739,14 +828,19 @@ class TestActiveOperationMetric:
         from grpc import StatusCode
         from google.api_core.retry_async import AsyncRetry
         from google.api_core.exceptions import RetryError
+
         metric = self._make_one(object())
         with pytest.raises(RetryError):
             # should eventually fail due to timeout
             async with metric as context:
                 always_retry = lambda x: True  # noqa
-                retry_obj = AsyncRetry(predicate=always_retry, timeout=0.05, maximum=0.001)
+                retry_obj = AsyncRetry(
+                    predicate=always_retry, timeout=0.05, maximum=0.001
+                )
                 # mock.Mock will fail on await
-                double_wrapped_fn = retry_obj(context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False))
+                double_wrapped_fn = retry_obj(
+                    context.wrap_attempt_fn(mock.Mock(), extract_call_metadata=False)
+                )
                 await double_wrapped_fn()
         # make sure operation ended with expected state
         assert metric.state == State.COMPLETED
