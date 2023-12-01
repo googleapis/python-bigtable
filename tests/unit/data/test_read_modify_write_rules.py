@@ -36,6 +36,9 @@ class TestBaseReadModifyWriteRule:
             self._target_class()(family="foo", qualifier=b"bar")
 
     def test__to_dict(self):
+        """
+        to_dict not implemented in base class
+        """
         with pytest.raises(NotImplementedError):
             self._target_class()._to_dict(mock.Mock())
 
@@ -97,6 +100,27 @@ class TestIncrementRule:
         }
         assert instance._to_dict() == expected
 
+    @pytest.mark.parametrize(
+        "args,expected",
+        [
+            (("fam", b"qual", 1), ("fam", b"qual", 1)),
+            (("fam", b"qual", -12), ("fam", b"qual", -12)),
+            (("fam", "qual", 1), ("fam", b"qual", 1)),
+            (("fam", "qual", 0), ("fam", b"qual", 0)),
+            (("", "", 0), ("", b"", 0)),
+            (("f", b"q"), ("f", b"q", 1)),
+        ],
+    )
+    def test__to_pb(self, args, expected):
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        instance = self._target_class()(*args)
+        pb_result = instance._to_pb()
+        assert isinstance(pb_result, data_pb.ReadModifyWriteRule)
+        assert pb_result.family_name == expected[0]
+        assert pb_result.column_qualifier == expected[1]
+        assert pb_result.increment_amount == expected[2]
+
 
 class TestAppendValueRule:
     def _target_class(self):
@@ -142,3 +166,21 @@ class TestAppendValueRule:
             "append_value": expected[2],
         }
         assert instance._to_dict() == expected
+
+    @pytest.mark.parametrize(
+        "args,expected",
+        [
+            (("fam", b"qual", b"val"), ("fam", b"qual", b"val")),
+            (("fam", "qual", b"val"), ("fam", b"qual", b"val")),
+            (("", "", b""), ("", b"", b"")),
+        ],
+    )
+    def test__to_pb(self, args, expected):
+        import google.cloud.bigtable_v2.types.data as data_pb
+
+        instance = self._target_class()(*args)
+        pb_result = instance._to_pb()
+        assert isinstance(pb_result, data_pb.ReadModifyWriteRule)
+        assert pb_result.family_name == expected[0]
+        assert pb_result.column_qualifier == expected[1]
+        assert pb_result.append_value == expected[2]
