@@ -15,7 +15,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterable, Awaitable
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    AsyncIterable,
+    Awaitable,
+    Sequence,
+)
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -74,6 +80,7 @@ class _ReadRowsOperationAsync:
         table: "TableAsync",
         operation_timeout: float,
         attempt_timeout: float,
+        retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
@@ -88,11 +95,7 @@ class _ReadRowsOperationAsync:
         else:
             self.request = query._to_pb(table)
         self.table = table
-        self._predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
-        )
+        self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,

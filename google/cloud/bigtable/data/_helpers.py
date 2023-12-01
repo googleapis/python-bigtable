@@ -11,9 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+Helper functions used in various places in the library.
+"""
 from __future__ import annotations
 
-from typing import Callable, List, Tuple, Any
+from typing import Callable, Sequence, List, Tuple, Any, TYPE_CHECKING
 import time
 import enum
 from collections import namedtuple
@@ -21,6 +24,10 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+
+if TYPE_CHECKING:
+    import grpc
+    from google.cloud.bigtable.data import TableAsync
 
 """
 Helper functions used in various places in the library.
@@ -142,7 +149,9 @@ def _convert_retry_deadline(
 
 
 def _get_timeouts(
-    operation: float | TABLE_DEFAULT, attempt: float | None | TABLE_DEFAULT, table
+    operation: float | TABLE_DEFAULT,
+    attempt: float | None | TABLE_DEFAULT,
+    table: "TableAsync",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
@@ -209,3 +218,21 @@ def _validate_timeouts(
     elif attempt_timeout is not None:
         if attempt_timeout <= 0:
             raise ValueError("attempt_timeout must be greater than 0")
+
+
+def _get_retryable_errors(
+    call_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | TABLE_DEFAULT,
+    table: "TableAsync",
+) -> list[type[Exception]]:
+    # load table defaults if necessary
+    if call_codes == TABLE_DEFAULT.DEFAULT:
+        call_codes = table.default_retryable_errors
+    elif call_codes == TABLE_DEFAULT.READ_ROWS:
+        call_codes = table.default_read_rows_retryable_errors
+    elif call_codes == TABLE_DEFAULT.MUTATE_ROWS:
+        call_codes = table.default_mutate_rows_retryable_errors
+
+    return [
+        e if isinstance(e, type) else type(core_exceptions.from_grpc_status(e, ""))
+        for e in call_codes
+    ]

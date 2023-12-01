@@ -21,6 +21,7 @@ from typing import (
     AsyncIterable,
     Optional,
     Set,
+    Sequence,
     TYPE_CHECKING,
 )
 
@@ -45,7 +46,9 @@ from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
 from google.api_core import retry_async as retries
-from google.api_core import exceptions as core_exceptions
+from google.api_core.exceptions import DeadlineExceeded
+from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.exceptions import Aborted
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 import google.auth.credentials
@@ -64,6 +67,7 @@ from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _convert_retry_deadline
 from google.cloud.bigtable.data._helpers import _validate_timeouts
+from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
@@ -366,21 +370,10 @@ class BigtableDataClientAsync(ClientWithProject):
         except KeyError:
             return False
 
-    def get_table(
-        self,
-        instance_id: str,
-        table_id: str,
-        app_profile_id: str | None = None,
-        *,
-        default_read_rows_operation_timeout: float = 600,
-        default_read_rows_attempt_timeout: float | None = None,
-        default_mutate_rows_operation_timeout: float = 600,
-        default_mutate_rows_attempt_timeout: float | None = None,
-        default_operation_timeout: float = 60,
-        default_attempt_timeout: float | None = None,
-    ) -> TableAsync:
+    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
-        Returns a table instance for making data API requests
+        Returns a table instance for making data API requests. All arguments are passed
+        directly to the TableAsync constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -402,15 +395,17 @@ class BigtableDataClientAsync(ClientWithProject):
                 seconds. If not set, defaults to 60 seconds
             default_attempt_timeout: The default timeout for all other individual rpc
                 requests, in seconds. If not set, defaults to 20 seconds
+            default_read_rows_retryable_errors: a list of errors that will be retried
+                if encountered during read_rows and related operations.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
+                if encountered during mutate_rows and related operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            default_retryable_errors: a list of errors that will be retried if
+                encountered during all other operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return TableAsync(
-            self,
-            instance_id,
-            table_id,
-            app_profile_id,
-            default_operation_timeout=default_operation_timeout,
-            default_attempt_timeout=default_attempt_timeout,
-        )
+        return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
     async def __aenter__(self):
         self._start_background_channel_refresh()
@@ -442,6 +437,19 @@ class TableAsync:
         default_mutate_rows_attempt_timeout: float | None = 60,
         default_operation_timeout: float = 60,
         default_attempt_timeout: float | None = 20,
+        default_read_rows_retryable_errors: Sequence[type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+            Aborted,
+        ),
+        default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+        ),
+        default_retryable_errors: Sequence[type[Exception]] = (
+            DeadlineExceeded,
+            ServiceUnavailable,
+        ),
     ):
         """
         Initialize a Table instance
@@ -468,9 +476,20 @@ class TableAsync:
                 seconds. If not set, defaults to 60 seconds
             default_attempt_timeout: The default timeout for all other individual rpc
                 requests, in seconds. If not set, defaults to 20 seconds
+            default_read_rows_retryable_errors: a list of errors that will be retried
+                if encountered during read_rows and related operations.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
+                if encountered during mutate_rows and related operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            default_retryable_errors: a list of errors that will be retried if
+                encountered during all other operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
+        # NOTE: any changes to the signature of this method should also be reflected
+        # in client.get_table()
         # validate timeouts
         _validate_timeouts(
             default_operation_timeout, default_attempt_timeout, allow_none=True
@@ -506,6 +525,14 @@ class TableAsync:
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
 
+        self.default_read_rows_retryable_errors = (
+            default_read_rows_retryable_errors or ()
+        )
+        self.default_mutate_rows_retryable_errors = (
+            default_mutate_rows_retryable_errors or ()
+        )
+        self.default_retryable_errors = default_retryable_errors or ()
+
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
@@ -522,12 +549,15 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Returns an iterator to asynchronously stream back row data.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -539,6 +569,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
@@ -551,12 +583,14 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
 
         row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_exceptions=retryable_excs,
         )
         return row_merger.start_operation()
 
@@ -566,13 +600,16 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
         Retruns results as a list of Row objects when the request is complete.
         For streamed results, use read_rows_stream.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -584,6 +621,10 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+                If None, defaults to the Table's default_read_rows_attempt_timeout,
+                or the operation_timeout if that is also None.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a list of Rows returned by the query
         Raises:
@@ -596,6 +637,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
         return [row async for row in row_generator]
 
@@ -606,11 +648,14 @@ class TableAsync:
         row_filter: RowFilter | None = None,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> Row | None:
         """
         Read a single row from the table, based on the specified key.
 
-        Failed requests within operation_timeout will be retried.
+        Failed requests within operation_timeout will be retried based on the
+        retryable_errors list until operation_timeout is reached.
 
         Args:
             - query: contains details about which rows to return
@@ -622,6 +667,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a Row object if the row exists, otherwise None
         Raises:
@@ -637,6 +684,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
         if len(results) == 0:
             return None
@@ -648,6 +696,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
         """
         Runs a sharded query in parallel, then return the results in a single list.
@@ -672,6 +722,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Raises:
             - ShardedReadRowsExceptionGroup: if any of the queries failed
             - ValueError: if the query_list is empty
@@ -701,6 +753,7 @@ class TableAsync:
                     query,
                     operation_timeout=batch_operation_timeout,
                     attempt_timeout=min(attempt_timeout, batch_operation_timeout),
+                    retryable_errors=retryable_errors,
                 )
                 for query in batch
             ]
@@ -729,10 +782,13 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> bool:
         """
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
+
         Args:
             - row_key: the key of the row to check
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -743,6 +799,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_read_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
             - a bool indicating whether the row exists
         Raises:
@@ -762,6 +820,7 @@ class TableAsync:
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            retryable_errors=retryable_errors,
         )
         return len(results) > 0
 
@@ -770,6 +829,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ) -> RowKeySamples:
         """
         Return a set of RowKeySamples that delimit contiguous sections of the table of
@@ -791,6 +852,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_retryable_errors.
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
@@ -807,10 +870,8 @@ class TableAsync:
             attempt_timeout, operation_timeout
         )
         # prepare retryable
-        predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-        )
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
+        predicate = retries.if_exception_type(*retryable_excs)
         transient_errors = []
 
         def on_error_fn(exc):
@@ -856,6 +917,8 @@ class TableAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ) -> MutationsBatcherAsync:
         """
         Returns a new mutations batcher instance.
@@ -876,6 +939,8 @@ class TableAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds.
               Defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
+          - batch_retryable_errors: a list of errors that will be retried if encountered.
+              Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
             - a MutationsBatcherAsync context manager that can batch requests
         """
@@ -888,6 +953,7 @@ class TableAsync:
             flow_control_max_bytes=flow_control_max_bytes,
             batch_operation_timeout=batch_operation_timeout,
             batch_attempt_timeout=batch_attempt_timeout,
+            batch_retryable_errors=batch_retryable_errors,
         )
 
     async def mutate_row(
@@ -897,6 +963,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ):
         """
          Mutates a row atomically.
@@ -918,6 +986,9 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Only idempotent mutations will be retried. Defaults to the Table's
+                default_retryable_errors.
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
@@ -937,8 +1008,7 @@ class TableAsync:
         if all(mutation.is_idempotent() for mutation in mutations_list):
             # mutations are all idempotent and safe to retry
             predicate = retries.if_exception_type(
-                core_exceptions.DeadlineExceeded,
-                core_exceptions.ServiceUnavailable,
+                *_get_retryable_errors(retryable_errors, self)
             )
         else:
             # mutations should not be retried
@@ -982,6 +1052,8 @@ class TableAsync:
         *,
         operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Applies mutations for multiple rows in a single batched request.
@@ -1007,6 +1079,8 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_mutate_rows_attempt_timeout.
                 If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_mutate_rows_retryable_errors
         Raises:
             - MutationsExceptionGroup if one or more mutations fails
                 Contains details about any failed entries in .exceptions
@@ -1015,6 +1089,7 @@ class TableAsync:
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
         )
+        retryable_excs = _get_retryable_errors(retryable_errors, self)
 
         operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
@@ -1022,6 +1097,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
+            retryable_exceptions=retryable_excs,
         )
         await operation.start()
 

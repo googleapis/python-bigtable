@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING
 import asyncio
 from dataclasses import dataclass
 import functools
@@ -66,6 +66,7 @@ class _MutateRowsOperationAsync:
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
+        retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         """
         Args:
@@ -96,8 +97,7 @@ class _MutateRowsOperationAsync:
         # create predicate for determining which errors are retryable
         self.is_retryable = retries.if_exception_type(
             # RPC level errors
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
+            *retryable_exceptions,
             # Entry level errors
             bt_exceptions._MutateRowsIncomplete,
         )

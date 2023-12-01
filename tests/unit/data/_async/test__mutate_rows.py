@@ -46,9 +46,10 @@ class TestMutateRowsOperation:
         if not args:
             kwargs["gapic_client"] = kwargs.pop("gapic_client", mock.Mock())
             kwargs["table"] = kwargs.pop("table", AsyncMock())
-            kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
+            kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
+            kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
         return self._target_class()(*args, **kwargs)
 
     async def _mock_stream(self, mutation_list, error_dict):
@@ -78,15 +79,21 @@ class TestMutateRowsOperation:
         from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
         from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
         from google.api_core.exceptions import DeadlineExceeded
-        from google.api_core.exceptions import ServiceUnavailable
+        from google.api_core.exceptions import Aborted
 
         client = mock.Mock()
         table = mock.Mock()
         entries = [_make_mutation(), _make_mutation()]
         operation_timeout = 0.05
         attempt_timeout = 0.01
+        retryable_exceptions = ()
         instance = self._make_one(
-            client, table, entries, operation_timeout, attempt_timeout
+            client,
+            table,
+            entries,
+            operation_timeout,
+            attempt_timeout,
+            retryable_exceptions,
         )
         # running gapic_fn should trigger a client call
         assert client.mutate_rows.call_count == 0
@@ -110,8 +117,8 @@ class TestMutateRowsOperation:
         assert next(instance.timeout_generator) == attempt_timeout
         # ensure predicate is set
         assert instance.is_retryable is not None
-        assert instance.is_retryable(DeadlineExceeded("")) is True
-        assert instance.is_retryable(ServiceUnavailable("")) is True
+        assert instance.is_retryable(DeadlineExceeded("")) is False
+        assert instance.is_retryable(Aborted("")) is False
         assert instance.is_retryable(_MutateRowsIncomplete("")) is True
         assert instance.is_retryable(RuntimeError("")) is False
         assert instance.remaining_indices == list(range(len(entries)))
@@ -232,7 +239,7 @@ class TestMutateRowsOperation:
 
     @pytest.mark.parametrize(
         "exc_type",
-        [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+        [core_exceptions.DeadlineExceeded, RuntimeError],
     )
     @pytest.mark.asyncio
     async def test_mutate_rows_exception_retryable_eventually_pass(self, exc_type):
@@ -256,7 +263,12 @@ class TestMutateRowsOperation:
         ) as attempt_mock:
             attempt_mock.side_effect = [expected_cause] * num_retries + [None]
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                retryable_exceptions=(exc_type,),
             )
             await instance.start()
             assert attempt_mock.call_count == num_retries + 1
