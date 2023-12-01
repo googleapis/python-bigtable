@@ -141,7 +141,7 @@ class TestBigtableDataClientAsync:
     async def test_veneer_grpc_headers(self):
         # client_info should be populated with headers to
         # detect as a veneer client
-        patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
+        patch = mock.patch("google.api_core.gapic_v1.method_async.wrap_method")
         with patch as gapic_mock:
             client = self._make_one(project="project-id")
             wrapped_call_list = gapic_mock.call_args_list
