@@ -34,7 +34,6 @@ from google.cloud.bigtable.data._async._mutate_rows import (
 from google.cloud.bigtable.data.mutations import Mutation
 
 if TYPE_CHECKING:
-    import grpc
     from google.cloud.bigtable.data._async.client import TableAsync
 
 # used to make more readable default values
