@@ -300,34 +300,23 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def build_on_error_fn(
-        self,
-        predicate: Callable[[Exception], bool],
-        wrapped_on_error: Callable[[Exception], None] | None = None,
-    ) -> Callable[[Exception], None]:
+    def build_wrapped_predicate(self, inner_predicate: Callable[[Exception], bool]) -> Callable[[Exception], bool]:
         """
-        Construct an on_error function that can be passed in to api_core Retry objects, and terminates
-        operations and attempts based on the exceptions encountered.
+        Wrapps a predicate to include metrics tracking. Any call to the resulting predicate
+        is assumed to be an rpc failure, and will either mark the end of the active attempt
+        or the end of the operation.
 
         Args:
-          - predicate: A function that takes an exception and returns True if the exception is retryable.
-              If retryable, the attempt should be finalized, but the operation continues. If not retryable,
-              they will both be finalized. Predicate object should be the same as the one passed to the
-              api_core Retry object.
-          - wapped_on_error: An optional secondary on_error function to be called after the metrics are handled.
+          - predicate: The predicate to wrap.
         """
-
-        def on_error(exc: Exception) -> None:
-            if predicate(exc):
-                # retryable exception: end attempt
+        def wrapped_predicate(exc: Exception) -> bool:
+            inner_result = inner_predicate(exc)
+            if inner_result:
                 self.end_attempt_with_status(exc)
             else:
-                # terminal exception: end the operation
-                self.end_with_status(exc)
-            if wrapped_on_error:
-                wrapped_on_error(exc)
-
-        return on_error
+                self.end_with_success()
+            return inner_result
+        return wrapped_predicate
 
     @staticmethod
     def _exc_to_status(exc: Exception) -> StatusCode:

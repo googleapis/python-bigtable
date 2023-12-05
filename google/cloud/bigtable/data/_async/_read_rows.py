@@ -114,11 +114,10 @@ class _ReadRowsOperationAsync:
 
         return retry_target_stream(
             self._read_rows_attempt,
-            self._predicate,
+            self._operation_metrics.build_wrapped_predicate(self._predicate),
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
             exception_factory=self._build_exception,
-            on_error=self._operation_metrics.build_on_error_fn(self._predicate),
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
