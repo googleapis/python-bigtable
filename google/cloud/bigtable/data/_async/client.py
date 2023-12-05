@@ -787,10 +787,14 @@ class TableAsync:
         limit_filter = CellsRowLimitFilter(1)
         chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
         query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
+        metric_operation = self._metrics.create_operation(
+            OperationType.READ_ROWS, is_streaming=False
+        )
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metric_operation=metric_operation,
         )
         return len(results) > 0
 
