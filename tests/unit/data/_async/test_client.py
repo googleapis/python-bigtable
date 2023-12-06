@@ -48,13 +48,17 @@ class mock_grpc_call:
     Used for mocking the responses from grpc calls. Can simulate both unary and streaming calls.
     """
 
-    def __init__(self, unary_response=None, stream_response=(), sleep_time=0):
+    def __init__(self, unary_response=None, stream_response=(), sleep_time=0,
+        initial_metadata=grpc.aio.Metadata(), trailing_metadata=grpc.aio.Metadata()
+    ):
         self.unary_response = unary_response
         self.stream_response = stream_response
         self.sleep_time = sleep_time
         self.stream_idx = -1
         self._future = asyncio.get_event_loop().create_future()
         self._future.set_result(unary_response)
+        self._initial_metadata = initial_metadata
+        self._trailing_metadata = trailing_metadata
 
     def __await__(self):
         response = yield from self._future.__await__()
@@ -92,10 +96,10 @@ class mock_grpc_call:
         self.stream_idx = len(self.stream_response)
 
     async def trailing_metadata(self):
-        return grpc.aio.Metadata()
+        return self._trailing_metadata
 
     async def initial_metadata(self):
-        return grpc.aio.Metadata()
+        return self._initial_metadata
 
 
 class TestBigtableDataClientAsync:

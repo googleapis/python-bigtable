@@ -18,12 +18,15 @@ This file tests each rpc method to ensure they support metrics properly
 
 import pytest
 import mock
+import datetime
 from grpc import StatusCode
+from grpc.aio import Metadata
 
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data import mutations
-from google.cloud.bigtable.data.exceptions import _BigtableExceptionGroup
 from google.cloud.bigtable.data._metrics import OperationType
+from google.cloud.bigtable.data._metrics.data_model import BIGTABLE_METADATA_KEY
+from google.cloud.bigtable.data._metrics.data_model import SERVER_TIMING_METADATA_KEY
 
 from .._async.test_client import mock_grpc_call
 
@@ -60,6 +63,9 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
     """check that all requests attach proper metadata headers"""
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
+    cluster_data = "my-cluster"
+    zone_data = "my-zone"
+    expected_gfe_latency = 123
 
     with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}") as gapic_mock:
         if is_unary:
@@ -67,7 +73,11 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             unary_response.row.families = []  # patch for read_modify_write_row
         else:
             unary_response = None
-        gapic_mock.return_value = mock_grpc_call(unary_response)
+        # populate metadata fields
+        initial_metadata = Metadata((BIGTABLE_METADATA_KEY, f"{cluster_data} {zone_data}".encode("utf-8")))
+        trailing_metadata = Metadata((SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}"))
+        grpc_call = mock_grpc_call(unary_response=unary_response, initial_metadata=initial_metadata, trailing_metadata=trailing_metadata)
+        gapic_mock.return_value = grpc_call
         # gapic_mock.side_effect = RuntimeError("stop early")
         async with BigtableDataClientAsync() as client:
             async with TableAsync(client, "instance-id", "table-id") as table:
@@ -86,13 +96,25 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
                 found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
                 # make sure expected fields were set properly
                 assert found_operation.op_type == expected_type
+                now = datetime.datetime.now(datetime.timezone.utc)
+                assert found_operation.start_time - now < datetime.timedelta(seconds=1)
                 assert found_operation.duration < 0.1
+                assert found_operation.duration > 0
                 assert found_operation.final_status == StatusCode.OK
-                assert found_operation.cluster_id == "unspecified"
-                assert found_operation.zone == "global"
+                assert found_operation.cluster_id == cluster_data
+                assert found_operation.zone == zone_data
                 # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
                 assert found_operation.is_streaming == ("read_rows" in fn_name)
                 # check attempts
                 assert len(found_operation.completed_attempts) == 1
                 found_attempt = found_operation.completed_attempts[0]
                 assert found_attempt.end_status == StatusCode.OK
+                assert found_attempt.start_time - now < datetime.timedelta(seconds=1)
+                assert found_attempt.duration < 0.1
+                assert found_attempt.duration > 0
+                assert found_attempt.start_time >= found_operation.start_time
+                assert found_attempt.duration <= found_operation.duration
+                assert found_attempt.gfe_latency == expected_gfe_latency
+                # first response latency not populated, because no real read_rows chunks processed
+                assert found_attempt.first_response_latency is None
+
