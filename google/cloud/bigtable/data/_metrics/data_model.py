@@ -15,12 +15,14 @@ from __future__ import annotations
 
 from typing import Callable, Any, cast, TYPE_CHECKING
 
+import datetime
 import time
 import os
 import re
 import logging
 
 from enum import Enum
+from collections import namedtuple
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
@@ -45,6 +47,14 @@ SERVER_TIMING_METADATA_KEY = "server-timing"
 SERVER_TIMING_REGEX = re.compile(r"gfet4t7; dur=(\d+)")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
+
+
+# create a named tuple that holds the clock time, and a more accurate monotonic timestamp
+# this allows us to be resistent to clock changes, eg DST
+@dataclass(frozen=True)
+class TimeTuple:
+    utc: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    monotonic: float = field(default_factory=time.monotonic)
 
 
 class OperationType(Enum):
@@ -73,8 +83,8 @@ class CompletedAttemptMetric:
     A dataclass representing the data associated with a completed rpc attempt.
     """
 
-    start_time: float
-    end_time: float
+    start_time: datetime.datetime
+    duration: float
     end_status: StatusCode
     first_response_latency: float | None = None
     gfe_latency: float | None = None
@@ -87,7 +97,7 @@ class CompletedOperationMetric:
     """
 
     op_type: OperationType
-    start_time: float
+    start_time: datetime.datetime
     duration: float
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
@@ -98,7 +108,8 @@ class CompletedOperationMetric:
 
 @dataclass
 class ActiveAttemptMetric:
-    start_time: float = field(default_factory=time.monotonic)
+    # keep both clock time and monotonic timestamps for active attempts
+    start_time: TimeTuple = field(default_factory=TimeTuple)
     # the time it takes to recieve the first response from the server
     # currently only tracked for ReadRows
     first_response_latency: float | None = None
@@ -114,7 +125,8 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    start_time: float = field(default_factory=time.monotonic)
+    # keep both clock time and monotonic timestamps for active operations
+    start_time: TimeTuple = field(default_factory=TimeTuple)
     active_attempt: ActiveAttemptMetric | None = None
     cluster_id: str | None = None
     zone: str | None = None
@@ -145,7 +157,7 @@ class ActiveOperationMetric:
         """
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
-        self.start_time = time.monotonic()
+        self.start_time = TimeTuple()
 
     def start_attempt(self) -> None:
         """
@@ -221,7 +233,7 @@ class ActiveOperationMetric:
         if self.active_attempt.first_response_latency is not None:
             return self._handle_error("Attempt already received first response")
         self.active_attempt.first_response_latency = (
-            time.monotonic() - self.active_attempt.start_time
+            time.monotonic() - self.active_attempt.start_time.monotonic
         )
 
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
@@ -240,9 +252,9 @@ class ActiveOperationMetric:
             )
 
         new_attempt = CompletedAttemptMetric(
-            start_time=self.active_attempt.start_time,
+            start_time=self.active_attempt.start_time.utc,
             first_response_latency=self.active_attempt.first_response_latency,
-            end_time=time.monotonic(),
+            duration=time.monotonic() - self.active_attempt.start_time.monotonic,
             end_status=self._exc_to_status(status)
             if isinstance(status, Exception)
             else status,
@@ -278,9 +290,9 @@ class ActiveOperationMetric:
         self.was_completed = True
         finalized = CompletedOperationMetric(
             op_type=self.op_type,
-            start_time=self.start_time,
+            start_time=self.start_time.utc,
             completed_attempts=self.completed_attempts,
-            duration=time.monotonic() - self.start_time,
+            duration=time.monotonic() - self.start_time.monotonic,
             final_status=final_status,
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,

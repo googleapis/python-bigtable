@@ -140,7 +140,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
 
         self.otel.attempt_latencies.record(
-            attempt.end_time - attempt.start_time, labels
+            attempt.duration, labels
         )
         if (
             op.op_type == OperationType.READ_ROWS
