@@ -15,8 +15,10 @@
 import time
 import pytest
 import mock
+import datetime
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
+from google.cloud.bigtable.data._metrics.data_model import TimeTuple
 
 
 class TestActiveOperationMetric:
@@ -32,7 +34,8 @@ class TestActiveOperationMetric:
         mock_type = mock.Mock()
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
-        assert metric.start_time - time.monotonic() < 0.1
+        assert metric.start_time.monotonic - time.monotonic() < 0.1
+        assert (metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc)).total_seconds() < 1
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -46,7 +49,7 @@ class TestActiveOperationMetric:
         test with explicit arguments
         """
         expected_type = mock.Mock()
-        expected_start_time = 12
+        expected_start_time = object()
         expected_active_attempt = mock.Mock()
         expected_cluster_id = "cluster"
         expected_zone = "zone"
@@ -174,12 +177,14 @@ class TestActiveOperationMetric:
         """
         calling start op operation should reset start_time
         """
-        orig_time = 0
+        orig_time = TimeTuple(0, 0)
         metric = self._make_one(mock.Mock(), start_time=orig_time)
-        assert abs(metric.start_time - time.monotonic()) > 5
+        assert abs(metric.start_time.monotonic - time.monotonic()) > 5
         metric.start()
         assert metric.start_time != orig_time
-        assert metric.start_time - time.monotonic() < 0.1
+        assert metric.start_time.monotonic != orig_time.monotonic
+        assert metric.start_time.monotonic - time.monotonic() < 0.1
+        assert metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(seconds=0.1)
         # should remain in CREATED state after completing
         assert metric.state == State.CREATED
 
@@ -194,7 +199,8 @@ class TestActiveOperationMetric:
         metric.start_attempt()
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
-        assert time.monotonic() - metric.active_attempt.start_time < 0.1
+        assert time.monotonic() - metric.active_attempt.start_time.monotonic < 0.1
+        assert metric.active_attempt.start_time.utc - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(seconds=0.1)
         assert metric.active_attempt.first_response_latency is None
         assert metric.active_attempt.gfe_latency is None
         # should be in ACTIVE_ATTEMPT state after completing
@@ -279,9 +285,10 @@ class TestActiveOperationMetric:
             # no errors encountered
             assert mock_handle_error.call_count == 1
             assert (
+                "Failed to decode x-goog-ext-425905942-bin metadata:" in
                 mock_handle_error.call_args[0][0]
-                == f"Failed to decode x-goog-ext-425905942-bin metadata: {metadata_field}"
             )
+            assert str(metadata_field) in mock_handle_error.call_args[0][0]
 
     @pytest.mark.parametrize(
         "metadata_field,expected_latency",
@@ -332,7 +339,7 @@ class TestActiveOperationMetric:
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(mock.Mock())
             metric.start_attempt()
-            metric.active_attempt.start_time = 0
+            metric.active_attempt.start_time = TimeTuple(0, 0)
             metric.attempt_first_response()
             got_latency = metric.active_attempt.first_response_latency
             # latency should be equal to current time
@@ -359,7 +366,7 @@ class TestActiveOperationMetric:
         - update state
         """
         expected_latency = 9
-        expected_start_time = 7
+        expected_start_time = TimeTuple(1, 2)
         expected_status = object()
         expected_gfe_latency = 5
 
@@ -373,9 +380,9 @@ class TestActiveOperationMetric:
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
-        assert got_attempt.start_time == expected_start_time
+        assert got_attempt.start_time == expected_start_time.utc
         assert got_attempt.first_response_latency == expected_latency
-        assert time.monotonic() - got_attempt.end_time < 0.001
+        assert time.monotonic() - got_attempt.duration - expected_start_time.monotonic < 0.001
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency == expected_gfe_latency
         # state should be changed to BETWEEN_ATTEMPTS
@@ -407,13 +414,13 @@ class TestActiveOperationMetric:
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
-        expected_attempt_start_time = 7
+        expected_attempt_start_time = TimeTuple(10, 0)
         expected_attempt_first_response_latency = 9
         expected_attempt_gfe_latency = 5
 
         expected_status = object()
         expected_type = object()
-        expected_start_time = 0
+        expected_start_time = TimeTuple(9, 0)
         expected_cluster = object()
         expected_zone = object()
         is_streaming = object()
@@ -443,7 +450,7 @@ class TestActiveOperationMetric:
             assert len(h.on_operation_complete.call_args[0]) == 1
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
-            assert called_with.start_time == expected_start_time
+            assert called_with.start_time == expected_start_time.utc
             assert time.monotonic() - called_with.duration < 0.1
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
@@ -452,14 +459,14 @@ class TestActiveOperationMetric:
             # check the attempt
             assert len(called_with.completed_attempts) == 1
             final_attempt = called_with.completed_attempts[0]
-            assert final_attempt.start_time == expected_attempt_start_time
+            assert final_attempt.start_time == expected_attempt_start_time.utc
             assert (
                 final_attempt.first_response_latency
                 == expected_attempt_first_response_latency
             )
             assert final_attempt.gfe_latency == expected_attempt_gfe_latency
             assert final_attempt.end_status == expected_status
-            assert time.monotonic() - final_attempt.end_time < 0.001
+            assert time.monotonic() - final_attempt.duration < 0.001
 
     def test_end_with_status_w_exception(self):
         """
@@ -512,43 +519,31 @@ class TestActiveOperationMetric:
         assert final_op.final_status == StatusCode.OK
         assert final_op.completed_attempts == []
 
-    def test_build_on_error_fn(self):
+    def test_build_wrapped_predicate(self):
         """
-        on_error_fn generated by object should:
-        - terminate attempt or operation based on passed in predicate
-        - defer to a secondary on_error function if provided
+        predicate generated by object should terminate attempt or operation
+        based on passed in predicate
         """
         input_exc = ValueError("test")
         cls = type(self._make_one(object()))
         # ensure predicate is called with the exception
         mock_predicate = mock.Mock()
-        cls.build_on_error_fn(mock.Mock(), mock_predicate)(input_exc)
+        cls.build_wrapped_predicate(mock.Mock(), mock_predicate)(input_exc)
         assert mock_predicate.call_count == 1
         assert mock_predicate.call_args[0][0] == input_exc
         assert len(mock_predicate.call_args[0]) == 1
         # if predicate is true, end the attempt
         mock_instance = mock.Mock()
-        cls.build_on_error_fn(mock_instance, predicate=lambda x: True)(input_exc)
+        cls.build_wrapped_predicate(mock_instance, lambda x: True)(input_exc)
         assert mock_instance.end_attempt_with_status.call_count == 1
         assert mock_instance.end_attempt_with_status.call_args[0][0] == input_exc
         assert len(mock_instance.end_attempt_with_status.call_args[0]) == 1
         # if predicate is false, end the operation
         mock_instance = mock.Mock()
-        cls.build_on_error_fn(mock_instance, predicate=lambda x: False)(input_exc)
+        cls.build_wrapped_predicate(mock_instance, lambda x: False)(input_exc)
         assert mock_instance.end_with_status.call_count == 1
         assert mock_instance.end_with_status.call_args[0][0] == input_exc
         assert len(mock_instance.end_with_status.call_args[0]) == 1
-        # ensure that wrapped_on_error is called if provided
-        for pred_val in [True, False]:
-            mock_wrapped_on_error = mock.Mock()
-            cls.build_on_error_fn(
-                mock.Mock(),
-                predicate=lambda x: pred_val,
-                wrapped_on_error=mock_wrapped_on_error,
-            )(input_exc)
-            assert mock_wrapped_on_error.call_count == 1
-            assert mock_wrapped_on_error.call_args[0][0] == input_exc
-            assert len(mock_wrapped_on_error.call_args[0]) == 1
 
     def test__exc_to_status(self):
         """
@@ -621,17 +616,21 @@ class TestActiveOperationMetric:
             with pytest.raises(ValueError) as e:
                 type(self._make_one(object()))._handle_error(input_message)
             assert e.value.args[0] == expected_message
-        # if LOGGER is populated, log the exception
         with mock.patch(
-            "google.cloud.bigtable.data._metrics.data_model.LOGGER"
-        ) as logger_mock:
-            type(self._make_one(object()))._handle_error(input_message)
-            assert logger_mock.warning.call_count == 1
-            assert logger_mock.warning.call_args[0][0] == expected_message
-            assert len(logger_mock.warning.call_args[0]) == 1
-        # otherwise, do nothing
-        with mock.patch("google.cloud.bigtable.data._metrics.data_model.LOGGER", None):
-            type(self._make_one(object()))._handle_error(input_message)
+            "google.cloud.bigtable.data._metrics.data_model.ALLOW_METRIC_EXCEPTIONS",
+            False,
+        ):
+            # if LOGGER is populated, log the exception
+            with mock.patch(
+                "google.cloud.bigtable.data._metrics.data_model.LOGGER"
+            ) as logger_mock:
+                type(self._make_one(object()))._handle_error(input_message)
+                assert logger_mock.warning.call_count == 1
+                assert logger_mock.warning.call_args[0][0] == expected_message
+                assert len(logger_mock.warning.call_args[0]) == 1
+            # otherwise, do nothing
+            with mock.patch("google.cloud.bigtable.data._metrics.data_model.LOGGER", None):
+                type(self._make_one(object()))._handle_error(input_message)
 
     @pytest.mark.asyncio
     async def test_async_context_manager(self):
@@ -746,9 +745,6 @@ class TestActiveOperationMetric:
                 result = await wrapped_fn()
                 assert result == mock_call
                 assert mock_add_metadata.call_count == 1
-            # try again without mock
-            result = await wrapped_fn()
-            assert result == mock_call
 
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_extract_call_metadata(self):
