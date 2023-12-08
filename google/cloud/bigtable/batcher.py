@@ -51,36 +51,54 @@ class _MutationsBatchQueue(object):
         self.total_size = 0
         self.max_mutation_bytes = max_mutation_bytes
         self.flush_count = flush_count
+        self.lock = threading.Lock()
 
     def get(self):
-        """Retrieve an item from the queue. Recalculate queue size."""
-        row = self._queue.get()
-        mutation_size = row.get_mutations_size()
-        self.total_mutation_count -= len(row._get_mutations())
-        self.total_size -= mutation_size
-        return row
+        """
+        Retrieve an item from the queue. Recalculate queue size.
+
+        If the queue is empty, return None.
+        """
+        with self.lock:
+            try:
+                row = self._queue.get_nowait()
+                mutation_size = row.get_mutations_size()
+                self.total_mutation_count -= len(row._get_mutations())
+                self.total_size -= mutation_size
+                return row
+            except queue.Empty:
+                return None
+
+    def get_all(self):
+        """Get all items from the queue."""
+        with self.lock:
+            items = []
+            while not self._queue.empty():
+                items.append(self._queue.get_nowait())
+            self.total_mutation_count = 0
+            self.total_size = 0
+            return items
 
     def put(self, item):
         """Insert an item to the queue. Recalculate queue size."""
 
         mutation_count = len(item._get_mutations())
 
-        self._queue.put(item)
+        with self.lock:
+            self._queue.put(item)
 
-        self.total_size += item.get_mutations_size()
-        self.total_mutation_count += mutation_count
+            self.total_size += item.get_mutations_size()
+            self.total_mutation_count += mutation_count
 
     def full(self):
         """Check if the queue is full."""
-        if (
-            self.total_mutation_count >= self.flush_count
-            or self.total_size >= self.max_mutation_bytes
-        ):
-            return True
-        return False
-
-    def empty(self):
-        return self._queue.empty()
+        with self.lock:
+            if (
+                self.total_mutation_count >= self.flush_count
+                or self.total_size >= self.max_mutation_bytes
+            ):
+                return True
+            return False
 
 
 @dataclass
@@ -291,9 +309,7 @@ class MutationsBatcher(object):
         :raises:
             * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
         """
-        rows_to_flush = []
-        while not self._rows.empty():
-            rows_to_flush.append(self._rows.get())
+        rows_to_flush = self._rows.get_all()
         response = self._flush_rows(rows_to_flush)
         return response
 
@@ -310,38 +326,40 @@ class MutationsBatcher(object):
         rows_count = 0
         batch_info = _BatchInfo()
 
-        while not self._rows.empty():
-            row = self._rows.get()
-            mutations_count += len(row._get_mutations())
-            mutations_size += row.get_mutations_size()
-            rows_count += 1
-            rows_to_flush.append(row)
-            batch_info.mutations_count = mutations_count
-            batch_info.rows_count = rows_count
-            batch_info.mutations_size = mutations_size
-
-            if (
-                rows_count >= self.flush_count
-                or mutations_size >= self.max_row_bytes
-                or mutations_count >= self.flow_control.max_mutations
-                or mutations_size >= self.flow_control.max_mutation_bytes
-                or self._rows.empty()  # submit when it reached the end of the queue
+        row = self._rows.get()
+        while row is not None:
+            while (
+                row is not None
+                and rows_count < self.flush_count
+                and mutations_size < self.max_row_bytes
+                and mutations_count < self.flow_control.max_mutations
+                and mutations_size < self.flow_control.max_mutation_bytes
             ):
-                # wait for resources to become available, before submitting any new batch
-                self.flow_control.wait()
-                # once unblocked, submit a batch
-                # event flag will be set by control_flow to block subsequent thread, but not blocking this one
-                self.flow_control.control_flow(batch_info)
-                future = self._executor.submit(self._flush_rows, rows_to_flush)
-                self.futures_mapping[future] = batch_info
-                future.add_done_callback(self._batch_completed_callback)
+                # build a batch
+                mutations_count += len(row._get_mutations())
+                mutations_size += row.get_mutations_size()
+                rows_count += 1
+                rows_to_flush.append(row)
+                batch_info.mutations_count = mutations_count
+                batch_info.rows_count = rows_count
+                batch_info.mutations_size = mutations_size
+                row = self._rows.get()
+            # wait for resources to become available, before submitting any new batch
+            self.flow_control.wait()
+            # once unblocked, submit the batch
+            # event flag will be set by control_flow to block subsequent thread, but not blocking this one
+            self.flow_control.control_flow(batch_info)
+            future = self._executor.submit(self._flush_rows, rows_to_flush)
+            self.futures_mapping[future] = batch_info
+            future.add_done_callback(self._batch_completed_callback)
 
-                # reset and start a new batch
-                rows_to_flush = []
-                mutations_size = 0
-                rows_count = 0
-                mutations_count = 0
-                batch_info = _BatchInfo()
+            # reset and start a new batch
+            rows_to_flush = []
+            mutations_size = 0
+            rows_count = 0
+            mutations_count = 0
+            batch_info = _BatchInfo()
+            row = self._rows.get()
 
     def _batch_completed_callback(self, future):
         """Callback for when the mutation has finished to clean up the current batch
