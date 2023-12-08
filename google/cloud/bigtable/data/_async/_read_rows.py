@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
 
+import time
+
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
@@ -29,10 +31,10 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import backoff_generator
 
 from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
-from google.api_core.retry import exponential_sleep_generator
 from google.api_core.retry import RetryFailureReason
 from google.api_core import exceptions as core_exceptions
 from google.api_core.grpc_helpers_async import GrpcAsyncStream
@@ -112,10 +114,13 @@ class _ReadRowsOperationAsync:
         """
         self._operation_metrics.start()
 
+        sleep_generator = backoff_generator()
+        self._operation_metrics.backoff_generator = sleep_generator
+
         return retry_target_stream(
             self._read_rows_attempt,
             self._operation_metrics.build_wrapped_predicate(self._predicate),
-            exponential_sleep_generator(0.01, 60, multiplier=2),
+            sleep_generator,
             self.operation_timeout,
             exception_factory=self._build_exception,
         )
@@ -309,7 +314,11 @@ class _ReadRowsOperationAsync:
                             # record first row latency in metrics
                             is_first_row = False
                             operation.attempt_first_response()
+                        block_time = time.monotonic()
                         yield Row(row_key, cells)
+                        # most metric operations use setters, but this one updates
+                        # the value directly to avoid extra overhead
+                        operation.active_attempt.application_blocking_time += (time.monotonic() - block_time)
                         break
                     c = await it.__anext__()
             except _ResetRow as e:

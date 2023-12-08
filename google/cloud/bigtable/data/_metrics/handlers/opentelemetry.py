@@ -66,6 +66,11 @@ class _OpenTelemetryInstrumentSingleton:
             name="connectivity_error_count",
             description="A count of the number of attempts that failed to reach Google's network.",
         )
+        self.application_blocking_latencies = meter.create_histogram(
+            name="application_blocking_latencies",
+            description="A distribution of the total latency introduced by your application when Cloud Bigtable has available response data but your application has not consumed it.",
+            unit="ms",
+        )
 
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
@@ -80,7 +85,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - retry_count: Number of additional RPCs sent after the initial attempt.
       - server_latencies: latency recorded on the server side for each attempt.
       - connectivity_error_count: number of attempts that failed to reach Google's network.
-      - application_latencies: the time spent waiting for the application to process the next response.
+      - application_blocking_latencies: the time spent waiting for the application to process the next response.
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
     """
 
@@ -141,6 +146,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
 
         self.otel.attempt_latencies.record(
             attempt.duration, labels
+        )
+        self.otel.application_blocking_latencies.record(
+            attempt.application_blocking_time + attempt.backoff_before_attempt, labels
         )
         if (
             op.op_type == OperationType.READ_ROWS

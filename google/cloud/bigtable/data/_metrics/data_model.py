@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Any, cast, TYPE_CHECKING
+from typing import Callable, Any, Generator, cast, TYPE_CHECKING
 
 import datetime
 import time
@@ -22,7 +22,6 @@ import re
 import logging
 
 from enum import Enum
-from collections import namedtuple
 from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
@@ -88,6 +87,8 @@ class CompletedAttemptMetric:
     end_status: StatusCode
     first_response_latency: float | None = None
     gfe_latency: float | None = None
+    application_blocking_time: float = 0.0
+    backoff_before_attempt: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,10 @@ class ActiveAttemptMetric:
     first_response_latency: float | None = None
     # the time taken by the backend. Taken from response header
     gfe_latency: float | None = None
+    # time waiting on user to process the response
+    # currently only relevant for ReadRows
+    application_blocking_time: float = 0.0
+    backoff_before_attempt: float = 0.0
 
 
 @dataclass
@@ -125,6 +130,7 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
+    backoff_generator: Generator[float, int, None] | None = None
     # keep both clock time and monotonic timestamps for active operations
     start_time: TimeTuple = field(default_factory=TimeTuple)
     active_attempt: ActiveAttemptMetric | None = None
@@ -174,7 +180,14 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("start_attempt", self.state)
             )
 
-        self.active_attempt = ActiveAttemptMetric()
+        # find backoff value
+        if self.backoff_generator and len(self.completed_attempts) > 0:
+            # find the attempt's backoff by sending attempt number to generator
+            backoff = self.backoff_generator.send(len(self.completed_attempts) - 1)
+        else:
+            backoff = 0
+
+        self.active_attempt = ActiveAttemptMetric(backoff_before_attempt=backoff)
 
     def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
         """
@@ -236,6 +249,7 @@ class ActiveOperationMetric:
             time.monotonic() - self.active_attempt.start_time.monotonic
         )
 
+
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
         """
         Called to mark the end of a failed attempt for the operation.
@@ -259,6 +273,8 @@ class ActiveOperationMetric:
             if isinstance(status, Exception)
             else status,
             gfe_latency=self.active_attempt.gfe_latency,
+            application_blocking_time=self.active_attempt.application_blocking_time,
+            backoff_before_attempt=self.active_attempt.backoff_before_attempt,
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt = None

@@ -20,6 +20,7 @@ from collections import namedtuple
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
+from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 """
@@ -88,6 +89,24 @@ def _attempt_timeout_generator(
     while True:
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
+
+def backoff_generator(initial=0.01, multiplier=2, maximum=60):
+    """
+    Build a generator for exponential backoff sleep times.
+
+    This implementation builds on top of api_core.retries.exponential_sleep_generator,
+    adding the ability to retrieve previous values using the send(idx) method. This is
+    used by the Metrics class to track the sleep times used for each attempt.
+    """
+    history = []
+    subgenerator = exponential_sleep_generator(initial, multiplier, maximum)
+    while True:
+        next_backoff = next(subgenerator)
+        history.append(next_backoff)
+        sent_idx = yield next_backoff
+        while sent_idx is not None:
+            # requesting from history
+            sent_idx = yield history[sent_idx]
 
 # TODO:replace this function with an exception_factory passed into the retry when
 # feature is merged:

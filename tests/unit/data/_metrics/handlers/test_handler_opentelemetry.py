@@ -67,7 +67,7 @@ class TestOpenTelemetryMetricsHandler:
             ("retry_count", "count"),
             ("server_latencies", "histogram"),
             ("connectivity_error_count", "count"),
-            # ("application_latencies", "histogram"),
+            ("application_blocking_latencies", "histogram"),
             # ("throttling_latencies", "histogram"),
         ],
     )
@@ -147,7 +147,7 @@ class TestOpenTelemetryMetricsHandler:
             ("attempt_latencies", "histogram"),
             ("server_latencies", "histogram"),
             ("connectivity_error_count", "count"),
-            # ("application_latencies", "histogram"),
+            ("application_blocking_latencies", "histogram"),
             # ("throttling_latencies", "histogram"),
         ],
     )
@@ -164,7 +164,7 @@ class TestOpenTelemetryMetricsHandler:
         gfe_latency = 1 if metric_name == "server_latencies" else None
         attempt = CompletedAttemptMetric(
             start_time=0,
-            end_time=1,
+            duration=1,
             end_status=expected_status,
             gfe_latency=gfe_latency,
             first_response_latency=1,
@@ -235,7 +235,7 @@ class TestOpenTelemetryMetricsHandler:
         """
         expected_latency = 123
         attempt = CompletedAttemptMetric(
-            start_time=0, end_time=expected_latency, end_status=mock.Mock()
+            start_time=0, duration=expected_latency, end_status=mock.Mock()
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -254,7 +254,7 @@ class TestOpenTelemetryMetricsHandler:
         expected_first_response_latency = 123
         attempt = CompletedAttemptMetric(
             start_time=0,
-            end_time=1,
+            duration=1,
             end_status=mock.Mock(),
             first_response_latency=expected_first_response_latency,
         )
@@ -275,7 +275,7 @@ class TestOpenTelemetryMetricsHandler:
         expected_latency = 456
         attempt = CompletedAttemptMetric(
             start_time=0,
-            end_time=expected_latency,
+            duration=expected_latency,
             end_status=mock.Mock(),
             gfe_latency=expected_latency,
         )
@@ -293,7 +293,7 @@ class TestOpenTelemetryMetricsHandler:
         """
         # error connectivity is logged when gfe_latency is None
         attempt = CompletedAttemptMetric(
-            start_time=0, end_time=1, end_status=mock.Mock(), gfe_latency=None
+            start_time=0, duration=1, end_status=mock.Mock(), gfe_latency=None
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -302,6 +302,31 @@ class TestOpenTelemetryMetricsHandler:
             instance.on_attempt_complete(attempt, op)
             assert add.call_count == 1
             assert add.call_args[0][0] == 1
+
+    @pytest.mark.parametrize("app_blocking,backoff", [
+        (0, 10), (10, 0), (123, 456)
+    ])
+    def test_attempt_update_application_blocking_latencies(self, app_blocking, backoff):
+        """
+        update application_blocking_latencies on attempt completion
+        """
+        expected_total_latency = app_blocking + backoff
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            duration=1,
+            end_status=mock.Mock(),
+            application_blocking_time=app_blocking,
+            backoff_before_attempt=backoff,
+        )
+        op = ActiveOperationMetric(mock.Mock())
+
+        instance = self._make_one()
+        with mock.patch.object(
+            instance.otel.application_blocking_latencies, "record"
+        ) as record:
+            instance.on_attempt_complete(attempt, op)
+            assert record.call_count == 1
+            assert record.call_args[0][0] == expected_total_latency
 
     def tyest_operation_update_latency(self):
         """

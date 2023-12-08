@@ -206,6 +206,36 @@ class TestActiveOperationMetric:
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
+    def test_start_attempt_with_backoff_generator(self):
+        """
+        If operation has a backoff generator, it should be used to attach backoff
+        times to attempts
+        """
+        from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
+
+        def mock_generator():
+            """
+            always send back what was sent in
+            """
+            sent = None
+            while True:
+                sent = yield sent
+
+        metric = self._make_one(mock.Mock())
+        metric.backoff_generator = mock_generator()
+        # initialize generator
+        next(metric.backoff_generator)
+        metric.start_attempt()
+        assert len(metric.completed_attempts) == 0
+        # first attempt should always be 0
+        assert metric.active_attempt.backoff_before_attempt == 0
+        # later attempts should have their attempt number as backoff time
+        for i in range(10):
+            metric.end_attempt_with_status(mock.Mock())
+            assert len(metric.completed_attempts) == i + 1
+            metric.start_attempt()
+            assert metric.active_attempt.backoff_before_attempt == i
+
     @pytest.mark.parametrize(
         "start_cluster,start_zone,metadata_field,end_cluster,end_zone",
         [
@@ -369,6 +399,8 @@ class TestActiveOperationMetric:
         expected_start_time = TimeTuple(1, 2)
         expected_status = object()
         expected_gfe_latency = 5
+        expected_app_blocking = 12
+        expected_backoff = 2
 
         metric = self._make_one(mock.Mock())
         assert metric.active_attempt is None
@@ -377,6 +409,8 @@ class TestActiveOperationMetric:
         metric.active_attempt.start_time = expected_start_time
         metric.active_attempt.gfe_latency = expected_gfe_latency
         metric.active_attempt.first_response_latency = expected_latency
+        metric.active_attempt.application_blocking_time = expected_app_blocking
+        metric.active_attempt.backoff_before_attempt = expected_backoff
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
@@ -385,6 +419,8 @@ class TestActiveOperationMetric:
         assert time.monotonic() - got_attempt.duration - expected_start_time.monotonic < 0.001
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency == expected_gfe_latency
+        assert got_attempt.application_blocking_time == expected_app_blocking
+        assert got_attempt.backoff_before_attempt == expected_backoff
         # state should be changed to BETWEEN_ATTEMPTS
         assert metric.state == State.BETWEEN_ATTEMPTS
 

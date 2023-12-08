@@ -30,8 +30,7 @@ from google.cloud.bigtable.data._metrics.data_model import SERVER_TIMING_METADAT
 
 from .._async.test_client import mock_grpc_call
 
-
-@pytest.mark.parametrize(
+ALL_RPC_PARAMS = (
     "fn_name,fn_args,gapic_fn,is_unary,expected_type",
     [
         ("read_rows_stream", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
@@ -56,8 +55,11 @@ from .._async.test_client import mock_grpc_call
             True,
             OperationType.READ_MODIFY_WRITE
         ),
-    ],
+    ]
 )
+
+
+@pytest.mark.parametrize(*ALL_RPC_PARAMS)
 @pytest.mark.asyncio
 async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_type):
     """check that all requests attach proper metadata headers"""
@@ -78,7 +80,6 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
         trailing_metadata = Metadata((SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}"))
         grpc_call = mock_grpc_call(unary_response=unary_response, initial_metadata=initial_metadata, trailing_metadata=trailing_metadata)
         gapic_mock.return_value = grpc_call
-        # gapic_mock.side_effect = RuntimeError("stop early")
         async with BigtableDataClientAsync() as client:
             async with TableAsync(client, "instance-id", "table-id") as table:
                 # customize metrics handlers
@@ -117,4 +118,67 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
                 assert found_attempt.gfe_latency == expected_gfe_latency
                 # first response latency not populated, because no real read_rows chunks processed
                 assert found_attempt.first_response_latency is None
+                # no application blocking time or backoff time expected
+                assert found_attempt.application_blocking_time == 0
+                assert found_attempt.backoff_before_attempt == 0
 
+
+@pytest.mark.parametrize(*ALL_RPC_PARAMS)
+@pytest.mark.asyncio
+async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is_unary, expected_type):
+    """check that all requests attach proper metadata headers, with a retry"""
+    from google.cloud.bigtable.data import TableAsync
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.api_core.exceptions import Aborted
+
+    with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}") as gapic_mock:
+        if is_unary:
+            unary_response = mock.Mock()
+            unary_response.row.families = []  # patch for read_modify_write_row
+        else:
+            unary_response = None
+        grpc_call = mock_grpc_call(unary_response=unary_response)
+        gapic_mock.side_effect = [Aborted("first attempt failed"), grpc_call]
+        async with BigtableDataClientAsync() as client:
+            async with TableAsync(client, "instance-id", "table-id") as table:
+                # customize metrics handlers
+                mock_metric_handler = mock.Mock()
+                table._metrics.handlers = [mock_metric_handler]
+                test_fn = table.__getattribute__(fn_name)
+                maybe_stream = await test_fn(*fn_args)
+                # iterate stream if it exists
+                try:
+                    [i async for i in maybe_stream]
+                except TypeError:
+                    pass
+                # check for recorded metrics values
+                assert mock_metric_handler.on_operation_complete.call_count == 1
+                found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
+                # make sure expected fields were set properly
+                assert found_operation.op_type == expected_type
+                now = datetime.datetime.now(datetime.timezone.utc)
+                assert found_operation.start_time - now < datetime.timedelta(seconds=1)
+                assert found_operation.duration < 0.1
+                assert found_operation.duration > 0
+                assert found_operation.final_status == StatusCode.OK
+                # metadata wasn't set, should see default values
+                assert found_operation.cluster_id == "unspecified"
+                assert found_operation.zone == "global"
+                # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
+                assert found_operation.is_streaming == ("read_rows" in fn_name)
+                # check attempts
+                assert len(found_operation.completed_attempts) == 2
+                failure, success = found_operation.completed_attempts
+                for attempt in [success, failure]:
+                    # check things that should be consistent across attempts
+                    assert attempt.start_time - now < datetime.timedelta(seconds=1)
+                    assert attempt.duration < 0.1
+                    assert attempt.duration > 0
+                    assert attempt.start_time >= found_operation.start_time
+                    assert attempt.duration <= found_operation.duration
+                    assert attempt.application_blocking_time == 0
+                assert success.end_status == StatusCode.OK
+                assert failure.end_status == StatusCode.ABORTED
+                assert success.start_time > failure.start_time + datetime.timedelta(seconds=failure.duration)
+                assert success.backoff_before_attempt > 0
+                assert failure.backoff_before_attempt == 0
