@@ -326,7 +326,7 @@ class ActiveOperationMetric:
             if inner_result:
                 self.end_attempt_with_status(exc)
             else:
-                self.end_with_success()
+                self.end_with_status(exc)
             return inner_result
         return wrapped_predicate
 
