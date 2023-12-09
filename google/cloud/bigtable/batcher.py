@@ -330,7 +330,9 @@ class MutationsBatcher(object):
             )
             # fill up batch with rows
             next_row = self._rows.get()
-            while next_row is not None and self._row_fits_in_batch(next_row, batch_info):
+            while next_row is not None and self._row_fits_in_batch(
+                next_row, batch_info
+            ):
                 rows_to_flush.append(next_row)
                 batch_info.mutations_count += len(next_row._get_mutations())
                 batch_info.rows_count += 1
