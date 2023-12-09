@@ -33,6 +33,7 @@ import sys
 import random
 import os
 
+from functools import partial
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -45,7 +46,7 @@ from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
-from google.api_core import retry_async as retries
+from google.api_core import retry as retries
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.exceptions import Aborted
@@ -65,7 +66,7 @@ from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _make_metadata
-from google.cloud.bigtable.data._helpers import _convert_retry_deadline
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
@@ -872,22 +873,8 @@ class TableAsync:
         # prepare retryable
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
-        transient_errors = []
 
-        def on_error_fn(exc):
-            # add errors to list if retryable
-            if predicate(exc):
-                transient_errors.append(exc)
-
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-            on_error=on_error_fn,
-            is_stream=False,
-        )
+        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
 
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
@@ -902,10 +889,13 @@ class TableAsync:
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
-        wrapped_fn = _convert_retry_deadline(
-            retry(execute_rpc), operation_timeout, transient_errors, is_async=True
+        return await retries.retry_target_async(
+            execute_rpc,
+            predicate,
+            sleep_generator,
+            operation_timeout,
+            exception_factory=_retry_exception_factory,
         )
-        return await wrapped_fn()
 
     def mutations_batcher(
         self,
@@ -1014,36 +1004,24 @@ class TableAsync:
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        transient_errors = []
+        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
 
-        def on_error_fn(exc):
-            if predicate(exc):
-                transient_errors.append(exc)
-
-        retry = retries.AsyncRetry(
-            predicate=predicate,
-            on_error=on_error_fn,
-            timeout=operation_timeout,
-            initial=0.01,
-            multiplier=2,
-            maximum=60,
-        )
-        # wrap rpc in retry logic
-        retry_wrapped = retry(self.client._gapic_client.mutate_row)
-        # convert RetryErrors from retry wrapper into DeadlineExceeded errors
-        deadline_wrapped = _convert_retry_deadline(
-            retry_wrapped, operation_timeout, transient_errors, is_async=True
-        )
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
-        # trigger rpc
-        await deadline_wrapped(
+        target = partial(
+            self.client._gapic_client.mutate_row,
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
             mutations=[mutation._to_pb() for mutation in mutations_list],
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
-            metadata=metadata,
+            metadata=_make_metadata(self.table_name, self.app_profile_id),
             retry=None,
+        )
+        return await retries.retry_target_async(
+            target,
+            predicate,
+            sleep_generator,
+            operation_timeout,
+            exception_factory=_retry_exception_factory,
         )
 
     async def bulk_mutate_rows(

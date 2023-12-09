@@ -40,7 +40,7 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-asyncio",
 ]
 UNIT_TEST_EXTERNAL_DEPENDENCIES = [
-    # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
+    "git+https://github.com/googleapis/python-api-core.git@retry_generators"
 ]
 UNIT_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []

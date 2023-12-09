@@ -96,57 +96,36 @@ def _attempt_timeout_generator(
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
 
-# TODO:replace this function with an exception_factory passed into the retry when
-# feature is merged:
-# https://github.com/googleapis/python-bigtable/blob/ea5b4f923e42516729c57113ddbe28096841b952/google/cloud/bigtable/data/_async/_read_rows.py#L130
-def _convert_retry_deadline(
-    func: Callable[..., Any],
-    timeout_value: float | None = None,
-    retry_errors: list[Exception] | None = None,
-    is_async: bool = False,
-):
+def _retry_exception_factory(
+    exc_list: list[Exception], is_timeout: bool, timeout_val: float
+) -> tuple[Exception, Exception | None]:
     """
-    Decorator to convert RetryErrors raised by api_core.retry into
-    DeadlineExceeded exceptions, indicating that the underlying retries have
-    exhaused the timeout value.
-    Optionally attaches a RetryExceptionGroup to the DeadlineExceeded.__cause__,
-    detailing the failed exceptions associated with each retry.
-
-    Supports both sync and async function wrapping.
+    Build retry error based on exceptions encountered during operation
 
     Args:
-      - func: The function to decorate
-      - timeout_value: The timeout value to display in the DeadlineExceeded error message
-      - retry_errors: An optional list of exceptions to attach as a RetryExceptionGroup to the DeadlineExceeded.__cause__
+      - exc_list: list of exceptions encountered during operation
+      - is_timeout: whether the operation failed due to timeout
+      - timeout_val: the operation timeout value in seconds, for constructing
+            the error message
+    Returns:
+      - tuple of the exception to raise, and a cause exception if applicable
     """
-    timeout_str = f" of {timeout_value:.1f}s" if timeout_value is not None else ""
-    error_str = f"operation_timeout{timeout_str} exceeded"
-
-    def handle_error():
-        new_exc = core_exceptions.DeadlineExceeded(
-            error_str,
+    if is_timeout:
+        # if failed due to timeout, raise deadline exceeded as primary exception
+        source_exc: Exception = core_exceptions.DeadlineExceeded(
+            f"operation_timeout of {timeout_val} exceeded"
         )
-        source_exc = None
-        if retry_errors:
-            source_exc = RetryExceptionGroup(retry_errors)
-        new_exc.__cause__ = source_exc
-        raise new_exc from source_exc
-
-    # separate wrappers for async and sync functions
-    async def wrapper_async(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except core_exceptions.RetryError:
-            handle_error()
-
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except core_exceptions.RetryError:
-            handle_error()
-
-    return wrapper_async if is_async else wrapper
-
+    elif exc_list:
+        # otherwise, raise non-retryable error as primary exception
+        source_exc = exc_list.pop()
+    else:
+        source_exc = RuntimeError("failed with unspecified exception")
+    # use the retry exception group as the cause of the exception
+    cause_exc: Exception | None = (
+        RetryExceptionGroup(exc_list) if exc_list else None
+    )
+    source_exc.__cause__ = cause_exc
+    return source_exc, cause_exc
 
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,
