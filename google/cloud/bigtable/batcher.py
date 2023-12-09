@@ -319,32 +319,25 @@ class MutationsBatcher(object):
         :raises:
             * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
         """
-
-        rows_to_flush = []
-        mutations_count = 0
-        mutations_size = 0
-        rows_count = 0
-        batch_info = _BatchInfo()
-
-        row = self._rows.get()
-        while row is not None:
-            while (
-                row is not None
-                and rows_count < self.flush_count
-                and mutations_size < self.max_row_bytes
-                and mutations_count < self.flow_control.max_mutations
-                and mutations_size < self.flow_control.max_mutation_bytes
-            ):
-                # build a batch
-                mutations_count += len(row._get_mutations())
-                mutations_size += row.get_mutations_size()
-                rows_count += 1
-                rows_to_flush.append(row)
-                batch_info.mutations_count = mutations_count
-                batch_info.rows_count = rows_count
-                batch_info.mutations_size = mutations_size
-                row = self._rows.get()
-            # wait for resources to become available, before submitting any new batch
+        next_row = self._rows.get()
+        while next_row is not None:
+            # start a new batch
+            rows_to_flush = [next_row]
+            batch_info = _BatchInfo(
+                mutations_count=len(next_row._get_mutations()),
+                rows_count=1,
+                mutations_size=next_row.get_mutations_size(),
+            )
+            # fill up batch with rows
+            next_row = self._rows.get()
+            while next_row is not None and self._row_fits_in_batch(next_row, batch_info):
+                rows_to_flush.append(next_row)
+                batch_info.mutations_count += len(next_row._get_mutations())
+                batch_info.rows_count += 1
+                batch_info.mutations_size += next_row.get_mutations_size()
+                next_row = self._rows.get()
+            # send batch over network
+            # wait for resources to become available
             self.flow_control.wait()
             # once unblocked, submit the batch
             # event flag will be set by control_flow to block subsequent thread, but not blocking this one
@@ -353,13 +346,27 @@ class MutationsBatcher(object):
             self.futures_mapping[future] = batch_info
             future.add_done_callback(self._batch_completed_callback)
 
-            # reset and start a new batch
-            rows_to_flush = []
-            mutations_size = 0
-            rows_count = 0
-            mutations_count = 0
-            batch_info = _BatchInfo()
-            row = self._rows.get()
+    def _row_fits_in_batch(self, row, batch_info):
+        """Checks if a row can fit in the current batch.
+
+        :type row: class
+        :param row: :class:`~google.cloud.bigtable.row.DirectRow`.
+
+        :type batch_info: :class:`_BatchInfo`
+        :param batch_info: Information about the current batch.
+
+        :rtype: bool
+        :returns: True if the row can fit in the current batch.
+        """
+        new_rows_count = batch_info.rows_count + 1
+        new_mutations_count = batch_info.mutations_count + len(row._get_mutations())
+        new_mutations_size = batch_info.mutations_size + row.get_mutations_size()
+        return (
+            new_rows_count <= self.flush_count
+            and new_mutations_size <= self.max_row_bytes
+            and new_mutations_count <= self.flow_control.max_mutations
+            and new_mutations_size <= self.flow_control.max_mutation_bytes
+        )
 
     def _batch_completed_callback(self, future):
         """Callback for when the mutation has finished to clean up the current batch
