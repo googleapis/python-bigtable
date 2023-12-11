@@ -18,6 +18,9 @@ import queue
 import concurrent.futures
 import atexit
 
+from functools import partial
+from copy import copy
+
 from google.api_core.exceptions import from_grpc_status
 from dataclasses import dataclass
 
@@ -344,7 +347,15 @@ class MutationsBatcher(object):
             self.flow_control.control_flow(batch_info)
             future = self._executor.submit(self._flush_rows, rows_to_flush)
             # schedule release of resources from flow control
-            future.add_done_callback(lambda f: self.flow_control.release(batch_info))
+            future.add_done_callback(partial(self._batch_completed_callback, copy(batch_info)))
+
+    def _batch_completed_callback(self, batch_info, future):
+        """Callback for when the mutation has finished to clean up the current batch
+        and release items from the flow controller.
+        Raise exceptions if there's any.
+        Release the resources locked by the flow control and allow enqueued tasks to be run.
+        """
+        self.flow_control.release(batch_info)
 
     def _row_fits_in_batch(self, row, batch_info):
         """Checks if a row can fit in the current batch.
