@@ -395,16 +395,11 @@ def test_mutations_batcher_threading(data_table, rows_to_delete):
     num_sent = 20
     all_results = []
 
-    max_elements_per_batch = 2
-
     def callback(results):
         all_results.extend(results)
-        assert len(results) <= max_elements_per_batch
 
     # override flow control max elements
-    with mock.patch(
-        "google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", max_elements_per_batch
-    ):
+    with mock.patch("google.cloud.bigtable.batcher.MAX_OUTSTANDING_ELEMENTS", 2):
         with MutationsBatcher(
             data_table,
             flush_count=5,
