@@ -53,7 +53,6 @@ class _MutationsBatchQueue(object):
         self.total_size = 0
         self.max_mutation_bytes = max_mutation_bytes
         self.flush_count = flush_count
-        self._lock = threading.Lock()
 
     def get(self):
         """
@@ -61,46 +60,33 @@ class _MutationsBatchQueue(object):
 
         If the queue is empty, return None.
         """
-        with self._lock:
-            try:
-                row = self._queue.get_nowait()
-                mutation_size = row.get_mutations_size()
-                self.total_mutation_count -= len(row._get_mutations())
-                self.total_size -= mutation_size
-                return row
-            except queue.Empty:
-                return None
-
-    def get_all(self):
-        """Get all items from the queue."""
-        with self._lock:
-            items = []
-            while not self._queue.empty():
-                items.append(self._queue.get_nowait())
-            self.total_mutation_count = 0
-            self.total_size = 0
-            return items
+        try:
+            row = self._queue.get_nowait()
+            mutation_size = row.get_mutations_size()
+            self.total_mutation_count -= len(row._get_mutations())
+            self.total_size -= mutation_size
+            return row
+        except queue.Empty:
+            return None
 
     def put(self, item):
         """Insert an item to the queue. Recalculate queue size."""
 
         mutation_count = len(item._get_mutations())
 
-        with self._lock:
-            self._queue.put(item)
+        self._queue.put(item)
 
-            self.total_size += item.get_mutations_size()
-            self.total_mutation_count += mutation_count
+        self.total_size += item.get_mutations_size()
+        self.total_mutation_count += mutation_count
 
     def full(self):
         """Check if the queue is full."""
-        with self._lock:
-            if (
-                self.total_mutation_count >= self.flush_count
-                or self.total_size >= self.max_mutation_bytes
-            ):
-                return True
-            return False
+        if (
+            self.total_mutation_count >= self.flush_count
+            or self.total_size >= self.max_mutation_bytes
+        ):
+            return True
+        return False
 
 
 @dataclass
@@ -310,7 +296,11 @@ class MutationsBatcher(object):
         :raises:
             * :exc:`.batcherMutationsBatchError` if there's any error in the mutations.
         """
-        rows_to_flush = self._rows.get_all()
+        rows_to_flush = []
+        row = self._rows.get()
+        while row is not None:
+            rows_to_flush.append(row)
+            row = self._rows.get()
         response = self._flush_rows(rows_to_flush)
         return response
 
