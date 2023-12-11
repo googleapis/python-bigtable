@@ -51,7 +51,7 @@ class _MutationsBatchQueue(object):
         self.total_size = 0
         self.max_mutation_bytes = max_mutation_bytes
         self.flush_count = flush_count
-        self.lock = threading.Lock()
+        self._lock = threading.Lock()
 
     def get(self):
         """
@@ -59,7 +59,7 @@ class _MutationsBatchQueue(object):
 
         If the queue is empty, return None.
         """
-        with self.lock:
+        with self._lock:
             try:
                 row = self._queue.get_nowait()
                 mutation_size = row.get_mutations_size()
@@ -71,7 +71,7 @@ class _MutationsBatchQueue(object):
 
     def get_all(self):
         """Get all items from the queue."""
-        with self.lock:
+        with self._lock:
             items = []
             while not self._queue.empty():
                 items.append(self._queue.get_nowait())
@@ -84,7 +84,7 @@ class _MutationsBatchQueue(object):
 
         mutation_count = len(item._get_mutations())
 
-        with self.lock:
+        with self._lock:
             self._queue.put(item)
 
             self.total_size += item.get_mutations_size()
@@ -92,7 +92,7 @@ class _MutationsBatchQueue(object):
 
     def full(self):
         """Check if the queue is full."""
-        with self.lock:
+        with self._lock:
             if (
                 self.total_mutation_count >= self.flush_count
                 or self.total_size >= self.max_mutation_bytes
