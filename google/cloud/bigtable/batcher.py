@@ -347,7 +347,9 @@ class MutationsBatcher(object):
             self.flow_control.control_flow(batch_info)
             future = self._executor.submit(self._flush_rows, rows_to_flush)
             # schedule release of resources from flow control
-            future.add_done_callback(partial(self._batch_completed_callback, copy(batch_info)))
+            future.add_done_callback(
+                partial(self._batch_completed_callback, copy(batch_info))
+            )
 
     def _batch_completed_callback(self, batch_info, future):
         """Callback for when the mutation has finished to clean up the current batch
