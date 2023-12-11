@@ -23,6 +23,7 @@ from collections import namedtuple
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 from google.api_core import exceptions as core_exceptions
+from google.api_core.retry import RetryFailureReason
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 
 if TYPE_CHECKING:
@@ -97,7 +98,7 @@ def _attempt_timeout_generator(
 
 
 def _retry_exception_factory(
-    exc_list: list[Exception], is_timeout: bool, timeout_val: float
+    exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float, **kwargs
 ) -> tuple[Exception, Exception | None]:
     """
     Build retry error based on exceptions encountered during operation
@@ -110,7 +111,7 @@ def _retry_exception_factory(
     Returns:
       - tuple of the exception to raise, and a cause exception if applicable
     """
-    if is_timeout:
+    if reason == RetryFailureReason.TIMEOUT:
         # if failed due to timeout, raise deadline exceeded as primary exception
         source_exc: Exception = core_exceptions.DeadlineExceeded(
             f"operation_timeout of {timeout_val} exceeded"
