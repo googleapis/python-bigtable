@@ -399,7 +399,7 @@ def test_mutations_batcher_threading(data_table, rows_to_delete):
 
     def callback(results):
         all_results.extend(results)
-        assert results <= max_elements_per_batch
+        assert len(results) <= max_elements_per_batch
 
     # override flow control max elements
     with mock.patch(
