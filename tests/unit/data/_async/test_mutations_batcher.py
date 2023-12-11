@@ -1158,10 +1158,10 @@ class TestMutationsBatcherAsync:
         from google.cloud.bigtable.data._async.client import TableAsync
 
         with mock.patch(
-            "google.api_core.retry_async.if_exception_type"
+            "google.api_core.retry.if_exception_type"
         ) as predicate_builder_mock:
             with mock.patch(
-                "google.api_core.retry_async.retry_target"
+                "google.api_core.retry.retry_target_async"
             ) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):

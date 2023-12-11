@@ -1172,7 +1172,7 @@ class TestTableAsync:
             ("sample_row_keys", (), "google.api_core.retry.retry_target_async", ()),
             (
                 "mutate_row",
-                (b"row_key", []),
+                (b"row_key", [mock.Mock()]),
                 "google.api_core.retry.retry_target_async",
                 (),
             ),
@@ -1253,10 +1253,10 @@ class TestTableAsync:
             ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows"),
             ("row_exists", (b"row_key",), "read_rows"),
             ("sample_row_keys", (), "sample_row_keys"),
-            ("mutate_row", (b"row_key", []), "mutate_row"),
+            ("mutate_row", (b"row_key", [mock.Mock()]), "mutate_row"),
             (
                 "bulk_mutate_rows",
-                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
+                ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
                 "mutate_rows",
             ),
             ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row"),
