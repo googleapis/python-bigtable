@@ -18,7 +18,6 @@ import queue
 import concurrent.futures
 import atexit
 
-
 from google.api_core.exceptions import from_grpc_status
 from dataclasses import dataclass
 
@@ -237,7 +236,6 @@ class MutationsBatcher(object):
             max_mutations=MAX_OUTSTANDING_ELEMENTS,
             max_mutation_bytes=MAX_OUTSTANDING_BYTES,
         )
-        self.futures_mapping = {}
         self.exceptions = queue.Queue()
         self._user_batch_completed_callback = batch_completed_callback
 
@@ -345,8 +343,8 @@ class MutationsBatcher(object):
             # event flag will be set by control_flow to block subsequent thread, but not blocking this one
             self.flow_control.control_flow(batch_info)
             future = self._executor.submit(self._flush_rows, rows_to_flush)
-            self.futures_mapping[future] = batch_info
-            future.add_done_callback(self._batch_completed_callback)
+            # schedule release of resources from flow control
+            future.add_done_callback(lambda f: self.flow_control.release(batch_info))
 
     def _row_fits_in_batch(self, row, batch_info):
         """Checks if a row can fit in the current batch.
@@ -369,18 +367,6 @@ class MutationsBatcher(object):
             and new_mutations_count <= self.flow_control.max_mutations
             and new_mutations_size <= self.flow_control.max_mutation_bytes
         )
-
-    def _batch_completed_callback(self, future):
-        """Callback for when the mutation has finished to clean up the current batch
-        and release items from the flow controller.
-
-        Raise exceptions if there's any.
-        Release the resources locked by the flow control and allow enqueued tasks to be run.
-        """
-
-        processed_rows = self.futures_mapping[future]
-        self.flow_control.release(processed_rows)
-        del self.futures_mapping[future]
 
     def _flush_rows(self, rows_to_flush):
         """Mutate the specified rows.
