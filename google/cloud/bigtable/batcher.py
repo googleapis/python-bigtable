@@ -132,7 +132,7 @@ class _FlowControl(object):
         with self._lock:
             self.inflight_mutations += batch_info.mutations_count
             self.inflight_size += batch_info.mutations_size
-            self.set_flow_control_status()
+        self.set_flow_control_status()
 
     def wait(self):
         """
@@ -159,7 +159,7 @@ class _FlowControl(object):
         with self._lock:
             self.inflight_mutations -= batch_info.mutations_count
             self.inflight_size -= batch_info.mutations_size
-            self.set_flow_control_status()
+        self.set_flow_control_status()
 
 
 class MutationsBatcher(object):
