@@ -4,6 +4,36 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.21.0](https://github.com/googleapis/python-bigtable/compare/v2.20.0...v2.21.0) (2023-08-02)
+
+
+### Features
+
+* Add last_scanned_row_responses to FeatureFlags ([#845](https://github.com/googleapis/python-bigtable/issues/845)) ([14a6739](https://github.com/googleapis/python-bigtable/commit/14a673901f82fa247c8027730a0bba41e0ec4757))
+
+
+### Documentation
+
+* Minor formatting ([#851](https://github.com/googleapis/python-bigtable/issues/851)) ([5ebe231](https://github.com/googleapis/python-bigtable/commit/5ebe2312dab70210811fca68c6625d2546442afd))
+
+## [2.20.0](https://github.com/googleapis/python-bigtable/compare/v2.19.0...v2.20.0) (2023-07-17)
+
+
+### Features
+
+* Add experimental reverse scan for public preview ([d5720f8](https://github.com/googleapis/python-bigtable/commit/d5720f8f5b5a81572f31d40051b3ec0f1d104304))
+* Increase the maximum retention period for a Cloud Bigtable backup from 30 days to 90 days ([d5720f8](https://github.com/googleapis/python-bigtable/commit/d5720f8f5b5a81572f31d40051b3ec0f1d104304))
+
+
+### Bug Fixes
+
+* Add async context manager return types ([#828](https://github.com/googleapis/python-bigtable/issues/828)) ([475a160](https://github.com/googleapis/python-bigtable/commit/475a16072f3ad41357bdb765fff608a39141ec00))
+
+
+### Documentation
+
+* Fix formatting for reversed order field example ([#831](https://github.com/googleapis/python-bigtable/issues/831)) ([fddd0ba](https://github.com/googleapis/python-bigtable/commit/fddd0ba97155e112af92a98fd8f20e59b139d177))
+
 ## [2.19.0](https://github.com/googleapis/python-bigtable/compare/v2.18.1...v2.19.0) (2023-06-08)
 
 

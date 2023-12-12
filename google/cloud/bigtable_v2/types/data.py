@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -697,6 +697,7 @@ class RowFilter(proto.Message):
         r"""A RowFilter which evaluates one of two possible RowFilters,
         depending on whether or not a predicate RowFilter outputs any
         cells from the input row.
+
         IMPORTANT NOTE: The predicate filter does not execute atomically
         with the true and false filters, which may lead to inconsistent
         or unexpected results. Additionally, Condition filters have poor

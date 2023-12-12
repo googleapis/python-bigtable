@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,6 +80,21 @@ class ReadRowsRequest(proto.Message):
         request_stats_view (google.cloud.bigtable_v2.types.ReadRowsRequest.RequestStatsView):
             The view into RequestStats, as described
             above.
+        reversed (bool):
+            Experimental API - Please note that this API is currently
+            experimental and can change in the future.
+
+            Return rows in lexiographical descending order of the row
+            keys. The row contents will not be affected by this flag.
+
+            Example result set:
+
+            ::
+
+                [
+                  {key: "k2", "f:col1": "v1", "f:col2": "v1"},
+                  {key: "k1", "f:col1": "v2", "f:col2": "v2"}
+                ]
     """
 
     class RequestStatsView(proto.Enum):
@@ -130,6 +145,10 @@ class ReadRowsRequest(proto.Message):
         proto.ENUM,
         number=6,
         enum=RequestStatsView,
+    )
+    reversed: bool = proto.Field(
+        proto.BOOL,
+        number=7,
     )
 
 
