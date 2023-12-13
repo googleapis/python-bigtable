@@ -122,11 +122,10 @@ def _retry_exception_factory(
     else:
         source_exc = RuntimeError("failed with unspecified exception")
     # use the retry exception group as the cause of the exception
-    cause_exc: Exception | None = (
-        RetryExceptionGroup(exc_list) if exc_list else None
-    )
+    cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
     source_exc.__cause__ = cause_exc
     return source_exc, cause_exc
+
 
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,

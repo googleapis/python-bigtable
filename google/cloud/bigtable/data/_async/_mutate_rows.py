@@ -107,7 +107,7 @@ class _MutateRowsOperationAsync:
             self.is_retryable,
             sleep_generator,
             operation_timeout,
-            exception_factory=_retry_exception_factory
+            exception_factory=_retry_exception_factory,
         )
         # initialize state
         self.timeout_generator = _attempt_timeout_generator(

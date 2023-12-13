@@ -165,7 +165,9 @@ class TestMutateRowsOperation:
         entries = [_make_mutation(), _make_mutation()]
         operation_timeout = 0.05
         cls = self._target_class()
-        with mock.patch(f"{cls.__module__}.{cls.__name__}._run_attempt", AsyncMock()) as attempt_mock:
+        with mock.patch(
+            f"{cls.__module__}.{cls.__name__}._run_attempt", AsyncMock()
+        ) as attempt_mock:
             instance = self._make_one(
                 client, table, entries, operation_timeout, operation_timeout
             )
