@@ -92,14 +92,15 @@ class TempRowBuilder:
         self.rows.append(row_key)
 
     async def delete_rows(self):
-        request = {
-            "table_name": self.table.table_name,
-            "entries": [
-                {"row_key": row, "mutations": [{"delete_from_row": {}}]}
-                for row in self.rows
-            ],
-        }
-        await self.table.client._gapic_client.mutate_rows(request)
+        if self.rows:
+            request = {
+                "table_name": self.table.table_name,
+                "entries": [
+                    {"row_key": row, "mutations": [{"delete_from_row": {}}]}
+                    for row in self.rows
+                ],
+            }
+            await self.table.client._gapic_client.mutate_rows(request)
 
 
 @pytest.mark.usefixtures("table")
@@ -147,7 +148,7 @@ async def temp_rows(table):
 
 @pytest.mark.usefixtures("table")
 @pytest.mark.usefixtures("client")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=10)
 @pytest.mark.asyncio
 async def test_ping_and_warm_gapic(client, table):
     """
@@ -160,7 +161,7 @@ async def test_ping_and_warm_gapic(client, table):
 
 @pytest.mark.usefixtures("table")
 @pytest.mark.usefixtures("client")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_ping_and_warm(client, table):
     """
@@ -176,9 +177,9 @@ async def test_ping_and_warm(client, table):
     assert results[0] is None
 
 
-@pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("table")
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 async def test_mutation_set_cell(table, temp_rows):
     """
     Ensure cells can be set properly
@@ -196,7 +197,7 @@ async def test_mutation_set_cell(table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_sample_row_keys(client, table, temp_rows, column_split_config):
     """
@@ -239,7 +240,7 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_context_manager(client, table, temp_rows):
     """
@@ -267,7 +268,7 @@ async def test_mutations_batcher_context_manager(client, table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_timer_flush(client, table, temp_rows):
     """
@@ -293,7 +294,7 @@ async def test_mutations_batcher_timer_flush(client, table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_count_flush(client, table, temp_rows):
     """
@@ -329,7 +330,7 @@ async def test_mutations_batcher_count_flush(client, table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
     """
@@ -366,7 +367,6 @@ async def test_mutations_batcher_bytes_flush(client, table, temp_rows):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_mutations_batcher_no_flush(client, table, temp_rows):
     """
@@ -570,7 +570,7 @@ async def test_check_and_mutate(
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_stream(table, temp_rows):
     """
@@ -590,7 +590,7 @@ async def test_read_rows_stream(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows(table, temp_rows):
     """
@@ -606,7 +606,7 @@ async def test_read_rows(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_simple(table, temp_rows):
     """
@@ -629,7 +629,7 @@ async def test_read_rows_sharded_simple(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_from_sample(table, temp_rows):
     """
@@ -654,7 +654,7 @@ async def test_read_rows_sharded_from_sample(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_sharded_filters_limits(table, temp_rows):
     """
@@ -683,7 +683,7 @@ async def test_read_rows_sharded_filters_limits(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_range_query(table, temp_rows):
     """
@@ -705,7 +705,7 @@ async def test_read_rows_range_query(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_single_key_query(table, temp_rows):
     """
@@ -726,7 +726,7 @@ async def test_read_rows_single_key_query(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.asyncio
 async def test_read_rows_with_filter(table, temp_rows):
     """
@@ -842,7 +842,7 @@ async def test_row_exists(table, temp_rows):
 
 
 @pytest.mark.usefixtures("table")
-@retry.Retry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
+@retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
 @pytest.mark.parametrize(
     "cell_value,filter_input,expect_match",
     [

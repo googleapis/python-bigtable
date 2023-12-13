@@ -26,6 +26,8 @@ from google.cloud.bigtable_v2.types import ReadRowsResponse
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import InvalidChunk
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+from google.cloud.bigtable.data import TABLE_DEFAULT
 
 from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
 from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
@@ -200,7 +202,7 @@ class TestBigtableDataClientAsync:
     async def test_veneer_grpc_headers(self):
         # client_info should be populated with headers to
         # detect as a veneer client
-        patch = mock.patch("google.api_core.gapic_v1.method.wrap_method")
+        patch = mock.patch("google.api_core.gapic_v1.method_async.wrap_method")
         with patch as gapic_mock:
             client = self._make_one(project="project-id")
             wrapped_call_list = gapic_mock.call_args_list
@@ -901,6 +903,39 @@ class TestBigtableDataClientAsync:
         await client.close()
 
     @pytest.mark.asyncio
+    async def test_get_table_arg_passthrough(self):
+        """
+        All arguments passed in get_table should be sent to constructor
+        """
+        async with self._make_one(project="project-id") as client:
+            with mock.patch(
+                "google.cloud.bigtable.data._async.client.TableAsync.__init__",
+            ) as mock_constructor:
+                mock_constructor.return_value = None
+                assert not client._active_instances
+                expected_table_id = "table-id"
+                expected_instance_id = "instance-id"
+                expected_app_profile_id = "app-profile-id"
+                expected_args = (1, "test", {"test": 2})
+                expected_kwargs = {"hello": "world", "test": 2}
+
+                client.get_table(
+                    expected_instance_id,
+                    expected_table_id,
+                    expected_app_profile_id,
+                    *expected_args,
+                    **expected_kwargs,
+                )
+                mock_constructor.assert_called_once_with(
+                    client,
+                    expected_instance_id,
+                    expected_table_id,
+                    expected_app_profile_id,
+                    *expected_args,
+                    **expected_kwargs,
+                )
+
+    @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
@@ -1165,6 +1200,173 @@ class TestTableAsync:
         with pytest.raises(RuntimeError) as e:
             TableAsync(client, "instance-id", "table-id")
         assert e.match("TableAsync must be created within an async event loop context.")
+
+    @pytest.mark.asyncio
+    # iterate over all retryable rpcs
+    @pytest.mark.parametrize(
+        "fn_name,fn_args,retry_fn_path,extra_retryables",
+        [
+            (
+                "read_rows_stream",
+                (ReadRowsQuery(),),
+                "google.api_core.retry.retry_target_stream_async",
+                (),
+            ),
+            (
+                "read_rows",
+                (ReadRowsQuery(),),
+                "google.api_core.retry.retry_target_stream_async",
+                (),
+            ),
+            (
+                "read_row",
+                (b"row_key",),
+                "google.api_core.retry.retry_target_stream_async",
+                (),
+            ),
+            (
+                "read_rows_sharded",
+                ([ReadRowsQuery()],),
+                "google.api_core.retry.retry_target_stream_async",
+                (),
+            ),
+            (
+                "row_exists",
+                (b"row_key",),
+                "google.api_core.retry.retry_target_stream_async",
+                (),
+            ),
+            ("sample_row_keys", (), "google.api_core.retry.retry_target_async", ()),
+            (
+                "mutate_row",
+                (b"row_key", [mock.Mock()]),
+                "google.api_core.retry.retry_target_async",
+                (),
+            ),
+            (
+                "bulk_mutate_rows",
+                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
+                "google.api_core.retry.retry_target_async",
+                (_MutateRowsIncomplete,),
+            ),
+        ],
+    )
+    # test different inputs for retryable exceptions
+    @pytest.mark.parametrize(
+        "input_retryables,expected_retryables",
+        [
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                [
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                ],
+            ),
+            (
+                TABLE_DEFAULT.DEFAULT,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            ([], []),
+            ([4], [core_exceptions.DeadlineExceeded]),
+        ],
+    )
+    async def test_customizable_retryable_errors(
+        self,
+        input_retryables,
+        expected_retryables,
+        fn_name,
+        fn_args,
+        retry_fn_path,
+        extra_retryables,
+    ):
+        """
+        Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
+        down to the gapic layer.
+        """
+        from google.cloud.bigtable.data import BigtableDataClientAsync
+
+        with mock.patch(retry_fn_path) as retry_fn_mock:
+            async with BigtableDataClientAsync() as client:
+                table = client.get_table("instance-id", "table-id")
+                expected_predicate = lambda a: a in expected_retryables  # noqa
+                retry_fn_mock.side_effect = RuntimeError("stop early")
+                with mock.patch(
+                    "google.api_core.retry.if_exception_type"
+                ) as predicate_builder_mock:
+                    predicate_builder_mock.return_value = expected_predicate
+                    with pytest.raises(Exception):
+                        # we expect an exception from attempting to call the mock
+                        test_fn = table.__getattribute__(fn_name)
+                        await test_fn(*fn_args, retryable_errors=input_retryables)
+                    # passed in errors should be used to build the predicate
+                    predicate_builder_mock.assert_called_once_with(
+                        *expected_retryables, *extra_retryables
+                    )
+                    retry_call_args = retry_fn_mock.call_args_list[0].args
+                    # output of if_exception_type should be sent in to retry constructor
+                    assert retry_call_args[1] is expected_predicate
+
+    @pytest.mark.parametrize(
+        "fn_name,fn_args,gapic_fn",
+        [
+            ("read_rows_stream", (ReadRowsQuery(),), "read_rows"),
+            ("read_rows", (ReadRowsQuery(),), "read_rows"),
+            ("read_row", (b"row_key",), "read_rows"),
+            ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows"),
+            ("row_exists", (b"row_key",), "read_rows"),
+            ("sample_row_keys", (), "sample_row_keys"),
+            ("mutate_row", (b"row_key", [mock.Mock()]), "mutate_row"),
+            (
+                "bulk_mutate_rows",
+                ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
+                "mutate_rows",
+            ),
+            ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row"),
+            (
+                "read_modify_write_row",
+                (b"row_key", mock.Mock()),
+                "read_modify_write_row",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("include_app_profile", [True, False])
+    @pytest.mark.asyncio
+    async def test_call_metadata(self, include_app_profile, fn_name, fn_args, gapic_fn):
+        """check that all requests attach proper metadata headers"""
+        from google.cloud.bigtable.data import TableAsync
+        from google.cloud.bigtable.data import BigtableDataClientAsync
+
+        profile = "profile" if include_app_profile else None
+        with mock.patch(
+            f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}", mock.AsyncMock()
+        ) as gapic_mock:
+            gapic_mock.side_effect = RuntimeError("stop early")
+            async with BigtableDataClientAsync() as client:
+                table = TableAsync(client, "instance-id", "table-id", profile)
+                try:
+                    test_fn = table.__getattribute__(fn_name)
+                    maybe_stream = await test_fn(*fn_args)
+                    [i async for i in maybe_stream]
+                except Exception:
+                    # we expect an exception from attempting to call the mock
+                    pass
+                kwargs = gapic_mock.call_args_list[0].kwargs
+                metadata = kwargs["metadata"]
+                goog_metadata = None
+                for key, value in metadata:
+                    if key == "x-goog-request-params":
+                        goog_metadata = value
+                assert goog_metadata is not None, "x-goog-request-params not found"
+                assert "table_name=" + table.table_name in goog_metadata
+                if include_app_profile:
+                    assert "app_profile_id=profile" in goog_metadata
+                else:
+                    assert "app_profile_id=" not in goog_metadata
 
 
 class TestReadRows:
@@ -1656,28 +1858,6 @@ class TestReadRows:
                 assert query.limit == 1
                 assert query.filter._to_dict() == expected_filter
 
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_read_rows_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        profile = "profile" if include_app_profile else None
-        async with self._make_table(app_profile_id=profile) as table:
-            read_rows = table.client._gapic_client.read_rows
-            read_rows.return_value = self._make_gapic_stream([])
-            await table.read_rows(ReadRowsQuery())
-            kwargs = read_rows.call_args_list[0].kwargs
-            metadata = kwargs["metadata"]
-            goog_metadata = None
-            for key, value in metadata:
-                if key == "x-goog-request-params":
-                    goog_metadata = value
-            assert goog_metadata is not None, "x-goog-request-params not found"
-            assert "table_name=" + table.table_name in goog_metadata
-            if include_app_profile:
-                assert "app_profile_id=profile" in goog_metadata
-            else:
-                assert "app_profile_id=" not in goog_metadata
-
 
 class TestReadRowsSharded:
     def _make_client(self, *args, **kwargs):
@@ -1782,31 +1962,6 @@ class TestReadRowsSharded:
                     assert len(result) == 10
                     # if run in sequence, we would expect this to take 1 second
                     assert call_time < 0.2
-
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_read_rows_sharded_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        profile = "profile" if include_app_profile else None
-        async with self._make_client() as client:
-            async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(
-                    client._gapic_client, "read_rows", AsyncMock()
-                ) as read_rows:
-                    read_rows.return_value = mock_grpc_call()
-                    await table.read_rows_sharded([ReadRowsQuery()])
-                    kwargs = read_rows.call_args_list[0].kwargs
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata
 
     @pytest.mark.asyncio
     async def test_read_rows_sharded_batching(self):
@@ -1927,7 +2082,10 @@ class TestSampleRowKeys:
         expected_timeout = 99
         async with self._make_client() as client:
             async with client.get_table(
-                "i", "t", default_operation_timeout=expected_timeout
+                "i",
+                "t",
+                default_operation_timeout=expected_timeout,
+                default_attempt_timeout=expected_timeout,
             ) as table:
                 with mock.patch.object(
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
@@ -1965,31 +2123,6 @@ class TestSampleRowKeys:
                     assert kwargs["table_name"] == table.table_name
                     assert kwargs["metadata"] is not None
                     assert kwargs["retry"] is None
-
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_sample_row_keys_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        profile = "profile" if include_app_profile else None
-        async with self._make_client() as client:
-            async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(
-                    client._gapic_client, "sample_row_keys", AsyncMock()
-                ) as read_rows:
-                    read_rows.return_value = self._make_gapic_stream([])
-                    await table.sample_row_keys()
-                    kwargs = read_rows.call_args_list[0].kwargs
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata
 
     @pytest.mark.parametrize(
         "retryable_exception",
@@ -2122,7 +2255,7 @@ class TestMutateRow:
                         mutation = mutations.DeleteAllFromRow()
                         assert mutation.is_idempotent() is True
                         await table.mutate_row(
-                            "row_key", mutation, operation_timeout=0.05
+                            "row_key", mutation, operation_timeout=0.01
                         )
                     cause = e.value.__cause__
                     assert isinstance(cause, RetryExceptionGroup)
@@ -2576,39 +2709,6 @@ class TestBulkMutateRows:
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_bulk_mutate_row_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        profile = "profile" if include_app_profile else None
-        async with self._make_client() as client:
-            async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(
-                    client._gapic_client, "mutate_rows", AsyncMock()
-                ) as mutate_rows:
-                    mutate_rows.side_effect = core_exceptions.Aborted("mock")
-                    mutation = mock.Mock()
-                    mutation.size.return_value = 1
-                    entry = mock.Mock()
-                    entry.mutations = [mutation]
-                    try:
-                        await table.bulk_mutate_rows([entry])
-                    except Exception:
-                        # exception used to end early
-                        pass
-                kwargs = mutate_rows.call_args_list[0].kwargs
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata
-
 
 class TestCheckAndMutateRow:
     def _make_client(self, *args, **kwargs):
@@ -2778,35 +2878,6 @@ class TestCheckAndMutateRow:
                         mutation._to_pb.call_count == 1 for mutation in mutations[:5]
                     )
 
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_check_and_mutate_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        from google.cloud.bigtable_v2.types import CheckAndMutateRowResponse
-
-        profile = "profile" if include_app_profile else None
-        async with self._make_client() as client:
-            async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(
-                    client._gapic_client, "check_and_mutate_row"
-                ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(
-                        CheckAndMutateRowResponse()
-                    )
-                    await table.check_and_mutate_row(b"key", mock.Mock())
-                kwargs = mock_gapic.call_args_list[0].kwargs
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata
-
 
 class TestReadModifyWriteRow:
     def _make_client(self, *args, **kwargs):
@@ -2959,32 +3030,3 @@ class TestReadModifyWriteRow:
                         await table.read_modify_write_row("key", mock.Mock())
                         assert constructor_mock.call_count == 1
                         constructor_mock.assert_called_once_with(mock_response.row)
-
-    @pytest.mark.parametrize("include_app_profile", [True, False])
-    @pytest.mark.asyncio
-    async def test_read_modify_write_metadata(self, include_app_profile):
-        """request should attach metadata headers"""
-        from google.cloud.bigtable_v2.types import ReadModifyWriteRowResponse
-
-        profile = "profile" if include_app_profile else None
-        async with self._make_client() as client:
-            async with client.get_table("i", "t", app_profile_id=profile) as table:
-                with mock.patch.object(
-                    client._gapic_client, "read_modify_write_row"
-                ) as mock_gapic:
-                    mock_gapic.return_value = mock_grpc_call(
-                        ReadModifyWriteRowResponse()
-                    )
-                    await table.read_modify_write_row("key", mock.Mock())
-                kwargs = mock_gapic.call_args_list[0].kwargs
-                metadata = kwargs["metadata"]
-                goog_metadata = None
-                for key, value in metadata:
-                    if key == "x-goog-request-params":
-                        goog_metadata = value
-                assert goog_metadata is not None, "x-goog-request-params not found"
-                assert "table_name=" + table.table_name in goog_metadata
-                if include_app_profile:
-                    assert "app_profile_id=profile" in goog_metadata
-                else:
-                    assert "app_profile_id=" not in goog_metadata

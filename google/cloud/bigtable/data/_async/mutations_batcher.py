@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Sequence, TYPE_CHECKING
 import asyncio
 import atexit
 import warnings
@@ -23,6 +23,7 @@ from collections import deque
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 
@@ -193,6 +194,8 @@ class MutationsBatcherAsync:
         flow_control_max_bytes: int = 100 * _MB_SIZE,
         batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
+        batch_retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
     ):
         """
         Args:
@@ -209,10 +212,16 @@ class MutationsBatcherAsync:
           - batch_attempt_timeout: timeout for each individual request, in seconds.
               If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
               If None, defaults to batch_operation_timeout.
+          - batch_retryable_errors: a list of errors that will be retried if encountered.
+              Defaults to the Table's default_mutate_rows_retryable_errors.
         """
         self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table
         )
+        self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
+            batch_retryable_errors, table
+        )
+
         self.closed: bool = False
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
@@ -353,6 +362,7 @@ class MutationsBatcherAsync:
                 metrics=self._table._metrics.create_operation(
                     OperationType.BULK_MUTATE_ROWS
                 ),
+                retryable_exceptions=self._retryable_errors,
             )
             await operation.start()
         except MutationsExceptionGroup as e:

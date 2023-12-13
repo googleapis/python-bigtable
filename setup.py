@@ -37,8 +37,8 @@ version = version["__version__"]
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-api-core[grpc] @ git+https://github.com/googleapis/python-api-core.git@d791aad",  # TODO: change to >= after streaming retries is merged
-    "google-cloud-core >= 1.4.1, <3.0.0dev",
+    "google-api-core[grpc] >= 2.16.0rc0",
+    "google-cloud-core >= 1.4.4, <3.0.0dev",
     "grpc-google-iam-v1 >= 0.12.4, <1.0.0dev",
     "proto-plus >= 1.22.0, <2.0.0dev",
     "proto-plus >= 1.22.2, <2.0.0dev; python_version>='3.11'",
@@ -62,14 +62,9 @@ with io.open(readme_filename, encoding="utf-8") as readme_file:
 # benchmarks, etc.
 packages = [
     package
-    for package in setuptools.PEP420PackageFinder.find()
+    for package in setuptools.find_namespace_packages()
     if package.startswith("google")
 ]
-
-# Determine which namespaces are needed.
-namespaces = ["google"]
-if "google.cloud" in packages:
-    namespaces.append("google.cloud")
 
 
 setuptools.setup(
@@ -96,7 +91,6 @@ setuptools.setup(
     ],
     platforms="Posix; MacOS X; Windows",
     packages=packages,
-    namespace_packages=namespaces,
     install_requires=dependencies,
     extras_require=extras,
     scripts=[

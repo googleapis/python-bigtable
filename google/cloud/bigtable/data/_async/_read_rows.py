@@ -15,8 +15,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncGenerator, Awaitable
-
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    AsyncIterable,
+    Awaitable,
+    Sequence,
+)
 import time
 
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
@@ -27,17 +32,19 @@ from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
-from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import backoff_generator
 
-from google.api_core import retry_async as retries
 from google.api_core.retry_streaming_async import retry_target_stream
 from google.api_core.retry import RetryFailureReason
 from google.api_core import exceptions as core_exceptions
 from google.api_core.grpc_helpers_async import GrpcAsyncStream
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
+
+from google.api_core import retry as retries
+from google.api_core.retry import exponential_sleep_generator
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
@@ -81,6 +88,7 @@ class _ReadRowsOperationAsync:
         operation_timeout: float,
         attempt_timeout: float,
         metrics: ActiveOperationMetric,
+        retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         self.attempt_timeout_gen = _attempt_timeout_generator(
             attempt_timeout, operation_timeout
@@ -95,11 +103,7 @@ class _ReadRowsOperationAsync:
         else:
             self.request = query._to_pb(table)
         self.table = table
-        self._predicate = retries.if_exception_type(
-            core_exceptions.DeadlineExceeded,
-            core_exceptions.ServiceUnavailable,
-            core_exceptions.Aborted,
-        )
+        self._predicate = retries.if_exception_type(*retryable_exceptions)
         self._metadata = _make_metadata(
             table.table_name,
             table.app_profile_id,
@@ -117,12 +121,12 @@ class _ReadRowsOperationAsync:
         sleep_generator = backoff_generator()
         self._operation_metrics.backoff_generator = sleep_generator
 
-        return retry_target_stream(
+        return retries.retry_target_stream_async(
             self._read_rows_attempt,
             self._operation_metrics.build_wrapped_predicate(self._predicate),
             sleep_generator,
             self.operation_timeout,
-            exception_factory=self._build_exception,
+            exception_factory=_retry_exception_factory,
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
@@ -375,36 +379,3 @@ class _ReadRowsOperationAsync:
             # this will avoid an unwanted full table scan
             raise _RowSetComplete()
         return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
-
-    @staticmethod
-    def _build_exception(
-        exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None
-    ) -> tuple[Exception, Exception | None]:
-        """
-        Build retry error based on exceptions encountered during operation
-
-        Args:
-          - exc_list: list of exceptions encountered during operation
-          - is_timeout: whether the operation failed due to timeout
-          - timeout_val: the operation timeout value in seconds, for constructing
-                the error message
-        Returns:
-          - tuple of the exception to raise, and a cause exception if applicable
-        """
-        if reason == RetryFailureReason.TIMEOUT:
-            # if failed due to timeout, raise deadline exceeded as primary exception
-            timeout_val_str = f"of {timeout_val:.1f}s " if timeout_val else ""
-            source_exc: Exception = core_exceptions.DeadlineExceeded(
-                f"operation_timeout {timeout_val_str}exceeded"
-            )
-        elif exc_list:
-            # otherwise, raise non-retryable error as primary exception
-            source_exc = exc_list.pop()
-        else:
-            source_exc = RuntimeError("failed with unspecified exception")
-        # use the retry exception group as the cause of the exception
-        cause_exc: Exception | None = (
-            RetryExceptionGroup(exc_list) if exc_list else None
-        )
-        source_exc.__cause__ = cause_exc
-        return source_exc, cause_exc

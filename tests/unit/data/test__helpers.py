@@ -14,9 +14,10 @@
 #
 
 import pytest
+import grpc
+from google.api_core import exceptions as core_exceptions
 import google.cloud.bigtable.data._helpers as _helpers
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-import google.cloud.bigtable.data.exceptions as bigtable_exceptions
 
 import mock
 
@@ -154,71 +155,6 @@ class TestBackoffGenerator:
                 generator.send(100)
 
 
-class TestConvertRetryDeadline:
-    """
-    Test _convert_retry_deadline wrapper
-    """
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("is_async", [True, False])
-    async def test_no_error(self, is_async):
-        def test_func():
-            return 1
-
-        async def test_async():
-            return test_func()
-
-        func = test_async if is_async else test_func
-        wrapped = _helpers._convert_retry_deadline(func, 0.1, is_async)
-        result = await wrapped() if is_async else wrapped()
-        assert result == 1
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("timeout", [0.1, 2.0, 30.0])
-    @pytest.mark.parametrize("is_async", [True, False])
-    async def test_retry_error(self, timeout, is_async):
-        from google.api_core.exceptions import RetryError, DeadlineExceeded
-
-        def test_func():
-            raise RetryError("retry error", None)
-
-        async def test_async():
-            return test_func()
-
-        func = test_async if is_async else test_func
-        wrapped = _helpers._convert_retry_deadline(func, timeout, is_async=is_async)
-        with pytest.raises(DeadlineExceeded) as e:
-            await wrapped() if is_async else wrapped()
-        assert e.value.__cause__ is None
-        assert f"operation_timeout of {timeout}s exceeded" in str(e.value)
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("is_async", [True, False])
-    async def test_with_retry_errors(self, is_async):
-        from google.api_core.exceptions import RetryError, DeadlineExceeded
-
-        timeout = 10.0
-
-        def test_func():
-            raise RetryError("retry error", None)
-
-        async def test_async():
-            return test_func()
-
-        func = test_async if is_async else test_func
-
-        associated_errors = [RuntimeError("error1"), ZeroDivisionError("other")]
-        wrapped = _helpers._convert_retry_deadline(
-            func, timeout, associated_errors, is_async
-        )
-        with pytest.raises(DeadlineExceeded) as e:
-            await wrapped()
-        cause = e.value.__cause__
-        assert isinstance(cause, bigtable_exceptions.RetryExceptionGroup)
-        assert cause.exceptions == tuple(associated_errors)
-        assert f"operation_timeout of {timeout}s exceeded" in str(e.value)
-
-
 class TestValidateTimeouts:
     def test_validate_timeouts_error_messages(self):
         with pytest.raises(ValueError) as e:
@@ -320,3 +256,49 @@ class TestGetTimeouts:
             setattr(fake_table, f"default_{key}_timeout", input_table[key])
         with pytest.raises(ValueError):
             _helpers._get_timeouts(input_times[0], input_times[1], fake_table)
+
+
+class TestGetRetryableErrors:
+    @pytest.mark.parametrize(
+        "input_codes,input_table,expected",
+        [
+            ((), {}, []),
+            ((Exception,), {}, [Exception]),
+            (TABLE_DEFAULT.DEFAULT, {"default": [Exception]}, [Exception]),
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                {"default_read_rows": (RuntimeError, ValueError)},
+                [RuntimeError, ValueError],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                {"default_mutate_rows": (ValueError,)},
+                [ValueError],
+            ),
+            ((4,), {}, [core_exceptions.DeadlineExceeded]),
+            (
+                [grpc.StatusCode.DEADLINE_EXCEEDED],
+                {},
+                [core_exceptions.DeadlineExceeded],
+            ),
+            (
+                (14, grpc.StatusCode.ABORTED, RuntimeError),
+                {},
+                [
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                    RuntimeError,
+                ],
+            ),
+        ],
+    )
+    def test_get_retryable_errors(self, input_codes, input_table, expected):
+        """
+        test input/output mappings for a variety of valid inputs
+        """
+        fake_table = mock.Mock()
+        for key in input_table.keys():
+            # set the default fields in our fake table mock
+            setattr(fake_table, f"{key}_retryable_errors", input_table[key])
+        result = _helpers._get_retryable_errors(input_codes, fake_table)
+        assert result == expected
