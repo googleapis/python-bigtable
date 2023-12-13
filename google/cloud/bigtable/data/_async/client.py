@@ -579,7 +579,6 @@ class TableAsync:
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
-            - IdleTimeout: if iterator was abandoned
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self

@@ -28,15 +28,6 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 
-class IdleTimeout(core_exceptions.DeadlineExceeded):
-    """
-    Exception raised by ReadRowsIterator when the generator
-    has been idle for longer than the internal idle_timeout.
-    """
-
-    pass
-
-
 class InvalidChunk(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid chunk data from back-end."""
 

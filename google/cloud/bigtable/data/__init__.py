@@ -32,7 +32,6 @@ from google.cloud.bigtable.data.mutations import DeleteRangeFromColumn
 from google.cloud.bigtable.data.mutations import DeleteAllFromFamily
 from google.cloud.bigtable.data.mutations import DeleteAllFromRow
 
-from google.cloud.bigtable.data.exceptions import IdleTimeout
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
@@ -63,7 +62,6 @@ __all__ = (
     "DeleteAllFromRow",
     "Row",
     "Cell",
-    "IdleTimeout",
     "InvalidChunk",
     "FailedMutationEntryError",
     "FailedQueryShardError",
