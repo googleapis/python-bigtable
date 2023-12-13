@@ -175,6 +175,7 @@ class _MutateRowsOperationAsync:
             result_generator = await self._gapic_fn(
                 timeout=next(self.timeout_generator),
                 entries=request_entries,
+                retry=None,
             )
             async for result_list in result_generator:
                 for result in result_list.entries:
