@@ -17,7 +17,6 @@ import grpc
 from google.api_core import exceptions as core_exceptions
 import google.cloud.bigtable.data._helpers as _helpers
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-import google.cloud.bigtable.data.exceptions as bigtable_exceptions
 
 import mock
 

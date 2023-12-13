@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from typing import Sequence, TYPE_CHECKING
-import asyncio
 from dataclasses import dataclass
 import functools
 

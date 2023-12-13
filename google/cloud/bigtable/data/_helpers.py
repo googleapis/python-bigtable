@@ -16,7 +16,7 @@ Helper functions used in various places in the library.
 """
 from __future__ import annotations
 
-from typing import Callable, Sequence, List, Tuple, Any, TYPE_CHECKING
+from typing import Sequence, List, Tuple, TYPE_CHECKING
 import time
 import enum
 from collections import namedtuple
