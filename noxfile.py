@@ -456,7 +456,7 @@ def prerelease_deps(session):
         # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
         "grpcio!=1.52.0rc1",
         "grpcio-status",
-        "google-api-core==2.12.0.dev1",  # TODO: remove this once streaming retries is merged
+        "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
         "proto-plus",
         "google-cloud-testutils",
         # dependencies of google-cloud-testutils"
