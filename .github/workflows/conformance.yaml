@@ -28,7 +28,7 @@ jobs:
         py-version: [ 3.8 ]
         client-type: [ "Async v3", "Legacy" ]
       fail-fast: false
-    name: "${{ matrix.client-type }} Client / Python ${{ matrix.py-version }} / Test Tag ${{ metric.test-version }}"
+    name: "${{ matrix.client-type }} Client / Python ${{ matrix.py-version }} / Test Tag ${{ matrix.test-version }}"
     steps:
     - uses: actions/checkout@v3
       name: "Checkout python-bigtable"
@@ -36,7 +36,7 @@ jobs:
       name: "Checkout conformance tests"
       with:
         repository: googleapis/cloud-bigtable-clients-test
-        ref: ${{ metric.test-version }}
+        ref: ${{ matrix.test-version }}
         path: cloud-bigtable-clients-test
     - uses: actions/setup-python@v4
       with:
