@@ -97,7 +97,12 @@ def main(project_id, instance_id, table_name):
 
     finally:
         connection.close()
-
+        # make sure table is deleted
+        try:
+            table = instance.table(table_id)
+            table.delete()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
