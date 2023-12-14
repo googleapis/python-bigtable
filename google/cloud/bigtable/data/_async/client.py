@@ -70,6 +70,7 @@ from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import backoff_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
@@ -905,14 +906,14 @@ class TableAsync:
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator(0.01, 2, 60)
 
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(
-            OperationType.SAMPLE_ROW_KEYS
+            OperationType.SAMPLE_ROW_KEYS, backoff_generator=sleep_generator
         ) as operation:
 
             async def execute_rpc():
@@ -1050,12 +1051,11 @@ class TableAsync:
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-
+        sleep_generator = backoff_generator(0.01, 2, 60)
 
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(
-            OperationType.MUTATE_ROW
+            OperationType.MUTATE_ROW, backoff_generator=sleep_generator
         ) as operation:
             metric_wrapped = operation.wrap_attempt_fn(
                 self.client._gapic_client.mutate_row

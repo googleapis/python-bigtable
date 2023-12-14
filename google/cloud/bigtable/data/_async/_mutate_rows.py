@@ -25,6 +25,7 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import backoff_generator
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -104,7 +105,7 @@ class _MutateRowsOperationAsync:
             # Entry level errors
             bt_exceptions._MutateRowsIncomplete,
         )
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator(0.01, 2, 60)
         self._operation = retries.retry_target_async(
             self._run_attempt,
             self.is_retryable,
@@ -120,6 +121,7 @@ class _MutateRowsOperationAsync:
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
         # set up metrics
+        metrics.backoff_generator = sleep_generator
         self._operation_metrics = metrics
 
     async def start(self):
