@@ -131,6 +131,8 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.api_core.exceptions import Aborted
+    from google.cloud.bigtable_v2.types import MutateRowsResponse
+    from google.rpc.status_pb2 import Status
 
     with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}") as gapic_mock:
         if is_unary:
@@ -139,6 +141,9 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
         else:
             unary_response = None
         grpc_call = mock_grpc_call(unary_response=unary_response)
+        if gapic_fn == "mutate_rows":
+            # patch response to send success
+            grpc_call.stream_response = [MutateRowsResponse(entries=[MutateRowsResponse.Entry(index=0, status=Status(code=0))])]
         gapic_mock.side_effect = [Aborted("first attempt failed"), grpc_call]
         async with BigtableDataClientAsync() as client:
             table = TableAsync(client, "instance-id", "table-id")

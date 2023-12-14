@@ -205,6 +205,8 @@ class _MutateRowsOperationAsync:
                         if result.status.code != 0:
                             # mutation failed; update error list (and remaining_indices if retryable)
                             self._handle_entry_error(orig_idx, entry_error)
+                        elif orig_idx in self.errors:
+                            del self.errors[orig_idx]
                         # remove processed entry from active list
                         del active_request_indices[result.index]
             finally:
