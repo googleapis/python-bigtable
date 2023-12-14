@@ -99,7 +99,7 @@ def main(project_id, instance_id, table_name):
         connection.close()
         # make sure table is deleted
         try:
-            table = instance.table(table_id)
+            table = instance.table(table_name)
             table.delete()
         except Exception:
             pass

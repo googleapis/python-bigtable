@@ -25,7 +25,7 @@ import pytest
 import instanceadmin
 
 
-PROJECT = os.getenv('BUILD_SPECIFIC_GCLOUD_PROJECT', os.environ["GOOGLE_CLOUD_PROJECT"])
+PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 INSTANCE_ID_FORMAT = "instanceadmin-{:03}-{}"
 CLUSTER_ID_FORMAT = "instanceadmin-{:03}"
 ID_RANGE = 1000
