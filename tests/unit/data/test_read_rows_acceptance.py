@@ -61,6 +61,7 @@ def extract_results_from_row(row: Row):
 )
 @pytest.mark.asyncio
 async def test_row_merger_scenario(test_case: ReadRowsTest):
+    from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
     try:
         results = []
         instance = mock.Mock()
@@ -70,7 +71,9 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
             stream_response=[ReadRowsResponse(chunks=test_case.chunks)]
         )
         chunker = _ReadRowsOperationAsync.chunk_stream(instance, stream)
-        merger = _ReadRowsOperationAsync.merge_rows(chunker, mock.Mock())
+        metric = ActiveOperationMetric(0)
+        metric.start_attempt()
+        merger = _ReadRowsOperationAsync.merge_rows(chunker, metric)
         async for row in merger:
             for cell in row:
                 cell_result = ReadRowsTest.Result(
@@ -96,7 +99,6 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
     try:
         client = BigtableDataClientAsync()
         table = client.get_table("instance", "table")
-        await table._register_instance_task  # to avoid warning
         results = []
         with mock.patch.object(
             table.client._gapic_client, "read_rows", mock.AsyncMock()

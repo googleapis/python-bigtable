@@ -361,9 +361,9 @@ class ActiveOperationMetric:
         """
         if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
             exc = exc.exceptions[-1]
-        if hasattr(exc, "grpc_status_code"):
+        if hasattr(exc, "grpc_status_code") and exc.grpc_status_code is not None:
             return exc.grpc_status_code
-        if exc.__cause__ and hasattr(exc.__cause__, "grpc_status_code"):
+        if exc.__cause__ and hasattr(exc.__cause__, "grpc_status_code") and exc.__cause__.grpc_status_code is not None:
             return exc.__cause__.grpc_status_code
         return StatusCode.UNKNOWN
 

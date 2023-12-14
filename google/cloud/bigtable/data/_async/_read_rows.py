@@ -37,14 +37,10 @@ from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import backoff_generator
 
-from google.api_core.retry_streaming_async import retry_target_stream
-from google.api_core.retry import RetryFailureReason
-from google.api_core import exceptions as core_exceptions
 from google.api_core.grpc_helpers_async import GrpcAsyncStream
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
 from google.api_core import retry as retries
-from google.api_core.retry import exponential_sleep_generator
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync

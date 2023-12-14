@@ -30,36 +30,37 @@ from google.cloud.bigtable.data._metrics.data_model import SERVER_TIMING_METADAT
 
 from .._async.test_client import mock_grpc_call
 
-ALL_RPC_PARAMS = (
-    "fn_name,fn_args,gapic_fn,is_unary,expected_type",
-    [
-        ("read_rows_stream", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
-        ("read_rows", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
-        ("read_row", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
-        ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows", False, OperationType.READ_ROWS),
-        ("row_exists", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
-        ("sample_row_keys", (), "sample_row_keys", False, OperationType.SAMPLE_ROW_KEYS),
-        ("mutate_row", (b"row_key", [mutations.DeleteAllFromRow()]), "mutate_row", False, OperationType.MUTATE_ROW),
-        (
-            "bulk_mutate_rows",
-            ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
-            "mutate_rows",
-            False,
-            OperationType.BULK_MUTATE_ROWS
-        ),
-        ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row", True, OperationType.CHECK_AND_MUTATE),
-        (
-            "read_modify_write_row",
-            (b"row_key", mock.Mock()),
-            "read_modify_write_row",
-            True,
-            OperationType.READ_MODIFY_WRITE
-        ),
-    ]
-)
+
+RPC_ARGS = "fn_name,fn_args,gapic_fn,is_unary,expected_type"
+RETRYABLE_RPCS = [
+    ("read_rows_stream", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
+    ("read_rows", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
+    ("read_row", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
+    ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows", False, OperationType.READ_ROWS),
+    ("row_exists", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
+    ("sample_row_keys", (), "sample_row_keys", False, OperationType.SAMPLE_ROW_KEYS),
+    ("mutate_row", (b"row_key", [mutations.DeleteAllFromRow()]), "mutate_row", False, OperationType.MUTATE_ROW),
+    (
+        "bulk_mutate_rows",
+        ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
+        "mutate_rows",
+        False,
+        OperationType.BULK_MUTATE_ROWS
+    ),
+]
+ALL_RPCS = RETRYABLE_RPCS + [
+    ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row", True, OperationType.CHECK_AND_MUTATE),
+    (
+        "read_modify_write_row",
+        (b"row_key", mock.Mock()),
+        "read_modify_write_row",
+        True,
+        OperationType.READ_MODIFY_WRITE
+    ),
+]
 
 
-@pytest.mark.parametrize(*ALL_RPC_PARAMS)
+@pytest.mark.parametrize(RPC_ARGS, ALL_RPCS)
 @pytest.mark.asyncio
 async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_type):
     """check that all requests attach proper metadata headers"""
@@ -81,49 +82,49 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
         grpc_call = mock_grpc_call(unary_response=unary_response, initial_metadata=initial_metadata, trailing_metadata=trailing_metadata)
         gapic_mock.return_value = grpc_call
         async with BigtableDataClientAsync() as client:
-            async with TableAsync(client, "instance-id", "table-id") as table:
-                # customize metrics handlers
-                mock_metric_handler = mock.Mock()
-                table._metrics.handlers = [mock_metric_handler]
-                test_fn = table.__getattribute__(fn_name)
-                maybe_stream = await test_fn(*fn_args)
-                # iterate stream if it exists
-                try:
-                    [i async for i in maybe_stream]
-                except TypeError:
-                    pass
-                # check for recorded metrics values
-                assert mock_metric_handler.on_operation_complete.call_count == 1
-                found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
-                # make sure expected fields were set properly
-                assert found_operation.op_type == expected_type
-                now = datetime.datetime.now(datetime.timezone.utc)
-                assert found_operation.start_time - now < datetime.timedelta(seconds=1)
-                assert found_operation.duration < 0.1
-                assert found_operation.duration > 0
-                assert found_operation.final_status == StatusCode.OK
-                assert found_operation.cluster_id == cluster_data
-                assert found_operation.zone == zone_data
-                # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
-                assert found_operation.is_streaming == ("read_rows" in fn_name)
-                # check attempts
-                assert len(found_operation.completed_attempts) == 1
-                found_attempt = found_operation.completed_attempts[0]
-                assert found_attempt.end_status == StatusCode.OK
-                assert found_attempt.start_time - now < datetime.timedelta(seconds=1)
-                assert found_attempt.duration < 0.1
-                assert found_attempt.duration > 0
-                assert found_attempt.start_time >= found_operation.start_time
-                assert found_attempt.duration <= found_operation.duration
-                assert found_attempt.gfe_latency == expected_gfe_latency
-                # first response latency not populated, because no real read_rows chunks processed
-                assert found_attempt.first_response_latency is None
-                # no application blocking time or backoff time expected
-                assert found_attempt.application_blocking_time == 0
-                assert found_attempt.backoff_before_attempt == 0
+            table = TableAsync(client, "instance-id", "table-id")
+            # customize metrics handlers
+            mock_metric_handler = mock.Mock()
+            table._metrics.handlers = [mock_metric_handler]
+            test_fn = table.__getattribute__(fn_name)
+            maybe_stream = await test_fn(*fn_args)
+            # iterate stream if it exists
+            try:
+                [i async for i in maybe_stream]
+            except TypeError:
+                pass
+            # check for recorded metrics values
+            assert mock_metric_handler.on_operation_complete.call_count == 1
+            found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
+            # make sure expected fields were set properly
+            assert found_operation.op_type == expected_type
+            now = datetime.datetime.now(datetime.timezone.utc)
+            assert found_operation.start_time - now < datetime.timedelta(seconds=1)
+            assert found_operation.duration < 0.1
+            assert found_operation.duration > 0
+            assert found_operation.final_status == StatusCode.OK
+            assert found_operation.cluster_id == cluster_data
+            assert found_operation.zone == zone_data
+            # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
+            assert found_operation.is_streaming == ("read_rows" in fn_name)
+            # check attempts
+            assert len(found_operation.completed_attempts) == 1
+            found_attempt = found_operation.completed_attempts[0]
+            assert found_attempt.end_status == StatusCode.OK
+            assert found_attempt.start_time - now < datetime.timedelta(seconds=1)
+            assert found_attempt.duration < 0.1
+            assert found_attempt.duration > 0
+            assert found_attempt.start_time >= found_operation.start_time
+            assert found_attempt.duration <= found_operation.duration
+            assert found_attempt.gfe_latency == expected_gfe_latency
+            # first response latency not populated, because no real read_rows chunks processed
+            assert found_attempt.first_response_latency is None
+            # no application blocking time or backoff time expected
+            assert found_attempt.application_blocking_time == 0
+            assert found_attempt.backoff_before_attempt == 0
 
 
-@pytest.mark.parametrize(*ALL_RPC_PARAMS)
+@pytest.mark.parametrize(RPC_ARGS, RETRYABLE_RPCS)
 @pytest.mark.asyncio
 async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is_unary, expected_type):
     """check that all requests attach proper metadata headers, with a retry"""
@@ -140,45 +141,45 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
         grpc_call = mock_grpc_call(unary_response=unary_response)
         gapic_mock.side_effect = [Aborted("first attempt failed"), grpc_call]
         async with BigtableDataClientAsync() as client:
-            async with TableAsync(client, "instance-id", "table-id") as table:
-                # customize metrics handlers
-                mock_metric_handler = mock.Mock()
-                table._metrics.handlers = [mock_metric_handler]
-                test_fn = table.__getattribute__(fn_name)
-                maybe_stream = await test_fn(*fn_args)
-                # iterate stream if it exists
-                try:
-                    [i async for i in maybe_stream]
-                except TypeError:
-                    pass
-                # check for recorded metrics values
-                assert mock_metric_handler.on_operation_complete.call_count == 1
-                found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
-                # make sure expected fields were set properly
-                assert found_operation.op_type == expected_type
-                now = datetime.datetime.now(datetime.timezone.utc)
-                assert found_operation.start_time - now < datetime.timedelta(seconds=1)
-                assert found_operation.duration < 0.1
-                assert found_operation.duration > 0
-                assert found_operation.final_status == StatusCode.OK
-                # metadata wasn't set, should see default values
-                assert found_operation.cluster_id == "unspecified"
-                assert found_operation.zone == "global"
-                # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
-                assert found_operation.is_streaming == ("read_rows" in fn_name)
-                # check attempts
-                assert len(found_operation.completed_attempts) == 2
-                failure, success = found_operation.completed_attempts
-                for attempt in [success, failure]:
-                    # check things that should be consistent across attempts
-                    assert attempt.start_time - now < datetime.timedelta(seconds=1)
-                    assert attempt.duration < 0.1
-                    assert attempt.duration > 0
-                    assert attempt.start_time >= found_operation.start_time
-                    assert attempt.duration <= found_operation.duration
-                    assert attempt.application_blocking_time == 0
-                assert success.end_status == StatusCode.OK
-                assert failure.end_status == StatusCode.ABORTED
-                assert success.start_time > failure.start_time + datetime.timedelta(seconds=failure.duration)
-                assert success.backoff_before_attempt > 0
-                assert failure.backoff_before_attempt == 0
+            table = TableAsync(client, "instance-id", "table-id")
+            # customize metrics handlers
+            mock_metric_handler = mock.Mock()
+            table._metrics.handlers = [mock_metric_handler]
+            test_fn = table.__getattribute__(fn_name)
+            maybe_stream = await test_fn(*fn_args, retryable_errors=(Aborted,))
+            # iterate stream if it exists
+            try:
+                [_ async for _ in maybe_stream]
+            except TypeError:
+                pass
+            # check for recorded metrics values
+            assert mock_metric_handler.on_operation_complete.call_count == 1
+            found_operation = mock_metric_handler.on_operation_complete.call_args[0][0]
+            # make sure expected fields were set properly
+            assert found_operation.op_type == expected_type
+            now = datetime.datetime.now(datetime.timezone.utc)
+            assert found_operation.start_time - now < datetime.timedelta(seconds=1)
+            assert found_operation.duration < 0.1
+            assert found_operation.duration > 0
+            assert found_operation.final_status == StatusCode.OK
+            # metadata wasn't set, should see default values
+            assert found_operation.cluster_id == "unspecified"
+            assert found_operation.zone == "global"
+            # is_streaming should only be true for read_rows, read_rows_stream, and read_rows_sharded
+            assert found_operation.is_streaming == ("read_rows" in fn_name)
+            # check attempts
+            assert len(found_operation.completed_attempts) == 2
+            failure, success = found_operation.completed_attempts
+            for attempt in [success, failure]:
+                # check things that should be consistent across attempts
+                assert attempt.start_time - now < datetime.timedelta(seconds=1)
+                assert attempt.duration < 0.1
+                assert attempt.duration > 0
+                assert attempt.start_time >= found_operation.start_time
+                assert attempt.duration <= found_operation.duration
+                assert attempt.application_blocking_time == 0
+            assert success.end_status == StatusCode.OK
+            assert failure.end_status == StatusCode.ABORTED
+            assert success.start_time > failure.start_time + datetime.timedelta(seconds=failure.duration)
+            assert success.backoff_before_attempt > 0
+            assert failure.backoff_before_attempt == 0

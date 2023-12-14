@@ -858,7 +858,7 @@ class TestActiveOperationMetric:
         wrap_attampt_fn is meant to be used with retry object. Test using them together
         """
         from grpc import StatusCode
-        from google.api_core.retry_async import AsyncRetry
+        from google.api_core.retry import AsyncRetry
         from google.api_core.exceptions import RetryError
 
         metric = self._make_one(object())
