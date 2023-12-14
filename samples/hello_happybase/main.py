@@ -104,6 +104,7 @@ def main(project_id, instance_id, table_name):
         except Exception:
             pass
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
