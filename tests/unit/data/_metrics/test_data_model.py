@@ -35,7 +35,9 @@ class TestActiveOperationMetric:
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
         assert metric.start_time.monotonic - time.monotonic() < 0.1
-        assert (metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc)).total_seconds() < 1
+        assert (
+            metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc)
+        ).total_seconds() < 1
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -184,7 +186,9 @@ class TestActiveOperationMetric:
         assert metric.start_time != orig_time
         assert metric.start_time.monotonic != orig_time.monotonic
         assert metric.start_time.monotonic - time.monotonic() < 0.1
-        assert metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(seconds=0.1)
+        assert metric.start_time.utc - datetime.datetime.now(
+            datetime.timezone.utc
+        ) < datetime.timedelta(seconds=0.1)
         # should remain in CREATED state after completing
         assert metric.state == State.CREATED
 
@@ -200,7 +204,9 @@ class TestActiveOperationMetric:
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
         assert time.monotonic() - metric.active_attempt.start_time.monotonic < 0.1
-        assert metric.active_attempt.start_time.utc - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(seconds=0.1)
+        assert metric.active_attempt.start_time.utc - datetime.datetime.now(
+            datetime.timezone.utc
+        ) < datetime.timedelta(seconds=0.1)
         assert metric.active_attempt.first_response_latency is None
         assert metric.active_attempt.gfe_latency is None
         # should be in ACTIVE_ATTEMPT state after completing
@@ -211,7 +217,6 @@ class TestActiveOperationMetric:
         If operation has a backoff generator, it should be used to attach backoff
         times to attempts
         """
-        from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
         def mock_generator():
             """
@@ -315,8 +320,8 @@ class TestActiveOperationMetric:
             # no errors encountered
             assert mock_handle_error.call_count == 1
             assert (
-                "Failed to decode x-goog-ext-425905942-bin metadata:" in
-                mock_handle_error.call_args[0][0]
+                "Failed to decode x-goog-ext-425905942-bin metadata:"
+                in mock_handle_error.call_args[0][0]
             )
             assert str(metadata_field) in mock_handle_error.call_args[0][0]
 
@@ -416,7 +421,10 @@ class TestActiveOperationMetric:
         got_attempt = metric.completed_attempts[0]
         assert got_attempt.start_time == expected_start_time.utc
         assert got_attempt.first_response_latency == expected_latency
-        assert time.monotonic() - got_attempt.duration - expected_start_time.monotonic < 0.001
+        assert (
+            time.monotonic() - got_attempt.duration - expected_start_time.monotonic
+            < 0.001
+        )
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency == expected_gfe_latency
         assert got_attempt.application_blocking_time == expected_app_blocking
@@ -665,7 +673,9 @@ class TestActiveOperationMetric:
                 assert logger_mock.warning.call_args[0][0] == expected_message
                 assert len(logger_mock.warning.call_args[0]) == 1
             # otherwise, do nothing
-            with mock.patch("google.cloud.bigtable.data._metrics.data_model.LOGGER", None):
+            with mock.patch(
+                "google.cloud.bigtable.data._metrics.data_model.LOGGER", None
+            ):
                 type(self._make_one(object()))._handle_error(input_message)
 
     @pytest.mark.asyncio

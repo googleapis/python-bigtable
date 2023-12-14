@@ -303,9 +303,7 @@ class TestOpenTelemetryMetricsHandler:
             assert add.call_count == 1
             assert add.call_args[0][0] == 1
 
-    @pytest.mark.parametrize("app_blocking,backoff", [
-        (0, 10), (10, 0), (123, 456)
-    ])
+    @pytest.mark.parametrize("app_blocking,backoff", [(0, 10), (10, 0), (123, 456)])
     def test_attempt_update_application_blocking_latencies(self, app_blocking, backoff):
         """
         update application_blocking_latencies on attempt completion

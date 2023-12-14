@@ -18,7 +18,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     AsyncGenerator,
-    AsyncIterable,
     Awaitable,
     Sequence,
 )
@@ -318,7 +317,9 @@ class _ReadRowsOperationAsync:
                         yield Row(row_key, cells)
                         # most metric operations use setters, but this one updates
                         # the value directly to avoid extra overhead
-                        operation.active_attempt.application_blocking_time += (time.monotonic() - block_time)
+                        operation.active_attempt.application_blocking_time += (
+                            time.monotonic() - block_time
+                        )
                         break
                     c = await it.__anext__()
             except _ResetRow as e:

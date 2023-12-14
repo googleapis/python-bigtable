@@ -144,9 +144,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             **self.shared_labels,
         }
 
-        self.otel.attempt_latencies.record(
-            attempt.duration, labels
-        )
+        self.otel.attempt_latencies.record(attempt.duration, labels)
         self.otel.application_blocking_latencies.record(
             attempt.application_blocking_time + attempt.backoff_before_attempt, labels
         )

@@ -102,7 +102,7 @@ class TestAttemptTimeoutGenerator:
 
 class TestBackoffGenerator:
     """
-    test backoff_generator wrapper. 
+    test backoff_generator wrapper.
     Should wrap api_core.exponential_sleep_generator, with added history
     """
 
@@ -110,7 +110,9 @@ class TestBackoffGenerator:
         """
         expect defaults: initial=0.01, multiplier=2, maximum=60
         """
-        with mock.patch("google.cloud.bigtable.data._helpers.exponential_sleep_generator") as mock_exponential_sleep_generator:
+        with mock.patch(
+            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
+        ) as mock_exponential_sleep_generator:
             generator = _helpers.backoff_generator()
             next(generator)
             assert mock_exponential_sleep_generator.call_args[0] == (0.01, 2, 60)
@@ -118,7 +120,9 @@ class TestBackoffGenerator:
     def test_wraps_exponential_sleep_generator(self):
         """test that it wraps exponential_sleep_generator"""
         args = (1, 2, 3)
-        with mock.patch("google.cloud.bigtable.data._helpers.exponential_sleep_generator") as mock_exponential_sleep_generator:
+        with mock.patch(
+            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
+        ) as mock_exponential_sleep_generator:
             expected_results = [1, 7, 9, "a", "b"]
             mock_exponential_sleep_generator.return_value = iter(expected_results)
             generator = _helpers.backoff_generator(*args)
@@ -132,7 +136,9 @@ class TestBackoffGenerator:
         """
         Calling send with an index should give back the value that was yeilded at that index
         """
-        with mock.patch("google.cloud.bigtable.data._helpers.exponential_sleep_generator") as mock_exponential_sleep_generator:
+        with mock.patch(
+            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
+        ) as mock_exponential_sleep_generator:
             expected_results = [2, 4, 6, 8, 10]
             mock_exponential_sleep_generator.return_value = iter(expected_results)
             generator = _helpers.backoff_generator()

@@ -52,7 +52,9 @@ INVALID_STATE_ERROR = "Invalid state for {}: {}"
 # this allows us to be resistent to clock changes, eg DST
 @dataclass(frozen=True)
 class TimeTuple:
-    utc: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    utc: datetime.datetime = field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
+    )
     monotonic: float = field(default_factory=time.monotonic)
 
 
@@ -249,7 +251,6 @@ class ActiveOperationMetric:
             time.monotonic() - self.active_attempt.start_time.monotonic
         )
 
-
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
         """
         Called to mark the end of a failed attempt for the operation.
@@ -328,7 +329,9 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def build_wrapped_predicate(self, inner_predicate: Callable[[Exception], bool]) -> Callable[[Exception], bool]:
+    def build_wrapped_predicate(
+        self, inner_predicate: Callable[[Exception], bool]
+    ) -> Callable[[Exception], bool]:
         """
         Wrapps a predicate to include metrics tracking. Any call to the resulting predicate
         is assumed to be an rpc failure, and will either mark the end of the active attempt
@@ -337,6 +340,7 @@ class ActiveOperationMetric:
         Args:
           - predicate: The predicate to wrap.
         """
+
         def wrapped_predicate(exc: Exception) -> bool:
             inner_result = inner_predicate(exc)
             if inner_result:
@@ -344,6 +348,7 @@ class ActiveOperationMetric:
             else:
                 self.end_with_status(exc)
             return inner_result
+
         return wrapped_predicate
 
     @staticmethod
@@ -363,7 +368,11 @@ class ActiveOperationMetric:
             exc = exc.exceptions[-1]
         if hasattr(exc, "grpc_status_code") and exc.grpc_status_code is not None:
             return exc.grpc_status_code
-        if exc.__cause__ and hasattr(exc.__cause__, "grpc_status_code") and exc.__cause__.grpc_status_code is not None:
+        if (
+            exc.__cause__
+            and hasattr(exc.__cause__, "grpc_status_code")
+            and exc.__cause__.grpc_status_code is not None
+        ):
             return exc.__cause__.grpc_status_code
         return StatusCode.UNKNOWN
 

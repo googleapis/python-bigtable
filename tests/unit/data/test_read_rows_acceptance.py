@@ -62,6 +62,7 @@ def extract_results_from_row(row: Row):
 @pytest.mark.asyncio
 async def test_row_merger_scenario(test_case: ReadRowsTest):
     from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
+
     try:
         results = []
         instance = mock.Mock()

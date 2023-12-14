@@ -33,29 +33,53 @@ from .._async.test_client import mock_grpc_call
 
 RPC_ARGS = "fn_name,fn_args,gapic_fn,is_unary,expected_type"
 RETRYABLE_RPCS = [
-    ("read_rows_stream", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
+    (
+        "read_rows_stream",
+        (ReadRowsQuery(),),
+        "read_rows",
+        False,
+        OperationType.READ_ROWS,
+    ),
     ("read_rows", (ReadRowsQuery(),), "read_rows", False, OperationType.READ_ROWS),
     ("read_row", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
-    ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows", False, OperationType.READ_ROWS),
+    (
+        "read_rows_sharded",
+        ([ReadRowsQuery()],),
+        "read_rows",
+        False,
+        OperationType.READ_ROWS,
+    ),
     ("row_exists", (b"row_key",), "read_rows", False, OperationType.READ_ROWS),
     ("sample_row_keys", (), "sample_row_keys", False, OperationType.SAMPLE_ROW_KEYS),
-    ("mutate_row", (b"row_key", [mutations.DeleteAllFromRow()]), "mutate_row", False, OperationType.MUTATE_ROW),
+    (
+        "mutate_row",
+        (b"row_key", [mutations.DeleteAllFromRow()]),
+        "mutate_row",
+        False,
+        OperationType.MUTATE_ROW,
+    ),
     (
         "bulk_mutate_rows",
         ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
         "mutate_rows",
         False,
-        OperationType.BULK_MUTATE_ROWS
+        OperationType.BULK_MUTATE_ROWS,
     ),
 ]
 ALL_RPCS = RETRYABLE_RPCS + [
-    ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row", True, OperationType.CHECK_AND_MUTATE),
+    (
+        "check_and_mutate_row",
+        (b"row_key", None),
+        "check_and_mutate_row",
+        True,
+        OperationType.CHECK_AND_MUTATE,
+    ),
     (
         "read_modify_write_row",
         (b"row_key", mock.Mock()),
         "read_modify_write_row",
         True,
-        OperationType.READ_MODIFY_WRITE
+        OperationType.READ_MODIFY_WRITE,
     ),
 ]
 
@@ -66,20 +90,31 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
     """check that all requests attach proper metadata headers"""
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
+
     cluster_data = "my-cluster"
     zone_data = "my-zone"
     expected_gfe_latency = 123
 
-    with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}") as gapic_mock:
+    with mock.patch(
+        f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}"
+    ) as gapic_mock:
         if is_unary:
             unary_response = mock.Mock()
             unary_response.row.families = []  # patch for read_modify_write_row
         else:
             unary_response = None
         # populate metadata fields
-        initial_metadata = Metadata((BIGTABLE_METADATA_KEY, f"{cluster_data} {zone_data}".encode("utf-8")))
-        trailing_metadata = Metadata((SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}"))
-        grpc_call = mock_grpc_call(unary_response=unary_response, initial_metadata=initial_metadata, trailing_metadata=trailing_metadata)
+        initial_metadata = Metadata(
+            (BIGTABLE_METADATA_KEY, f"{cluster_data} {zone_data}".encode("utf-8"))
+        )
+        trailing_metadata = Metadata(
+            (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}")
+        )
+        grpc_call = mock_grpc_call(
+            unary_response=unary_response,
+            initial_metadata=initial_metadata,
+            trailing_metadata=trailing_metadata,
+        )
         gapic_mock.return_value = grpc_call
         async with BigtableDataClientAsync() as client:
             table = TableAsync(client, "instance-id", "table-id")
@@ -126,7 +161,9 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
 
 @pytest.mark.parametrize(RPC_ARGS, RETRYABLE_RPCS)
 @pytest.mark.asyncio
-async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is_unary, expected_type):
+async def test_rpc_instrumented_multiple_attempts(
+    fn_name, fn_args, gapic_fn, is_unary, expected_type
+):
     """check that all requests attach proper metadata headers, with a retry"""
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
@@ -134,7 +171,9 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
     from google.cloud.bigtable_v2.types import MutateRowsResponse
     from google.rpc.status_pb2 import Status
 
-    with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}") as gapic_mock:
+    with mock.patch(
+        f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}"
+    ) as gapic_mock:
         if is_unary:
             unary_response = mock.Mock()
             unary_response.row.families = []  # patch for read_modify_write_row
@@ -143,7 +182,11 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
         grpc_call = mock_grpc_call(unary_response=unary_response)
         if gapic_fn == "mutate_rows":
             # patch response to send success
-            grpc_call.stream_response = [MutateRowsResponse(entries=[MutateRowsResponse.Entry(index=0, status=Status(code=0))])]
+            grpc_call.stream_response = [
+                MutateRowsResponse(
+                    entries=[MutateRowsResponse.Entry(index=0, status=Status(code=0))]
+                )
+            ]
         gapic_mock.side_effect = [Aborted("first attempt failed"), grpc_call]
         async with BigtableDataClientAsync() as client:
             table = TableAsync(client, "instance-id", "table-id")
@@ -185,6 +228,8 @@ async def test_rpc_instrumented_multiple_attempts(fn_name, fn_args, gapic_fn, is
                 assert attempt.application_blocking_time == 0
             assert success.end_status == StatusCode.OK
             assert failure.end_status == StatusCode.ABORTED
-            assert success.start_time > failure.start_time + datetime.timedelta(seconds=failure.duration)
+            assert success.start_time > failure.start_time + datetime.timedelta(
+                seconds=failure.duration
+            )
             assert success.backoff_before_attempt > 0
             assert failure.backoff_before_attempt == 0

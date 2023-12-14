@@ -188,7 +188,12 @@ class TestMutateRowsOperation:
             f"{cls.__module__}.{cls.__name__}._run_attempt", AsyncMock()
         ) as attempt_mock:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout, mock.Mock()
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                mock.Mock(),
             )
             await instance.start()
             assert attempt_mock.call_count == 1

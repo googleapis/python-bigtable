@@ -1062,7 +1062,9 @@ class TableAsync:
             )
             target = partial(
                 metric_wrapped,
-                row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
+                row_key=row_key.encode("utf-8")
+                if isinstance(row_key, str)
+                else row_key,
                 mutations=[mutation._to_pb() for mutation in mutations_list],
                 table_name=self.table_name,
                 app_profile_id=self.app_profile_id,
