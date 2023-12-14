@@ -48,6 +48,7 @@ def run_instance_operations(project_id, instance_id, cluster_id):
     :type instance_id: str
     :param instance_id: Instance of the client.
     """
+    print(f"Running instance operations on {project_id} and {instance_id}")
     client = bigtable.Client(project=project_id, admin=True)
     location_id = "us-central1-f"
     serve_nodes = 1
