@@ -39,6 +39,27 @@ BIGTABLE_INSTANCE = INSTANCE_ID_FORMAT.format(str(uuid.uuid4())[:10])
 BIGTABLE_DEV_INSTANCE = INSTANCE_ID_FORMAT.format(str(uuid.uuid4())[:10])
 
 
+@pytest.fixture(scope="module", autouse=True)
+def preclean():
+    """In case any test instances weren't cleared out in a previous run.
+
+    Deletes any test instances that were created over an hour ago. Newer instances may
+    be being used by a concurrent test run.
+    """
+    import time
+    import warnings
+    prefix = INSTANCE_ID_FORMAT.format("")
+    client = bigtable.Client(project=PROJECT, admin=True)
+    for instance in client.list_instances()[0]:
+        if instance.instance_id.startswith(prefix):
+            timestamp = instance.instance_id.split("-")[-1]
+            timestamp = int(timestamp)
+            if time.time() - timestamp > 3600:
+                warnings.warn(
+                    f"Deleting leftover test instance: {instance.instance_id}"
+                )
+                instance.delete()
+
 # System tests to verify API calls succeed
 
 
