@@ -39,9 +39,7 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-cov",
     "pytest-asyncio",
 ]
-UNIT_TEST_EXTERNAL_DEPENDENCIES = [
-    # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
-]
+UNIT_TEST_EXTERNAL_DEPENDENCIES = []
 UNIT_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []
 UNIT_TEST_EXTRAS = []
@@ -54,9 +52,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES = [
     "pytest-asyncio",
     "google-cloud-testutils",
 ]
-SYSTEM_TEST_EXTERNAL_DEPENDENCIES = [
-    # "git+https://github.com/googleapis/python-api-core.git@retry_generators"
-]
+SYSTEM_TEST_EXTERNAL_DEPENDENCIES = []
 SYSTEM_TEST_LOCAL_DEPENDENCIES = []
 UNIT_TEST_DEPENDENCIES = []
 SYSTEM_TEST_DEPENDENCIES = []
@@ -138,7 +134,8 @@ def mypy(session):
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
-        "google/cloud/bigtable/data",
+        "-p",
+        "google.cloud.bigtable.data",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
@@ -460,7 +457,7 @@ def prerelease_deps(session):
         # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
         "grpcio!=1.52.0rc1",
         "grpcio-status",
-        "google-api-core==2.12.0.dev1",  # TODO: remove this once streaming retries is merged
+        "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
         "proto-plus",
         "google-cloud-testutils",
         # dependencies of google-cloud-testutils"

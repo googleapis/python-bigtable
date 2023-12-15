@@ -170,7 +170,8 @@ def mypy(session):
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
-        "google/cloud/bigtable",
+        "-p",
+        "google.cloud.bigtable",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",

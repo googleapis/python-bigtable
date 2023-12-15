@@ -31,15 +31,13 @@ from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 from google.cloud.bigtable.data.row import Row, Cell
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import InvalidChunk
-from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 
-from google.api_core import retry_async as retries
-from google.api_core.retry_streaming_async import retry_target_stream
+from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
-from google.api_core import exceptions as core_exceptions
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
@@ -107,12 +105,12 @@ class _ReadRowsOperationAsync:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
-        return retry_target_stream(
+        return retries.retry_target_stream_async(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
-            exception_factory=self._build_exception,
+            exception_factory=_retry_exception_factory,
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
@@ -343,35 +341,3 @@ class _ReadRowsOperationAsync:
             # this will avoid an unwanted full table scan
             raise _RowSetComplete()
         return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
-
-    @staticmethod
-    def _build_exception(
-        exc_list: list[Exception], is_timeout: bool, timeout_val: float
-    ) -> tuple[Exception, Exception | None]:
-        """
-        Build retry error based on exceptions encountered during operation
-
-        Args:
-          - exc_list: list of exceptions encountered during operation
-          - is_timeout: whether the operation failed due to timeout
-          - timeout_val: the operation timeout value in seconds, for constructing
-                the error message
-        Returns:
-          - tuple of the exception to raise, and a cause exception if applicable
-        """
-        if is_timeout:
-            # if failed due to timeout, raise deadline exceeded as primary exception
-            source_exc: Exception = core_exceptions.DeadlineExceeded(
-                f"operation_timeout of {timeout_val} exceeded"
-            )
-        elif exc_list:
-            # otherwise, raise non-retryable error as primary exception
-            source_exc = exc_list.pop()
-        else:
-            source_exc = RuntimeError("failed with unspecified exception")
-        # use the retry exception group as the cause of the exception
-        cause_exc: Exception | None = (
-            RetryExceptionGroup(exc_list) if exc_list else None
-        )
-        source_exc.__cause__ = cause_exc
-        return source_exc, cause_exc
