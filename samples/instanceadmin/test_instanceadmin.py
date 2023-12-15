@@ -99,7 +99,6 @@ def test_run_instance_operations(capsys, dispose_of):
 def test_delete_instance(capsys, dispose_of):
     from concurrent.futures import TimeoutError
 
-    @backoff.on_exception(backoff.expo, TimeoutError)
     def _set_up_instance():
         dispose_of(INSTANCE)
 
@@ -125,7 +124,6 @@ def test_delete_instance(capsys, dispose_of):
 def test_add_and_delete_cluster(capsys, dispose_of):
     from concurrent.futures import TimeoutError
 
-    @backoff.on_exception(backoff.expo, TimeoutError)
     def _set_up_instance():
         dispose_of(INSTANCE)
 
