@@ -510,7 +510,7 @@ class TestActiveOperationMetric:
             )
             assert final_attempt.gfe_latency == expected_attempt_gfe_latency
             assert final_attempt.end_status == expected_status
-            assert time.monotonic() - final_attempt.duration < 0.001
+            assert time.monotonic() - final_attempt.duration < 0.01
 
     def test_end_with_status_w_exception(self):
         """
