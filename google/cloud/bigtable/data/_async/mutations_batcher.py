@@ -489,6 +489,9 @@ class MutationsBatcherAsync:
             if isinstance(result, Exception):
                 # will receive direct Exception objects if request task fails
                 found_errors.append(result)
+            elif isinstance(result, BaseException):
+                # BaseException not expected from grpc calls. Raise immediately
+                raise result
             elif result:
                 # completed requests will return a list of FailedMutationEntryError
                 for e in result:

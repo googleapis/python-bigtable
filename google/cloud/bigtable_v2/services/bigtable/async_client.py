@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
+    OptionalRetry = Union[retries.AsyncRetry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
+    OptionalRetry = Union[retries.AsyncRetry, object, None]  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from google.cloud.bigtable_v2.types import data
@@ -251,7 +251,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -344,7 +344,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -454,7 +454,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -565,7 +565,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -703,7 +703,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -812,7 +812,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -929,7 +929,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1034,7 +1034,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1136,7 +1136,7 @@ class BigtableAsyncClient:
                 This corresponds to the ``app_profile_id`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1196,7 +1196,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "BigtableAsyncClient":
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
