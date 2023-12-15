@@ -118,7 +118,9 @@ def backoff_generator(initial=0.01, multiplier=2, maximum=60):
 
 
 def _retry_exception_factory(
-    exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float, **kwargs
+    exc_list: list[Exception],
+    reason: RetryFailureReason,
+    timeout_val: float | None,
 ) -> tuple[Exception, Exception | None]:
     """
     Build retry error based on exceptions encountered during operation
@@ -132,9 +134,10 @@ def _retry_exception_factory(
       - tuple of the exception to raise, and a cause exception if applicable
     """
     if reason == RetryFailureReason.TIMEOUT:
+        timeout_val_str = f"of {timeout_val:0.1f}s " if timeout_val is not None else ""
         # if failed due to timeout, raise deadline exceeded as primary exception
         source_exc: Exception = core_exceptions.DeadlineExceeded(
-            f"operation_timeout of {timeout_val} exceeded"
+            f"operation_timeout{timeout_val_str} exceeded"
         )
     elif exc_list:
         # otherwise, raise non-retryable error as primary exception

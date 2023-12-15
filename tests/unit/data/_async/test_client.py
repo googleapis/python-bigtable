@@ -1521,7 +1521,6 @@ class TestReadRows:
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     @pytest.mark.asyncio
     async def test_read_rows_timeout(self, operation_timeout):
-
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
             query = ReadRowsQuery()

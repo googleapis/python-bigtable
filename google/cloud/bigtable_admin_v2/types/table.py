@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,7 +124,8 @@ class Table(proto.Message):
             ``REPLICATION_VIEW``, ``ENCRYPTION_VIEW``, ``FULL``
         column_families (MutableMapping[str, google.cloud.bigtable_admin_v2.types.ColumnFamily]):
             The column families configured for this table, mapped by
-            column family ID. Views: ``SCHEMA_VIEW``, ``FULL``
+            column family ID. Views: ``SCHEMA_VIEW``, ``STATS_VIEW``,
+            ``FULL``
         granularity (google.cloud.bigtable_admin_v2.types.Table.TimestampGranularity):
             Immutable. The granularity (i.e. ``MILLIS``) at which
             timestamps are stored in this table. Timestamps not matching
@@ -141,14 +142,16 @@ class Table(proto.Message):
             this table. Otherwise, the change stream is
             disabled and the change stream is not retained.
         deletion_protection (bool):
-            Set to true to make the table protected
-            against data loss. i.e. deleting the following
-            resources through Admin APIs are prohibited:   -
-            The table.
-              - The column families in the table.
-              - The instance containing the table.
-            Note one can still delete the data stored in the
-            table through Data APIs.
+            Set to true to make the table protected against data loss.
+            i.e. deleting the following resources through Admin APIs are
+            prohibited:
+
+            -  The table.
+            -  The column families in the table.
+            -  The instance containing the table.
+
+            Note one can still delete the data stored in the table
+            through Data APIs.
     """
 
     class TimestampGranularity(proto.Enum):
@@ -308,6 +311,7 @@ class ColumnFamily(proto.Message):
         gc_rule (google.cloud.bigtable_admin_v2.types.GcRule):
             Garbage collection rule specified as a
             protobuf. Must serialize to at most 500 bytes.
+
             NOTE: Garbage collection executes
             opportunistically in the background, and so it's
             possible for reads to return a cell even if it
@@ -478,6 +482,7 @@ class Snapshot(proto.Message):
     r"""A snapshot of a table at a particular time. A snapshot can be
     used as a checkpoint for data restoration or a data source for a
     new table.
+
     Note: This is a private alpha release of Cloud Bigtable
     snapshots. This feature is not currently available to most Cloud
     Bigtable customers. This feature might be changed in
@@ -486,8 +491,7 @@ class Snapshot(proto.Message):
 
     Attributes:
         name (str):
-            Output only. The unique name of the snapshot. Values are of
-            the form
+            The unique name of the snapshot. Values are of the form
             ``projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}``.
         source_table (google.cloud.bigtable_admin_v2.types.Table):
             Output only. The source table at the time the
@@ -502,16 +506,15 @@ class Snapshot(proto.Message):
             Output only. The time when the snapshot is
             created.
         delete_time (google.protobuf.timestamp_pb2.Timestamp):
-            Output only. The time when the snapshot will
-            be deleted. The maximum amount of time a
-            snapshot can stay active is 365 days. If 'ttl'
-            is not specified, the default maximum of 365
-            days will be used.
+            The time when the snapshot will be deleted.
+            The maximum amount of time a snapshot can stay
+            active is 365 days. If 'ttl' is not specified,
+            the default maximum of 365 days will be used.
         state (google.cloud.bigtable_admin_v2.types.Snapshot.State):
             Output only. The current state of the
             snapshot.
         description (str):
-            Output only. Description of the snapshot.
+            Description of the snapshot.
     """
 
     class State(proto.Enum):
@@ -587,10 +590,16 @@ class Backup(proto.Message):
             backup was created. This needs to be in the same instance as
             the backup. Values are of the form
             ``projects/{project}/instances/{instance}/tables/{source_table}``.
+        source_backup (str):
+            Output only. Name of the backup from which
+            this backup was copied. If a backup is not
+            created by copying a backup, this field will be
+            empty. Values are of the form:
+            projects/<project>/instances/<instance>/backups/<backup>.
         expire_time (google.protobuf.timestamp_pb2.Timestamp):
             Required. The expiration time of the backup, with
             microseconds granularity that must be at least 6 hours and
-            at most 30 days from the time the request is received. Once
+            at most 90 days from the time the request is received. Once
             the ``expire_time`` has passed, Cloud Bigtable will delete
             the backup and free the resources used by the backup.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -635,6 +644,10 @@ class Backup(proto.Message):
     source_table: str = proto.Field(
         proto.STRING,
         number=2,
+    )
+    source_backup: str = proto.Field(
+        proto.STRING,
+        number=10,
     )
     expire_time: timestamp_pb2.Timestamp = proto.Field(
         proto.MESSAGE,
@@ -684,6 +697,12 @@ class BackupInfo(proto.Message):
         source_table (str):
             Output only. Name of the table the backup was
             created from.
+        source_backup (str):
+            Output only. Name of the backup from which
+            this backup was copied. If a backup is not
+            created by copying a backup, this field will be
+            empty. Values are of the form:
+            projects/<project>/instances/<instance>/backups/<backup>.
     """
 
     backup: str = proto.Field(
@@ -703,6 +722,10 @@ class BackupInfo(proto.Message):
     source_table: str = proto.Field(
         proto.STRING,
         number=4,
+    )
+    source_backup: str = proto.Field(
+        proto.STRING,
+        number=10,
     )
 
 

@@ -4,6 +4,60 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.22.0](https://github.com/googleapis/python-bigtable/compare/v2.21.0...v2.22.0) (2023-12-12)
+
+
+### Features
+
+* Add support for Cloud Bigtable Request Priorities in App Profiles ([#871](https://github.com/googleapis/python-bigtable/issues/871)) ([a4d551e](https://github.com/googleapis/python-bigtable/commit/a4d551e34006202ee96a395a2107d7acdc5881de))
+* Add support for Python 3.12 ([#888](https://github.com/googleapis/python-bigtable/issues/888)) ([4f050aa](https://github.com/googleapis/python-bigtable/commit/4f050aa5aed9a9dcf209779d5c10e5de8e2ff19e))
+* Introduce compatibility with native namespace packages ([#893](https://github.com/googleapis/python-bigtable/issues/893)) ([d218f4e](https://github.com/googleapis/python-bigtable/commit/d218f4ebd4ed6705721dca9318df955b40b0d0ac))
+* Publish CopyBackup protos to external customers ([#855](https://github.com/googleapis/python-bigtable/issues/855)) ([4105df7](https://github.com/googleapis/python-bigtable/commit/4105df762f1318c49bba030063897f0c50e4daee))
+
+
+### Bug Fixes
+
+* Add feature flag for improved mutate rows throttling ([e5af359](https://github.com/googleapis/python-bigtable/commit/e5af3597f45fc4c094c59abca876374f5a866c1b))
+* Add lock to flow control ([#899](https://github.com/googleapis/python-bigtable/issues/899)) ([e4e63c7](https://github.com/googleapis/python-bigtable/commit/e4e63c7b5b91273b3aae04fda59cc5a21c848de2))
+* Mutations batcher race condition ([#896](https://github.com/googleapis/python-bigtable/issues/896)) ([fe58f61](https://github.com/googleapis/python-bigtable/commit/fe58f617c7364d7e99e2ec50abd5f080852bf033))
+* Require google-cloud-core 1.4.4 ([#866](https://github.com/googleapis/python-bigtable/issues/866)) ([09f8a46](https://github.com/googleapis/python-bigtable/commit/09f8a4667d8b68a9f2048ba1aa57db4f775a2c03))
+* Use `retry_async` instead of `retry` in async client ([597efd1](https://github.com/googleapis/python-bigtable/commit/597efd11d15f20549010b4301be4d9768326e6a2))
+
+
+### Documentation
+
+* Minor formatting ([e5af359](https://github.com/googleapis/python-bigtable/commit/e5af3597f45fc4c094c59abca876374f5a866c1b))
+
+## [2.21.0](https://github.com/googleapis/python-bigtable/compare/v2.20.0...v2.21.0) (2023-08-02)
+
+
+### Features
+
+* Add last_scanned_row_responses to FeatureFlags ([#845](https://github.com/googleapis/python-bigtable/issues/845)) ([14a6739](https://github.com/googleapis/python-bigtable/commit/14a673901f82fa247c8027730a0bba41e0ec4757))
+
+
+### Documentation
+
+* Minor formatting ([#851](https://github.com/googleapis/python-bigtable/issues/851)) ([5ebe231](https://github.com/googleapis/python-bigtable/commit/5ebe2312dab70210811fca68c6625d2546442afd))
+
+## [2.20.0](https://github.com/googleapis/python-bigtable/compare/v2.19.0...v2.20.0) (2023-07-17)
+
+
+### Features
+
+* Add experimental reverse scan for public preview ([d5720f8](https://github.com/googleapis/python-bigtable/commit/d5720f8f5b5a81572f31d40051b3ec0f1d104304))
+* Increase the maximum retention period for a Cloud Bigtable backup from 30 days to 90 days ([d5720f8](https://github.com/googleapis/python-bigtable/commit/d5720f8f5b5a81572f31d40051b3ec0f1d104304))
+
+
+### Bug Fixes
+
+* Add async context manager return types ([#828](https://github.com/googleapis/python-bigtable/issues/828)) ([475a160](https://github.com/googleapis/python-bigtable/commit/475a16072f3ad41357bdb765fff608a39141ec00))
+
+
+### Documentation
+
+* Fix formatting for reversed order field example ([#831](https://github.com/googleapis/python-bigtable/issues/831)) ([fddd0ba](https://github.com/googleapis/python-bigtable/commit/fddd0ba97155e112af92a98fd8f20e59b139d177))
+
 ## [2.19.0](https://github.com/googleapis/python-bigtable/compare/v2.18.1...v2.19.0) (2023-06-08)
 
 

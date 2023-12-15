@@ -787,8 +787,7 @@ class TableAsync:
                 if isinstance(result, Exception):
                     error_dict[shard_idx] = result
                 elif isinstance(result, BaseException):
-                    # BaseException won't be encountered in normal execution
-                    # raise immediately
+                    # BaseException not expected; raise immediately
                     raise result
                 else:
                     results_list.extend(result)
@@ -906,7 +905,7 @@ class TableAsync:
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        sleep_generator = backoff_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator()
 
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
@@ -1051,7 +1050,7 @@ class TableAsync:
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        sleep_generator = backoff_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator()
 
         # wrap rpc in retry and metric collection logic
         async with self._metrics.create_operation(

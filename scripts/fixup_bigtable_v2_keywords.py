@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ class bigtableCallTransformer(cst.CSTTransformer):
         'ping_and_warm': ('name', 'app_profile_id', ),
         'read_change_stream': ('table_name', 'app_profile_id', 'partition', 'start_time', 'continuation_tokens', 'end_time', 'heartbeat_duration', ),
         'read_modify_write_row': ('table_name', 'row_key', 'rules', 'app_profile_id', ),
-        'read_rows': ('table_name', 'app_profile_id', 'rows', 'filter', 'rows_limit', 'request_stats_view', ),
+        'read_rows': ('table_name', 'app_profile_id', 'rows', 'filter', 'rows_limit', 'request_stats_view', 'reversed', ),
         'sample_row_keys': ('table_name', 'app_profile_id', ),
     }
 

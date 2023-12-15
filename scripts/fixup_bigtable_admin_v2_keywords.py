@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ class bigtable_adminCallTransformer(cst.CSTTransformer):
     CTRL_PARAMS: Tuple[str] = ('retry', 'timeout', 'metadata')
     METHOD_TO_PARAMS: Dict[str, Tuple[str]] = {
         'check_consistency': ('name', 'consistency_token', ),
+        'copy_backup': ('parent', 'backup_id', 'source_backup', 'expire_time', ),
         'create_app_profile': ('parent', 'app_profile_id', 'app_profile', 'ignore_warnings', ),
         'create_backup': ('parent', 'backup_id', 'backup', ),
         'create_cluster': ('parent', 'cluster_id', 'cluster', ),

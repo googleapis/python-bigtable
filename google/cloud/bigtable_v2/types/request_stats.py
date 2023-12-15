@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,6 +86,7 @@ class RequestLatencyStats(proto.Message):
             response. For more context on the component that
             is measuring this latency, see:
             https://cloud.google.com/bigtable/docs/overview
+
             Note: This value may be slightly shorter than
             the value reported into aggregate latency
             metrics in Monitoring for this request
