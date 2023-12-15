@@ -224,7 +224,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
     async def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
-    ) -> list[GoogleAPICallError | None]:
+    ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
 
@@ -761,6 +761,9 @@ class TableAsync:
             for result in batch_result:
                 if isinstance(result, Exception):
                     error_dict[shard_idx] = result
+                elif isinstance(result, BaseException):
+                    # BaseException not expected; raise immediately
+                    raise result
                 else:
                     results_list.extend(result)
                 shard_idx += 1
