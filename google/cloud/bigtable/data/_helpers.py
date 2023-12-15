@@ -98,7 +98,9 @@ def _attempt_timeout_generator(
 
 
 def _retry_exception_factory(
-    exc_list: list[Exception], reason: RetryFailureReason, timeout_val: float | None,
+    exc_list: list[Exception],
+    reason: RetryFailureReason,
+    timeout_val: float | None,
 ) -> tuple[Exception, Exception | None]:
     """
     Build retry error based on exceptions encountered during operation
