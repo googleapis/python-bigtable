@@ -1142,44 +1142,44 @@ class TestTableAsync:
             (
                 "read_rows_stream",
                 (ReadRowsQuery(),),
-                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                "google.api_core.retry.retry_target_stream_async",
                 (),
             ),
             (
                 "read_rows",
                 (ReadRowsQuery(),),
-                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                "google.api_core.retry.retry_target_stream_async",
                 (),
             ),
             (
                 "read_row",
                 (b"row_key",),
-                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                "google.api_core.retry.retry_target_stream_async",
                 (),
             ),
             (
                 "read_rows_sharded",
                 ([ReadRowsQuery()],),
-                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                "google.api_core.retry.retry_target_stream_async",
                 (),
             ),
             (
                 "row_exists",
                 (b"row_key",),
-                "google.cloud.bigtable.data._async._read_rows.retry_target_stream",
+                "google.api_core.retry.retry_target_stream_async",
                 (),
             ),
-            ("sample_row_keys", (), "google.api_core.retry_async.retry_target", ()),
+            ("sample_row_keys", (), "google.api_core.retry.retry_target_async", ()),
             (
                 "mutate_row",
-                (b"row_key", []),
-                "google.api_core.retry_async.retry_target",
+                (b"row_key", [mock.Mock()]),
+                "google.api_core.retry.retry_target_async",
                 (),
             ),
             (
                 "bulk_mutate_rows",
                 ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
-                "google.api_core.retry_async.retry_target",
+                "google.api_core.retry.retry_target_async",
                 (_MutateRowsIncomplete,),
             ),
         ],
@@ -1223,15 +1223,15 @@ class TestTableAsync:
         """
         from google.cloud.bigtable.data import BigtableDataClientAsync
 
-        with mock.patch(
-            "google.api_core.retry_async.if_exception_type"
-        ) as predicate_builder_mock:
-            with mock.patch(retry_fn_path) as retry_fn_mock:
-                async with BigtableDataClientAsync() as client:
-                    table = client.get_table("instance-id", "table-id")
-                    expected_predicate = lambda a: a in expected_retryables  # noqa
+        with mock.patch(retry_fn_path) as retry_fn_mock:
+            async with BigtableDataClientAsync() as client:
+                table = client.get_table("instance-id", "table-id")
+                expected_predicate = lambda a: a in expected_retryables  # noqa
+                retry_fn_mock.side_effect = RuntimeError("stop early")
+                with mock.patch(
+                    "google.api_core.retry.if_exception_type"
+                ) as predicate_builder_mock:
                     predicate_builder_mock.return_value = expected_predicate
-                    retry_fn_mock.side_effect = RuntimeError("stop early")
                     with pytest.raises(Exception):
                         # we expect an exception from attempting to call the mock
                         test_fn = table.__getattribute__(fn_name)
@@ -1253,10 +1253,10 @@ class TestTableAsync:
             ("read_rows_sharded", ([ReadRowsQuery()],), "read_rows"),
             ("row_exists", (b"row_key",), "read_rows"),
             ("sample_row_keys", (), "sample_row_keys"),
-            ("mutate_row", (b"row_key", []), "mutate_row"),
+            ("mutate_row", (b"row_key", [mock.Mock()]), "mutate_row"),
             (
                 "bulk_mutate_rows",
-                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
+                ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
                 "mutate_rows",
             ),
             ("check_and_mutate_row", (b"row_key", None), "check_and_mutate_row"),
@@ -2204,7 +2204,7 @@ class TestMutateRow:
                         mutation = mutations.DeleteAllFromRow()
                         assert mutation.is_idempotent() is True
                         await table.mutate_row(
-                            "row_key", mutation, operation_timeout=0.05
+                            "row_key", mutation, operation_timeout=0.01
                         )
                     cause = e.value.__cause__
                     assert isinstance(cause, RetryExceptionGroup)

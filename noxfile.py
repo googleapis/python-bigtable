@@ -137,7 +137,8 @@ def mypy(session):
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
-        "google/cloud/bigtable/data",
+        "-p",
+        "google.cloud.bigtable.data",
         "--check-untyped-defs",
         "--warn-unreachable",
         "--disallow-any-generics",
@@ -458,7 +459,7 @@ def prerelease_deps(session):
         # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
         "grpcio!=1.52.0rc1",
         "grpcio-status",
-        "google-api-core",
+        "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
         "google-auth",
         "proto-plus",
         "google-cloud-testutils",
