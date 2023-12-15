@@ -134,6 +134,7 @@ def mypy(session):
     session.install("google-cloud-testutils")
     session.run(
         "mypy",
+        "--explicit-package-bases",
         "google/cloud/bigtable/data",
         "--check-untyped-defs",
         "--warn-unreachable",
