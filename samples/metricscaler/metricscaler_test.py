@@ -56,7 +56,7 @@ def preclean():
             timestamp = int(timestamp)
             if time.time() - timestamp > 3600:
                 warnings.warn(
-                    f"Deleting leftover test instance: {instance.instance_id}"
+                    f"Deleting leftover test instance: {instance.name}"
                 )
                 instance.delete()
 
