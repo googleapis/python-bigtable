@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ from google.cloud.bigtable_admin_v2.types import table as gba_table
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import options_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
+from google.longrunning import operations_pb2  # type: ignore
 from google.oauth2 import service_account
 from google.protobuf import any_pb2  # type: ignore
 from google.protobuf import duration_pb2  # type: ignore
@@ -1691,9 +1691,11 @@ async def test_list_tables_async_pages():
             RuntimeError,
         )
         pages = []
-        async for page_ in (
+        # Workaround issue in python 3.9 related to code coverage by adding `# pragma: no branch`
+        # See https://github.com/googleapis/gapic-generator-python/pull/1174#issuecomment-1025132372
+        async for page_ in (  # pragma: no branch
             await client.list_tables(request={})
-        ).pages:  # pragma: no branch
+        ).pages:
             pages.append(page_)
         for page_, token in zip(pages, ["abc", "def", "ghi", ""]):
             assert page_.raw_page.next_page_token == token
@@ -4457,9 +4459,11 @@ async def test_list_snapshots_async_pages():
             RuntimeError,
         )
         pages = []
-        async for page_ in (
+        # Workaround issue in python 3.9 related to code coverage by adding `# pragma: no branch`
+        # See https://github.com/googleapis/gapic-generator-python/pull/1174#issuecomment-1025132372
+        async for page_ in (  # pragma: no branch
             await client.list_snapshots(request={})
-        ).pages:  # pragma: no branch
+        ).pages:
             pages.append(page_)
         for page_, token in zip(pages, ["abc", "def", "ghi", ""]):
             assert page_.raw_page.next_page_token == token
@@ -4956,6 +4960,7 @@ def test_get_backup(request_type, transport: str = "grpc"):
         call.return_value = table.Backup(
             name="name_value",
             source_table="source_table_value",
+            source_backup="source_backup_value",
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         )
@@ -4970,6 +4975,7 @@ def test_get_backup(request_type, transport: str = "grpc"):
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -5010,6 +5016,7 @@ async def test_get_backup_async(
             table.Backup(
                 name="name_value",
                 source_table="source_table_value",
+                source_backup="source_backup_value",
                 size_bytes=1089,
                 state=table.Backup.State.CREATING,
             )
@@ -5025,6 +5032,7 @@ async def test_get_backup_async(
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -5196,6 +5204,7 @@ def test_update_backup(request_type, transport: str = "grpc"):
         call.return_value = table.Backup(
             name="name_value",
             source_table="source_table_value",
+            source_backup="source_backup_value",
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         )
@@ -5210,6 +5219,7 @@ def test_update_backup(request_type, transport: str = "grpc"):
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -5251,6 +5261,7 @@ async def test_update_backup_async(
             table.Backup(
                 name="name_value",
                 source_table="source_table_value",
+                source_backup="source_backup_value",
                 size_bytes=1089,
                 state=table.Backup.State.CREATING,
             )
@@ -5266,6 +5277,7 @@ async def test_update_backup_async(
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -6058,9 +6070,11 @@ async def test_list_backups_async_pages():
             RuntimeError,
         )
         pages = []
-        async for page_ in (
+        # Workaround issue in python 3.9 related to code coverage by adding `# pragma: no branch`
+        # See https://github.com/googleapis/gapic-generator-python/pull/1174#issuecomment-1025132372
+        async for page_ in (  # pragma: no branch
             await client.list_backups(request={})
-        ).pages:  # pragma: no branch
+        ).pages:
             pages.append(page_)
         for page_, token in zip(pages, ["abc", "def", "ghi", ""]):
             assert page_.raw_page.next_page_token == token
@@ -6209,6 +6223,262 @@ async def test_restore_table_field_headers_async():
         "x-goog-request-params",
         "parent=parent_value",
     ) in kw["metadata"]
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
+        bigtable_table_admin.CopyBackupRequest,
+        dict,
+    ],
+)
+def test_copy_backup(request_type, transport: str = "grpc"):
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name="operations/spam")
+        response = client.copy_backup(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable_table_admin.CopyBackupRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+def test_copy_backup_empty_call():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        client.copy_backup()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable_table_admin.CopyBackupRequest()
+
+
+@pytest.mark.asyncio
+async def test_copy_backup_async(
+    transport: str = "grpc_asyncio", request_type=bigtable_table_admin.CopyBackupRequest
+):
+    client = BigtableTableAdminAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name="operations/spam")
+        )
+        response = await client.copy_backup(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable_table_admin.CopyBackupRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+@pytest.mark.asyncio
+async def test_copy_backup_async_from_dict():
+    await test_copy_backup_async(request_type=dict)
+
+
+def test_copy_backup_field_headers():
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable_table_admin.CopyBackupRequest()
+
+    request.parent = "parent_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        call.return_value = operations_pb2.Operation(name="operations/op")
+        client.copy_backup(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "parent=parent_value",
+    ) in kw["metadata"]
+
+
+@pytest.mark.asyncio
+async def test_copy_backup_field_headers_async():
+    client = BigtableTableAdminAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable_table_admin.CopyBackupRequest()
+
+    request.parent = "parent_value"
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name="operations/op")
+        )
+        await client.copy_backup(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        "x-goog-request-params",
+        "parent=parent_value",
+    ) in kw["metadata"]
+
+
+def test_copy_backup_flattened():
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name="operations/op")
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        client.copy_backup(
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].parent
+        mock_val = "parent_value"
+        assert arg == mock_val
+        arg = args[0].backup_id
+        mock_val = "backup_id_value"
+        assert arg == mock_val
+        arg = args[0].source_backup
+        mock_val = "source_backup_value"
+        assert arg == mock_val
+        assert TimestampRule().to_proto(args[0].expire_time) == timestamp_pb2.Timestamp(
+            seconds=751
+        )
+
+
+def test_copy_backup_flattened_error():
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.copy_backup(
+            bigtable_table_admin.CopyBackupRequest(),
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
+
+
+@pytest.mark.asyncio
+async def test_copy_backup_flattened_async():
+    client = BigtableTableAdminAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.copy_backup), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name="operations/op")
+
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name="operations/spam")
+        )
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        response = await client.copy_backup(
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].parent
+        mock_val = "parent_value"
+        assert arg == mock_val
+        arg = args[0].backup_id
+        mock_val = "backup_id_value"
+        assert arg == mock_val
+        arg = args[0].source_backup
+        mock_val = "source_backup_value"
+        assert arg == mock_val
+        assert TimestampRule().to_proto(args[0].expire_time) == timestamp_pb2.Timestamp(
+            seconds=751
+        )
+
+
+@pytest.mark.asyncio
+async def test_copy_backup_flattened_error_async():
+    client = BigtableTableAdminAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        await client.copy_backup(
+            bigtable_table_admin.CopyBackupRequest(),
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
 
 
 @pytest.mark.parametrize(
@@ -7015,8 +7285,9 @@ def test_create_table_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = gba_table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = gba_table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -7098,8 +7369,9 @@ def test_create_table_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = gba_table.Table.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = gba_table.Table.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -7233,8 +7505,9 @@ def test_create_table_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = gba_table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = gba_table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -7586,8 +7859,9 @@ def test_list_tables_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -7670,8 +7944,9 @@ def test_list_tables_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -7805,8 +8080,9 @@ def test_list_tables_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListTablesResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -7929,8 +8205,9 @@ def test_get_table_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -8009,8 +8286,9 @@ def test_get_table_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = table.Table.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = table.Table.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -8133,8 +8411,9 @@ def test_get_table_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -8200,11 +8479,79 @@ def test_update_table_rest(request_type):
                 "start_time": {"seconds": 751, "nanos": 543},
                 "end_time": {},
                 "source_table": "source_table_value",
+                "source_backup": "source_backup_value",
             },
         },
         "change_stream_config": {"retention_period": {"seconds": 751, "nanos": 543}},
         "deletion_protection": True,
     }
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = bigtable_table_admin.UpdateTableRequest.meta.fields["table"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else:  # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["table"].items():  # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {
+                            "field": field,
+                            "subfield": subfield,
+                            "is_repeated": is_repeated,
+                        }
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime:  # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["table"][field])):
+                    del request_init["table"][field][i][subfield]
+            else:
+                del request_init["table"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -8385,23 +8732,6 @@ def test_update_table_rest_bad_request(
     # send a request that will satisfy transcoding
     request_init = {
         "table": {"name": "projects/sample1/instances/sample2/tables/sample3"}
-    }
-    request_init["table"] = {
-        "name": "projects/sample1/instances/sample2/tables/sample3",
-        "cluster_states": {},
-        "column_families": {},
-        "granularity": 1,
-        "restore_info": {
-            "source_type": 1,
-            "backup_info": {
-                "backup": "backup_value",
-                "start_time": {"seconds": 751, "nanos": 543},
-                "end_time": {},
-                "source_table": "source_table_value",
-            },
-        },
-        "change_stream_config": {"retention_period": {"seconds": 751, "nanos": 543}},
-        "deletion_protection": True,
     }
     request = request_type(**request_init)
 
@@ -9027,8 +9357,9 @@ def test_modify_column_families_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -9106,8 +9437,9 @@ def test_modify_column_families_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = table.Table.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = table.Table.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -9244,8 +9576,9 @@ def test_modify_column_families_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Table.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Table.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -9514,10 +9847,11 @@ def test_generate_consistency_token_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
             return_value
         )
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -9593,10 +9927,11 @@ def test_generate_consistency_token_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
+            # Convert return value to protobuf type
+            return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
                 return_value
             )
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -9724,10 +10059,11 @@ def test_generate_consistency_token_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.GenerateConsistencyTokenResponse.pb(
             return_value
         )
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -9792,8 +10128,9 @@ def test_check_consistency_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.CheckConsistencyResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.CheckConsistencyResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -9873,10 +10210,11 @@ def test_check_consistency_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = bigtable_table_admin.CheckConsistencyResponse.pb(
+            # Convert return value to protobuf type
+            return_value = bigtable_table_admin.CheckConsistencyResponse.pb(
                 return_value
             )
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -10012,8 +10350,9 @@ def test_check_consistency_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.CheckConsistencyResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.CheckConsistencyResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -10371,8 +10710,9 @@ def test_get_snapshot_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Snapshot.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Snapshot.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -10450,8 +10790,9 @@ def test_get_snapshot_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = table.Snapshot.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = table.Snapshot.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -10578,8 +10919,9 @@ def test_get_snapshot_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Snapshot.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Snapshot.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -10644,8 +10986,9 @@ def test_list_snapshots_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListSnapshotsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListSnapshotsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -10727,10 +11070,9 @@ def test_list_snapshots_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = bigtable_table_admin.ListSnapshotsResponse.pb(
-                return_value
-            )
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = bigtable_table_admin.ListSnapshotsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -10865,8 +11207,9 @@ def test_list_snapshots_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListSnapshotsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListSnapshotsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -11240,6 +11583,7 @@ def test_create_backup_rest(request_type):
     request_init["backup"] = {
         "name": "name_value",
         "source_table": "source_table_value",
+        "source_backup": "source_backup_value",
         "expire_time": {"seconds": 751, "nanos": 543},
         "start_time": {},
         "end_time": {},
@@ -11260,6 +11604,73 @@ def test_create_backup_rest(request_type):
             "kms_key_version": "kms_key_version_value",
         },
     }
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = bigtable_table_admin.CreateBackupRequest.meta.fields["backup"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else:  # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["backup"].items():  # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {
+                            "field": field,
+                            "subfield": subfield,
+                            "is_repeated": is_repeated,
+                        }
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime:  # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["backup"][field])):
+                    del request_init["backup"][field][i][subfield]
+            else:
+                del request_init["backup"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -11458,29 +11869,6 @@ def test_create_backup_rest_bad_request(
 
     # send a request that will satisfy transcoding
     request_init = {"parent": "projects/sample1/instances/sample2/clusters/sample3"}
-    request_init["backup"] = {
-        "name": "name_value",
-        "source_table": "source_table_value",
-        "expire_time": {"seconds": 751, "nanos": 543},
-        "start_time": {},
-        "end_time": {},
-        "size_bytes": 1089,
-        "state": 1,
-        "encryption_info": {
-            "encryption_type": 1,
-            "encryption_status": {
-                "code": 411,
-                "message": "message_value",
-                "details": [
-                    {
-                        "type_url": "type.googleapis.com/google.protobuf.Duration",
-                        "value": b"\x08\x0c\x10\xdb\x07",
-                    }
-                ],
-            },
-            "kms_key_version": "kms_key_version_value",
-        },
-    }
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -11587,6 +11975,7 @@ def test_get_backup_rest(request_type):
         return_value = table.Backup(
             name="name_value",
             source_table="source_table_value",
+            source_backup="source_backup_value",
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         )
@@ -11594,8 +11983,9 @@ def test_get_backup_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Backup.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Backup.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -11605,6 +11995,7 @@ def test_get_backup_rest(request_type):
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -11673,8 +12064,9 @@ def test_get_backup_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = table.Backup.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = table.Backup.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -11801,8 +12193,9 @@ def test_get_backup_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Backup.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Backup.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -11862,6 +12255,7 @@ def test_update_backup_rest(request_type):
     request_init["backup"] = {
         "name": "projects/sample1/instances/sample2/clusters/sample3/backups/sample4",
         "source_table": "source_table_value",
+        "source_backup": "source_backup_value",
         "expire_time": {"seconds": 751, "nanos": 543},
         "start_time": {},
         "end_time": {},
@@ -11882,6 +12276,73 @@ def test_update_backup_rest(request_type):
             "kms_key_version": "kms_key_version_value",
         },
     }
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = bigtable_table_admin.UpdateBackupRequest.meta.fields["backup"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else:  # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["backup"].items():  # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {
+                            "field": field,
+                            "subfield": subfield,
+                            "is_repeated": is_repeated,
+                        }
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime:  # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["backup"][field])):
+                    del request_init["backup"][field][i][subfield]
+            else:
+                del request_init["backup"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -11890,6 +12351,7 @@ def test_update_backup_rest(request_type):
         return_value = table.Backup(
             name="name_value",
             source_table="source_table_value",
+            source_backup="source_backup_value",
             size_bytes=1089,
             state=table.Backup.State.CREATING,
         )
@@ -11897,8 +12359,9 @@ def test_update_backup_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Backup.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Backup.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -11908,6 +12371,7 @@ def test_update_backup_rest(request_type):
     assert isinstance(response, table.Backup)
     assert response.name == "name_value"
     assert response.source_table == "source_table_value"
+    assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
 
@@ -11974,8 +12438,9 @@ def test_update_backup_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = table.Backup.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = table.Backup.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -12073,29 +12538,6 @@ def test_update_backup_rest_bad_request(
             "name": "projects/sample1/instances/sample2/clusters/sample3/backups/sample4"
         }
     }
-    request_init["backup"] = {
-        "name": "projects/sample1/instances/sample2/clusters/sample3/backups/sample4",
-        "source_table": "source_table_value",
-        "expire_time": {"seconds": 751, "nanos": 543},
-        "start_time": {},
-        "end_time": {},
-        "size_bytes": 1089,
-        "state": 1,
-        "encryption_info": {
-            "encryption_type": 1,
-            "encryption_status": {
-                "code": 411,
-                "message": "message_value",
-                "details": [
-                    {
-                        "type_url": "type.googleapis.com/google.protobuf.Duration",
-                        "value": b"\x08\x0c\x10\xdb\x07",
-                    }
-                ],
-            },
-            "kms_key_version": "kms_key_version_value",
-        },
-    }
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -12138,8 +12580,9 @@ def test_update_backup_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = table.Backup.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = table.Backup.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -12464,8 +12907,9 @@ def test_list_backups_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -12549,8 +12993,9 @@ def test_list_backups_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -12687,8 +13132,9 @@ def test_list_backups_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = bigtable_table_admin.ListBackupsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -13009,6 +13455,296 @@ def test_restore_table_rest_error():
 @pytest.mark.parametrize(
     "request_type",
     [
+        bigtable_table_admin.CopyBackupRequest,
+        dict,
+    ],
+)
+def test_copy_backup_rest(request_type):
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"parent": "projects/sample1/instances/sample2/clusters/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = operations_pb2.Operation(name="operations/spam")
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        json_return_value = json_format.MessageToJson(return_value)
+
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+        response = client.copy_backup(request)
+
+    # Establish that the response is the type that we expect.
+    assert response.operation.name == "operations/spam"
+
+
+def test_copy_backup_rest_required_fields(
+    request_type=bigtable_table_admin.CopyBackupRequest,
+):
+    transport_class = transports.BigtableTableAdminRestTransport
+
+    request_init = {}
+    request_init["parent"] = ""
+    request_init["backup_id"] = ""
+    request_init["source_backup"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            including_default_value_fields=False,
+            use_integers_for_enums=False,
+        )
+    )
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).copy_backup._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["parent"] = "parent_value"
+    jsonified_request["backupId"] = "backup_id_value"
+    jsonified_request["sourceBackup"] = "source_backup_value"
+
+    unset_fields = transport_class(
+        credentials=ga_credentials.AnonymousCredentials()
+    ).copy_backup._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "parent" in jsonified_request
+    assert jsonified_request["parent"] == "parent_value"
+    assert "backupId" in jsonified_request
+    assert jsonified_request["backupId"] == "backup_id_value"
+    assert "sourceBackup" in jsonified_request
+    assert jsonified_request["sourceBackup"] == "source_backup_value"
+
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = operations_pb2.Operation(name="operations/spam")
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, "request") as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, "transcode") as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                "uri": "v1/sample_method",
+                "method": "post",
+                "query_params": pb_request,
+            }
+            transcode_result["body"] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+            json_return_value = json_format.MessageToJson(return_value)
+
+            response_value._content = json_return_value.encode("UTF-8")
+            req.return_value = response_value
+
+            response = client.copy_backup(request)
+
+            expected_params = [("$alt", "json;enum-encoding=int")]
+            actual_params = req.call_args.kwargs["params"]
+            assert expected_params == actual_params
+
+
+def test_copy_backup_rest_unset_required_fields():
+    transport = transports.BigtableTableAdminRestTransport(
+        credentials=ga_credentials.AnonymousCredentials
+    )
+
+    unset_fields = transport.copy_backup._get_unset_required_fields({})
+    assert set(unset_fields) == (
+        set(())
+        & set(
+            (
+                "parent",
+                "backupId",
+                "sourceBackup",
+                "expireTime",
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_copy_backup_rest_interceptors(null_interceptor):
+    transport = transports.BigtableTableAdminRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None
+        if null_interceptor
+        else transports.BigtableTableAdminRestInterceptor(),
+    )
+    client = BigtableTableAdminClient(transport=transport)
+    with mock.patch.object(
+        type(client.transport._session), "request"
+    ) as req, mock.patch.object(
+        path_template, "transcode"
+    ) as transcode, mock.patch.object(
+        operation.Operation, "_set_result_from_operation"
+    ), mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "post_copy_backup"
+    ) as post, mock.patch.object(
+        transports.BigtableTableAdminRestInterceptor, "pre_copy_backup"
+    ) as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = bigtable_table_admin.CopyBackupRequest.pb(
+            bigtable_table_admin.CopyBackupRequest()
+        )
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = json_format.MessageToJson(
+            operations_pb2.Operation()
+        )
+
+        request = bigtable_table_admin.CopyBackupRequest()
+        metadata = [
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = operations_pb2.Operation()
+
+        client.copy_backup(
+            request,
+            metadata=[
+                ("key", "val"),
+                ("cephalopod", "squid"),
+            ],
+        )
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_copy_backup_rest_bad_request(
+    transport: str = "rest", request_type=bigtable_table_admin.CopyBackupRequest
+):
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {"parent": "projects/sample1/instances/sample2/clusters/sample3"}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, "request") as req, pytest.raises(
+        core_exceptions.BadRequest
+    ):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.copy_backup(request)
+
+
+def test_copy_backup_rest_flattened():
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), "request") as req:
+        # Designate an appropriate value for the returned response.
+        return_value = operations_pb2.Operation(name="operations/spam")
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {
+            "parent": "projects/sample1/instances/sample2/clusters/sample3"
+        }
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        json_return_value = json_format.MessageToJson(return_value)
+        response_value._content = json_return_value.encode("UTF-8")
+        req.return_value = response_value
+
+        client.copy_backup(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate(
+            "%s/v2/{parent=projects/*/instances/*/clusters/*}/backups:copy"
+            % client.transport._host,
+            args[1],
+        )
+
+
+def test_copy_backup_rest_flattened_error(transport: str = "rest"):
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.copy_backup(
+            bigtable_table_admin.CopyBackupRequest(),
+            parent="parent_value",
+            backup_id="backup_id_value",
+            source_backup="source_backup_value",
+            expire_time=timestamp_pb2.Timestamp(seconds=751),
+        )
+
+
+def test_copy_backup_rest_error():
+    client = BigtableTableAdminClient(
+        credentials=ga_credentials.AnonymousCredentials(), transport="rest"
+    )
+
+
+@pytest.mark.parametrize(
+    "request_type",
+    [
         iam_policy_pb2.GetIamPolicyRequest,
         dict,
     ],
@@ -13034,8 +13770,7 @@ def test_get_iam_policy_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -13112,8 +13847,7 @@ def test_get_iam_policy_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = return_value
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -13236,8 +13970,7 @@ def test_get_iam_policy_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -13303,8 +14036,7 @@ def test_set_iam_policy_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -13381,8 +14113,7 @@ def test_set_iam_policy_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = return_value
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -13513,8 +14244,7 @@ def test_set_iam_policy_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -13579,8 +14309,7 @@ def test_test_iam_permissions_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
@@ -13660,8 +14389,7 @@ def test_test_iam_permissions_rest_required_fields(
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = return_value
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode("UTF-8")
             req.return_value = response_value
@@ -13795,8 +14523,7 @@ def test_test_iam_permissions_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = return_value
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode("UTF-8")
         req.return_value = response_value
 
@@ -13995,6 +14722,7 @@ def test_bigtable_table_admin_base_transport():
         "delete_backup",
         "list_backups",
         "restore_table",
+        "copy_backup",
         "get_iam_policy",
         "set_iam_policy",
         "test_iam_permissions",
@@ -14370,6 +15098,9 @@ def test_bigtable_table_admin_client_transport_session_collision(transport_name)
     assert session1 != session2
     session1 = client1.transport.restore_table._session
     session2 = client2.transport.restore_table._session
+    assert session1 != session2
+    session1 = client1.transport.copy_backup._session
+    session2 = client2.transport.copy_backup._session
     assert session1 != session2
     session1 = client1.transport.get_iam_policy._session
     session2 = client2.transport.get_iam_policy._session

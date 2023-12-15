@@ -457,7 +457,6 @@ class TestFailedMutationEntryError:
         return FailedMutationEntryError
 
     def _make_one(self, idx=9, entry=mock.Mock(), cause=RuntimeError("mock")):
-
         return self._get_class()(idx, entry, cause)
 
     def test_raise(self):
@@ -516,7 +515,6 @@ class TestFailedQueryShardError:
         return FailedQueryShardError
 
     def _make_one(self, idx=9, query=mock.Mock(), cause=RuntimeError("mock")):
-
         return self._get_class()(idx, query, cause)
 
     def test_raise(self):

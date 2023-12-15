@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,14 +33,14 @@ from google.cloud.bigtable_admin_v2 import gapic_version as package_version
 from google.api_core.client_options import ClientOptions
 from google.api_core import exceptions as core_exceptions
 from google.api_core import gapic_v1
-from google.api_core import retry as retries
+from google.api_core import retry_async as retries
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault]
+    OptionalRetry = Union[retries.AsyncRetry, gapic_v1.method._MethodDefault]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object]  # type: ignore
+    OptionalRetry = Union[retries.AsyncRetry, object]  # type: ignore
 
 from google.api_core import operation  # type: ignore
 from google.api_core import operation_async  # type: ignore
@@ -282,7 +282,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``table`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -358,6 +358,7 @@ class BigtableTableAdminAsyncClient:
         r"""Creates a new table from the specified snapshot. The
         target table must not exist. The snapshot and the table
         must be in the same instance.
+
         Note: This is a private alpha release of Cloud Bigtable
         snapshots. This feature is not currently available to
         most Cloud Bigtable customers. This feature might be
@@ -401,7 +402,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``source_snapshot`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -493,7 +494,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -529,7 +530,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_tables,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -592,7 +593,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -627,7 +628,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_table,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -700,7 +701,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -793,7 +794,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -864,7 +865,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -975,7 +976,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``modifications`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1050,7 +1051,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.DropRowRangeRequest, dict]]):
                 The request object. Request message for
                 [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1110,7 +1111,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1143,7 +1144,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.generate_consistency_token,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -1210,7 +1211,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``consistency_token`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1245,7 +1246,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.check_consistency,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -1293,6 +1294,7 @@ class BigtableTableAdminAsyncClient:
         r"""Creates a new snapshot in the specified cluster from
         the specified source table. The cluster and the table
         must be in the same instance.
+
         Note: This is a private alpha release of Cloud Bigtable
         snapshots. This feature is not currently available to
         most Cloud Bigtable customers. This feature might be
@@ -1342,7 +1344,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``description`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1457,7 +1459,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1469,6 +1471,7 @@ class BigtableTableAdminAsyncClient:
                 time. A snapshot can be used as a
                 checkpoint for data restoration or a
                 data source for a new table.
+
                 Note: This is a private alpha release of
                 Cloud Bigtable snapshots. This feature
                 is not currently available to most Cloud
@@ -1500,7 +1503,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_snapshot,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -1573,7 +1576,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1616,7 +1619,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_snapshots,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -1668,6 +1671,7 @@ class BigtableTableAdminAsyncClient:
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> None:
         r"""Permanently deletes the specified snapshot.
+
         Note: This is a private alpha release of Cloud Bigtable
         snapshots. This feature is not currently available to
         most Cloud Bigtable customers. This feature might be
@@ -1694,7 +1698,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1790,7 +1794,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``backup`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1882,7 +1886,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -1913,7 +1917,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_backup,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -1983,7 +1987,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2062,7 +2066,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2134,7 +2138,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2143,7 +2147,7 @@ class BigtableTableAdminAsyncClient:
         Returns:
             google.cloud.bigtable_admin_v2.services.bigtable_table_admin.pagers.ListBackupsAsyncPager:
                 The response for
-                [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
+                   [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
 
                 Iterating over this object will yield results and
                 resolve additional pages automatically.
@@ -2170,7 +2174,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.list_backups,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -2218,9 +2222,8 @@ class BigtableTableAdminAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> operation_async.AsyncOperation:
-        r"""Create a new table by restoring from a completed backup. The new
-        table must be in the same project as the instance containing the
-        backup. The returned table [long-running
+        r"""Create a new table by restoring from a completed backup. The
+        returned table [long-running
         operation][google.longrunning.Operation] can be used to track
         the progress of the operation, and to cancel it. The
         [metadata][google.longrunning.Operation.metadata] field type is
@@ -2232,7 +2235,7 @@ class BigtableTableAdminAsyncClient:
             request (Optional[Union[google.cloud.bigtable_admin_v2.types.RestoreTableRequest, dict]]):
                 The request object. The request for
                 [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2283,6 +2286,141 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
+    async def copy_backup(
+        self,
+        request: Optional[Union[bigtable_table_admin.CopyBackupRequest, dict]] = None,
+        *,
+        parent: Optional[str] = None,
+        backup_id: Optional[str] = None,
+        source_backup: Optional[str] = None,
+        expire_time: Optional[timestamp_pb2.Timestamp] = None,
+        retry: OptionalRetry = gapic_v1.method.DEFAULT,
+        timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+        metadata: Sequence[Tuple[str, str]] = (),
+    ) -> operation_async.AsyncOperation:
+        r"""Copy a Cloud Bigtable backup to a new backup in the
+        destination cluster located in the destination instance
+        and project.
+
+        Args:
+            request (Optional[Union[google.cloud.bigtable_admin_v2.types.CopyBackupRequest, dict]]):
+                The request object. The request for
+                [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
+            parent (:class:`str`):
+                Required. The name of the destination cluster that will
+                contain the backup copy. The cluster must already
+                exists. Values are of the form:
+                ``projects/{project}/instances/{instance}/clusters/{cluster}``.
+
+                This corresponds to the ``parent`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            backup_id (:class:`str`):
+                Required. The id of the new backup. The ``backup_id``
+                along with ``parent`` are combined as
+                {parent}/backups/{backup_id} to create the full backup
+                name, of the form:
+                ``projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}``.
+                This string must be between 1 and 50 characters in
+                length and match the regex [*a-zA-Z0-9][-*.a-zA-Z0-9]*.
+
+                This corresponds to the ``backup_id`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            source_backup (:class:`str`):
+                Required. The source backup to be copied from. The
+                source backup needs to be in READY state for it to be
+                copied. Copying a copied backup is not allowed. Once
+                CopyBackup is in progress, the source backup cannot be
+                deleted or cleaned up on expiration until CopyBackup is
+                finished. Values are of the form:
+                ``projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>``.
+
+                This corresponds to the ``source_backup`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            expire_time (:class:`google.protobuf.timestamp_pb2.Timestamp`):
+                Required. Required. The expiration time of the copied
+                backup with microsecond granularity that must be at
+                least 6 hours and at most 30 days from the time the
+                request is received. Once the ``expire_time`` has
+                passed, Cloud Bigtable will delete the backup and free
+                the resources used by the backup.
+
+                This corresponds to the ``expire_time`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, str]]): Strings which should be
+                sent along with the request as metadata.
+
+        Returns:
+            google.api_core.operation_async.AsyncOperation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be
+                :class:`google.cloud.bigtable_admin_v2.types.Backup` A
+                backup of a Cloud Bigtable table.
+
+        """
+        # Create or coerce a protobuf request object.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
+        has_flattened_params = any([parent, backup_id, source_backup, expire_time])
+        if request is not None and has_flattened_params:
+            raise ValueError(
+                "If the `request` argument is set, then none of "
+                "the individual field arguments should be set."
+            )
+
+        request = bigtable_table_admin.CopyBackupRequest(request)
+
+        # If we have keyword arguments corresponding to fields on the
+        # request, apply these.
+        if parent is not None:
+            request.parent = parent
+        if backup_id is not None:
+            request.backup_id = backup_id
+        if source_backup is not None:
+            request.source_backup = source_backup
+        if expire_time is not None:
+            request.expire_time = expire_time
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.copy_backup,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
+
+        # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((("parent", request.parent),)),
+        )
+
+        # Send the request.
+        response = await rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation_async.from_gapic(
+            response,
+            self._client._transport.operations_client,
+            table.Backup,
+            metadata_type=bigtable_table_admin.CopyBackupMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
     async def get_iam_policy(
         self,
         request: Optional[Union[iam_policy_pb2.GetIamPolicyRequest, dict]] = None,
@@ -2308,7 +2446,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2337,42 +2475,11 @@ class BigtableTableAdminAsyncClient:
 
                    **JSON example:**
 
-                      {
-                         "bindings": [
-                            {
-                               "role":
-                               "roles/resourcemanager.organizationAdmin",
-                               "members": [ "user:mike@example.com",
-                               "group:admins@example.com",
-                               "domain:google.com",
-                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                               ]
-
-                            }, { "role":
-                            "roles/resourcemanager.organizationViewer",
-                            "members": [ "user:eve@example.com" ],
-                            "condition": { "title": "expirable access",
-                            "description": "Does not grant access after
-                            Sep 2020", "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')", } }
-
-                         ], "etag": "BwWWja0YfJA=", "version": 3
-
-                      }
+                   :literal:`\`     {       "bindings": [         {           "role": "roles/resourcemanager.organizationAdmin",           "members": [             "user:mike@example.com",             "group:admins@example.com",             "domain:google.com",             "serviceAccount:my-project-id@appspot.gserviceaccount.com"           ]         },         {           "role": "roles/resourcemanager.organizationViewer",           "members": [             "user:eve@example.com"           ],           "condition": {             "title": "expirable access",             "description": "Does not grant access after Sep 2020",             "expression": "request.time <             timestamp('2020-10-01T00:00:00.000Z')",           }         }       ],       "etag": "BwWWja0YfJA=",       "version": 3     }`\ \`
 
                    **YAML example:**
 
-                      bindings: - members: - user:\ mike@example.com -
-                      group:\ admins@example.com - domain:google.com -
-                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin -
-                      members: - user:\ eve@example.com role:
-                      roles/resourcemanager.organizationViewer
-                      condition: title: expirable access description:
-                      Does not grant access after Sep 2020 expression:
-                      request.time <
-                      timestamp('2020-10-01T00:00:00.000Z') etag:
-                      BwWWja0YfJA= version: 3
+                   :literal:`\`     bindings:     - members:       - user:mike@example.com       - group:admins@example.com       - domain:google.com       - serviceAccount:my-project-id@appspot.gserviceaccount.com       role: roles/resourcemanager.organizationAdmin     - members:       - user:eve@example.com       role: roles/resourcemanager.organizationViewer       condition:         title: expirable access         description: Does not grant access after Sep 2020         expression: request.time < timestamp('2020-10-01T00:00:00.000Z')     etag: BwWWja0YfJA=     version: 3`\ \`
 
                    For a description of IAM and its features, see the
                    [IAM
@@ -2402,7 +2509,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.get_iam_policy,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -2457,7 +2564,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``resource`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2486,42 +2593,11 @@ class BigtableTableAdminAsyncClient:
 
                    **JSON example:**
 
-                      {
-                         "bindings": [
-                            {
-                               "role":
-                               "roles/resourcemanager.organizationAdmin",
-                               "members": [ "user:mike@example.com",
-                               "group:admins@example.com",
-                               "domain:google.com",
-                               "serviceAccount:my-project-id@appspot.gserviceaccount.com"
-                               ]
-
-                            }, { "role":
-                            "roles/resourcemanager.organizationViewer",
-                            "members": [ "user:eve@example.com" ],
-                            "condition": { "title": "expirable access",
-                            "description": "Does not grant access after
-                            Sep 2020", "expression": "request.time <
-                            timestamp('2020-10-01T00:00:00.000Z')", } }
-
-                         ], "etag": "BwWWja0YfJA=", "version": 3
-
-                      }
+                   :literal:`\`     {       "bindings": [         {           "role": "roles/resourcemanager.organizationAdmin",           "members": [             "user:mike@example.com",             "group:admins@example.com",             "domain:google.com",             "serviceAccount:my-project-id@appspot.gserviceaccount.com"           ]         },         {           "role": "roles/resourcemanager.organizationViewer",           "members": [             "user:eve@example.com"           ],           "condition": {             "title": "expirable access",             "description": "Does not grant access after Sep 2020",             "expression": "request.time <             timestamp('2020-10-01T00:00:00.000Z')",           }         }       ],       "etag": "BwWWja0YfJA=",       "version": 3     }`\ \`
 
                    **YAML example:**
 
-                      bindings: - members: - user:\ mike@example.com -
-                      group:\ admins@example.com - domain:google.com -
-                      serviceAccount:\ my-project-id@appspot.gserviceaccount.com
-                      role: roles/resourcemanager.organizationAdmin -
-                      members: - user:\ eve@example.com role:
-                      roles/resourcemanager.organizationViewer
-                      condition: title: expirable access description:
-                      Does not grant access after Sep 2020 expression:
-                      request.time <
-                      timestamp('2020-10-01T00:00:00.000Z') etag:
-                      BwWWja0YfJA= version: 3
+                   :literal:`\`     bindings:     - members:       - user:mike@example.com       - group:admins@example.com       - domain:google.com       - serviceAccount:my-project-id@appspot.gserviceaccount.com       role: roles/resourcemanager.organizationAdmin     - members:       - user:eve@example.com       role: roles/resourcemanager.organizationViewer       condition:         title: expirable access         description: Does not grant access after Sep 2020         expression: request.time < timestamp('2020-10-01T00:00:00.000Z')     etag: BwWWja0YfJA=     version: 3`\ \`
 
                    For a description of IAM and its features, see the
                    [IAM
@@ -2606,7 +2682,7 @@ class BigtableTableAdminAsyncClient:
                 This corresponds to the ``permissions`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+            retry (google.api_core.retry_async.AsyncRetry): Designation of what errors, if any,
                 should be retried.
             timeout (float): The timeout for this request.
             metadata (Sequence[Tuple[str, str]]): Strings which should be
@@ -2640,7 +2716,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.test_iam_permissions,
-            default_retry=retries.Retry(
+            default_retry=retries.AsyncRetry(
                 initial=1.0,
                 maximum=60.0,
                 multiplier=2,
@@ -2671,7 +2747,7 @@ class BigtableTableAdminAsyncClient:
         # Done; return the response.
         return response
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "BigtableTableAdminAsyncClient":
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
