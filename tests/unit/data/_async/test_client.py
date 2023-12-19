@@ -2659,6 +2659,34 @@ class TestBulkMutateRows:
                     assert isinstance(cause.exceptions[1], DeadlineExceeded)
                     assert isinstance(cause.exceptions[2], FailedPrecondition)
 
+    @pytest.mark.asyncio
+    async def test_bulk_mutate_error_recovery(self):
+        """
+        If an error occurs, then resolves, no exception should be raised
+        """
+        from google.api_core.exceptions import DeadlineExceeded
+
+        async with self._make_client(project="project") as client:
+            table = client.get_table("instance", "table")
+            with mock.patch.object(
+                client._gapic_client, "mutate_rows"
+            ) as mock_gapic:
+                # fail with a retryable error, then a non-retryable one
+                mock_gapic.side_effect = [
+                    self._mock_response([DeadlineExceeded("mock")]),
+                    self._mock_response([None]),
+                ]
+                mutation = mutations.SetCell(
+                    "family", b"qualifier", b"value", timestamp_micros=123
+                )
+                entries = [
+                    mutations.RowMutationEntry(
+                        (f"row_key_{i}").encode(), [mutation]
+                    )
+                    for i in range(3)
+                ]
+                await table.bulk_mutate_rows(entries, operation_timeout=1000)
+
 
 class TestCheckAndMutateRow:
     def _make_client(self, *args, **kwargs):
