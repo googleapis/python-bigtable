@@ -2668,9 +2668,7 @@ class TestBulkMutateRows:
 
         async with self._make_client(project="project") as client:
             table = client.get_table("instance", "table")
-            with mock.patch.object(
-                client._gapic_client, "mutate_rows"
-            ) as mock_gapic:
+            with mock.patch.object(client._gapic_client, "mutate_rows") as mock_gapic:
                 # fail with a retryable error, then a non-retryable one
                 mock_gapic.side_effect = [
                     self._mock_response([DeadlineExceeded("mock")]),
@@ -2680,9 +2678,7 @@ class TestBulkMutateRows:
                     "family", b"qualifier", b"value", timestamp_micros=123
                 )
                 entries = [
-                    mutations.RowMutationEntry(
-                        (f"row_key_{i}").encode(), [mutation]
-                    )
+                    mutations.RowMutationEntry((f"row_key_{i}").encode(), [mutation])
                     for i in range(3)
                 ]
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)

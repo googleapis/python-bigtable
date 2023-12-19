@@ -248,7 +248,7 @@ async def test_bulk_mutations_raise_exception(client, table):
     from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 
     row_key = uuid.uuid4().hex.encode()
-    mutation = SetCell(family='nonexistent', qualifier=b"test-qualifier", new_value=b"")
+    mutation = SetCell(family="nonexistent", qualifier=b"test-qualifier", new_value=b"")
     bulk_mutation = RowMutationEntry(row_key, [mutation])
 
     with pytest.raises(MutationsExceptionGroup) as exc:
