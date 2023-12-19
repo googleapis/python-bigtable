@@ -238,6 +238,28 @@ async def test_bulk_mutations_set_cell(client, table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
+@pytest.mark.asyncio
+async def test_bulk_mutations_raise_exception(client, table):
+    """
+    If an invalid mutation is passed, an exception should be raised
+    """
+    from google.cloud.bigtable.data.mutations import RowMutationEntry, SetCell
+    from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+    from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+
+    row_key = uuid.uuid4().hex.encode()
+    mutation = SetCell(family="nonexistent", qualifier=b"test-qualifier", new_value=b"")
+    bulk_mutation = RowMutationEntry(row_key, [mutation])
+
+    with pytest.raises(MutationsExceptionGroup) as exc:
+        await table.bulk_mutate_rows([bulk_mutation])
+    assert len(exc.value.exceptions) == 1
+    entry_error = exc.value.exceptions[0]
+    assert isinstance(entry_error, FailedMutationEntryError)
+    assert entry_error.index == 0
+    assert entry_error.entry == bulk_mutation
+
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
