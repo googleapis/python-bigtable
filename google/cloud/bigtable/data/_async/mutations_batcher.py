@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import Any, Sequence, TYPE_CHECKING
 import asyncio
 import atexit
+import time
 import warnings
 from collections import deque
 
@@ -33,6 +34,7 @@ from google.cloud.bigtable.data._async._mutate_rows import (
 )
 from google.cloud.bigtable.data.mutations import Mutation
 from google.cloud.bigtable.data._metrics import OperationType
+from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
@@ -329,9 +331,18 @@ class MutationsBatcherAsync:
         """
         # flush new entries
         in_process_requests: list[asyncio.Future[list[FailedMutationEntryError]]] = []
+        metric = self._table._metrics.create_operation(OperationType.BULK_MUTATE_ROWS)
+        flow_start_time = time.monotonic()
         async for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = self._create_bg_task(self._execute_mutate_rows, batch)
+            # add time waiting on flow control to throttling metric
+            metric.flow_throttling_time = time.monotonic() - flow_start_time
+            batch_task = self._create_bg_task(self._execute_mutate_rows, batch, metric)
             in_process_requests.append(batch_task)
+            # start a new metric for next batch
+            metric = self._table._metrics.create_operation(
+                OperationType.BULK_MUTATE_ROWS
+            )
+            flow_start_time = time.monotonic()
         # wait for all inflight requests to complete
         found_exceptions = await self._wait_for_batch_results(*in_process_requests)
         # update exception data to reflect any new errors
@@ -339,7 +350,7 @@ class MutationsBatcherAsync:
         self._add_exceptions(found_exceptions)
 
     async def _execute_mutate_rows(
-        self, batch: list[RowMutationEntry]
+        self, batch: list[RowMutationEntry], metrics: ActiveOperationMetric
     ) -> list[FailedMutationEntryError]:
         """
         Helper to execute mutation operation on a batch
@@ -359,9 +370,7 @@ class MutationsBatcherAsync:
                 batch,
                 operation_timeout=self._operation_timeout,
                 attempt_timeout=self._attempt_timeout,
-                metrics=self._table._metrics.create_operation(
-                    OperationType.BULK_MUTATE_ROWS
-                ),
+                metrics=metrics,
                 retryable_exceptions=self._retryable_errors,
             )
             await operation.start()

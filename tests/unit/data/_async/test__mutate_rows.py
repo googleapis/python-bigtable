@@ -57,7 +57,6 @@ class TestMutateRowsOperation:
 
     async def _mock_stream(self, mutation_list, error_dict):
         for idx, entry in enumerate(mutation_list):
-
             code = error_dict.get(idx, 0)
             yield MutateRowsResponse(
                 entries=[

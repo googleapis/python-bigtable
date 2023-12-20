@@ -133,7 +133,6 @@ class _MutateRowsOperationAsync:
         """
         try:
             # trigger mutate_rows
-            self._operation_metrics.start()
             await self._operation
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations

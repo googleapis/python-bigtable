@@ -91,6 +91,7 @@ class CompletedAttemptMetric:
     gfe_latency: float | None = None
     application_blocking_time: float = 0.0
     backoff_before_attempt: float = 0.0
+    grpc_throttling_time: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,7 @@ class CompletedOperationMetric:
     cluster_id: str
     zone: str
     is_streaming: bool
+    flow_throttling_time: float = 0.0
 
 
 @dataclass
@@ -121,7 +123,11 @@ class ActiveAttemptMetric:
     # time waiting on user to process the response
     # currently only relevant for ReadRows
     application_blocking_time: float = 0.0
+    # backoff time is added to application_blocking_time
     backoff_before_attempt: float = 0.0
+    # time waiting on grpc channel
+    # TODO: capture grpc_throttling_time
+    grpc_throttling_time: float = 0.0
 
 
 @dataclass
@@ -142,6 +148,8 @@ class ActiveOperationMetric:
     is_streaming: bool = False  # only True for read_rows operations
     was_completed: bool = False
     handlers: list[MetricsHandler] = field(default_factory=list)
+    # time waiting on flow control
+    flow_throttling_time: float = 0.0
 
     @property
     def state(self) -> OperationState:
@@ -276,6 +284,7 @@ class ActiveOperationMetric:
             gfe_latency=self.active_attempt.gfe_latency,
             application_blocking_time=self.active_attempt.application_blocking_time,
             backoff_before_attempt=self.active_attempt.backoff_before_attempt,
+            grpc_throttling_time=self.active_attempt.grpc_throttling_time,
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt = None
@@ -314,6 +323,7 @@ class ActiveOperationMetric:
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
             is_streaming=self.is_streaming,
+            flow_throttling_time=self.flow_throttling_time,
         )
         for handler in self.handlers:
             handler.on_operation_complete(finalized)

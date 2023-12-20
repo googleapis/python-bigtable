@@ -157,6 +157,9 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             # no application blocking time or backoff time expected
             assert found_attempt.application_blocking_time == 0
             assert found_attempt.backoff_before_attempt == 0
+            # no throttling expected
+            assert found_attempt.grpc_throttling_time == 0
+            assert found_operation.flow_throttling_time == 0
 
 
 @pytest.mark.parametrize(RPC_ARGS, RETRYABLE_RPCS)

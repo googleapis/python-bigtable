@@ -71,6 +71,11 @@ class _OpenTelemetryInstrumentSingleton:
             description="A distribution of the total latency introduced by your application when Cloud Bigtable has available response data but your application has not consumed it.",
             unit="ms",
         )
+        self.throttling_latencies = meter.create_histogram(
+            name="throttling_latencies",
+            description="The latency introduced by the client by blocking on sending more requests to the server when there are too many pending requests in bulk operations.",
+            unit="ms",
+        )
 
 
 class OpenTelemetryMetricsHandler(MetricsHandler):
@@ -136,6 +141,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - first_response_latencies
           - server_latencies
           - connectivity_error_count
+          - application_blocking_latencies
+          - throttling_latencies
         """
         labels = {
             "method": op.op_type.value,
@@ -145,6 +152,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
 
         self.otel.attempt_latencies.record(attempt.duration, labels)
+        combined_throttling = attempt.grpc_throttling_time
+        if not op.completed_attempts:
+            # add flow control latency to first attempt's throttling latency
+            combined_throttling += op.flow_throttling_time
+        self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_blocking_latencies.record(
             attempt.application_blocking_time + attempt.backoff_before_attempt, labels
         )

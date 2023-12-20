@@ -45,6 +45,7 @@ class TestActiveOperationMetric:
         assert metric.was_completed is False
         assert len(metric.handlers) == 0
         assert metric.is_streaming is False
+        assert metric.flow_throttling_time == 0
 
     def test_ctor_explicit(self):
         """
@@ -59,6 +60,7 @@ class TestActiveOperationMetric:
         expected_was_completed = True
         expected_handlers = [mock.Mock()]
         expected_is_streaming = True
+        expected_flow_throttling = 12
         metric = self._make_one(
             op_type=expected_type,
             start_time=expected_start_time,
@@ -69,6 +71,7 @@ class TestActiveOperationMetric:
             was_completed=expected_was_completed,
             handlers=expected_handlers,
             is_streaming=expected_is_streaming,
+            flow_throttling_time=expected_flow_throttling,
         )
         assert metric.op_type == expected_type
         assert metric.start_time == expected_start_time
@@ -79,6 +82,7 @@ class TestActiveOperationMetric:
         assert metric.was_completed == expected_was_completed
         assert metric.handlers == expected_handlers
         assert metric.is_streaming == expected_is_streaming
+        assert metric.flow_throttling_time == expected_flow_throttling
 
     def test_state_machine_w_methods(self):
         """
@@ -209,6 +213,7 @@ class TestActiveOperationMetric:
         ) < datetime.timedelta(seconds=0.1)
         assert metric.active_attempt.first_response_latency is None
         assert metric.active_attempt.gfe_latency is None
+        assert metric.active_attempt.grpc_throttling_time == 0
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
@@ -406,6 +411,7 @@ class TestActiveOperationMetric:
         expected_gfe_latency = 5
         expected_app_blocking = 12
         expected_backoff = 2
+        expected_grpc_throttle = 3
 
         metric = self._make_one(mock.Mock())
         assert metric.active_attempt is None
@@ -416,6 +422,7 @@ class TestActiveOperationMetric:
         metric.active_attempt.first_response_latency = expected_latency
         metric.active_attempt.application_blocking_time = expected_app_blocking
         metric.active_attempt.backoff_before_attempt = expected_backoff
+        metric.active_attempt.grpc_throttling_time = expected_grpc_throttle
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
@@ -425,6 +432,7 @@ class TestActiveOperationMetric:
             time.monotonic() - got_attempt.duration - expected_start_time.monotonic
             < 0.001
         )
+        assert got_attempt.grpc_throttling_time == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
         assert got_attempt.gfe_latency == expected_gfe_latency
         assert got_attempt.application_blocking_time == expected_app_blocking
@@ -461,6 +469,7 @@ class TestActiveOperationMetric:
         expected_attempt_start_time = TimeTuple(10, 0)
         expected_attempt_first_response_latency = 9
         expected_attempt_gfe_latency = 5
+        expected_flow_time = 16
 
         expected_status = object()
         expected_type = object()
@@ -476,6 +485,7 @@ class TestActiveOperationMetric:
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
         metric.is_streaming = is_streaming
+        metric.flow_throttling_time = expected_flow_time
         attempt = ActiveAttemptMetric(
             start_time=expected_attempt_start_time,
             first_response_latency=expected_attempt_first_response_latency,
@@ -500,6 +510,7 @@ class TestActiveOperationMetric:
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone
             assert called_with.is_streaming == is_streaming
+            assert called_with.flow_throttling_time == expected_flow_time
             # check the attempt
             assert len(called_with.completed_attempts) == 1
             final_attempt = called_with.completed_attempts[0]

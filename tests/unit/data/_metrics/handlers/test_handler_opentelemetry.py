@@ -68,7 +68,7 @@ class TestOpenTelemetryMetricsHandler:
             ("server_latencies", "histogram"),
             ("connectivity_error_count", "count"),
             ("application_blocking_latencies", "histogram"),
-            # ("throttling_latencies", "histogram"),
+            ("throttling_latencies", "histogram"),
         ],
     )
     def test_ctor_creates_metrics(self, metric_name, kind):
@@ -148,7 +148,7 @@ class TestOpenTelemetryMetricsHandler:
             ("server_latencies", "histogram"),
             ("connectivity_error_count", "count"),
             ("application_blocking_latencies", "histogram"),
-            # ("throttling_latencies", "histogram"),
+            ("throttling_latencies", "histogram"),
         ],
     )
     def test_attempt_update_labels(self, metric_name, kind):
@@ -322,6 +322,26 @@ class TestOpenTelemetryMetricsHandler:
         with mock.patch.object(
             instance.otel.application_blocking_latencies, "record"
         ) as record:
+            instance.on_attempt_complete(attempt, op)
+            assert record.call_count == 1
+            assert record.call_args[0][0] == expected_total_latency
+
+    @pytest.mark.parametrize("grpc,flow", [(0, 10), (10, 0), (123, 456)])
+    def test_attempt_update_throttling_latencies(self, grpc, flow):
+        """
+        Update throttling_latencies on attempt completion
+        """
+        expected_total_latency = grpc + flow
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            duration=1,
+            end_status=mock.Mock(),
+            grpc_throttling_time=grpc,
+        )
+        op = ActiveOperationMetric(mock.Mock(), flow_throttling_time=flow)
+
+        instance = self._make_one()
+        with mock.patch.object(instance.otel.throttling_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_total_latency
