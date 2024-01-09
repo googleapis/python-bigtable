@@ -16,9 +16,7 @@ from __future__ import annotations
 import os
 
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
-from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
-    OpenTelemetryMetricsHandler,
-)
+from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import GCPOpenTelemetryExporterHandler
 from google.cloud.bigtable.data._metrics.handlers._stdout import _StdoutMetricsHandler
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
@@ -49,7 +47,7 @@ class BigtableClientSideMetricsController:
             if PRINT_METRICS:
                 self.handlers.append(_StdoutMetricsHandler(**kwargs))
             try:
-                ot_handler = OpenTelemetryMetricsHandler(**kwargs)
+                ot_handler = GCPOpenTelemetryExporterHandler(**kwargs)
                 self.handlers.append(ot_handler)
             except ImportError:
                 pass
