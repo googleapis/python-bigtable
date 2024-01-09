@@ -34,6 +34,22 @@ class GCPOpenTelemetryExporterHandler(OpenTelemetryExporterHandler):
         resource = Resource(attributes={
             SERVICE_NAME: "your-service-name",
         })
+        # writes metrics into GCP timeseries objects
         exporter = CloudMonitoringMetricsExporter(prefix="bigtable.googleapis.com/internal/client/")
+        # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(exporter)
         metrics.set_meter_provider(MeterProvider(resource=resource, metric_readers=[gcp_reader]))
+
+    def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
+        super().on_operation_complete(op)
+
+        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
+        if op.cluster_id is not None:
+            monitored_resource.labels["cluster"] = op.cluster_id
+
+    def on_attempt_complete(self, attempt: _CompletedAttemptMetric, op: _ActiveOperationMetric) -> None:
+        super().on_attempt_complete(attempt, op)
+
+        monitored_resource = MonitoredResource(type="bigtable_client_raw", labels={"zone": op.zone, **self.monitored_resource_labels})
+        if op.cluster_id is not None:
+            monitored_resource.labels["cluster"] = op.cluster_id
