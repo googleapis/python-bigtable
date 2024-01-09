@@ -27,6 +27,8 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import OpenTelem
 
 class TestExporter(MetricExporter):
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
+        data = metric_records.resource_metrics
+        breakpoint()
         print("exporting", metric_records)
 
     def shutdown(self, **kwargs):
@@ -42,10 +44,6 @@ class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
-        resource = Resource(attributes={
-            SERVICE_NAME: "your-service-name",
-        })
         # create views
         millis_aggregation = view.ExplicitBucketHistogramAggregation(
             [0.0, 0.01, 0.05, 0.1, 0.3, 0.6, 0.8, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0,
@@ -59,11 +57,13 @@ class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
         operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="bigtable.googleapis.com/internal/client/operation_latencies")
         # writes metrics into GCP timeseries objects
         exporter = TestExporter()
-        # exporter = CloudMonitoringMetricsExporter(prefix="bigtable.googleapis.com/internal/client/")
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=1000)
-        meter_provider = MeterProvider(resource=resource, metric_readers=[gcp_reader], views=[operation_latencies_view])
+        # set up root meter provider
+        # TODO: what if user has their own meter provider? Should we make this MeterProvider private?
+        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[operation_latencies_view])
         metrics.set_meter_provider(meter_provider)
+        super().__init__(*args, **kwargs)
 
     # def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
     #     super().on_operation_complete(op)

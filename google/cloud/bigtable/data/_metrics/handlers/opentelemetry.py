@@ -37,7 +37,9 @@ class _OpenTelemetryInstrumentSingleton:
     def __init__(self):
         from opentelemetry import metrics
 
-        meter = metrics.get_meter(__name__)
+        # grab meter for this module
+        meter = metrics.get_meter("bigtable.googleapis.com")
+        # create instruments
         self.operation_latencies = meter.create_histogram(
             name="operation_latencies",
             description="A distribution of the latency of each client method call, across all of it's RPC attempts",
