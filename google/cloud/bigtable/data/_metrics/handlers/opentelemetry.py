@@ -23,27 +23,17 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 
-class _OpenTelemetryInstrumentSingleton:
+class _OpenTelemetryInstrumentation:
     """
-    Singleton class that holds OpenTelelmetry instrument objects,
-    so that multiple Tables can write to the same metrics.
+    class that holds OpenTelelmetry instrument objects
     """
 
-    def __new__(cls):
-        if not hasattr(cls, "instance") or not isinstance(cls.instance, cls):
-            cls.instance = super().__new__(cls)
-        return cls.instance
-
-    def get_meter_provider(self):
-        """
-        return global meter provider
-        """
-        from opentelemetry import metrics
-        return metrics
-
-    def __init__(self):
+    def __init__(self, meter_provider=None):
+        if meter_provider is None:
+            # use global meter provider
+            from opentelemetry import metrics
+            meter_provider = metrics
         # grab meter for this module
-        meter_provider = self.get_meter_provider()
         meter = meter_provider.get_meter("bigtable.googleapis.com")
         # create instruments
         self.operation_latencies = meter.create_histogram(
@@ -102,6 +92,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
     """
 
+    # class variable to hold singleton instance of OpenTelemetryInstrumentation
+    otel = _OpenTelemetryInstrumentation()
+
     def __init__(
         self,
         *,
@@ -113,9 +106,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         **kwargs,
     ):
         super().__init__()
-        # otel singleton holds shared instruments
-        if not self.otel:
-            self.otel = _OpenTelemetryInstrumentSingleton()
 
         # fixed labels sent with each metric update
         self.shared_labels = {
