@@ -30,15 +30,21 @@ class _OpenTelemetryInstrumentSingleton:
     """
 
     def __new__(cls):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(_OpenTelemetryInstrumentSingleton, cls).__new__(cls)
+        if not hasattr(cls, "instance") or not isinstance(cls.instance, cls):
+            cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self):
+    def get_meter_provider(self):
+        """
+        return global meter provider
+        """
         from opentelemetry import metrics
+        return metrics
 
+    def __init__(self):
         # grab meter for this module
-        meter = metrics.get_meter("bigtable.googleapis.com")
+        meter_provider = self.get_meter_provider()
+        meter = meter_provider.get_meter("bigtable.googleapis.com")
         # create instruments
         self.operation_latencies = meter.create_histogram(
             name="operation_latencies",
@@ -108,7 +114,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
     ):
         super().__init__()
         # otel singleton holds shared instruments
-        self.otel = _OpenTelemetryInstrumentSingleton()
+        if not self.otel:
+            self.otel = _OpenTelemetryInstrumentSingleton()
 
         # fixed labels sent with each metric update
         self.shared_labels = {

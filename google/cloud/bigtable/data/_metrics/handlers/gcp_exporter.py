@@ -23,6 +23,7 @@ from opentelemetry.sdk.metrics.export import (
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import OpenTelemetryMetricsHandler
+from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentSingleton
 
 
 class TestExporter(MetricExporter):
@@ -38,12 +39,14 @@ class TestExporter(MetricExporter):
         print("flushing")
 
 
-class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
+class _GCPExporterOpenTelemetryInstrumentSingleton(_OpenTelemetryInstrumentSingleton):
+    """
+    _OpenTelemetryInstrumentSingleton subclass for GCP exporter. Writes metrics to
+    a custom custom MeterProvider, rather than the global one
+    """
+
+    def __init__(self):
+        super().__init__()
         # create views
         millis_aggregation = view.ExplicitBucketHistogramAggregation(
             [0.0, 0.01, 0.05, 0.1, 0.3, 0.6, 0.8, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0,
@@ -54,15 +57,28 @@ class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
         # retry_acount_aggregation = view.ExplicitBucketHistorgramAggregation(
         #     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 100.0]
         # )
-        operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="bigtable.googleapis.com/internal/client/operation_latencies")
+        self.operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="bigtable.googleapis.com/internal/client/operation_latencies")
+
+    def get_meter_provider(self):
+        """
+        build a private MeterProvider for the GCP exporter
+        """
         # writes metrics into GCP timeseries objects
         exporter = TestExporter()
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=1000)
         # set up root meter provider
-        # TODO: what if user has their own meter provider? Should we make this MeterProvider private?
-        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[operation_latencies_view])
-        metrics.set_meter_provider(meter_provider)
+        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[self.operation_latencies_view])
+        return meter_provider
+
+
+class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        self.otel = _GCPExporterOpenTelemetryInstrumentSingleton()
         super().__init__(*args, **kwargs)
 
     # def on_operation_complete(self, op: _CompletedOperationMetric) -> None:
