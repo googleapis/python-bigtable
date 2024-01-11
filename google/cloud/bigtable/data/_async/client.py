@@ -574,7 +574,7 @@ class TableAsync:
         Returns:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
-            - DeadlineExceeded: raised after operation timeout
+            - OperationTimeoutError: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
@@ -627,7 +627,7 @@ class TableAsync:
         Returns:
             - a list of Rows returned by the query
         Raises:
-            - DeadlineExceeded: raised after operation timeout
+            - OperationTimeoutError: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
@@ -671,7 +671,7 @@ class TableAsync:
         Returns:
             - a Row object if the row exists, otherwise None
         Raises:
-            - DeadlineExceeded: raised after operation timeout
+            - OperationTimeoutError: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
@@ -806,7 +806,7 @@ class TableAsync:
         Returns:
             - a bool indicating whether the row exists
         Raises:
-            - DeadlineExceeded: raised after operation timeout
+            - OperationTimeoutError: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
@@ -859,7 +859,7 @@ class TableAsync:
         Returns:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            - DeadlineExceeded: raised after operation timeout
+            - OperationTimeoutError: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
@@ -981,7 +981,7 @@ class TableAsync:
                 Only idempotent mutations will be retried. Defaults to the Table's
                 default_retryable_errors.
         Raises:
-             - DeadlineExceeded: raised after operation timeout
+             - OperationTimeoutError: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
                  GoogleAPIError exceptions from any retries that failed
              - GoogleAPIError: raised on non-idempotent operations that cannot be

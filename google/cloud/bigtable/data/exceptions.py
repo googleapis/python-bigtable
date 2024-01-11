@@ -28,6 +28,10 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 
 
+class OperationTimeoutError(core_exceptions.RetryError):
+    """Raised when a retryable operation times out"""
+
+
 class InvalidChunk(core_exceptions.GoogleAPICallError):
     """Exception raised to invalid chunk data from back-end."""
 

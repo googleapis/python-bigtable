@@ -25,6 +25,7 @@ from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.api_core.retry import RetryFailureReason
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
 if TYPE_CHECKING:
     import grpc
@@ -113,19 +114,21 @@ def _retry_exception_factory(
     Returns:
       - tuple of the exception to raise, and a cause exception if applicable
     """
+    # use the retry exception group as the cause of the exception
+    cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
+    # build the source exception based on failure reason
     if reason == RetryFailureReason.TIMEOUT:
         timeout_val_str = f"of {timeout_val:0.1f}s " if timeout_val is not None else ""
         # if failed due to timeout, raise deadline exceeded as primary exception
-        source_exc: Exception = core_exceptions.DeadlineExceeded(
-            f"operation_timeout{timeout_val_str} exceeded"
+        source_exc: Exception = OperationTimeoutError(
+            f"operation_timeout{timeout_val_str} exceeded",
+            cause=cause_exc,
         )
     elif exc_list:
         # otherwise, raise non-retryable error as primary exception
         source_exc = exc_list.pop()
     else:
         source_exc = RuntimeError("failed with unspecified exception")
-    # use the retry exception group as the cause of the exception
-    cause_exc: Exception | None = RetryExceptionGroup(exc_list) if exc_list else None
     source_exc.__cause__ = cause_exc
     return source_exc, cause_exc
 
