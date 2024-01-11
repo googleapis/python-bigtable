@@ -282,7 +282,7 @@ class TestMutateRowsOperation:
         """
         from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
         from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-        from google.api_core.exceptions import DeadlineExceeded
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
         client = mock.Mock()
         table = mock.Mock()
@@ -294,17 +294,14 @@ class TestMutateRowsOperation:
             AsyncMock(),
         ) as attempt_mock:
             attempt_mock.side_effect = _MutateRowsIncomplete("ignored")
-            found_exc = None
-            try:
+            with pytest.raises(MutationsExceptionGroup) as e:
                 instance = self._make_one(
                     client, table, entries, operation_timeout, operation_timeout
                 )
                 await instance.start()
-            except MutationsExceptionGroup as e:
-                found_exc = e
             assert attempt_mock.call_count > 0
-            assert len(found_exc.exceptions) == 1
-            assert isinstance(found_exc.exceptions[0].__cause__, DeadlineExceeded)
+            assert len(e.value.exceptions) == 1
+            assert isinstance(e.value.exceptions[0].__cause__, OperationTimeoutError)
 
     @pytest.mark.asyncio
     async def test_run_attempt_single_entry_success(self):

@@ -1461,20 +1461,21 @@ class TestReadRows:
     @pytest.mark.parametrize("operation_timeout", [0.001, 0.023, 0.1])
     @pytest.mark.asyncio
     async def test_read_rows_timeout(self, operation_timeout):
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
+
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
             query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
+            chunks = [core_exceptions.DeadlineExceeded("timeout")] * 5
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                chunks, sleep_time=1
+                chunks, sleep_time=0.05
             )
-            try:
+            with pytest.raises(OperationTimeoutError) as e:
                 await table.read_rows(query, operation_timeout=operation_timeout)
-            except core_exceptions.DeadlineExceeded as e:
-                assert (
-                    e.message
-                    == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
-                )
+            assert (
+                e.value.message
+                == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+            )
 
     @pytest.mark.parametrize(
         "per_request_t, operation_t, expected_num",
@@ -1497,6 +1498,7 @@ class TestReadRows:
         requests to be the ceiling of operation_timeout / attempt_timeout.
         """
         from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
         expected_last_timeout = operation_t - (expected_num - 1) * per_request_t
 
@@ -1510,22 +1512,21 @@ class TestReadRows:
                 query = ReadRowsQuery()
                 chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
 
-                try:
+                with pytest.raises(OperationTimeoutError) as e:
                     await table.read_rows(
                         query,
                         operation_timeout=operation_t,
                         attempt_timeout=per_request_t,
                     )
-                except core_exceptions.DeadlineExceeded as e:
-                    retry_exc = e.__cause__
-                    if expected_num == 0:
-                        assert retry_exc is None
-                    else:
-                        assert type(retry_exc) is RetryExceptionGroup
-                        assert f"{expected_num} failed attempts" in str(retry_exc)
-                        assert len(retry_exc.exceptions) == expected_num
-                        for sub_exc in retry_exc.exceptions:
-                            assert sub_exc.message == "mock deadline"
+                retry_exc = e.value.__cause__
+                if expected_num == 0:
+                    assert retry_exc is None
+                else:
+                    assert type(retry_exc) is RetryExceptionGroup
+                    assert f"{expected_num} failed attempts" in str(retry_exc)
+                    assert len(retry_exc.exceptions) == expected_num
+                    for sub_exc in retry_exc.exceptions:
+                        assert sub_exc.message == "mock deadline"
                 assert read_rows.call_count == expected_num
                 # check timeouts
                 for _, call_kwargs in read_rows.call_args_list[:-1]:
@@ -1550,6 +1551,8 @@ class TestReadRows:
     )
     @pytest.mark.asyncio
     async def test_read_rows_retryable_error(self, exc_type):
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
+
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
@@ -1557,13 +1560,12 @@ class TestReadRows:
             )
             query = ReadRowsQuery()
             expected_error = exc_type("mock error")
-            try:
+            with pytest.raises(OperationTimeoutError) as e:
                 await table.read_rows(query, operation_timeout=0.1)
-            except core_exceptions.DeadlineExceeded as e:
-                retry_exc = e.__cause__
-                root_cause = retry_exc.exceptions[0]
-                assert type(root_cause) is exc_type
-                assert root_cause == expected_error
+            retry_exc = e.value.__cause__
+            root_cause = retry_exc.exceptions[0]
+            assert type(root_cause) is exc_type
+            assert root_cause == expected_error
 
     @pytest.mark.parametrize(
         "exc_type",
@@ -2084,8 +2086,8 @@ class TestSampleRowKeys:
         """
         retryable errors should be retried until timeout
         """
-        from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
         async with self._make_client() as client:
             async with client.get_table("instance", "table") as table:
@@ -2093,7 +2095,7 @@ class TestSampleRowKeys:
                     table.client._gapic_client, "sample_row_keys", AsyncMock()
                 ) as sample_row_keys:
                     sample_row_keys.side_effect = retryable_exception("mock")
-                    with pytest.raises(DeadlineExceeded) as e:
+                    with pytest.raises(OperationTimeoutError) as e:
                         await table.sample_row_keys(operation_timeout=0.05)
                     cause = e.value.__cause__
                     assert isinstance(cause, RetryExceptionGroup)
@@ -2190,8 +2192,8 @@ class TestMutateRow:
     )
     @pytest.mark.asyncio
     async def test_mutate_row_retryable_errors(self, retryable_exception):
-        from google.api_core.exceptions import DeadlineExceeded
         from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+        from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
         async with self._make_client(project="project") as client:
             async with client.get_table("instance", "table") as table:
@@ -2199,7 +2201,7 @@ class TestMutateRow:
                     client._gapic_client, "mutate_row"
                 ) as mock_gapic:
                     mock_gapic.side_effect = retryable_exception("mock")
-                    with pytest.raises(DeadlineExceeded) as e:
+                    with pytest.raises(OperationTimeoutError) as e:
                         mutation = mutations.DeleteAllFromRow()
                         assert mutation.is_idempotent() is True
                         await table.mutate_row(
@@ -2420,6 +2422,7 @@ class TestBulkMutateRows:
             RetryExceptionGroup,
             FailedMutationEntryError,
             MutationsExceptionGroup,
+            OperationTimeoutError,
         )
 
         async with self._make_client(project="project") as client:
@@ -2443,9 +2446,7 @@ class TestBulkMutateRows:
                     assert isinstance(cause, RetryExceptionGroup)
                     assert isinstance(cause.exceptions[0], exception)
                     # last exception should be due to retry timeout
-                    assert isinstance(
-                        cause.exceptions[-1], core_exceptions.DeadlineExceeded
-                    )
+                    assert isinstance(cause.exceptions[-1], OperationTimeoutError)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
