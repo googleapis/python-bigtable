@@ -39,6 +39,7 @@ from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+from google.cloud.bigtable.data.exceptions import OperationTimeoutError
 
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -68,6 +69,7 @@ __all__ = (
     "RetryExceptionGroup",
     "MutationsExceptionGroup",
     "ShardedReadRowsExceptionGroup",
+    "OperationTimeoutError",
     "ShardedQuery",
     "TABLE_DEFAULT",
 )
