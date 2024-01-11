@@ -573,6 +573,7 @@ class Table(object):
         end_inclusive=False,
         row_set=None,
         retry=DEFAULT_RETRY_READ_ROWS,
+        reversed=None,
     ):
         """Read rows from this table.
 
@@ -619,6 +620,9 @@ class Table(object):
             method or the :meth:`~google.api_core.retry.Retry.with_deadline`
             method.
 
+        :type reversed: bool
+        :param reversed: (Optional) Whether records should return in descending lexicographical order. The default is False (ascending).
+
         :rtype: :class:`.PartialRowsData`
         :returns: A :class:`.PartialRowsData` a generator for consuming
                   the streamed results.
@@ -632,6 +636,7 @@ class Table(object):
             end_inclusive=end_inclusive,
             app_profile_id=self._app_profile_id,
             row_set=row_set,
+            reversed=reversed,
         )
         data_client = self._instance._client.table_data_client
         return PartialRowsData(data_client.read_rows, request_pb, retry)
@@ -1265,6 +1270,7 @@ def _create_row_request(
     end_inclusive=False,
     app_profile_id=None,
     row_set=None,
+    reversed=None,
 ):
     """Creates a request to read rows in a table.
 
@@ -1301,6 +1307,9 @@ def _create_row_request(
     :param row_set: (Optional) The row set containing multiple row keys and
                     row_ranges.
 
+    :type: reversed: bool
+    :param reversed: (Optional) Whether records should return in descending lexicographical order. The default is False (ascending).
+
     :rtype: :class:`data_messages_v2_pb2.ReadRowsRequest`
     :returns: The ``ReadRowsRequest`` protobuf corresponding to the inputs.
     :raises: :class:`ValueError <exceptions.ValueError>` if both
@@ -1316,6 +1325,8 @@ def _create_row_request(
         request_kwargs["rows_limit"] = limit
     if app_profile_id is not None:
         request_kwargs["app_profile_id"] = app_profile_id
+    if reversed is not None:
+        request_kwargs["reversed"] = reversed
 
     message = data_messages_v2_pb2.ReadRowsRequest(**request_kwargs)
 
