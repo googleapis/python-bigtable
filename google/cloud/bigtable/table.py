@@ -621,7 +621,9 @@ class Table(object):
             method.
 
         :type reversed: bool
-        :param reversed: (Optional) Whether records should return in descending lexicographical order. The default is False (ascending).
+        :param reversed: (Optional) Whether records should return in descending
+                         lexicographical order. The default is False
+                         (ascending).
 
         :rtype: :class:`.PartialRowsData`
         :returns: A :class:`.PartialRowsData` a generator for consuming
@@ -1307,8 +1309,9 @@ def _create_row_request(
     :param row_set: (Optional) The row set containing multiple row keys and
                     row_ranges.
 
-    :type: reversed: bool
-    :param reversed: (Optional) Whether records should return in descending lexicographical order. The default is False (ascending).
+    :param reversed: (Optional) Whether records should return in descending
+                    lexicographical order. The default is False
+                    (ascending).
 
     :rtype: :class:`data_messages_v2_pb2.ReadRowsRequest`
     :returns: The ``ReadRowsRequest`` protobuf corresponding to the inputs.
