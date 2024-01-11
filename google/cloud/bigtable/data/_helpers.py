@@ -121,7 +121,7 @@ def _retry_exception_factory(
         timeout_val_str = f"of {timeout_val:0.1f}s " if timeout_val is not None else ""
         # if failed due to timeout, raise deadline exceeded as primary exception
         source_exc: Exception = OperationTimeoutError(
-            f"operation_timeout{timeout_val_str} exceeded",
+            f"operation_timeout {timeout_val_str}exceeded",
             cause=cause_exc,
         )
     elif exc_list:
