@@ -46,6 +46,7 @@ dependencies = [
     "googleapis-common-protos[grpc] >= 1.57.0, <2.0.0dev",
     "opentelemetry-api >= 1.0.0, <2.0.0dev",
     "opentelemetry-sdk >= 1.0.0, <2.0.0dev",
+    "opentelemetry-exporter-gcp-monitoring",  # TODO: versions
 ]
 extras = {"libcst": "libcst >= 0.2.5"}
 

@@ -15,27 +15,75 @@ from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics import view
 from opentelemetry.sdk.metrics.export import (
-    PeriodicExportingMetricReader, MetricExporter
+    PeriodicExportingMetricReader, MetricExporter, MetricExportResult
 )
-# from opentelemetry.exporter.cloud_monitoring import (
-#     CloudMonitoringMetricsExporter,
-# )
+# TODO: drop dependency?
+from opentelemetry.exporter.cloud_monitoring import (
+    CloudMonitoringMetricsExporter,
+)
+from google.api.monitored_resource_pb2 import MonitoredResource
+from google.api.metric_pb2 import Metric as GMetric
+from google.cloud.monitoring_v3 import (
+    CreateMetricDescriptorRequest,
+    CreateTimeSeriesRequest,
+    MetricServiceClient,
+    Point,
+    TimeInterval,
+    TimeSeries,
+    TypedValue,
+)
 
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import OpenTelemetryMetricsHandler
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentation
 
 
-class TestExporter(MetricExporter):
+class TestExporter(CloudMonitoringMetricsExporter):
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
-        data = metric_records.resource_metrics
-        breakpoint()
-        print("exporting", metric_records)
+        all_series = []
+        for resource_metric in metric_records.resource_metrics:
+            for scope_metric in resource_metric.scope_metrics:
+                for metric in scope_metric.metrics:
+                    descriptor = self._get_metric_descriptor(metric)
+                    if not descriptor:
+                        continue
+                    for data_point in metric.data.data_points:
+                        monitored_resource = MonitoredResource(
+                            type="bigtable_client_raw",
+                            labels={
+                                "project": data_point.attributes.pop("resource_project"),
+                                "instance": data_point.attributes.pop("resource_instance"),
+                                "cluster": data_point.attributes.pop("resource_cluster"),
+                                "table": data_point.attributes.pop("resource_table"),
+                                "zone": data_point.attributes.pop("resource_zone"),
+                            }
+                        )
+                        point = self._to_point(
+                            descriptor.metric_kind, data_point
+                        )
+
+                        series = TimeSeries(
+                            resource=monitored_resource,
+                            metric_kind=descriptor.metric_kind,
+                            points=[point],
+                            metric=GMetric(
+                                type=descriptor.type,
+                                labels={k: str(v) for k,v in data_point.attributes.items()}
+                            ),
+                            unit=descriptor.unit,
+                        )
+                        all_series.append(series)
+        try:
+            self._batch_write(all_series)
+        except Exception:
+            return MetricExportResult.FAILURE
+        return MetricExportResult.SUCCESS
 
     def shutdown(self, **kwargs):
         print("shutting down")
 
     def force_flush(self, timeout_millis=None):
         print("flushing")
+
 
 def _create_private_meter_provider():
     """

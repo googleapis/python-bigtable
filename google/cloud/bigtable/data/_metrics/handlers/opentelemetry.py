@@ -111,6 +111,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
             "client_uid": client_uid or str(uuid4()),
+            "resource_project": project_id,
+            "resource_instance": instance_id,
+            "resource_table": table_id,
         }
         if app_profile_id:
             self.shared_labels["app_profile"] = app_profile_id
@@ -123,8 +126,10 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         """
         labels = {
             "method": op.op_type.value,
-            "status": op.final_status.value,
+            "status": op.final_status.value[0],
             "streaming": op.is_streaming,
+            "resource_zone": op.zone,
+            "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
 
@@ -145,8 +150,10 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         """
         labels = {
             "method": op.op_type.value,
-            "status": attempt.end_status.value,
+            "status": attempt.end_status.value[0],
             "streaming": op.is_streaming,
+            "resource_zone": op.zone,
+            "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
 
