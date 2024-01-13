@@ -37,6 +37,9 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import OpenTelem
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTelemetryInstrumentation
 
 
+MAX_BATCH_WRITE = 200
+
+
 class TestExporter(CloudMonitoringMetricsExporter):
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
         all_series = []
@@ -47,36 +50,59 @@ class TestExporter(CloudMonitoringMetricsExporter):
                     if not descriptor:
                         continue
                     for data_point in metric.data.data_points:
-                        monitored_resource = MonitoredResource(
-                            type="bigtable_client_raw",
-                            labels={
-                                "project": data_point.attributes.pop("resource_project"),
-                                "instance": data_point.attributes.pop("resource_instance"),
-                                "cluster": data_point.attributes.pop("resource_cluster"),
-                                "table": data_point.attributes.pop("resource_table"),
-                                "zone": data_point.attributes.pop("resource_zone"),
-                            }
-                        )
-                        point = self._to_point(
-                            descriptor.metric_kind, data_point
-                        )
+                        try:
+                            monitored_resource = MonitoredResource(
+                                type="bigtable_client_raw",
+                                labels={
+                                    "project": data_point.attributes.pop("resource_project"),
+                                    "instance": data_point.attributes.pop("resource_instance"),
+                                    "cluster": data_point.attributes.pop("resource_cluster"),
+                                    "table": data_point.attributes.pop("resource_table"),
+                                    "zone": data_point.attributes.pop("resource_zone"),
+                                }
+                            )
+                            point = self._to_point(
+                                descriptor.metric_kind, data_point
+                            )
 
-                        series = TimeSeries(
-                            resource=monitored_resource,
-                            metric_kind=descriptor.metric_kind,
-                            points=[point],
-                            metric=GMetric(
-                                type=descriptor.type,
-                                labels={k: str(v) for k,v in data_point.attributes.items()}
-                            ),
-                            unit=descriptor.unit,
-                        )
-                        all_series.append(series)
+                            series = TimeSeries(
+                                resource=monitored_resource,
+                                metric_kind=descriptor.metric_kind,
+                                points=[point],
+                                metric=GMetric(
+                                    type=descriptor.type,
+                                    labels={k: str(v) for k,v in data_point.attributes.items()}
+                                ),
+                                unit=descriptor.unit,
+                            )
+                            all_series.append(series)
+                        except KeyError:  # TODO: why would we be missing resource data?
+                            pass
         try:
             self._batch_write(all_series)
         except Exception:
+            print("failed to write")
             return MetricExportResult.FAILURE
+        print("SUCCESS!")
         return MetricExportResult.SUCCESS
+
+    def _batch_write(self, series) -> None:
+        """Cloud Monitoring allows writing up to 200 time series at once
+
+        :param series: ProtoBuf TimeSeries
+        :return:
+        """
+        write_ind = 0
+        while write_ind < len(series):
+            self.client.create_time_series(
+                CreateTimeSeriesRequest(
+                    name=self.project_name,
+                    time_series=series[
+                        write_ind : write_ind + MAX_BATCH_WRITE
+                    ],
+                ),
+            )
+            write_ind += MAX_BATCH_WRITE
 
     def shutdown(self, **kwargs):
         print("shutting down")
