@@ -17,12 +17,24 @@ from opentelemetry.sdk.metrics import view
 from opentelemetry.sdk.metrics.export import (
     PeriodicExportingMetricReader, MetricExporter, MetricExportResult
 )
+from opentelemetry.sdk.metrics.export import (
+    Gauge,
+    Histogram,
+    HistogramDataPoint,
+    Metric,
+    MetricExporter,
+    MetricExportResult,
+    MetricsData,
+    NumberDataPoint,
+    Sum,
+)
 # TODO: drop dependency?
 from opentelemetry.exporter.cloud_monitoring import (
     CloudMonitoringMetricsExporter,
 )
 from google.api.monitored_resource_pb2 import MonitoredResource
 from google.api.metric_pb2 import Metric as GMetric
+from google.api.metric_pb2 import MetricDescriptor
 from google.cloud.monitoring_v3 import (
     CreateMetricDescriptorRequest,
     CreateTimeSeriesRequest,
@@ -41,6 +53,11 @@ MAX_BATCH_WRITE = 200
 
 
 class TestExporter(CloudMonitoringMetricsExporter):
+
+    def __init__(self):
+        # TODO: do I need project?
+        super().__init__(prefix="bigtable.googleapis.com/internal/client")
+
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
         all_series = []
         for resource_metric in metric_records.resource_metrics:
@@ -54,11 +71,11 @@ class TestExporter(CloudMonitoringMetricsExporter):
                             monitored_resource = MonitoredResource(
                                 type="bigtable_client_raw",
                                 labels={
-                                    "project": data_point.attributes.pop("resource_project"),
+                                    "project_id": data_point.attributes.pop("resource_project"),
                                     "instance": data_point.attributes.pop("resource_instance"),
-                                    "cluster": data_point.attributes.pop("resource_cluster"),
+                                    "cluster": data_point.attributes.pop("resource_zone"),
                                     "table": data_point.attributes.pop("resource_table"),
-                                    "zone": data_point.attributes.pop("resource_zone"),
+                                    "zone": data_point.attributes.pop("resource_cluster"),  # TODO: swapped?
                                 }
                             )
                             point = self._to_point(
@@ -79,12 +96,57 @@ class TestExporter(CloudMonitoringMetricsExporter):
                         except KeyError:  # TODO: why would we be missing resource data?
                             pass
         try:
-            self._batch_write(all_series)
-        except Exception:
+            if all_series:
+                self._batch_write(all_series)
+                print("SUCCESS!")
+            return MetricExportResult.SUCCESS
+        except Exception as e:
             print("failed to write")
+            print(e)
             return MetricExportResult.FAILURE
-        print("SUCCESS!")
-        return MetricExportResult.SUCCESS
+
+    def _get_metric_descriptor(
+        self, metric: Metric
+    ):
+        # TODO: can definitely be simplified
+        descriptor_type = f"{self._prefix}/{metric.name}"
+        if descriptor_type in self._metric_descriptors:
+            return self._metric_descriptors[descriptor_type]
+
+        descriptor = MetricDescriptor(
+            type=descriptor_type,
+            display_name=metric.name,
+            description=metric.description or "",
+            unit=metric.unit or "",
+        )
+
+
+        data = metric.data
+        if isinstance(data, Sum):
+            descriptor.metric_kind = (
+                MetricDescriptor.MetricKind.CUMULATIVE
+                if data.is_monotonic
+                else MetricDescriptor.MetricKind.GAUGE
+            )
+        elif isinstance(data, Gauge):
+            descriptor.metric_kind = MetricDescriptor.MetricKind.GAUGE
+        elif isinstance(data, Histogram):
+            descriptor.metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
+        else:
+            # Exhaustive check
+            return None
+
+        first_point = data.data_points[0] if len(data.data_points) else None
+        if isinstance(first_point, NumberDataPoint):
+            descriptor.value_type = (
+                MetricDescriptor.ValueType.INT64
+                if isinstance(first_point.value, int)
+                else MetricDescriptor.ValueType.DOUBLE
+            )
+        elif isinstance(first_point, HistogramDataPoint):
+            descriptor.value_type = MetricDescriptor.ValueType.DISTRIBUTION
+
+        return descriptor
 
     def _batch_write(self, series) -> None:
         """Cloud Monitoring allows writing up to 200 time series at once
@@ -94,7 +156,7 @@ class TestExporter(CloudMonitoringMetricsExporter):
         """
         write_ind = 0
         while write_ind < len(series):
-            self.client.create_time_series(
+            self.client.create_service_time_series(
                 CreateTimeSeriesRequest(
                     name=self.project_name,
                     time_series=series[
@@ -125,7 +187,7 @@ def _create_private_meter_provider():
     # retry_acount_aggregation = view.ExplicitBucketHistorgramAggregation(
     #     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 100.0]
     # )
-    operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="bigtable.googleapis.com/internal/client/operation_latencies")
+    operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="operation_latencies")
     # writes metrics into GCP timeseries objects
     exporter = TestExporter()
     # periodically executes exporter
