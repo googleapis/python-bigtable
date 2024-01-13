@@ -1524,17 +1524,16 @@ class TestReadRows:
         async with self._make_table() as table:
             read_rows = table.client._gapic_client.read_rows
             query = ReadRowsQuery()
-            chunks = [self._make_chunk(row_key=b"test_1")]
+            chunks = [core_exceptions.DeadlineExceeded("test timeout")] * 5
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                chunks, sleep_time=1
+                chunks, sleep_time=0.05
             )
-            try:
+            with pytest.raises(core_exceptions.DeadlineExceeded) as e:
                 await table.read_rows(query, operation_timeout=operation_timeout)
-            except core_exceptions.DeadlineExceeded as e:
-                assert (
-                    e.message
-                    == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
-                )
+            assert (
+                e.value.message
+                == f"operation_timeout of {operation_timeout:0.1f}s exceeded"
+            )
 
     @pytest.mark.parametrize(
         "per_request_t, operation_t, expected_num",
@@ -1570,22 +1569,21 @@ class TestReadRows:
                 query = ReadRowsQuery()
                 chunks = [core_exceptions.DeadlineExceeded("mock deadline")]
 
-                try:
+                with pytest.raises(core_exceptions.DeadlineExceeded) as e:
                     await table.read_rows(
                         query,
                         operation_timeout=operation_t,
                         attempt_timeout=per_request_t,
                     )
-                except core_exceptions.DeadlineExceeded as e:
-                    retry_exc = e.__cause__
-                    if expected_num == 0:
-                        assert retry_exc is None
-                    else:
-                        assert type(retry_exc) is RetryExceptionGroup
-                        assert f"{expected_num} failed attempts" in str(retry_exc)
-                        assert len(retry_exc.exceptions) == expected_num
-                        for sub_exc in retry_exc.exceptions:
-                            assert sub_exc.message == "mock deadline"
+                retry_exc = e.value.__cause__
+                if expected_num == 0:
+                    assert retry_exc is None
+                else:
+                    assert type(retry_exc) is RetryExceptionGroup
+                    assert f"{expected_num} failed attempts" in str(retry_exc)
+                    assert len(retry_exc.exceptions) == expected_num
+                    for sub_exc in retry_exc.exceptions:
+                        assert sub_exc.message == "mock deadline"
                 assert read_rows.call_count == expected_num
                 # check timeouts
                 for _, call_kwargs in read_rows.call_args_list[:-1]:
@@ -1617,13 +1615,12 @@ class TestReadRows:
             )
             query = ReadRowsQuery()
             expected_error = exc_type("mock error")
-            try:
+            with pytest.raises(core_exceptions.DeadlineExceeded) as e:
                 await table.read_rows(query, operation_timeout=0.1)
-            except core_exceptions.DeadlineExceeded as e:
-                retry_exc = e.__cause__
-                root_cause = retry_exc.exceptions[0]
-                assert type(root_cause) is exc_type
-                assert root_cause == expected_error
+            retry_exc = e.value.__cause__
+            root_cause = retry_exc.exceptions[0]
+            assert type(root_cause) is exc_type
+            assert root_cause == expected_error
 
     @pytest.mark.parametrize(
         "exc_type",
@@ -1648,10 +1645,9 @@ class TestReadRows:
         )
         query = ReadRowsQuery()
         expected_error = exc_type("mock error")
-        try:
+        with pytest.raises(exc_type) as e:
             await table.read_rows(query, operation_timeout=0.1)
-        except exc_type as e:
-            assert e == expected_error
+        assert e.value == expected_error
 
     @pytest.mark.asyncio
     async def test_read_rows_revise_request(self):
@@ -1678,15 +1674,14 @@ class TestReadRows:
                     self._make_chunk(row_key=b"test_1"),
                     core_exceptions.Aborted("mock retryable error"),
                 ]
-                try:
+                with pytest.raises(InvalidChunk):
                     await table.read_rows(query)
-                except InvalidChunk:
-                    revise_rowset.assert_called()
-                    first_call_kwargs = revise_rowset.call_args_list[0].kwargs
-                    assert first_call_kwargs["row_set"] == query._to_pb(table).rows
-                    assert first_call_kwargs["last_seen_row_key"] == b"test_1"
-                    revised_call = read_rows.call_args_list[1].args[0]
-                    assert revised_call.rows == return_val
+                revise_rowset.assert_called()
+                first_call_kwargs = revise_rowset.call_args_list[0].kwargs
+                assert first_call_kwargs["row_set"] == query._to_pb(table).rows
+                assert first_call_kwargs["last_seen_row_key"] == b"test_1"
+                revised_call = read_rows.call_args_list[1].args[0]
+                assert revised_call.rows == return_val
 
     @pytest.mark.asyncio
     async def test_read_rows_default_timeouts(self):

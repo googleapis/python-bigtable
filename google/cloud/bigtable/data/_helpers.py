@@ -137,7 +137,7 @@ def _retry_exception_factory(
         timeout_val_str = f"of {timeout_val:0.1f}s " if timeout_val is not None else ""
         # if failed due to timeout, raise deadline exceeded as primary exception
         source_exc: Exception = core_exceptions.DeadlineExceeded(
-            f"operation_timeout{timeout_val_str} exceeded"
+            f"operation_timeout {timeout_val_str}exceeded"
         )
     elif exc_list:
         # otherwise, raise non-retryable error as primary exception
