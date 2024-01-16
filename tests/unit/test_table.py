@@ -2106,6 +2106,16 @@ def test__create_row_request_with_limit():
     assert result == expected_result
 
 
+def test__create_row_request_with_reversed():
+    from google.cloud.bigtable.table import _create_row_request
+
+    table_name = "table_name"
+    reversed = True
+    result = _create_row_request(table_name, reversed=reversed)
+    expected_result = _ReadRowsRequestPB(table_name=table_name, reversed=reversed)
+    assert result == expected_result
+
+
 def test__create_row_request_with_row_set():
     from google.cloud.bigtable.table import _create_row_request
     from google.cloud.bigtable.row_set import RowSet
