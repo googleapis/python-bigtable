@@ -684,6 +684,7 @@ def _table_read_row_helper(chunks, expected_result, app_profile_id=None):
                 "app_profile_id": app_profile_id,
                 "end_key": None,
                 "limit": None,
+                "reversed": None,
                 "start_key": None,
                 "filter_": filter_obj,
             },
@@ -887,6 +888,7 @@ def test_table_read_rows():
     end_key = b"end-key"
     filter_obj = object()
     limit = 22
+    reversed = True
     with _Monkey(MUT, _create_row_request=mock_create_row_request):
         result = table.read_rows(
             start_key=start_key,
@@ -894,6 +896,7 @@ def test_table_read_rows():
             filter_=filter_obj,
             limit=limit,
             retry=retry,
+            reversed=reversed,
         )
 
     assert result.rows == expected_result.rows
@@ -903,6 +906,7 @@ def test_table_read_rows():
         "end_key": end_key,
         "filter_": filter_obj,
         "limit": limit,
+        "reversed": reversed,
         "end_inclusive": False,
         "app_profile_id": app_profile_id,
         "row_set": None,
