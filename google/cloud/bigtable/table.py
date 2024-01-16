@@ -622,7 +622,8 @@ class Table(object):
 
         :type reversed: bool
         :param reversed: (Optional) Whether records should return in descending
-                         lexicographical order. The default is False (ascending).
+                         lexicographical order. The default is False
+                         (ascending).
 
         :rtype: :class:`.PartialRowsData`
         :returns: A :class:`.PartialRowsData` a generator for consuming
