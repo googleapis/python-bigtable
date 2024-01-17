@@ -125,14 +125,15 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - retry_count
         """
         labels = {
-            "method": op.op_type.value,
-            "status": op.final_status.value[0],
+            "method": op.op_type.value[9:],  # remove "Bigtable." prefix
+            "status": str(op.final_status.value[0]),
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
+        is_streaming = str(op.is_streaming)
 
-        self.otel.operation_latencies.record(op.duration, {"streaming": op.is_streaming, **labels})
+        self.otel.operation_latencies.record(op.duration, {"streaming": is_streaming, **labels})
         self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(
@@ -148,16 +149,16 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - throttling_latencies
         """
         labels = {
-            "method": op.op_type.value,
-            "status": attempt.end_status.value[0],
+            "method": op.op_type.value[9:],  # remove "Bigtable." prefix
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
-        status = attempt.end_status.value[0]
+        status = str(attempt.end_status.value[0])
+        is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration, {"streaming": op.is_streaming, 'status':status, **labels}
+            attempt.duration, {"streaming": is_streaming, 'status':status, **labels}
         )
         combined_throttling = attempt.grpc_throttling_time
         if not op.completed_attempts:
@@ -176,7 +177,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             )
         if attempt.gfe_latency is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency, {"streaming": op.is_streaming, 'status':status, **labels}
+                attempt.gfe_latency, {"streaming": is_streaming, 'status':status, **labels}
             )
         else:
             # gfe headers not attached. Record a connectivity error.

@@ -86,7 +86,7 @@ class TestExporter(CloudMonitoringMetricsExporter):
                             points=[point],
                             metric=GMetric(
                                 type=descriptor.type,
-                                labels={k: str(v) for k,v in data_point.attributes.items() if not k.startswith("resource_")},
+                                labels={k: v for k, v in data_point.attributes.items() if not k.startswith("resource_")},
                             ),
                             unit=descriptor.unit,
                         )
@@ -186,7 +186,7 @@ def _create_private_meter_provider():
     # writes metrics into GCP timeseries objects
     exporter = TestExporter()
     # periodically executes exporter
-    gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
+    gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60_000)
     # set up root meter provider
     meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[operation_latencies_view])
     return meter_provider
