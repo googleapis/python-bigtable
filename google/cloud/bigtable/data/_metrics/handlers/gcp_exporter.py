@@ -59,13 +59,12 @@ class TestExporter(CloudMonitoringMetricsExporter):
         super().__init__(prefix="bigtable.googleapis.com/internal/client")
 
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
+        # cumulative used for all metrics
+        metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
         all_series = []
         for resource_metric in metric_records.resource_metrics:
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
-                    descriptor = self._get_metric_descriptor(metric)
-                    if not descriptor:
-                        continue
                     for data_point in metric.data.data_points:
                         monitored_resource = MonitoredResource(
                             type="bigtable_client_raw",
@@ -78,17 +77,17 @@ class TestExporter(CloudMonitoringMetricsExporter):
                             }
                         )
                         point = self._to_point(
-                            descriptor.metric_kind, data_point
+                            metric_kind, data_point
                         )
                         series = TimeSeries(
                             resource=monitored_resource,
-                            metric_kind=descriptor.metric_kind,
+                            metric_kind=metric_kind,
                             points=[point],
                             metric=GMetric(
-                                type=descriptor.type,
+                                type=f"{self._prefix}/{metric.name}",
                                 labels={k: v for k, v in data_point.attributes.items() if not k.startswith("resource_")},
                             ),
-                            unit=descriptor.unit,
+                            unit=metric.unit,
                         )
                         all_series.append(series)
         try:
@@ -100,48 +99,6 @@ class TestExporter(CloudMonitoringMetricsExporter):
             print("failed to write")
             print(e)
             return MetricExportResult.FAILURE
-
-    def _get_metric_descriptor(
-        self, metric: Metric
-    ):
-        # TODO: can definitely be simplified
-        descriptor_type = f"{self._prefix}/{metric.name}"
-        if descriptor_type in self._metric_descriptors:
-            return self._metric_descriptors[descriptor_type]
-
-        descriptor = MetricDescriptor(
-            type=descriptor_type,
-            display_name=metric.name,
-            description=metric.description or "",
-            unit=metric.unit or "",
-        )
-
-        data = metric.data
-        if isinstance(data, Sum):
-            descriptor.metric_kind = (
-                MetricDescriptor.MetricKind.CUMULATIVE
-                if data.is_monotonic
-                else MetricDescriptor.MetricKind.GAUGE
-            )
-        elif isinstance(data, Gauge):
-            descriptor.metric_kind = MetricDescriptor.MetricKind.GAUGE
-        elif isinstance(data, Histogram):
-            descriptor.metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
-        else:
-            # Exhaustive check
-            return None
-
-        first_point = data.data_points[0] if len(data.data_points) else None
-        if isinstance(first_point, NumberDataPoint):
-            descriptor.value_type = (
-                MetricDescriptor.ValueType.INT64
-                if isinstance(first_point.value, int)
-                else MetricDescriptor.ValueType.DOUBLE
-            )
-        elif isinstance(first_point, HistogramDataPoint):
-            descriptor.value_type = MetricDescriptor.ValueType.DISTRIBUTION
-
-        return descriptor
 
     def _batch_write(self, series) -> None:
         """Cloud Monitoring allows writing up to 200 time series at once
