@@ -64,8 +64,8 @@ class _OpenTelemetryInstrumentation:
             name="connectivity_error_count",
             description="A count of the number of attempts that failed to reach Google's network.",
         )
-        self.application_blocking_latencies = meter.create_histogram(
-            name="application_blocking_latencies",
+        self.application_latencies = meter.create_histogram(
+            name="application_latencies",
             description="A distribution of the total latency introduced by your application when Cloud Bigtable has available response data but your application has not consumed it.",
             unit="ms",
         )
@@ -88,7 +88,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - retry_count: Number of additional RPCs sent after the initial attempt.
       - server_latencies: latency recorded on the server side for each attempt.
       - connectivity_error_count: number of attempts that failed to reach Google's network.
-      - application_blocking_latencies: the time spent waiting for the application to process the next response.
+      - application_latencies: the time spent waiting for the application to process the next response.
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
     """
 
@@ -127,13 +127,12 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         labels = {
             "method": op.op_type.value,
             "status": op.final_status.value[0],
-            "streaming": op.is_streaming,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
 
-        self.otel.operation_latencies.record(op.duration, labels)
+        self.otel.operation_latencies.record(op.duration, {"streaming": op.is_streaming, **labels})
         self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(
@@ -145,25 +144,27 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - first_response_latencies
           - server_latencies
           - connectivity_error_count
-          - application_blocking_latencies
+          - application_latencies
           - throttling_latencies
         """
         labels = {
             "method": op.op_type.value,
             "status": attempt.end_status.value[0],
-            "streaming": op.is_streaming,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
+        status = attempt.end_status.value[0]
 
-        self.otel.attempt_latencies.record(attempt.duration, labels)
+        self.otel.attempt_latencies.record(
+            attempt.duration, {"streaming": op.is_streaming, 'status':status, **labels}
+        )
         combined_throttling = attempt.grpc_throttling_time
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
             combined_throttling += op.flow_throttling_time
         self.otel.throttling_latencies.record(combined_throttling, labels)
-        self.otel.application_blocking_latencies.record(
+        self.otel.application_latencies.record(
             attempt.application_blocking_time + attempt.backoff_before_attempt, labels
         )
         if (
@@ -171,11 +172,13 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             and attempt.first_response_latency is not None
         ):
             self.otel.first_response_latencies.record(
-                attempt.first_response_latency, labels
+                attempt.first_response_latency, {'status':status, **labels}
             )
         if attempt.gfe_latency is not None:
-            self.otel.server_latencies.record(attempt.gfe_latency, labels)
+            self.otel.server_latencies.record(
+                attempt.gfe_latency, {"streaming": op.is_streaming, 'status':status, **labels}
+            )
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.otel.connectivity_error_count.add(1, labels)
+            self.otel.connectivity_error_count.add(1, {'status':status, **labels})

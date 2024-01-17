@@ -67,34 +67,30 @@ class TestExporter(CloudMonitoringMetricsExporter):
                     if not descriptor:
                         continue
                     for data_point in metric.data.data_points:
-                        try:
-                            monitored_resource = MonitoredResource(
-                                type="bigtable_client_raw",
-                                labels={
-                                    "project_id": data_point.attributes.pop("resource_project"),
-                                    "instance": data_point.attributes.pop("resource_instance"),
-                                    "cluster": data_point.attributes.pop("resource_zone"),
-                                    "table": data_point.attributes.pop("resource_table"),
-                                    "zone": data_point.attributes.pop("resource_cluster"),  # TODO: swapped?
-                                }
-                            )
-                            point = self._to_point(
-                                descriptor.metric_kind, data_point
-                            )
-
-                            series = TimeSeries(
-                                resource=monitored_resource,
-                                metric_kind=descriptor.metric_kind,
-                                points=[point],
-                                metric=GMetric(
-                                    type=descriptor.type,
-                                    labels={k: str(v) for k,v in data_point.attributes.items()}
-                                ),
-                                unit=descriptor.unit,
-                            )
-                            all_series.append(series)
-                        except KeyError:  # TODO: why would we be missing resource data?
-                            pass
+                        monitored_resource = MonitoredResource(
+                            type="bigtable_client_raw",
+                            labels={
+                                "project_id": data_point.attributes["resource_project"],
+                                "instance": data_point.attributes["resource_instance"],
+                                "cluster": data_point.attributes["resource_zone"],
+                                "table": data_point.attributes["resource_table"],
+                                "zone": data_point.attributes["resource_cluster"],  # TODO: swapped?
+                            }
+                        )
+                        point = self._to_point(
+                            descriptor.metric_kind, data_point
+                        )
+                        series = TimeSeries(
+                            resource=monitored_resource,
+                            metric_kind=descriptor.metric_kind,
+                            points=[point],
+                            metric=GMetric(
+                                type=descriptor.type,
+                                labels={k: str(v) for k,v in data_point.attributes.items() if not k.startswith("resource_")},
+                            ),
+                            unit=descriptor.unit,
+                        )
+                        all_series.append(series)
         try:
             if all_series:
                 self._batch_write(all_series)
@@ -119,7 +115,6 @@ class TestExporter(CloudMonitoringMetricsExporter):
             description=metric.description or "",
             unit=metric.unit or "",
         )
-
 
         data = metric.data
         if isinstance(data, Sum):
@@ -191,7 +186,7 @@ def _create_private_meter_provider():
     # writes metrics into GCP timeseries objects
     exporter = TestExporter()
     # periodically executes exporter
-    gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=1000)
+    gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
     # set up root meter provider
     meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[operation_latencies_view])
     return meter_provider
