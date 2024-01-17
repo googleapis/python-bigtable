@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics import view
 from opentelemetry.sdk.metrics.export import (
@@ -28,7 +27,6 @@ from opentelemetry.sdk.metrics.export import (
     NumberDataPoint,
     Sum,
 )
-import google.auth
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.api.distribution_pb2 import Distribution
 from google.api.monitored_resource_pb2 import MonitoredResource
@@ -57,21 +55,20 @@ class TestExporter(MetricExporter):
         super().__init__()
         self.client = MetricServiceClient()
         self.prefix = 'bigtable.googleapis.com/internal/client'
-        _, default_project_id = google.auth.default()
-        self.project_name = self.client.common_project_path(default_project_id)
 
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
         # cumulative used for all metrics
         metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
-        all_series = []
+        all_series = {}
         for resource_metric in metric_records.resource_metrics:
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
                     for data_point in metric.data.data_points:
+                        project_id = data_point.attributes['resource_project']
                         monitored_resource = MonitoredResource(
                             type="bigtable_client_raw",
                             labels={
-                                "project_id": data_point.attributes["resource_project"],
+                                "project_id": project_id,
                                 "instance": data_point.attributes["resource_instance"],
                                 "cluster": data_point.attributes["resource_cluster"],
                                 "table": data_point.attributes["resource_table"],
@@ -89,10 +86,12 @@ class TestExporter(MetricExporter):
                             ),
                             unit=metric.unit,
                         )
-                        all_series.append(series)
+                        project_series = all_series.get(project_id, [])
+                        project_series.append(series)
+                        all_series[project_id] = project_series
         try:
-            if all_series:
-                self._batch_write(all_series)
+            for project_id, series in all_series.items():
+                self._batch_write(project_id, series)
                 print("SUCCESS!")
             return MetricExportResult.SUCCESS
         except Exception as e:
@@ -100,7 +99,7 @@ class TestExporter(MetricExporter):
             print(e)
             return MetricExportResult.FAILURE
 
-    def _batch_write(self, series) -> None:
+    def _batch_write(self, project_id, series) -> None:
         """Cloud Monitoring allows writing up to 200 time series at once
 
         Adapted from CloudMonitoringMetricsExporter
@@ -110,7 +109,7 @@ class TestExporter(MetricExporter):
         while write_ind < len(series):
             self.client.create_service_time_series(
                 CreateTimeSeriesRequest(
-                    name=self.project_name,
+                    name=f"projects/{project_id}",
                     time_series=series[
                         write_ind : write_ind + MAX_BATCH_WRITE
                     ],
