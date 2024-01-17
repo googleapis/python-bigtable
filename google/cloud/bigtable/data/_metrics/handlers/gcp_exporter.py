@@ -28,10 +28,9 @@ from opentelemetry.sdk.metrics.export import (
     NumberDataPoint,
     Sum,
 )
-# TODO: drop dependency?
-from opentelemetry.exporter.cloud_monitoring import (
-    CloudMonitoringMetricsExporter,
-)
+import google.auth
+from google.protobuf.timestamp_pb2 import Timestamp
+from google.api.distribution_pb2 import Distribution
 from google.api.monitored_resource_pb2 import MonitoredResource
 from google.api.metric_pb2 import Metric as GMetric
 from google.api.metric_pb2 import MetricDescriptor
@@ -52,11 +51,14 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import _OpenTele
 MAX_BATCH_WRITE = 200
 
 
-class TestExporter(CloudMonitoringMetricsExporter):
+class TestExporter(MetricExporter):
 
     def __init__(self):
-        # TODO: do I need project?
-        super().__init__(prefix="bigtable.googleapis.com/internal/client")
+        super().__init__()
+        self.client = MetricServiceClient()
+        self.prefix = 'bigtable.googleapis.com/internal/client'
+        _, default_project_id = google.auth.default()
+        self.project_name = self.client.common_project_path(default_project_id)
 
     def export(self, metric_records, timeout_millis=10_000, **kwargs):
         # cumulative used for all metrics
@@ -76,15 +78,13 @@ class TestExporter(CloudMonitoringMetricsExporter):
                                 "zone": data_point.attributes["resource_zone"],
                             }
                         )
-                        point = self._to_point(
-                            metric_kind, data_point
-                        )
+                        point = self._to_point(data_point)
                         series = TimeSeries(
                             resource=monitored_resource,
                             metric_kind=metric_kind,
                             points=[point],
                             metric=GMetric(
-                                type=f"{self._prefix}/{metric.name}",
+                                type=f"{self.prefix}/{metric.name}",
                                 labels={k: v for k, v in data_point.attributes.items() if not k.startswith("resource_")},
                             ),
                             unit=metric.unit,
@@ -103,8 +103,8 @@ class TestExporter(CloudMonitoringMetricsExporter):
     def _batch_write(self, series) -> None:
         """Cloud Monitoring allows writing up to 200 time series at once
 
-        :param series: ProtoBuf TimeSeries
-        :return:
+        Adapted from CloudMonitoringMetricsExporter
+        https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
         """
         write_ind = 0
         while write_ind < len(series):
@@ -118,11 +118,47 @@ class TestExporter(CloudMonitoringMetricsExporter):
             )
             write_ind += MAX_BATCH_WRITE
 
+    @staticmethod
+    def _to_point(data_point):
+        """
+        Adapted from CloudMonitoringMetricsExporter
+        https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
+        """
+        if isinstance(data_point, HistogramDataPoint):
+            mean = (
+                data_point.sum / data_point.count if data_point.count else 0.0
+            )
+            point_value = TypedValue(
+                distribution_value=Distribution(
+                    count=data_point.count,
+                    mean=mean,
+                    bucket_counts=data_point.bucket_counts,
+                    bucket_options=Distribution.BucketOptions(
+                        explicit_buckets=Distribution.BucketOptions.Explicit(
+                            bounds=data_point.explicit_bounds,
+                        )
+                    ),
+                )
+            )
+        else:
+            if isinstance(data_point.value, int):
+                point_value = TypedValue(int64_value=data_point.value)
+            else:
+                point_value = TypedValue(double_value=data_point.value)
+        start_time = Timestamp()
+        start_time.FromNanoseconds(data_point.start_time_unix_nano)
+        end_time = Timestamp()
+        end_time.FromNanoseconds(data_point.time_unix_nano)
+        interval = TimeInterval(
+            start_time=start_time, end_time=end_time
+        )
+        return Point(interval=interval, value=point_value)
+
     def shutdown(self, **kwargs):
-        print("shutting down")
+        pass
 
     def force_flush(self, timeout_millis=None):
-        print("flushing")
+        return True
 
 
 def _create_private_meter_provider():
@@ -139,6 +175,7 @@ def _create_private_meter_provider():
     # retry_acount_aggregation = view.ExplicitBucketHistorgramAggregation(
     #     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 100.0]
     # )
+    # TODO: add other views
     operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="operation_latencies")
     # writes metrics into GCP timeseries objects
     exporter = TestExporter()
