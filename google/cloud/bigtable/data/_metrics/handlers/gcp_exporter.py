@@ -72,9 +72,9 @@ class TestExporter(CloudMonitoringMetricsExporter):
                             labels={
                                 "project_id": data_point.attributes["resource_project"],
                                 "instance": data_point.attributes["resource_instance"],
-                                "cluster": data_point.attributes["resource_zone"],
+                                "cluster": data_point.attributes["resource_cluster"],
                                 "table": data_point.attributes["resource_table"],
-                                "zone": data_point.attributes["resource_cluster"],  # TODO: swapped?
+                                "zone": data_point.attributes["resource_zone"],
                             }
                         )
                         point = self._to_point(
