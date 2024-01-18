@@ -16,10 +16,12 @@ import pytest
 import pytest_asyncio
 import asyncio
 import uuid
+import os
 from google.api_core import retry
 from google.api_core.exceptions import ClientError
 
 from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VALUE
+from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
@@ -195,6 +197,7 @@ async def test_mutation_set_cell(table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
+@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't use splits")
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -808,6 +811,7 @@ async def test_read_row(table, temp_rows):
     assert row.cells[0].value == b"value"
 
 
+@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't raise InvalidArgument")
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row_missing(table):
@@ -821,7 +825,7 @@ async def test_read_row_missing(table):
     assert result is None
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.read_row("")
-        assert "Row key must be non-empty" in str(e)
+    assert "Row keys must be non-empty" in str(e)
 
 
 @pytest.mark.usefixtures("table")
@@ -843,6 +847,7 @@ async def test_read_row_w_filter(table, temp_rows):
     assert row.cells[0].labels == [expected_label]
 
 
+@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't raise InvalidArgument")
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_row_exists(table, temp_rows):
@@ -860,7 +865,7 @@ async def test_row_exists(table, temp_rows):
     assert await table.row_exists(b"3") is True
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.row_exists("")
-        assert "Row kest must be non-empty" in str(e)
+    assert "Row keys must be non-empty" in str(e)
 
 
 @pytest.mark.usefixtures("table")

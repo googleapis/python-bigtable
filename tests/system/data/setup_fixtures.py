@@ -48,6 +48,7 @@ def instance_id(admin_client, project_id, cluster_config):
     """
     from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
+    from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
     # use user-specified instance if available
     user_specified_instance = os.getenv("BIGTABLE_TEST_INSTANCE")
@@ -58,23 +59,27 @@ def instance_id(admin_client, project_id, cluster_config):
 
     # create a new temporary test instance
     instance_id = f"python-bigtable-tests-{uuid.uuid4().hex[:6]}"
-    try:
-        operation = admin_client.instance_admin_client.create_instance(
-            parent=f"projects/{project_id}",
-            instance_id=instance_id,
-            instance=types.Instance(
-                display_name="Test Instance",
-                labels={"python-system-test": "true"},
-            ),
-            clusters=cluster_config,
+    if os.getenv(BIGTABLE_EMULATOR):
+        # don't create instance if in emulator mode
+        yield instance_id
+    else:
+        try:
+            operation = admin_client.instance_admin_client.create_instance(
+                parent=f"projects/{project_id}",
+                instance_id=instance_id,
+                instance=types.Instance(
+                    display_name="Test Instance",
+                    # labels={"python-system-test": "true"},
+                ),
+                clusters=cluster_config,
+            )
+            operation.result(timeout=240)
+        except exceptions.AlreadyExists:
+            pass
+        yield instance_id
+        admin_client.instance_admin_client.delete_instance(
+            name=f"projects/{project_id}/instances/{instance_id}"
         )
-        operation.result(timeout=240)
-    except exceptions.AlreadyExists:
-        pass
-    yield instance_id
-    admin_client.instance_admin_client.delete_instance(
-        name=f"projects/{project_id}/instances/{instance_id}"
-    )
 
 
 @pytest.fixture(scope="session")
