@@ -32,25 +32,17 @@ def event_loop():
 
 
 @pytest.fixture(scope="session")
-def instance_admin_client():
-    """Client for interacting with the Instance Admin API."""
-    from google.cloud.bigtable_admin_v2 import BigtableInstanceAdminClient
+def admin_client():
+    """
+    Client for interacting with Table and Instance admin APIs
+    """
+    from google.cloud.bigtable.client import Client
 
-    with BigtableInstanceAdminClient() as client:
-        yield client
-
-
-@pytest.fixture(scope="session")
-def table_admin_client():
-    """Client for interacting with the Table Admin API."""
-    from google.cloud.bigtable_admin_v2 import BigtableTableAdminClient
-
-    with BigtableTableAdminClient() as client:
-        yield client
-
+    client = Client(admin=True)
+    yield client
 
 @pytest.fixture(scope="session")
-def instance_id(instance_admin_client, project_id, cluster_config):
+def instance_id(admin_client, project_id, cluster_config):
     """
     Returns BIGTABLE_TEST_INSTANCE if set, otherwise creates a new temporary instance for the test session
     """
@@ -67,7 +59,7 @@ def instance_id(instance_admin_client, project_id, cluster_config):
     # create a new temporary test instance
     instance_id = f"python-bigtable-tests-{uuid.uuid4().hex[:6]}"
     try:
-        operation = instance_admin_client.create_instance(
+        operation = admin_client.instance_admin_client.create_instance(
             parent=f"projects/{project_id}",
             instance_id=instance_id,
             instance=types.Instance(
@@ -80,7 +72,7 @@ def instance_id(instance_admin_client, project_id, cluster_config):
     except exceptions.AlreadyExists:
         pass
     yield instance_id
-    instance_admin_client.delete_instance(
+    admin_client.instance_admin_client.delete_instance(
         name=f"projects/{project_id}/instances/{instance_id}"
     )
 
@@ -95,7 +87,7 @@ def column_split_config():
 
 @pytest.fixture(scope="session")
 def table_id(
-    table_admin_client,
+    admin_client,
     project_id,
     instance_id,
     column_family_config,
@@ -106,7 +98,7 @@ def table_id(
     Returns BIGTABLE_TEST_TABLE if set, otherwise creates a new temporary table for the test session
 
     Args:
-      - table_admin_client: Client for interacting with the Table Admin API. Supplied by the table_admin_client fixture.
+      - admin_client: Client for interacting with the Table Admin API. Supplied by the admin_client fixture.
       - project_id: The project ID of the GCP project to test against. Supplied by the project_id fixture.
       - instance_id: The ID of the Bigtable instance to test against. Supplied by the instance_id fixture.
       - init_column_families: A list of column families to initialize the table with, if pre-initialized table is not given with BIGTABLE_TEST_TABLE.
@@ -131,7 +123,7 @@ def table_id(
     try:
         parent_path = f"projects/{project_id}/instances/{instance_id}"
         print(f"Creating table: {parent_path}/tables/{init_table_id}")
-        table_admin_client.create_table(
+        admin_client.table_admin_client.create_table(
             request={
                 "parent": parent_path,
                 "table_id": init_table_id,
@@ -145,7 +137,7 @@ def table_id(
     yield init_table_id
     print(f"Deleting table: {parent_path}/tables/{init_table_id}")
     try:
-        table_admin_client.delete_table(name=f"{parent_path}/tables/{init_table_id}")
+        admin_client.table_admin_client.delete_table(name=f"{parent_path}/tables/{init_table_id}")
     except exceptions.NotFound:
         print(f"Table {init_table_id} not found, skipping deletion")
 
