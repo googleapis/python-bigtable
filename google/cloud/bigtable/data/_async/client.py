@@ -54,6 +54,7 @@ from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 import google.auth.credentials
 import google.auth._default
 from google.api_core import client_options as client_options_lib
+from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data.row import Row
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
@@ -132,9 +133,12 @@ class BigtableDataClientAsync(ClientWithProject):
             Optional[client_options_lib.ClientOptions], client_options
         )
         self._emulator_host = os.getenv(BIGTABLE_EMULATOR)
-        if self._emulator_host is not None and credentials is None:
+        if self._emulator_host is not None:
             # use insecure channel if emulator is set
-            credentials = google.auth.credentials.AnonymousCredentials()
+            if credentials is None:
+                credentials = google.auth.credentials.AnonymousCredentials()
+            if project is None:
+                project = _DEFAULT_BIGTABLE_EMULATOR_CLIENT
         # initialize client
         ClientWithProject.__init__(
             self,
