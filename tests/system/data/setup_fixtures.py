@@ -41,12 +41,12 @@ def admin_client():
     client = Client(admin=True)
     yield client
 
-
 @pytest.fixture(scope="session")
 def instance_id(admin_client, project_id, cluster_config):
     """
     Returns BIGTABLE_TEST_INSTANCE if set, otherwise creates a new temporary instance for the test session
     """
+    from google.cloud.bigtable_admin_v2 import types
     from google.api_core import exceptions
 
     # use user-specified instance if available
@@ -57,18 +57,24 @@ def instance_id(admin_client, project_id, cluster_config):
         return
 
     # create a new temporary test instance
+    instance_id = f"python-bigtable-tests-{uuid.uuid4().hex[:6]}"
     try:
-        instance_id = f"python-bigtable-tests-{uuid.uuid4().hex[:6]}"
-        instance = admin_client.instance(instance_id, labels={"python-system-test":"true"})
-        cluster_id = list(cluster_config.keys())[0]
-        cluster_obj = cluster_config[cluster_id]
-        location_id = cluster_obj.location.split("/")[-1]
-        cluster = instance.cluster(cluster_id, location_id=location_id, serve_nodes=cluster_obj.serve_nodes)
-        instance.create(clusters=[cluster])
+        operation = admin_client.instance_admin_client.create_instance(
+            parent=f"projects/{project_id}",
+            instance_id=instance_id,
+            instance=types.Instance(
+                display_name="Test Instance",
+                labels={"python-system-test": "true"},
+            ),
+            clusters=cluster_config,
+        )
+        operation.result(timeout=240)
     except exceptions.AlreadyExists:
         pass
     yield instance_id
-    instance.delete()
+    admin_client.instance_admin_client.delete_instance(
+        name=f"projects/{project_id}/instances/{instance_id}"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -103,8 +109,6 @@ def table_id(
     """
     from google.api_core import exceptions
     from google.api_core import retry
-    from google.cloud.bigtable.column_family import MaxVersionsGCRule
-    import time
 
     # use user-specified instance if available
     user_specified_table = os.getenv("BIGTABLE_TEST_TABLE")
@@ -119,17 +123,21 @@ def table_id(
     try:
         parent_path = f"projects/{project_id}/instances/{instance_id}"
         print(f"Creating table: {parent_path}/tables/{init_table_id}")
-        instance = admin_client.instance(instance_id)
-        table = instance.table(init_table_id)
-        gc_rule = MaxVersionsGCRule(10)
-        # run rpc with retry on FailedPrecondition (when cluster is not ready)
-        retry(table.create)(column_families={k:gc_rule for k,_ in column_family_config.items()}, initial_split_keys=column_split_config)
+        admin_client.table_admin_client.create_table(
+            request={
+                "parent": parent_path,
+                "table_id": init_table_id,
+                "table": {"column_families": column_family_config},
+                "initial_splits": [{"key": key} for key in column_split_config],
+            },
+            retry=retry,
+        )
     except exceptions.AlreadyExists:
         pass
     yield init_table_id
     print(f"Deleting table: {parent_path}/tables/{init_table_id}")
     try:
-        table.delete()
+        admin_client.table_admin_client.delete_table(name=f"{parent_path}/tables/{init_table_id}")
     except exceptions.NotFound:
         print(f"Table {init_table_id} not found, skipping deletion")
 
