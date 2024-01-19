@@ -197,7 +197,9 @@ async def test_mutation_set_cell(table, temp_rows):
     assert (await _retrieve_cell_value(table, row_key)) == new_value
 
 
-@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't use splits")
+@pytest.mark.skipif(
+    bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't use splits"
+)
 @pytest.mark.usefixtures("client")
 @pytest.mark.usefixtures("table")
 @retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
@@ -811,7 +813,10 @@ async def test_read_row(table, temp_rows):
     assert row.cells[0].value == b"value"
 
 
-@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't raise InvalidArgument")
+@pytest.mark.skipif(
+    bool(os.environ.get(BIGTABLE_EMULATOR)),
+    reason="emulator doesn't raise InvalidArgument",
+)
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_read_row_missing(table):
@@ -847,7 +852,10 @@ async def test_read_row_w_filter(table, temp_rows):
     assert row.cells[0].labels == [expected_label]
 
 
-@pytest.mark.skipif(bool(os.environ.get(BIGTABLE_EMULATOR)), reason="emulator doesn't raise InvalidArgument")
+@pytest.mark.skipif(
+    bool(os.environ.get(BIGTABLE_EMULATOR)),
+    reason="emulator doesn't raise InvalidArgument",
+)
 @pytest.mark.usefixtures("table")
 @pytest.mark.asyncio
 async def test_row_exists(table, temp_rows):

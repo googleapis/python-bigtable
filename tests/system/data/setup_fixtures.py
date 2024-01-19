@@ -41,6 +41,7 @@ def admin_client():
     client = Client(admin=True)
     yield client
 
+
 @pytest.fixture(scope="session")
 def instance_id(admin_client, project_id, cluster_config):
     """
@@ -142,7 +143,9 @@ def table_id(
     yield init_table_id
     print(f"Deleting table: {parent_path}/tables/{init_table_id}")
     try:
-        admin_client.table_admin_client.delete_table(name=f"{parent_path}/tables/{init_table_id}")
+        admin_client.table_admin_client.delete_table(
+            name=f"{parent_path}/tables/{init_table_id}"
+        )
     except exceptions.NotFound:
         print(f"Table {init_table_id} not found, skipping deletion")
 
