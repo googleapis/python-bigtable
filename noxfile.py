@@ -52,10 +52,11 @@ SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8"]
 SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "mock",
     "pytest",
-    "pytest-asyncio",
     "google-cloud-testutils",
 ]
-SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
+SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
+    "pytest-asyncio",
+]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_EXTRAS: List[str] = []
@@ -68,6 +69,7 @@ nox.options.sessions = [
     "unit",
     "system_emulated",
     "system",
+    "conformance",
     "mypy",
     "cover",
     "lint",
@@ -160,8 +162,16 @@ def install_unittest_dependencies(session, *constraints):
     standard_deps = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_DEPENDENCIES
     session.install(*standard_deps, *constraints)
 
+    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
+        warnings.warn(
+            "'unit_test_external_dependencies' is deprecated. Instead, please "
+            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
+            DeprecationWarning,
+        )
+        session.install(*UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
+
     if UNIT_TEST_LOCAL_DEPENDENCIES:
-        session.install("-e", *UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
+        session.install(*UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_EXTRAS_BY_PYTHON:
         extras = UNIT_TEST_EXTRAS_BY_PYTHON.get(session.python, [])
@@ -174,20 +184,6 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
-
-    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
-        warnings.warn(
-            "'unit_test_external_dependencies' is deprecated. Instead, please "
-            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
-            DeprecationWarning,
-        )
-        session.install(
-            "--upgrade",
-            "--no-deps",
-            "--force-reinstall",
-            *UNIT_TEST_EXTERNAL_DEPENDENCIES,
-            *constraints,
-        )
 
 
 def default(session):
@@ -279,9 +275,6 @@ def system_emulated(session):
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def conformance(session):
-    """
-    Run the set of shared bigtable conformance tests
-    """
     TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
     CLONE_REPO_DIR = "cloud-bigtable-clients-test"
     # install dependencies
@@ -477,7 +470,7 @@ def prerelease_deps(session):
         # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
         "grpcio!=1.52.0rc1",
         "grpcio-status",
-        "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
+        "google-api-core",
         "google-auth",
         "proto-plus",
         "google-cloud-testutils",
