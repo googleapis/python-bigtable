@@ -595,6 +595,7 @@ async def test_check_and_mutate(
     expected_value = true_mutation_value if expected_result else false_mutation_value
     assert (await _retrieve_cell_value(table, row_key)) == expected_value
 
+
 @pytest.mark.skipif(
     bool(os.environ.get(BIGTABLE_EMULATOR)),
     reason="emulator doesn't raise InvalidArgument",
@@ -610,12 +611,10 @@ async def test_check_and_mutate_empty_request(client, table):
 
     with pytest.raises(exceptions.InvalidArgument) as e:
         await table.check_and_mutate_row(
-            b'row_key',
-            None,
-            true_case_mutations=None,
-            false_case_mutations=None
+            b"row_key", None, true_case_mutations=None, false_case_mutations=None
         )
     assert "No mutations provided" in str(e.value)
+
 
 @pytest.mark.usefixtures("table")
 @retry.AsyncRetry(predicate=retry.if_exception_type(ClientError), initial=1, maximum=5)
