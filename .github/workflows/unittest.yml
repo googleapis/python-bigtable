@@ -23,6 +23,8 @@ jobs:
     - name: Run unit tests
       env:
         COVERAGE_FILE: .coverage-${{ matrix.python }}
+        # use emulator mode to disable automatic credential detection
+        BIGTABLE_EMULATOR_HOST: "none"
       run: |
         nox -s unit-${{ matrix.python }}
     - name: Upload coverage results
