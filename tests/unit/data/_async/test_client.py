@@ -1016,7 +1016,7 @@ class TestBigtableDataClientAsync:
         # initializing client in a sync context should raise RuntimeError
 
         with pytest.warns(RuntimeWarning) as warnings:
-            client = _make_client(project="project-id")
+            client = _make_client(project="project-id", use_emulator=False)
         expected_warning = [w for w in warnings if "client.py" in w.filename]
         assert len(expected_warning) == 1
         assert (
