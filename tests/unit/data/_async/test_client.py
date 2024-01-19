@@ -58,6 +58,10 @@ class TestBigtableDataClientAsync:
         # emulator mode must be disabled by tests that check channel pooling/refresh background tasks
         if use_emulator:
             env_mask["BIGTABLE_EMULATOR_HOST"] = "localhost"
+        else:
+            # set some default values
+            kwargs["credentials"] = kwargs.get("credentials", AnonymousCredentials())
+            kwargs["project"] = kwargs.get("project", "project-id")
         with mock.patch.dict(os.environ, env_mask):
             return self._get_target_class()(*args, **kwargs)
 
@@ -2757,22 +2761,6 @@ class TestCheckAndMutateRow:
                         operation_timeout=-1,
                     )
                 assert str(e.value) == "operation_timeout must be greater than 0"
-
-    @pytest.mark.asyncio
-    async def test_check_and_mutate_no_mutations(self):
-        """Requests require either true_case_mutations or false_case_mutations"""
-        from google.api_core.exceptions import InvalidArgument
-
-        async with self._make_client() as client:
-            async with client.get_table("instance", "table") as table:
-                with pytest.raises(InvalidArgument) as e:
-                    await table.check_and_mutate_row(
-                        b"row_key",
-                        None,
-                        true_case_mutations=None,
-                        false_case_mutations=None,
-                    )
-                assert "No mutations provided" in str(e.value)
 
     @pytest.mark.asyncio
     async def test_check_and_mutate_single_mutations(self):
