@@ -51,8 +51,15 @@ class TestBigtableDataClientAsync:
 
         return BigtableDataClientAsync
 
-    def _make_one(self, *args, **kwargs):
-        return self._get_target_class()(*args, **kwargs)
+    def _make_one(self, *args, use_emulator=True, **kwargs):
+        import os
+        env_mask = {}
+        # by default, use emulator mode to avoid auth issues in CI
+        # emulator mode must be disabled by tests that check channel pooling/refresh background tasks
+        if use_emulator:
+            env_mask["BIGTABLE_EMULATOR_HOST"] = "localhost"
+        with mock.patch.dict(os.environ, env_mask):
+            return self._get_target_class()(*args, **kwargs)
 
     @pytest.mark.asyncio
     async def test_ctor(self):
@@ -63,8 +70,9 @@ class TestBigtableDataClientAsync:
             project="project-id",
             pool_size=expected_pool_size,
             credentials=expected_credentials,
+            use_emulator=False,
         )
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
         assert client.project == expected_project
         assert len(client.transport._grpc_channel._pool) == expected_pool_size
         assert not client._active_instances
@@ -98,6 +106,7 @@ class TestBigtableDataClientAsync:
                         pool_size=pool_size,
                         credentials=credentials,
                         client_options=options_parsed,
+                        use_emulator=False,
                     )
                 except AttributeError:
                     pass
@@ -135,7 +144,7 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(
             self._get_target_class(), "_start_background_channel_refresh"
         ) as start_background_refresh:
-            client = self._make_one(client_options=client_options)
+            client = self._make_one(client_options=client_options, use_emulator=False)
             start_background_refresh.assert_called_once()
             await client.close()
 
@@ -235,14 +244,15 @@ class TestBigtableDataClientAsync:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_background_channel_refresh_sync(self):
         # should raise RuntimeError if called in a sync context
-        client = self._make_one(project="project-id")
+        client = self._make_one(project="project-id", use_emulator=False)
         with pytest.raises(RuntimeError):
             client._start_background_channel_refresh()
 
     @pytest.mark.asyncio
     async def test__start_background_channel_refresh_tasks_exist(self):
         # if tasks exist, should do nothing
-        client = self._make_one(project="project-id")
+        client = self._make_one(project="project-id", use_emulator=False)
+        assert len(client._channel_refresh_tasks) > 0
         with mock.patch.object(asyncio, "create_task") as create_task:
             client._start_background_channel_refresh()
             create_task.assert_not_called()
@@ -252,7 +262,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
     async def test__start_background_channel_refresh(self, pool_size):
         # should create background tasks for each channel
-        client = self._make_one(project="project-id", pool_size=pool_size)
+        client = self._make_one(project="project-id", pool_size=pool_size, use_emulator=False)
         ping_and_warm = AsyncMock()
         client._ping_and_warm_instances = ping_and_warm
         client._start_background_channel_refresh()
@@ -272,7 +282,7 @@ class TestBigtableDataClientAsync:
     async def test__start_background_channel_refresh_tasks_names(self):
         # if tasks exist, should do nothing
         pool_size = 3
-        client = self._make_one(project="project-id", pool_size=pool_size)
+        client = self._make_one(project="project-id", pool_size=pool_size, use_emulator=False)
         for i in range(pool_size):
             name = client._channel_refresh_tasks[i].get_name()
             assert str(i) in name
@@ -537,7 +547,7 @@ class TestBigtableDataClientAsync:
                     grpc_helpers_async, "create_channel"
                 ) as create_channel:
                     create_channel.return_value = new_channel
-                    client = self._make_one(project="project-id")
+                    client = self._make_one(project="project-id", use_emulator=False)
                     create_channel.reset_mock()
                     try:
                         await client._manage_channel(
@@ -919,9 +929,9 @@ class TestBigtableDataClientAsync:
         # should be able to create multiple clients with different pool sizes without issue
         pool_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
         for pool_size in pool_sizes:
-            client = self._make_one(project="project-id", pool_size=pool_size)
+            client = self._make_one(project="project-id", pool_size=pool_size, use_emulator=False)
             assert len(client._channel_refresh_tasks) == pool_size
-            client_duplicate = self._make_one(project="project-id", pool_size=pool_size)
+            client_duplicate = self._make_one(project="project-id", pool_size=pool_size, use_emulator=False)
             assert len(client_duplicate._channel_refresh_tasks) == pool_size
             assert str(pool_size) in str(client.transport)
             await client.close()
@@ -934,7 +944,7 @@ class TestBigtableDataClientAsync:
         )
 
         pool_size = 7
-        client = self._make_one(project="project-id", pool_size=pool_size)
+        client = self._make_one(project="project-id", pool_size=pool_size, use_emulator=False)
         assert len(client._channel_refresh_tasks) == pool_size
         tasks_list = list(client._channel_refresh_tasks)
         for task in client._channel_refresh_tasks:
