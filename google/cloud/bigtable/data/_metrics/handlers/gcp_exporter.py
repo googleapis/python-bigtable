@@ -92,11 +92,8 @@ class TestExporter(MetricExporter):
         try:
             for project_id, series in all_series.items():
                 self._batch_write(project_id, series)
-                print("SUCCESS!")
             return MetricExportResult.SUCCESS
         except Exception as e:
-            print("failed to write")
-            print(e)
             return MetricExportResult.FAILURE
 
     def _batch_write(self, project_id, series) -> None:
