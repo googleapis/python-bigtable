@@ -168,17 +168,23 @@ def _create_private_meter_provider():
          250.0, 300.0, 400.0, 500.0, 650.0, 800.0, 1000.0, 2000.0, 5000.0, 10000.0,
          20000.0, 50000.0, 100000.0]
     )
-    # retry_acount_aggregation = view.ExplicitBucketHistorgramAggregation(
-    #     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 100.0]
-    # )
-    # TODO: add other views
-    operation_latencies_view = view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="operation_latencies")
+    count_aggregation = view.SumAggregation()
+    view_list = [
+        view.View(instrument_name="operation_latencies", aggregation=millis_aggregation, name="operation_latencies"),
+        view.View(instrument_name="first_response_latencies", aggregation=millis_aggregation, name="first_response_latencies"),
+        view.View(instrument_name="attempt_latencies", aggregation=millis_aggregation, name="attempt_latencies"),
+        view.View(instrument_name="retry_counts", aggregation=count_aggregation, name="retry_counts"),
+        view.View(instrument_name="server_latencies", aggregation=millis_aggregation, name="server_latencies"),
+        view.View(instrument_name="connectivity_error_count", aggregation=count_aggregation, name="connectivity_error_count"),
+        view.View(instrument_name="application_latencies", aggregation=millis_aggregation, name="application_latencies"),
+        view.View(instrument_name="throttling_latencies", aggregation=millis_aggregation, name="throttling_latencies"),
+    ]
     # writes metrics into GCP timeseries objects
     exporter = TestExporter()
     # periodically executes exporter
     gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60_000)
     # set up root meter provider
-    meter_provider = MeterProvider(metric_readers=[gcp_reader], views=[operation_latencies_view])
+    meter_provider = MeterProvider(metric_readers=[gcp_reader], views=view_list)
     return meter_provider
 
 
