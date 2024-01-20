@@ -317,7 +317,7 @@ class _ReadRowsOperationAsync:
                         yield Row(row_key, cells)
                         # most metric operations use setters, but this one updates
                         # the value directly to avoid extra overhead
-                        operation.active_attempt.application_blocking_time += (
+                        operation.active_attempt.application_blocking_time += (  # type: ignore
                             time.monotonic() - block_time
                         )
                         break

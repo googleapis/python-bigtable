@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics import view
 from opentelemetry.sdk.metrics.export import (
@@ -56,47 +57,51 @@ class TestExporter(MetricExporter):
         self.client = MetricServiceClient()
         self.prefix = 'bigtable.googleapis.com/internal/client'
 
-    def export(self, metric_records, timeout_millis=10_000, **kwargs):
+    def export(self, metrics_data:MetricsData, timeout_millis:float=10_000, **kwargs) -> MetricExportResult:
         # cumulative used for all metrics
         metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
-        all_series = {}
-        for resource_metric in metric_records.resource_metrics:
+        all_series: dict[str, list[TimeSeries]] = {}
+        for resource_metric in metrics_data.resource_metrics:
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
-                    for data_point in metric.data.data_points:
-                        project_id = data_point.attributes['resource_project']
-                        monitored_resource = MonitoredResource(
-                            type="bigtable_client_raw",
-                            labels={
-                                "project_id": project_id,
-                                "instance": data_point.attributes["resource_instance"],
-                                "cluster": data_point.attributes["resource_cluster"],
-                                "table": data_point.attributes["resource_table"],
-                                "zone": data_point.attributes["resource_zone"],
-                            }
-                        )
-                        point = self._to_point(data_point)
-                        series = TimeSeries(
-                            resource=monitored_resource,
-                            metric_kind=metric_kind,
-                            points=[point],
-                            metric=GMetric(
-                                type=f"{self.prefix}/{metric.name}",
-                                labels={k: v for k, v in data_point.attributes.items() if not k.startswith("resource_")},
-                            ),
-                            unit=metric.unit,
-                        )
-                        project_series = all_series.get(project_id, [])
-                        project_series.append(series)
-                        all_series[project_id] = project_series
+                    for data_point in [pt for pt in metric.data.data_points if pt.attributes]:
+                        if data_point.attributes:
+                            project_id = data_point.attributes['resource_project']
+                            if not isinstance(project_id, str):
+                                # we expect string for project_id field
+                                continue
+                            monitored_resource = MonitoredResource(
+                                type="bigtable_client_raw",
+                                labels={
+                                    "project_id": project_id,
+                                    "instance": data_point.attributes["resource_instance"],
+                                    "cluster": data_point.attributes["resource_cluster"],
+                                    "table": data_point.attributes["resource_table"],
+                                    "zone": data_point.attributes["resource_zone"],
+                                }
+                            )
+                            point = self._to_point(data_point)
+                            series = TimeSeries(
+                                resource=monitored_resource,
+                                metric_kind=metric_kind,
+                                points=[point],
+                                metric=GMetric(
+                                    type=f"{self.prefix}/{metric.name}",
+                                    labels={k: v for k, v in data_point.attributes.items() if not k.startswith("resource_")},
+                                ),
+                                unit=metric.unit,
+                            )
+                            project_series: list[TimeSeries] = all_series.get(project_id, [])
+                            project_series.append(series)
+                            all_series[project_id] = project_series
         try:
-            for project_id, series in all_series.items():
-                self._batch_write(project_id, series)
+            for project_id, project_series in all_series.items():
+                self._batch_write(project_id, project_series)
             return MetricExportResult.SUCCESS
-        except Exception as e:
+        except Exception:
             return MetricExportResult.FAILURE
 
-    def _batch_write(self, project_id, series) -> None:
+    def _batch_write(self, project_id:str, series:list[TimeSeries]) -> None:
         """Cloud Monitoring allows writing up to 200 time series at once
 
         Adapted from CloudMonitoringMetricsExporter
@@ -115,7 +120,7 @@ class TestExporter(MetricExporter):
             write_ind += MAX_BATCH_WRITE
 
     @staticmethod
-    def _to_point(data_point):
+    def _to_point(data_point: NumberDataPoint | HistogramDataPoint) -> Point:
         """
         Adapted from CloudMonitoringMetricsExporter
         https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
@@ -150,14 +155,14 @@ class TestExporter(MetricExporter):
         )
         return Point(interval=interval, value=point_value)
 
-    def shutdown(self, **kwargs):
+    def shutdown(self, timeout_millis:float = 30_000, **kwargs):
         pass
 
-    def force_flush(self, timeout_millis=None):
+    def force_flush(self, timeout_millis:float=10_000):
         return True
 
 
-def _create_private_meter_provider():
+def _create_private_meter_provider() -> MeterProvider:
     """
     Creates a private MeterProvider to store instruments and views, and send them
     periodically through a custom GCP metrics exporter
