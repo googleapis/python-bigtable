@@ -32,6 +32,7 @@ class _OpenTelemetryInstrumentation:
         if meter_provider is None:
             # use global meter provider
             from opentelemetry import metrics
+
             meter_provider = metrics
         # grab meter for this module
         meter = meter_provider.get_meter("bigtable.googleapis.com")
@@ -133,7 +134,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         }
         is_streaming = str(op.is_streaming)
 
-        self.otel.operation_latencies.record(op.duration, {"streaming": is_streaming, **labels})
+        self.otel.operation_latencies.record(
+            op.duration, {"streaming": is_streaming, **labels}
+        )
         self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(
@@ -158,7 +161,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration, {"streaming": is_streaming, 'status':status, **labels}
+            attempt.duration, {"streaming": is_streaming, "status": status, **labels}
         )
         combined_throttling = attempt.grpc_throttling_time
         if not op.completed_attempts:
@@ -173,13 +176,14 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             and attempt.first_response_latency is not None
         ):
             self.otel.first_response_latencies.record(
-                attempt.first_response_latency, {'status':status, **labels}
+                attempt.first_response_latency, {"status": status, **labels}
             )
         if attempt.gfe_latency is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency, {"streaming": is_streaming, 'status':status, **labels}
+                attempt.gfe_latency,
+                {"streaming": is_streaming, "status": status, **labels},
             )
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.otel.connectivity_error_count.add(1, {'status':status, **labels})
+            self.otel.connectivity_error_count.add(1, {"status": status, **labels})
