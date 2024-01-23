@@ -23,7 +23,7 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 
-class _OpenTelemetryInstrumentation:
+class _OpenTelemetryInstruments:
     """
     class that holds OpenTelelmetry instrument objects
     """
@@ -101,7 +101,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         table_id: str,
         app_profile_id: str | None,
         client_uid: str | None = None,
-        otel_instruments: _OpenTelemetryInstrumentation | None = _OpenTelemetryInstrumentation(),
+        otel_instruments: _OpenTelemetryInstruments | None = _OpenTelemetryInstruments(),
         **kwargs,
     ):
         super().__init__()

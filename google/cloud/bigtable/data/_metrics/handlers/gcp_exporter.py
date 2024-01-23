@@ -40,7 +40,7 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
     OpenTelemetryMetricsHandler,
 )
 from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
-    _OpenTelemetryInstrumentation,
+    _OpenTelemetryInstruments,
 )
 
 
@@ -259,5 +259,5 @@ class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
         gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60_000)
         # use private meter provider to store instruments and views
         meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
-        otel = _OpenTelemetryInstrumentation(meter_provider=meter_provider)
+        otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
         super().__init__(*args, otel_instruments=otel, project_id=project_id, **kwargs)
