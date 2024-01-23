@@ -93,9 +93,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
       - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
     """
 
-    # class variable to hold singleton instance of OpenTelemetryInstrumentation
-    otel = _OpenTelemetryInstrumentation()
-
     def __init__(
         self,
         *,
@@ -104,10 +101,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         table_id: str,
         app_profile_id: str | None,
         client_uid: str | None = None,
+        otel_instruments: _OpenTelemetryInstrumentation | None = _OpenTelemetryInstrumentation(),
         **kwargs,
     ):
         super().__init__()
-
+        self.otel = otel_instruments
         # fixed labels sent with each metric update
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
