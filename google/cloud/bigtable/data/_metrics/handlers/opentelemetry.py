@@ -101,11 +101,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         table_id: str,
         app_profile_id: str | None,
         client_uid: str | None = None,
-        otel_instruments: _OpenTelemetryInstruments | None = _OpenTelemetryInstruments(),
+        instruments: _OpenTelemetryInstruments | None = _OpenTelemetryInstruments(),
         **kwargs,
     ):
         super().__init__()
-        self.otel = otel_instruments
+        self.otel = instruments
         # fixed labels sent with each metric update
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",

@@ -46,98 +46,41 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
 
 MAX_BATCH_WRITE = 200
 
+# avoid reformatting into individual lines
+# fmt: off
 MILLIS_AGGREGATION = view.ExplicitBucketHistogramAggregation(
     [
-        0.0,
-        0.01,
-        0.05,
-        0.1,
-        0.3,
-        0.6,
-        0.8,
-        1.0,
-        2.0,
-        3.0,
-        4.0,
-        5.0,
-        6.0,
-        8.0,
-        10.0,
-        13.0,
-        16.0,
-        20.0,
-        25.0,
-        30.0,
-        40.0,
-        50.0,
-        65.0,
-        80.0,
-        100.0,
-        130.0,
-        160.0,
-        200.0,
-        250.0,
-        300.0,
-        400.0,
-        500.0,
-        650.0,
-        800.0,
-        1000.0,
-        2000.0,
-        5000.0,
-        10000.0,
-        20000.0,
-        50000.0,
-        100000.0,
+        0, 0.01, 0.05, 0.1, 0.3, 0.6, 0.8, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16,
+        20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400,
+        500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
     ]
 )
+# fmt: on
 COUNT_AGGREGATION = view.SumAggregation()
+INSTRUMENT_NAMES = (
+    "operation_latencies",
+    "first_response_latencies",
+    "attempt_latencies",
+    "retry_counts",
+    "server_latencies",
+    "connectivity_error_count",
+    "application_latencies",
+    "throttling_latencies",
+)
 VIEW_LIST = [
     view.View(
-        instrument_name="operation_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="operation_latencies",
-    ),
-    view.View(
-        instrument_name="first_response_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="first_response_latencies",
-    ),
-    view.View(
-        instrument_name="attempt_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="attempt_latencies",
-    ),
-    view.View(
-        instrument_name="retry_counts",
-        aggregation=COUNT_AGGREGATION,
-        name="retry_counts",
-    ),
-    view.View(
-        instrument_name="server_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="server_latencies",
-    ),
-    view.View(
-        instrument_name="connectivity_error_count",
-        aggregation=COUNT_AGGREGATION,
-        name="connectivity_error_count",
-    ),
-    view.View(
-        instrument_name="application_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="application_latencies",
-    ),
-    view.View(
-        instrument_name="throttling_latencies",
-        aggregation=MILLIS_AGGREGATION,
-        name="throttling_latencies",
-    ),
+        instrument_name=n,
+        name=n,
+        aggregation=MILLIS_AGGREGATION
+        if n.endswith("latencies")
+        else COUNT_AGGREGATION,
+    )
+    for n in INSTRUMENT_NAMES
 ]
 
 
 class TestExporter(MetricExporter):
-    def __init__(self, project_id:str):
+    def __init__(self, project_id: str):
         super().__init__()
         self.client = MetricServiceClient()
         self.prefix = "bigtable.googleapis.com/internal/client"
@@ -252,12 +195,14 @@ class TestExporter(MetricExporter):
 
 
 class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
-    def __init__(self, *args, project_id:str, **kwargs):
+    def __init__(self, *args, project_id: str, **kwargs):
         # writes metrics into GCP timeseries objects
         exporter = TestExporter(project_id=project_id)
         # periodically executes exporter
-        gcp_reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60_000)
+        gcp_reader = PeriodicExportingMetricReader(
+            exporter, export_interval_millis=60_000
+        )
         # use private meter provider to store instruments and views
         meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
         otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
-        super().__init__(*args, otel_instruments=otel, project_id=project_id, **kwargs)
+        super().__init__(*args, instruments=otel, project_id=project_id, **kwargs)
