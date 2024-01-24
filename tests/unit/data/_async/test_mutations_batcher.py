@@ -1176,6 +1176,7 @@ class TestMutationsBatcherAsync:
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = _make_mutation(count=1, size=1)
+                    predicate_builder_mock.reset_mock()
                     await instance._execute_mutate_rows([mutation], mock.Mock())
                     # passed in errors should be used to build the predicate
                     predicate_builder_mock.assert_called_once_with(

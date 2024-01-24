@@ -99,7 +99,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         project_id: str,
         instance_id: str,
         table_id: str,
-        app_profile_id: str | None,
+        app_profile_id: str | None = None,
         client_uid: str | None = None,
         instruments: _OpenTelemetryInstruments | None = _OpenTelemetryInstruments(),
         **kwargs,
@@ -123,9 +123,13 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - operation_latencies
           - retry_count
         """
+        try:
+            status = str(op.final_status.value[0])
+        except (IndexError, TypeError):
+            status = "2"  # unknown
         labels = {
-            "method": op.op_type.value[9:],  # remove "Bigtable." prefix
-            "status": str(op.final_status.value[0]),
+            "method": op.op_type.value,
+            "status": status,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
@@ -150,12 +154,15 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - throttling_latencies
         """
         labels = {
-            "method": op.op_type.value[9:],  # remove "Bigtable." prefix
+            "method": op.op_type.value,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
         }
-        status = str(attempt.end_status.value[0])
+        try:
+            status = str(attempt.end_status.value[0])
+        except (IndexError, TypeError):
+            status = "2"  # unknown
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(

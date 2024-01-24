@@ -1318,7 +1318,7 @@ class TestTableAsync:
                     # note: may be wrapped by metrics
                     assert expected_predicate.call_count == 0
                     found_predicate = retry_call_args[1]
-                    obj = mock.Mock()
+                    obj = RuntimeError("test")
                     found_predicate(obj)
                     assert expected_predicate.call_count == 1
                     assert expected_predicate.called_with(obj)

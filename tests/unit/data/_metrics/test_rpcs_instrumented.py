@@ -105,7 +105,7 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             unary_response = None
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, f"{cluster_data} {zone_data}".encode("utf-8"))
+            (BIGTABLE_METADATA_KEY, f"{zone_data} {cluster_data}".encode("utf-8"))
         )
         trailing_metadata = Metadata(
             (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}")
@@ -253,7 +253,7 @@ async def test_batcher_rpcs_instrumented():
     ) as gapic_mock:
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, f"{cluster_data} {zone_data}".encode("utf-8"))
+            (BIGTABLE_METADATA_KEY, f"{zone_data} {cluster_data}".encode("utf-8"))
         )
         trailing_metadata = Metadata(
             (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}")

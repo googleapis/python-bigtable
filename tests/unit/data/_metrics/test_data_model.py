@@ -251,19 +251,19 @@ class TestActiveOperationMetric:
         [
             (None, None, None, None, None),
             ("orig_cluster", "orig_zone", None, "orig_cluster", "orig_zone"),
-            (None, None, b"cluster zone", "cluster", "zone"),
+            (None, None, b"zone cluster", "cluster", "zone"),
             (
                 None,
                 None,
-                b"\n\rus-central1-b\x12\x0ctest-cluster",
+                b"\n\rtest-cluster\x12\x0cus-central1-b",
                 "us-central1-b",
                 "test-cluster",
             ),
             ("orig_cluster", "orig_zone", b"new_new", "orig_cluster", "orig_zone"),
             (None, None, b"", None, None),
-            (None, None, b"cluster zone future", "cluster", "zone"),
-            (None, "filled", b"cluster zone", "cluster", "zone"),
-            ("filled", None, b"cluster zone", "cluster", "zone"),
+            (None, None, b"zone cluster future", "cluster", "zone"),
+            (None, "filled", b"zone cluster", "cluster", "zone"),
+            ("filled", None, b"zone cluster", "cluster", "zone"),
         ],
     )
     def test_add_response_metadata_cbt_header(

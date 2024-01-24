@@ -194,7 +194,7 @@ class TestExporter(MetricExporter):
         return True
 
 
-class GCPOpenTelemetryExporterHandler(OpenTelemetryMetricsHandler):
+class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
     def __init__(self, *args, project_id: str, **kwargs):
         # writes metrics into GCP timeseries objects
         exporter = TestExporter(project_id=project_id)

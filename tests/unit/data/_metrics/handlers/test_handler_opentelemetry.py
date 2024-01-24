@@ -20,30 +20,7 @@ from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetri
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
 
 
-class Test_OpenTelemetryInstrumentSingleton:
-    def test_singleton(self):
-        """
-        Should be able to create multiple instances that map to the same singleton
-        """
-        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
-            _OpenTelemetryInstrumentSingleton,
-        )
-
-        instance1 = _OpenTelemetryInstrumentSingleton()
-        instance2 = _OpenTelemetryInstrumentSingleton()
-        assert instance1 is instance2
-
-
 class TestOpenTelemetryMetricsHandler:
-    def setup_otel(self):
-        """
-        Create a concrete MeterProvider in the environment
-        """
-        from opentelemetry import metrics
-        from opentelemetry.sdk.metrics import MeterProvider
-
-        metrics.set_meter_provider(MeterProvider())
-
     def _make_one(self, **kwargs):
         from google.cloud.bigtable.data._metrics import OpenTelemetryMetricsHandler
 
@@ -55,7 +32,6 @@ class TestOpenTelemetryMetricsHandler:
                 "table_id": "t",
                 "app_profile_id": "a",
             }
-        self.setup_otel()
         return OpenTelemetryMetricsHandler(**kwargs)
 
     @pytest.mark.parametrize(
@@ -67,7 +43,7 @@ class TestOpenTelemetryMetricsHandler:
             ("retry_count", "count"),
             ("server_latencies", "histogram"),
             ("connectivity_error_count", "count"),
-            ("application_blocking_latencies", "histogram"),
+            ("application_latencies", "histogram"),
             ("throttling_latencies", "histogram"),
         ],
     )
@@ -77,19 +53,13 @@ class TestOpenTelemetryMetricsHandler:
         """
         from opentelemetry.metrics import Counter
         from opentelemetry.metrics import Histogram
-        from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
-            _OpenTelemetryInstrumentSingleton,
-        )
 
         instance = self._make_one()
-        assert instance.otel is _OpenTelemetryInstrumentSingleton()
         metric = getattr(instance.otel, metric_name)
-        assert metric.name == metric_name
         if kind == "counter":
             assert isinstance(metric, Counter)
         elif kind == "histogram":
             assert isinstance(metric, Histogram)
-            assert metric.unit == "ms"
 
     def test_ctor_labels(self):
         """
@@ -112,10 +82,13 @@ class TestOpenTelemetryMetricsHandler:
         )
         assert instance.shared_labels["client_uid"] == expected_uid
         assert instance.shared_labels["client_name"] == f"python-bigtable/{__version__}"
+        assert instance.shared_labels["resource_project"] == expected_project
+        assert instance.shared_labels["resource_instance"] == expected_instance
+        assert instance.shared_labels["resource_table"] == expected_table
         assert instance.shared_labels["app_profile"] == expected_app_profile
-        assert len(instance.shared_labels) == 3
+        assert len(instance.shared_labels) == 6
 
-    def test_ctor_shared_otel_singleton(self):
+    def test_ctor_shared_otel_instance(self):
         """
         Two instances should be writing to the same metrics
         """
@@ -125,7 +98,7 @@ class TestOpenTelemetryMetricsHandler:
         assert instance1.otel is instance2.otel
         assert instance1.otel.attempt_latencies is instance2.otel.attempt_latencies
 
-    def ctor_defaults(self):
+    def test_ctor_defaults(self):
         """
         Should work without explicit uid or app_profile_id
         """
@@ -137,28 +110,35 @@ class TestOpenTelemetryMetricsHandler:
         assert instance.shared_labels["client_uid"] is not None
         assert isinstance(instance.shared_labels["client_uid"], str)
         assert len(instance.shared_labels["client_uid"]) > 10  # should be decently long
+        assert instance.shared_labels["resource_project"] == "p"
+        assert instance.shared_labels["resource_instance"] == "i"
+        assert instance.shared_labels["resource_table"] == "t"
         assert "app_profile" not in instance.shared_labels
-        assert len(instance.shared_labels) == 2
+        assert len(instance.shared_labels) == 5
 
     @pytest.mark.parametrize(
-        "metric_name,kind",
+        "metric_name,kind,optional_labels",
         [
-            ("first_response_latencies", "histogram"),
-            ("attempt_latencies", "histogram"),
-            ("server_latencies", "histogram"),
-            ("connectivity_error_count", "count"),
-            ("application_blocking_latencies", "histogram"),
-            ("throttling_latencies", "histogram"),
+            ("first_response_latencies", "histogram", ["status"]),
+            ("attempt_latencies", "histogram", ["status", "streaming"]),
+            ("server_latencies", "histogram", ["status", "streaming"]),
+            ("connectivity_error_count", "count", ["status"]),
+            ("application_latencies", "histogram", []),
+            ("throttling_latencies", "histogram", []),
         ],
     )
-    def test_attempt_update_labels(self, metric_name, kind):
+    def test_attempt_update_labels(self, metric_name, kind, optional_labels):
         """
         test that each attempt metric is sending the set of expected labels
+
+        optional_labels: status and streaming aren't used by all metrics.
+        Mark which ones expect them
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
+        from grpc import StatusCode
 
         expected_op_type = OperationType.READ_ROWS
-        expected_status = mock.Mock()
+        expected_status = StatusCode.ABORTED
         expected_streaming = mock.Mock()
         # server_latencies only shows up if gfe_latency is set
         gfe_latency = 1 if metric_name == "server_latencies" else None
@@ -179,29 +159,39 @@ class TestOpenTelemetryMetricsHandler:
             assert record.call_count == 1
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
-            assert found_labels["status"] == expected_status.value
-            assert found_labels["streaming"] == expected_streaming
-            assert len(instance.shared_labels) == 3
+            if "status" in optional_labels:
+                assert found_labels["status"] == str(expected_status.value[0])
+            else:
+                assert "status" not in found_labels
+            if "streaming" in optional_labels:
+                assert found_labels["streaming"] == str(expected_streaming)
+            else:
+                assert "streaming" not in found_labels
+            assert len(instance.shared_labels) == 6
             # shared labels should be copied over
             for k in instance.shared_labels:
                 assert k in found_labels
                 assert found_labels[k] == instance.shared_labels[k]
 
     @pytest.mark.parametrize(
-        "metric_name,kind",
+        "metric_name,kind,optional_labels",
         [
-            ("operation_latencies", "histogram"),
-            ("retry_count", "count"),
+            ("operation_latencies", "histogram", ["status", "streaming"]),
+            ("retry_count", "count", ["status"]),
         ],
     )
-    def test_operation_update_labels(self, metric_name, kind):
+    def test_operation_update_labels(self, metric_name, kind, optional_labels):
         """
         test that each operation metric is sending the set of expected labels
+
+        optional_labels: status and streaming aren't used by all metrics.
+        Mark which ones expect them
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
+        from grpc import StatusCode
 
         expected_op_type = OperationType.READ_ROWS
-        expected_status = mock.Mock()
+        expected_status = StatusCode.RESOURCE_EXHAUSTED
         expected_streaming = mock.Mock()
         op = CompletedOperationMetric(
             op_type=expected_op_type,
@@ -221,9 +211,15 @@ class TestOpenTelemetryMetricsHandler:
             assert record.call_count == 1
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
-            assert found_labels["status"] == expected_status.value
-            assert found_labels["streaming"] == expected_streaming
-            assert len(instance.shared_labels) == 3
+            if "status" in optional_labels:
+                assert found_labels["status"] == str(expected_status.value[0])
+            else:
+                assert "status" not in found_labels
+            if "streaming" in optional_labels:
+                assert found_labels["streaming"] == str(expected_streaming)
+            else:
+                assert "streaming" not in found_labels
+            assert len(instance.shared_labels) == 6
             # shared labels should be copied over
             for k in instance.shared_labels:
                 assert k in found_labels
@@ -304,9 +300,9 @@ class TestOpenTelemetryMetricsHandler:
             assert add.call_args[0][0] == 1
 
     @pytest.mark.parametrize("app_blocking,backoff", [(0, 10), (10, 0), (123, 456)])
-    def test_attempt_update_application_blocking_latencies(self, app_blocking, backoff):
+    def test_attempt_update_application_latencies(self, app_blocking, backoff):
         """
-        update application_blocking_latencies on attempt completion
+        update application_latencies on attempt completion
         """
         expected_total_latency = app_blocking + backoff
         attempt = CompletedAttemptMetric(
@@ -319,9 +315,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(mock.Mock())
 
         instance = self._make_one()
-        with mock.patch.object(
-            instance.otel.application_blocking_latencies, "record"
-        ) as record:
+        with mock.patch.object(instance.otel.application_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_total_latency

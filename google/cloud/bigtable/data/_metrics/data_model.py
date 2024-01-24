@@ -61,12 +61,12 @@ class TimeTuple:
 class OperationType(Enum):
     """Enum for the type of operation being performed."""
 
-    READ_ROWS = "Bigtable.ReadRows"
-    SAMPLE_ROW_KEYS = "Bigtable.SampleRowKeys"
-    BULK_MUTATE_ROWS = "Bigtable.MutateRows"
-    MUTATE_ROW = "Bigtable.MutateRow"
-    CHECK_AND_MUTATE = "Bigtable.CheckAndMutateRow"
-    READ_MODIFY_WRITE = "Bigtable.ReadModifyWriteRow"
+    READ_ROWS = "ReadRows"
+    SAMPLE_ROW_KEYS = "SampleRowKeys"
+    BULK_MUTATE_ROWS = "MutateRows"
+    MUTATE_ROW = "MutateRow"
+    CHECK_AND_MUTATE = "CheckAndMutateRow"
+    READ_MODIFY_WRITE = "ReadModifyWriteRow"
 
 
 class OperationState(Enum):
