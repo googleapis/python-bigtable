@@ -60,6 +60,8 @@ class TestOpenTelemetryMetricsHandler:
             assert isinstance(metric, Counter)
         elif kind == "histogram":
             assert isinstance(metric, Histogram)
+        else:
+            raise ValueError(f"Unknown metric kind: {kind}")
 
     def test_ctor_labels(self):
         """
