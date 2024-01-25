@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+
+import time
+
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics import view
 from opentelemetry.sdk.metrics.export import (
@@ -27,6 +30,7 @@ from google.api.distribution_pb2 import Distribution
 from google.api.metric_pb2 import Metric as GMetric
 from google.api.monitored_resource_pb2 import MonitoredResource
 from google.api.metric_pb2 import MetricDescriptor
+from google.api_core import gapic_v1
 from google.cloud.monitoring_v3 import (
     CreateTimeSeriesRequest,
     MetricServiceClient,
@@ -44,8 +48,7 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
 )
 
 
-MAX_BATCH_WRITE = 200
-
+# create OpenTelemetry views for Bigtable metrics
 # avoid reformatting into individual lines
 # fmt: off
 MILLIS_AGGREGATION = view.ExplicitBucketHistogramAggregation(
@@ -79,7 +82,53 @@ VIEW_LIST = [
 ]
 
 
-class TestExporter(MetricExporter):
+class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
+    """
+    Maintains an internal set of OpenTelemetry metrics for the Bigtable client library,
+    and periodically exports them to Google Cloud Monitoring.
+
+    The OpenTelemetry metrics that are tracked are as follows:
+      - operation_latencies: latency of each client method call, over all of it's attempts.
+      - first_response_latencies: latency of receiving the first row in a ReadRows operation.
+      - attempt_latencies: latency of each client attempt RPC.
+      - retry_count: Number of additional RPCs sent after the initial attempt.
+      - server_latencies: latency recorded on the server side for each attempt.
+      - connectivity_error_count: number of attempts that failed to reach Google's network.
+      - application_latencies: the time spent waiting for the application to process the next response.
+      - throttling_latencies: latency introduced by waiting when there are too many outstanding requests in a bulk operation.
+
+    Args:
+      - project_id: The Google Cloud project ID for the associated Bigtable Table
+      - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
+    """
+
+    def __init__(self, *args, project_id: str, export_interval=60, **kwargs):
+        # internal exporter to write metrics to Cloud Monitoring
+        exporter = _TestExporter(project_id=project_id)
+        # periodically executes exporter
+        gcp_reader = PeriodicExportingMetricReader(
+            exporter, export_interval_millis=export_interval * 1000
+        )
+        # use private meter provider to store instruments and views
+        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
+        otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
+        super().__init__(*args, instruments=otel, project_id=project_id, **kwargs)
+
+
+class _TestExporter(MetricExporter):
+    """
+    OpenTelemetry Exporter implementation for sending metrics to Google Cloud Monitoring.
+
+    We must use a custom exporter because the public one doesn't support writing to internal
+    metrics like `bigtable.googleapis.com/internal/client/`
+
+    Each GoogleCloudMetricsHandler will maintain its own exporter instance associated with the
+    project_id it is configured with.
+
+    Args:
+      - project_id: GCP project id to associate metrics with
+    """
+
     def __init__(self, project_id: str):
         super().__init__()
         self.client = MetricServiceClient()
@@ -89,9 +138,14 @@ class TestExporter(MetricExporter):
     def export(
         self, metrics_data: MetricsData, timeout_millis: float = 10_000, **kwargs
     ) -> MetricExportResult:
-        # cumulative used for all metrics
+        """
+        Write a set of metrics to Cloud Monitoring.
+        This method is called by the OpenTelemetry SDK
+        """
+        deadline = time.time() + (timeout_millis / 1000)
         metric_kind = MetricDescriptor.MetricKind.CUMULATIVE
         all_series: list[TimeSeries] = []
+        # process each metric from OTel format into Cloud Monitoring format
         for resource_metric in metrics_data.resource_metrics:
             for scope_metric in resource_metric.scope_metrics:
                 for metric in scope_metric.metrics:
@@ -133,27 +187,39 @@ class TestExporter(MetricExporter):
                                 unit=metric.unit,
                             )
                             all_series.append(series)
+        # send all metrics to Cloud Monitoring
         try:
-            self._batch_write(all_series)
+            self._batch_write(all_series, deadline)
             return MetricExportResult.SUCCESS
         except Exception:
             return MetricExportResult.FAILURE
 
-    def _batch_write(self, series: list[TimeSeries]) -> None:
-        """Cloud Monitoring allows writing up to 200 time series at once
-
+    def _batch_write(
+        self, series: list[TimeSeries], deadline=None, max_batch_size=200
+    ) -> None:
+        """
         Adapted from CloudMonitoringMetricsExporter
         https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
+
+        Args:
+            - series: list of TimeSeries to write. Will be split into batches if necessary
+            - deadline: designates the time.time() at which to stop writing. If None, uses API default
+            - max_batch_size: maximum number of time series to write at once.
+                Cloud Monitoring allows up to 200 per request
         """
         write_ind = 0
         while write_ind < len(series):
+            # find time left for next batch
+            timeout = deadline - time.time() if deadline else gapic_v1.method.DEFAULT
+            # write next batch
             self.client.create_service_time_series(
                 CreateTimeSeriesRequest(
                     name=self.project_name,
-                    time_series=series[write_ind : write_ind + MAX_BATCH_WRITE],
+                    time_series=series[write_ind : write_ind + max_batch_size],
                 ),
+                timeout=timeout,
             )
-            write_ind += MAX_BATCH_WRITE
+            write_ind += max_batch_size
 
     @staticmethod
     def _to_point(data_point: NumberDataPoint | HistogramDataPoint) -> Point:
@@ -188,21 +254,15 @@ class TestExporter(MetricExporter):
         return Point(interval=interval, value=point_value)
 
     def shutdown(self, timeout_millis: float = 30_000, **kwargs):
+        """
+        Adapted from CloudMonitoringMetricsExporter
+        https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
+        """
         pass
 
     def force_flush(self, timeout_millis: float = 10_000):
+        """
+        Adapted from CloudMonitoringMetricsExporter
+        https://github.com/GoogleCloudPlatform/opentelemetry-operations-python/blob/3668dfe7ce3b80dd01f42af72428de957b58b316/opentelemetry-exporter-gcp-monitoring/src/opentelemetry/exporter/cloud_monitoring/__init__.py#L82
+        """
         return True
-
-
-class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
-    def __init__(self, *args, project_id: str, **kwargs):
-        # writes metrics into GCP timeseries objects
-        exporter = TestExporter(project_id=project_id)
-        # periodically executes exporter
-        gcp_reader = PeriodicExportingMetricReader(
-            exporter, export_interval_millis=60_000
-        )
-        # use private meter provider to store instruments and views
-        meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
-        otel = _OpenTelemetryInstruments(meter_provider=meter_provider)
-        super().__init__(*args, instruments=otel, project_id=project_id, **kwargs)
