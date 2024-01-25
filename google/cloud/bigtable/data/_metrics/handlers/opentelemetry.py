@@ -18,6 +18,8 @@ from uuid import uuid4
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 from google.cloud.bigtable.data._metrics.data_model import OperationType
+from google.cloud.bigtable.data._metrics.data_model import DEFAULT_CLUSTER_ID
+from google.cloud.bigtable.data._metrics.data_model import DEFAULT_ZONE
 from google.cloud.bigtable.data._metrics.data_model import ActiveOperationMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedAttemptMetric
 from google.cloud.bigtable.data._metrics.data_model import CompletedOperationMetric
@@ -155,8 +157,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         """
         labels = {
             "method": op.op_type.value,
-            "resource_zone": op.zone,
-            "resource_cluster": op.cluster_id,
+            "resource_zone": op.zone or DEFAULT_ZONE,  # fallback to default if unset
+            "resource_cluster": op.cluster_id or DEFAULT_CLUSTER_ID,
             **self.shared_labels,
         }
         try:

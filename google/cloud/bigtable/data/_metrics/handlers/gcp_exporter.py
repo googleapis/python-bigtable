@@ -99,7 +99,7 @@ class TestExporter(MetricExporter):
                         pt for pt in metric.data.data_points if pt.attributes
                     ]:
                         if data_point.attributes:
-                            project_id = data_point.attributes["resource_project"]
+                            project_id = data_point.attributes.get("resource_project")
                             if not isinstance(project_id, str):
                                 # we expect string for project_id field
                                 continue

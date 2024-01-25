@@ -215,7 +215,6 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("add_response_metadata", self.state)
             )
-        # TODO: better caching? compare encoded blobs?
         if self.cluster_id is None or self.zone is None:
             # BIGTABLE_METADATA_KEY should give a binary string with cluster_id and zone
             bigtable_metadata = cast(bytes, metadata.get(BIGTABLE_METADATA_KEY))

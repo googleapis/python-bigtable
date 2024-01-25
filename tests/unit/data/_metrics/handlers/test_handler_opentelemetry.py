@@ -340,6 +340,25 @@ class TestOpenTelemetryMetricsHandler:
             assert record.call_count == 1
             assert record.call_args[0][0] == expected_total_latency
 
+    def test_attempt_empty_cluster_zone(self):
+        """
+        if cluster and zone are None at attempt complete, fall back to default values
+        """
+        op = ActiveOperationMetric(mock.Mock())
+        attempt = CompletedAttemptMetric(
+            start_time=0,
+            duration=1,
+            end_status=mock.Mock(),
+        )
+        op.cluster_id = None
+        op.zone = None
+        instance = self._make_one()
+        with mock.patch.object(instance.otel.throttling_latencies, "record") as record:
+            instance.on_attempt_complete(attempt, op)
+            labels = record.call_args[0][1]
+            assert labels["resource_cluster"] == "unspecified"
+            assert labels["resource_zone"] == "global"
+
     def tyest_operation_update_latency(self):
         """
         update op_latency on operation completion
