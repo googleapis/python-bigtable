@@ -78,6 +78,8 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
+from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -524,6 +526,13 @@ class TableAsync:
             default_mutate_rows_operation_timeout
         )
         self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
+
+        self._metrics = BigtableClientSideMetricsController(
+            project_id=self.client.project,
+            instance_id=instance_id,
+            table_id=table_id,
+            app_profile_id=app_profile_id,
+        )
 
         self.default_read_rows_retryable_errors = (
             default_read_rows_retryable_errors or ()
