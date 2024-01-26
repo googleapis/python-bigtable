@@ -241,12 +241,81 @@ class Test_BigtableMetricsExporter:
             else:
                 assert result == MetricExportResult.SUCCESS
 
-    def test__batch_write_batching(self):
+    @pytest.mark.parametrize("num_series,batch_size,expected", [
+        (1, 1, 1),
+        (1, 2, 1),
+        (2, 1, 2),
+        (2, 2, 1),
+        (3, 2, 2),
+        (3, 3, 1),
+        (0, 10, 0),
+        (201, 200, 2),
+        (500, None, 3),  # default batch size is 200
+    ])
+    @mock.patch("google.cloud.bigtable.data._metrics.handlers.gcp_exporter.MetricServiceClient", autospec=True)
+    def test__batch_write_batching(self, mock_client, num_series, batch_size, expected):
         """
         should properly batch large requests into multiple calls
         """
+        from google.cloud.monitoring_v3 import TimeSeries
+        instance = self._make_one()
+        instance.project_name = "projects/project"
+        series = [TimeSeries() for _ in range(num_series)]
+        kwargs = {"max_batch_size": batch_size} if batch_size is not None else {}
+        instance._batch_write(series, **kwargs)
+        # ensure that the right number of batches were used
+        rpc_count = mock_client.return_value.create_service_time_series.call_count
+        assert rpc_count == expected
+        # check actual batch sizes
+        requests = [call[0][0] for call in mock_client.return_value.create_service_time_series.call_args_list]
+        assert len(requests) == expected
+        if batch_size is None:
+            batch_size = 200
+        for request in requests[:-1]:
+            assert len(request.time_series) == batch_size
+        # last batch may be smaller
+        if requests:
+            last_size = len(requests[-1].time_series)
+            assert last_size == batch_size or last_size == num_series % batch_size
 
-    def test__batch_write_deadline(self):
+    def test__batch_write_uses_project_name(self):
         """
-        should turn deadline into timeouts for api calls
+        exporter should use project sent at init time
         """
+        from google.cloud.monitoring_v3 import TimeSeries
+        expected_project = 'test-project'
+        batch = [TimeSeries()] * 5
+        instance = self._make_one()
+        with mock.patch.object(instance.client, "create_service_time_series") as mock_rpc:
+            instance._batch_write(batch, max_batch_size=1)
+            requests = [call[0][0] for call in mock_rpc.call_args_list]
+            assert len(requests) == 5
+            for request in requests:
+                assert request.name == f"projects/{expected_project}"
+
+    @pytest.mark.parametrize("start_time,deadline,rpc_time,expected", [
+        (0, 5, 1, (5, 4, 3, 2, 1, 0, -1)),
+        (1, 10, 2, (9, 7, 5, 3, 1, -1)),
+    ])
+    @mock.patch("time.time")
+    def test__batch_write_deadline(self, mock_time, start_time, deadline, rpc_time, expected):
+        """
+        deadline should be properly calculated and passed to RPC as timeouts
+        """
+        from google.cloud.monitoring_v3 import TimeSeries
+        batch = [TimeSeries()] * len(expected)
+        instance = self._make_one()
+
+        # increment time.time() each time it is called
+        def increment_time(*args, **kwargs):
+            mock_time.return_value += rpc_time
+        mock_time.return_value = start_time
+
+        with mock.patch.object(instance.client, "create_service_time_series") as mock_rpc:
+            mock_rpc.side_effect = increment_time
+            instance._batch_write(batch, max_batch_size=1, deadline=deadline)
+            timeouts = [call[1]["timeout"] for call in mock_rpc.call_args_list]
+            assert len(timeouts) == len(expected)
+            for timeout, expected_timeout in zip(timeouts, expected):
+                assert timeout == expected_timeout
+
