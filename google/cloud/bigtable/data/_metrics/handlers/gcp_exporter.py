@@ -104,7 +104,7 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
 
     def __init__(self, *args, project_id: str, export_interval=60, **kwargs):
         # internal exporter to write metrics to Cloud Monitoring
-        exporter = _TestExporter(project_id=project_id)
+        exporter = _BigtableMetricsExporter(project_id=project_id)
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(
             exporter, export_interval_millis=export_interval * 1000
@@ -115,7 +115,7 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
         super().__init__(*args, instruments=otel, project_id=project_id, **kwargs)
 
 
-class _TestExporter(MetricExporter):
+class _BigtableMetricsExporter(MetricExporter):
     """
     OpenTelemetry Exporter implementation for sending metrics to Google Cloud Monitoring.
 
