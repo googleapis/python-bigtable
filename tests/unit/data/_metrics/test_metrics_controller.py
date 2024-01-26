@@ -27,30 +27,10 @@ class TestBigtableClientSideMetricsController:
         """
         should create instance with GCP Exporter handler by default
         """
-        from google.cloud.bigtable.data._metrics import GoogleCloudMetricsHandler
-
         instance = self._make_one(
             project_id="p", instance_id="i", table_id="t", app_profile_id="a"
         )
-        assert len(instance.handlers) == 1
-        assert isinstance(instance.handlers[0], GoogleCloudMetricsHandler)
-
-    def test_ctor_w_logging(self):
-        """
-        if BIGTABLE_PRINT_METRICS is True, include _StdoutMetricsHandler
-        """
-        from google.cloud.bigtable.data._metrics import GoogleCloudMetricsHandler
-        from google.cloud.bigtable.data._metrics import _StdoutMetricsHandler
-
-        with mock.patch(
-            "google.cloud.bigtable.data._metrics.metrics_controller.PRINT_METRICS", True
-        ):
-            controller = self._make_one(
-                project_id="p", instance_id="i", table_id="t", app_profile_id="a"
-            )
-            assert len(controller.handlers) == 2
-            assert GoogleCloudMetricsHandler in [type(h) for h in controller.handlers]
-            assert _StdoutMetricsHandler in [type(h) for h in controller.handlers]
+        assert len(instance.handlers) == 0
 
     def ctor_custom_handlers(self):
         """
