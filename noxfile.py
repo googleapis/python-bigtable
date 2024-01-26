@@ -42,6 +42,7 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-cov",
     "pytest-asyncio",
 ]
+
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_DEPENDENCIES: List[str] = []
@@ -54,6 +55,7 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "pytest",
     "pytest-asyncio",
     "google-cloud-testutils",
+    "opentelemetry-api",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
@@ -131,8 +133,14 @@ def format(session):
 def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
+    session.install("-e", "python-api-core")
     session.install(
-        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
+        "mypy",
+        "types-setuptools",
+        "types-protobuf",
+        "types-mock",
+        "types-requests",
+        "opentelemetry-api",
     )
     session.install("google-cloud-testutils")
     session.run(
@@ -211,6 +219,7 @@ def default(session):
         "--cov-fail-under=0",
         os.path.join("tests", "unit"),
         *session.posargs,
+        env={"BIGTABLE_METRICS_EXCEPTIONS": "true"},
     )
 
 
@@ -460,7 +469,6 @@ def prerelease_deps(session):
         "grpcio!=1.52.0rc1",
         "grpcio-status",
         "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
-        "google-auth",
         "proto-plus",
         "google-cloud-testutils",
         # dependencies of google-cloud-testutils"
