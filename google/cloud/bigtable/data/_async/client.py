@@ -70,6 +70,7 @@ from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
+from google.cloud.bigtable.data._helpers import backoff_generator
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
@@ -79,6 +80,7 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 from google.cloud.bigtable.data._metrics import BigtableClientSideMetricsController
+from google.cloud.bigtable.data._metrics import OperationType
 
 
 if TYPE_CHECKING:
@@ -533,7 +535,6 @@ class TableAsync:
             table_id=table_id,
             app_profile_id=app_profile_id,
         )
-
         self.default_read_rows_retryable_errors = (
             default_read_rows_retryable_errors or ()
         )
@@ -560,6 +561,7 @@ class TableAsync:
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        **kwargs,
     ) -> AsyncIterable[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -584,7 +586,7 @@ class TableAsync:
             - an asynchronous iterator that yields rows returned by the query
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                will be chained with a RetryExceptionGroup containing GoogleAPICallError exceptions
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
@@ -593,11 +595,20 @@ class TableAsync:
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
 
+        # extract metric operation if passed down through kwargs
+        # used so that read_row can disable is_streaming flag
+        metric_operation = kwargs.pop("metric_operation", None)
+        if metric_operation is None:
+            metric_operation = self._metrics.create_operation(
+                OperationType.READ_ROWS, is_streaming=True
+            )
+
         row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metrics=metric_operation,
             retryable_exceptions=retryable_excs,
         )
         return row_merger.start_operation()
@@ -610,6 +621,7 @@ class TableAsync:
         attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        **kwargs,
     ) -> list[Row]:
         """
         Read a set of rows from the table, based on the specified query.
@@ -637,15 +649,16 @@ class TableAsync:
             - a list of Rows returned by the query
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                will be chained with a RetryExceptionGroup containing GoogleAPICallError exceptions
                 from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
+            - GoogleAPICallError: raised if the request encounters an unrecoverable error
         """
         row_generator = await self.read_rows_stream(
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
             retryable_errors=retryable_errors,
+            **kwargs,
         )
         return [row async for row in row_generator]
 
@@ -681,17 +694,21 @@ class TableAsync:
             - a Row object if the row exists, otherwise None
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                will be chained with a RetryExceptionGroup containing GoogleAPICallError exceptions
                 from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
+            - GoogleAPICallError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
+        metric_operation = self._metrics.create_operation(
+            OperationType.READ_ROWS, is_streaming=False
+        )
         query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metric_operation=metric_operation,
             retryable_errors=retryable_errors,
         )
         if len(results) == 0:
@@ -751,8 +768,8 @@ class TableAsync:
             for i in range(0, len(sharded_query), _CONCURRENCY_LIMIT)
         ]
         # run batches and collect results
-        results_list = []
-        error_dict = {}
+        results_list: list[Row] = []
+        error_dict: dict[int, Exception] = {}
         shard_idx = 0
         for batch in batched_queries:
             batch_operation_timeout = next(timeout_generator)
@@ -816,9 +833,9 @@ class TableAsync:
             - a bool indicating whether the row exists
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                will be chained with a RetryExceptionGroup containing GoogleAPICallError exceptions
                 from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
+            - GoogleAPICallError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
@@ -827,10 +844,14 @@ class TableAsync:
         limit_filter = CellsRowLimitFilter(1)
         chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
         query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
+        metric_operation = self._metrics.create_operation(
+            OperationType.READ_ROWS, is_streaming=False
+        )
         results = await self.read_rows(
             query,
             operation_timeout=operation_timeout,
             attempt_timeout=attempt_timeout,
+            metric_operation=metric_operation,
             retryable_errors=retryable_errors,
         )
         return len(results) > 0
@@ -869,9 +890,9 @@ class TableAsync:
             - a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
             - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
+                will be chained with a RetryExceptionGroup containing GoogleAPICallError exceptions
                 from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
+            - GoogleAPICallError: raised if the request encounters an unrecoverable error
         """
         # prepare timeouts
         operation_timeout, attempt_timeout = _get_timeouts(
@@ -884,28 +905,43 @@ class TableAsync:
         retryable_excs = _get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator()
 
         # prepare request
         metadata = _make_metadata(self.table_name, self.app_profile_id)
 
-        async def execute_rpc():
-            results = await self.client._gapic_client.sample_row_keys(
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                timeout=next(attempt_timeout_gen),
-                metadata=metadata,
-                retry=None,
-            )
-            return [(s.row_key, s.offset_bytes) async for s in results]
+        # wrap rpc in retry and metric collection logic
+        async with self._metrics.create_operation(
+            OperationType.SAMPLE_ROW_KEYS, backoff_generator=sleep_generator
+        ) as operation:
 
-        return await retries.retry_target_async(
-            execute_rpc,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
+            async def execute_rpc():
+                stream = await self.client._gapic_client.sample_row_keys(
+                    table_name=self.table_name,
+                    app_profile_id=self.app_profile_id,
+                    timeout=next(attempt_timeout_gen),
+                    metadata=metadata,
+                    retry=None,
+                )
+                samples = [(s.row_key, s.offset_bytes) async for s in stream]
+                # send metadata to metric collector
+                call_metadata = (
+                    await stream.trailing_metadata() + await stream.initial_metadata()
+                )
+                operation.add_response_metadata(call_metadata)
+                # return results
+                return samples
+
+            metric_wrapped = operation.wrap_attempt_fn(
+                execute_rpc, extract_call_metadata=False
+            )
+            return await retries.retry_target_async(
+                metric_wrapped,
+                predicate,
+                sleep_generator,
+                operation_timeout,
+                exception_factory=_retry_exception_factory,
+            )
 
     def mutations_batcher(
         self,
@@ -992,8 +1028,8 @@ class TableAsync:
         Raises:
              - DeadlineExceeded: raised after operation timeout
                  will be chained with a RetryExceptionGroup containing all
-                 GoogleAPIError exceptions from any retries that failed
-             - GoogleAPIError: raised on non-idempotent operations that cannot be
+                 GoogleAPICallError exceptions from any retries that failed
+             - GoogleAPICallError: raised on non-idempotent operations that cannot be
                  safely retried.
             - ValueError if invalid arguments are provided
         """
@@ -1014,25 +1050,34 @@ class TableAsync:
             # mutations should not be retried
             predicate = retries.if_exception_type()
 
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator()
 
-        target = partial(
-            self.client._gapic_client.mutate_row,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            mutations=[mutation._to_pb() for mutation in mutations_list],
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            timeout=attempt_timeout,
-            metadata=_make_metadata(self.table_name, self.app_profile_id),
-            retry=None,
-        )
-        return await retries.retry_target_async(
-            target,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
+        # wrap rpc in retry and metric collection logic
+        async with self._metrics.create_operation(
+            OperationType.MUTATE_ROW, backoff_generator=sleep_generator
+        ) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(
+                self.client._gapic_client.mutate_row
+            )
+            target = partial(
+                metric_wrapped,
+                row_key=row_key.encode("utf-8")
+                if isinstance(row_key, str)
+                else row_key,
+                mutations=[mutation._to_pb() for mutation in mutations_list],
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                timeout=attempt_timeout,
+                metadata=_make_metadata(self.table_name, self.app_profile_id),
+                retry=None,
+            )
+            return await retries.retry_target_async(
+                target,
+                predicate,
+                sleep_generator,
+                operation_timeout,
+                exception_factory=_retry_exception_factory,
+            )
 
     async def bulk_mutate_rows(
         self,
@@ -1085,6 +1130,7 @@ class TableAsync:
             mutation_entries,
             operation_timeout,
             attempt_timeout,
+            self._metrics.create_operation(OperationType.BULK_MUTATE_ROWS),
             retryable_exceptions=retryable_excs,
         )
         await operation.start()
@@ -1128,7 +1174,7 @@ class TableAsync:
         Returns:
             - bool indicating whether the predicate was true or false
         Raises:
-            - GoogleAPIError exceptions from grpc call
+            - GoogleAPICallError exceptions from grpc call
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and not isinstance(
@@ -1142,18 +1188,25 @@ class TableAsync:
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
         metadata = _make_metadata(self.table_name, self.app_profile_id)
-        result = await self.client._gapic_client.check_and_mutate_row(
-            true_mutations=true_case_list,
-            false_mutations=false_case_list,
-            predicate_filter=predicate._to_pb() if predicate is not None else None,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        return result.predicate_matched
+
+        async with self._metrics.create_operation(
+            OperationType.CHECK_AND_MUTATE
+        ) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(
+                self.client._gapic_client.check_and_mutate_row
+            )
+            result = await metric_wrapped(
+                true_mutations=true_case_list,
+                false_mutations=false_case_list,
+                predicate_filter=predicate._to_pb() if predicate is not None else None,
+                row_key=row_key.encode() if isinstance(row_key, str) else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                metadata=metadata,
+                timeout=operation_timeout,
+                retry=None,
+            )
+            return result.predicate_matched
 
     async def read_modify_write_row(
         self,
@@ -1183,7 +1236,7 @@ class TableAsync:
             - Row: containing cell data that was modified as part of the
                 operation
         Raises:
-            - GoogleAPIError exceptions from grpc call
+            - GoogleAPICallError exceptions from grpc call
             - ValueError if invalid arguments are provided
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
@@ -1194,17 +1247,25 @@ class TableAsync:
         if not rules:
             raise ValueError("rules must contain at least one item")
         metadata = _make_metadata(self.table_name, self.app_profile_id)
-        result = await self.client._gapic_client.read_modify_write_row(
-            rules=[rule._to_pb() for rule in rules],
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        # construct Row from result
-        return Row._from_pb(result.row)
+
+        async with self._metrics.create_operation(
+            OperationType.READ_MODIFY_WRITE
+        ) as operation:
+            metric_wrapped = operation.wrap_attempt_fn(
+                self.client._gapic_client.read_modify_write_row
+            )
+
+            result = await metric_wrapped(
+                rules=[rule._to_pb() for rule in rules],
+                row_key=row_key.encode() if isinstance(row_key, str) else row_key,
+                table_name=self.table_name,
+                app_profile_id=self.app_profile_id,
+                metadata=metadata,
+                timeout=operation_timeout,
+                retry=None,
+            )
+            # construct Row from result
+            return Row._from_pb(result.row)
 
     async def close(self):
         """

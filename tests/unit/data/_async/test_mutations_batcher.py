@@ -903,7 +903,8 @@ class TestMutationsBatcherAsync:
         table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
-            result = await instance._execute_mutate_rows(batch)
+            mock_metric = mock.Mock()
+            result = await instance._execute_mutate_rows(batch, mock_metric)
             assert start_operation.call_count == 1
             args, kwargs = mutate_rows.call_args
             assert args[0] == table.client._gapic_client
@@ -911,6 +912,7 @@ class TestMutationsBatcherAsync:
             assert args[2] == batch
             kwargs["operation_timeout"] == 17
             kwargs["attempt_timeout"] == 13
+            kwargs["metrics"] == mock_metric
             assert result == []
 
     @pytest.mark.asyncio
@@ -933,7 +935,7 @@ class TestMutationsBatcherAsync:
         table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
             batch = [_make_mutation()]
-            result = await instance._execute_mutate_rows(batch)
+            result = await instance._execute_mutate_rows(batch, mock.Mock())
             assert len(result) == 2
             assert result[0] == err1
             assert result[1] == err2
@@ -1058,7 +1060,7 @@ class TestMutationsBatcherAsync:
             assert instance._operation_timeout == expected_operation_timeout
             assert instance._attempt_timeout == expected_attempt_timeout
             # make simulated gapic call
-            await instance._execute_mutate_rows([_make_mutation()])
+            await instance._execute_mutate_rows([_make_mutation()], mock.Mock())
             assert mutate_rows.call_count == 1
             kwargs = mutate_rows.call_args[1]
             assert kwargs["operation_timeout"] == expected_operation_timeout
@@ -1174,7 +1176,8 @@ class TestMutationsBatcherAsync:
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
                     mutation = _make_mutation(count=1, size=1)
-                    await instance._execute_mutate_rows([mutation])
+                    predicate_builder_mock.reset_mock()
+                    await instance._execute_mutate_rows([mutation], mock.Mock())
                     # passed in errors should be used to build the predicate
                     predicate_builder_mock.assert_called_once_with(
                         *expected_retryables, _MutateRowsIncomplete
@@ -1182,3 +1185,37 @@ class TestMutationsBatcherAsync:
                     retry_call_args = retry_fn_mock.call_args_list[0].args
                     # output of if_exception_type should be sent in to retry constructor
                     assert retry_call_args[1] is expected_predicate
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("sleep_time,flow_size", [(0, 10), (0.1, 1), (0.01, 10)])
+    async def test_flow_throttling_metric(self, sleep_time, flow_size):
+        """
+        When there are delays due to waiting on flow control,
+        should be reflected in operation metric's flow_throttling_time
+        """
+        import time
+        from google.cloud.bigtable.data._metrics import (
+            BigtableClientSideMetricsController,
+        )
+        from google.cloud.bigtable.data._metrics import ActiveOperationMetric
+
+        # create mock call
+        async def mock_add_to_flow():
+            time.sleep(sleep_time)
+            for _ in range(flow_size):
+                await asyncio.sleep(0)
+                yield mock.Mock()
+
+        mock_instance = mock.Mock()
+        mock_instance._wait_for_batch_results.return_value = asyncio.sleep(0)
+        mock_instance._entries_processed_since_last_raise = 0
+        mock_instance._table._metrics = BigtableClientSideMetricsController([])
+        mock_instance._flow_control.add_to_flow.return_value = mock_add_to_flow()
+        await self._get_target_class()._flush_internal(mock_instance, [])
+        # get list of metrics
+        mock_bg_task = mock_instance._create_bg_task
+        metric_list = [arg[0][-1] for arg in mock_bg_task.call_args_list]
+        # make sure operations were set up as expected
+        assert len(metric_list) == flow_size
+        assert all([isinstance(m, ActiveOperationMetric) for m in metric_list])
+        assert abs(metric_list[0].flow_throttling_time - sleep_time) < 0.002

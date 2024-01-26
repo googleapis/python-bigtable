@@ -783,6 +783,27 @@ class TestActiveOperationMetric:
         assert metric.completed_attempts[0].end_status == StatusCode.OK
 
     @pytest.mark.asyncio
+    async def test_wrap_attempt_fn_success_extract_call_metadata(self):
+        """
+        When extract_call_metadata is True, should call add_response_metadata
+        on operation with output of wrapped function
+        """
+        from .._async.test_client import mock_grpc_call
+
+        metric = self._make_one(object())
+        async with metric as context:
+            mock_call = mock_grpc_call()
+            inner_fn = lambda *args, **kwargs: mock_call  # noqa
+            wrapped_fn = context.wrap_attempt_fn(inner_fn, extract_call_metadata=True)
+            with mock.patch.object(
+                metric, "add_response_metadata"
+            ) as mock_add_metadata:
+                # make the wrapped call
+                result = await wrapped_fn()
+                assert result == mock_call
+                assert mock_add_metadata.call_count == 1
+
+    @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_extract_call_metadata(self):
         """
         When extract_call_metadata is True, should call add_response_metadata

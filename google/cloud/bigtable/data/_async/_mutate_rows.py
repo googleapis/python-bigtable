@@ -25,6 +25,7 @@ import google.cloud.bigtable.data.exceptions as bt_exceptions
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import backoff_generator
 
 # mutate_rows requests are limited to this number of mutations
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     )
     from google.cloud.bigtable.data.mutations import RowMutationEntry
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data._metrics import ActiveOperationMetric
 
 
 @dataclass
@@ -65,6 +67,7 @@ class _MutateRowsOperationAsync:
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
+        metrics: ActiveOperationMetric,
         retryable_exceptions: Sequence[type[Exception]] = (),
     ):
         """
@@ -75,6 +78,8 @@ class _MutateRowsOperationAsync:
           - operation_timeout: the timeout to use for the entire operation, in seconds.
           - attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
               If not specified, the request will run until operation_timeout is reached.
+          - metrics: the metrics object to use for tracking the operation
+          - retryable_exceptions: a list of exceptions that should be retried
         """
         # check that mutations are within limits
         total_mutations = sum(len(entry.mutations) for entry in mutation_entries)
@@ -100,7 +105,7 @@ class _MutateRowsOperationAsync:
             # Entry level errors
             bt_exceptions._MutateRowsIncomplete,
         )
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
+        sleep_generator = backoff_generator(0.01, 2, 60)
         self._operation = retries.retry_target_async(
             self._run_attempt,
             self.is_retryable,
@@ -115,6 +120,9 @@ class _MutateRowsOperationAsync:
         self.mutations = [_EntryWithProto(m, m._to_pb()) for m in mutation_entries]
         self.remaining_indices = list(range(len(self.mutations)))
         self.errors: dict[int, list[Exception]] = {}
+        # set up metrics
+        metrics.backoff_generator = sleep_generator
+        self._operation_metrics = metrics
 
     async def start(self):
         """
@@ -148,9 +156,13 @@ class _MutateRowsOperationAsync:
                     bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
                 )
             if all_errors:
-                raise bt_exceptions.MutationsExceptionGroup(
+                combined_exc = bt_exceptions.MutationsExceptionGroup(
                     all_errors, len(self.mutations)
                 )
+                self._operation_metrics.end_with_status(combined_exc)
+                raise combined_exc
+            else:
+                self._operation_metrics.end_with_success()
 
     async def _run_attempt(self):
         """
@@ -161,6 +173,8 @@ class _MutateRowsOperationAsync:
               retry after the attempt is complete
           - GoogleAPICallError: if the gapic rpc fails
         """
+        # register attempt start
+        self._operation_metrics.start_attempt()
         request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
         # track mutations in this request that have not been finalized yet
         active_request_indices = {
@@ -177,34 +191,47 @@ class _MutateRowsOperationAsync:
                 entries=request_entries,
                 retry=None,
             )
-            async for result_list in result_generator:
-                for result in result_list.entries:
-                    # convert sub-request index to global index
-                    orig_idx = active_request_indices[result.index]
-                    entry_error = core_exceptions.from_grpc_status(
-                        result.status.code,
-                        result.status.message,
-                        details=result.status.details,
-                    )
-                    if result.status.code != 0:
-                        # mutation failed; update error list (and remaining_indices if retryable)
-                        self._handle_entry_error(orig_idx, entry_error)
-                    elif orig_idx in self.errors:
-                        # mutation succeeded; remove from error list
-                        del self.errors[orig_idx]
-                    # remove processed entry from active list
-                    del active_request_indices[result.index]
+            try:
+                async for result_list in result_generator:
+                    for result in result_list.entries:
+                        # convert sub-request index to global index
+                        orig_idx = active_request_indices[result.index]
+                        entry_error = core_exceptions.from_grpc_status(
+                            result.status.code,
+                            result.status.message,
+                            details=result.status.details,
+                        )
+                        if result.status.code != 0:
+                            # mutation failed; update error list (and remaining_indices if retryable)
+                            self._handle_entry_error(orig_idx, entry_error)
+                        elif orig_idx in self.errors:
+                            # mutation succeeded; remove from error list
+                            del self.errors[orig_idx]
+                        # remove processed entry from active list
+                        del active_request_indices[result.index]
+            finally:
+                # send trailing metadata to metrics
+                result_generator.cancel()
+                metadata = (
+                    await result_generator.trailing_metadata()
+                    + await result_generator.initial_metadata()
+                )
+                self._operation_metrics.add_response_metadata(metadata)
         except Exception as exc:
             # add this exception to list for each mutation that wasn't
             # already handled, and update remaining_indices if mutation is retryable
             for idx in active_request_indices.values():
                 self._handle_entry_error(idx, exc)
+            # record attempt failure metric
+            self._operation_metrics.end_attempt_with_status(exc)
             # bubble up exception to be handled by retry wrapper
             raise
         # check if attempt succeeded, or needs to be retried
         if self.remaining_indices:
             # unfinished work; raise exception to trigger retry
-            raise bt_exceptions._MutateRowsIncomplete
+            last_exc = self.errors[self.remaining_indices[-1]][-1]
+            self._operation_metrics.end_attempt_with_status(last_exc)
+            raise bt_exceptions._MutateRowsIncomplete()
 
     def _handle_entry_error(self, idx: int, exc: Exception):
         """
