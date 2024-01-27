@@ -33,26 +33,32 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 
+# by default, exceptions in the metrics system are logged,
+# but enabling this flag causes them to be raised instead
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 LOGGER = (
     logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
 )
 
+# default values for zone and cluster data, if not captured
 DEFAULT_ZONE = "global"
 DEFAULT_CLUSTER_ID = "unspecified"
 
+# keys for parsing metadata blobs
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
-
 SERVER_TIMING_REGEX = re.compile(r"gfet4t7; dur=(\d+)")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
 
-# create a named tuple that holds the clock time, and a more accurate monotonic timestamp
-# this allows us to be resistent to clock changes, eg DST
 @dataclass(frozen=True)
 class TimeTuple:
+    """
+    Tuple that holds both the utc timestamp to record with the metrics, and a
+    monotonic timestamp for calculating durations. The monotonic timestamp is
+    preferred for calculations because it is resilient to clock changes, eg DST
+    """
     utc: datetime.datetime = field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
@@ -82,7 +88,8 @@ class OperationState(Enum):
 @dataclass(frozen=True)
 class CompletedAttemptMetric:
     """
-    A dataclass representing the data associated with a completed rpc attempt.
+    An immutable dataclass representing the data associated with a
+    completed rpc attempt.
     """
 
     start_time: datetime.datetime
@@ -98,7 +105,8 @@ class CompletedAttemptMetric:
 @dataclass(frozen=True)
 class CompletedOperationMetric:
     """
-    A dataclass representing the data associated with a completed rpc operation.
+    An immutable dataclass representing the data associated with a
+    completed rpc operation.
     """
 
     op_type: OperationType
@@ -114,6 +122,10 @@ class CompletedOperationMetric:
 
 @dataclass
 class ActiveAttemptMetric:
+    """
+    A dataclass representing the data associated with an rpc attempt that is
+    currently in progress. Fields are mutable and may be optional.
+    """
     # keep both clock time and monotonic timestamps for active attempts
     start_time: TimeTuple = field(default_factory=TimeTuple)
     # the time it takes to recieve the first response from the server
@@ -135,7 +147,7 @@ class ActiveAttemptMetric:
 class ActiveOperationMetric:
     """
     A dataclass representing the data associated with an rpc operation that is
-    currently in progress.
+    currently in progress. Fields are mutable and may be optional.
     """
 
     op_type: OperationType
@@ -423,6 +435,10 @@ class ActiveOperationMetric:
     async def __aenter__(self):
         """
         Implements the async context manager protocol for wrapping unary calls
+
+        Using the operation's context manager provides assurances that the operation
+        is always closed when complete, with the proper status code automaticallty 
+        detected when an exception is raised.
         """
         return self._AsyncContextManager(self)
 
