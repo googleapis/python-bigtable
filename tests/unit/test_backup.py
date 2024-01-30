@@ -98,6 +98,7 @@ def test_backup_constructor_explicit():
     assert backup._end_time is None
     assert backup._size_bytes is None
     assert backup._state is None
+    assert backup.source_backup is None
 
 
 def test_backup_from_pb_w_project_mismatch():
@@ -912,6 +913,172 @@ def test_backup_test_iam_permissions():
     assert result == permissions
     table_api.test_iam_permissions.assert_called_once_with(
         request={"resource": backup.name, "permissions": permissions}
+    )
+
+
+def test_backup_copy():
+
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+    backup.copy(copy_backup_id)
+
+    api.copy_backup.assert_called_once_with(
+        request={
+            "parent": CLUSTER_NAME,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp,
+        }
+    )
+
+
+def test_backup_with_source_backup():
+
+    client = _Client()
+    timestamp = _make_timestamp()
+
+    copy_backup_id = "copied-backup"
+    copied_backup = _make_backup(
+        copy_backup_id,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+        source_backup=BACKUP_ID,
+    )
+
+    assert copied_backup.source_backup == BACKUP_ID
+
+
+def test_backup_copy_w_expire_time():
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+
+    timestamp_new = _make_timestamp()
+    backup.copy(copy_backup_id, expire_time=timestamp_new)
+
+    api.copy_backup.assert_called_once_with(
+        request={
+            "parent": CLUSTER_NAME,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp_new,
+        }
+    )
+
+
+def test_backup_copy_w_project_id():
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+    project_id = "project-id"
+    backup.copy(copy_backup_id, project_id=project_id)
+
+    expected_parent_path = (
+        f"projects/{project_id}/instances/{INSTANCE_ID}/clusters/{CLUSTER_ID}"
+    )
+
+    api.copy_backup.assert_called_once_with(
+        request={
+            "parent": expected_parent_path,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp,
+        }
+    )
+
+
+def test_backup_copy_w_instance_id():
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+    instance_id = "instance-id"
+    backup.copy(copy_backup_id, instance_id=instance_id)
+
+    expected_parent_path = (
+        f"projects/{PROJECT_ID}/instances/{instance_id}/clusters/{CLUSTER_ID}"
+    )
+
+    api.copy_backup.assert_called_once_with(
+        request={
+            "parent": expected_parent_path,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp,
+        }
+    )
+
+
+def test_backup_copy_w_cluster_id():
+    client = _Client()
+    api = client.table_admin_client = _make_table_admin_client()
+
+    timestamp = _make_timestamp()
+
+    backup = _make_backup(
+        BACKUP_ID,
+        _Instance(INSTANCE_NAME, client=client),
+        cluster_id=CLUSTER_ID,
+        table_id=TABLE_ID,
+        expire_time=timestamp,
+    )
+    copy_backup_id = "copied-backup"
+    cluster_id = "cluster-id"
+    backup.copy(copy_backup_id, cluster_id=cluster_id)
+
+    expected_parent_path = (
+        f"projects/{PROJECT_ID}/instances/{INSTANCE_ID}/clusters/{cluster_id}"
+    )
+
+    api.copy_backup.assert_called_once_with(
+        request={
+            "parent": expected_parent_path,
+            "backup_id": copy_backup_id,
+            "source_backup": backup.name,
+            "expire_time": timestamp,
+        }
     )
 
 

@@ -65,6 +65,9 @@ class Backup(object):
     :param expire_time: (Optional) The expiration time after which the Backup
                         will be automatically deleted. Required if the `create`
                         method will be called.
+
+    :type source_backup: str
+    :param source_backup: (Optional) The name of the source of this Backup.
     """
 
     def __init__(
@@ -75,6 +78,7 @@ class Backup(object):
         table_id=None,
         expire_time=None,
         encryption_info=None,
+        source_backup=None,
     ):
         self.backup_id = backup_id
         self._instance = instance
@@ -82,6 +86,7 @@ class Backup(object):
         self.table_id = table_id
         self._expire_time = expire_time
         self._encryption_info = encryption_info
+        self._source_backup = source_backup
 
         self._parent = None
         self._source_table = None
@@ -231,6 +236,16 @@ class Backup(object):
         """
         return self._state
 
+    @property
+    def source_backup(self):
+        """
+        The source of this Backup
+
+        :rtype: str
+        :returns: The name of the source of this Backup
+        """
+        return self._source_backup
+
     @classmethod
     def from_pb(cls, backup_pb, instance):
         """Creates a Backup instance from a protobuf message.
@@ -273,6 +288,7 @@ class Backup(object):
 
         expire_time = backup_pb._pb.expire_time
         encryption_info = EncryptionInfo._from_pb(backup_pb.encryption_info)
+        source_backup = backup_pb.source_backup
 
         backup = cls(
             backup_id,
@@ -281,6 +297,7 @@ class Backup(object):
             table_id=table_id,
             expire_time=expire_time,
             encryption_info=encryption_info,
+            source_backup=source_backup,
         )
         backup._start_time = backup_pb._pb.start_time
         backup._end_time = backup_pb._pb.end_time
@@ -339,6 +356,68 @@ class Backup(object):
             }
         )
 
+    def copy(
+        self,
+        new_backup_id,
+        project_id=None,
+        instance_id=None,
+        cluster_id=None,
+        expire_time=None,
+    ):
+        """Make a copy of this backup.
+
+        :type new_backup_id: str
+        :param new_backup_id: The name of the copied backup
+
+        :type project_id: str
+        :param project_id: (Optional) The destination project id for the backup
+
+        :type instance_id: str
+        :param instance_id: (Optional) The destination instance for the backup
+
+        :type cluster_id: str
+        :param cluster_id: (Optional) The destination cluster for the backup
+
+        :type expire_time: :class:`datetime.datetime`
+        :param expire_time: (Optional) the new expiration time timestamp
+
+        :rtype: :class:`~google.api_core.operation.Operation`
+        :returns: :class:`~google.cloud.bigtable_admin_v2.types._OperationFuture`
+                  instance, to be used to poll the status of the 'copy' request
+        :raises Conflict: if the Backup already exists
+        :raises NotFound: if the Instance owning the Backup does not exist
+        :raises BadRequest: if the `table` or `expire_time` values are invalid,
+                            or `expire_time` is not set
+        """
+        if not expire_time:
+            expire_time = self._expire_time
+
+        if not project_id:
+            project_id = self._instance._client.project
+
+        if not instance_id:
+            instance_id = self._instance.instance_id
+
+        if not cluster_id:
+            cluster_id = self._cluster
+
+        api = self._instance._client.table_admin_client
+
+        parent = BigtableTableAdminClient.cluster_path(
+            project=project_id,
+            instance=instance_id,
+            cluster=cluster_id,
+        )
+
+        return api.copy_backup(
+            request={
+                "parent": parent,
+                "backup_id": new_backup_id,
+                "source_backup": self.name,
+                "expire_time": expire_time,
+            }
+        )
+
     def get(self):
         """Retrieves metadata of a pending or completed Backup.
 
@@ -366,6 +445,7 @@ class Backup(object):
         self._end_time = backup._pb.end_time
         self._size_bytes = backup._pb.size_bytes
         self._state = backup._pb.state
+        self._source_backup = backup.source_backup
 
     def exists(self):
         """Tests whether this Backup exists.
