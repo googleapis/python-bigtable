@@ -64,7 +64,7 @@ INSTRUMENT_NAMES = (
     "operation_latencies",
     "first_response_latencies",
     "attempt_latencies",
-    "retry_counts",
+    "retry_count",
     "server_latencies",
     "connectivity_error_count",
     "application_latencies",
