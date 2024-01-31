@@ -83,11 +83,17 @@ def get_metric(metric_name, project_id, instance_id, table_id):
 
 
 @pytest.mark.asyncio
-async def test_attempt_latencies(table_with_metrics, project_id, instance_id, table_id):
+@pytest.mark.parametrize("latency_type", ["operation", "attempt", "server"])
+async def test_latencies(table_with_metrics, project_id, instance_id, table_id, latency_type):
+    """
+    Shared tests for operation_latencies, attempt_latencies, and server_latencies
+
+    These values should all have the same metadata, so we can share test logic
+    """
     from google.cloud.bigtable import __version__
     from google.cloud.bigtable.data._metrics.data_model import OperationType
     from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import MILLIS_AGGREGATION
-    found_metrics = get_metric("attempt_latencies", project_id, instance_id, table_id)
+    found_metrics = get_metric(f"{latency_type}_latencies", project_id, instance_id, table_id)
     # check proper units
     assert all(r.metric_kind == 2 for r in found_metrics)  # DELTA
     assert all(r.value_type == 5 for r in found_metrics)  # DISTRIBUTION
@@ -95,6 +101,8 @@ async def test_attempt_latencies(table_with_metrics, project_id, instance_id, ta
     # should have at least one example for each metric type
     for op_type in OperationType:
         assert any(r.metric.labels["method"] == op_type.value for r in found_metrics)
+    # should have 5 labels: status, method, client_name, streaming, app_profile
+    assert all(len(r.resource.labels) == 5 for r in found_metrics)
     # should all have successful status
     assert all(r.metric.labels["status"] == "0" for r in found_metrics)
     # should all have client_name set
