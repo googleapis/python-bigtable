@@ -1,2 +1,0 @@
-recursive-include google/cloud/bigtable_admin *.py
-recursive-include google/cloud/bigtable_admin_v2 *.py
