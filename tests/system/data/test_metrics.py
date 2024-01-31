@@ -59,7 +59,7 @@ async def table_with_metrics(client, table_id, instance_id):
 
 
 @retry.Retry(predicate=retry.if_exception_type(NotFound), initial=1, maximum=5)
-def get_metric(metric_name, project_id, instance_id, table_id):
+def get_metric(metric_name, project_id, instance_id, table_id, expect_all_methods=True):
     from google.cloud.monitoring_v3 import MetricServiceClient
     from google.cloud.monitoring_v3.types.common import TimeInterval
     from google.protobuf.timestamp_pb2 import Timestamp
@@ -77,14 +77,14 @@ def get_metric(metric_name, project_id, instance_id, table_id):
     response = list(response)
     for r in response:
         metric_map.setdefault(r.metric.labels["method"], []).append(r)
-    if len(metric_map.keys()) < 6:
+    if expect_all_methods and len(metric_map.keys()) < 6:
         raise NotFound("Missing expected metrics")
     return response
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("latency_type", ["operation", "attempt", "server"])
-async def test_latencies(table_with_metrics, project_id, instance_id, table_id, latency_type):
+async def test_generic_latencies(table_with_metrics, project_id, instance_id, table_id, latency_type):
     """
     Shared tests for operation_latencies, attempt_latencies, and server_latencies
 
@@ -102,7 +102,7 @@ async def test_latencies(table_with_metrics, project_id, instance_id, table_id, 
     for op_type in OperationType:
         assert any(r.metric.labels["method"] == op_type.value for r in found_metrics)
     # should have 5 labels: status, method, client_name, streaming, app_profile
-    assert all(len(r.resource.labels) == 5 for r in found_metrics)
+    assert all(len(r.metric.labels) == 5 for r in found_metrics)
     # should all have successful status
     assert all(r.metric.labels["status"] == "0" for r in found_metrics)
     # should all have client_name set
@@ -116,6 +116,7 @@ async def test_latencies(table_with_metrics, project_id, instance_id, table_id, 
     assert all(r.metric.labels["app_profile"] == APP_PROFILE for r in found_metrics)
     # should have resouce populated
     assert all(r.resource.type == "bigtable_table" for r in found_metrics)
+    assert all(len(r.resource.labels) == 5 for r in found_metrics)
     assert all(r.resource.labels["instance"] == instance_id for r in found_metrics)
     assert all(r.resource.labels["table"] == table_id for r in found_metrics)
     assert all(r.resource.labels["project_id"] == project_id for r in found_metrics)
@@ -125,6 +126,90 @@ async def test_latencies(table_with_metrics, project_id, instance_id, table_id, 
     all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
     assert all(v.count > 0 for v in all_values)
     assert all(v.mean > 0 for v in all_values)
+    assert all(v.mean < 5 for v in all_values)
+    # should have buckets populated
+    assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
+
+
+@pytest.mark.asyncio
+async def test_first_response_latencies(table_with_metrics, project_id, instance_id, table_id):
+    """
+    Shared tests for first_response_latencies
+
+    Unlike other latencies, this one is only tracked for read_rows requests. And does not track streaming
+    """
+    from google.cloud.bigtable import __version__
+    from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import MILLIS_AGGREGATION
+    found_metrics = get_metric("first_response_latencies", project_id, instance_id, table_id, expect_all_methods=False)
+    # check proper units
+    assert all(r.metric_kind == 2 for r in found_metrics)  # DELTA
+    assert all(r.value_type == 5 for r in found_metrics)  # DISTRIBUTION
+
+    # should only have ReadRows
+    assert all(r.metric.labels["method"] == "ReadRows" for r in found_metrics)
+    # should have 5 labels: status, method, client_name, app_profile
+    assert all(len(r.metric.labels) == 4 for r in found_metrics)
+    # should all have successful status
+    assert all(r.metric.labels["status"] == "0" for r in found_metrics)
+    # should all have client_name set
+    assert all(r.metric.labels["client_name"] == f"python-bigtable/{__version__}" for r in found_metrics)
+    # should have app_profile set
+    assert all(r.metric.labels["app_profile"] == APP_PROFILE for r in found_metrics)
+    # should have resouce populated
+    assert all(r.resource.type == "bigtable_table" for r in found_metrics)
+    assert all(len(r.resource.labels) == 5 for r in found_metrics)
+    assert all(r.resource.labels["instance"] == instance_id for r in found_metrics)
+    assert all(r.resource.labels["table"] == table_id for r in found_metrics)
+    assert all(r.resource.labels["project_id"] == project_id for r in found_metrics)
+    assert all(r.resource.labels["zone"] == TEST_ZONE for r in found_metrics)
+    assert all(r.resource.labels["cluster"] == TEST_CLUSTER for r in found_metrics)
+    # should have reasonable point values
+    all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
+    assert all(v.count > 0 for v in all_values)
+    assert all(v.mean > 0 for v in all_values)
+    assert all(v.mean < 5 for v in all_values)
+    # should have buckets populated
+    assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("latency_type", ["application_blocking", "client_blocking"])
+async def test_blocking_latencies(table_with_metrics, project_id, instance_id, table_id, latency_type):
+    """
+    Shared tests for application_blocking_latencies and client_blocking_latencies
+
+    These values should all have the same metadata, so we can share test logic
+    Unlike the other latencies, these don't track status or streaming fields
+    """
+    from google.cloud.bigtable import __version__
+    from google.cloud.bigtable.data._metrics.data_model import OperationType
+    from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import MILLIS_AGGREGATION
+    found_metrics = get_metric(f"{latency_type}_latencies", project_id, instance_id, table_id)
+    # check proper units
+    assert all(r.metric_kind == 2 for r in found_metrics)  # DELTA
+    assert all(r.value_type == 5 for r in found_metrics)  # DISTRIBUTION
+
+    # should have at least one example for each metric type
+    for op_type in OperationType:
+        assert any(r.metric.labels["method"] == op_type.value for r in found_metrics)
+    # should have 3 labels: method, client_name, app_profile
+    assert all(len(r.metric.labels) == 3 for r in found_metrics)
+    # should all have client_name set
+    assert all(r.metric.labels["client_name"] == f"python-bigtable/{__version__}" for r in found_metrics)
+    # should have app_profile set
+    assert all(r.metric.labels["app_profile"] == APP_PROFILE for r in found_metrics)
+    # should have resouce populated
+    assert all(r.resource.type == "bigtable_table" for r in found_metrics)
+    assert all(len(r.resource.labels) == 5 for r in found_metrics)
+    assert all(r.resource.labels["instance"] == instance_id for r in found_metrics)
+    assert all(r.resource.labels["table"] == table_id for r in found_metrics)
+    assert all(r.resource.labels["project_id"] == project_id for r in found_metrics)
+    assert all(r.resource.labels["zone"] == TEST_ZONE for r in found_metrics)
+    assert all(r.resource.labels["cluster"] == TEST_CLUSTER for r in found_metrics)
+    # should have reasonable point values
+    all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
+    assert all(v.count > 0 for v in all_values)
+    assert all(v.mean >= 0 for v in all_values)
     assert all(v.mean < 5 for v in all_values)
     # should have buckets populated
     assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
