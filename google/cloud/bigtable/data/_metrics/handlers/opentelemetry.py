@@ -13,7 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from uuid import uuid4
+import os
+import socket
+import uuid
 
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
@@ -131,12 +133,31 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         # fixed labels sent with each metric update
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
-            "client_uid": client_uid or str(uuid4()),
+            "client_uid": client_uid or self._generate_client_uid(),
             "resource_project": project_id,
             "resource_instance": instance_id,
             "resource_table": table_id,
             "app_profile_id": app_profile_id or "default",
         }
+
+    @staticmethod
+    def _generate_client_uid():
+        """
+        client_uid will take the format `python-<uuid><pid>@<hostname>` where uuid is a
+        random value, pid is the process id, and hostname is the hostname of the machine.
+
+        If not found, localhost will be used in place of hostname, and a random number
+        will be used in place of pid.
+        """
+        try:
+            hostname = socket.gethostname() or "localhost"
+        except Exception:
+            hostname = "localhost"
+        try:
+            pid = os.getpid() or ""
+        except Exception:
+            pid = ""
+        return f"python-{uuid.uuid4()}-{pid}@{hostname}"
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         """

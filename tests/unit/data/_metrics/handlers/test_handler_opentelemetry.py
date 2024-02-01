@@ -118,6 +118,30 @@ class TestOpenTelemetryMetricsHandler:
         assert "app_profile" not in instance.shared_labels
         assert len(instance.shared_labels) == 5
 
+    def test__generate_client_uid(self):
+        """
+        Should generate a unique id with format `python-<uuid><pid>@<hostname>`
+        """
+        import re
+        instance = self._make_one()
+        # test with random values
+        uid = instance._generate_client_uid()
+        assert re.match(r"python-[a-f0-9-]+-[0-9]+@\w+", uid)
+        assert isinstance(uid, str)
+        # test with fixed mocks
+        with mock.patch("os.getpid", return_value="pid"):
+            with mock.patch("socket.gethostname", return_value="google.com"):
+                with mock.patch("uuid.uuid4", return_value="uuid"):
+                    uid = instance._generate_client_uid()
+                    assert uid == "python-uuid-pid@google.com"
+        # test with exceptions
+        with mock.patch("os.getpid", side_effect=Exception):
+            with mock.patch("socket.gethostname", side_effect=Exception):
+                with mock.patch("uuid.uuid4", return_value="uuid"):
+                    uid = instance._generate_client_uid()
+                    assert uid == "python-uuid-@localhost"
+
+
     @pytest.mark.parametrize(
         "metric_name,kind,optional_labels",
         [
