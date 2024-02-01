@@ -115,8 +115,8 @@ class TestOpenTelemetryMetricsHandler:
         assert instance.shared_labels["resource_project"] == "p"
         assert instance.shared_labels["resource_instance"] == "i"
         assert instance.shared_labels["resource_table"] == "t"
-        assert "app_profile" not in instance.shared_labels
-        assert len(instance.shared_labels) == 5
+        assert instance.shared_labels["app_profile"] == "default"
+        assert len(instance.shared_labels) == 6
 
     def test__generate_client_uid(self):
         """

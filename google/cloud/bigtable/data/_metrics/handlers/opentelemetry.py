@@ -137,7 +137,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "resource_project": project_id,
             "resource_instance": instance_id,
             "resource_table": table_id,
-            "app_profile_id": app_profile_id or "default",
+            "app_profile": app_profile_id or "default",
         }
 
     @staticmethod
