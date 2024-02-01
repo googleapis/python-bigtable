@@ -57,6 +57,7 @@ class TimeTuple:
     monotonic timestamp for calculating durations. The monotonic timestamp is
     preferred for calculations because it is resilient to clock changes, eg DST
     """
+
     utc: datetime.datetime = field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
@@ -124,6 +125,7 @@ class ActiveAttemptMetric:
     A dataclass representing the data associated with an rpc attempt that is
     currently in progress. Fields are mutable and may be optional.
     """
+
     # keep both clock time and monotonic timestamps for active attempts
     start_time: TimeTuple = field(default_factory=TimeTuple)
     # the time it takes to recieve the first response from the server
@@ -434,7 +436,7 @@ class ActiveOperationMetric:
         Implements the async context manager protocol for wrapping unary calls
 
         Using the operation's context manager provides assurances that the operation
-        is always closed when complete, with the proper status code automaticallty 
+        is always closed when complete, with the proper status code automaticallty
         detected when an exception is raised.
         """
         return self._AsyncContextManager(self)
