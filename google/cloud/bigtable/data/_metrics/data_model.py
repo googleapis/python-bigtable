@@ -36,9 +36,7 @@ if TYPE_CHECKING:
 # by default, exceptions in the metrics system are logged,
 # but enabling this flag causes them to be raised instead
 ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
-LOGGER = (
-    logging.getLogger(__name__) if os.getenv("BIGTABLE_METRICS_LOGS", False) else None
-)
+LOGGER = logging.getLogger(__name__)
 
 # default values for zone and cluster data, if not captured
 DEFAULT_ZONE = "global"
@@ -429,8 +427,7 @@ class ActiveOperationMetric:
         full_message = f"Error in Bigtable Metrics: {message}"
         if ALLOW_METRIC_EXCEPTIONS:
             raise ValueError(full_message)
-        if LOGGER:
-            LOGGER.warning(full_message)
+        LOGGER.warning(full_message)
 
     async def __aenter__(self):
         """
