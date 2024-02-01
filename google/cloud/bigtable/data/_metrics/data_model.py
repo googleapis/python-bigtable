@@ -28,6 +28,8 @@ from dataclasses import field
 from grpc import StatusCode
 
 import google.cloud.bigtable.data.exceptions as bt_exceptions
+from google.cloud.bigtable_v2.types.response_params import ResponseParams
+from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
@@ -229,12 +231,16 @@ class ActiveOperationMetric:
                 INVALID_STATE_ERROR.format("add_response_metadata", self.state)
             )
         if self.cluster_id is None or self.zone is None:
-            # BIGTABLE_METADATA_KEY should give a binary string with cluster_id and zone
+            # BIGTABLE_METADATA_KEY should give a binary-encoded ResponseParams proto
             blob = cast(bytes, metadata.get(BIGTABLE_METADATA_KEY))
             if blob:
                 parse_result = self._parse_response_metadata_blob(blob)
                 if parse_result is not None:
-                    self.zone, self.cluster_id = parse_result
+                    cluster, zone = parse_result
+                    if cluster:
+                        self.cluster_id = cluster
+                    if zone:
+                        self.zone = zone
                 else:
                     self._handle_error(
                         f"Failed to decode {BIGTABLE_METADATA_KEY} metadata: {blob!r}"
@@ -251,24 +257,19 @@ class ActiveOperationMetric:
     @lru_cache(maxsize=32)
     def _parse_response_metadata_blob(blob: bytes) -> Tuple[str, str] | None:
         """
-        Parse the response metadata blob and return a dictionary of key-value pairs.
+        Parse the response metadata blob and return a tuple of cluster and zone.
 
         Function is cached to avoid parsing the same blob multiple times.
 
         Args:
           - blob: the metadata blob as extracted from the grpc call
         Returns:
-          - a tuple of zone and cluster_id, or None if parsing failed
+          - a tuple of cluster_id and zone, or None if parsing failed
         """
         try:
-            decoded = "".join(
-                c if c.isprintable() else " " for c in blob.decode("utf-8")
-            )
-            split_data = decoded.split()
-            zone = split_data[0]
-            cluster_id = split_data[1]
-            return zone, cluster_id
-        except (AttributeError, IndexError):
+            proto = ResponseParams.pb().FromString(blob)
+            return proto.cluster_id, proto.zone_id
+        except (DecodeError, TypeError):
             # failed to parse metadata
             return None
 

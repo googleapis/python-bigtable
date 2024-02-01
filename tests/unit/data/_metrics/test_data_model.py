@@ -19,6 +19,7 @@ import datetime
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
 from google.cloud.bigtable.data._metrics.data_model import TimeTuple
+from google.cloud.bigtable_v2.types import ResponseParams
 
 
 class TestActiveOperationMetric:
@@ -247,27 +248,47 @@ class TestActiveOperationMetric:
             assert metric.active_attempt.backoff_before_attempt == i
 
     @pytest.mark.parametrize(
-        "start_cluster,start_zone,metadata_field,end_cluster,end_zone",
+        "start_cluster,start_zone,metadata_proto,end_cluster,end_zone",
         [
             (None, None, None, None, None),
             ("orig_cluster", "orig_zone", None, "orig_cluster", "orig_zone"),
-            (None, None, b"zone cluster", "cluster", "zone"),
+            (None, None, ResponseParams(), None, None),
+            (
+                "orig_cluster",
+                "orig_zone",
+                ResponseParams(),
+                "orig_cluster",
+                "orig_zone",
+            ),
             (
                 None,
                 None,
-                b"\n\rtest-cluster\x12\x0cus-central1-b",
-                "us-central1-b",
+                ResponseParams(cluster_id="test-cluster", zone_id="us-central1-b"),
                 "test-cluster",
+                "us-central1-b",
             ),
-            ("orig_cluster", "orig_zone", b"new_new", "orig_cluster", "orig_zone"),
-            (None, None, b"", None, None),
-            (None, None, b"zone cluster future", "cluster", "zone"),
-            (None, "filled", b"zone cluster", "cluster", "zone"),
-            ("filled", None, b"zone cluster", "cluster", "zone"),
+            (
+                None,
+                "filled",
+                ResponseParams(cluster_id="cluster", zone_id="zone"),
+                "cluster",
+                "zone",
+            ),
+            (None, "filled", ResponseParams(cluster_id="cluster"), "cluster", "filled"),
+            (None, "filled", ResponseParams(zone_id="zone"), None, "zone"),
+            (
+                "filled",
+                None,
+                ResponseParams(cluster_id="cluster", zone_id="zone"),
+                "cluster",
+                "zone",
+            ),
+            ("filled", None, ResponseParams(cluster_id="cluster"), "cluster", None),
+            ("filled", None, ResponseParams(zone_id="zone"), "filled", "zone"),
         ],
     )
     def test_add_response_metadata_cbt_header(
-        self, start_cluster, start_zone, metadata_field, end_cluster, end_zone
+        self, start_cluster, start_zone, metadata_proto, end_cluster, end_zone
     ):
         """
         calling add_response_metadata should update fields based on grpc response metadata
@@ -283,8 +304,10 @@ class TestActiveOperationMetric:
             metric.active_attempt = mock.Mock()
             metric.active_attempt.gfe_latency = None
             metadata = grpc.aio.Metadata()
-            if metadata_field:
-                metadata["x-goog-ext-425905942-bin"] = metadata_field
+            if metadata_proto is not None:
+                metadata["x-goog-ext-425905942-bin"] = ResponseParams.serialize(
+                    metadata_proto
+                )
             metric.add_response_metadata(metadata)
             assert metric.cluster_id == end_cluster
             assert metric.zone == end_zone
