@@ -94,13 +94,13 @@ class CompletedAttemptMetric:
     """
 
     start_time: datetime.datetime
-    duration: float
+    duration_ms: float
     end_status: StatusCode
-    first_response_latency: float | None = None
-    gfe_latency: float | None = None
-    application_blocking_time: float = 0.0
-    backoff_before_attempt: float = 0.0
-    grpc_throttling_time: float = 0.0
+    first_response_latency_ms: float | None = None
+    gfe_latency_ms: float | None = None
+    application_blocking_time_ms: float = 0.0
+    backoff_before_attempt_ms: float = 0.0
+    grpc_throttling_time_ms: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -112,13 +112,13 @@ class CompletedOperationMetric:
 
     op_type: OperationType
     start_time: datetime.datetime
-    duration: float
+    duration_ms: float
     completed_attempts: list[CompletedAttemptMetric]
     final_status: StatusCode
     cluster_id: str
     zone: str
     is_streaming: bool
-    flow_throttling_time: float = 0.0
+    flow_throttling_time_ms: float = 0.0
 
 
 @dataclass
@@ -130,19 +130,19 @@ class ActiveAttemptMetric:
 
     # keep both clock time and monotonic timestamps for active attempts
     start_time: TimeTuple = field(default_factory=TimeTuple)
-    # the time it takes to recieve the first response from the server
+    # the time it takes to recieve the first response from the server, in milliseconds
     # currently only tracked for ReadRows
-    first_response_latency: float | None = None
-    # the time taken by the backend. Taken from response header
-    gfe_latency: float | None = None
-    # time waiting on user to process the response
+    first_response_latency_ms: float | None = None
+    # the time taken by the backend, in milliseconds. Taken from response header
+    gfe_latency_ms: float | None = None
+    # time waiting on user to process the response, in milliseconds
     # currently only relevant for ReadRows
-    application_blocking_time: float = 0.0
-    # backoff time is added to application_blocking_time
-    backoff_before_attempt: float = 0.0
-    # time waiting on grpc channel
+    application_blocking_time_ms: float = 0.0
+    # backoff time is added to application_blocking_time_ms
+    backoff_before_attempt_ms: float = 0.0
+    # time waiting on grpc channel, in milliseconds
     # TODO: capture grpc_throttling_time
-    grpc_throttling_time: float = 0.0
+    grpc_throttling_time_ms: float = 0.0
 
 
 @dataclass
@@ -163,8 +163,8 @@ class ActiveOperationMetric:
     is_streaming: bool = False  # only True for read_rows operations
     was_completed: bool = False
     handlers: list[MetricsHandler] = field(default_factory=list)
-    # time waiting on flow control
-    flow_throttling_time: float = 0.0
+    # time waiting on flow control, in milliseconds
+    flow_throttling_time_ms: float = 0.0
 
     @property
     def state(self) -> OperationState:
@@ -208,11 +208,12 @@ class ActiveOperationMetric:
         # find backoff value
         if self.backoff_generator and len(self.completed_attempts) > 0:
             # find the attempt's backoff by sending attempt number to generator
-            backoff = self.backoff_generator.send(len(self.completed_attempts) - 1)
+            # generator will return the backoff time in seconds, so convert to ms
+            backoff_ms = self.backoff_generator.send(len(self.completed_attempts) - 1) * 1000
         else:
-            backoff = 0
+            backoff_ms = 0
 
-        self.active_attempt = ActiveAttemptMetric(backoff_before_attempt=backoff)
+        self.active_attempt = ActiveAttemptMetric(backoff_before_attempt_ms=backoff_ms)
 
     def add_response_metadata(self, metadata: dict[str, bytes | str]) -> None:
         """
@@ -250,8 +251,7 @@ class ActiveOperationMetric:
         if timing_header:
             timing_data = SERVER_TIMING_REGEX.match(timing_header)
             if timing_data and self.active_attempt:
-                # convert from milliseconds to seconds
-                self.active_attempt.gfe_latency = float(timing_data.group(1)) / 1000
+                self.active_attempt.gfe_latency_ms = float(timing_data.group(1))
 
     @staticmethod
     @lru_cache(maxsize=32)
@@ -286,11 +286,12 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("attempt_first_response", self.state)
             )
-        if self.active_attempt.first_response_latency is not None:
+        if self.active_attempt.first_response_latency_ms is not None:
             return self._handle_error("Attempt already received first response")
-        self.active_attempt.first_response_latency = (
+        # convert duration to milliseconds
+        self.active_attempt.first_response_latency_ms = (
             time.monotonic() - self.active_attempt.start_time.monotonic
-        )
+        ) * 1000
 
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
         """
@@ -309,15 +310,15 @@ class ActiveOperationMetric:
 
         new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt.start_time.utc,
-            first_response_latency=self.active_attempt.first_response_latency,
-            duration=time.monotonic() - self.active_attempt.start_time.monotonic,
+            first_response_latency_ms=self.active_attempt.first_response_latency_ms,
+            duration_ms=(time.monotonic() - self.active_attempt.start_time.monotonic) * 1000,
             end_status=self._exc_to_status(status)
             if isinstance(status, Exception)
             else status,
-            gfe_latency=self.active_attempt.gfe_latency,
-            application_blocking_time=self.active_attempt.application_blocking_time,
-            backoff_before_attempt=self.active_attempt.backoff_before_attempt,
-            grpc_throttling_time=self.active_attempt.grpc_throttling_time,
+            gfe_latency_ms=self.active_attempt.gfe_latency_ms,
+            application_blocking_time_ms=self.active_attempt.application_blocking_time_ms,
+            backoff_before_attempt_ms=self.active_attempt.backoff_before_attempt_ms,
+            grpc_throttling_time_ms=self.active_attempt.grpc_throttling_time_ms,
         )
         self.completed_attempts.append(new_attempt)
         self.active_attempt = None
@@ -351,12 +352,12 @@ class ActiveOperationMetric:
             op_type=self.op_type,
             start_time=self.start_time.utc,
             completed_attempts=self.completed_attempts,
-            duration=time.monotonic() - self.start_time.monotonic,
+            duration_ms=(time.monotonic() - self.start_time.monotonic) * 1000,
             final_status=final_status,
             cluster_id=self.cluster_id or DEFAULT_CLUSTER_ID,
             zone=self.zone or DEFAULT_ZONE,
             is_streaming=self.is_streaming,
-            flow_throttling_time=self.flow_throttling_time,
+            flow_throttling_time_ms=self.flow_throttling_time_ms,
         )
         for handler in self.handlers:
             handler.on_operation_complete(finalized)
