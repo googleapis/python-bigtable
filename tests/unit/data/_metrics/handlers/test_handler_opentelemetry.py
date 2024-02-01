@@ -222,7 +222,7 @@ class TestOpenTelemetryMetricsHandler:
         op = CompletedOperationMetric(
             op_type=expected_op_type,
             start_time=0,
-            completed_attempts=[],
+            completed_attempts=[object()],
             duration=1,
             final_status=expected_status,
             cluster_id="c",

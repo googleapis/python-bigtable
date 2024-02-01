@@ -177,7 +177,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         self.otel.operation_latencies.record(
             op.duration, {"streaming": is_streaming, **labels}
         )
-        self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
+        # only record completed attempts if there were retries
+        if op.completed_attempts:
+            self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(
         self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
@@ -223,9 +225,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
                 attempt.gfe_latency,
                 {"streaming": is_streaming, "status": status, **labels},
             )
-        # gfe headers not attached. Record a connectivity error.
-        # TODO: this should not be recorded as an error when direct path is enabled
-        is_error = attempt.gfe_latency is None
-        self.otel.connectivity_error_count.add(
-            int(is_error), {"status": status, **labels}
-        )
+        else:
+            # gfe headers not attached. Record a connectivity error.
+            # TODO: this should not be recorded as an error when direct path is enabled
+            self.otel.connectivity_error_count.add(
+                1, {"status": status, **labels}
+            )
