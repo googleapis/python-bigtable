@@ -58,7 +58,7 @@ async def table_with_metrics(client, table_id, instance_id):
         yield table
 
 
-@retry.Retry(predicate=retry.if_exception_type(NotFound), initial=1, maximum=5)
+@retry.Retry(predicate=retry.if_exception_type(NotFound), initial=1, maximum=5, timeout=5*60)
 def get_metric(metric_name, project_id, instance_id, table_id, expect_all_methods=True):
     from google.cloud.monitoring_v3 import MetricServiceClient
     from google.cloud.monitoring_v3.types.common import TimeInterval
@@ -104,7 +104,7 @@ async def test_generic_latency_metric(table_with_metrics, project_id, instance_i
     # should have 5 labels: status, method, client_name, streaming, app_profile
     assert all(len(r.metric.labels) == 5 for r in found_metrics)
     # should all have successful status
-    assert all(r.metric.labels["status"] == "0" for r in found_metrics)
+    assert all(r.metric.labels["status"] == "OK" for r in found_metrics)
     # should all have client_name set
     assert all(r.metric.labels["client_name"] == f"python-bigtable/{__version__}" for r in found_metrics)
     # should have streaming set to false or true. Only ReadRows should have true set, when doing bulk reads
@@ -126,7 +126,7 @@ async def test_generic_latency_metric(table_with_metrics, project_id, instance_i
     all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
     assert all(v.count > 0 for v in all_values)
     assert all(v.mean > 0 for v in all_values)
-    assert all(v.mean < 5 for v in all_values)
+    assert all(v.mean < 5000 for v in all_values)
     # should have buckets populated
     assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
 
@@ -150,7 +150,7 @@ async def test_first_response_latency_metric(table_with_metrics, project_id, ins
     # should have 5 labels: status, method, client_name, app_profile
     assert all(len(r.metric.labels) == 4 for r in found_metrics)
     # should all have successful status
-    assert all(r.metric.labels["status"] == "0" for r in found_metrics)
+    assert all(r.metric.labels["status"] == "OK" for r in found_metrics)
     # should all have client_name set
     assert all(r.metric.labels["client_name"] == f"python-bigtable/{__version__}" for r in found_metrics)
     # should have app_profile set
@@ -167,7 +167,7 @@ async def test_first_response_latency_metric(table_with_metrics, project_id, ins
     all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
     assert all(v.count > 0 for v in all_values)
     assert all(v.mean > 0 for v in all_values)
-    assert all(v.mean < 5 for v in all_values)
+    assert all(v.mean < 2000 for v in all_values)
     # should have buckets populated
     assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
 
@@ -210,7 +210,7 @@ async def test_blocking_latency_metrics(table_with_metrics, project_id, instance
     all_values = [pt.value.distribution_value for r in found_metrics for pt in r.points]
     assert all(v.count > 0 for v in all_values)
     assert all(v.mean >= 0 for v in all_values)
-    assert all(v.mean < 5 for v in all_values)
+    assert all(v.mean < 2000 for v in all_values)
     # should have buckets populated
     assert all(v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION._boundaries for v in all_values)
 
@@ -226,11 +226,11 @@ async def test_count_metrics(table_with_metrics, project_id, instance_id, table_
     """
     from google.cloud.bigtable import __version__
     from google.cloud.bigtable.data._metrics.data_model import OperationType
-    from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import MILLIS_AGGREGATION
     found_metrics = get_metric(f"{count_type}_count", project_id, instance_id, table_id)
     # check proper units
     assert all(r.metric_kind == 2 for r in found_metrics)  # DELTA
     assert all(r.value_type == 2 for r in found_metrics)  # INT
+
 
     # should have at least one example for each metric type
     for op_type in OperationType:
@@ -238,7 +238,7 @@ async def test_count_metrics(table_with_metrics, project_id, instance_id, table_
     # should have 5 labels: status, method, client_name, app_profile
     assert all(len(r.metric.labels) == 4 for r in found_metrics)
     # should all have successful status
-    assert all(r.metric.labels["status"] == "0" for r in found_metrics)
+    assert all(r.metric.labels["status"] == "OK" for r in found_metrics)
     # should all have client_name set
     assert all(r.metric.labels["client_name"] == f"python-bigtable/{__version__}" for r in found_metrics)
     # should have app_profile set
@@ -254,4 +254,3 @@ async def test_count_metrics(table_with_metrics, project_id, instance_id, table_
     # should have no errors, so all values should be 0
     all_values = [pt.value.int64_value for r in found_metrics for pt in r.points]
     assert all(v == 0 for v in all_values)
-

@@ -90,10 +90,11 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
     """check that all requests attach proper metadata headers"""
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable_v2.types import ResponseParams
 
     cluster_data = "my-cluster"
     zone_data = "my-zone"
-    expected_gfe_latency = 123
+    expected_gfe_latency_ms = 123
 
     with mock.patch(
         f"google.cloud.bigtable_v2.BigtableAsyncClient.{gapic_fn}"
@@ -105,10 +106,10 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             unary_response = None
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, f"{zone_data} {cluster_data}".encode("utf-8"))
+            (BIGTABLE_METADATA_KEY, ResponseParams.serialize(ResponseParams(zone_id=zone_data, cluster_id=cluster_data)))
         )
         trailing_metadata = Metadata(
-            (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}")
+            (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency_ms}")
         )
         grpc_call = mock_grpc_call(
             unary_response=unary_response,
@@ -135,8 +136,8 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             assert found_operation.op_type == expected_type
             now = datetime.datetime.now(datetime.timezone.utc)
             assert found_operation.start_time - now < datetime.timedelta(seconds=1)
-            assert found_operation.duration < 0.1
-            assert found_operation.duration > 0
+            assert found_operation.duration_ms < 100
+            assert found_operation.duration_ms > 0
             assert found_operation.final_status == StatusCode.OK
             assert found_operation.cluster_id == cluster_data
             assert found_operation.zone == zone_data
@@ -147,19 +148,19 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             found_attempt = found_operation.completed_attempts[0]
             assert found_attempt.end_status == StatusCode.OK
             assert found_attempt.start_time - now < datetime.timedelta(seconds=1)
-            assert found_attempt.duration < 0.1
-            assert found_attempt.duration > 0
+            assert found_attempt.duration_ms < 100
+            assert found_attempt.duration_ms > 0
             assert found_attempt.start_time >= found_operation.start_time
-            assert found_attempt.duration <= found_operation.duration
-            assert found_attempt.gfe_latency == expected_gfe_latency
+            assert found_attempt.duration_ms <= found_operation.duration_ms
+            assert found_attempt.gfe_latency_ms == expected_gfe_latency_ms
             # first response latency not populated, because no real read_rows chunks processed
-            assert found_attempt.first_response_latency is None
+            assert found_attempt.first_response_latency_ms is None
             # no application blocking time or backoff time expected
-            assert found_attempt.application_blocking_time == 0
-            assert found_attempt.backoff_before_attempt == 0
+            assert found_attempt.application_blocking_time_ms == 0
+            assert found_attempt.backoff_before_attempt_ms == 0
             # no throttling expected
-            assert found_attempt.grpc_throttling_time == 0
-            assert found_operation.flow_throttling_time == 0
+            assert found_attempt.grpc_throttling_time_ms == 0
+            assert found_operation.flow_throttling_time_ms == 0
 
 
 @pytest.mark.parametrize(RPC_ARGS, RETRYABLE_RPCS)
@@ -210,8 +211,8 @@ async def test_rpc_instrumented_multiple_attempts(
             assert found_operation.op_type == expected_type
             now = datetime.datetime.now(datetime.timezone.utc)
             assert found_operation.start_time - now < datetime.timedelta(seconds=1)
-            assert found_operation.duration < 0.1
-            assert found_operation.duration > 0
+            assert found_operation.duration_ms < 100
+            assert found_operation.duration_ms > 0
             assert found_operation.final_status == StatusCode.OK
             # metadata wasn't set, should see default values
             assert found_operation.cluster_id == "unspecified"
@@ -224,18 +225,18 @@ async def test_rpc_instrumented_multiple_attempts(
             for attempt in [success, failure]:
                 # check things that should be consistent across attempts
                 assert attempt.start_time - now < datetime.timedelta(seconds=1)
-                assert attempt.duration < 0.1
-                assert attempt.duration > 0
+                assert attempt.duration_ms < 100
+                assert attempt.duration_ms > 0
                 assert attempt.start_time >= found_operation.start_time
-                assert attempt.duration <= found_operation.duration
-                assert attempt.application_blocking_time == 0
+                assert attempt.duration_ms <= found_operation.duration_ms
+                assert attempt.application_blocking_time_ms == 0
             assert success.end_status == StatusCode.OK
             assert failure.end_status == StatusCode.ABORTED
             assert success.start_time > failure.start_time + datetime.timedelta(
-                seconds=failure.duration
+               milliseconds=failure.duration_ms
             )
-            assert success.backoff_before_attempt > 0
-            assert failure.backoff_before_attempt == 0
+            assert success.backoff_before_attempt_ms > 0
+            assert failure.backoff_before_attempt_ms == 0
 
 
 @pytest.mark.asyncio
@@ -243,20 +244,21 @@ async def test_batcher_rpcs_instrumented():
     """check that all requests attach proper metadata headers"""
     from google.cloud.bigtable.data import TableAsync
     from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable_v2.types import ResponseParams
 
     cluster_data = "my-cluster"
     zone_data = "my-zone"
-    expected_gfe_latency = 123
+    expected_gfe_latency_ms = 123
 
     with mock.patch(
         "google.cloud.bigtable_v2.BigtableAsyncClient.mutate_rows"
     ) as gapic_mock:
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, f"{zone_data} {cluster_data}".encode("utf-8"))
+            (BIGTABLE_METADATA_KEY, ResponseParams.serialize(ResponseParams(zone_id=zone_data, cluster_id=cluster_data)))
         )
         trailing_metadata = Metadata(
-            (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency*1000}")
+            (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency_ms}")
         )
         grpc_call = mock_grpc_call(
             initial_metadata=initial_metadata, trailing_metadata=trailing_metadata
@@ -280,8 +282,8 @@ async def test_batcher_rpcs_instrumented():
             assert found_operation.op_type == OperationType.BULK_MUTATE_ROWS
             now = datetime.datetime.now(datetime.timezone.utc)
             assert found_operation.start_time - now < datetime.timedelta(seconds=1)
-            assert found_operation.duration < 0.1
-            assert found_operation.duration > 0
+            assert found_operation.duration_ms < 100
+            assert found_operation.duration_ms > 0
             assert found_operation.final_status == StatusCode.OK
             assert found_operation.cluster_id == cluster_data
             assert found_operation.zone == zone_data
@@ -291,13 +293,13 @@ async def test_batcher_rpcs_instrumented():
             found_attempt = found_operation.completed_attempts[0]
             assert found_attempt.end_status == StatusCode.OK
             assert found_attempt.start_time - now < datetime.timedelta(seconds=1)
-            assert found_attempt.duration < 0.1
-            assert found_attempt.duration > 0
+            assert found_attempt.duration_ms < 100
+            assert found_attempt.duration_ms > 0
             assert found_attempt.start_time >= found_operation.start_time
-            assert found_attempt.duration <= found_operation.duration
-            assert found_attempt.gfe_latency == expected_gfe_latency
+            assert found_attempt.duration_ms <= found_operation.duration_ms
+            assert found_attempt.gfe_latency_ms == expected_gfe_latency_ms
             # first response latency not populated, because no real read_rows chunks processed
-            assert found_attempt.first_response_latency is None
+            assert found_attempt.first_response_latency_ms is None
             # no application blocking time or backoff time expected
-            assert found_attempt.application_blocking_time == 0
-            assert found_attempt.backoff_before_attempt == 0
+            assert found_attempt.application_blocking_time_ms == 0
+            assert found_attempt.backoff_before_attempt_ms == 0

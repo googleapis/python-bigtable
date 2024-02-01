@@ -115,8 +115,32 @@ class TestOpenTelemetryMetricsHandler:
         assert instance.shared_labels["resource_project"] == "p"
         assert instance.shared_labels["resource_instance"] == "i"
         assert instance.shared_labels["resource_table"] == "t"
-        assert "app_profile" not in instance.shared_labels
-        assert len(instance.shared_labels) == 5
+        assert instance.shared_labels["app_profile"] == "default"
+        assert len(instance.shared_labels) == 6
+
+    def test__generate_client_uid(self):
+        """
+        Should generate a unique id with format `python-<uuid><pid>@<hostname>`
+        """
+        import re
+        instance = self._make_one()
+        # test with random values
+        uid = instance._generate_client_uid()
+        assert re.match(r"python-[a-f0-9-]+-[0-9]+@\w+", uid)
+        assert isinstance(uid, str)
+        # test with fixed mocks
+        with mock.patch("os.getpid", return_value="pid"):
+            with mock.patch("socket.gethostname", return_value="google.com"):
+                with mock.patch("uuid.uuid4", return_value="uuid"):
+                    uid = instance._generate_client_uid()
+                    assert uid == "python-uuid-pid@google.com"
+        # test with exceptions
+        with mock.patch("os.getpid", side_effect=Exception):
+            with mock.patch("socket.gethostname", side_effect=Exception):
+                with mock.patch("uuid.uuid4", return_value="uuid"):
+                    uid = instance._generate_client_uid()
+                    assert uid == "python-uuid-@localhost"
+
 
     @pytest.mark.parametrize(
         "metric_name,kind,optional_labels",
@@ -142,14 +166,14 @@ class TestOpenTelemetryMetricsHandler:
         expected_op_type = OperationType.READ_ROWS
         expected_status = StatusCode.ABORTED
         expected_streaming = mock.Mock()
-        # server_latencies only shows up if gfe_latency is set
-        gfe_latency = 1 if metric_name == "server_latencies" else None
+        # server_latencies only shows up if gfe_latency_ms is set
+        gfe_latency_ms = 1 if metric_name == "server_latencies" else None
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=1,
+            duration_ms=1,
             end_status=expected_status,
-            gfe_latency=gfe_latency,
-            first_response_latency=1,
+            gfe_latency_ms=gfe_latency_ms,
+            first_response_latency_ms=1,
         )
         op = ActiveOperationMetric(expected_op_type, is_streaming=expected_streaming)
 
@@ -162,7 +186,7 @@ class TestOpenTelemetryMetricsHandler:
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
             if "status" in optional_labels:
-                assert found_labels["status"] == str(expected_status.value[0])
+                assert found_labels["status"] == expected_status.name
             else:
                 assert "status" not in found_labels
             if "streaming" in optional_labels:
@@ -198,8 +222,8 @@ class TestOpenTelemetryMetricsHandler:
         op = CompletedOperationMetric(
             op_type=expected_op_type,
             start_time=0,
-            completed_attempts=[],
-            duration=1,
+            completed_attempts=[object()],
+            duration_ms=1,
             final_status=expected_status,
             cluster_id="c",
             zone="z",
@@ -214,7 +238,7 @@ class TestOpenTelemetryMetricsHandler:
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
             if "status" in optional_labels:
-                assert found_labels["status"] == str(expected_status.value[0])
+                assert found_labels["status"] == expected_status.name
             else:
                 assert "status" not in found_labels
             if "streaming" in optional_labels:
@@ -227,13 +251,13 @@ class TestOpenTelemetryMetricsHandler:
                 assert k in found_labels
                 assert found_labels[k] == instance.shared_labels[k]
 
-    def test_attempt_update_latency(self):
+    def test_attempt_update_latency_ms(self):
         """
         update attempt_latencies on attempt completion
         """
-        expected_latency = 123
+        expected_latency_ms = 123
         attempt = CompletedAttemptMetric(
-            start_time=0, duration=expected_latency, end_status=mock.Mock()
+            start_time=0, duration_ms=expected_latency_ms, end_status=mock.Mock()
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -241,20 +265,20 @@ class TestOpenTelemetryMetricsHandler:
         with mock.patch.object(instance.otel.attempt_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_latency
+            assert record.call_args[0][0] == expected_latency_ms
 
     def test_attempt_update_first_response(self):
         """
-        update first_response_latency on attempt completion
+        update first_response_latency_ms on attempt completion
         """
         from google.cloud.bigtable.data._metrics.data_model import OperationType
 
-        expected_first_response_latency = 123
+        expected_first_response_latency_ms = 123
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=1,
+            duration_ms=1,
             end_status=mock.Mock(),
-            first_response_latency=expected_first_response_latency,
+            first_response_latency_ms=expected_first_response_latency_ms,
         )
         op = ActiveOperationMetric(OperationType.READ_ROWS)
 
@@ -264,18 +288,18 @@ class TestOpenTelemetryMetricsHandler:
         ) as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_first_response_latency
+            assert record.call_args[0][0] == expected_first_response_latency_ms
 
-    def test_attempt_update_server_latency(self):
+    def test_attempt_update_server_latency_ms(self):
         """
-        update server_latency on attempt completion
+        update server_latency_ms on attempt completion
         """
-        expected_latency = 456
+        expected_latency_ms = 456
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=expected_latency,
+            duration_ms=expected_latency_ms,
             end_status=mock.Mock(),
-            gfe_latency=expected_latency,
+            gfe_latency_ms=expected_latency_ms,
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -283,15 +307,15 @@ class TestOpenTelemetryMetricsHandler:
         with mock.patch.object(instance.otel.server_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_latency
+            assert record.call_args[0][0] == expected_latency_ms
 
     def test_attempt_update_connectivity_error_count(self):
         """
         update connectivity_error_count on attempt completion
         """
-        # error connectivity is logged when gfe_latency is None
+        # error connectivity is logged when gfe_latency_ms is None
         attempt = CompletedAttemptMetric(
-            start_time=0, duration=1, end_status=mock.Mock(), gfe_latency=None
+            start_time=0, duration_ms=1, end_status=mock.Mock(), gfe_latency_ms=None
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -306,13 +330,13 @@ class TestOpenTelemetryMetricsHandler:
         """
         update application_latencies on attempt completion
         """
-        expected_total_latency = app_blocking + backoff
+        expected_total_latency_ms = app_blocking + backoff
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=1,
+            duration_ms=1,
             end_status=mock.Mock(),
-            application_blocking_time=app_blocking,
-            backoff_before_attempt=backoff,
+            application_blocking_time_ms=app_blocking,
+            backoff_before_attempt_ms=backoff,
         )
         op = ActiveOperationMetric(mock.Mock())
 
@@ -320,27 +344,27 @@ class TestOpenTelemetryMetricsHandler:
         with mock.patch.object(instance.otel.application_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_total_latency
+            assert record.call_args[0][0] == expected_total_latency_ms
 
     @pytest.mark.parametrize("grpc,flow", [(0, 10), (10, 0), (123, 456)])
     def test_attempt_update_throttling_latencies(self, grpc, flow):
         """
         Update throttling_latencies on attempt completion
         """
-        expected_total_latency = grpc + flow
+        expected_total_latency_ms = grpc + flow
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=1,
+            duration_ms=1,
             end_status=mock.Mock(),
-            grpc_throttling_time=grpc,
+            grpc_throttling_time_ms=grpc,
         )
-        op = ActiveOperationMetric(mock.Mock(), flow_throttling_time=flow)
+        op = ActiveOperationMetric(mock.Mock(), flow_throttling_time_ms=flow)
 
         instance = self._make_one()
         with mock.patch.object(instance.otel.throttling_latencies, "record") as record:
             instance.on_attempt_complete(attempt, op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_total_latency
+            assert record.call_args[0][0] == expected_total_latency_ms
 
     def test_attempt_empty_cluster_zone(self):
         """
@@ -349,7 +373,7 @@ class TestOpenTelemetryMetricsHandler:
         op = ActiveOperationMetric(mock.Mock())
         attempt = CompletedAttemptMetric(
             start_time=0,
-            duration=1,
+            duration_ms=1,
             end_status=mock.Mock(),
         )
         op.cluster_id = None
@@ -361,16 +385,16 @@ class TestOpenTelemetryMetricsHandler:
             assert labels["resource_cluster"] == "unspecified"
             assert labels["resource_zone"] == "global"
 
-    def tyest_operation_update_latency(self):
+    def tyest_operation_update_latency_ms(self):
         """
-        update op_latency on operation completion
+        update op_latency_ms on operation completion
         """
-        expected_latency = 123
+        expected_latency_ms = 123
         op = CompletedOperationMetric(
             op_type=mock.Mock(),
             start_time=0,
             completed_attempts=[],
-            duration=expected_latency,
+            duration_ms=expected_latency_ms,
             final_status=mock.Mock(),
             cluster_id="c",
             zone="z",
@@ -381,7 +405,7 @@ class TestOpenTelemetryMetricsHandler:
         with mock.patch.object(instance.otel.operation_latencies, "record") as record:
             instance.on_operation_complete(op)
             assert record.call_count == 1
-            assert record.call_args[0][0] == expected_latency
+            assert record.call_args[0][0] == expected_latency_ms
 
     def test_operation_update_retry_count(self):
         """
@@ -394,7 +418,7 @@ class TestOpenTelemetryMetricsHandler:
             op_type=mock.Mock(),
             start_time=0,
             completed_attempts=[object()] * num_attempts,
-            duration=1,
+            duration_ms=1,
             final_status=mock.Mock(),
             cluster_id="c",
             zone="z",

@@ -13,7 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from uuid import uuid4
+import os
+import socket
+import uuid
 
 from google.cloud.bigtable import __version__ as bigtable_version
 from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
@@ -41,40 +43,60 @@ class _OpenTelemetryInstruments:
         # create instruments
         self.operation_latencies = meter.create_histogram(
             name="operation_latencies",
-            description="A distribution of the latency of each client method call, across all of it's RPC attempts",
+            description="""
+            The total end-to-end latency across all RPC attempts associated with a Bigtable operation.
+            This metric measures an operation's round trip from the client to Bigtable and back to the client and includes all retries.
+
+            For ReadRows requests, the operation latencies include the application processing time for each returned message.
+            """,
             unit="ms",
         )
         self.first_response_latencies = meter.create_histogram(
             name="first_response_latencies",
-            description="A distribution of the latency of receiving the first row in a ReadRows operation.",
+            description="Latencies from when a client sends a request and receives the first row of the response.",
             unit="ms",
         )
         self.attempt_latencies = meter.create_histogram(
             name="attempt_latencies",
-            description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to operation_latencies. However, when the client receives transient errors, operation_latencies will be the sum of all attempt_latencies and the exponential delays.",
+            description="""
+            The latencies of a client RPC attempt.
+
+            Under normal circumstances, this value is identical to operation_latencies.
+            If the client receives transient errors, however, then operation_latencies is the sum of all attempt_latencies and the exponential delays.
+            """,
             unit="ms",
         )
         self.retry_count = meter.create_counter(
             name="retry_count",
-            description="A count of additional RPCs sent after the initial attempt. Under normal circumstances, this will be 1.",
+            description="""
+            A counter that records the number of attempts that an operation required to complete.
+            Under normal circumstances, this value is empty.
+            """,
         )
         self.server_latencies = meter.create_histogram(
             name="server_latencies",
-            description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
+            description="Latencies between the time when the Google frontend receives an RPC and when it sends the first byte of the response.",
             unit="ms",
         )
         self.connectivity_error_count = meter.create_counter(
             name="connectivity_error_count",
-            description="A count of the number of attempts that failed to reach Google's network.",
+            description="""
+            The number of requests that failed to reach Google's network.
+            In normal cases, this number is 0. When the number is not 0, it can indicate connectivity issues between the application and the Google network.
+            """,
         )
         self.application_latencies = meter.create_histogram(
             name="application_latencies",
-            description="A distribution of the total latency introduced by your application when Cloud Bigtable has available response data but your application has not consumed it.",
+            description="""
+            The time from when the client receives the response to a request until the application reads the response.
+            This metric is most relevant for ReadRows requests.
+            The start and stop times for this metric depend on the way that you send the read request; see Application blocking latencies timer examples for details.
+            """,
             unit="ms",
         )
         self.throttling_latencies = meter.create_histogram(
             name="throttling_latencies",
-            description="The latency introduced by the client by blocking on sending more requests to the server when there are too many pending requests in bulk operations.",
+            description="Latencies introduced when the client blocks the sending of more requests to the server because of too many pending requests in a bulk operation.",
             unit="ms",
         )
 
@@ -111,13 +133,31 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         # fixed labels sent with each metric update
         self.shared_labels = {
             "client_name": f"python-bigtable/{bigtable_version}",
-            "client_uid": client_uid or str(uuid4()),
+            "client_uid": client_uid or self._generate_client_uid(),
             "resource_project": project_id,
             "resource_instance": instance_id,
             "resource_table": table_id,
+            "app_profile": app_profile_id or "default",
         }
-        if app_profile_id:
-            self.shared_labels["app_profile"] = app_profile_id
+
+    @staticmethod
+    def _generate_client_uid():
+        """
+        client_uid will take the format `python-<uuid><pid>@<hostname>` where uuid is a
+        random value, pid is the process id, and hostname is the hostname of the machine.
+
+        If not found, localhost will be used in place of hostname, and a random number
+        will be used in place of pid.
+        """
+        try:
+            hostname = socket.gethostname() or "localhost"
+        except Exception:
+            hostname = "localhost"
+        try:
+            pid = os.getpid() or ""
+        except Exception:
+            pid = ""
+        return f"python-{uuid.uuid4()}-{pid}@{hostname}"
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         """
@@ -125,13 +165,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - operation_latencies
           - retry_count
         """
-        try:
-            status = str(op.final_status.value[0])
-        except (IndexError, TypeError):
-            status = "2"  # unknown
         labels = {
             "method": op.op_type.value,
-            "status": status,
+            "status": op.final_status.name,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
@@ -139,9 +175,11 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.operation_latencies.record(
-            op.duration, {"streaming": is_streaming, **labels}
+            op.duration_ms, {"streaming": is_streaming, **labels}
         )
-        self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
+        # only record completed attempts if there were retries
+        if op.completed_attempts:
+            self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
 
     def on_attempt_complete(
         self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
@@ -161,36 +199,35 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "resource_cluster": op.cluster_id or DEFAULT_CLUSTER_ID,
             **self.shared_labels,
         }
-        try:
-            status = str(attempt.end_status.value[0])
-        except (IndexError, TypeError):
-            status = "2"  # unknown
+        status = attempt.end_status.name
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ms, {"streaming": is_streaming, "status": status, **labels}
         )
-        combined_throttling = attempt.grpc_throttling_time
+        combined_throttling = attempt.grpc_throttling_time_ms
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
-            combined_throttling += op.flow_throttling_time
+            combined_throttling += op.flow_throttling_time_ms
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            attempt.application_blocking_time + attempt.backoff_before_attempt, labels
+            attempt.application_blocking_time_ms + attempt.backoff_before_attempt_ms, labels
         )
         if (
             op.op_type == OperationType.READ_ROWS
-            and attempt.first_response_latency is not None
+            and attempt.first_response_latency_ms is not None
         ):
             self.otel.first_response_latencies.record(
-                attempt.first_response_latency, {"status": status, **labels}
+                attempt.first_response_latency_ms, {"status": status, **labels}
             )
-        if attempt.gfe_latency is not None:
+        if attempt.gfe_latency_ms is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency,
+                attempt.gfe_latency_ms,
                 {"streaming": is_streaming, "status": status, **labels},
             )
-        # gfe headers not attached. Record a connectivity error.
-        # TODO: this should not be recorded as an error when direct path is enabled
-        is_error = attempt.gfe_latency is None
-        self.otel.connectivity_error_count.add(int(is_error), {"status": status, **labels})
+        else:
+            # gfe headers not attached. Record a connectivity error.
+            # TODO: this should not be recorded as an error when direct path is enabled
+            self.otel.connectivity_error_count.add(
+                1, {"status": status, **labels}
+            )
