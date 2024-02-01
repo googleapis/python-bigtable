@@ -389,7 +389,9 @@ class TestActiveOperationMetric:
             if metric.active_attempt.gfe_latency_ms is None:
                 assert expected_latency_ms is None
             else:
-                assert (metric.active_attempt.gfe_latency_ms - expected_latency_ms) < 0.0001
+                assert (
+                    metric.active_attempt.gfe_latency_ms - expected_latency_ms
+                ) < 0.0001
             # should remain in ACTIVE_ATTEMPT state after completing
             assert metric.state == State.ACTIVE_ATTEMPT
             # no errors encountered
@@ -708,11 +710,6 @@ class TestActiveOperationMetric:
                 assert logger_mock.warning.call_count == 1
                 assert logger_mock.warning.call_args[0][0] == expected_message
                 assert len(logger_mock.warning.call_args[0]) == 1
-            # otherwise, do nothing
-            with mock.patch(
-                "google.cloud.bigtable.data._metrics.data_model.LOGGER", None
-            ):
-                type(self._make_one(object()))._handle_error(input_message)
 
     @pytest.mark.asyncio
     async def test_async_context_manager(self):

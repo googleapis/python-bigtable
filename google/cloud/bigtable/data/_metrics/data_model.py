@@ -209,7 +209,9 @@ class ActiveOperationMetric:
         if self.backoff_generator and len(self.completed_attempts) > 0:
             # find the attempt's backoff by sending attempt number to generator
             # generator will return the backoff time in seconds, so convert to ms
-            backoff_ms = self.backoff_generator.send(len(self.completed_attempts) - 1) * 1000
+            backoff_ms = (
+                self.backoff_generator.send(len(self.completed_attempts) - 1) * 1000
+            )
         else:
             backoff_ms = 0
 
@@ -307,14 +309,14 @@ class ActiveOperationMetric:
             return self._handle_error(
                 INVALID_STATE_ERROR.format("end_attempt_with_status", self.state)
             )
-
+        if isinstance(status, Exception):
+            status = self._exc_to_status(status)
+        duration_seconds = time.monotonic() - self.active_attempt.start_time.monotonic
         new_attempt = CompletedAttemptMetric(
             start_time=self.active_attempt.start_time.utc,
             first_response_latency_ms=self.active_attempt.first_response_latency_ms,
-            duration_ms=(time.monotonic() - self.active_attempt.start_time.monotonic) * 1000,
-            end_status=self._exc_to_status(status)
-            if isinstance(status, Exception)
-            else status,
+            duration_ms=duration_seconds * 1000,
+            end_status=status,
             gfe_latency_ms=self.active_attempt.gfe_latency_ms,
             application_blocking_time_ms=self.active_attempt.application_blocking_time_ms,
             backoff_before_attempt_ms=self.active_attempt.backoff_before_attempt_ms,
