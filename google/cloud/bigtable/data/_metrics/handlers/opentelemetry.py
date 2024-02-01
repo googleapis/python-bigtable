@@ -135,9 +135,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "resource_project": project_id,
             "resource_instance": instance_id,
             "resource_table": table_id,
+            "app_profile_id": app_profile_id or "default",
         }
-        if app_profile_id:
-            self.shared_labels["app_profile"] = app_profile_id
 
     def on_operation_complete(self, op: CompletedOperationMetric) -> None:
         """
