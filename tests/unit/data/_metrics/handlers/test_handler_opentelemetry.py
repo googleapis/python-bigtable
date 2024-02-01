@@ -186,7 +186,7 @@ class TestOpenTelemetryMetricsHandler:
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
             if "status" in optional_labels:
-                assert found_labels["status"] == str(expected_status.value[0])
+                assert found_labels["status"] == expected_status.name
             else:
                 assert "status" not in found_labels
             if "streaming" in optional_labels:
@@ -238,7 +238,7 @@ class TestOpenTelemetryMetricsHandler:
             found_labels = record.call_args[0][1]
             assert found_labels["method"] == expected_op_type.value
             if "status" in optional_labels:
-                assert found_labels["status"] == str(expected_status.value[0])
+                assert found_labels["status"] == expected_status.name
             else:
                 assert "status" not in found_labels
             if "streaming" in optional_labels:

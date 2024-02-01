@@ -165,13 +165,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
           - operation_latencies
           - retry_count
         """
-        try:
-            status = str(op.final_status.value[0])
-        except (IndexError, TypeError):
-            status = "2"  # unknown
         labels = {
             "method": op.op_type.value,
-            "status": status,
+            "status": op.final_status.name,
             "resource_zone": op.zone,
             "resource_cluster": op.cluster_id,
             **self.shared_labels,
@@ -201,10 +197,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             "resource_cluster": op.cluster_id or DEFAULT_CLUSTER_ID,
             **self.shared_labels,
         }
-        try:
-            status = str(attempt.end_status.value[0])
-        except (IndexError, TypeError):
-            status = "2"  # unknown
+        status = attempt.end_status.name
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
