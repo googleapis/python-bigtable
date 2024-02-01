@@ -41,40 +41,60 @@ class _OpenTelemetryInstruments:
         # create instruments
         self.operation_latencies = meter.create_histogram(
             name="operation_latencies",
-            description="A distribution of the latency of each client method call, across all of it's RPC attempts",
+            description="""
+            The total end-to-end latency across all RPC attempts associated with a Bigtable operation.
+            This metric measures an operation's round trip from the client to Bigtable and back to the client and includes all retries.
+
+            For ReadRows requests, the operation latencies include the application processing time for each returned message.
+            """,
             unit="ms",
         )
         self.first_response_latencies = meter.create_histogram(
             name="first_response_latencies",
-            description="A distribution of the latency of receiving the first row in a ReadRows operation.",
+            description="Latencies from when a client sends a request and receives the first row of the response.",
             unit="ms",
         )
         self.attempt_latencies = meter.create_histogram(
             name="attempt_latencies",
-            description="A distribution of the latency of each client RPC, tagged by operation name and the attempt status. Under normal circumstances, this will be identical to operation_latencies. However, when the client receives transient errors, operation_latencies will be the sum of all attempt_latencies and the exponential delays.",
+            description="""
+            The latencies of a client RPC attempt.
+
+            Under normal circumstances, this value is identical to operation_latencies.
+            If the client receives transient errors, however, then operation_latencies is the sum of all attempt_latencies and the exponential delays.
+            """,
             unit="ms",
         )
         self.retry_count = meter.create_counter(
             name="retry_count",
-            description="A count of additional RPCs sent after the initial attempt. Under normal circumstances, this will be 1.",
+            description="""
+            A counter that records the number of attempts that an operation required to complete.
+            Under normal circumstances, this value is empty.
+            """,
         )
         self.server_latencies = meter.create_histogram(
             name="server_latencies",
-            description="A distribution of the latency measured between the time when Google's frontend receives an RPC and sending back the first byte of the response.",
+            description="Latencies between the time when the Google frontend receives an RPC and when it sends the first byte of the response.",
             unit="ms",
         )
         self.connectivity_error_count = meter.create_counter(
             name="connectivity_error_count",
-            description="A count of the number of attempts that failed to reach Google's network.",
+            description="""
+            The number of requests that failed to reach Google's network.
+            In normal cases, this number is 0. When the number is not 0, it can indicate connectivity issues between the application and the Google network.
+            """,
         )
         self.application_latencies = meter.create_histogram(
             name="application_latencies",
-            description="A distribution of the total latency introduced by your application when Cloud Bigtable has available response data but your application has not consumed it.",
+            description="""
+            The time from when the client receives the response to a request until the application reads the response.
+            This metric is most relevant for ReadRows requests.
+            The start and stop times for this metric depend on the way that you send the read request; see Application blocking latencies timer examples for details.
+            """,
             unit="ms",
         )
         self.throttling_latencies = meter.create_histogram(
             name="throttling_latencies",
-            description="The latency introduced by the client by blocking on sending more requests to the server when there are too many pending requests in bulk operations.",
+            description="Latencies introduced when the client blocks the sending of more requests to the server because of too many pending requests in a bulk operation.",
             unit="ms",
         )
 
@@ -193,4 +213,6 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         # gfe headers not attached. Record a connectivity error.
         # TODO: this should not be recorded as an error when direct path is enabled
         is_error = attempt.gfe_latency is None
-        self.otel.connectivity_error_count.add(int(is_error), {"status": status, **labels})
+        self.otel.connectivity_error_count.add(
+            int(is_error), {"status": status, **labels}
+        )
