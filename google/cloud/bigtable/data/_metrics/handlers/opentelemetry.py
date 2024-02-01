@@ -175,7 +175,7 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.operation_latencies.record(
-            op.duration, {"streaming": is_streaming, **labels}
+            op.duration_ms, {"streaming": is_streaming, **labels}
         )
         # only record completed attempts if there were retries
         if op.completed_attempts:
@@ -203,26 +203,26 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         is_streaming = str(op.is_streaming)
 
         self.otel.attempt_latencies.record(
-            attempt.duration, {"streaming": is_streaming, "status": status, **labels}
+            attempt.duration_ms, {"streaming": is_streaming, "status": status, **labels}
         )
-        combined_throttling = attempt.grpc_throttling_time
+        combined_throttling = attempt.grpc_throttling_time_ms
         if not op.completed_attempts:
             # add flow control latency to first attempt's throttling latency
-            combined_throttling += op.flow_throttling_time
+            combined_throttling += op.flow_throttling_time_ms
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            attempt.application_blocking_time + attempt.backoff_before_attempt, labels
+            attempt.application_blocking_time_ms + attempt.backoff_before_attempt_ms, labels
         )
         if (
             op.op_type == OperationType.READ_ROWS
-            and attempt.first_response_latency is not None
+            and attempt.first_response_latency_ms is not None
         ):
             self.otel.first_response_latencies.record(
-                attempt.first_response_latency, {"status": status, **labels}
+                attempt.first_response_latency_ms, {"status": status, **labels}
             )
-        if attempt.gfe_latency is not None:
+        if attempt.gfe_latency_ms is not None:
             self.otel.server_latencies.record(
-                attempt.gfe_latency,
+                attempt.gfe_latency_ms,
                 {"streaming": is_streaming, "status": status, **labels},
             )
         else:
