@@ -178,8 +178,9 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             op.duration_ms, {"streaming": is_streaming, **labels}
         )
         # only record completed attempts if there were retries
-        if op.completed_attempts:
-            self.otel.retry_count.add(len(op.completed_attempts) - 1, labels)
+        num_attempts = len(op.completed_attempts)
+        if num_attempts > 1:
+            self.otel.retry_count.add(num_attempts - 1, labels)
 
     def on_attempt_complete(
         self, attempt: CompletedAttemptMetric, op: ActiveOperationMetric
