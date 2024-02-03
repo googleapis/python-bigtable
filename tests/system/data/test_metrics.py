@@ -32,6 +32,10 @@ from google.cloud.bigtable_v2 import BigtableAsyncClient
 
 from .test_system import _create_row_and_mutation, init_table_id, column_family_config, cluster_config, temp_rows, TEST_FAMILY, TEST_CLUSTER, TEST_ZONE
 
+# use this value to make sure we are testing against a consistent test of metrics
+# if _populate_calls is modified, this value will have to change
+EXPECTED_METRIC_COUNT = 172
+
 
 async def _populate_calls(client, instance_id, table_id):
     """
@@ -75,8 +79,6 @@ async def _populate_calls(client, instance_id, table_id):
         }
         return rpc_stubs
 
-    num_calls = 0
-
     # Call each rpc with no errors. Should be successful.
     print("populating successful rpcs...")
     async with table_with_profile("success") as table:
@@ -84,7 +86,6 @@ async def _populate_calls(client, instance_id, table_id):
         for stub_list in stubs.values():
             for stub in stub_list:
                 await stub()
-                num_calls += 1
 
     # Call each rpc with a terminal exception. Does not hit gcp servers
     print("populating terminal NotFound rpcs...")
@@ -95,7 +96,6 @@ async def _populate_calls(client, instance_id, table_id):
                 with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=NotFound("test")):
                     with pytest.raises((NotFound, MutationsExceptionGroup)):
                         await stub()
-                        num_calls += 1
 
     non_retryable_rpcs = ["read_modify_write_row", "check_and_mutate_row"]
     # Calls hit retryable errors, then succeed
@@ -116,7 +116,6 @@ async def _populate_calls(client, instance_id, table_id):
                     return true_fn(table.client._gapic_client, *args, **kwargs)
                 with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=side_effect):
                     await stub(retryable_errors=(ServiceUnavailable,))
-                    num_calls += 1
 
     # Calls hit retryable errors, then hit deadline
     print("populating retryable timeout rpcs...")
@@ -127,7 +126,6 @@ async def _populate_calls(client, instance_id, table_id):
                 for stub in stub_list:
                     with pytest.raises((DeadlineExceeded, MutationsExceptionGroup)):
                         await stub(operation_timeout=0.5, retryable_errors=(ServiceUnavailable,))
-                        num_calls += 1
 
     # Calls hit retryable errors, then hit terminal exception
     print("populating retryable then terminal error rpcs...")
@@ -139,8 +137,6 @@ async def _populate_calls(client, instance_id, table_id):
                 with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=error_list):
                     with pytest.raises((NotFound, MutationsExceptionGroup)):
                         await stub(retryable_errors=(ServiceUnavailable,))
-                        num_calls += 1
-    return num_calls
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -150,7 +146,7 @@ async def get_all_metrics(client, instance_id, table_id, project_id):
     # populate table with metrics
     start_time = Timestamp()
     start_time.GetCurrentTime()
-    total_rpcs = await _populate_calls(client, instance_id, table_id)
+    await _populate_calls(client, instance_id, table_id)
 
     # read them down and save to a list. Retry until ready
     @retry.Retry(predicate=retry.if_exception_type(NotFound), maximum=5, timeout=2 * 60)
@@ -170,7 +166,6 @@ async def get_all_metrics(client, instance_id, table_id, project_id):
             "retry_count",
             "connectivity_error_count"
         ]
-        expected_count = len(all_instruments) * total_rpcs
 
         for instrument in all_instruments:
             response = client.list_time_series(
@@ -185,35 +180,36 @@ async def get_all_metrics(client, instance_id, table_id, project_id):
                 print(f"no data for {instrument}")
                 raise NotFound("No metrics found")
             all_responses.extend(response)
-        if len(all_responses) < expected_count:
-            print(f"Only found {len(all_responses)} of {expected_count} metrics. Retrying...")
+        if len(all_responses) < EXPECTED_METRIC_COUNT:
+            print(f"Only found {len(all_responses)} of {EXPECTED_METRIC_COUNT} metrics. Retrying...")
             raise NotFound("Not all metrics found")
-        elif len(all_responses) > expected_count:
-            raise ValueError("Found more metrics than expected")
+        elif len(all_responses) > EXPECTED_METRIC_COUNT:
+            raise ValueError(f"Found more metrics than expected: {len(all_responses)}")
         return all_responses
     print("waiting for metrics to be ready...")
     metrics = _read_metrics()
     print("metrics ready")
     return metrics
 
+
 @pytest.mark.asyncio
 async def test_resource(get_all_metrics, instance_id, table_id, project_id):
     """
     all metrics should have monitored resource populated consistently
     """
-    breakpoint()
-    for metric in get_all_metrics:
-        assert metric.resource.type == "bigtable_table"
-        assert len(metric.resource.labels) == 5
-        assert metric.resource.labels["instance"] == instance_id
-        assert metric.resource.labels["table"] == table_id
-        assert metric.resource.labels["project_id"] == project_id
-        if 'success' in metric.labels["app_profile_id"]:
+    for m in get_all_metrics:
+        resource = m.resource
+        assert resource.type == "bigtable_table"
+        assert len(resource.labels) == 5
+        assert resource.labels["instance"] == instance_id
+        assert resource.labels["table"] == table_id
+        assert resource.labels["project_id"] == project_id
+        if 'success' in m.metric.labels["app_profile_id"]:
             # for attempts that succeeded, zone and cluster should be populated
-            assert metric.resource.labels["zone"] == TEST_ZONE
-            assert metric.resource.labels["cluster"] == TEST_CLUSTER
+            assert resource.labels["zone"] == TEST_ZONE
+            assert resource.labels["cluster"] == TEST_CLUSTER
         else:
             # others should fall back to defaults
-            assert metric.resource.labels["zone"] == "unspecified"
-            assert metric.resource.labels["cluster"] == "global"
+            assert resource.labels["zone"] == "unspecified"
+            assert resource.labels["cluster"] == "global"
 
