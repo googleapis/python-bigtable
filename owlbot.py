@@ -182,7 +182,6 @@ s.replace("noxfile.py",
     "unit",
     "system_emulated",
     "system",
-    "conformance",
     "mypy",""",
 )
 

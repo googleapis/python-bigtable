@@ -69,7 +69,6 @@ nox.options.sessions = [
     "unit",
     "system_emulated",
     "system",
-    "conformance",
     "mypy",
     "cover",
     "lint",
