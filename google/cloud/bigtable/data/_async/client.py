@@ -101,7 +101,7 @@ class BigtableDataClientAsync(ClientWithProject):
 
         Client should be created within an async context (running event loop)
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -566,7 +566,7 @@ class TableAsync:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -620,7 +620,7 @@ class TableAsync:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -669,7 +669,7 @@ class TableAsync:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -727,7 +727,7 @@ class TableAsync:
         results = await table.read_rows_sharded(shard_queries)
         ```
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -810,7 +810,7 @@ class TableAsync:
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -867,7 +867,7 @@ class TableAsync:
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -942,7 +942,7 @@ class TableAsync:
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -994,7 +994,7 @@ class TableAsync:
         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
         retried on server failure. Non-idempotent operations will not.
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1077,7 +1077,7 @@ class TableAsync:
         will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1128,7 +1128,7 @@ class TableAsync:
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1199,7 +1199,7 @@ class TableAsync:
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently experimental, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
