@@ -16,11 +16,10 @@ import json
 import logging
 import os
 import random
-import string
 import struct
 import threading
 import time
-from typing import Iterator
+from typing import Iterator, Callable
 
 import pytest
 from google.cloud import aiplatform_v1beta1, bigtable, workflows_v1
@@ -77,7 +76,7 @@ def instance_id() -> Iterator[str]:
 
 
 @pytest.fixture(scope="module")
-def setup_workflow(project_id: str):
+def setup_workflow(project_id: str) -> Iterator[None]:
     # Deploy Workflow
     deploy_workflow(project_id, WORKFLOW_LOCATION, WORKFLOW_NAME)
 
@@ -104,7 +103,9 @@ def setup_workflow(project_id: str):
     operation.result()
 
 
-def generate_vector_data(number_of_rows, vector_dimension, table):
+def generate_vector_data(
+    number_of_rows: int, vector_dimension: int, table: bigtable.TableClient
+) -> tuple[list[bigtable.DirectRow], dict]:
     """Generates vector data for Bigtable table.
 
     Args:
@@ -112,7 +113,7 @@ def generate_vector_data(number_of_rows, vector_dimension, table):
         vector_dimension: The dimension of the vectors.
 
     Returns:
-        A list of rows, each of which is a tuple of (id, text, embeddings, restricts).
+        A list of rows, each of which is a Bigtable.DirectRow, and a dictionary representing their data.
     """
 
     logger.info(
@@ -128,37 +129,42 @@ def generate_vector_data(number_of_rows, vector_dimension, table):
         # Generating random vector embeddings
         embeddings = [random.uniform(0, 1) for _ in range(vector_dimension)]
 
+        row_key = f"row_key_{i}"
+        allow = "thing 1"
+        deny = "thing 2"
+        int_restrict = 45000
+        float_restrict = 3.14
+        double_restrict = 2.71
+        crowding_tag = "a" if i % 2 == 0 else "b"
         rowEntry = {
-            "row_key": f"row_key_{i}",
+            "row_key": row_key,
             "embeddings": embeddings,
-            "allow": "thing 1",
-            "deny": "thing 2",
-            "int": 45000,
-            "float": 3.14,
-            "double": 2.71,
-            "crowding_tag": "a" if i % 2 == 0 else "b",
+            "allow": allow,
+            "deny": deny,
+            "int": int_restrict,
+            "float": float_restrict,
+            "double": double_restrict,
+            "crowding_tag": crowding_tag,
         }
 
-        row = table.direct_row(str.encode(rowEntry["row_key"]))
+        row = table.direct_row(str.encode(row_key))
         row.set_cell(
             "cf",
             "embeddings",
-            struct.pack(
-                ">" + "f" * len(rowEntry["embeddings"]), *rowEntry["embeddings"]
-            ),
+            struct.pack(">" + "f" * len(embeddings), *embeddings),
         )
 
         # Restricts
-        row.set_cell("cf", "allow", str.encode(rowEntry["allow"]))
-        row.set_cell("cf", "deny", str.encode(rowEntry["deny"]))
-        row.set_cell("cf", "int", rowEntry["int"].to_bytes(4, "big"))
-        row.set_cell("cf", "float", struct.pack(">f", rowEntry["float"]))
-        row.set_cell("cf", "double", struct.pack(">d", rowEntry["double"]))
+        row.set_cell("cf", "allow", str.encode(allow))
+        row.set_cell("cf", "deny", str.encode(deny))
+        row.set_cell("cf", "int", int_restrict.to_bytes(4, "big"))
+        row.set_cell("cf", "float", struct.pack(">f", float_restrict))
+        row.set_cell("cf", "double", struct.pack(">d", double_restrict))
 
         # Crowding tag
-        row.set_cell("cf", "crowding_tag", str.encode(rowEntry["crowding_tag"]))
+        row.set_cell("cf", "crowding_tag", str.encode(crowding_tag))
 
-        rows_dict[rowEntry["row_key"]] = rowEntry
+        rows_dict[row_key] = rowEntry
         rows.append(row)
 
     logger.info("Vector Embeddings generated.")
@@ -166,7 +172,7 @@ def generate_vector_data(number_of_rows, vector_dimension, table):
     return rows, rows_dict
 
 
-def setup_bigtable(project_id, instance_id, table_name):
+def setup_bigtable(project_id: str, instance_id: str, table_name: str) -> dict:
     """Sets up a Bigtable table with vector embeddings.
 
     Args:
@@ -216,7 +222,7 @@ def setup_bigtable(project_id, instance_id, table_name):
     return rows_dict
 
 
-def deploy_workflow(project, location, workflow_name):
+def deploy_workflow(project: str, location: str, workflow_name: str) -> None:
     """Deploys a workflow defined in file "https://github.com/GoogleCloudPlatform/cloud-bigtable-examples/bigtable-ai/vertex-vector-search/workflows/batch-export.yaml" to Cloud Workflow.
 
     Args:
@@ -260,7 +266,7 @@ def deploy_workflow(project, location, workflow_name):
 
     logger.info("Waiting for deployment of workflow to complete...")
 
-    response = operation.result()
+    operation.result()
 
     logger.info(
         "Workflow with name: {} deployed successfully on project: {}.".format(
@@ -270,8 +276,12 @@ def deploy_workflow(project, location, workflow_name):
 
 
 def execute_workflow(
-    project, location, workflow_name, bigtable_arguments, vertex_index_id
-):
+    project: str,
+    location: str,
+    workflow_name: str,
+    bigtable_arguments: dict,
+    vertex_index_id: str,
+) -> Execution:
     """Executes a workflow.
 
     Args:
@@ -285,7 +295,7 @@ def execute_workflow(
 
     client = executions_v1.ExecutionsClient()
 
-    json_arguments = ""
+    json_arguments = dict()
 
     logger.info(
         "Reading workflow input template json from: {}.".format(
@@ -325,7 +335,7 @@ def execute_workflow(
     return response
 
 
-def get_worfklow_execution(arguments):
+def get_worfklow_execution(arguments: dict) -> Execution:
     """Gets a workflow execution.
 
     Args:
@@ -354,7 +364,9 @@ def get_worfklow_execution(arguments):
     return response
 
 
-def workflow_execution_polling_predicate(workflow_execution_response):
+def workflow_execution_polling_predicate(
+    workflow_execution_response: Execution,
+) -> bool:
     """A predicate that determines whether a workflow execution has finished.
     Checks whether the workflow state is `Active` or not.
 
@@ -371,12 +383,12 @@ def workflow_execution_polling_predicate(workflow_execution_response):
 
 
 def polling(
-    function_to_poll,
-    arguments,
-    function_poll_predicate,
-    max_attempts=100,
-    polling_interval=120,
-):
+    function_to_poll: Callable[[dict], Execution],
+    arguments: dict,
+    function_poll_predicate: Callable[[Execution], bool],
+    max_attempts: int = 100,
+    polling_interval: int = 120,
+) -> Execution:
     """A polling function that polls a function until a predicate is met.
 
     Args:
@@ -406,8 +418,12 @@ def polling(
 
 
 def sync_execute_workflow(
-    project, location, workflow_name, bigtable_arguments, vertex_index_id
-):
+    project: str,
+    location: str,
+    workflow_name: str,
+    bigtable_arguments: dict,
+    vertex_index_id: str,
+) -> None:
     """Synchronously executes a workflow.
 
     Args:
@@ -432,7 +448,9 @@ def sync_execute_workflow(
         logger.error("Workflow exeuction polling timed out.")
 
 
-def cleanup_bigtable_resources(project_id, instance_id, table_name):
+def cleanup_bigtable_resources(
+    project_id: str, instance_id: str, table_name: str
+) -> None:
     """Cleans up the Bigtable resources.
 
     Args:
@@ -447,7 +465,9 @@ def cleanup_bigtable_resources(project_id, instance_id, table_name):
     logger.info("Dropped Bigtable table with name: {}.".format(table_name))
 
 
-def read_index_datapoints(api_endpoint, keys):
+def read_index_datapoints(
+    api_endpoint: str, keys: list[str]
+) -> aiplatform_v1beta1.ReadIndexDatapointsResponse:
     """Reads datapoints from a deployed Vertex Index.
 
     Args:
@@ -476,7 +496,9 @@ def read_index_datapoints(api_endpoint, keys):
 
 
 @pytest.fixture
-def bigtable_vertex_vector_search_data(project_id: str, instance_id: str):
+def bigtable_vertex_vector_search_data(
+    project_id: str, instance_id: str
+) -> Iterator[dict]:
     """
     Setting up Bigtable Table with vector embeddings to test the workflow.
     The function does following operations:
@@ -513,7 +535,9 @@ def bigtable_vertex_vector_search_data(project_id: str, instance_id: str):
     cleanup_bigtable_resources(project_id, instance_id, BIGTABLE_TABLE_NAME)
 
 
-def compare_float_lists(list1, list2, tolerance=1e-5):
+def compare_float_lists(
+    list1: list[float], list2: list[float], tolerance: float = 1e-5
+) -> bool:
     """
     Compare two lists of floating-point numbers with a specified tolerance.
 
@@ -555,8 +579,8 @@ def compare_float_lists(list1, list2, tolerance=1e-5):
 
 
 def read_and_compare_vertex_data(
-    bigtable_vertex_vector_search_data, vertex_index_end_point_url
-):
+    bigtable_vertex_vector_search_data: dict, vertex_index_end_point_url: str
+) -> None:
     """
     Reads and compares vertex data from a @code{bigtable_vertex_vector_search_data}
 
@@ -616,8 +640,11 @@ def read_and_compare_vertex_data(
 
 
 def test_bigtable_vertex_vector_search_integration(
-    project_id, instance_id, setup_workflow, bigtable_vertex_vector_search_data
-):
+    project_id: str,
+    instance_id: str,
+    setup_workflow: None,
+    bigtable_vertex_vector_search_data: dict,
+) -> None:
     """
     Tests integration between Bigtable and Vertex Vector Search.
     1. Execute the workflow synchronously.
@@ -642,8 +669,13 @@ def test_bigtable_vertex_vector_search_integration(
 
 
 def setup_and_execute_workflow(
-    project, location, workflow_name, bigtable_arguments, vertex_index_id, result_list
-):
+    project: str,
+    location: str,
+    workflow_name: str,
+    bigtable_arguments: dict,
+    vertex_index_id: str,
+    result_list: list,
+) -> None:
     """
     Sets up a Bigtable database and executes a workflow, then appends the result to a list.
 
@@ -689,7 +721,9 @@ def setup_and_execute_workflow(
     )
 
 
-def test_concurrent_workflow_execution(project_id, instance_id, setup_workflow):
+def test_concurrent_workflow_execution(
+    project_id: str, instance_id: str, setup_workflow: None
+) -> None:
     """
     Test the concurrent execution of workflow in separate threads.
 
@@ -707,8 +741,8 @@ def test_concurrent_workflow_execution(project_id, instance_id, setup_workflow):
     """
 
     # Create a thread for the async function without blocking
-    result_list1 = []
-    result_list2 = []
+    result_list1: list[dict] = []
+    result_list2: list[dict] = []
 
     thread_1 = threading.Thread(
         target=setup_and_execute_workflow,
