@@ -204,12 +204,12 @@ async def test_resource(get_all_metrics, instance_id, table_id, project_id):
         assert resource.labels["instance"] == instance_id
         assert resource.labels["table"] == table_id
         assert resource.labels["project_id"] == project_id
-        if 'success' in m.metric.labels["app_profile_id"]:
+        if 'success' in m.metric.labels["app_profile"]:
             # for attempts that succeeded, zone and cluster should be populated
             assert resource.labels["zone"] == TEST_ZONE
             assert resource.labels["cluster"] == TEST_CLUSTER
         else:
             # others should fall back to defaults
-            assert resource.labels["zone"] == "unspecified"
-            assert resource.labels["cluster"] == "global"
+            assert resource.labels["zone"] == "global"
+            assert resource.labels["cluster"] == "unspecified"
 
