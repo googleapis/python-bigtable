@@ -1,11 +1,14 @@
 import nox
 
+# All versions used to test samples.
+ALL_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+
 DEFAULT_PYTHON_VERSION = "3.11"
 BLACK_VERSION = "black==22.3.0"
 LINT_PATHS = ["system", "noxfile.py"]
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python=ALL_VERSIONS)
 def tests(session: nox.sessions.Session) -> None:
     # Install dependencies
     session.install("-r", "requirements.txt")
@@ -14,7 +17,7 @@ def tests(session: nox.sessions.Session) -> None:
     session.run("pytest", "-s", "system/workflow-test.py")
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python=ALL_VERSIONS)
 def blacken(session: nox.sessions.Session) -> None:
     """Run black. Format code to uniform standard."""
     session.install(BLACK_VERSION)
@@ -44,7 +47,7 @@ FLAKE8_COMMON_ARGS = [
 ]
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python=ALL_VERSIONS)
 def lint(session: nox.sessions.Session) -> None:
     session.install("flake8", "flake8-annotations")
 
