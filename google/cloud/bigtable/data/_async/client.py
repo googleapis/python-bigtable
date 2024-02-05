@@ -86,6 +86,16 @@ if TYPE_CHECKING:
 
 
 class BigtableDataClientAsync(ClientWithProject):
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        pool_size: int = 3,
+        credentials: google.auth.credentials.Credentials | None = None,
+        client_options: dict[str, Any]
+        | "google.api_core.client_options.ClientOptions"
+        | None = None,
+    ):
         """
         Create a client instance for the Bigtable Data API
 
@@ -112,17 +122,6 @@ class BigtableDataClientAsync(ClientWithProject):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
-
-    def __init__(
-        self,
-        *,
-        project: str | None = None,
-        pool_size: int = 3,
-        credentials: google.auth.credentials.Credentials | None = None,
-        client_options: dict[str, Any]
-        | "google.api_core.client_options.ClientOptions"
-        | None = None,
-    ):
         # set up transport in registry
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
         transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
@@ -987,38 +986,38 @@ class TableAsync:
         | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
     ):
         """
-         Mutates a row atomically.
+        Mutates a row atomically.
 
-         Cells already present in the row are left unchanged unless explicitly changed
-         by ``mutation``.
+        Cells already present in the row are left unchanged unless explicitly changed
+        by ``mutation``.
 
-         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
-         retried on server failure. Non-idempotent operations will not.
+        Idempotent operations (i.e, all mutations have an explicit timestamp) will be
+        retried on server failure. Non-idempotent operations will not.
 
         Warning: BigtableDataClientAsync is currently experimental, and is not
         yet recommended for production use.
 
-         Args:
-            - row_key: the row to apply mutations to
-            - mutations: the set of mutations to apply to the row
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will be retried within the budget.
-                Defaults to the Table's default_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Only idempotent mutations will be retried. Defaults to the Table's
-                default_retryable_errors.
+        Args:
+          - row_key: the row to apply mutations to
+          - mutations: the set of mutations to apply to the row
+          - operation_timeout: the time budget for the entire operation, in seconds.
+              Failed requests will be retried within the budget.
+              Defaults to the Table's default_operation_timeout
+          - attempt_timeout: the time budget for an individual network request, in seconds.
+              If it takes longer than this time to complete, the request will be cancelled with
+              a DeadlineExceeded exception, and a retry will be attempted.
+              Defaults to the Table's default_attempt_timeout.
+              If None, defaults to operation_timeout.
+          - retryable_errors: a list of errors that will be retried if encountered.
+              Only idempotent mutations will be retried. Defaults to the Table's
+              default_retryable_errors.
         Raises:
-             - DeadlineExceeded: raised after operation timeout
-                 will be chained with a RetryExceptionGroup containing all
-                 GoogleAPIError exceptions from any retries that failed
-             - GoogleAPIError: raised on non-idempotent operations that cannot be
-                 safely retried.
-            - ValueError if invalid arguments are provided
+           - DeadlineExceeded: raised after operation timeout
+               will be chained with a RetryExceptionGroup containing all
+               GoogleAPIError exceptions from any retries that failed
+           - GoogleAPIError: raised on non-idempotent operations that cannot be
+               safely retried.
+          - ValueError if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
