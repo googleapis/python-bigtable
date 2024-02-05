@@ -104,8 +104,8 @@ def setup_workflow(project_id: str) -> Iterator[None]:
 
 
 def generate_vector_data(
-    number_of_rows: int, vector_dimension: int, table: bigtable.TableClient
-) -> tuple[list[bigtable.DirectRow], dict]:
+    number_of_rows: int, vector_dimension: int, table: bigtable.table.Table
+) -> tuple[list[bigtable.row.DirectRow], dict]:
     """Generates vector data for Bigtable table.
 
     Args:
@@ -113,7 +113,7 @@ def generate_vector_data(
         vector_dimension: The dimension of the vectors.
 
     Returns:
-        A list of rows, each of which is a Bigtable.DirectRow, and a dictionary representing their data.
+        A list of rows, each of which is a bigtable.row.DirectRow, and a dictionary representing their data.
     """
 
     logger.info(
