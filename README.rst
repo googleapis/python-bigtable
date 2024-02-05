@@ -106,12 +106,12 @@ with the same interface as the popular `HappyBase
 ``google-cloud-happybase`` uses ``google-cloud-bigtable`` under the covers,
 rather than Apache HBase.
 
-``experimental async data client``
+Preview Async Data Client
 ----------------------------------
 
 `v2.23.0` includes a preview release of a new data client, accessible at `google.cloud.bigtable.data.BigtableDataClientAsync`.
 
-This new client supports asyncio, with a corresponding synchronous surface coming soon.
+The new client brings a simplified API and increased performance using asyncio, with a corresponding synchronous surface
+coming soon.
 
 The new client is currently in preview, and is not recommended for production use.
-
