@@ -14,11 +14,7 @@
 
 import pytest
 import pytest_asyncio
-import uuid
-import re
 import mock
-import asyncio
-import time
 from functools import partial
 
 from google.api_core.exceptions import NotFound, ServiceUnavailable, DeadlineExceeded
@@ -382,24 +378,24 @@ async def test_status_exception(get_all_metrics):
     """
     check the subset of rpcs with a single terminal exception
 
-    They should have no retries, 1 connectivity errors, a status of UNAVAILABLE
+    They should have no retries, 1 connectivity errors, a status of NOT_FOUND
     Should have default values for cluster and zone
     """
     fail_metrics = [m for m in get_all_metrics if m.metric.labels["app_profile"] == "terminal_exception"]
     # ensure each expected instrument is present in data
     assert any("operation_latencies" in m.metric.type for m in fail_metrics)
     assert any("attempt_latencies" in m.metric.type for m in fail_metrics)
-    assert any("server_latencies" in m.metric.type for m in fail_metrics)
-    assert any("first_response_latencies" in m.metric.type for m in fail_metrics)
     assert any("application_blocking_latencies" in m.metric.type for m in fail_metrics)
     assert any("client_blocking_latencies" in m.metric.type for m in fail_metrics)
     assert any("connectivity_error_count" in m.metric.type for m in fail_metrics)
+    # server_latencies, first_response_latencies and retry_count are not expected
+    assert not any("server_latencies" in m.metric.type for m in fail_metrics)
+    assert not any("retry_count" in m.metric.type for m in fail_metrics)
+    assert not any("first_response_latencies" in m.metric.type for m in fail_metrics)
     for m in fail_metrics:
-        # ensure no retries or connectivity errors recorded
-        assert "retry_count" not in m.metric.type
         # if instrument has status label, should be UNAVAILABLE
         if "status" in m.metric.labels:
-            assert m.metric.labels["status"] == "UNAVAILABLE"
+            assert m.metric.labels["status"] == "NOT_FOUND"
         # check for cluster and zone
         assert m.resource.labels["zone"] == 'global'
         assert m.resource.labels["cluster"] == 'unspecified'
@@ -412,7 +408,7 @@ async def test_status_exception(get_all_metrics):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("app_profile,final_status", [
-    ("retryn_then_success", "OK"),
+    ("retry_then_success", "OK"),
     ("retry_then_terminal", "NOT_FOUND"),
     ("retry_then_timeout", "DEADLINE_EXCEEDED"),
 ])
