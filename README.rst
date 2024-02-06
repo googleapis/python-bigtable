@@ -22,9 +22,9 @@ Analytics, Maps, and Gmail.
 
 
 Preview Async Data Client
-----------------------------------
+-------------------------
 
-`v2.23.0` includes a preview release of a new data client, accessible at `google.cloud.bigtable.data.BigtableDataClientAsync`.
+:code:`v2.23.0` includes a preview release of a new data client, accessible at `google.cloud.bigtable.data.BigtableDataClientAsync`.
 
 The new client brings a simplified API and increased performance using asyncio, with a corresponding synchronous surface
 coming soon.
