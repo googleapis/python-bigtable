@@ -110,14 +110,3 @@ Next Steps
    to see other available methods on the client.
 -  Read the `Product documentation`_ to learn
    more about the product and see How-to Guides.
-
-``google-cloud-happybase``
---------------------------
-
-In addition to the core ``google-cloud-bigtable``, we provide a
-`google-cloud-happybase
-<http://google-cloud-python-happybase.readthedocs.io/en/latest/>`__ library
-with the same interface as the popular `HappyBase
-<https://happybase.readthedocs.io/en/latest/>`__ library. Unlike HappyBase,
-``google-cloud-happybase`` uses ``google-cloud-bigtable`` under the covers,
-rather than Apache HBase.
