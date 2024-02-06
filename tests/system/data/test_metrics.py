@@ -22,6 +22,7 @@ import time
 from functools import partial
 
 from google.api_core.exceptions import NotFound, ServiceUnavailable, DeadlineExceeded
+from google.cloud.bigtable.data._metrics.data_model import OperationType
 from google.cloud.bigtable.data import MutationsExceptionGroup
 from google.api_core import retry
 
@@ -36,6 +37,16 @@ from .test_system import _create_row_and_mutation, init_table_id, column_family_
 # if _populate_calls is modified, this value will have to change
 EXPECTED_METRIC_COUNT = 172
 
+ALL_INSTRUMENTS = [
+    "operation_latencies",
+    "attempt_latencies",
+    "server_latencies",
+    "first_response_latencies",
+    "application_blocking_latencies",
+    "client_blocking_latencies",
+    "retry_count",
+    "connectivity_error_count"
+]
 
 async def _populate_calls(client, instance_id, table_id):
     """
@@ -118,14 +129,16 @@ async def _populate_calls(client, instance_id, table_id):
                     await stub(retryable_errors=(ServiceUnavailable,))
 
     # Calls hit retryable errors, then hit deadline
+    # should have 2 attempts, through mocked backoff
     print("populating retryable timeout rpcs...")
     async with table_with_profile("retry_then_timeout") as table:
         stubs = {k:v for k,v in _get_stubs_for_table(table).items() if k not in non_retryable_rpcs}
         for rpc_name, stub_list in stubs.items():
-            with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=ServiceUnavailable("test")):
-                for stub in stub_list:
-                    with pytest.raises((DeadlineExceeded, MutationsExceptionGroup)):
-                        await stub(operation_timeout=0.5, retryable_errors=(ServiceUnavailable,))
+            with mock.patch("google.cloud.bigtable.data._helpers.exp_sleep_generator", side_effect=[0, 0, 5]):
+                with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=ServiceUnavailable("test")):
+                    for stub in stub_list:
+                        with pytest.raises((DeadlineExceeded, MutationsExceptionGroup)):
+                            await stub(operation_timeout=0.5, retryable_errors=(ServiceUnavailable,))
 
     # Calls hit retryable errors, then hit terminal exception
     print("populating retryable then terminal error rpcs...")
@@ -156,18 +169,8 @@ async def get_all_metrics(client, instance_id, table_id, project_id):
         client = MetricServiceClient()
         end_time = Timestamp()
         end_time.GetCurrentTime()
-        all_instruments = [
-            "operation_latencies",
-            "attempt_latencies",
-            "server_latencies",
-            "first_response_latencies",
-            "application_blocking_latencies",
-            "client_blocking_latencies",
-            "retry_count",
-            "connectivity_error_count"
-        ]
 
-        for instrument in all_instruments:
+        for instrument in ALL_INSTRUMENTS:
             response = client.list_time_series(
                 name=f"projects/{project_id}",
                 filter=f'metric.type="bigtable.googleapis.com/client/{instrument}" AND resource.labels.instance="{instance_id}" AND resource.labels.table="{table_id}"',
@@ -213,3 +216,258 @@ async def test_resource(get_all_metrics, instance_id, table_id, project_id):
             assert resource.labels["zone"] == "global"
             assert resource.labels["cluster"] == "unspecified"
 
+@pytest.mark.asyncio
+async def test_client_name(get_all_metrics):
+    """
+    all metrics should have client_name populated consistently
+    """
+    from google.cloud.bigtable import __version__
+    for m in get_all_metrics:
+        client_name = m.metric.labels["client_name"]
+        assert client_name == "python-bigtable/" + __version__
+
+@pytest.mark.asyncio
+async def test_app_profile(get_all_metrics):
+    """
+    all metrics should have app_profile populated with one of the test values
+    """
+    supported_app_profiles = ["success", "terminal_exception", "retry_then_success", "retry_then_timeout", "retry_then_terminal"]
+    for m in get_all_metrics:
+        app_profile = m.metric.labels["app_profile"]
+        assert app_profile in supported_app_profiles
+
+@pytest.mark.asyncio
+async def test_latency_data_types(get_all_metrics):
+    """
+    all latency metrics should have metric_kind DELTA and value_type DISTRIBUTION
+    """
+    latency_metrics = [m for m in get_all_metrics if "latencies" in m.metric.type]
+    # ensure we got all metrics
+    assert len(latency_metrics) > 100
+    assert any("operation_latencies" in m.metric.type for m in latency_metrics)
+    assert any("attempt_latencies" in m.metric.type for m in latency_metrics)
+    assert any("server_latencies" in m.metric.type for m in latency_metrics)
+    assert any("first_response_latencies" in m.metric.type for m in latency_metrics)
+    assert any("application_blocking_latencies" in m.metric.type for m in latency_metrics)
+    assert any("client_blocking_latencies" in m.metric.type for m in latency_metrics)
+    # ensure all types are correct
+    for m in latency_metrics:
+        assert m.metric_kind == 2  # DELTA
+        assert m.value_type == 5  # DISTRIBUTION
+
+@pytest.mark.asyncio
+async def test_count_data_types(get_all_metrics):
+    """
+    all count metrics should have metric_kind DELTA and value_type INT64
+    """
+    count_metrics = [m for m in get_all_metrics if "count" in m.metric.type]
+    # ensure we got all metrics
+    assert len(count_metrics) > 25
+    assert any("retry_count" in m.metric.type for m in count_metrics)
+    assert any("connectivity_error_count" in m.metric.type for m in count_metrics)
+    # ensure all types are correct
+    for m in count_metrics:
+        assert m.metric_kind == 2  # DELTA
+        assert m.value_type == 2  # INT64
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("instrument,methods", [
+    ("operation_latencies", list(OperationType)),  # all operation types
+    ("attempt_latencies", list(OperationType)),
+    ("server_latencies", list(OperationType)),
+    ("application_blocking_latencies", list(OperationType)),
+    ("client_blocking_latencies", list(OperationType)),
+    ("first_response_latencies", [OperationType.READ_ROWS]),  # only valid for ReadRows
+    ("connectivity_error_count", list(OperationType)),
+    ("retry_count", [OperationType.READ_ROWS, OperationType.SAMPLE_ROW_KEYS, OperationType.BULK_MUTATE_ROWS, OperationType.MUTATE_ROW]),  # only valid for retryable operations
+])
+async def test_full_method_coverage(get_all_metrics, instrument, methods):
+    """
+    ensure that each instrument type has data for all expected rpc methods
+    """
+    filtered_metrics = [m for m in get_all_metrics if instrument in m.metric.type]
+    assert len(filtered_metrics) > 0
+    # ensure all methods are covered
+    for method in methods:
+        assert any(method.value in m.metric.labels["method"] for m in filtered_metrics), f"{method} not found in {instrument}"
+    # ensure no unexpected methods are covered
+    for m in filtered_metrics:
+        assert m.metric.labels["method"] in [m.value for m in methods], f"unexpected method {m.metric.labels['method']}"
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("instrument,include_status,include_streaming", [
+    ("operation_latencies", True, True),
+    ("attempt_latencies", True, True),
+    ("server_latencies", True, True),
+    ("first_response_latencies", True, False),
+    ("connectivity_error_count", True, False),
+    ("retry_count", True, False),
+    ("application_blocking_latencies", False, False),
+    ("client_blocking_latencies", False, False),
+])
+async def test_labels(get_all_metrics, instrument, include_status, include_streaming):
+    """
+    all metrics have 3 common labels: method, client_name, app_profile
+
+    some metrics also have status and streaming labels
+    """
+    assert len(get_all_metrics) > 0
+    filtered_metrics = [m for m in get_all_metrics if instrument in m.metric.type]
+    expected_num = 3 + int(include_status) + int(include_streaming)
+    for m in filtered_metrics:
+        labels = m.metric.labels
+        # check for count
+        assert len(labels) == expected_num
+        # check for common labels
+        assert "client_name" in labels
+        assert "method" in labels
+        assert "app_profile" in labels
+        # check for optional labels
+        if include_status:
+            assert "status" in labels
+        if include_streaming:
+            assert "streaming" in labels
+
+@pytest.mark.asyncio
+async def test_streaming_label(get_all_metrics):
+    """
+    streaming=True indicates point-reads using ReadRows rpc
+
+    We should only set it set on ReadRows, and we should see a mix of True and False in
+    the dataset
+    """
+    # find set of metrics that support streaming tag
+    streaming_instruments = ["operation_latencies", "attempt_latencies", "server_latencies"]
+    streaming_metrics = [m for m in get_all_metrics if any(i in m.metric.type for i in streaming_instruments)]
+    non_read_rows = [m for m in streaming_metrics if  m.metric.labels["method"] != OperationType.READ_ROWS.value]
+    assert len(non_read_rows) > 50
+    # ensure all non-read-rows have streaming=False
+    assert all(m.metric.labels["streaming"] == "false" for m in non_read_rows)
+    # ensure read-rows have a mix of True and False, for each instrument
+    for instrument in streaming_instruments:
+        filtered_read_rows = [m for m in streaming_metrics if instrument in m.metric.type and m.metric.labels["method"] == OperationType.READ_ROWS.value]
+        assert len(filtered_read_rows) > 0
+        assert any(m.metric.labels["streaming"] == "true" for m in filtered_read_rows)
+        assert any(m.metric.labels["streaming"] == "false" for m in filtered_read_rows)
+
+@pytest.mark.asyncio
+async def test_status_success(get_all_metrics):
+    """
+    check the subset of successful rpcs
+
+    They should have no retries, no connectivity errors, a status of OK
+    Should have cluster and zone properly set
+    """
+    success_metrics = [m for m in get_all_metrics if m.metric.labels["app_profile"] == "success"]
+    # ensure each expected instrument is present in data
+    assert any("operation_latencies" in m.metric.type for m in success_metrics)
+    assert any("attempt_latencies" in m.metric.type for m in success_metrics)
+    assert any("server_latencies" in m.metric.type for m in success_metrics)
+    assert any("first_response_latencies" in m.metric.type for m in success_metrics)
+    assert any("application_blocking_latencies" in m.metric.type for m in success_metrics)
+    assert any("client_blocking_latencies" in m.metric.type for m in success_metrics)
+    for m in success_metrics:
+        # ensure no retries or connectivity errors recorded
+        assert "connectivity_error_count" not in m.metric.type
+        assert "retry_count" not in m.metric.type
+        # if instrument has status label, should be OK
+        if "status" in m.metric.labels:
+            assert m.metric.labels["status"] == "OK"
+        # check for cluster and zone
+        assert m.resource.labels["zone"] == TEST_ZONE
+        assert m.resource.labels["cluster"] == TEST_CLUSTER
+
+@pytest.mark.asyncio
+async def test_status_exception(get_all_metrics):
+    """
+    check the subset of rpcs with a single terminal exception
+
+    They should have no retries, 1 connectivity errors, a status of UNAVAILABLE
+    Should have default values for cluster and zone
+    """
+    fail_metrics = [m for m in get_all_metrics if m.metric.labels["app_profile"] == "terminal_exception"]
+    # ensure each expected instrument is present in data
+    assert any("operation_latencies" in m.metric.type for m in fail_metrics)
+    assert any("attempt_latencies" in m.metric.type for m in fail_metrics)
+    assert any("server_latencies" in m.metric.type for m in fail_metrics)
+    assert any("first_response_latencies" in m.metric.type for m in fail_metrics)
+    assert any("application_blocking_latencies" in m.metric.type for m in fail_metrics)
+    assert any("client_blocking_latencies" in m.metric.type for m in fail_metrics)
+    assert any("connectivity_error_count" in m.metric.type for m in fail_metrics)
+    for m in fail_metrics:
+        # ensure no retries or connectivity errors recorded
+        assert "retry_count" not in m.metric.type
+        # if instrument has status label, should be UNAVAILABLE
+        if "status" in m.metric.labels:
+            assert m.metric.labels["status"] == "UNAVAILABLE"
+        # check for cluster and zone
+        assert m.resource.labels["zone"] == 'global'
+        assert m.resource.labels["cluster"] == 'unspecified'
+    # ensure connectivity error count is 1
+    connectivity_error_counts = [m for m in fail_metrics if "connectivity_error_count" in m.metric.type]
+    assert len(connectivity_error_counts) > 0
+    for m in connectivity_error_counts:
+        for pt in m.points:
+            assert pt.value.int64_value == 1
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("app_profile,final_status", [
+    ("retryn_then_success", "OK"),
+    ("retry_then_terminal", "NOT_FOUND"),
+    ("retry_then_timeout", "DEADLINE_EXCEEDED"),
+])
+async def test_status_retry(get_all_metrics, app_profile, final_status):
+    """
+    check the subset of calls that fail and retry
+
+    All retry metrics should have 2 attempts before reaching final status
+
+    Should have retries, connectivity_errors, and status of `final_status`.
+    cluster and zone may or may not change from the default value, depending on the final status
+    """
+    # get set of all retry_then_success metrics
+    retry_metrics = [m for m in get_all_metrics if m.metric.labels["app_profile"] == app_profile]
+    # find each relevant instrument
+    retry_counts = [m for m in retry_metrics if "retry_count" in m.metric.type]
+    assert len(retry_counts) > 0
+    connectivity_error_counts = [m for m in retry_metrics if "connectivity_error_count" in m.metric.type]
+    assert len(connectivity_error_counts) > 0
+    operation_latencies = [m for m in retry_metrics if "operation_latencies" in m.metric.type]
+    assert len(operation_latencies) > 0
+    attempt_latencies = [m for m in retry_metrics if "attempt_latencies" in m.metric.type]
+    assert len(attempt_latencies) > 0
+    server_latencies = [m for m in retry_metrics if "server_latencies" in m.metric.type]  # may not be present. only if reached server
+    first_response_latencies = [m for m in retry_metrics if "first_response_latencies" in m.metric.type]  # may not be present
+
+    # each retry_count and connectivity_error_count should be 2
+    for m in retry_counts + connectivity_error_counts:
+        for pt in m.points:
+            assert pt.value.int64_value == 2
+
+    # all operation-level status should be final_status
+    for m in operation_latencies + retry_counts:
+        assert m.metric.labels["status"] == final_status
+    # all attempt-level status should have a 2:1 mix of final_status and UNAVAILABLE
+    status_map = {}
+    for m in attempt_latencies + server_latencies + first_response_latencies + connectivity_error_counts:
+        status_map[m.metric.labels["status"]] = status_map.get(m.metric.labels["status"], 0) + 1
+    assert len(status_map) == 2
+    assert final_status in status_map
+    assert "UNAVAILABLE" in status_map
+    assert len(status_map[final_status]) * 2 == len(status_map["UNAVAILABLE"])
+
+@pytest.mark.asyncio
+async def test_latency_metric_histogram_buckets(get_all_metrics):
+    """
+    latency metrics should all have histogram buckets set up properly
+    """
+    from google.cloud.bigtable.data._metrics.handlers.gcp_exporter import MILLIS_AGGREGATION
+    filtered = [m for m in get_all_metrics if "latency" in m.metric.type]
+    all_values = [pt.value.distribution_value for m in filtered for pt in m.points]
+    for v in all_values:
+        # check bucket schema
+        assert v.bucket_options.explicit_buckets.bounds == MILLIS_AGGREGATION.boundaries
+        # check for reasobble values
+        assert v.count > 0
+        assert v.mean > 0
+        assert v.mean < 5000
