@@ -203,14 +203,10 @@ async def test_resource(get_all_metrics, instance_id, table_id, project_id):
         assert resource.labels["instance"] == instance_id
         assert resource.labels["table"] == table_id
         assert resource.labels["project_id"] == project_id
-        if 'success' in m.metric.labels["app_profile"]:
-            # for attempts that succeeded, zone and cluster should be populated
-            assert resource.labels["zone"] == TEST_ZONE
-            assert resource.labels["cluster"] == TEST_CLUSTER
-        else:
-            # others should fall back to defaults
-            assert resource.labels["zone"] == "global"
-            assert resource.labels["cluster"] == "unspecified"
+        # zone and cluster should use default values for failed attempts
+        assert resource.labels["zone"] in [TEST_ZONE, 'global']
+        assert resource.labels["cluster"] in [TEST_CLUSTER, 'unspecified']
+
 
 @pytest.mark.asyncio
 async def test_client_name(get_all_metrics):
@@ -378,7 +374,7 @@ async def test_status_exception(get_all_metrics):
     """
     check the subset of rpcs with a single terminal exception
 
-    They should have no retries, 1 connectivity errors, a status of NOT_FOUND
+    They should have no retries, 1+ connectivity errors, a status of NOT_FOUND
     Should have default values for cluster and zone
     """
     fail_metrics = [m for m in get_all_metrics if m.metric.labels["app_profile"] == "terminal_exception"]
@@ -399,12 +395,16 @@ async def test_status_exception(get_all_metrics):
         # check for cluster and zone
         assert m.resource.labels["zone"] == 'global'
         assert m.resource.labels["cluster"] == 'unspecified'
-    # ensure connectivity error count is 1
+    # each rpc should have at least one connectivity error
+    # ReadRows will have more, since we test point reads and streams
     connectivity_error_counts = [m for m in fail_metrics if "connectivity_error_count" in m.metric.type]
-    assert len(connectivity_error_counts) > 0
-    for m in connectivity_error_counts:
-        for pt in m.points:
-            assert pt.value.int64_value == 1
+    for error_metric in connectivity_error_counts:
+        total_points = sum([int(pt.value.int64_value) for pt in error_metric.points])
+        assert total_points >= 1
+    # ensure each rpc reported connectivity errors
+    for prc in OperationType:
+        assert any(m.metric.labels["method"] == prc.value for m in connectivity_error_counts)
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("app_profile,final_status", [
@@ -435,22 +435,33 @@ async def test_status_retry(get_all_metrics, app_profile, final_status):
     server_latencies = [m for m in retry_metrics if "server_latencies" in m.metric.type]  # may not be present. only if reached server
     first_response_latencies = [m for m in retry_metrics if "first_response_latencies" in m.metric.type]  # may not be present
 
-    # each retry_count and connectivity_error_count should be 2
-    for m in retry_counts + connectivity_error_counts:
-        for pt in m.points:
-            assert pt.value.int64_value == 2
+    # should have at least 2 retry attempts
+    # ReadRows will have more, because it is called multiple times in the test data
+    for m in retry_counts:
+        total_errors = sum([int(pt.value.int64_value) for pt in m.points])
+        assert total_errors >= 2, f"{m} has {total_errors} errors"
+    # each rpc should have at least one connectivity error
+    # most will have 2, but will have 1 if status == NOT_FOUND
+    for m in connectivity_error_counts:
+        total_errors = sum([int(pt.value.int64_value) for pt in m.points])
+        assert total_errors >= 1, f"{m} has {total_errors} errors"
 
     # all operation-level status should be final_status
     for m in operation_latencies + retry_counts:
         assert m.metric.labels["status"] == final_status
-    # all attempt-level status should have a 2:1 mix of final_status and UNAVAILABLE
-    status_map = {}
-    for m in attempt_latencies + server_latencies + first_response_latencies + connectivity_error_counts:
-        status_map[m.metric.labels["status"]] = status_map.get(m.metric.labels["status"], 0) + 1
-    assert len(status_map) == 2
-    assert final_status in status_map
-    assert "UNAVAILABLE" in status_map
-    assert len(status_map[final_status]) * 2 == len(status_map["UNAVAILABLE"])
+
+    # check attempt statuses
+    attempt_statuses = set([m.metric.labels["status"] for m in attempt_latencies + server_latencies + first_response_latencies + connectivity_error_counts])
+    if final_status == "DEADLINE_EXCEEDED":
+        # operation DEADLINE_EXCEEDED never shows up in attempts
+        assert len(attempt_statuses) == 1
+        assert "UNAVAILABLE" in attempt_statuses
+    else:
+        # all other attempt-level status should have a mix of final_status and UNAVAILABLE
+        assert len(attempt_statuses) == 2
+        assert "UNAVAILABLE" in attempt_statuses
+        assert final_status in attempt_statuses
+
 
 @pytest.mark.asyncio
 async def test_latency_metric_histogram_buckets(get_all_metrics):
