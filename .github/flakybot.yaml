@@ -11,7 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-docker:
-  image: gcr.io/cloud-devrel-public-resources/owlbot-python:latest
-  digest: sha256:5ea6d0ab82c956b50962f91d94e206d3921537ae5fe1549ec5326381d8905cfa
-# created: 2024-01-15T16:32:08.142785673Z
+
+issuePriority: p2
