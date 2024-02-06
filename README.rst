@@ -20,6 +20,22 @@ Analytics, Maps, and Gmail.
 .. _Client Library Documentation: https://googleapis.dev/python/bigtable/latest
 .. _Product Documentation:  https://cloud.google.com/bigtable/docs
 
+
+Preview Async Data Client
+----------------------------------
+
+`v2.23.0` includes a preview release of a new data client, accessible at `google.cloud.bigtable.data.BigtableDataClientAsync`.
+
+The new client brings a simplified API and increased performance using asyncio, with a corresponding synchronous surface
+coming soon.
+
+The new client is currently in preview, and is not recommended for production use.
+
+Feedback and bug reports are welcome at cbt-python-client-v3-feedback@google.com,
+or through the Github `issue tracker`_.
+
+.. _issue tracker: https://github.com/googleapis/python-bigtable/issues
+
 Quick Start
 -----------
 
@@ -105,13 +121,3 @@ with the same interface as the popular `HappyBase
 <https://happybase.readthedocs.io/en/latest/>`__ library. Unlike HappyBase,
 ``google-cloud-happybase`` uses ``google-cloud-bigtable`` under the covers,
 rather than Apache HBase.
-
-Preview Async Data Client
-----------------------------------
-
-`v2.23.0` includes a preview release of a new data client, accessible at `google.cloud.bigtable.data.BigtableDataClientAsync`.
-
-The new client brings a simplified API and increased performance using asyncio, with a corresponding synchronous surface
-coming soon.
-
-The new client is currently in preview, and is not recommended for production use.
