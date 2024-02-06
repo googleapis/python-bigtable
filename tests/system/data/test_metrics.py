@@ -134,11 +134,11 @@ async def _populate_calls(client, instance_id, table_id):
     async with table_with_profile("retry_then_timeout") as table:
         stubs = {k:v for k,v in _get_stubs_for_table(table).items() if k not in non_retryable_rpcs}
         for rpc_name, stub_list in stubs.items():
-            with mock.patch("google.cloud.bigtable.data._helpers.exp_sleep_generator", side_effect=[0, 0, 5]):
                 with mock.patch(f"google.cloud.bigtable_v2.BigtableAsyncClient.{rpc_name}", side_effect=ServiceUnavailable("test")):
                     for stub in stub_list:
-                        with pytest.raises((DeadlineExceeded, MutationsExceptionGroup)):
-                            await stub(operation_timeout=0.5, retryable_errors=(ServiceUnavailable,))
+                        with mock.patch("google.cloud.bigtable.data._helpers.exponential_sleep_generator", return_value=iter([0.01, 0.01, 5])):
+                            with pytest.raises((DeadlineExceeded, MutationsExceptionGroup)):
+                                await stub(operation_timeout=0.5, retryable_errors=(ServiceUnavailable,))
 
     # Calls hit retryable errors, then hit terminal exception
     print("populating retryable then terminal error rpcs...")

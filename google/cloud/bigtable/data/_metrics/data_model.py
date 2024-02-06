@@ -410,8 +410,14 @@ class ActiveOperationMetric:
         Args:
           - exc: The exception to extract the status code from.
         """
-        if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
+        # parse bigtable custom exceptions
+        if isinstance(exc, (bt_exceptions.MutationsExceptionGroup, bt_exceptions.ShardedReadRowsExceptionGroup)) and exc.exceptions:
+            # grab the RetryExceptionGroup from the most last failed mutation/shard
+            exc = exc.exceptions[-1].__cause__
+        if isinstance(exc, bt_exceptions.RetryExceptionGroup):
+            # grab the last exception in the retry group
             exc = exc.exceptions[-1]
+        # parse grpc exceptions
         if hasattr(exc, "grpc_status_code") and exc.grpc_status_code is not None:
             return exc.grpc_status_code
         if (
