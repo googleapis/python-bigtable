@@ -106,7 +106,12 @@ async def test_rpc_instrumented(fn_name, fn_args, gapic_fn, is_unary, expected_t
             unary_response = None
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, ResponseParams.serialize(ResponseParams(zone_id=zone_data, cluster_id=cluster_data)))
+            (
+                BIGTABLE_METADATA_KEY,
+                ResponseParams.serialize(
+                    ResponseParams(zone_id=zone_data, cluster_id=cluster_data)
+                ),
+            )
         )
         trailing_metadata = Metadata(
             (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency_ms}")
@@ -233,7 +238,7 @@ async def test_rpc_instrumented_multiple_attempts(
             assert success.end_status == StatusCode.OK
             assert failure.end_status == StatusCode.ABORTED
             assert success.start_time > failure.start_time + datetime.timedelta(
-               milliseconds=failure.duration_ms
+                milliseconds=failure.duration_ms
             )
             assert success.backoff_before_attempt_ms > 0
             assert failure.backoff_before_attempt_ms == 0
@@ -255,7 +260,12 @@ async def test_batcher_rpcs_instrumented():
     ) as gapic_mock:
         # populate metadata fields
         initial_metadata = Metadata(
-            (BIGTABLE_METADATA_KEY, ResponseParams.serialize(ResponseParams(zone_id=zone_data, cluster_id=cluster_data)))
+            (
+                BIGTABLE_METADATA_KEY,
+                ResponseParams.serialize(
+                    ResponseParams(zone_id=zone_data, cluster_id=cluster_data)
+                ),
+            )
         )
         trailing_metadata = Metadata(
             (SERVER_TIMING_METADATA_KEY, f"gfet4t7; dur={expected_gfe_latency_ms}")

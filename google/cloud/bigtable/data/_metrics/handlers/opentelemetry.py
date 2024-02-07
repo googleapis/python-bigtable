@@ -212,7 +212,8 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
             combined_throttling += op.flow_throttling_time_ms
         self.otel.throttling_latencies.record(combined_throttling, labels)
         self.otel.application_latencies.record(
-            attempt.application_blocking_time_ms + attempt.backoff_before_attempt_ms, labels
+            attempt.application_blocking_time_ms + attempt.backoff_before_attempt_ms,
+            labels,
         )
         if (
             op.op_type == OperationType.READ_ROWS
@@ -229,6 +230,4 @@ class OpenTelemetryMetricsHandler(MetricsHandler):
         else:
             # gfe headers not attached. Record a connectivity error.
             # TODO: this should not be recorded as an error when direct path is enabled
-            self.otel.connectivity_error_count.add(
-                1, {"status": status, **labels}
-            )
+            self.otel.connectivity_error_count.add(1, {"status": status, **labels})

@@ -23,8 +23,8 @@ from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VA
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
-TEST_ZONE = 'us-central1-b'
-TEST_CLUSTER = 'test-cluster'
+TEST_ZONE = "us-central1-b"
+TEST_CLUSTER = "test-cluster"
 
 
 @pytest.fixture(scope="session")

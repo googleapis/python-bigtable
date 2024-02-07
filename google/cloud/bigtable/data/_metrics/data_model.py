@@ -27,7 +27,9 @@ from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
 
-import google.cloud.bigtable.data.exceptions as bt_exceptions
+from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.protobuf.message import DecodeError
 
@@ -411,10 +413,13 @@ class ActiveOperationMetric:
           - exc: The exception to extract the status code from.
         """
         # parse bigtable custom exceptions
-        if isinstance(exc, (bt_exceptions.MutationsExceptionGroup, bt_exceptions.ShardedReadRowsExceptionGroup)) and exc.exceptions:
+        if (
+            isinstance(exc, (MutationsExceptionGroup, ShardedReadRowsExceptionGroup))
+            and exc.exceptions
+        ):
             # grab the RetryExceptionGroup from the most last failed mutation/shard
             exc = exc.exceptions[-1].__cause__
-        if isinstance(exc, bt_exceptions.RetryExceptionGroup):
+        if isinstance(exc, RetryExceptionGroup):
             # grab the last exception in the retry group
             exc = exc.exceptions[-1]
         # parse grpc exceptions
