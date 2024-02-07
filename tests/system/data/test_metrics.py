@@ -439,12 +439,12 @@ async def test_status_retry(get_all_metrics, app_profile, final_status):
     # ReadRows will have more, because it is called multiple times in the test data
     for m in retry_counts:
         total_errors = sum([int(pt.value.int64_value) for pt in m.points])
-        assert total_errors >= 2, f"{m} has {total_errors} errors"
+        assert total_errors >= 2
     # each rpc should have at least one connectivity error
     # most will have 2, but will have 1 if status == NOT_FOUND
     for m in connectivity_error_counts:
         total_errors = sum([int(pt.value.int64_value) for pt in m.points])
-        assert total_errors >= 1, f"{m} has {total_errors} errors"
+        assert total_errors >= 1
 
     # all operation-level status should be final_status
     for m in operation_latencies + retry_counts:
