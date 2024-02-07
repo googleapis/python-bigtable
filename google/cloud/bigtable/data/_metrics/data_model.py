@@ -30,8 +30,10 @@ from grpc import StatusCode
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.protobuf.message import DecodeError
+from google.api_core.retry import RetryFailureReason
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
@@ -377,13 +379,17 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def build_wrapped_predicate(
-        self, inner_predicate: Callable[[Exception], bool]
+    def build_wrapped_fn_handlers(
+        self,
+        inner_predicate: Callable[[Exception], bool],
     ) -> Callable[[Exception], bool]:
         """
-        Wrapps a predicate to include metrics tracking. Any call to the resulting predicate
-        is assumed to be an rpc failure, and will either mark the end of the active attempt
-        or the end of the operation.
+        One way to track metrics is by wrapping the `predicate` and `exception_factory`
+        arguments of `api_core.Retry`. This will notify us when an exception occurs so
+        we can track it.
+
+        This function retruns wrapped versions of the `predicate` and `exception_factory`
+        to be passed down when building the `Retry` object.
 
         Args:
           - predicate: The predicate to wrap.
@@ -397,7 +403,17 @@ class ActiveOperationMetric:
                 self.end_with_status(exc)
             return inner_result
 
-        return wrapped_predicate
+        def wrapped_exception_factory(
+            exc_list: list[Exception],
+            reason: RetryFailureReason,
+            timeout_val: float | None,
+        ) -> tuple[Exception, Exception | None]:
+            exc, source = _retry_exception_factory(exc_list, reason, timeout_val)
+            if reason != RetryFailureReason.NON_RETRYABLE_ERROR:
+                self.end_with_status(exc)
+            return exc, source
+
+        return wrapped_predicate, wrapped_exception_factory
 
     @staticmethod
     def _exc_to_status(exc: Exception) -> StatusCode:

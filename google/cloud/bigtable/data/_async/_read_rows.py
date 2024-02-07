@@ -115,30 +115,16 @@ class _ReadRowsOperationAsync:
         self._operation_metrics.backoff_generator = sleep_generator
 
         # Metrics:
-        # track attempt failures using build_wrapped_predicate() for raised exceptions
-        # and _metric_wrapped_exception_factory for operation timeouts
+        # track attempt failures using build_wrapped_fn_handlers() for raised exceptions
+        # and operation timeouts
+        metric_predicate, metric_excs = self._operation_metrics.build_wrapped_fn_handlers(self._predicate)
         return retries.retry_target_stream_async(
             self._read_rows_attempt,
-            self._operation_metrics.build_wrapped_predicate(self._predicate),
+            metric_predicate,
             sleep_generator,
             self.operation_timeout,
-            exception_factory=self._metric_wrapped_exception_factory,
+            exception_factory=metric_excs,
         )
-
-    def _metric_wrapped_exception_factory(
-        self,
-        exc_list: list[Exception],
-        reason: retries.RetryFailureReason,
-        timeout_val: float | None,
-    ) -> tuple[Exception, Exception | None]:
-        """
-        Wrap the retry exception builder to alert the metrics class
-        when we are going to emit an operation timeout.
-        """
-        exc, source = _retry_exception_factory(exc_list, reason, timeout_val)
-        if reason != retries.RetryFailureReason.NON_RETRYABLE_ERROR:
-            self._operation_metrics.end_with_status(exc)
-        return exc, source
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
         """
