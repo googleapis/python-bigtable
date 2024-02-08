@@ -9,9 +9,7 @@
   },
   "bigtable": {
     "instance_id": "<Bigtable Instance Id>",
-    "database_id": "<Bigtable Database Id>",
     "table_name": "<Bigtable Table Name>",
-    "columns_aliases": "<Columns to Export from Bigtable Table>",
     "id_column": "<The fully qualified column name where the ID is stored. In the format cf:col or _key>",
     "embedding_column": "<The fully qualified column name where the embeddings are stored. In the format cf:col or _key>",
     "crowding_tag_column": "<The fully qualified column name where the crowding tag is stored. In the format cf:col or _key>",
