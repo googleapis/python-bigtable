@@ -117,13 +117,14 @@ class _ReadRowsOperationAsync:
         # Metrics:
         # track attempt failures using build_wrapped_fn_handlers() for raised exceptions
         # and operation timeouts
-        metric_predicate, metric_excs = self._operation_metrics.build_wrapped_fn_handlers(self._predicate)
+        metric_fns = self._operation_metrics.build_wrapped_fn_handlers(self._predicate)
+        metric_predicate, metric_exc_factory = metric_fns
         return retries.retry_target_stream_async(
             self._read_rows_attempt,
-            metric_predicate,
+            metric_fns[0],
             sleep_generator,
             self.operation_timeout,
-            exception_factory=metric_excs,
+            exception_factory=metric_fns[1],
         )
 
     def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
