@@ -709,14 +709,21 @@ class TestActiveOperationMetric:
         for exc in custom_excs:
             assert cls._exc_to_status(exc) == cause_exc.grpc_status_code, exc
         # extract most recent exception for bigtable exception groups
+        # if retry is cause, unwrap retry
+        retry_exc = bt_exc.RetryExceptionGroup([RuntimeError(), cause_exc])
         exc_groups = [
-            bt_exc._BigtableExceptionGroup("", [ValueError(), cause_exc]),
-            bt_exc.RetryExceptionGroup([RuntimeError(), cause_exc]),
+            retry_exc,
             bt_exc.ShardedReadRowsExceptionGroup(
                 [bt_exc.FailedQueryShardError(1, {}, cause=cause_exc)], [], 2
             ),
+            bt_exc.ShardedReadRowsExceptionGroup(
+                [bt_exc.FailedQueryShardError(1, {}, cause=retry_exc)], [], 2
+            ),
             bt_exc.MutationsExceptionGroup(
                 [bt_exc.FailedMutationEntryError(1, mock.Mock(), cause=cause_exc)], 2
+            ),
+            bt_exc.MutationsExceptionGroup(
+                [bt_exc.FailedMutationEntryError(1, mock.Mock(), cause=retry_exc)], 2
             ),
         ]
         for exc in exc_groups:
