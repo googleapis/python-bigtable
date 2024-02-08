@@ -874,7 +874,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.delete_table,
-            default_timeout=60.0,
+            default_timeout=300.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -1805,7 +1805,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.delete_snapshot,
-            default_timeout=60.0,
+            default_timeout=300.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 
@@ -2185,7 +2185,7 @@ class BigtableTableAdminAsyncClient:
         # and friendly error handling.
         rpc = gapic_v1.method_async.wrap_method(
             self._client._transport.delete_backup,
-            default_timeout=60.0,
+            default_timeout=300.0,
             client_info=DEFAULT_CLIENT_INFO,
         )
 

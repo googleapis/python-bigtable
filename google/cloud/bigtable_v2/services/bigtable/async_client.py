@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import functools
 from collections import OrderedDict
 import functools
 import re
@@ -311,8 +310,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.ReadRowsRequest):
-            request = bigtable.ReadRowsRequest(request)
+        request = bigtable.ReadRowsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -323,9 +321,12 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.read_rows
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.read_rows,
+            default_timeout=43200.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
+
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
@@ -407,8 +408,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.SampleRowKeysRequest):
-            request = bigtable.SampleRowKeysRequest(request)
+        request = bigtable.SampleRowKeysRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -419,9 +419,12 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.sample_row_keys
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.sample_row_keys,
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
+
         # Certain fields should be provided within the metadata header;
         # add these here.
         metadata = tuple(metadata) + (
@@ -520,8 +523,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.MutateRowRequest):
-            request = bigtable.MutateRowRequest(request)
+        request = bigtable.MutateRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -536,9 +538,21 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.mutate_row
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.mutate_row,
+            default_retry=retries.AsyncRetry(
+                initial=0.01,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -634,8 +648,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.MutateRowsRequest):
-            request = bigtable.MutateRowsRequest(request)
+        request = bigtable.MutateRowsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -648,9 +661,11 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.mutate_rows
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.mutate_rows,
+            default_timeout=600.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -784,8 +799,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.CheckAndMutateRowRequest):
-            request = bigtable.CheckAndMutateRowRequest(request)
+        request = bigtable.CheckAndMutateRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -804,9 +818,11 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.check_and_mutate_row
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.check_and_mutate_row,
+            default_timeout=20.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -888,8 +904,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.PingAndWarmRequest):
-            request = bigtable.PingAndWarmRequest(request)
+        request = bigtable.PingAndWarmRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -900,9 +915,11 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.ping_and_warm
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.ping_and_warm,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1007,8 +1024,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.ReadModifyWriteRowRequest):
-            request = bigtable.ReadModifyWriteRowRequest(request)
+        request = bigtable.ReadModifyWriteRowRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1023,9 +1039,11 @@ class BigtableAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.read_modify_write_row
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.read_modify_write_row,
+            default_timeout=20.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1117,10 +1135,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(
-            request, bigtable.GenerateInitialChangeStreamPartitionsRequest
-        ):
-            request = bigtable.GenerateInitialChangeStreamPartitionsRequest(request)
+        request = bigtable.GenerateInitialChangeStreamPartitionsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1221,8 +1236,7 @@ class BigtableAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        if not isinstance(request, bigtable.ReadChangeStreamRequest):
-            request = bigtable.ReadChangeStreamRequest(request)
+        request = bigtable.ReadChangeStreamRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.

@@ -188,7 +188,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_table: gapic_v1.method.wrap_method(
                 self.delete_table,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.undelete_table: gapic_v1.method.wrap_method(
@@ -273,7 +273,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_snapshot: gapic_v1.method.wrap_method(
                 self.delete_snapshot,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.create_backup: gapic_v1.method.wrap_method(
@@ -303,7 +303,7 @@ class BigtableTableAdminTransport(abc.ABC):
             ),
             self.delete_backup: gapic_v1.method.wrap_method(
                 self.delete_backup,
-                default_timeout=60.0,
+                default_timeout=300.0,
                 client_info=client_info,
             ),
             self.list_backups: gapic_v1.method.wrap_method(
