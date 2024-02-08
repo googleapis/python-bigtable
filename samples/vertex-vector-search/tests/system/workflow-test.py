@@ -80,27 +80,31 @@ def setup_workflow(project_id: str) -> Iterator[None]:
     # Deploy Workflow
     deploy_workflow(project_id, WORKFLOW_LOCATION, WORKFLOW_NAME)
 
-    yield
+    try:
+        yield
 
-    workflow_client = workflows_v1.WorkflowsClient()
+    finally:
+        workflow_client = workflows_v1.WorkflowsClient()
 
-    workflow_full_path = (
-        "projects/{project}/locations/{location}/workflows/{workflow_name}".format(
-            project=project_id, location=WORKFLOW_LOCATION, workflow_name=WORKFLOW_NAME
+        workflow_full_path = (
+            "projects/{project}/locations/{location}/workflows/{workflow_name}".format(
+                project=project_id,
+                location=WORKFLOW_LOCATION,
+                workflow_name=WORKFLOW_NAME,
+            )
         )
-    )
 
-    # Initialize request argument(s)
-    request = workflows_v1.DeleteWorkflowRequest(
-        name=workflow_full_path,
-    )
+        # Initialize request argument(s)
+        request = workflows_v1.DeleteWorkflowRequest(
+            name=workflow_full_path,
+        )
 
-    # Make the request
-    operation = workflow_client.delete_workflow(request=request)
+        # Make the request
+        operation = workflow_client.delete_workflow(request=request)
 
-    logger.info("Delete Cloud Workflow with name: {}.".format(workflow_full_path))
+        logger.info("Delete Cloud Workflow with name: {}.".format(workflow_full_path))
 
-    operation.result()
+        operation.result()
 
 
 def generate_vector_data(
@@ -700,25 +704,27 @@ def setup_and_execute_workflow(
         to the provided result_list.
     """
 
-    # 1 Setting up Bigtable
-    rows = setup_bigtable(
-        project,
-        bigtable_arguments["instance_id"],
-        bigtable_arguments["table_name"],
-    )
+    try:
+        # 1 Setting up Bigtable
+        rows = setup_bigtable(
+            project,
+            bigtable_arguments["instance_id"],
+            bigtable_arguments["table_name"],
+        )
 
-    # 2 Execute Workflow
-    sync_execute_workflow(
-        project, location, workflow_name, bigtable_arguments, vertex_index_id
-    )
+        # 2 Execute Workflow
+        sync_execute_workflow(
+            project, location, workflow_name, bigtable_arguments, vertex_index_id
+        )
 
-    result_list.append(rows)
+        result_list.append(rows)
 
-    cleanup_bigtable_resources(
-        project,
-        bigtable_arguments["instance_id"],
-        bigtable_arguments["table_name"],
-    )
+    finally:
+        cleanup_bigtable_resources(
+            project,
+            bigtable_arguments["instance_id"],
+            bigtable_arguments["table_name"],
+        )
 
 
 def test_concurrent_workflow_execution(
