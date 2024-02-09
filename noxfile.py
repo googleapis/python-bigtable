@@ -42,7 +42,6 @@ UNIT_TEST_STANDARD_DEPENDENCIES = [
     "pytest-cov",
     "pytest-asyncio",
 ]
-
 UNIT_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_LOCAL_DEPENDENCIES: List[str] = []
 UNIT_TEST_DEPENDENCIES: List[str] = []
@@ -57,7 +56,9 @@ SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "google-cloud-testutils",
     "opentelemetry-api",
 ]
-SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = []
+SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
+    "pytest-asyncio",
+]
 SYSTEM_TEST_LOCAL_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_DEPENDENCIES: List[str] = []
 SYSTEM_TEST_EXTRAS: List[str] = []
@@ -287,9 +288,6 @@ def system_emulated(session):
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def conformance(session):
-    """
-    Run the set of shared bigtable conformance tests
-    """
     TEST_REPO_URL = "https://github.com/googleapis/cloud-bigtable-clients-test.git"
     CLONE_REPO_DIR = "cloud-bigtable-clients-test"
     # install dependencies
@@ -368,7 +366,16 @@ def docs(session):
 
     session.install("-e", ".")
     session.install(
-        "sphinx==4.0.1",
+        # We need to pin to specific versions of the `sphinxcontrib-*` packages
+        # which still support sphinx 4.x.
+        # See https://github.com/googleapis/sphinx-docfx-yaml/issues/344
+        # and https://github.com/googleapis/sphinx-docfx-yaml/issues/345.
+        "sphinxcontrib-applehelp==1.0.4",
+        "sphinxcontrib-devhelp==1.0.2",
+        "sphinxcontrib-htmlhelp==2.0.1",
+        "sphinxcontrib-qthelp==1.0.3",
+        "sphinxcontrib-serializinghtml==1.1.5",
+        "sphinx==4.5.0",
         "alabaster",
         "recommonmark",
     )
@@ -394,6 +401,15 @@ def docfx(session):
 
     session.install("-e", ".")
     session.install(
+        # We need to pin to specific versions of the `sphinxcontrib-*` packages
+        # which still support sphinx 4.x.
+        # See https://github.com/googleapis/sphinx-docfx-yaml/issues/344
+        # and https://github.com/googleapis/sphinx-docfx-yaml/issues/345.
+        "sphinxcontrib-applehelp==1.0.4",
+        "sphinxcontrib-devhelp==1.0.2",
+        "sphinxcontrib-htmlhelp==2.0.1",
+        "sphinxcontrib-qthelp==1.0.3",
+        "sphinxcontrib-serializinghtml==1.1.5",
         "gcp-sphinx-docfx-yaml",
         "alabaster",
         "recommonmark",
@@ -467,7 +483,8 @@ def prerelease_deps(session):
         # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
         "grpcio!=1.52.0rc1",
         "grpcio-status",
-        "google-api-core==2.16.0rc0",  # TODO: remove pin once streaming retries is merged
+        "google-api-core",
+        "google-auth",
         "proto-plus",
         "google-cloud-testutils",
         # dependencies of google-cloud-testutils"

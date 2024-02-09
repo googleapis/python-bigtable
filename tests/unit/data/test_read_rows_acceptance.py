@@ -98,7 +98,9 @@ async def test_row_merger_scenario(test_case: ReadRowsTest):
 @pytest.mark.asyncio
 async def test_read_rows_scenario(test_case: ReadRowsTest):
     try:
-        client = BigtableDataClientAsync()
+        with mock.patch.dict(os.environ, {"BIGTABLE_EMULATOR_HOST": "localhost"}):
+            # use emulator mode to avoid auth issues in CI
+            client = BigtableDataClientAsync()
         table = client.get_table("instance", "table")
         results = []
         with mock.patch.object(

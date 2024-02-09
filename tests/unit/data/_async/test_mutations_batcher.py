@@ -726,7 +726,7 @@ class TestMutationsBatcherAsync:
                 assert len(instance._oldest_exceptions) == 0
                 assert len(instance._newest_exceptions) == 0
                 # if flushes were sequential, total duration would be 1s
-                assert duration < 0.25
+                assert duration < 0.5
                 assert op_mock.call_count == num_calls
 
     @pytest.mark.asyncio

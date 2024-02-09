@@ -31,6 +31,9 @@ from .test_system import (
     TEST_FAMILY,
     TEST_CLUSTER,
     TEST_ZONE,
+    cluster_config,  # noqa: F401
+    column_family_config,  # noqa: F401
+    init_table_id,  # noqa: F401
 )
 
 # use this value to make sure we are testing against a consistent test of metrics
@@ -74,9 +77,10 @@ async def _populate_calls(client, instance_id, table_id):
             "app_profile_id": app_profile_id,  # use artificial app profile for metrics, not in backend
         }
         # create a GCP exporter with 1 second interval
-        table._metrics.handlers = [
-            GoogleCloudMetricsHandler(**kwargs, export_interval=1),
-        ]
+        with mock.patch("google.cloud.bigtable.data._metrics.handlers.gcp_exporter.EXPORT_INTERVAL_MS", 1000):
+            table._metrics.handlers = [
+                GoogleCloudMetricsHandler(**kwargs),
+            ]
         return table
 
     # helper function that builds callables to execute each type of rpc
