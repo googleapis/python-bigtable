@@ -100,28 +100,6 @@ class TestGoogleCloudMetricsHandler:
         assert isinstance(found_reader._exporter, _BigtableMetricsExporter)
         assert found_reader._exporter.project_name == f"projects/{project_id}"
 
-    @mock.patch(
-        "google.cloud.bigtable.data._metrics.handlers.gcp_exporter.PeriodicExportingMetricReader",
-        autospec=True,
-    )
-    def test_custom_export_interval(self, mock_reader):
-        """
-        should be able to set a custom export interval
-        """
-        input_interval = 123
-        try:
-            self._make_one(
-                export_interval=input_interval,
-                project_id="p",
-                instance_id="i",
-                table_id="t",
-            )
-        except Exception:
-            pass
-        reader_init_kwargs = mock_reader.call_args[1]
-        found_interval = reader_init_kwargs["export_interval_millis"]
-        assert found_interval == input_interval * 1000  # convert to ms
-
 
 class Test_BigtableMetricsExporter:
     def _get_class(self):

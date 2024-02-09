@@ -25,6 +25,8 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
+TEST_ZONE = "us-central1-b"
+TEST_CLUSTER = "test-cluster"
 
 
 @pytest.fixture(scope="session")
@@ -53,8 +55,8 @@ def cluster_config(project_id):
     from google.cloud.bigtable_admin_v2 import types
 
     cluster = {
-        "test-cluster": types.Cluster(
-            location=f"projects/{project_id}/locations/us-central1-b",
+        TEST_CLUSTER: types.Cluster(
+            location=f"projects/{project_id}/locations/{TEST_ZONE}",
             serve_nodes=1,
         )
     }

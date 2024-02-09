@@ -14,6 +14,7 @@
 import pytest
 
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+from .test_client import mock_grpc_call
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -60,6 +61,7 @@ class TestReadRowsOperation:
         expected_operation_timeout = 42
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
+        metrics = mock.Mock()
         with mock.patch(
             "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
             time_gen_mock,
@@ -69,6 +71,7 @@ class TestReadRowsOperation:
                 table,
                 operation_timeout=expected_operation_timeout,
                 attempt_timeout=expected_request_timeout,
+                metrics=metrics,
             )
         assert time_gen_mock.call_count == 1
         time_gen_mock.assert_called_once_with(
@@ -87,6 +90,7 @@ class TestReadRowsOperation:
         assert instance.request.table_name == table.table_name
         assert instance.request.app_profile_id == table.app_profile_id
         assert instance.request.rows_limit == row_limit
+        assert instance._operation_metrics == metrics
 
     @pytest.mark.parametrize(
         "in_keys,last_key,expected",
@@ -228,31 +232,27 @@ class TestReadRowsOperation:
         from google.cloud.bigtable.data import ReadRowsQuery
         from google.cloud.bigtable_v2.types import ReadRowsResponse
 
-        async def awaitable_stream():
-            async def mock_stream():
-                for i in range(emit_num):
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(
-                                row_key=str(i).encode(),
-                                family_name="b",
-                                qualifier=b"c",
-                                value=b"d",
-                                commit_row=True,
-                            )
-                        ]
-                    )
-
-            return mock_stream()
-
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
+        instance = self._make_one(query, table, 10, 10, mock.Mock())
         assert instance._remaining_count == start_limit
         # read emit_num rows
-        async for val in instance.chunk_stream(awaitable_stream()):
+        chunks = [
+            ReadRowsResponse.CellChunk(
+                row_key=str(i).encode(),
+                family_name="b",
+                qualifier=b"c",
+                value=b"d",
+                commit_row=True,
+            )
+            for i in range(emit_num)
+        ]
+        stream = mock_grpc_call(
+            stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+        )
+        async for val in instance.chunk_stream(stream):
             pass
         assert instance._remaining_count == expected_limit
 
@@ -267,32 +267,28 @@ class TestReadRowsOperation:
         from google.cloud.bigtable_v2.types import ReadRowsResponse
         from google.cloud.bigtable.data.exceptions import InvalidChunk
 
-        async def awaitable_stream():
-            async def mock_stream():
-                for i in range(emit_num):
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(
-                                row_key=str(i).encode(),
-                                family_name="b",
-                                qualifier=b"c",
-                                value=b"d",
-                                commit_row=True,
-                            )
-                        ]
-                    )
-
-            return mock_stream()
-
         query = ReadRowsQuery(limit=start_limit)
         table = mock.Mock()
         table.table_name = "table_name"
         table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
+        instance = self._make_one(query, table, 10, 10, mock.Mock())
         assert instance._remaining_count == start_limit
         with pytest.raises(InvalidChunk) as e:
             # read emit_num rows
-            async for val in instance.chunk_stream(awaitable_stream()):
+            chunks = [
+                ReadRowsResponse.CellChunk(
+                    row_key=str(i).encode(),
+                    family_name="b",
+                    qualifier=b"c",
+                    value=b"d",
+                    commit_row=True,
+                )
+                for i in range(emit_num)
+            ]
+            stream = mock_grpc_call(
+                stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+            )
+            async for val in instance.chunk_stream(stream):
                 pass
         assert "emit count exceeds row limit" in str(e.value)
 
@@ -302,17 +298,12 @@ class TestReadRowsOperation:
         should be able to close a stream safely with aclose.
         Closed generators should raise StopAsyncIteration on next yield
         """
-
-        async def mock_stream():
-            while True:
-                yield 1
-
         with mock.patch.object(
             _ReadRowsOperationAsync, "_read_rows_attempt"
         ) as mock_attempt:
-            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
-            wrapped_gen = mock_stream()
-            mock_attempt.return_value = wrapped_gen
+            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1, mock.Mock())
+            call = mock_grpc_call(stream_response=range(100))
+            mock_attempt.return_value = call
             gen = instance.start_operation()
             # read one row
             await gen.__anext__()
@@ -323,7 +314,7 @@ class TestReadRowsOperation:
             await gen.aclose()
             # ensure close was propagated to wrapped generator
             with pytest.raises(StopAsyncIteration):
-                await wrapped_gen.__anext__()
+                await call.__anext__()
 
     @pytest.mark.asyncio
     async def test_retryable_ignore_repeated_rows(self):
@@ -336,26 +327,14 @@ class TestReadRowsOperation:
 
         row_key = b"duplicate"
 
-        async def mock_awaitable_stream():
-            async def mock_stream():
-                while True:
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
-                        ]
-                    )
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
-                        ]
-                    )
-
-            return mock_stream()
-
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        stream = _ReadRowsOperationAsync.chunk_stream(instance, mock_awaitable_stream())
+        chunks = [ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)] * 2
+        grpc_call = mock_grpc_call(
+            stream_response=[ReadRowsResponse(chunks=[c]) for c in chunks]
+        )
+        stream = _ReadRowsOperationAsync.chunk_stream(instance, grpc_call)
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:
             await stream.__anext__()

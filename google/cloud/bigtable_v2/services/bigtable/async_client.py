@@ -36,6 +36,7 @@ from google.cloud.bigtable_v2 import gapic_version as package_version
 from google.api_core.client_options import ClientOptions
 from google.api_core import exceptions as core_exceptions
 from google.api_core import gapic_v1
+from google.api_core.grpc_helpers_async import GrpcAsyncStream
 from google.api_core import retry_async as retries
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.oauth2 import service_account  # type: ignore
@@ -260,7 +261,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.ReadRowsResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.ReadRowsResponse]]:
         r"""Streams back the contents of all requested rows in
         key order, optionally applying the same Reader filter to
         each. Depending on their size, rows and cells may be
@@ -357,7 +358,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.SampleRowKeysResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.SampleRowKeysResponse]]:
         r"""Returns a sample of row keys in the table. The
         returned row keys will delimit contiguous sections of
         the table of approximately equal size, which can be used
@@ -444,7 +445,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    async def mutate_row(
+    def mutate_row(
         self,
         request: Optional[Union[bigtable.MutateRowRequest, dict]] = None,
         *,
@@ -551,16 +552,13 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def mutate_rows(
         self,
@@ -572,7 +570,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.MutateRowsResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.MutateRowsResponse]]:
         r"""Mutates multiple rows in a batch. Each individual row
         is mutated atomically as in MutateRow, but the entire
         batch is not executed atomically.
@@ -674,7 +672,7 @@ class BigtableAsyncClient:
         # Done; return the response.
         return response
 
-    async def check_and_mutate_row(
+    def check_and_mutate_row(
         self,
         request: Optional[Union[bigtable.CheckAndMutateRowRequest, dict]] = None,
         *,
@@ -819,18 +817,15 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-        # Done; return the response.
-        return response
-
-    async def ping_and_warm(
+    def ping_and_warm(
         self,
         request: Optional[Union[bigtable.PingAndWarmRequest, dict]] = None,
         *,
@@ -913,18 +908,15 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
 
-        # Done; return the response.
-        return response
-
-    async def read_modify_write_row(
+    def read_modify_write_row(
         self,
         request: Optional[Union[bigtable.ReadModifyWriteRowRequest, dict]] = None,
         *,
@@ -1038,16 +1030,13 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = await rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def generate_initial_change_stream_partitions(
         self,
@@ -1061,7 +1050,7 @@ class BigtableAsyncClient:
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
     ) -> Awaitable[
-        AsyncIterable[bigtable.GenerateInitialChangeStreamPartitionsResponse]
+        GrpcAsyncStream[bigtable.GenerateInitialChangeStreamPartitionsResponse]
     ]:
         r"""NOTE: This API is intended to be used by Apache Beam BigtableIO.
         Returns the current list of partitions that make up the table's
@@ -1148,16 +1137,13 @@ class BigtableAsyncClient:
         # Validate the universe domain.
         self._client._validate_universe_domain()
 
-        # Send the request.
-        response = rpc(
+        # Return the grpc call coroutine.
+        return rpc(
             request,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
         )
-
-        # Done; return the response.
-        return response
 
     def read_change_stream(
         self,
@@ -1168,7 +1154,7 @@ class BigtableAsyncClient:
         retry: OptionalRetry = gapic_v1.method.DEFAULT,
         timeout: Union[float, object] = gapic_v1.method.DEFAULT,
         metadata: Sequence[Tuple[str, str]] = (),
-    ) -> Awaitable[AsyncIterable[bigtable.ReadChangeStreamResponse]]:
+    ) -> Awaitable[GrpcAsyncStream[bigtable.ReadChangeStreamResponse]]:
         r"""NOTE: This API is intended to be used by Apache Beam
         BigtableIO. Reads changes from a table's change stream.
         Changes will reflect both user-initiated mutations and

@@ -77,10 +77,12 @@ def instance_id(admin_client, project_id, cluster_config):
             operation.result(timeout=240)
         except exceptions.AlreadyExists:
             pass
-        yield instance_id
-        admin_client.instance_admin_client.delete_instance(
-            name=f"projects/{project_id}/instances/{instance_id}"
-        )
+        try:
+            yield instance_id
+        finally:
+            admin_client.instance_admin_client.delete_instance(
+                name=f"projects/{project_id}/instances/{instance_id}"
+            )
 
 
 @pytest.fixture(scope="session")

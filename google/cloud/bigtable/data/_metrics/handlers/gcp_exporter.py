@@ -53,9 +53,9 @@ from google.cloud.bigtable.data._metrics.handlers.opentelemetry import (
 # fmt: off
 MILLIS_AGGREGATION = view.ExplicitBucketHistogramAggregation(
     [
-        0, 0.01, 0.05, 0.1, 0.3, 0.6, 0.8, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16,
-        20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400,
-        500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+        0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30, 40, 50, 65, 80, 100,
+        130, 160, 200, 250, 300, 400, 500, 650, 800, 1000, 2000, 5000, 10_000,
+        20_000, 50_000, 100_000, 200_000, 400_000, 800_000, 1_600_000, 3_200_000
     ]
 )
 # fmt: on
@@ -81,6 +81,9 @@ VIEW_LIST = [
     for n in INSTRUMENT_NAMES
 ]
 
+# We use the minimum value supported by the Cloud Monitoring API (60 seconds)
+EXPORT_INTERVAL_MS = 60_000
+
 
 class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
     """
@@ -102,12 +105,12 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
       - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
     """
 
-    def __init__(self, *args, project_id: str, export_interval=60, **kwargs):
+    def __init__(self, *args, project_id: str, **kwargs):
         # internal exporter to write metrics to Cloud Monitoring
         exporter = _BigtableMetricsExporter(project_id=project_id)
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(
-            exporter, export_interval_millis=export_interval * 1000
+            exporter, export_interval_millis=EXPORT_INTERVAL_MS
         )
         # use private meter provider to store instruments and views
         meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)

@@ -123,6 +123,7 @@ class TestOpenTelemetryMetricsHandler:
         Should generate a unique id with format `python-<uuid><pid>@<hostname>`
         """
         import re
+
         instance = self._make_one()
         # test with random values
         uid = instance._generate_client_uid()
@@ -140,7 +141,6 @@ class TestOpenTelemetryMetricsHandler:
                 with mock.patch("uuid.uuid4", return_value="uuid"):
                     uid = instance._generate_client_uid()
                     assert uid == "python-uuid-@localhost"
-
 
     @pytest.mark.parametrize(
         "metric_name,kind,optional_labels",

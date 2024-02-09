@@ -18,6 +18,8 @@ from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.rpc import status_pb2
 import google.api_core.exceptions as core_exceptions
 
+from .test_client import mock_grpc_call
+
 # try/except added for compatibility with python < 3.8
 try:
     from unittest import mock
@@ -48,6 +50,7 @@ class TestMutateRowsOperation:
             kwargs["table"] = kwargs.pop("table", AsyncMock())
             kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
             kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
+            kwargs["metrics"] = kwargs.pop("metrics", mock.Mock())
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
             kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
         return self._target_class()(*args, **kwargs)
@@ -67,9 +70,17 @@ class TestMutateRowsOperation:
         mock_fn = AsyncMock()
         if error_dict is None:
             error_dict = {}
-        mock_fn.side_effect = lambda *args, **kwargs: self._mock_stream(
-            mutation_list, error_dict
-        )
+        responses = [
+            MutateRowsResponse(
+                entries=[
+                    MutateRowsResponse.Entry(
+                        index=idx, status=status_pb2.Status(code=error_dict.get(idx, 0))
+                    )
+                ]
+            )
+            for idx, _ in enumerate(mutation_list)
+        ]
+        mock_fn.return_value = mock_grpc_call(stream_response=responses)
         return mock_fn
 
     def test_ctor(self):
@@ -86,6 +97,7 @@ class TestMutateRowsOperation:
         entries = [_make_mutation(), _make_mutation()]
         operation_timeout = 0.05
         attempt_timeout = 0.01
+        metrics = mock.Mock()
         retryable_exceptions = ()
         instance = self._make_one(
             client,
@@ -93,6 +105,7 @@ class TestMutateRowsOperation:
             entries,
             operation_timeout,
             attempt_timeout,
+            metrics,
             retryable_exceptions,
         )
         # running gapic_fn should trigger a client call
@@ -123,6 +136,7 @@ class TestMutateRowsOperation:
         assert instance.is_retryable(RuntimeError("")) is False
         assert instance.remaining_indices == list(range(len(entries)))
         assert instance.errors == {}
+        assert instance._operation_metrics == metrics
 
     def test_ctor_too_many_entries(self):
         """
@@ -139,8 +153,11 @@ class TestMutateRowsOperation:
         entries = [_make_mutation()] * _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
         operation_timeout = 0.05
         attempt_timeout = 0.01
+        metrics = mock.Mock()
         # no errors if at limit
-        self._make_one(client, table, entries, operation_timeout, attempt_timeout)
+        self._make_one(
+            client, table, entries, operation_timeout, attempt_timeout, metrics
+        )
         # raise error after crossing
         with pytest.raises(ValueError) as e:
             self._make_one(
@@ -149,6 +166,7 @@ class TestMutateRowsOperation:
                 entries + [_make_mutation()],
                 operation_timeout,
                 attempt_timeout,
+                metrics,
             )
         assert "mutate_rows requests can contain at most 100000 mutations" in str(
             e.value
@@ -169,7 +187,12 @@ class TestMutateRowsOperation:
             f"{cls.__module__}.{cls.__name__}._run_attempt", AsyncMock()
         ) as attempt_mock:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                mock.Mock(),
             )
             await instance.start()
             assert attempt_mock.call_count == 1
@@ -191,7 +214,12 @@ class TestMutateRowsOperation:
         found_exc = None
         try:
             instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
+                client,
+                table,
+                entries,
+                operation_timeout,
+                operation_timeout,
+                mock.Mock(),
             )
             await instance._run_attempt()
         except Exception as e:
@@ -227,7 +255,12 @@ class TestMutateRowsOperation:
             found_exc = None
             try:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
+                    client,
+                    table,
+                    entries,
+                    operation_timeout,
+                    operation_timeout,
+                    mock.Mock(),
                 )
                 await instance.start()
             except MutationsExceptionGroup as e:
@@ -270,6 +303,7 @@ class TestMutateRowsOperation:
                 entries,
                 operation_timeout,
                 operation_timeout,
+                mock.Mock(),
                 retryable_exceptions=(exc_type,),
             )
             await instance.start()
@@ -294,17 +328,19 @@ class TestMutateRowsOperation:
             AsyncMock(),
         ) as attempt_mock:
             attempt_mock.side_effect = _MutateRowsIncomplete("ignored")
-            found_exc = None
-            try:
+            with pytest.raises(MutationsExceptionGroup) as e:
                 instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
+                    client,
+                    table,
+                    entries,
+                    operation_timeout,
+                    operation_timeout,
+                    mock.Mock(),
                 )
                 await instance.start()
-            except MutationsExceptionGroup as e:
-                found_exc = e
             assert attempt_mock.call_count > 0
-            assert len(found_exc.exceptions) == 1
-            assert isinstance(found_exc.exceptions[0].__cause__, DeadlineExceeded)
+            assert len(e.value.exceptions) == 1
+            assert isinstance(e.value.exceptions[0].__cause__, DeadlineExceeded)
 
     @pytest.mark.asyncio
     async def test_run_attempt_single_entry_success(self):

@@ -27,9 +27,13 @@ from dataclasses import dataclass
 from dataclasses import field
 from grpc import StatusCode
 
-import google.cloud.bigtable.data.exceptions as bt_exceptions
+from google.cloud.bigtable.data.exceptions import FailedQueryShardError
+from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data.exceptions import _BigtableExceptionGroup
+from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable_v2.types.response_params import ResponseParams
 from google.protobuf.message import DecodeError
+from google.api_core.retry import RetryFailureReason
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
@@ -364,13 +368,17 @@ class ActiveOperationMetric:
         """
         return self.end_with_status(StatusCode.OK)
 
-    def build_wrapped_predicate(
-        self, inner_predicate: Callable[[Exception], bool]
+    def build_wrapped_fn_handlers(
+        self,
+        inner_predicate: Callable[[Exception], bool],
     ) -> Callable[[Exception], bool]:
         """
-        Wrapps a predicate to include metrics tracking. Any call to the resulting predicate
-        is assumed to be an rpc failure, and will either mark the end of the active attempt
-        or the end of the operation.
+        One way to track metrics is by wrapping the `predicate` and `exception_factory`
+        arguments of `api_core.Retry`. This will notify us when an exception occurs so
+        we can track it.
+
+        This function retruns wrapped versions of the `predicate` and `exception_factory`
+        to be passed down when building the `Retry` object.
 
         Args:
           - predicate: The predicate to wrap.
@@ -384,7 +392,17 @@ class ActiveOperationMetric:
                 self.end_with_status(exc)
             return inner_result
 
-        return wrapped_predicate
+        def wrapped_exception_factory(
+            exc_list: list[Exception],
+            reason: RetryFailureReason,
+            timeout_val: float | None,
+        ) -> tuple[Exception, Exception | None]:
+            exc, source = _retry_exception_factory(exc_list, reason, timeout_val)
+            if reason != RetryFailureReason.NON_RETRYABLE_ERROR:
+                self.end_with_status(exc)
+            return exc, source
+
+        return wrapped_predicate, wrapped_exception_factory
 
     @staticmethod
     def _exc_to_status(exc: Exception) -> StatusCode:
@@ -399,8 +417,14 @@ class ActiveOperationMetric:
         Args:
           - exc: The exception to extract the status code from.
         """
-        if isinstance(exc, bt_exceptions._BigtableExceptionGroup):
-            exc = exc.exceptions[-1]
+        # parse bigtable custom exceptions
+        if isinstance(exc, _BigtableExceptionGroup) and exc.exceptions:
+            # find most recent in group
+            return ActiveOperationMetric._exc_to_status(exc.exceptions[-1])
+        if isinstance(exc, (FailedMutationEntryError, FailedQueryShardError)):
+            # find cause of failed entries
+            return ActiveOperationMetric._exc_to_status(exc.__cause__)
+        # parse grpc exceptions
         if hasattr(exc, "grpc_status_code") and exc.grpc_status_code is not None:
             return exc.grpc_status_code
         if (
