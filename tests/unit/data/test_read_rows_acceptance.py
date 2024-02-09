@@ -119,7 +119,9 @@ async def test_read_rows_scenario(test_case: ReadRowsTest):
         return mock_stream(chunk_list)
 
     try:
-        client = BigtableDataClientAsync()
+        with mock.patch.dict(os.environ, {"BIGTABLE_EMULATOR_HOST": "localhost"}):
+            # use emulator mode to avoid auth issues in CI
+            client = BigtableDataClientAsync()
         table = client.get_table("instance", "table")
         results = []
         with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:

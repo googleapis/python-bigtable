@@ -99,67 +99,6 @@ class TestAttemptTimeoutGenerator:
             expected_value -= sleep_time
 
 
-class TestBackoffGenerator:
-    """
-    test backoff_generator wrapper.
-    Should wrap api_core.exponential_sleep_generator, with added history
-    """
-
-    def test_defaults(self):
-        """
-        expect defaults: initial=0.01, multiplier=2, maximum=60
-        """
-        with mock.patch(
-            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
-        ) as mock_exponential_sleep_generator:
-            generator = _helpers.backoff_generator()
-            next(generator)
-            assert mock_exponential_sleep_generator.call_args[0] == (0.01, 2, 60)
-
-    def test_wraps_exponential_sleep_generator(self):
-        """test that it wraps exponential_sleep_generator"""
-        args = (1, 2, 3)
-        with mock.patch(
-            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
-        ) as mock_exponential_sleep_generator:
-            expected_results = [1, 7, 9, "a", "b"]
-            mock_exponential_sleep_generator.return_value = iter(expected_results)
-            generator = _helpers.backoff_generator(*args)
-            for val in expected_results:
-                assert next(generator) == val
-            assert mock_exponential_sleep_generator.call_count == 1
-            # args from backoff generator should be passed through
-            assert mock_exponential_sleep_generator.call_args == mock.call(*args)
-
-    def test_send_gives_history(self):
-        """
-        Calling send with an index should give back the value that was yeilded at that index
-        """
-        with mock.patch(
-            "google.cloud.bigtable.data._helpers.exponential_sleep_generator"
-        ) as mock_exponential_sleep_generator:
-            expected_results = [2, 4, 6, 8, 10]
-            mock_exponential_sleep_generator.return_value = iter(expected_results)
-            generator = _helpers.backoff_generator()
-            # calling next should send values from wrapped iterator
-            assert next(generator) == 2
-            assert next(generator) == 4
-            assert next(generator) == 6
-            # calling send with an index should return the value at that index
-            assert generator.send(0) == expected_results[0]
-            assert generator.send(2) == expected_results[2]
-            assert generator.send(1) == expected_results[1]
-            assert generator.send(0) == expected_results[0]
-            assert generator.send(0) == expected_results[0]
-            # should be able to continue iterating as normal
-            assert next(generator) == 8
-            assert generator.send(0) == expected_results[0]
-            assert next(generator) == 10
-            # calling an index out of range should raise an error
-            with pytest.raises(IndexError):
-                generator.send(100)
-
-
 class TestValidateTimeouts:
     def test_validate_timeouts_error_messages(self):
         with pytest.raises(ValueError) as e:
