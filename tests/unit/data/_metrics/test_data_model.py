@@ -686,30 +686,17 @@ class TestActiveOperationMetric:
 
     def test__handle_error(self):
         """
-        handle_error should raise an exception or write a log, depending on env var state
+        handle_error should write log
         """
         input_message = "test message"
         expected_message = f"Error in Bigtable Metrics: {input_message}"
-        # if ALLOW_METRIC_EXCEPTIONS is set, raise the exception
         with mock.patch(
-            "google.cloud.bigtable.data._metrics.data_model.ALLOW_METRIC_EXCEPTIONS",
-            True,
-        ):
-            with pytest.raises(ValueError) as e:
-                type(self._make_one(object()))._handle_error(input_message)
-            assert e.value.args[0] == expected_message
-        with mock.patch(
-            "google.cloud.bigtable.data._metrics.data_model.ALLOW_METRIC_EXCEPTIONS",
-            False,
-        ):
-            # if LOGGER is populated, log the exception
-            with mock.patch(
-                "google.cloud.bigtable.data._metrics.data_model.LOGGER"
-            ) as logger_mock:
-                type(self._make_one(object()))._handle_error(input_message)
-                assert logger_mock.warning.call_count == 1
-                assert logger_mock.warning.call_args[0][0] == expected_message
-                assert len(logger_mock.warning.call_args[0]) == 1
+            "google.cloud.bigtable.data._metrics.data_model.LOGGER"
+        ) as logger_mock:
+            type(self._make_one(object()))._handle_error(input_message)
+            assert logger_mock.warning.call_count == 1
+            assert logger_mock.warning.call_args[0][0] == expected_message
+            assert len(logger_mock.warning.call_args[0]) == 1
 
     @pytest.mark.asyncio
     async def test_async_context_manager(self):

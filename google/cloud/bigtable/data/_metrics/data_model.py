@@ -35,9 +35,6 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
 
 
-# by default, exceptions in the metrics system are logged,
-# but enabling this flag causes them to be raised instead
-ALLOW_METRIC_EXCEPTIONS = os.getenv("BIGTABLE_METRICS_EXCEPTIONS", False)
 LOGGER = logging.getLogger(__name__)
 
 # default values for zone and cluster data, if not captured
@@ -183,8 +180,7 @@ class ActiveOperationMetric:
         Optionally called to mark the start of the operation. If not called,
         the operation will be started at initialization.
 
-        If the operation was completed or has active attempts, will raise an
-        exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assunes operation is in CREATED state.
         """
         if self.state != OperationState.CREATED:
             return self._handle_error(INVALID_STATE_ERROR.format("start", self.state))
@@ -194,8 +190,7 @@ class ActiveOperationMetric:
         """
         Called to initiate a new attempt for the operation.
 
-        If the operation was completed or there is already an active attempt,
-        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is in either CREATED or BETWEEN_ATTEMPTS states
         """
         if (
             self.state != OperationState.BETWEEN_ATTEMPTS
@@ -223,8 +218,7 @@ class ActiveOperationMetric:
 
         If not called, default values for the metadata will be used.
 
-        If the operation was completed or there is no active attempt,
-        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is in ACTIVE_ATTEMPT state.
 
         Args:
           - metadata: the metadata as extracted from the grpc call
@@ -280,9 +274,7 @@ class ActiveOperationMetric:
         Called to mark the timestamp of the first completed response for the
         active attempt.
 
-        If the operation was completed, there is no active attempt, or the
-        active attempt already has a first response time, will raise an
-        exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is in ACTIVE_ATTEMPT state.
         """
         if self.state != OperationState.ACTIVE_ATTEMPT or self.active_attempt is None:
             return self._handle_error(
@@ -299,8 +291,7 @@ class ActiveOperationMetric:
         """
         Called to mark the end of a failed attempt for the operation.
 
-        If the operation was completed or there is no active attempt,
-        will raise an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is in ACTIVE_ATTEMPT state.
 
         Args:
           - status: The status of the attempt.
@@ -332,8 +323,7 @@ class ActiveOperationMetric:
         Called to mark the end of the operation. If there is an active attempt,
         end_attempt_with_status will be called with the same status.
 
-        If the operation was already completed, will raise an exception or
-        warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is not already in COMPLETED state.
 
         Causes on_operation_completed to be called for each registered handler.
 
@@ -368,8 +358,7 @@ class ActiveOperationMetric:
         """
         Called to mark the end of the operation with a successful status.
 
-        If the operation was already completed, will raise an exception or
-        warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        Assumes operation is not already in COMPLETED state.
 
         Causes on_operation_completed to be called for each registered handler.
         """
@@ -425,14 +414,12 @@ class ActiveOperationMetric:
     @staticmethod
     def _handle_error(message: str) -> None:
         """
-        Raises an exception or warning based on the value of ALLOW_METRIC_EXCEPTIONS.
+        log error metric system error messages
 
         Args:
           - message: The message to include in the exception or warning.
         """
         full_message = f"Error in Bigtable Metrics: {message}"
-        if ALLOW_METRIC_EXCEPTIONS:
-            raise ValueError(full_message)
         LOGGER.warning(full_message)
 
     async def __aenter__(self):
