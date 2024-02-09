@@ -81,6 +81,9 @@ VIEW_LIST = [
     for n in INSTRUMENT_NAMES
 ]
 
+# We use the minimum value supported by the Cloud Monitoring API (60 seconds)
+EXPORT_INTERVAL_MS = 60_000
+
 
 class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
     """
@@ -102,12 +105,12 @@ class GoogleCloudMetricsHandler(OpenTelemetryMetricsHandler):
       - export_interval: The interval (in seconds) at which to export metrics to Cloud Monitoring.
     """
 
-    def __init__(self, *args, project_id: str, export_interval=60, **kwargs):
+    def __init__(self, *args, project_id: str, **kwargs):
         # internal exporter to write metrics to Cloud Monitoring
         exporter = _BigtableMetricsExporter(project_id=project_id)
         # periodically executes exporter
         gcp_reader = PeriodicExportingMetricReader(
-            exporter, export_interval_millis=export_interval * 1000
+            exporter, export_interval_millis=EXPORT_INTERVAL_MS
         )
         # use private meter provider to store instruments and views
         meter_provider = MeterProvider(metric_readers=[gcp_reader], views=VIEW_LIST)
