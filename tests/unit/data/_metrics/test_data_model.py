@@ -18,7 +18,6 @@ import mock
 import datetime
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
-from google.cloud.bigtable.data._metrics.data_model import TimeTuple
 from google.cloud.bigtable_v2.types import ResponseParams
 
 
@@ -35,10 +34,7 @@ class TestActiveOperationMetric:
         mock_type = mock.Mock()
         metric = self._make_one(mock_type)
         assert metric.op_type == mock_type
-        assert metric.start_time.monotonic - time.monotonic() < 0.1
-        assert (
-            metric.start_time.utc - datetime.datetime.now(datetime.timezone.utc)
-        ).total_seconds() < 1
+        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
         assert metric.active_attempt is None
         assert metric.cluster_id is None
         assert metric.zone is None
@@ -46,14 +42,14 @@ class TestActiveOperationMetric:
         assert metric.was_completed is False
         assert len(metric.handlers) == 0
         assert metric.is_streaming is False
-        assert metric.flow_throttling_time_ms == 0
+        assert metric.flow_throttling_time_ns == 0
 
     def test_ctor_explicit(self):
         """
         test with explicit arguments
         """
         expected_type = mock.Mock()
-        expected_start_time = object()
+        expected_start_time_ns = 7
         expected_active_attempt = mock.Mock()
         expected_cluster_id = "cluster"
         expected_zone = "zone"
@@ -64,7 +60,7 @@ class TestActiveOperationMetric:
         expected_flow_throttling = 12
         metric = self._make_one(
             op_type=expected_type,
-            start_time=expected_start_time,
+            start_time_ns=expected_start_time_ns,
             active_attempt=expected_active_attempt,
             cluster_id=expected_cluster_id,
             zone=expected_zone,
@@ -72,10 +68,10 @@ class TestActiveOperationMetric:
             was_completed=expected_was_completed,
             handlers=expected_handlers,
             is_streaming=expected_is_streaming,
-            flow_throttling_time_ms=expected_flow_throttling,
+            flow_throttling_time_ns=expected_flow_throttling,
         )
         assert metric.op_type == expected_type
-        assert metric.start_time == expected_start_time
+        assert metric.start_time_ns == expected_start_time_ns
         assert metric.active_attempt == expected_active_attempt
         assert metric.cluster_id == expected_cluster_id
         assert metric.zone == expected_zone
@@ -83,7 +79,7 @@ class TestActiveOperationMetric:
         assert metric.was_completed == expected_was_completed
         assert metric.handlers == expected_handlers
         assert metric.is_streaming == expected_is_streaming
-        assert metric.flow_throttling_time_ms == expected_flow_throttling
+        assert metric.flow_throttling_time_ns == expected_flow_throttling
 
     def test_state_machine_w_methods(self):
         """
@@ -184,16 +180,12 @@ class TestActiveOperationMetric:
         """
         calling start op operation should reset start_time
         """
-        orig_time = TimeTuple(0, 0)
-        metric = self._make_one(mock.Mock(), start_time=orig_time)
-        assert abs(metric.start_time.monotonic - time.monotonic()) > 5
+        orig_time = 0
+        metric = self._make_one(mock.Mock(), start_time_ns=orig_time)
+        assert abs(metric.start_time_ns - time.monotonic_ns()) > 1e6  # 1ms buffer
         metric.start()
-        assert metric.start_time != orig_time
-        assert metric.start_time.monotonic != orig_time.monotonic
-        assert metric.start_time.monotonic - time.monotonic() < 0.1
-        assert metric.start_time.utc - datetime.datetime.now(
-            datetime.timezone.utc
-        ) < datetime.timedelta(seconds=0.1)
+        assert metric.start_time_ns != orig_time
+        assert abs(metric.start_time_ns - time.monotonic_ns()) < 1e6  # 1ms buffer
         # should remain in CREATED state after completing
         assert metric.state == State.CREATED
 
@@ -208,13 +200,10 @@ class TestActiveOperationMetric:
         metric.start_attempt()
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
-        assert time.monotonic() - metric.active_attempt.start_time.monotonic < 0.1
-        assert metric.active_attempt.start_time.utc - datetime.datetime.now(
-            datetime.timezone.utc
-        ) < datetime.timedelta(seconds=0.1)
-        assert metric.active_attempt.first_response_latency_ms is None
-        assert metric.active_attempt.gfe_latency_ms is None
-        assert metric.active_attempt.grpc_throttling_time_ms == 0
+        assert abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6  # 1ms buffer
+        assert metric.active_attempt.first_response_latency_ns is None
+        assert metric.active_attempt.gfe_latency_ns is None
+        assert metric.active_attempt.grpc_throttling_time_ns == 0
         # should be in ACTIVE_ATTEMPT state after completing
         assert metric.state == State.ACTIVE_ATTEMPT
 
@@ -239,14 +228,14 @@ class TestActiveOperationMetric:
         metric.start_attempt()
         assert len(metric.completed_attempts) == 0
         # first attempt should always be 0
-        assert metric.active_attempt.backoff_before_attempt_ms == 0
+        assert metric.active_attempt.backoff_before_attempt_ns == 0
         # later attempts should have their attempt number as backoff time
         for i in range(10):
             metric.end_attempt_with_status(mock.Mock())
             assert len(metric.completed_attempts) == i + 1
             metric.start_attempt()
-            # expect the backoff to be converted froms seconds to ms
-            assert metric.active_attempt.backoff_before_attempt_ms == (i * 1000)
+            # expect the backoff to be converted froms seconds to ns
+            assert metric.active_attempt.backoff_before_attempt_ns == (i * 1e9)
 
     @pytest.mark.parametrize(
         "start_cluster,start_zone,metadata_proto,end_cluster,end_zone",
@@ -303,7 +292,7 @@ class TestActiveOperationMetric:
                 mock.Mock(), cluster_id=start_cluster, zone=start_zone
             )
             metric.active_attempt = mock.Mock()
-            metric.active_attempt.gfe_latency_ms = None
+            metric.active_attempt.gfe_latency_ns = None
             metadata = grpc.aio.Metadata()
             if metadata_proto is not None:
                 metadata["x-goog-ext-425905942-bin"] = ResponseParams.serialize(
@@ -317,7 +306,7 @@ class TestActiveOperationMetric:
             # no errors encountered
             assert mock_handle_error.call_count == 0
             # gfe latency should not be touched
-            assert metric.active_attempt.gfe_latency_ms is None
+            assert metric.active_attempt.gfe_latency_ns is None
 
     @pytest.mark.parametrize(
         "metadata_field",
@@ -355,13 +344,19 @@ class TestActiveOperationMetric:
             assert str(metadata_field) in mock_handle_error.call_args[0][0]
 
     @pytest.mark.parametrize(
-        "metadata_field,expected_latency_ms",
+        "metadata_field,expected_latency_ns",
         [
             (None, None),
-            ("gfet4t7; dur=1000", 1000),
-            ("gfet4t7; dur=1000.0", 1000),
-            ("gfet4t7; dur=1000.1", 1000.1),
-            ("gfet4t7; dur=1000 dur=2000", 2000),
+            ("gfet4t7; dur=1000", 1000e6),
+            ("gfet4t7; dur=1000.0", 1000e6),
+            ("gfet4t7; dur=1000.1", 1000.1e6),
+            ("gcp; dur=15, gfet4t7; dur=300", 300e6),
+            ("gfet4t7;dur=350,gcp;dur=12", 350e6),
+            ("ignore_megfet4t7;dur=90ignore_me", 90e6),
+            ("gfet4t7;dur=2000", 2000e6),
+            ("gfet4t7; dur=0.001", 1000),
+            ("gfet4t7; dur=0.000001", 1),
+            ("gfet4t7; dur=0.0000001", 0),  # below recording resolution
             ("gfet4t7; dur=0", 0),
             ("gfet4t7; dur=empty", None),
             ("gfet4t7;", None),
@@ -369,7 +364,7 @@ class TestActiveOperationMetric:
         ],
     )
     def test_add_response_metadata_server_timing_header(
-        self, metadata_field, expected_latency_ms
+        self, metadata_field, expected_latency_ns
     ):
         """
         calling add_response_metadata should update fields based on grpc response metadata
@@ -381,17 +376,15 @@ class TestActiveOperationMetric:
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(mock.Mock())
             metric.active_attempt = mock.Mock()
-            metric.active_attempt.gfe_latency_ms = None
+            metric.active_attempt.gfe_latency_ns = None
             metadata = grpc.aio.Metadata()
             if metadata_field:
                 metadata["server-timing"] = metadata_field
             metric.add_response_metadata(metadata)
-            if metric.active_attempt.gfe_latency_ms is None:
-                assert expected_latency_ms is None
+            if metric.active_attempt.gfe_latency_ns is None:
+                assert expected_latency_ns is None
             else:
-                assert (
-                    metric.active_attempt.gfe_latency_ms - expected_latency_ms
-                ) < 0.0001
+                assert metric.active_attempt.gfe_latency_ns == int(expected_latency_ns)
             # should remain in ACTIVE_ATTEMPT state after completing
             assert metric.state == State.ACTIVE_ATTEMPT
             # no errors encountered
@@ -405,12 +398,11 @@ class TestActiveOperationMetric:
         with mock.patch.object(cls, "_handle_error") as mock_handle_error:
             metric = self._make_one(mock.Mock())
             metric.start_attempt()
-            metric.active_attempt.start_time = TimeTuple(0, 0)
+            metric.active_attempt.start_time_ns = 0
             metric.attempt_first_response()
-            got_latency_ms = metric.active_attempt.first_response_latency_ms
+            got_latency_ns = metric.active_attempt.first_response_latency_ns
             # latency should be equal to current time
-            current_time_ms = time.monotonic() * 1000
-            assert abs(got_latency_ms - current_time_ms) < 10
+            assert abs(got_latency_ns - time.monotonic_ns()) < 1e6  # 1ms
             # should remain in ACTIVE_ATTEMPT state after completing
             assert metric.state == State.ACTIVE_ATTEMPT
             # no errors encountered
@@ -423,7 +415,7 @@ class TestActiveOperationMetric:
                 == "Attempt already received first response"
             )
             # value should not be changed
-            assert metric.active_attempt.first_response_latency_ms == got_latency_ms
+            assert metric.active_attempt.first_response_latency_ns == got_latency_ns
 
     def test_end_attempt_with_status(self):
         """
@@ -432,10 +424,10 @@ class TestActiveOperationMetric:
         - reset active_attempt to None
         - update state
         """
-        expected_latency_ms = 9
-        expected_start_time = TimeTuple(1, 2)
+        expected_latency_ns = 9
+        expected_start_time = 1
         expected_status = object()
-        expected_gfe_latency_ms = 5
+        expected_gfe_latency_ns = 5
         expected_app_blocking = 12
         expected_backoff = 2
         expected_grpc_throttle = 3
@@ -444,26 +436,23 @@ class TestActiveOperationMetric:
         assert metric.active_attempt is None
         assert len(metric.completed_attempts) == 0
         metric.start_attempt()
-        metric.active_attempt.start_time = expected_start_time
-        metric.active_attempt.gfe_latency_ms = expected_gfe_latency_ms
-        metric.active_attempt.first_response_latency_ms = expected_latency_ms
-        metric.active_attempt.application_blocking_time_ms = expected_app_blocking
-        metric.active_attempt.backoff_before_attempt_ms = expected_backoff
-        metric.active_attempt.grpc_throttling_time_ms = expected_grpc_throttle
+        metric.active_attempt.start_time_ns = expected_start_time
+        metric.active_attempt.gfe_latency_ns = expected_gfe_latency_ns
+        metric.active_attempt.first_response_latency_ns = expected_latency_ns
+        metric.active_attempt.application_blocking_time_ns = expected_app_blocking
+        metric.active_attempt.backoff_before_attempt_ns = expected_backoff
+        metric.active_attempt.grpc_throttling_time_ns = expected_grpc_throttle
         metric.end_attempt_with_status(expected_status)
         assert len(metric.completed_attempts) == 1
         got_attempt = metric.completed_attempts[0]
-        assert got_attempt.start_time == expected_start_time.utc
-        assert got_attempt.first_response_latency_ms == expected_latency_ms
-        assert (
-            time.monotonic() - got_attempt.duration_ms - expected_start_time.monotonic
-            < 0.001
-        )
-        assert got_attempt.grpc_throttling_time_ms == expected_grpc_throttle
+        expected_duration = time.monotonic_ns() - expected_start_time
+        assert abs(got_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
+        assert got_attempt.first_response_latency_ns == expected_latency_ns
+        assert got_attempt.grpc_throttling_time_ns == expected_grpc_throttle
         assert got_attempt.end_status == expected_status
-        assert got_attempt.gfe_latency_ms == expected_gfe_latency_ms
-        assert got_attempt.application_blocking_time_ms == expected_app_blocking
-        assert got_attempt.backoff_before_attempt_ms == expected_backoff
+        assert got_attempt.gfe_latency_ns == expected_gfe_latency_ns
+        assert got_attempt.application_blocking_time_ns == expected_app_blocking
+        assert got_attempt.backoff_before_attempt_ns == expected_backoff
         # state should be changed to BETWEEN_ATTEMPTS
         assert metric.state == State.BETWEEN_ATTEMPTS
 
@@ -493,30 +482,30 @@ class TestActiveOperationMetric:
         """
         from google.cloud.bigtable.data._metrics.data_model import ActiveAttemptMetric
 
-        expected_attempt_start_time = TimeTuple(10, 0)
-        expected_attempt_first_response_latency_ms = 9
-        expected_attempt_gfe_latency_ms = 5
+        expected_attempt_start_time = 0
+        expected_attempt_first_response_latency_ns = 9
+        expected_attempt_gfe_latency_ns = 5
         expected_flow_time = 16
 
         expected_status = object()
         expected_type = object()
-        expected_start_time = TimeTuple(9, 0)
+        expected_start_time = 1
         expected_cluster = object()
         expected_zone = object()
         is_streaming = object()
 
         handlers = [mock.Mock(), mock.Mock()]
         metric = self._make_one(
-            expected_type, handlers=handlers, start_time=expected_start_time
+            expected_type, handlers=handlers, start_time_ns=expected_start_time
         )
         metric.cluster_id = expected_cluster
         metric.zone = expected_zone
         metric.is_streaming = is_streaming
-        metric.flow_throttling_time_ms = expected_flow_time
+        metric.flow_throttling_time_ns = expected_flow_time
         attempt = ActiveAttemptMetric(
-            start_time=expected_attempt_start_time,
-            first_response_latency_ms=expected_attempt_first_response_latency_ms,
-            gfe_latency_ms=expected_attempt_gfe_latency_ms,
+            start_time_ns=expected_attempt_start_time,
+            first_response_latency_ns=expected_attempt_first_response_latency_ns,
+            gfe_latency_ns=expected_attempt_gfe_latency_ns,
         )
         metric.active_attempt = attempt
         metric.end_with_status(expected_status)
@@ -531,24 +520,24 @@ class TestActiveOperationMetric:
             assert len(h.on_operation_complete.call_args[0]) == 1
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
-            assert called_with.start_time == expected_start_time.utc
-            assert time.monotonic() - called_with.duration_ms < 0.1
+            expected_duration = time.monotonic_ns() - expected_start_time
+            assert abs(called_with.duration_ns - expected_duration) < 10e6  # within 10ms
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone
             assert called_with.is_streaming == is_streaming
-            assert called_with.flow_throttling_time_ms == expected_flow_time
+            assert called_with.flow_throttling_time_ns == expected_flow_time
             # check the attempt
             assert len(called_with.completed_attempts) == 1
             final_attempt = called_with.completed_attempts[0]
-            assert final_attempt.start_time == expected_attempt_start_time.utc
             assert (
-                final_attempt.first_response_latency_ms
-                == expected_attempt_first_response_latency_ms
+                final_attempt.first_response_latency_ns
+                == expected_attempt_first_response_latency_ns
             )
-            assert final_attempt.gfe_latency_ms == expected_attempt_gfe_latency_ms
+            assert final_attempt.gfe_latency_ns == expected_attempt_gfe_latency_ns
             assert final_attempt.end_status == expected_status
-            assert time.monotonic() - final_attempt.duration_ms < 0.01
+            expected_duration = time.monotonic_ns() - expected_attempt_start_time
+            assert abs(final_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
 
     def test_end_with_status_w_exception(self):
         """
@@ -835,7 +824,7 @@ class TestActiveOperationMetric:
                 await wrapped_fn()
             assert metric.active_attempt is None
             assert len(metric.completed_attempts) == 1
-            assert metric.completed_attempts[0].gfe_latency_ms == 5000
+            assert metric.completed_attempts[0].gfe_latency_ns == 5000e6  # ms to ns
 
     @pytest.mark.asyncio
     async def test_wrap_attempt_fn_failed_attempt(self):
