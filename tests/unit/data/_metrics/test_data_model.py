@@ -200,7 +200,9 @@ class TestActiveOperationMetric:
         metric.start_attempt()
         assert isinstance(metric.active_attempt, ActiveAttemptMetric)
         # make sure it was initialized with the correct values
-        assert abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6  # 1ms buffer
+        assert (
+            abs(time.monotonic_ns() - metric.active_attempt.start_time_ns) < 1e6
+        )  # 1ms buffer
         assert metric.active_attempt.first_response_latency_ns is None
         assert metric.active_attempt.gfe_latency_ns is None
         assert metric.active_attempt.grpc_throttling_time_ns == 0
@@ -521,7 +523,9 @@ class TestActiveOperationMetric:
             called_with = h.on_operation_complete.call_args[0][0]
             assert called_with.op_type == expected_type
             expected_duration = time.monotonic_ns() - expected_start_time
-            assert abs(called_with.duration_ns - expected_duration) < 10e6  # within 10ms
+            assert (
+                abs(called_with.duration_ns - expected_duration) < 10e6
+            )  # within 10ms
             assert called_with.final_status == expected_status
             assert called_with.cluster_id == expected_cluster
             assert called_with.zone == expected_zone
@@ -537,7 +541,9 @@ class TestActiveOperationMetric:
             assert final_attempt.gfe_latency_ns == expected_attempt_gfe_latency_ns
             assert final_attempt.end_status == expected_status
             expected_duration = time.monotonic_ns() - expected_attempt_start_time
-            assert abs(final_attempt.duration_ns - expected_duration) < 10e6  # within 10ms
+            assert (
+                abs(final_attempt.duration_ns - expected_duration) < 10e6
+            )  # within 10ms
 
     def test_end_with_status_w_exception(self):
         """

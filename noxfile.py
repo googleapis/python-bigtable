@@ -52,9 +52,7 @@ SYSTEM_TEST_PYTHON_VERSIONS: List[str] = ["3.8"]
 SYSTEM_TEST_STANDARD_DEPENDENCIES: List[str] = [
     "mock",
     "pytest",
-    "pytest-asyncio",
     "google-cloud-testutils",
-    "opentelemetry-api",
 ]
 SYSTEM_TEST_EXTERNAL_DEPENDENCIES: List[str] = [
     "pytest-asyncio",
@@ -135,12 +133,7 @@ def mypy(session):
     """Verify type hints are mypy compatible."""
     session.install("-e", ".")
     session.install(
-        "mypy",
-        "types-setuptools",
-        "types-protobuf",
-        "types-mock",
-        "types-requests",
-        "opentelemetry-api",
+        "mypy", "types-setuptools", "types-protobuf", "types-mock", "types-requests"
     )
     session.install("google-cloud-testutils")
     session.run(
@@ -168,8 +161,16 @@ def install_unittest_dependencies(session, *constraints):
     standard_deps = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_DEPENDENCIES
     session.install(*standard_deps, *constraints)
 
+    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
+        warnings.warn(
+            "'unit_test_external_dependencies' is deprecated. Instead, please "
+            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
+            DeprecationWarning,
+        )
+        session.install(*UNIT_TEST_EXTERNAL_DEPENDENCIES, *constraints)
+
     if UNIT_TEST_LOCAL_DEPENDENCIES:
-        session.install("-e", *UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
+        session.install(*UNIT_TEST_LOCAL_DEPENDENCIES, *constraints)
 
     if UNIT_TEST_EXTRAS_BY_PYTHON:
         extras = UNIT_TEST_EXTRAS_BY_PYTHON.get(session.python, [])
@@ -182,20 +183,6 @@ def install_unittest_dependencies(session, *constraints):
         session.install("-e", f".[{','.join(extras)}]", *constraints)
     else:
         session.install("-e", ".", *constraints)
-
-    if UNIT_TEST_EXTERNAL_DEPENDENCIES:
-        warnings.warn(
-            "'unit_test_external_dependencies' is deprecated. Instead, please "
-            "use 'unit_test_dependencies' or 'unit_test_local_dependencies'.",
-            DeprecationWarning,
-        )
-        session.install(
-            "--upgrade",
-            "--no-deps",
-            "--force-reinstall",
-            *UNIT_TEST_EXTERNAL_DEPENDENCIES,
-            *constraints,
-        )
 
 
 def default(session):
@@ -219,7 +206,6 @@ def default(session):
         "--cov-fail-under=0",
         os.path.join("tests", "unit"),
         *session.posargs,
-        env={"BIGTABLE_METRICS_EXCEPTIONS": "true"},
     )
 
 

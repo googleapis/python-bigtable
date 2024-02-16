@@ -48,6 +48,7 @@ SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
+
 class OperationType(Enum):
     """Enum for the type of operation being performed."""
 
