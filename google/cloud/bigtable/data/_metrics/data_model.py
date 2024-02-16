@@ -44,7 +44,7 @@ DEFAULT_CLUSTER_ID = "unspecified"
 # keys for parsing metadata blobs
 BIGTABLE_METADATA_KEY = "x-goog-ext-425905942-bin"
 SERVER_TIMING_METADATA_KEY = "server-timing"
-SERVER_TIMING_REGEX = re.compile(r"gfet4t7; dur=(\d+)")
+SERVER_TIMING_REGEX = re.compile(r".*gfet4t7;\s*dur=(\d+\.?\d*).*")
 
 INVALID_STATE_ERROR = "Invalid state for {}: {}"
 
