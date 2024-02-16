@@ -88,6 +88,9 @@ class CompletedAttemptMetric:
     """
     An immutable dataclass representing the data associated with a
     completed rpc attempt.
+
+    Operation-level fields (eg. type, cluster, zone) are stored on the
+    corresponding CompletedOperationMetric or ActiveOperationMetric object.
     """
 
     start_time: datetime.datetime
@@ -105,6 +108,9 @@ class CompletedOperationMetric:
     """
     An immutable dataclass representing the data associated with a
     completed rpc operation.
+
+    Attempt-level fields (eg. duration, latencies, etc) are stored on the
+    corresponding CompletedAttemptMetric object.
     """
 
     op_type: OperationType
@@ -289,7 +295,11 @@ class ActiveOperationMetric:
 
     def end_attempt_with_status(self, status: StatusCode | Exception) -> None:
         """
-        Called to mark the end of a failed attempt for the operation.
+        Called to mark the end of an attempt for the operation.
+
+        Typically, this is used to mark a retryable error. If a retry will not
+        be attempted, `end_with_status` or `end_with_success` should be used
+        to finalize the operation along with the attempt.
 
         Assumes operation is in ACTIVE_ATTEMPT state.
 
