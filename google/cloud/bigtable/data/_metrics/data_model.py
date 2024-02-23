@@ -296,7 +296,7 @@ class ActiveOperationMetric:
             )
         if isinstance(status, Exception):
             status = self._exc_to_status(status)
-        new_attempt = CompletedAttemptMetric(
+        complete_attempt = CompletedAttemptMetric(
             first_response_latency_ns=self.active_attempt.first_response_latency_ns,
             duration_ns=time.monotonic_ns() - self.active_attempt.start_time_ns,
             end_status=status,
@@ -305,10 +305,10 @@ class ActiveOperationMetric:
             backoff_before_attempt_ns=self.active_attempt.backoff_before_attempt_ns,
             grpc_throttling_time_ns=self.active_attempt.grpc_throttling_time_ns,
         )
-        self.completed_attempts.append(new_attempt)
+        self.completed_attempts.append(complete_attempt)
         self.active_attempt = None
         for handler in self.handlers:
-            handler.on_attempt_complete(new_attempt, self)
+            handler.on_attempt_complete(complete_attempt, self)
 
     def end_with_status(self, status: StatusCode | Exception) -> None:
         """
