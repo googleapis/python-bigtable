@@ -15,9 +15,7 @@ from __future__ import annotations
 
 from typing import Callable, Any, Generator, Tuple, cast, TYPE_CHECKING
 
-import datetime
 import time
-import os
 import re
 import logging
 
@@ -105,7 +103,7 @@ class CompletedOperationMetric:
     cluster_id: str
     zone: str
     is_streaming: bool
-    flow_throttling_time_ns: int = 0.0
+    flow_throttling_time_ns: int = 0
 
 
 @dataclass

@@ -15,7 +15,6 @@
 import time
 import pytest
 import mock
-import datetime
 
 from google.cloud.bigtable.data._metrics.data_model import OperationState as State
 from google.cloud.bigtable_v2.types import ResponseParams
