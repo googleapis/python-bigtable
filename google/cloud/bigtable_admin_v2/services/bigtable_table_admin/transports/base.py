@@ -196,6 +196,31 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=None,
                 client_info=client_info,
             ),
+            self.create_authorized_view: gapic_v1.method.wrap_method(
+                self.create_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.list_authorized_views: gapic_v1.method.wrap_method(
+                self.list_authorized_views,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_authorized_view: gapic_v1.method.wrap_method(
+                self.get_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_authorized_view: gapic_v1.method.wrap_method(
+                self.update_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_authorized_view: gapic_v1.method.wrap_method(
+                self.delete_authorized_view,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.modify_column_families: gapic_v1.method.wrap_method(
                 self.modify_column_families,
                 default_timeout=300.0,
@@ -445,6 +470,54 @@ class BigtableTableAdminTransport(abc.ABC):
     ) -> Callable[
         [bigtable_table_admin.UndeleteTableRequest],
         Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def create_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.CreateAuthorizedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def list_authorized_views(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.ListAuthorizedViewsRequest],
+        Union[
+            bigtable_table_admin.ListAuthorizedViewsResponse,
+            Awaitable[bigtable_table_admin.ListAuthorizedViewsResponse],
+        ],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def get_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.GetAuthorizedViewRequest],
+        Union[table.AuthorizedView, Awaitable[table.AuthorizedView]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def update_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UpdateAuthorizedViewRequest],
+        Union[operations_pb2.Operation, Awaitable[operations_pb2.Operation]],
+    ]:
+        raise NotImplementedError()
+
+    @property
+    def delete_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.DeleteAuthorizedViewRequest],
+        Union[empty_pb2.Empty, Awaitable[empty_pb2.Empty]],
     ]:
         raise NotImplementedError()
 

@@ -470,6 +470,149 @@ class BigtableTableAdminGrpcAsyncIOTransport(BigtableTableAdminTransport):
         return self._stubs["undelete_table"]
 
     @property
+    def create_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.CreateAuthorizedViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the create authorized view method over gRPC.
+
+        Creates a new AuthorizedView in a table.
+
+        Returns:
+            Callable[[~.CreateAuthorizedViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "create_authorized_view" not in self._stubs:
+            self._stubs["create_authorized_view"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/CreateAuthorizedView",
+                request_serializer=bigtable_table_admin.CreateAuthorizedViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["create_authorized_view"]
+
+    @property
+    def list_authorized_views(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.ListAuthorizedViewsRequest],
+        Awaitable[bigtable_table_admin.ListAuthorizedViewsResponse],
+    ]:
+        r"""Return a callable for the list authorized views method over gRPC.
+
+        Lists all AuthorizedViews from a specific table.
+
+        Returns:
+            Callable[[~.ListAuthorizedViewsRequest],
+                    Awaitable[~.ListAuthorizedViewsResponse]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "list_authorized_views" not in self._stubs:
+            self._stubs["list_authorized_views"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/ListAuthorizedViews",
+                request_serializer=bigtable_table_admin.ListAuthorizedViewsRequest.serialize,
+                response_deserializer=bigtable_table_admin.ListAuthorizedViewsResponse.deserialize,
+            )
+        return self._stubs["list_authorized_views"]
+
+    @property
+    def get_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.GetAuthorizedViewRequest], Awaitable[table.AuthorizedView]
+    ]:
+        r"""Return a callable for the get authorized view method over gRPC.
+
+        Gets information from a specified AuthorizedView.
+
+        Returns:
+            Callable[[~.GetAuthorizedViewRequest],
+                    Awaitable[~.AuthorizedView]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "get_authorized_view" not in self._stubs:
+            self._stubs["get_authorized_view"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/GetAuthorizedView",
+                request_serializer=bigtable_table_admin.GetAuthorizedViewRequest.serialize,
+                response_deserializer=table.AuthorizedView.deserialize,
+            )
+        return self._stubs["get_authorized_view"]
+
+    @property
+    def update_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.UpdateAuthorizedViewRequest],
+        Awaitable[operations_pb2.Operation],
+    ]:
+        r"""Return a callable for the update authorized view method over gRPC.
+
+        Updates an AuthorizedView in a table.
+
+        Returns:
+            Callable[[~.UpdateAuthorizedViewRequest],
+                    Awaitable[~.Operation]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "update_authorized_view" not in self._stubs:
+            self._stubs["update_authorized_view"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/UpdateAuthorizedView",
+                request_serializer=bigtable_table_admin.UpdateAuthorizedViewRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs["update_authorized_view"]
+
+    @property
+    def delete_authorized_view(
+        self,
+    ) -> Callable[
+        [bigtable_table_admin.DeleteAuthorizedViewRequest], Awaitable[empty_pb2.Empty]
+    ]:
+        r"""Return a callable for the delete authorized view method over gRPC.
+
+        Permanently deletes a specified AuthorizedView.
+
+        Returns:
+            Callable[[~.DeleteAuthorizedViewRequest],
+                    Awaitable[~.Empty]]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if "delete_authorized_view" not in self._stubs:
+            self._stubs["delete_authorized_view"] = self.grpc_channel.unary_unary(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/DeleteAuthorizedView",
+                request_serializer=bigtable_table_admin.DeleteAuthorizedViewRequest.serialize,
+                response_deserializer=empty_pb2.Empty.FromString,
+            )
+        return self._stubs["delete_authorized_view"]
+
+    @property
     def modify_column_families(
         self,
     ) -> Callable[

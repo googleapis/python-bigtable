@@ -118,6 +118,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CopyBackupMetadata
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CopyBackupRequest
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    CreateAuthorizedViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    CreateAuthorizedViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     CreateBackupMetadata,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
@@ -130,6 +136,9 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     CreateTableFromSnapshotRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CreateTableRequest
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    DeleteAuthorizedViewRequest,
+)
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     DeleteBackupRequest,
 )
@@ -146,9 +155,18 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     GenerateConsistencyTokenResponse,
 )
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    GetAuthorizedViewRequest,
+)
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetBackupRequest
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetSnapshotRequest
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import GetTableRequest
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    ListAuthorizedViewsRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    ListAuthorizedViewsResponse,
+)
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import ListBackupsRequest
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     ListBackupsResponse,
@@ -186,6 +204,12 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     UndeleteTableRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    UpdateAuthorizedViewMetadata,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    UpdateAuthorizedViewRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     UpdateBackupRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
@@ -200,6 +224,7 @@ from google.cloud.bigtable_admin_v2.types.instance import AutoscalingTargets
 from google.cloud.bigtable_admin_v2.types.instance import Cluster
 from google.cloud.bigtable_admin_v2.types.instance import HotTablet
 from google.cloud.bigtable_admin_v2.types.instance import Instance
+from google.cloud.bigtable_admin_v2.types.table import AuthorizedView
 from google.cloud.bigtable_admin_v2.types.table import Backup
 from google.cloud.bigtable_admin_v2.types.table import BackupInfo
 from google.cloud.bigtable_admin_v2.types.table import ChangeStreamConfig
@@ -246,20 +271,26 @@ __all__ = (
     "CheckConsistencyResponse",
     "CopyBackupMetadata",
     "CopyBackupRequest",
+    "CreateAuthorizedViewMetadata",
+    "CreateAuthorizedViewRequest",
     "CreateBackupMetadata",
     "CreateBackupRequest",
     "CreateTableFromSnapshotMetadata",
     "CreateTableFromSnapshotRequest",
     "CreateTableRequest",
+    "DeleteAuthorizedViewRequest",
     "DeleteBackupRequest",
     "DeleteSnapshotRequest",
     "DeleteTableRequest",
     "DropRowRangeRequest",
     "GenerateConsistencyTokenRequest",
     "GenerateConsistencyTokenResponse",
+    "GetAuthorizedViewRequest",
     "GetBackupRequest",
     "GetSnapshotRequest",
     "GetTableRequest",
+    "ListAuthorizedViewsRequest",
+    "ListAuthorizedViewsResponse",
     "ListBackupsRequest",
     "ListBackupsResponse",
     "ListSnapshotsRequest",
@@ -274,6 +305,8 @@ __all__ = (
     "SnapshotTableRequest",
     "UndeleteTableMetadata",
     "UndeleteTableRequest",
+    "UpdateAuthorizedViewMetadata",
+    "UpdateAuthorizedViewRequest",
     "UpdateBackupRequest",
     "UpdateTableMetadata",
     "UpdateTableRequest",
@@ -285,6 +318,7 @@ __all__ = (
     "Cluster",
     "HotTablet",
     "Instance",
+    "AuthorizedView",
     "Backup",
     "BackupInfo",
     "ChangeStreamConfig",

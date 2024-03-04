@@ -53,20 +53,26 @@ from .types.bigtable_table_admin import CheckConsistencyRequest
 from .types.bigtable_table_admin import CheckConsistencyResponse
 from .types.bigtable_table_admin import CopyBackupMetadata
 from .types.bigtable_table_admin import CopyBackupRequest
+from .types.bigtable_table_admin import CreateAuthorizedViewMetadata
+from .types.bigtable_table_admin import CreateAuthorizedViewRequest
 from .types.bigtable_table_admin import CreateBackupMetadata
 from .types.bigtable_table_admin import CreateBackupRequest
 from .types.bigtable_table_admin import CreateTableFromSnapshotMetadata
 from .types.bigtable_table_admin import CreateTableFromSnapshotRequest
 from .types.bigtable_table_admin import CreateTableRequest
+from .types.bigtable_table_admin import DeleteAuthorizedViewRequest
 from .types.bigtable_table_admin import DeleteBackupRequest
 from .types.bigtable_table_admin import DeleteSnapshotRequest
 from .types.bigtable_table_admin import DeleteTableRequest
 from .types.bigtable_table_admin import DropRowRangeRequest
 from .types.bigtable_table_admin import GenerateConsistencyTokenRequest
 from .types.bigtable_table_admin import GenerateConsistencyTokenResponse
+from .types.bigtable_table_admin import GetAuthorizedViewRequest
 from .types.bigtable_table_admin import GetBackupRequest
 from .types.bigtable_table_admin import GetSnapshotRequest
 from .types.bigtable_table_admin import GetTableRequest
+from .types.bigtable_table_admin import ListAuthorizedViewsRequest
+from .types.bigtable_table_admin import ListAuthorizedViewsResponse
 from .types.bigtable_table_admin import ListBackupsRequest
 from .types.bigtable_table_admin import ListBackupsResponse
 from .types.bigtable_table_admin import ListSnapshotsRequest
@@ -81,6 +87,8 @@ from .types.bigtable_table_admin import SnapshotTableMetadata
 from .types.bigtable_table_admin import SnapshotTableRequest
 from .types.bigtable_table_admin import UndeleteTableMetadata
 from .types.bigtable_table_admin import UndeleteTableRequest
+from .types.bigtable_table_admin import UpdateAuthorizedViewMetadata
+from .types.bigtable_table_admin import UpdateAuthorizedViewRequest
 from .types.bigtable_table_admin import UpdateBackupRequest
 from .types.bigtable_table_admin import UpdateTableMetadata
 from .types.bigtable_table_admin import UpdateTableRequest
@@ -92,6 +100,7 @@ from .types.instance import AutoscalingTargets
 from .types.instance import Cluster
 from .types.instance import HotTablet
 from .types.instance import Instance
+from .types.table import AuthorizedView
 from .types.table import Backup
 from .types.table import BackupInfo
 from .types.table import ChangeStreamConfig
@@ -107,6 +116,7 @@ __all__ = (
     "BigtableInstanceAdminAsyncClient",
     "BigtableTableAdminAsyncClient",
     "AppProfile",
+    "AuthorizedView",
     "AutoscalingLimits",
     "AutoscalingTargets",
     "Backup",
@@ -121,6 +131,8 @@ __all__ = (
     "CopyBackupMetadata",
     "CopyBackupRequest",
     "CreateAppProfileRequest",
+    "CreateAuthorizedViewMetadata",
+    "CreateAuthorizedViewRequest",
     "CreateBackupMetadata",
     "CreateBackupRequest",
     "CreateClusterMetadata",
@@ -131,6 +143,7 @@ __all__ = (
     "CreateTableFromSnapshotRequest",
     "CreateTableRequest",
     "DeleteAppProfileRequest",
+    "DeleteAuthorizedViewRequest",
     "DeleteBackupRequest",
     "DeleteClusterRequest",
     "DeleteInstanceRequest",
@@ -142,6 +155,7 @@ __all__ = (
     "GenerateConsistencyTokenRequest",
     "GenerateConsistencyTokenResponse",
     "GetAppProfileRequest",
+    "GetAuthorizedViewRequest",
     "GetBackupRequest",
     "GetClusterRequest",
     "GetInstanceRequest",
@@ -151,6 +165,8 @@ __all__ = (
     "Instance",
     "ListAppProfilesRequest",
     "ListAppProfilesResponse",
+    "ListAuthorizedViewsRequest",
+    "ListAuthorizedViewsResponse",
     "ListBackupsRequest",
     "ListBackupsResponse",
     "ListClustersRequest",
@@ -182,6 +198,8 @@ __all__ = (
     "UndeleteTableRequest",
     "UpdateAppProfileMetadata",
     "UpdateAppProfileRequest",
+    "UpdateAuthorizedViewMetadata",
+    "UpdateAuthorizedViewRequest",
     "UpdateBackupRequest",
     "UpdateClusterMetadata",
     "UpdateInstanceMetadata",

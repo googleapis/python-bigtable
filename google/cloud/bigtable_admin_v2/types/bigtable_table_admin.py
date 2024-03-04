@@ -64,6 +64,14 @@ __protobuf__ = proto.module(
         "ListBackupsResponse",
         "CopyBackupRequest",
         "CopyBackupMetadata",
+        "CreateAuthorizedViewRequest",
+        "CreateAuthorizedViewMetadata",
+        "ListAuthorizedViewsRequest",
+        "ListAuthorizedViewsResponse",
+        "GetAuthorizedViewRequest",
+        "UpdateAuthorizedViewRequest",
+        "UpdateAuthorizedViewMetadata",
+        "DeleteAuthorizedViewRequest",
     },
 )
 
@@ -1365,6 +1373,275 @@ class CopyBackupMetadata(proto.Message):
         proto.MESSAGE,
         number=3,
         message=common.OperationProgress,
+    )
+
+
+class CreateAuthorizedViewRequest(proto.Message):
+    r"""The request for
+    [CreateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.CreateAuthorizedView]
+
+    Attributes:
+        parent (str):
+            Required. This is the name of the table the AuthorizedView
+            belongs to. Values are of the form
+            ``projects/{project}/instances/{instance}/tables/{table}``.
+        authorized_view_id (str):
+            Required. The id of the AuthorizedView to create. This
+            AuthorizedView must not already exist. The
+            ``authorized_view_id`` appended to ``parent`` forms the full
+            AuthorizedView name of the form
+            ``projects/{project}/instances/{instance}/tables/{table}/authorizedView/{authorized_view}``.
+        authorized_view (google.cloud.bigtable_admin_v2.types.AuthorizedView):
+            Required. The AuthorizedView to create.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    authorized_view_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    authorized_view: gba_table.AuthorizedView = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=gba_table.AuthorizedView,
+    )
+
+
+class CreateAuthorizedViewMetadata(proto.Message):
+    r"""The metadata for the Operation returned by
+    CreateAuthorizedView.
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.CreateAuthorizedViewRequest):
+            The request that prompted the initiation of
+            this CreateInstance operation.
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the original request was
+            received.
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the operation failed or was
+            completed successfully.
+    """
+
+    original_request: "CreateAuthorizedViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="CreateAuthorizedViewRequest",
+    )
+    request_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    finish_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class ListAuthorizedViewsRequest(proto.Message):
+    r"""Request message for
+    [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+
+    Attributes:
+        parent (str):
+            Required. The unique name of the table for which
+            AuthorizedViews should be listed. Values are of the form
+            ``projects/{project}/instances/{instance}/tables/{table}``.
+        page_size (int):
+            Optional. Maximum number of results per page.
+
+            A page_size of zero lets the server choose the number of
+            items to return. A page_size which is strictly positive will
+            return at most that many items. A negative page_size will
+            cause an error.
+
+            Following the first request, subsequent paginated calls are
+            not required to pass a page_size. If a page_size is set in
+            subsequent calls, it must match the page_size given in the
+            first request.
+        page_token (str):
+            Optional. The value of ``next_page_token`` returned by a
+            previous call.
+        view (google.cloud.bigtable_admin_v2.types.AuthorizedView.ResponseView):
+            Optional. The resource_view to be applied to the returned
+            views' fields. Default to NAME_ONLY.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    page_size: int = proto.Field(
+        proto.INT32,
+        number=2,
+    )
+    page_token: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    view: gba_table.AuthorizedView.ResponseView = proto.Field(
+        proto.ENUM,
+        number=4,
+        enum=gba_table.AuthorizedView.ResponseView,
+    )
+
+
+class ListAuthorizedViewsResponse(proto.Message):
+    r"""Response message for
+    [google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews][google.bigtable.admin.v2.BigtableTableAdmin.ListAuthorizedViews]
+
+    Attributes:
+        authorized_views (MutableSequence[google.cloud.bigtable_admin_v2.types.AuthorizedView]):
+            The AuthorizedViews present in the requested
+            table.
+        next_page_token (str):
+            Set if not all tables could be returned in a single
+            response. Pass this value to ``page_token`` in another
+            request to get the next page of results.
+    """
+
+    @property
+    def raw_page(self):
+        return self
+
+    authorized_views: MutableSequence[gba_table.AuthorizedView] = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
+        message=gba_table.AuthorizedView,
+    )
+    next_page_token: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+
+
+class GetAuthorizedViewRequest(proto.Message):
+    r"""Request message for
+    [google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.GetAuthorizedView]
+
+    Attributes:
+        name (str):
+            Required. The unique name of the requested AuthorizedView.
+            Values are of the form
+            ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
+        view (google.cloud.bigtable_admin_v2.types.AuthorizedView.ResponseView):
+            Optional. The resource_view to be applied to the returned
+            AuthorizedView's fields. Default to BASIC.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    view: gba_table.AuthorizedView.ResponseView = proto.Field(
+        proto.ENUM,
+        number=2,
+        enum=gba_table.AuthorizedView.ResponseView,
+    )
+
+
+class UpdateAuthorizedViewRequest(proto.Message):
+    r"""The request for
+    [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
+
+    Attributes:
+        authorized_view (google.cloud.bigtable_admin_v2.types.AuthorizedView):
+            Required. The AuthorizedView to update. The ``name`` in
+            ``authorized_view`` is used to identify the AuthorizedView.
+            AuthorizedView name must in this format
+            projects//instances//tables//authorizedViews/<authorized_view>
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
+            Optional. The list of fields to update. A mask specifying
+            which fields in the AuthorizedView resource should be
+            updated. This mask is relative to the AuthorizedView
+            resource, not to the request message. A field will be
+            overwritten if it is in the mask. If empty, all fields set
+            in the request will be overwritten. A special value ``*``
+            means to overwrite all fields (including fields not set in
+            the request).
+        ignore_warnings (bool):
+            Optional. If true, ignore the safety checks
+            when updating the AuthorizedView.
+    """
+
+    authorized_view: gba_table.AuthorizedView = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message=gba_table.AuthorizedView,
+    )
+    update_mask: field_mask_pb2.FieldMask = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=field_mask_pb2.FieldMask,
+    )
+    ignore_warnings: bool = proto.Field(
+        proto.BOOL,
+        number=3,
+    )
+
+
+class UpdateAuthorizedViewMetadata(proto.Message):
+    r"""Metadata for the google.longrunning.Operation returned by
+    [UpdateAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.UpdateAuthorizedView].
+
+    Attributes:
+        original_request (google.cloud.bigtable_admin_v2.types.UpdateAuthorizedViewRequest):
+            The request that prompted the initiation of
+            this UpdateAuthorizedView operation.
+        request_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the original request was
+            received.
+        finish_time (google.protobuf.timestamp_pb2.Timestamp):
+            The time at which the operation failed or was
+            completed successfully.
+    """
+
+    original_request: "UpdateAuthorizedViewRequest" = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message="UpdateAuthorizedViewRequest",
+    )
+    request_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    finish_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class DeleteAuthorizedViewRequest(proto.Message):
+    r"""Request message for
+    [google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView][google.bigtable.admin.v2.BigtableTableAdmin.DeleteAuthorizedView]
+
+    Attributes:
+        name (str):
+            Required. The unique name of the AuthorizedView to be
+            deleted. Values are of the form
+            ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``.
+        etag (str):
+            Optional. The current etag of the
+            AuthorizedView. If an etag is provided and does
+            not match the current etag of the
+            AuthorizedView, deletion will be blocked and an
+            ABORTED error will be returned.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=2,
     )
 
 
