@@ -184,6 +184,30 @@ class BigtableClient(metaclass=BigtableClientMeta):
         return self._transport
 
     @staticmethod
+    def authorized_view_path(
+        project: str,
+        instance: str,
+        table: str,
+        authorized_view: str,
+    ) -> str:
+        """Returns a fully-qualified authorized_view string."""
+        return "projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}".format(
+            project=project,
+            instance=instance,
+            table=table,
+            authorized_view=authorized_view,
+        )
+
+    @staticmethod
+    def parse_authorized_view_path(path: str) -> Dict[str, str]:
+        """Parses a authorized_view path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)/authorizedViews/(?P<authorized_view>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
+
+    @staticmethod
     def instance_path(
         project: str,
         instance: str,
@@ -702,8 +726,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.ReadRows.
             table_name (str):
-                Required. The unique name of the table from which to
-                read. Values are of the form
+                Optional. The unique name of the table from which to
+                read.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -769,6 +795,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
@@ -809,8 +844,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.SampleRowKeys.
             table_name (str):
-                Required. The unique name of the table from which to
-                sample row keys. Values are of the form
+                Optional. The unique name of the table from which to
+                sample row keys.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -876,6 +913,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
@@ -915,8 +961,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.MutateRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                mutation should be applied. Values are of the form
+                Optional. The unique name of the table to which the
+                mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -1004,6 +1052,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
@@ -1043,9 +1100,11 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 BigtableService.MutateRows.
             table_name (str):
-                Required. The unique name of the
-                table to which the mutations should be
-                applied.
+                Optional. The unique name of the table to which the
+                mutations should be applied.
+
+                Values are of the form
+                ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1126,6 +1185,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
 
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
@@ -1167,9 +1235,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                conditional mutation should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                conditional mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -1291,6 +1360,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -1440,9 +1518,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                read/modify/write rules should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                read/modify/write rules should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -1530,6 +1609,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (

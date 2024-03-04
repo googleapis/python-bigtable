@@ -66,6 +66,8 @@ class BigtableAsyncClient:
     _DEFAULT_ENDPOINT_TEMPLATE = BigtableClient._DEFAULT_ENDPOINT_TEMPLATE
     _DEFAULT_UNIVERSE = BigtableClient._DEFAULT_UNIVERSE
 
+    authorized_view_path = staticmethod(BigtableClient.authorized_view_path)
+    parse_authorized_view_path = staticmethod(BigtableClient.parse_authorized_view_path)
     instance_path = staticmethod(BigtableClient.instance_path)
     parse_instance_path = staticmethod(BigtableClient.parse_instance_path)
     table_path = staticmethod(BigtableClient.table_path)
@@ -272,8 +274,10 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 Bigtable.ReadRows.
             table_name (:class:`str`):
-                Required. The unique name of the table from which to
-                read. Values are of the form
+                Optional. The unique name of the table from which to
+                read.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -370,8 +374,10 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 Bigtable.SampleRowKeys.
             table_name (:class:`str`):
-                Required. The unique name of the table from which to
-                sample row keys. Values are of the form
+                Optional. The unique name of the table from which to
+                sample row keys.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -467,8 +473,10 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 Bigtable.MutateRow.
             table_name (:class:`str`):
-                Required. The unique name of the table to which the
-                mutation should be applied. Values are of the form
+                Optional. The unique name of the table to which the
+                mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -596,9 +604,11 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 BigtableService.MutateRows.
             table_name (:class:`str`):
-                Required. The unique name of the
-                table to which the mutations should be
-                applied.
+                Optional. The unique name of the table to which the
+                mutations should be applied.
+
+                Values are of the form
+                ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -711,9 +721,10 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (:class:`str`):
-                Required. The unique name of the table to which the
-                conditional mutation should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                conditional mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -966,9 +977,10 @@ class BigtableAsyncClient:
                 The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (:class:`str`):
-                Required. The unique name of the table to which the
-                read/modify/write rules should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                read/modify/write rules should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
