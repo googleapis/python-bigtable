@@ -21,10 +21,12 @@ import data_client_snippets_async as data_snippets
 
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BIGTABLE_INSTANCE = os.environ["BIGTABLE_INSTANCE"]
-TABLE_ID_STATIC = os.getenv('BIGTABLE_TABLE', None)  # if not set, a temproary table will be generated
+TABLE_ID_STATIC = os.getenv(
+    "BIGTABLE_TABLE", None
+)  # if not set, a temproary table will be generated
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def table_id():
     from google.cloud import bigtable
 
@@ -46,12 +48,76 @@ def table_id():
 @pytest_asyncio.fixture
 async def table(table_id):
     from google.cloud.bigtable.data import BigtableDataClientAsync
+
     async with BigtableDataClientAsync(project=PROJECT) as client:
         async with client.get_table(BIGTABLE_INSTANCE, table_id) as table:
             yield table
 
 
 @pytest.mark.asyncio
+async def test_create_table(table_id):
+    from google.cloud.bigtable.data import TableAsync
+
+    result = await data_snippets.create_table(PROJECT, BIGTABLE_INSTANCE, table_id)
+    assert isinstance(result, TableAsync)
+    assert result.table_id == table_id
+    assert result.instance_id == BIGTABLE_INSTANCE
+    assert result.client.project == PROJECT
+
+
+@pytest.mark.asyncio
 async def test_set_cell(table):
-    from google.cloud.bigtable.data import BigtableDataClientAsync
     await data_snippets.set_cell(table)
+
+
+@pytest.mark.asyncio
+async def test_bulk_mutate(table):
+    await data_snippets.bulk_mutate(table)
+
+
+@pytest.mark.asyncio
+async def test_mutations_batcher(table):
+    from google.cloud.bigtable.data import MutationsBatcherAsync
+
+    batcher = await data_snippets.mutations_batcher(table)
+    assert isinstance(batcher, MutationsBatcherAsync)
+
+
+@pytest.mark.asyncio
+async def test_read_row(table):
+    await data_snippets.read_row(table)
+
+
+@pytest.mark.asyncio
+async def test_read_rows_list(table):
+    await data_snippets.read_rows_list(table)
+
+
+@pytest.mark.asyncio
+async def test_read_rows_stream(table):
+    await data_snippets.read_rows_stream(table)
+
+
+@pytest.mark.asyncio
+async def test_read_rows_sharded(table):
+    await data_snippets.read_rows_sharded(table)
+
+
+@pytest.mark.asyncio
+async def test_row_exists(table):
+    await data_snippets.row_exists(table)
+
+
+@pytest.mark.asyncio
+async def test_read_modify_write_increment(table):
+    await data_snippets.read_modify_write_increment(table)
+
+
+@pytest.mark.asyncio
+async def test_read_modify_write_append(table):
+    await data_snippets.read_modify_write_append(table)
+
+
+@pytest.mark.asyncio
+async def test_check_and_mutate(table):
+    await data_snippets.check_and_mutate(table)
