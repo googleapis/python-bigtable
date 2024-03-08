@@ -75,33 +75,30 @@ async def test_write_conditional(table):
 
 
 @pytest.mark.asyncio
-async def test_mutations_batcher(table):
-    from google.cloud.bigtable.data import MutationsBatcherAsync
-
-    batcher = await data_snippets.mutations_batcher(table)
-    assert isinstance(batcher, MutationsBatcherAsync)
-
-
-@pytest.mark.asyncio
 async def test_read_row(table):
     await data_snippets.read_row(table)
 
 
 @pytest.mark.asyncio
-async def test_read_rows_list(table):
-    await data_snippets.read_rows_list(table)
+async def test_read_row_partial(table):
+    await data_snippets.read_row_partial(table)
 
 
 @pytest.mark.asyncio
-async def test_read_rows_stream(table):
-    await data_snippets.read_rows_stream(table)
+async def test_read_rows_multiple(table):
+    await data_snippets.read_rows_multiple(table)
 
 
 @pytest.mark.asyncio
-async def test_read_rows_sharded(table):
-    await data_snippets.read_rows_sharded(table)
+async def test_read_row_range(table):
+    await data_snippets.read_row_range(table)
 
 
 @pytest.mark.asyncio
-async def test_row_exists(table):
-    await data_snippets.row_exists(table)
+async def test_read_with_prefix(table):
+    await data_snippets.read_with_prefix(table)
+
+
+@pytest.mark.asyncio
+async def test_read_with_filter(table):
+    await data_snippets.read_with_filter(table)

@@ -121,80 +121,116 @@ async def write_conditional(table):
     # [END bigtable_async_writes_conditional]
     await write_conditional(table.client.project, table.instance_id, table.table_id)
 
-async def mutations_batcher(table):
-    # [START bigtable_data_mutations_batcher]
-    from google.cloud.bigtable.data.mutations import SetCell
-    from google.cloud.bigtable.data import RowMutationEntry
-
-    common_mutation = SetCell(family="family", qualifier="qualifier", new_value="value")
-
-    async with table.mutations_batcher(
-        flush_limit_mutation_count=2, flush_limit_bytes=1024
-    ) as batcher:
-        for i in range(10):
-            row_key = f"row-{i}"
-            batcher.append(RowMutationEntry(row_key, [common_mutation]))
-        # [END bigtable_data_mutations_batcher]
-        return batcher
-
 
 async def read_row(table):
-    # [START bigtable_data_read_row]
-    row = await table.read_row(b"my_row")
-    print(row.row_key)
-    # [END bigtable_data_read_row]
-    return row
+    # [START bigtable_async_reads_row]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+
+    async def read_row(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                row_key = "phone#4c410523#20190501"
+                row = await table.read_row(row_key)
+                print(row)
+    # [END bigtable_async_reads_row]
+    await read_row(table.client.project, table.instance_id, table.table_id)
 
 
-async def read_rows_list(table):
-    # [START bigtable_data_read_rows_list]
+async def read_row_partial(table):
+    # [START bigtable_async_reads_row_partial]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable.data import row_filters
+
+    async def read_row_partial(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                row_key = "phone#4c410523#20190501"
+                col_filter = row_filters.ColumnQualifierRegexFilter(b"os_build")
+
+                row = await table.read_row(row_key, row_filter=col_filter)
+                print(row)
+    # [END bigtable_async_reads_row_partial]
+    await read_row_partial(table.client.project, table.instance_id, table.table_id)
+
+
+async def read_rows_multiple(table):
+    # [START bigtable_async_reads_rows]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable.data import ReadRowsQuery
+
+    async def read_rows(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+
+                query = ReadRowsQuery(row_keys=[
+                    b"phone#4c410523#20190501",
+                    b"phone#4c410523#20190502"
+                ])
+                async for row in await table.read_rows_stream(query):
+                    print(row)
+
+    # [END bigtable_async_reads_rows]
+    await read_rows(table.client.project, table.instance_id, table.table_id)
+
+
+async def read_row_range(table):
+    # [START bigtable_async_reads_row_range]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data import ReadRowsQuery
     from google.cloud.bigtable.data import RowRange
 
-    query = ReadRowsQuery(row_ranges=[RowRange("a", "z")])
+    async def read_row_range(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
 
-    row_list = await table.read_rows(query)
-    for row in row_list:
-        print(row.row_key)
-    # [END bigtable_data_read_rows_list]
-    return row_list
+                row_range = RowRange(
+                    start_key=b"phone#4c410523#20190501",
+                    end_key=b"phone#4c410523#201906201"
+                )
+                query = ReadRowsQuery(row_ranges=[row_range])
+
+                async for row in await table.read_rows_stream(query):
+                    print(row)
+    # [END bigtable_async_reads_row_range]
+    await read_row_range(table.client.project, table.instance_id, table.table_id)
 
 
-async def read_rows_stream(table):
-    # [START bigtable_data_read_rows_stream]
+async def read_with_prefix(table):
+    # [START bigtable_async_reads_prefix]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data import ReadRowsQuery
     from google.cloud.bigtable.data import RowRange
 
-    query = ReadRowsQuery(row_ranges=[RowRange("a", "z")])
-    async for row in await table.read_rows_stream(query):
-        print(row.row_key)
-    # [END bigtable_data_read_rows_stream]
+    async def read_prefix(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+
+                prefix = "phone#"
+                end_key = prefix[:-1] + chr(ord(prefix[-1]) + 1)
+                prefix_range = RowRange(start_key=prefix, end_key=end_key)
+                query = ReadRowsQuery(row_ranges=[prefix_range])
+
+                async for row in await table.read_rows_stream(query):
+                    print(row)
+    # [END bigtable_async_reads_prefix]
+    await read_prefix(table.client.project, table.instance_id, table.table_id)
 
 
-async def read_rows_sharded(table):
-    # [START bigtable_data_read_rows_sharded]
+async def read_with_filter(table):
+    # [START bigtable_async_reads_filter]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data import ReadRowsQuery
-    from google.cloud.bigtable.data import RowRange
+    from google.cloud.bigtable.data import row_filters
 
-    # find shard keys for table
-    table_shard_keys = await table.sample_row_keys()
-    # construct shared query
-    query = ReadRowsQuery(row_ranges=[RowRange("a", "z")])
-    shard_queries = query.shard(table_shard_keys)
-    # execute sharded query
-    row_list = await table.read_rows_sharded(shard_queries)
-    for row in row_list:
-        print(row.row_key)
-    # [END bigtable_data_read_rows_sharded]
+    async def read_with_filter(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
 
+                row_filter = row_filters.ValueRegexFilter(b"PQ2A.*$")
+                query = ReadRowsQuery(row_filter=row_filter)
 
-async def row_exists(table):
-    # [START bigtable_data_row_exists]
-    row_key = b"my_row"
-    exists = await table.row_exists(row_key)
-    if exists:
-        print(f"The row {row_key} exists")
-    else:
-        print(f"The row {row_key} does not exist")
-    # [END bigtable_data_row_exists]
-    return exists
+                async for row in await table.read_rows_stream(query):
+                    print(row)
+    # [END bigtable_async_reads_filter]
+    await read_with_filter(table.client.project, table.instance_id, table.table_id)
+
