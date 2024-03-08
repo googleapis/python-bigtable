@@ -235,6 +235,7 @@ from google.cloud.bigtable_admin_v2.types.table import RestoreInfo
 from google.cloud.bigtable_admin_v2.types.table import Snapshot
 from google.cloud.bigtable_admin_v2.types.table import Table
 from google.cloud.bigtable_admin_v2.types.table import RestoreSourceType
+from google.cloud.bigtable_admin_v2.types.types import Type
 
 __all__ = (
     "BigtableInstanceAdminClient",
@@ -329,4 +330,5 @@ __all__ = (
     "Snapshot",
     "Table",
     "RestoreSourceType",
+    "Type",
 )

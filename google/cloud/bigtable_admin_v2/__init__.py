@@ -111,6 +111,7 @@ from .types.table import RestoreInfo
 from .types.table import Snapshot
 from .types.table import Table
 from .types.table import RestoreSourceType
+from .types.types import Type
 
 __all__ = (
     "BigtableInstanceAdminAsyncClient",
@@ -194,6 +195,7 @@ __all__ = (
     "SnapshotTableRequest",
     "StorageType",
     "Table",
+    "Type",
     "UndeleteTableMetadata",
     "UndeleteTableRequest",
     "UpdateAppProfileMetadata",

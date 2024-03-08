@@ -60,6 +60,7 @@ from google.cloud.bigtable_admin_v2.services.bigtable_table_admin import transpo
 from google.cloud.bigtable_admin_v2.types import bigtable_table_admin
 from google.cloud.bigtable_admin_v2.types import table
 from google.cloud.bigtable_admin_v2.types import table as gba_table
+from google.cloud.bigtable_admin_v2.types import types
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import options_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore

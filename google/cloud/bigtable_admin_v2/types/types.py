@@ -21,9 +21,9 @@ import proto  # type: ignore
 
 
 __protobuf__ = proto.module(
-    package='google.bigtable.admin.v2',
+    package="google.bigtable.admin.v2",
     manifest={
-        'Type',
+        "Type",
     },
 )
 
@@ -124,17 +124,17 @@ class Type(proto.Message):
 
                 """
 
-            raw: 'Type.Bytes.Encoding.Raw' = proto.Field(
+            raw: "Type.Bytes.Encoding.Raw" = proto.Field(
                 proto.MESSAGE,
                 number=1,
-                oneof='encoding',
-                message='Type.Bytes.Encoding.Raw',
+                oneof="encoding",
+                message="Type.Bytes.Encoding.Raw",
             )
 
-        encoding: 'Type.Bytes.Encoding' = proto.Field(
+        encoding: "Type.Bytes.Encoding" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type.Bytes.Encoding',
+            message="Type.Bytes.Encoding",
         )
 
     class Int64(proto.Message):
@@ -176,23 +176,23 @@ class Type(proto.Message):
                         further.
                 """
 
-                bytes_type: 'Type.Bytes' = proto.Field(
+                bytes_type: "Type.Bytes" = proto.Field(
                     proto.MESSAGE,
                     number=1,
-                    message='Type.Bytes',
+                    message="Type.Bytes",
                 )
 
-            big_endian_bytes: 'Type.Int64.Encoding.BigEndianBytes' = proto.Field(
+            big_endian_bytes: "Type.Int64.Encoding.BigEndianBytes" = proto.Field(
                 proto.MESSAGE,
                 number=1,
-                oneof='encoding',
-                message='Type.Int64.Encoding.BigEndianBytes',
+                oneof="encoding",
+                message="Type.Int64.Encoding.BigEndianBytes",
             )
 
-        encoding: 'Type.Int64.Encoding' = proto.Field(
+        encoding: "Type.Int64.Encoding" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type.Int64.Encoding',
+            message="Type.Int64.Encoding",
         )
 
     class Aggregate(proto.Message):
@@ -227,39 +227,39 @@ class Type(proto.Message):
 
             """
 
-        input_type: 'Type' = proto.Field(
+        input_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=1,
-            message='Type',
+            message="Type",
         )
-        state_type: 'Type' = proto.Field(
+        state_type: "Type" = proto.Field(
             proto.MESSAGE,
             number=2,
-            message='Type',
+            message="Type",
         )
-        sum: 'Type.Aggregate.Sum' = proto.Field(
+        sum: "Type.Aggregate.Sum" = proto.Field(
             proto.MESSAGE,
             number=4,
-            oneof='aggregator',
-            message='Type.Aggregate.Sum',
+            oneof="aggregator",
+            message="Type.Aggregate.Sum",
         )
 
     bytes_type: Bytes = proto.Field(
         proto.MESSAGE,
         number=1,
-        oneof='kind',
+        oneof="kind",
         message=Bytes,
     )
     int64_type: Int64 = proto.Field(
         proto.MESSAGE,
         number=5,
-        oneof='kind',
+        oneof="kind",
         message=Int64,
     )
     aggregate_type: Aggregate = proto.Field(
         proto.MESSAGE,
         number=6,
-        oneof='kind',
+        oneof="kind",
         message=Aggregate,
     )
 

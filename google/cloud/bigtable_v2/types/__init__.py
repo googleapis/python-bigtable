@@ -49,6 +49,7 @@ from .data import (
     StreamContinuationTokens,
     StreamPartition,
     TimestampRange,
+    Value,
     ValueRange,
 )
 from .feature_flags import (
@@ -98,6 +99,7 @@ __all__ = (
     "StreamContinuationTokens",
     "StreamPartition",
     "TimestampRange",
+    "Value",
     "ValueRange",
     "FeatureFlags",
     "FullReadStatsView",

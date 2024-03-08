@@ -640,6 +640,11 @@ class ModifyColumnFamiliesRequest(proto.Message):
                 given ID, or fail if no such family exists.
 
                 This field is a member of `oneof`_ ``mod``.
+            update_mask (google.protobuf.field_mask_pb2.FieldMask):
+                Optional. A mask specifying which fields (e.g. ``gc_rule``)
+                in the ``update`` mod should be updated, ignored for other
+                modification types. If unset or empty, we treat it as
+                updating ``gc_rule`` to be backward compatible.
         """
 
         id: str = proto.Field(
@@ -662,6 +667,11 @@ class ModifyColumnFamiliesRequest(proto.Message):
             proto.BOOL,
             number=4,
             oneof="mod",
+        )
+        update_mask: field_mask_pb2.FieldMask = proto.Field(
+            proto.MESSAGE,
+            number=6,
+            message=field_mask_pb2.FieldMask,
         )
 
     name: str = proto.Field(

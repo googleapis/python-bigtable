@@ -54,6 +54,7 @@ from .types.data import StreamContinuationToken
 from .types.data import StreamContinuationTokens
 from .types.data import StreamPartition
 from .types.data import TimestampRange
+from .types.data import Value
 from .types.data import ValueRange
 from .types.feature_flags import FeatureFlags
 from .types.request_stats import FullReadStatsView
@@ -104,5 +105,6 @@ __all__ = (
     "StreamContinuationTokens",
     "StreamPartition",
     "TimestampRange",
+    "Value",
     "ValueRange",
 )

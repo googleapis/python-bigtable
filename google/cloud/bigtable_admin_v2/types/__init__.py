@@ -111,6 +111,9 @@ from .table import (
     Table,
     RestoreSourceType,
 )
+from .types import (
+    Type,
+)
 
 __all__ = (
     "CreateAppProfileRequest",
@@ -201,4 +204,5 @@ __all__ = (
     "Snapshot",
     "Table",
     "RestoreSourceType",
+    "Type",
 )

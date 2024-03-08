@@ -19,6 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
+from google.cloud.bigtable_admin_v2.types import types
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
@@ -442,12 +443,31 @@ class ColumnFamily(proto.Message):
             opportunistically in the background, and so it's
             possible for reads to return a cell even if it
             matches the active GC expression for its family.
+        value_type (google.cloud.bigtable_admin_v2.types.Type):
+            The type of data stored in each of this family's cell
+            values, including its full encoding. If omitted, the family
+            only serves raw untyped bytes.
+
+            For now, only the ``Aggregate`` type is supported.
+
+            ``Aggregate`` can only be set at family creation and is
+            immutable afterwards.
+
+            If ``value_type`` is ``Aggregate``, written data must be
+            compatible with:
+
+            -  ``value_type.input_type`` for ``AddInput`` mutations
     """
 
     gc_rule: "GcRule" = proto.Field(
         proto.MESSAGE,
         number=1,
         message="GcRule",
+    )
+    value_type: types.Type = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=types.Type,
     )
 
 
