@@ -36,7 +36,7 @@ def table_id():
 
     admin_table = instance.table(table_id)
     if not admin_table.exists():
-        admin_table.create(column_families={"family": None})
+        admin_table.create(column_families={"family": None, "stats_summary": None})
 
     yield table_id
 
@@ -55,24 +55,23 @@ async def table(table_id):
 
 
 @pytest.mark.asyncio
-async def test_create_table(table_id):
-    from google.cloud.bigtable.data import TableAsync
-
-    result = await data_snippets.create_table(PROJECT, BIGTABLE_INSTANCE, table_id)
-    assert isinstance(result, TableAsync)
-    assert result.table_id == table_id
-    assert result.instance_id == BIGTABLE_INSTANCE
-    assert result.client.project == PROJECT
+async def test_write_simple(table):
+    await data_snippets.write_simple(table)
 
 
 @pytest.mark.asyncio
-async def test_set_cell(table):
-    await data_snippets.set_cell(table)
+async def test_write_batch(table):
+    await data_snippets.write_batch(table)
 
 
 @pytest.mark.asyncio
-async def test_bulk_mutate(table):
-    await data_snippets.bulk_mutate(table)
+async def test_write_increment(table):
+    await data_snippets.write_increment(table)
+
+
+@pytest.mark.asyncio
+async def test_write_conditional(table):
+    await data_snippets.write_conditional(table)
 
 
 @pytest.mark.asyncio
@@ -106,18 +105,3 @@ async def test_read_rows_sharded(table):
 @pytest.mark.asyncio
 async def test_row_exists(table):
     await data_snippets.row_exists(table)
-
-
-@pytest.mark.asyncio
-async def test_read_modify_write_increment(table):
-    await data_snippets.read_modify_write_increment(table)
-
-
-@pytest.mark.asyncio
-async def test_read_modify_write_append(table):
-    await data_snippets.read_modify_write_append(table)
-
-
-@pytest.mark.asyncio
-async def test_check_and_mutate(table):
-    await data_snippets.check_and_mutate(table)

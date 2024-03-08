@@ -14,52 +14,112 @@
 # limitations under the License.
 
 
-async def create_table(project, instance, table):
-    # [START bigtable_data_create_table]
+async def write_simple(table):
+    # [START bigtable_async_write_simple]
     from google.cloud.bigtable.data import BigtableDataClientAsync
-
-    project_id = "my_project"
-    instance_id = "my-instance"
-    table_id = "my-table"
-    # [END bigtable_data_create_table]
-    # replace placeholders outside sample
-    project_id, instance_id, table_id = project, instance, table
-    # [START bigtable_data_create_table]
-
-    async with BigtableDataClientAsync(project=project_id) as client:
-        async with client.get_table(instance_id, table_id) as table:
-            print(f"table: {table}")
-            # [END bigtable_data_create_table]
-            return table
-
-
-async def set_cell(table):
-    # [START bigtable_data_set_cell]
     from google.cloud.bigtable.data import SetCell
 
-    row_key = b"my_row"
-    mutation = SetCell(family="family", qualifier="qualifier", new_value="value")
-    await table.mutate_row(row_key, mutation)
-    # [END bigtable_data_set_cell]
+    async def write_simple(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                family_id = "stats_summary"
+                row_key = b"phone#4c410523#20190501"
+
+                cell_mutation = SetCell(family_id, "connected_cell", 1)
+                wifi_mutation = SetCell(family_id, "connected_wifi", 1)
+                os_mutation = SetCell(family_id, "os_build", "PQ2A.190405.003")
+
+                await table.mutate_row(row_key, cell_mutation)
+                await table.mutate_row(row_key, wifi_mutation)
+                await table.mutate_row(row_key, os_mutation)
+
+    # [END bigtable_async_write_simple]
+    await write_simple(table.client.project, table.instance_id, table.table_id)
 
 
-async def bulk_mutate(table):
-    # [START bigtable_data_bulk_mutate]
+async def write_batch(table):
+    # [START bigtable_async_writes_batch]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data.mutations import SetCell
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-    row_key_1 = b"first_row"
-    row_key_2 = b"second_row"
+    async def write_batch(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                family_id = "stats_summary"
 
-    common_mutation = SetCell(family="family", qualifier="qualifier", new_value="value")
-    await table.bulk_mutate_rows(
-        [
-            RowMutationEntry(row_key_1, [common_mutation]),
-            RowMutationEntry(row_key_2, [common_mutation]),
-        ]
-    )
-    # [END bigtable_data_bulk_mutate]
+                mutation_list = [
+                    SetCell(family_id, "connected_cell", 1),
+                    SetCell(family_id, "connected_wifi", 1),
+                    SetCell(family_id, "os_build", "PQ2A.190405.003"),
+                ]
 
+                await table.bulk_mutate_rows(
+                    [
+                        RowMutationEntry("tablet#a0b81f74#20190501", mutation_list),
+                        RowMutationEntry("tablet#a0b81f74#20190502", mutation_list),
+                    ]
+                )
+    # [END bigtable_async_writes_batch]
+    await write_batch(table.client.project, table.instance_id, table.table_id)
+
+
+async def write_increment(table):
+    # [START bigtable_async_write_increment]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
+    from google.cloud.bigtable.data import SetCell
+
+    async def write_increment(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                family_id = "stats_summary"
+                row_key = "phone#4c410523#20190501"
+
+                # Decrement the connected_wifi value by 1.
+                increment_rule = IncrementRule(
+                    family_id, "connected_wifi", increment_amount=-1
+                )
+                result_row = await table.read_modify_write_row(row_key, increment_rule)
+
+                # check result
+                cell = result_row[0]
+                print(f"{cell.row_key} value: {int(cell)}")
+    # [END bigtable_async_write_increment]
+    await write_increment(table.client.project, table.instance_id, table.table_id)
+
+
+async def write_conditional(table):
+    # [START bigtable_async_writes_conditional]
+    from google.cloud.bigtable.data import BigtableDataClientAsync
+    from google.cloud.bigtable.data import row_filters
+    from google.cloud.bigtable.data import SetCell
+
+    async def write_conditional(project_id, instance_id, table_id):
+        async with BigtableDataClientAsync(project=project_id) as client:
+            async with client.get_table(instance_id, table_id) as table:
+                family_id = "stats_summary"
+                row_key = "phone#4c410523#20190501"
+
+                row_filter = row_filters.RowFilterChain(
+                    filters=[
+                        row_filters.FamilyNameRegexFilter(family_id),
+                        row_filters.ColumnQualifierRegexFilter("os_build"),
+                        row_filters.ValueRegexFilter("PQ2A\\..*"),
+                    ]
+                )
+
+                if_true = SetCell(family_id, "os_name", "android")
+                result = await table.check_and_mutate_row(
+                    row_key,
+                    row_filter,
+                    true_case_mutations=if_true,
+                    false_case_mutations=None,
+                )
+                if result is True:
+                    print("The row os_name was set to android")
+    # [END bigtable_async_writes_conditional]
+    await write_conditional(table.client.project, table.instance_id, table.table_id)
 
 async def mutations_batcher(table):
     # [START bigtable_data_mutations_batcher]
@@ -138,75 +198,3 @@ async def row_exists(table):
         print(f"The row {row_key} does not exist")
     # [END bigtable_data_row_exists]
     return exists
-
-
-async def read_modify_write_increment(table):
-    # [START bigtable_data_read_modify_write_increment]
-    from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
-    from google.cloud.bigtable.data import SetCell
-
-    row_key = b"my_row"
-    family = "family"
-    qualifier = "qualifier"
-
-    # initialize row with a starting value of 1
-    await table.mutate_row(row_key, SetCell(family, qualifier, new_value=1))
-
-    # use read_modify_write to increment the value by 2
-    add_two_rule = IncrementRule(family, qualifier, increment_amount=2)
-    result = await table.read_modify_write_row(row_key, add_two_rule)
-
-    # check result
-    cell = result[0]
-    print(f"{cell.row_key} value: {int(cell)}")
-    assert int(cell) == 3
-    # [END bigtable_data_read_modify_write_increment]
-
-
-async def read_modify_write_append(table):
-    # [START bigtable_data_read_modify_write_append]
-    from google.cloud.bigtable.data.read_modify_write_rules import AppendValueRule
-    from google.cloud.bigtable.data import SetCell
-
-    row_key = b"my_row"
-    family = "family"
-    qualifier = "qualifier"
-
-    # initialize row with a starting value of "hello"
-    await table.mutate_row(row_key, SetCell(family, qualifier, new_value="hello"))
-
-    # use read_modify_write to append " world" to the value
-    append_world_rule = AppendValueRule(family, qualifier, append_value=" world")
-    result = await table.read_modify_write_row(row_key, append_world_rule)
-
-    # check result
-    cell = result[0]
-    print(f"{cell.row_key} value: {cell.value}")
-    assert cell.value == b"hello world"
-    # [END bigtable_data_read_modify_append]
-
-
-async def check_and_mutate(table):
-    # [START bigtable_data_check_and_mutate]
-    from google.cloud.bigtable.data.row_filters import ValueRangeFilter
-    from google.cloud.bigtable.data import SetCell
-
-    row_key = b"my_row"
-    family = "family"
-    qualifier = "qualifier"
-
-    # create a predicate filter to test against
-    # in this case, use a ValueRangeFilter to check if the value is positive or negative
-    predicate = ValueRangeFilter(start_value=0, inclusive_start=True)
-    # use check and mutate to change the value in the row based on the predicate
-    was_true = await table.check_and_mutate_row(
-        row_key,
-        predicate,
-        true_case_mutations=SetCell(family, qualifier, new_value="positive"),
-        false_case_mutations=SetCell(family, qualifier, new_value="negative"),
-    )
-    if was_true:
-        print("The value was positive")
-    else:
-        print("The value was negative")
-    # [END bigtable_data_check_and_mutate]
