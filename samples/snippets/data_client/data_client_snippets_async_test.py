@@ -14,7 +14,6 @@ import pytest
 import pytest_asyncio
 import uuid
 import os
-import asyncio
 
 import data_client_snippets_async as data_snippets
 
