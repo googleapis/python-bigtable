@@ -98,23 +98,32 @@ def _attempt_timeout_generator(
         yield max(0, min(per_request_timeout, deadline - time.monotonic()))
 
 
-def backoff_generator(initial=0.01, multiplier=2, maximum=60):
+class BackoffGenerator:
     """
-    Build a generator for exponential backoff sleep times.
+    Generator class for exponential backoff sleep times.
 
     This implementation builds on top of api_core.retries.exponential_sleep_generator,
-    adding the ability to retrieve previous values using the send(idx) method. This is
-    used by the Metrics class to track the sleep times used for each attempt.
+    adding the ability to retrieve previous values using get_attempt_backoff(idx).
+    This is used by the Metrics class to track the sleep times used for each attempt.
     """
-    history = []
-    subgenerator = exponential_sleep_generator(initial, multiplier, maximum)
-    while True:
-        next_backoff = next(subgenerator)
-        history.append(next_backoff)
-        sent_idx = yield next_backoff
-        while sent_idx is not None:
-            # requesting from history
-            sent_idx = yield history[sent_idx]
+
+    def __init__(self, initial=0.01, multiplier=2, maximum=60):
+        self.history = []
+        self.subgenerator = exponential_sleep_generator(initial, multiplier, maximum)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> float:
+        next_backoff = next(self.subgenerator)
+        self.history.append(next_backoff)
+        return next_backoff
+
+    def get_attempt_backoff(self, attempt_idx) -> float:
+        """
+        returns the backoff time for a specific attempt index, starting at 0.
+        """
+        return self.history[attempt_idx]
 
 
 def _retry_exception_factory(

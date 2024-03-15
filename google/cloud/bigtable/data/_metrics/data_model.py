@@ -31,6 +31,7 @@ from google.protobuf.message import DecodeError
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._metrics.handlers._base import MetricsHandler
+    from google.cloud.bigtable.data._helpers import BackoffGenerator
 
 
 LOGGER = logging.getLogger(__name__)
@@ -138,7 +139,7 @@ class ActiveOperationMetric:
     """
 
     op_type: OperationType
-    backoff_generator: Generator[float, int, None] | None = None
+    backoff_generator: BackoffGenerator | None = None
     # keep monotonic timestamps for active operations
     start_time_ns: int = field(default_factory=time.monotonic_ns)
     active_attempt: ActiveAttemptMetric | None = None
@@ -192,9 +193,8 @@ class ActiveOperationMetric:
         if self.backoff_generator and len(self.completed_attempts) > 0:
             # find the attempt's backoff by sending attempt number to generator
             # generator will return the backoff time in seconds, so convert to nanoseconds
-            backoff_ns = int(
-                self.backoff_generator.send(len(self.completed_attempts) - 1) * 1e9
-            )
+            backoff = self.backoff_generator.get_attempt_backoff(len(self.completed_attempts) - 1)
+            backoff_ns = int(backoff * 1e9)
         else:
             backoff_ns = 0
 
