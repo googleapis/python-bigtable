@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Demonstrates how to connect to Cloud Bigtable and run some basic operations.
+"""Demonstrates how to connect to Cloud Bigtable and run some basic operations with the async APIs
 
 Prerequisites:
 
