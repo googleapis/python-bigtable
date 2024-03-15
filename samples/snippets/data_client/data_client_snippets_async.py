@@ -70,7 +70,6 @@ async def write_increment(table):
     # [START bigtable_async_write_increment]
     from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data.read_modify_write_rules import IncrementRule
-    from google.cloud.bigtable.data import SetCell
 
     async def write_increment(project_id, instance_id, table_id):
         async with BigtableDataClientAsync(project=project_id) as client:
@@ -235,4 +234,3 @@ async def read_with_filter(table):
                     print(row)
     # [END bigtable_async_reads_filter]
     await read_with_filter(table.client.project, table.instance_id, table.table_id)
-
