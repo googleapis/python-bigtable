@@ -34,14 +34,14 @@ from google.cloud.bigtable.data import RowMutationEntry
 from google.cloud.bigtable.data import SetCell
 from google.cloud.bigtable.data import ReadRowsQuery
 
-# [END bigtable_hw_imports]
+# [END bigtable_async_hw_imports]
 
 
 async def main(project_id, instance_id, table_id):
     # [START bigtable_async_hw_connect]
     client = bigtable.data.BigtableDataClientAsync(project=project_id)
     table = client.get_table(instance_id, table_id)
-    # [END bigtable_hw_connect]
+    # [END bigtable_async_hw_connect]
 
     # [START bigtable_async_hw_create_table]
     from google.cloud.bigtable import column_family
@@ -63,7 +63,7 @@ async def main(project_id, instance_id, table_id):
         admin_table.create(column_families=column_families)
     else:
         print("Table {} already exists.".format(table_id))
-    # [END bigtable_hw_create_table]
+    # [END bigtable_async_hw_create_table]
 
     # [START bigtable_async_hw_write_rows]
     print("Writing some greetings to the table.")
@@ -87,13 +87,13 @@ async def main(project_id, instance_id, table_id):
         )
         mutations.append(row_mutation)
     await table.bulk_mutate_rows(mutations)
-    # [END bigtable_hw_write_rows]
+    # [END bigtable_async_hw_write_rows]
 
     # [START bigtable_async_hw_create_filter]
     # Create a filter to only retrieve the most recent version of the cell
     # for each column across entire row.
     row_filter = row_filters.CellsColumnLimitFilter(1)
-    # [END bigtable_hw_create_filter]
+    # [END bigtable_async_hw_create_filter]
 
     # [START bigtable_async_hw_get_with_filter]
     # [START bigtable_async_hw_get_by_key]
@@ -103,8 +103,8 @@ async def main(project_id, instance_id, table_id):
     row = await table.read_row(key, row_filter=row_filter)
     cell = row.cells[0]
     print(cell.value.decode("utf-8"))
-    # [END bigtable_hw_get_by_key]
-    # [END bigtable_hw_get_with_filter]
+    # [END bigtable_async_hw_get_by_key]
+    # [END bigtable_async_hw_get_with_filter]
 
     # [START bigtable_async_hw_scan_with_filter]
     # [START bigtable_async_hw_scan_all]
@@ -113,15 +113,15 @@ async def main(project_id, instance_id, table_id):
     async for row in await table.read_rows_stream(query):
         cell = row.cells[0]
         print(cell.value.decode("utf-8"))
-    # [END bigtable_hw_scan_all]
-    # [END bigtable_hw_scan_with_filter]
+    # [END bigtable_async_hw_scan_all]
+    # [END bigtable_async_hw_scan_with_filter]
 
     # [START bigtable_async_hw_delete_table]
     # the async client only supports the data API. Table deletion as an admin operation
     # use admin client to create the table
     print("Deleting the {} table.".format(table_id))
     admin_table.delete()
-    # [END bigtable_hw_delete_table]
+    # [END bigtable_async_hw_delete_table]
 
 
 if __name__ == "__main__":
