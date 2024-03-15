@@ -100,7 +100,6 @@ class TestAttemptTimeoutGenerator:
 
 
 class TestBackoffGenerator:
-
     def test_backoff_generator_history(self):
         """
         Should be able to retrieve historical results from backoff generator
