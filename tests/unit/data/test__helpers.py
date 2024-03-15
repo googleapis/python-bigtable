@@ -99,6 +99,22 @@ class TestAttemptTimeoutGenerator:
             expected_value -= sleep_time
 
 
+class TestBackoffGenerator:
+
+    def test_backoff_generator_history(self):
+        """
+        Should be able to retrieve historical results from backoff generator
+        """
+        generator = _helpers.BackoffGenerator(initial=0, multiplier=2, maximum=10)
+        got_list = [next(generator) for _ in range(20)]
+
+        # check all values are correct
+        for i in range(19, 0, -1):
+            assert generator.get_attempt_backoff(i) == got_list[i]
+        # check a random value out of order
+        assert generator.get_attempt_backoff(5) == got_list[5]
+
+
 class TestValidateTimeouts:
     def test_validate_timeouts_error_messages(self):
         with pytest.raises(ValueError) as e:
