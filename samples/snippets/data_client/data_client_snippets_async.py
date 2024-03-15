@@ -48,9 +48,7 @@ async def write_batch(table):
             async with client.get_table(instance_id, table_id) as table:
                 family_id = "stats_summary"
 
-                async with table.mutations_batcher(
-                    flush_limit_mutation_count=2, flush_limit_bytes=1024
-                ) as batcher:
+                async with table.mutations_batcher() as batcher:
                     mutation_list = [
                         SetCell(family_id, "connected_cell", 1),
                         SetCell(family_id, "connected_wifi", 1),
