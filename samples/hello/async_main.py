@@ -18,8 +18,8 @@
 
 Prerequisites:
 
-- Create a Cloud Bigtable cluster.
-  https://cloud.google.com/bigtable/docs/creating-cluster
+- Create a Cloud Bigtable instance.
+  https://cloud.google.com/bigtable/docs/creating-instance
 - Set your Google Application Default Credentials.
   https://developers.google.com/identity/protocols/application-default-credentials
 """
