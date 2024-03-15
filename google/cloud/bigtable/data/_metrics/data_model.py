@@ -193,7 +193,9 @@ class ActiveOperationMetric:
         if self.backoff_generator and len(self.completed_attempts) > 0:
             # find the attempt's backoff by sending attempt number to generator
             # generator will return the backoff time in seconds, so convert to nanoseconds
-            backoff = self.backoff_generator.get_attempt_backoff(len(self.completed_attempts) - 1)
+            backoff = self.backoff_generator.get_attempt_backoff(
+                len(self.completed_attempts) - 1
+            )
             backoff_ns = int(backoff * 1e9)
         else:
             backoff_ns = 0
