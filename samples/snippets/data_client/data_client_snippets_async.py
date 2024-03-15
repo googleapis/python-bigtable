@@ -48,18 +48,20 @@ async def write_batch(table):
             async with client.get_table(instance_id, table_id) as table:
                 family_id = "stats_summary"
 
-                mutation_list = [
-                    SetCell(family_id, "connected_cell", 1),
-                    SetCell(family_id, "connected_wifi", 1),
-                    SetCell(family_id, "os_build", "PQ2A.190405.003"),
-                ]
-
-                await table.bulk_mutate_rows(
-                    [
-                        RowMutationEntry("tablet#a0b81f74#20190501", mutation_list),
-                        RowMutationEntry("tablet#a0b81f74#20190502", mutation_list),
+                async with table.mutations_batcher(
+                    flush_limit_mutation_count=2, flush_limit_bytes=1024
+                ) as batcher:
+                    mutation_list = [
+                        SetCell(family_id, "connected_cell", 1),
+                        SetCell(family_id, "connected_wifi", 1),
+                        SetCell(family_id, "os_build", "12155.0.0-rc1"),
                     ]
-                )
+                    batcher.append(
+                        RowMutationEntry("tablet#a0b81f74#20190501", mutation_list)
+                    )
+                    batcher.append(
+                        RowMutationEntry("tablet#a0b81f74#20190502", mutation_list)
+                    )
     # [END bigtable_async_writes_batch]
     await write_batch(table.client.project, table.instance_id, table.table_id)
 
