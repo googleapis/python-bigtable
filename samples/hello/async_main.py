@@ -45,6 +45,7 @@ async def main(project_id, instance_id, table_id):
 
     # [START bigtable_async_hw_create_table]
     from google.cloud.bigtable import column_family
+
     # the async client only supports the data API. Table creation as an admin operation
     # use admin client to create the table
     print("Creating the {} table.".format(table_id))
@@ -81,7 +82,9 @@ async def main(project_id, instance_id, table_id):
         #
         #     https://cloud.google.com/bigtable/docs/schema-design
         row_key = "greeting{}".format(i).encode()
-        row_mutation = RowMutationEntry(row_key, SetCell(column_family_id, column, value))
+        row_mutation = RowMutationEntry(
+            row_key, SetCell(column_family_id, column, value)
+        )
         mutations.append(row_mutation)
     await table.bulk_mutate_rows(mutations)
     # [END bigtable_hw_write_rows]
