@@ -54,6 +54,7 @@ from google.cloud.bigtable_v2.types import request_stats
 from .transports.base import BigtableTransport, DEFAULT_CLIENT_INFO
 from .transports.grpc import BigtableGrpcTransport
 from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
+from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
 
