@@ -254,7 +254,7 @@ insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     '_transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
     '_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
-    '_transport_registry["rest"] = BigtableRestTransport'
+    '_transport_registry["rest"] = BigtableRestTransport',
     escape='[]"'
 )
 insert(
