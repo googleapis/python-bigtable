@@ -113,6 +113,7 @@ def test_filter_limit_row_regex(capsys, table_id):
     expected = snapshots[inspect.currentframe().f_code.co_name]
     assert out == expected
 
+
 def test_filter_limit_cells_per_col(capsys, table_id):
     filter_snippets.filter_limit_cells_per_col(PROJECT, BIGTABLE_INSTANCE, table_id)
 
