@@ -214,7 +214,7 @@ class Client(ClientWithProject):
 
         return scopes
 
-    def _emulator_channel(self, transport, credentials, options):
+    def _emulator_channel(self, transport, options):
         """Create a channel using self._credentials
 
         Insecure channels are used for the emulator as secure channels
@@ -228,7 +228,7 @@ class Client(ClientWithProject):
 
         # Default the token to a non-empty string, in this case "owner".
         token = "owner"
-        if credentials is not None and credentials.id_token is not None:
+        if self._credentials is not None and self._credentials.id_token is not None:
             token = self._credentials.id_token
         options.append(("Authorization", f"Bearer {token}"))
         if "GrpcAsyncIOTransport" in str(transport.__name__):
@@ -252,7 +252,6 @@ class Client(ClientWithProject):
         if self._emulator_host is not None:
             channel = self._emulator_channel(
                 transport=grpc_transport,
-                credentials=self._credentials,
                 options=_GRPC_CHANNEL_OPTIONS,
             )
         else:
