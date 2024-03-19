@@ -238,10 +238,14 @@ insert(
     "from .transports.rest import BigtableRestTransport"
 )
 insert(
-    [
-        "google/cloud/bigtable_v2/services/bigtable/client.py",
-        "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
-    ],
+    "google/cloud/bigtable_v2/services/bigtable/client.py",
+    '    _transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
+    '    _transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
+    '    _transport_registry["rest"] = BigtableRestTransport',
+    escape='[]"'
+)
+insert(
+    "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     '_transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
     '_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
     '_transport_registry["rest"] = BigtableRestTransport',
@@ -255,9 +259,9 @@ insert(
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
-    '"BigtableGrpcAsyncIOTransport",',
-    '"PooledBigtableGrpcAsyncIOTransport",',
-    '"BigtableRestTransport",',
+    '    "BigtableGrpcAsyncIOTransport",',
+    '    "PooledBigtableGrpcAsyncIOTransport",',
+    '    "BigtableRestTransport",',
     escape='"'
 )
 
