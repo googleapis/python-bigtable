@@ -230,6 +230,7 @@ def insert(file, before_line, insert_line, after_line, escape=None):
     replacement = before_line + "\n" + insert_line + "\n" + after_line
     s.replace(file, target, replacement)
 
+
 insert(
     "google/cloud/bigtable_v2/services/bigtable/client.py",
     "from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport",
@@ -237,13 +238,15 @@ insert(
     "from .transports.rest import BigtableRestTransport"
 )
 insert(
-    "google/cloud/bigtable_v2/services/bigtable/client.py",
+    [
+        "google/cloud/bigtable_v2/services/bigtable/client.py",
+        "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
+    ],
     '_transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
     '_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
     '_transport_registry["rest"] = BigtableRestTransport',
-    escape="[]"
+    escape='[]"'
 )
-
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     "from .grpc_asyncio import BigtableGrpcAsyncIOTransport",
@@ -252,16 +255,10 @@ insert(
 )
 insert(
     "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
-    '_transport_registry["grpc_asyncio"] = BigtableGrpcAsyncIOTransport',
-    '_transport_registry["pooled_grpc_asyncio"] = PooledBigtableGrpcAsyncIOTransport',
-    '_transport_registry["rest"] = BigtableRestTransport',
-    escape='[]"'
-)
-insert(
-    "google/cloud/bigtable_v2/services/bigtable/transports/__init__.py",
     '"BigtableGrpcAsyncIOTransport",',
     '"PooledBigtableGrpcAsyncIOTransport",',
-    '"BigtableRestTransport",'
+    '"BigtableRestTransport",',
+    escape='"'
 )
 
 
