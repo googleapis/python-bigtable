@@ -35,6 +35,7 @@ __all__ = (
     "BigtableTransport",
     "BigtableGrpcTransport",
     "BigtableGrpcAsyncIOTransport",
+    "PooledBigtableGrpcAsyncIOTransport",
     "BigtableRestTransport",
     "BigtableRestInterceptor",
 )
