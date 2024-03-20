@@ -32,7 +32,6 @@ import warnings
 import grpc  # type: ignore
 
 from google.api_core.gapic_v1 import client_info as client_info_lib
-import google.auth  # type: ignore
 from google.auth.credentials import AnonymousCredentials  # type: ignore
 
 from google.cloud import bigtable_v2
