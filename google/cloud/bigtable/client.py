@@ -214,7 +214,7 @@ class Client(ClientWithProject):
         return scopes
 
     def _emulator_channel(self, transport, options):
-        """Create a channel using self._credentials
+        """Create a channelfor use with the Bigtable emulator.
 
         Insecure channels are used for the emulator as secure channels
         cannot be used to communicate on some environments.
@@ -224,21 +224,11 @@ class Client(ClientWithProject):
             grpc.Channel or grpc.aio.Channel
         """
         # Note: this code also exists in the firestore client.
-
-        # Default the token to a non-empty string, in this case "owner".
-        token = "owner"
-        if self._credentials is not None and self._credentials.id_token is not None:
-            token = self._credentials.id_token
-        options.append(("Authorization", f"Bearer {token}"))
         if "GrpcAsyncIOTransport" in str(transport.__name__):
             channel_fn = grpc.aio.insecure_channel
         else:
             channel_fn = grpc.insecure_channel
-        return channel_fn(
-            self._emulator_host,
-            self._local_composite_credentials(),
-            options=options,
-        )
+        return channel_fn(self._emulator_host, options=options)
 
     def _create_gapic_client_channel(self, client_class, grpc_transport):
         if self._emulator_host is not None:
