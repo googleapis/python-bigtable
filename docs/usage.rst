@@ -1,5 +1,5 @@
-Using the Standard Client
-=========================
+Using the Sync Client
+=====================
 
 .. toctree::
   :maxdepth: 2
