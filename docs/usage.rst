@@ -1,5 +1,5 @@
-Using the API
-=============
+Using the Standard Client
+=========================
 
 .. toctree::
   :maxdepth: 2
