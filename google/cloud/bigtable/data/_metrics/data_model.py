@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Callable, Any, Generator, Tuple, cast, TYPE_CHECKING
+from typing import Callable, Any, Tuple, cast, TYPE_CHECKING
 
 import time
 import re
