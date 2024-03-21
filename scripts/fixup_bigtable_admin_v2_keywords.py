@@ -39,7 +39,7 @@ def partition(
 class bigtable_adminCallTransformer(cst.CSTTransformer):
     CTRL_PARAMS: Tuple[str] = ('retry', 'timeout', 'metadata')
     METHOD_TO_PARAMS: Dict[str, Tuple[str]] = {
-        'check_consistency': ('name', 'consistency_token', ),
+        'check_consistency': ('name', 'consistency_token', 'standard_read_remote_writes', 'data_boost_read_local_writes', ),
         'copy_backup': ('parent', 'backup_id', 'source_backup', 'expire_time', ),
         'create_app_profile': ('parent', 'app_profile_id', 'app_profile', 'ignore_warnings', ),
         'create_authorized_view': ('parent', 'authorized_view_id', 'authorized_view', ),

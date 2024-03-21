@@ -47,6 +47,8 @@ __protobuf__ = proto.module(
         "GenerateConsistencyTokenRequest",
         "GenerateConsistencyTokenResponse",
         "CheckConsistencyRequest",
+        "StandardReadRemoteWrites",
+        "DataBoostReadLocalWrites",
         "CheckConsistencyResponse",
         "SnapshotTableRequest",
         "GetSnapshotRequest",
@@ -725,6 +727,13 @@ class CheckConsistencyRequest(proto.Message):
     r"""Request message for
     [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
 
+    This message has `oneof`_ fields (mutually exclusive fields).
+    For each oneof, at most one member field can be set at the same time.
+    Setting any member of the oneof automatically clears all other
+    members.
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
     Attributes:
         name (str):
             Required. The unique name of the Table for which to check
@@ -733,6 +742,20 @@ class CheckConsistencyRequest(proto.Message):
         consistency_token (str):
             Required. The token created using
             GenerateConsistencyToken for the Table.
+        standard_read_remote_writes (google.cloud.bigtable_admin_v2.types.StandardReadRemoteWrites):
+            Checks that reads using an app profile with
+            ``StandardIsolation`` can see all writes committed before
+            the token was created, even if the read and write target
+            different clusters.
+
+            This field is a member of `oneof`_ ``mode``.
+        data_boost_read_local_writes (google.cloud.bigtable_admin_v2.types.DataBoostReadLocalWrites):
+            Checks that reads using an app profile with
+            ``DataBoostIsolationReadOnly`` can see all writes committed
+            before the token was created, but only if the read and write
+            target the same cluster.
+
+            This field is a member of `oneof`_ ``mode``.
     """
 
     name: str = proto.Field(
@@ -743,6 +766,32 @@ class CheckConsistencyRequest(proto.Message):
         proto.STRING,
         number=2,
     )
+    standard_read_remote_writes: "StandardReadRemoteWrites" = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        oneof="mode",
+        message="StandardReadRemoteWrites",
+    )
+    data_boost_read_local_writes: "DataBoostReadLocalWrites" = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        oneof="mode",
+        message="DataBoostReadLocalWrites",
+    )
+
+
+class StandardReadRemoteWrites(proto.Message):
+    r"""Checks that all writes before the consistency token was
+    generated are replicated in every cluster and readable.
+
+    """
+
+
+class DataBoostReadLocalWrites(proto.Message):
+    r"""Checks that all writes before the consistency token was
+    generated in the same cluster are readable by Databoost.
+
+    """
 
 
 class CheckConsistencyResponse(proto.Message):

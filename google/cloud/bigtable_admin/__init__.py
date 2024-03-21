@@ -137,6 +137,9 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import CreateTableRequest
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    DataBoostReadLocalWrites,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     DeleteAuthorizedViewRequest,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
@@ -196,6 +199,9 @@ from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     SnapshotTableRequest,
+)
+from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
+    StandardReadRemoteWrites,
 )
 from google.cloud.bigtable_admin_v2.types.bigtable_table_admin import (
     UndeleteTableMetadata,
@@ -279,6 +285,7 @@ __all__ = (
     "CreateTableFromSnapshotMetadata",
     "CreateTableFromSnapshotRequest",
     "CreateTableRequest",
+    "DataBoostReadLocalWrites",
     "DeleteAuthorizedViewRequest",
     "DeleteBackupRequest",
     "DeleteSnapshotRequest",
@@ -304,6 +311,7 @@ __all__ = (
     "RestoreTableRequest",
     "SnapshotTableMetadata",
     "SnapshotTableRequest",
+    "StandardReadRemoteWrites",
     "UndeleteTableMetadata",
     "UndeleteTableRequest",
     "UpdateAuthorizedViewMetadata",

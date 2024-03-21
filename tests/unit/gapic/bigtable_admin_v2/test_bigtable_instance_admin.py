@@ -9890,6 +9890,7 @@ def test_create_app_profile_rest(request_type):
         },
         "priority": 1,
         "standard_isolation": {"priority": 1},
+        "data_boost_isolation_read_only": {"compute_billing_owner": 1},
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency
@@ -10904,6 +10905,7 @@ def test_update_app_profile_rest(request_type):
         },
         "priority": 1,
         "standard_isolation": {"priority": 1},
+        "data_boost_isolation_read_only": {"compute_billing_owner": 1},
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency

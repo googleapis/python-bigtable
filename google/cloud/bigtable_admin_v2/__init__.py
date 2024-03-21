@@ -60,6 +60,7 @@ from .types.bigtable_table_admin import CreateBackupRequest
 from .types.bigtable_table_admin import CreateTableFromSnapshotMetadata
 from .types.bigtable_table_admin import CreateTableFromSnapshotRequest
 from .types.bigtable_table_admin import CreateTableRequest
+from .types.bigtable_table_admin import DataBoostReadLocalWrites
 from .types.bigtable_table_admin import DeleteAuthorizedViewRequest
 from .types.bigtable_table_admin import DeleteBackupRequest
 from .types.bigtable_table_admin import DeleteSnapshotRequest
@@ -85,6 +86,7 @@ from .types.bigtable_table_admin import RestoreTableMetadata
 from .types.bigtable_table_admin import RestoreTableRequest
 from .types.bigtable_table_admin import SnapshotTableMetadata
 from .types.bigtable_table_admin import SnapshotTableRequest
+from .types.bigtable_table_admin import StandardReadRemoteWrites
 from .types.bigtable_table_admin import UndeleteTableMetadata
 from .types.bigtable_table_admin import UndeleteTableRequest
 from .types.bigtable_table_admin import UpdateAuthorizedViewMetadata
@@ -143,6 +145,7 @@ __all__ = (
     "CreateTableFromSnapshotMetadata",
     "CreateTableFromSnapshotRequest",
     "CreateTableRequest",
+    "DataBoostReadLocalWrites",
     "DeleteAppProfileRequest",
     "DeleteAuthorizedViewRequest",
     "DeleteBackupRequest",
@@ -193,6 +196,7 @@ __all__ = (
     "Snapshot",
     "SnapshotTableMetadata",
     "SnapshotTableRequest",
+    "StandardReadRemoteWrites",
     "StorageType",
     "Table",
     "Type",
