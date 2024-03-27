@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ from typing import MutableMapping, MutableSequence
 
 import proto  # type: ignore
 
+from google.cloud.bigtable_admin_v2.types import types
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
@@ -31,6 +32,7 @@ __protobuf__ = proto.module(
         "RestoreInfo",
         "ChangeStreamConfig",
         "Table",
+        "AuthorizedView",
         "ColumnFamily",
         "GcRule",
         "EncryptionInfo",
@@ -303,6 +305,131 @@ class Table(proto.Message):
     )
 
 
+class AuthorizedView(proto.Message):
+    r"""AuthorizedViews represent subsets of a particular Cloud
+    Bigtable table. Users can configure access to each Authorized
+    View independently from the table and use the existing Data APIs
+    to access the subset of data.
+
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
+    Attributes:
+        name (str):
+            Identifier. The name of this AuthorizedView. Values are of
+            the form
+            ``projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}``
+        subset_view (google.cloud.bigtable_admin_v2.types.AuthorizedView.SubsetView):
+            An AuthorizedView permitting access to an
+            explicit subset of a Table.
+
+            This field is a member of `oneof`_ ``authorized_view``.
+        etag (str):
+            The etag for this AuthorizedView.
+            If this is provided on update, it must match the
+            server's etag. The server returns ABORTED error
+            on a mismatched etag.
+        deletion_protection (bool):
+            Set to true to make the AuthorizedView
+            protected against deletion. The parent Table and
+            containing Instance cannot be deleted if an
+            AuthorizedView has this bit set.
+    """
+
+    class ResponseView(proto.Enum):
+        r"""Defines a subset of an AuthorizedView's fields.
+
+        Values:
+            RESPONSE_VIEW_UNSPECIFIED (0):
+                Uses the default view for each method as
+                documented in the request.
+            NAME_ONLY (1):
+                Only populates ``name``.
+            BASIC (2):
+                Only populates the AuthorizedView's basic metadata. This
+                includes: name, deletion_protection, etag.
+            FULL (3):
+                Populates every fields.
+        """
+        RESPONSE_VIEW_UNSPECIFIED = 0
+        NAME_ONLY = 1
+        BASIC = 2
+        FULL = 3
+
+    class FamilySubsets(proto.Message):
+        r"""Subsets of a column family that are included in this
+        AuthorizedView.
+
+        Attributes:
+            qualifiers (MutableSequence[bytes]):
+                Individual exact column qualifiers to be
+                included in the AuthorizedView.
+            qualifier_prefixes (MutableSequence[bytes]):
+                Prefixes for qualifiers to be included in the
+                AuthorizedView. Every qualifier starting with
+                one of these prefixes is included in the
+                AuthorizedView. To provide access to all
+                qualifiers, include the empty string as a prefix
+                ("").
+        """
+
+        qualifiers: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=1,
+        )
+        qualifier_prefixes: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=2,
+        )
+
+    class SubsetView(proto.Message):
+        r"""Defines a simple AuthorizedView that is a subset of the
+        underlying Table.
+
+        Attributes:
+            row_prefixes (MutableSequence[bytes]):
+                Row prefixes to be included in the
+                AuthorizedView. To provide access to all rows,
+                include the empty string as a prefix ("").
+            family_subsets (MutableMapping[str, google.cloud.bigtable_admin_v2.types.AuthorizedView.FamilySubsets]):
+                Map from column family name to the columns in
+                this family to be included in the
+                AuthorizedView.
+        """
+
+        row_prefixes: MutableSequence[bytes] = proto.RepeatedField(
+            proto.BYTES,
+            number=1,
+        )
+        family_subsets: MutableMapping[
+            str, "AuthorizedView.FamilySubsets"
+        ] = proto.MapField(
+            proto.STRING,
+            proto.MESSAGE,
+            number=2,
+            message="AuthorizedView.FamilySubsets",
+        )
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    subset_view: SubsetView = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        oneof="authorized_view",
+        message=SubsetView,
+    )
+    etag: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    deletion_protection: bool = proto.Field(
+        proto.BOOL,
+        number=4,
+    )
+
+
 class ColumnFamily(proto.Message):
     r"""A set of columns within a table which share a common
     configuration.
@@ -316,12 +443,31 @@ class ColumnFamily(proto.Message):
             opportunistically in the background, and so it's
             possible for reads to return a cell even if it
             matches the active GC expression for its family.
+        value_type (google.cloud.bigtable_admin_v2.types.Type):
+            The type of data stored in each of this family's cell
+            values, including its full encoding. If omitted, the family
+            only serves raw untyped bytes.
+
+            For now, only the ``Aggregate`` type is supported.
+
+            ``Aggregate`` can only be set at family creation and is
+            immutable afterwards.
+
+            If ``value_type`` is ``Aggregate``, written data must be
+            compatible with:
+
+            -  ``value_type.input_type`` for ``AddInput`` mutations
     """
 
     gc_rule: "GcRule" = proto.Field(
         proto.MESSAGE,
         number=1,
         message="GcRule",
+    )
+    value_type: types.Type = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=types.Type,
     )
 
 

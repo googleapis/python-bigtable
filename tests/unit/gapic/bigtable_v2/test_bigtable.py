@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1099,7 +1099,8 @@ def test_read_rows(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadRowsRequest()
+        request = bigtable.ReadRowsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     for message in response:
@@ -1117,6 +1118,57 @@ def test_read_rows_empty_call():
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
         client.read_rows()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadRowsRequest()
+
+
+def test_read_rows_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.ReadRowsRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        client.read_rows(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadRowsRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_read_rows_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.ReadRowsResponse()]
+        )
+        response = await client.read_rows()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.ReadRowsRequest()
@@ -1147,7 +1199,8 @@ async def test_read_rows_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadRowsRequest()
+        request = bigtable.ReadRowsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     message = await response.read()
@@ -1186,6 +1239,27 @@ def test_read_rows_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.ReadRowsRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
+        call.return_value = iter([bigtable.ReadRowsResponse()])
+        client.read_rows(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.ReadRowsRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.read_rows), "__call__") as call:
@@ -1318,7 +1392,8 @@ def test_sample_row_keys(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.SampleRowKeysRequest()
+        request = bigtable.SampleRowKeysRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     for message in response:
@@ -1336,6 +1411,57 @@ def test_sample_row_keys_empty_call():
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
         client.sample_row_keys()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.SampleRowKeysRequest()
+
+
+def test_sample_row_keys_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.SampleRowKeysRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        client.sample_row_keys(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.SampleRowKeysRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_sample_row_keys_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.SampleRowKeysResponse()]
+        )
+        response = await client.sample_row_keys()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.SampleRowKeysRequest()
@@ -1366,7 +1492,8 @@ async def test_sample_row_keys_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.SampleRowKeysRequest()
+        request = bigtable.SampleRowKeysRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     message = await response.read()
@@ -1405,6 +1532,27 @@ def test_sample_row_keys_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.SampleRowKeysRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
+        call.return_value = iter([bigtable.SampleRowKeysResponse()])
+        client.sample_row_keys(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.SampleRowKeysRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.sample_row_keys), "__call__") as call:
@@ -1537,7 +1685,8 @@ def test_mutate_row(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.MutateRowRequest()
+        request = bigtable.MutateRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.MutateRowResponse)
@@ -1554,6 +1703,56 @@ def test_mutate_row_empty_call():
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
         client.mutate_row()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.MutateRowRequest()
+
+
+def test_mutate_row_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.MutateRowRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
+        client.mutate_row(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.MutateRowRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_mutate_row_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            bigtable.MutateRowResponse()
+        )
+        response = await client.mutate_row()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.MutateRowRequest()
@@ -1583,7 +1782,8 @@ async def test_mutate_row_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.MutateRowRequest()
+        request = bigtable.MutateRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.MutateRowResponse)
@@ -1621,6 +1821,27 @@ def test_mutate_row_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.MutateRowRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
+        call.return_value = bigtable.MutateRowResponse()
+        client.mutate_row(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.MutateRowRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_row), "__call__") as call:
@@ -1799,7 +2020,8 @@ def test_mutate_rows(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.MutateRowsRequest()
+        request = bigtable.MutateRowsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     for message in response:
@@ -1817,6 +2039,57 @@ def test_mutate_rows_empty_call():
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
         client.mutate_rows()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.MutateRowsRequest()
+
+
+def test_mutate_rows_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.MutateRowsRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
+        client.mutate_rows(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.MutateRowsRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_mutate_rows_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.MutateRowsResponse()]
+        )
+        response = await client.mutate_rows()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.MutateRowsRequest()
@@ -1847,7 +2120,8 @@ async def test_mutate_rows_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.MutateRowsRequest()
+        request = bigtable.MutateRowsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     message = await response.read()
@@ -1886,6 +2160,27 @@ def test_mutate_rows_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.MutateRowsRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
+        call.return_value = iter([bigtable.MutateRowsResponse()])
+        client.mutate_rows(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.MutateRowsRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.mutate_rows), "__call__") as call:
@@ -2032,7 +2327,8 @@ def test_check_and_mutate_row(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.CheckAndMutateRowRequest()
+        request = bigtable.CheckAndMutateRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.CheckAndMutateRowResponse)
@@ -2052,6 +2348,62 @@ def test_check_and_mutate_row_empty_call():
         type(client.transport.check_and_mutate_row), "__call__"
     ) as call:
         client.check_and_mutate_row()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.CheckAndMutateRowRequest()
+
+
+def test_check_and_mutate_row_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.CheckAndMutateRowRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.check_and_mutate_row), "__call__"
+    ) as call:
+        client.check_and_mutate_row(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.CheckAndMutateRowRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_check_and_mutate_row_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.check_and_mutate_row), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            bigtable.CheckAndMutateRowResponse(
+                predicate_matched=True,
+            )
+        )
+        response = await client.check_and_mutate_row()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.CheckAndMutateRowRequest()
@@ -2085,7 +2437,8 @@ async def test_check_and_mutate_row_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.CheckAndMutateRowRequest()
+        request = bigtable.CheckAndMutateRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.CheckAndMutateRowResponse)
@@ -2126,6 +2479,29 @@ def test_check_and_mutate_row_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.CheckAndMutateRowRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.check_and_mutate_row), "__call__"
+    ) as call:
+        call.return_value = bigtable.CheckAndMutateRowResponse()
+        client.check_and_mutate_row(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.CheckAndMutateRowRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
@@ -2410,7 +2786,8 @@ def test_ping_and_warm(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.PingAndWarmRequest()
+        request = bigtable.PingAndWarmRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.PingAndWarmResponse)
@@ -2427,6 +2804,54 @@ def test_ping_and_warm_empty_call():
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(type(client.transport.ping_and_warm), "__call__") as call:
         client.ping_and_warm()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.PingAndWarmRequest()
+
+
+def test_ping_and_warm_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.PingAndWarmRequest(
+        name="name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.ping_and_warm), "__call__") as call:
+        client.ping_and_warm(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.PingAndWarmRequest(
+            name="name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_ping_and_warm_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(type(client.transport.ping_and_warm), "__call__") as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            bigtable.PingAndWarmResponse()
+        )
+        response = await client.ping_and_warm()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.PingAndWarmRequest()
@@ -2456,7 +2881,8 @@ async def test_ping_and_warm_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.PingAndWarmRequest()
+        request = bigtable.PingAndWarmRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.PingAndWarmResponse)
@@ -2630,7 +3056,8 @@ def test_read_modify_write_row(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadModifyWriteRowRequest()
+        request = bigtable.ReadModifyWriteRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.ReadModifyWriteRowResponse)
@@ -2649,6 +3076,60 @@ def test_read_modify_write_row_empty_call():
         type(client.transport.read_modify_write_row), "__call__"
     ) as call:
         client.read_modify_write_row()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadModifyWriteRowRequest()
+
+
+def test_read_modify_write_row_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.ReadModifyWriteRowRequest(
+        table_name="table_name_value",
+        authorized_view_name="authorized_view_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_modify_write_row), "__call__"
+    ) as call:
+        client.read_modify_write_row(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadModifyWriteRowRequest(
+            table_name="table_name_value",
+            authorized_view_name="authorized_view_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_read_modify_write_row_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_modify_write_row), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            bigtable.ReadModifyWriteRowResponse()
+        )
+        response = await client.read_modify_write_row()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.ReadModifyWriteRowRequest()
@@ -2680,7 +3161,8 @@ async def test_read_modify_write_row_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadModifyWriteRowRequest()
+        request = bigtable.ReadModifyWriteRowRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable.ReadModifyWriteRowResponse)
@@ -2720,6 +3202,29 @@ def test_read_modify_write_row_routing_parameters():
     # Any value that is part of the HTTP/1.1 URI should be sent as
     # a field header. Set these to a non-empty value.
     request = bigtable.ReadModifyWriteRowRequest(**{"app_profile_id": "sample1"})
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_modify_write_row), "__call__"
+    ) as call:
+        call.return_value = bigtable.ReadModifyWriteRowResponse()
+        client.read_modify_write_row(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    _, _, kw = call.mock_calls[0]
+    # This test doesn't assert anything useful.
+    assert kw["metadata"]
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = bigtable.ReadModifyWriteRowRequest(
+        **{
+            "authorized_view_name": "projects/sample1/instances/sample2/tables/sample3/authorizedViews/sample4"
+        }
+    )
 
     # Mock the actual call within the gRPC stub, and fake the request.
     with mock.patch.object(
@@ -2886,7 +3391,8 @@ def test_generate_initial_change_stream_partitions(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        request = bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     for message in response:
@@ -2908,6 +3414,59 @@ def test_generate_initial_change_stream_partitions_empty_call():
         type(client.transport.generate_initial_change_stream_partitions), "__call__"
     ) as call:
         client.generate_initial_change_stream_partitions()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+
+
+def test_generate_initial_change_stream_partitions_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.GenerateInitialChangeStreamPartitionsRequest(
+        table_name="table_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        client.generate_initial_change_stream_partitions(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_generate_initial_change_stream_partitions_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.generate_initial_change_stream_partitions), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.GenerateInitialChangeStreamPartitionsResponse()]
+        )
+        response = await client.generate_initial_change_stream_partitions()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
@@ -2941,7 +3500,8 @@ async def test_generate_initial_change_stream_partitions_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        request = bigtable.GenerateInitialChangeStreamPartitionsRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     message = await response.read()
@@ -3147,7 +3707,8 @@ def test_read_change_stream(request_type, transport: str = "grpc"):
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls) == 1
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadChangeStreamRequest()
+        request = bigtable.ReadChangeStreamRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     for message in response:
@@ -3167,6 +3728,59 @@ def test_read_change_stream_empty_call():
         type(client.transport.read_change_stream), "__call__"
     ) as call:
         client.read_change_stream()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadChangeStreamRequest()
+
+
+def test_read_change_stream_non_empty_request_with_auto_populated_field():
+    # This test is a coverage failsafe to make sure that UUID4 fields are
+    # automatically populated, according to AIP-4235, with non-empty requests.
+    client = BigtableClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc",
+    )
+
+    # Populate all string fields in the request which are not UUID4
+    # since we want to check that UUID4 are populated automatically
+    # if they meet the requirements of AIP 4235.
+    request = bigtable.ReadChangeStreamRequest(
+        table_name="table_name_value",
+        app_profile_id="app_profile_id_value",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        client.read_change_stream(request=request)
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == bigtable.ReadChangeStreamRequest(
+            table_name="table_name_value",
+            app_profile_id="app_profile_id_value",
+        )
+
+
+@pytest.mark.asyncio
+async def test_read_change_stream_empty_call_async():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = BigtableAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="grpc_asyncio",
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+        type(client.transport.read_change_stream), "__call__"
+    ) as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = mock.Mock(aio.UnaryStreamCall, autospec=True)
+        call.return_value.read = mock.AsyncMock(
+            side_effect=[bigtable.ReadChangeStreamResponse()]
+        )
+        response = await client.read_change_stream()
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable.ReadChangeStreamRequest()
@@ -3199,7 +3813,8 @@ async def test_read_change_stream_async(
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
         _, args, _ = call.mock_calls[0]
-        assert args[0] == bigtable.ReadChangeStreamRequest()
+        request = bigtable.ReadChangeStreamRequest()
+        assert args[0] == request
 
     # Establish that the response is the type that we expect.
     message = await response.read()
@@ -3418,95 +4033,6 @@ def test_read_rows_rest(request_type):
     assert response.last_scanned_row_key == b"last_scanned_row_key_blob"
 
 
-def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
-    transport_class = transports.BigtableRestTransport
-
-    request_init = {}
-    request_init["table_name"] = ""
-    request = request_type(**request_init)
-    pb_request = request_type.pb(request)
-    jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
-    )
-
-    # verify fields with default values are dropped
-
-    unset_fields = transport_class(
-        credentials=ga_credentials.AnonymousCredentials()
-    ).read_rows._get_unset_required_fields(jsonified_request)
-    jsonified_request.update(unset_fields)
-
-    # verify required fields with default values are now present
-
-    jsonified_request["tableName"] = "table_name_value"
-
-    unset_fields = transport_class(
-        credentials=ga_credentials.AnonymousCredentials()
-    ).read_rows._get_unset_required_fields(jsonified_request)
-    jsonified_request.update(unset_fields)
-
-    # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
-
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport="rest",
-    )
-    request = request_type(**request_init)
-
-    # Designate an appropriate value for the returned response.
-    return_value = bigtable.ReadRowsResponse()
-    # Mock the http request call within the method and fake a response.
-    with mock.patch.object(Session, "request") as req:
-        # We need to mock transcode() because providing default values
-        # for required fields will fail the real version if the http_options
-        # expect actual values for those fields.
-        with mock.patch.object(path_template, "transcode") as transcode:
-            # A uri without fields and an empty body will force all the
-            # request fields to show up in the query_params.
-            pb_request = request_type.pb(request)
-            transcode_result = {
-                "uri": "v1/sample_method",
-                "method": "post",
-                "query_params": pb_request,
-            }
-            transcode_result["body"] = pb_request
-            transcode.return_value = transcode_result
-
-            response_value = Response()
-            response_value.status_code = 200
-
-            # Convert return value to protobuf type
-            return_value = bigtable.ReadRowsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(return_value)
-            json_return_value = "[{}]".format(json_return_value)
-
-            response_value._content = json_return_value.encode("UTF-8")
-            req.return_value = response_value
-
-            with mock.patch.object(response_value, "iter_content") as iter_content:
-                iter_content.return_value = iter(json_return_value)
-                response = client.read_rows(request)
-
-            expected_params = [("$alt", "json;enum-encoding=int")]
-            actual_params = req.call_args.kwargs["params"]
-            assert expected_params == actual_params
-
-
-def test_read_rows_rest_unset_required_fields():
-    transport = transports.BigtableRestTransport(
-        credentials=ga_credentials.AnonymousCredentials
-    )
-
-    unset_fields = transport.read_rows._get_unset_required_fields({})
-    assert set(unset_fields) == (set(()) & set(("tableName",)))
-
-
 @pytest.mark.parametrize("null_interceptor", [True, False])
 def test_read_rows_rest_interceptors(null_interceptor):
     transport = transports.BigtableRestTransport(
@@ -3704,98 +4230,6 @@ def test_sample_row_keys_rest(request_type):
     assert response.offset_bytes == 1293
 
 
-def test_sample_row_keys_rest_required_fields(
-    request_type=bigtable.SampleRowKeysRequest,
-):
-    transport_class = transports.BigtableRestTransport
-
-    request_init = {}
-    request_init["table_name"] = ""
-    request = request_type(**request_init)
-    pb_request = request_type.pb(request)
-    jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
-    )
-
-    # verify fields with default values are dropped
-
-    unset_fields = transport_class(
-        credentials=ga_credentials.AnonymousCredentials()
-    ).sample_row_keys._get_unset_required_fields(jsonified_request)
-    jsonified_request.update(unset_fields)
-
-    # verify required fields with default values are now present
-
-    jsonified_request["tableName"] = "table_name_value"
-
-    unset_fields = transport_class(
-        credentials=ga_credentials.AnonymousCredentials()
-    ).sample_row_keys._get_unset_required_fields(jsonified_request)
-    # Check that path parameters and body parameters are not mixing in.
-    assert not set(unset_fields) - set(("app_profile_id",))
-    jsonified_request.update(unset_fields)
-
-    # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
-
-    client = BigtableClient(
-        credentials=ga_credentials.AnonymousCredentials(),
-        transport="rest",
-    )
-    request = request_type(**request_init)
-
-    # Designate an appropriate value for the returned response.
-    return_value = bigtable.SampleRowKeysResponse()
-    # Mock the http request call within the method and fake a response.
-    with mock.patch.object(Session, "request") as req:
-        # We need to mock transcode() because providing default values
-        # for required fields will fail the real version if the http_options
-        # expect actual values for those fields.
-        with mock.patch.object(path_template, "transcode") as transcode:
-            # A uri without fields and an empty body will force all the
-            # request fields to show up in the query_params.
-            pb_request = request_type.pb(request)
-            transcode_result = {
-                "uri": "v1/sample_method",
-                "method": "get",
-                "query_params": pb_request,
-            }
-            transcode.return_value = transcode_result
-
-            response_value = Response()
-            response_value.status_code = 200
-
-            # Convert return value to protobuf type
-            return_value = bigtable.SampleRowKeysResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(return_value)
-            json_return_value = "[{}]".format(json_return_value)
-
-            response_value._content = json_return_value.encode("UTF-8")
-            req.return_value = response_value
-
-            with mock.patch.object(response_value, "iter_content") as iter_content:
-                iter_content.return_value = iter(json_return_value)
-                response = client.sample_row_keys(request)
-
-            expected_params = [("$alt", "json;enum-encoding=int")]
-            actual_params = req.call_args.kwargs["params"]
-            assert expected_params == actual_params
-
-
-def test_sample_row_keys_rest_unset_required_fields():
-    transport = transports.BigtableRestTransport(
-        credentials=ga_credentials.AnonymousCredentials
-    )
-
-    unset_fields = transport.sample_row_keys._get_unset_required_fields({})
-    assert set(unset_fields) == (set(("appProfileId",)) & set(("tableName",)))
-
-
 @pytest.mark.parametrize("null_interceptor", [True, False])
 def test_sample_row_keys_rest_interceptors(null_interceptor):
     transport = transports.BigtableRestTransport(
@@ -3985,16 +4419,11 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
     transport_class = transports.BigtableRestTransport
 
     request_init = {}
-    request_init["table_name"] = ""
     request_init["row_key"] = b""
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -4006,7 +4435,6 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
 
     # verify required fields with default values are now present
 
-    jsonified_request["tableName"] = "table_name_value"
     jsonified_request["rowKey"] = b"row_key_blob"
 
     unset_fields = transport_class(
@@ -4015,8 +4443,6 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
     assert "rowKey" in jsonified_request
     assert jsonified_request["rowKey"] == b"row_key_blob"
 
@@ -4072,7 +4498,6 @@ def test_mutate_row_rest_unset_required_fields():
         set(())
         & set(
             (
-                "tableName",
                 "rowKey",
                 "mutations",
             )
@@ -4284,15 +4709,10 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
     transport_class = transports.BigtableRestTransport
 
     request_init = {}
-    request_init["table_name"] = ""
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -4304,16 +4724,12 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
 
     # verify required fields with default values are now present
 
-    jsonified_request["tableName"] = "table_name_value"
-
     unset_fields = transport_class(
         credentials=ga_credentials.AnonymousCredentials()
     ).mutate_rows._get_unset_required_fields(jsonified_request)
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
 
     client = BigtableClient(
         credentials=ga_credentials.AnonymousCredentials(),
@@ -4366,15 +4782,7 @@ def test_mutate_rows_rest_unset_required_fields():
     )
 
     unset_fields = transport.mutate_rows._get_unset_required_fields({})
-    assert set(unset_fields) == (
-        set(())
-        & set(
-            (
-                "tableName",
-                "entries",
-            )
-        )
-    )
+    assert set(unset_fields) == (set(()) & set(("entries",)))
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -4573,16 +4981,11 @@ def test_check_and_mutate_row_rest_required_fields(
     transport_class = transports.BigtableRestTransport
 
     request_init = {}
-    request_init["table_name"] = ""
     request_init["row_key"] = b""
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -4594,7 +4997,6 @@ def test_check_and_mutate_row_rest_required_fields(
 
     # verify required fields with default values are now present
 
-    jsonified_request["tableName"] = "table_name_value"
     jsonified_request["rowKey"] = b"row_key_blob"
 
     unset_fields = transport_class(
@@ -4603,8 +5005,6 @@ def test_check_and_mutate_row_rest_required_fields(
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
     assert "rowKey" in jsonified_request
     assert jsonified_request["rowKey"] == b"row_key_blob"
 
@@ -4656,15 +5056,7 @@ def test_check_and_mutate_row_rest_unset_required_fields():
     )
 
     unset_fields = transport.check_and_mutate_row._get_unset_required_fields({})
-    assert set(unset_fields) == (
-        set(())
-        & set(
-            (
-                "tableName",
-                "rowKey",
-            )
-        )
-    )
+    assert set(unset_fields) == (set(()) & set(("rowKey",)))
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -4902,11 +5294,7 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -5163,16 +5551,11 @@ def test_read_modify_write_row_rest_required_fields(
     transport_class = transports.BigtableRestTransport
 
     request_init = {}
-    request_init["table_name"] = ""
     request_init["row_key"] = b""
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -5184,7 +5567,6 @@ def test_read_modify_write_row_rest_required_fields(
 
     # verify required fields with default values are now present
 
-    jsonified_request["tableName"] = "table_name_value"
     jsonified_request["rowKey"] = b"row_key_blob"
 
     unset_fields = transport_class(
@@ -5193,8 +5575,6 @@ def test_read_modify_write_row_rest_required_fields(
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
-    assert "tableName" in jsonified_request
-    assert jsonified_request["tableName"] == "table_name_value"
     assert "rowKey" in jsonified_request
     assert jsonified_request["rowKey"] == b"row_key_blob"
 
@@ -5250,7 +5630,6 @@ def test_read_modify_write_row_rest_unset_required_fields():
         set(())
         & set(
             (
-                "tableName",
                 "rowKey",
                 "rules",
             )
@@ -5464,11 +5843,7 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -5768,11 +6143,7 @@ def test_read_change_stream_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            including_default_value_fields=False,
-            use_integers_for_enums=False,
-        )
+        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
     )
 
     # verify fields with default values are dropped
@@ -6577,9 +6948,40 @@ def test_bigtable_transport_channel_mtls_with_adc(transport_class):
             assert transport.grpc_channel == mock_grpc_channel
 
 
-def test_instance_path():
+def test_authorized_view_path():
     project = "squid"
     instance = "clam"
+    table = "whelk"
+    authorized_view = "octopus"
+    expected = "projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}".format(
+        project=project,
+        instance=instance,
+        table=table,
+        authorized_view=authorized_view,
+    )
+    actual = BigtableClient.authorized_view_path(
+        project, instance, table, authorized_view
+    )
+    assert expected == actual
+
+
+def test_parse_authorized_view_path():
+    expected = {
+        "project": "oyster",
+        "instance": "nudibranch",
+        "table": "cuttlefish",
+        "authorized_view": "mussel",
+    }
+    path = BigtableClient.authorized_view_path(**expected)
+
+    # Check that the path construction is reversible.
+    actual = BigtableClient.parse_authorized_view_path(path)
+    assert expected == actual
+
+
+def test_instance_path():
+    project = "winkle"
+    instance = "nautilus"
     expected = "projects/{project}/instances/{instance}".format(
         project=project,
         instance=instance,
@@ -6590,8 +6992,8 @@ def test_instance_path():
 
 def test_parse_instance_path():
     expected = {
-        "project": "whelk",
-        "instance": "octopus",
+        "project": "scallop",
+        "instance": "abalone",
     }
     path = BigtableClient.instance_path(**expected)
 
@@ -6601,9 +7003,9 @@ def test_parse_instance_path():
 
 
 def test_table_path():
-    project = "oyster"
-    instance = "nudibranch"
-    table = "cuttlefish"
+    project = "squid"
+    instance = "clam"
+    table = "whelk"
     expected = "projects/{project}/instances/{instance}/tables/{table}".format(
         project=project,
         instance=instance,
@@ -6615,9 +7017,9 @@ def test_table_path():
 
 def test_parse_table_path():
     expected = {
-        "project": "mussel",
-        "instance": "winkle",
-        "table": "nautilus",
+        "project": "octopus",
+        "instance": "oyster",
+        "table": "nudibranch",
     }
     path = BigtableClient.table_path(**expected)
 
@@ -6627,7 +7029,7 @@ def test_parse_table_path():
 
 
 def test_common_billing_account_path():
-    billing_account = "scallop"
+    billing_account = "cuttlefish"
     expected = "billingAccounts/{billing_account}".format(
         billing_account=billing_account,
     )
@@ -6637,7 +7039,7 @@ def test_common_billing_account_path():
 
 def test_parse_common_billing_account_path():
     expected = {
-        "billing_account": "abalone",
+        "billing_account": "mussel",
     }
     path = BigtableClient.common_billing_account_path(**expected)
 
@@ -6647,7 +7049,7 @@ def test_parse_common_billing_account_path():
 
 
 def test_common_folder_path():
-    folder = "squid"
+    folder = "winkle"
     expected = "folders/{folder}".format(
         folder=folder,
     )
@@ -6657,7 +7059,7 @@ def test_common_folder_path():
 
 def test_parse_common_folder_path():
     expected = {
-        "folder": "clam",
+        "folder": "nautilus",
     }
     path = BigtableClient.common_folder_path(**expected)
 
@@ -6667,7 +7069,7 @@ def test_parse_common_folder_path():
 
 
 def test_common_organization_path():
-    organization = "whelk"
+    organization = "scallop"
     expected = "organizations/{organization}".format(
         organization=organization,
     )
@@ -6677,7 +7079,7 @@ def test_common_organization_path():
 
 def test_parse_common_organization_path():
     expected = {
-        "organization": "octopus",
+        "organization": "abalone",
     }
     path = BigtableClient.common_organization_path(**expected)
 
@@ -6687,7 +7089,7 @@ def test_parse_common_organization_path():
 
 
 def test_common_project_path():
-    project = "oyster"
+    project = "squid"
     expected = "projects/{project}".format(
         project=project,
     )
@@ -6697,7 +7099,7 @@ def test_common_project_path():
 
 def test_parse_common_project_path():
     expected = {
-        "project": "nudibranch",
+        "project": "clam",
     }
     path = BigtableClient.common_project_path(**expected)
 
@@ -6707,8 +7109,8 @@ def test_parse_common_project_path():
 
 
 def test_common_location_path():
-    project = "cuttlefish"
-    location = "mussel"
+    project = "whelk"
+    location = "octopus"
     expected = "projects/{project}/locations/{location}".format(
         project=project,
         location=location,
@@ -6719,8 +7121,8 @@ def test_common_location_path():
 
 def test_parse_common_location_path():
     expected = {
-        "project": "winkle",
-        "location": "nautilus",
+        "project": "oyster",
+        "location": "nudibranch",
     }
     path = BigtableClient.common_location_path(**expected)
 
