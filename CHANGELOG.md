@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.24.0](https://github.com/googleapis/python-bigtable/compare/v2.23.0...v2.24.0) (2024-03-28)
+
+
+### Features
+
+* Added generated docs for async client ([#947](https://github.com/googleapis/python-bigtable/issues/947)) ([053a6ee](https://github.com/googleapis/python-bigtable/commit/053a6ee74f457b987cf1415232ec2695a6ae2f7c))
+
 ## [2.23.0](https://github.com/googleapis/python-bigtable/compare/v2.22.0...v2.23.0) (2024-02-07)
 
 
