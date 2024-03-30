@@ -111,6 +111,9 @@ class Table(proto.Message):
     timestamp. Each table is served using the resources of its
     parent cluster.
 
+
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
     Attributes:
         name (str):
             The unique name of the table. Values are of the form
@@ -154,6 +157,12 @@ class Table(proto.Message):
 
             Note one can still delete the data stored in the table
             through Data APIs.
+        automated_backup_policy (google.cloud.bigtable_admin_v2.types.Table.AutomatedBackupPolicy):
+            If specified, automated backups are enabled
+            for this table. Otherwise, automated backups are
+            disabled.
+
+            This field is a member of `oneof`_ ``automated_backup_config``.
     """
 
     class TimestampGranularity(proto.Enum):
@@ -268,6 +277,31 @@ class Table(proto.Message):
             message="EncryptionInfo",
         )
 
+    class AutomatedBackupPolicy(proto.Message):
+        r"""Defines an automated backup policy for a table
+
+        Attributes:
+            retention_period (google.protobuf.duration_pb2.Duration):
+                Required. How long the automated backups
+                should be retained. The only supported value at
+                this time is 3 days.
+            frequency (google.protobuf.duration_pb2.Duration):
+                Required. How frequently automated backups
+                should occur. The only supported value at this
+                time is 24 hours.
+        """
+
+        retention_period: duration_pb2.Duration = proto.Field(
+            proto.MESSAGE,
+            number=1,
+            message=duration_pb2.Duration,
+        )
+        frequency: duration_pb2.Duration = proto.Field(
+            proto.MESSAGE,
+            number=2,
+            message=duration_pb2.Duration,
+        )
+
     name: str = proto.Field(
         proto.STRING,
         number=1,
@@ -302,6 +336,12 @@ class Table(proto.Message):
     deletion_protection: bool = proto.Field(
         proto.BOOL,
         number=9,
+    )
+    automated_backup_policy: AutomatedBackupPolicy = proto.Field(
+        proto.MESSAGE,
+        number=13,
+        oneof="automated_backup_config",
+        message=AutomatedBackupPolicy,
     )
 
 

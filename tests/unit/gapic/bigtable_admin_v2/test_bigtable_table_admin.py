@@ -11894,6 +11894,7 @@ def test_update_table_rest(request_type):
         },
         "change_stream_config": {"retention_period": {"seconds": 751, "nanos": 543}},
         "deletion_protection": True,
+        "automated_backup_policy": {"retention_period": {}, "frequency": {}},
     }
     # The version of a generated dependency at test runtime may differ from the version used during generation.
     # Delete any fields which are not present in the current runtime dependency
