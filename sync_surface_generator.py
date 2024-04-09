@@ -39,9 +39,10 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
     outside of this autogeneration system are always applied
     """
 
-    def __init__(self, *, import_replacements=None, name_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
+    def __init__(self, *, name=None, import_replacements=None, name_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
         """
         Args:
+          - name: the name of the class being processed. Just used in exceptions
           - import_replacements: dict of (module, name) to (module, name) replacement import statements
                 For example, {("foo", "bar"): ("baz", "qux")} will replace "from foo import bar" with "from baz import qux"
           - name_replacements: dict of names to replace directly in the source code and docstrings
@@ -49,6 +50,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
           - pass_methods: list of method names to replace with "pass" in the class
           - error_methods: list of method names to replace with "raise NotImplementedError" in the class
         """
+        self.name = name
         self.import_replacements = import_replacements or {}
         self.name_replacements = name_replacements or {}
         self.drop_methods = drop_methods or []
@@ -95,19 +97,16 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         else:
             # check if the function contains non-replaced usage of asyncio
             func_ast = ast.parse(ast.unparse(node))
-            has_asyncio_calls = any(
-                isinstance(n, ast.Call)
-                and isinstance(n.func, ast.Attribute)
-                and isinstance(n.func.value, ast.Name)
-                and n.func.value.id == "asyncio"
-                and f"asyncio.{n.func.attr}" not in self.import_replacements
-                for n in ast.walk(func_ast)
-            )
-            if has_asyncio_calls:
-                self._create_error_node(
-                    node,
-                    "Corresponding Async Function contains unhandled asyncio calls",
-                )
+            for n in ast.walk(func_ast):
+                if isinstance(n, ast.Call) \
+                    and isinstance(n.func, ast.Attribute) \
+                    and isinstance(n.func.value, ast.Name) \
+                    and n.func.value.id == "asyncio" \
+                    and f"asyncio.{n.func.attr}" not in self.import_replacements:
+                        path_str = f"{self.name}.{node.name}" if self.name else node.name
+                        raise RuntimeError(
+                            f"{path_str} contains unhandled asyncio calls: {n.func.attr}. Add method to drop_methods, pass_methods, or error_methods to handle safely."
+                        )
         # remove pytest.mark.asyncio decorator
         if hasattr(node, "decorator_list"):
             is_asyncio_decorator = lambda d: all(x in ast.dump(d) for x in ["pytest", "mark", "asyncio"])
@@ -297,11 +296,13 @@ def transform_class(in_obj: Type, **kwargs):
     filename = inspect.getfile(in_obj)
     lines, lineno = inspect.getsourcelines(in_obj)
     ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
+    new_name = None
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
         # update name
         old_name = ast_tree.body[0].name
         # set default name for new class if unset
-        ast_tree.body[0].name = kwargs.pop("autogen_sync_name", f"{old_name}_SyncGen")
+        new_name = kwargs.pop("autogen_sync_name", f"{old_name}_SyncGen")
+        ast_tree.body[0].name = new_name
         ast.increment_lineno(ast_tree, lineno - 1)
         # add ABC as base class
         ast_tree.body[0].bases = ast_tree.body[0].bases + [
@@ -310,7 +311,7 @@ def transform_class(in_obj: Type, **kwargs):
     # remove top-level imports if any. Add them back later
     ast_tree.body = [n for n in ast_tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
     # transform
-    transformer = AsyncToSyncTransformer(**kwargs)
+    transformer = AsyncToSyncTransformer(name=new_name, **kwargs)
     transformer.visit(ast_tree)
     # find imports
     imports = transformer.get_imports(filename)
@@ -364,7 +365,7 @@ def transform_from_config(config_dict: dict):
             non_google.append(i)
     import_str = "\n".join(non_google + [""] + google)
     # append clean tree
-    header = """# Copyright 2023 Google LLC
+    header = """# Copyright 2024 Google LLC
     #
     # Licensed under the Apache License, Version 2.0 (the "License");
     # you may not use this file except in compliance with the License.
@@ -389,10 +390,10 @@ def transform_from_config(config_dict: dict):
 if __name__ == "__main__":
     config = {
         "import_replacements": {
-            # "asyncio.sleep": "time.sleep",
-            # "asyncio.Queue": "queue.Queue",
-            # "asyncio.Condition": "threading.Condition",
-            # "asyncio.Future": "concurrent.futures.Future",
+            "asyncio.sleep": "time.sleep",
+            "asyncio.Queue": "queue.Queue",
+            "asyncio.Condition": "threading.Condition",
+            "asyncio.Future": "concurrent.futures.Future",
             "google.api_core.retry_async": "google.api_core.retry",
             "typing.AsyncIterable": "typing.Iterable",
             "typing.AsyncIterator": "typing.Iterator",
@@ -440,6 +441,7 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync",
                 "autogen_sync_name": "MutationsBatcher_SyncGen",
+                "pass_methods": ["_start_flush_timer", "close", "_create_bg_task", "_wait_for_batch_results"]
             },
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync",
@@ -448,10 +450,12 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async.client.BigtableDataClientAsync",
                 "autogen_sync_name": "BigtableDataClient_SyncGen",
+                "pass_methods": ["_start_background_channel_refresh", "close", "_ping_and_warm_instances"]
             },
             {
                 "path": "google.cloud.bigtable.data._async.client.TableAsync",
                 "autogen_sync_name": "Table_SyncGen",
+                "pass_methods": ["__init__", "read_rows_sharded"]
             },
         ]
     }
