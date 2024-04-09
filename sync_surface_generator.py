@@ -438,7 +438,27 @@ if __name__ == "__main__":
                 "pass_methods": [],
                 "drop_methods": [],
                 "error_methods": [],
-            }
+            },
+            {
+                "path": "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync",
+                "autogen_sync_name": "_MutateRowsOperation_SyncGen",
+            },
+            {
+                "path": "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync",
+                "autogen_sync_name": "MutationsBatcher_SyncGen",
+            },
+            {
+                "path": "google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync",
+                "autogen_sync_name": "_FlowControl_SyncGen",
+            },
+            {
+                "path": "google.cloud.bigtable.data._async.client.BigtableDataClientAsync",
+                "autogen_sync_name": "BigtableDataClient_SyncGen",
+            },
+            {
+                "path": "google.cloud.bigtable.data._async.client.TableAsync",
+                "autogen_sync_name": "Table_SyncGen",
+            },
         ]
     }
 
