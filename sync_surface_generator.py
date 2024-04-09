@@ -23,6 +23,7 @@ import queue
 import os
 import threading
 import concurrent.futures
+import importlib
 
 from black import format_str, FileMode
 import autoflake
@@ -301,48 +302,52 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                             )
         return imports
 
+def transform_class(in_obj: Type, new_name_format="{}_Sync", **kwargs):
+    filename = inspect.getfile(in_obj)
+    lines, lineno = inspect.getsourcelines(in_obj)
+    ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
+    if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
+        # update name
+        old_name = ast_tree.body[0].name
+        new_name = new_name_format.format(old_name)
+        ast_tree.body[0].name = new_name
+        ast.increment_lineno(ast_tree, lineno - 1)
+        # add ABC as base class
+        ast_tree.body[0].bases = ast_tree.body[0].bases + [
+            ast.Name("ABC", ast.Load()),
+        ]
+    # remove top-level imports if any. Add them back later
+    ast_tree.body = [n for n in ast_tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
+    # transform
+    transformer = AsyncToSyncTransformer(**kwargs)
+    transformer.visit(ast_tree)
+    # find imports
+    imports = transformer.get_imports(filename)
+    imports.add(ast.parse("from abc import ABC").body[0])
+    # add globals
+    for g in transformer.globals:
+        imports.add(ast.parse(f"import {g}").body[0])
+    # add locals from file, in case they are needed
+    if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
+        file_basename = os.path.splitext(os.path.basename(filename))[0]
+        with open(filename, "r") as f:
+            for node in ast.walk(ast.parse(f.read(), filename)):
+                if isinstance(node, ast.ClassDef):
+                    imports.add(
+                        ast.parse(
+                            f"from google.cloud.bigtable.{file_basename} import {node.name}"
+                        ).body[0]
+                    )
+    return ast_tree.body, imports
 
-def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports=None, **kwargs):
+
+def transform_all(class_list:list[Type], new_name_format="{}_Sync", add_imports=None, **kwargs):
     combined_tree = ast.parse("")
     combined_imports = set()
     for in_obj in class_list:
-        filename = inspect.getfile(in_obj)
-        lines, lineno = inspect.getsourcelines(in_obj)
-        ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
-        if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
-            # update name
-            old_name = ast_tree.body[0].name
-            new_name = new_name_format.format(old_name)
-            ast_tree.body[0].name = new_name
-            ast.increment_lineno(ast_tree, lineno - 1)
-            # add ABC as base class
-            ast_tree.body[0].bases = ast_tree.body[0].bases + [
-                ast.Name("ABC", ast.Load()),
-            ]
-        # remove top-level imports if any. Add them back later
-        ast_tree.body = [n for n in ast_tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
-        # transform
-        transformer = AsyncToSyncTransformer(**kwargs)
-        transformer.visit(ast_tree)
-        # find imports
-        imports = transformer.get_imports(filename)
-        imports.add(ast.parse("from abc import ABC").body[0])
-        # add globals
-        for g in transformer.globals:
-            imports.add(ast.parse(f"import {g}").body[0])
-        # add locals from file, in case they are needed
-        if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
-            file_basename = os.path.splitext(os.path.basename(filename))[0]
-            with open(filename, "r") as f:
-                for node in ast.walk(ast.parse(f.read(), filename)):
-                    if isinstance(node, ast.ClassDef):
-                        imports.add(
-                            ast.parse(
-                                f"from google.cloud.bigtable.{file_basename} import {node.name}"
-                            ).body[0]
-                        )
+        tree_body, imports = transform_class(in_obj, new_name_format, **kwargs)
         # update combined data
-        combined_tree.body.extend(ast_tree.body)
+        combined_tree.body.extend(tree_body)
         combined_imports.update(imports)
     # add extra imports
     if add_imports:
@@ -381,19 +386,25 @@ def transform_sync(class_list:list[Type], new_name_format="{}_Sync", add_imports
     return formatted_code
 
 
-def generate_full_surface(save_path=None):
-    """
-    Generate a sync surface from all async classes
-    """
-    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
-    conversion_list = [_ReadRowsOperationAsync]
-    code = transform_sync(conversion_list)
-    if save_path is not None:
-        with open(save_path, "w") as f:
-            f.write(code)
-    return code
-
 
 if __name__ == "__main__":
-    generate_full_surface(save_path="./google/cloud/bigtable/data/_sync/_autogen.py")
+    classes = [
+        {
+            "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
+            "drop_methods": ["read_rows"],
+        }
+    ]
+
+    save_path = "./google/cloud/bigtable/data/_sync/_autogen.py"
+
+    for class_dict in classes:
+        # convert string class path into class object
+        module_path, class_name = class_dict["path"].rsplit(".", 1)
+        class_object = getattr(importlib.import_module(module_path), class_name)
+
+        code = transform_all([class_object])
+        if save_path is not None:
+            with open(save_path, "w") as f:
+                f.write(code)
+
+
