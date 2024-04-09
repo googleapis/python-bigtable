@@ -30,80 +30,6 @@ import autoflake
 This module allows us to generate a synchronous API surface from our asyncio surface.
 """
 
-# This map defines replacements for asyncio API calls
-asynciomap = {
-    "sleep": ({"time": time}, "time.sleep"),
-    "Queue": ({"queue": queue}, "queue.Queue"),
-    "Condition": ({"threading": threading}, "threading.Condition"),
-    "Future": ({"concurrent.futures": concurrent.futures}, "concurrent.futures.Future"),
-}
-
-# This map defines find/replace pairs for the generated code and docstrings
-# replace async calls with corresponding sync ones
-name_map = {
-    "__anext__": "__next__",
-    "__aiter__": "__iter__",
-    "__aenter__": "__enter__",
-    "__aexit__": "__exit__",
-    "aclose": "close",
-    "AsyncIterable": "Iterable",
-    "AsyncIterator": "Iterator",
-    "AsyncGenerator": "Generator",
-    "StopAsyncIteration": "StopIteration",
-    "BigtableAsyncClient": "BigtableClient",
-    "AsyncRetry": "Retry",
-    "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
-    "Awaitable": None,
-    "pytest_asyncio": "pytest",
-    "AsyncMock": "mock.Mock",
-    "_ReadRowsOperation": "_ReadRowsOperation_Sync",
-    "Table": "Table_Sync",
-    "BigtableDataClient": "BigtableDataClient_Sync",
-    "ReadRowsIterator": "ReadRowsIterator_Sync",
-    "_MutateRowsOperation": "_MutateRowsOperation_Sync",
-    "MutationsBatcher": "MutationsBatcher_Sync",
-    "_FlowControl": "_FlowControl_Sync",
-}
-
-# This maps classes to the final sync surface location, so they can be instantiated in generated code
-concrete_class_map = {
-    "_ReadRowsOperation": "google.cloud.bigtable._sync._concrete._ReadRowsOperation_Sync_Concrete",
-    "Table": "google.cloud.bigtable._sync._concrete.Table_Sync_Concrete",
-    "BigtableDataClient": "google.cloud.bigtable._sync._concrete.BigtableDataClient_Sync_Concrete",
-    "ReadRowsIterator": "google.cloud.bigtable._sync._concrete.ReadRowsIterator_Sync_Concrete",
-    "_MutateRowsOperation": "google.cloud.bigtable._sync._concrete._MutateRowsOperation_Sync_Concrete",
-    "MutationsBatcher": "google.cloud.bigtable._sync._concrete.MutationsBatcher_Threaded",
-    "_FlowControl": "google.cloud.bigtable._sync._concrete._FlowControl_Sync_Concrete",
-}
-
-# This map defines import replacements for the generated code
-# Note that "import ... as" statements keep the same name
-import_map = {
-    ("google.api_core", "retry_async"): ("google.api_core", "retry"),
-    (
-        "google.cloud.bigtable_v2.services.bigtable.async_client",
-        "BigtableAsyncClient",
-    ): ("google.cloud.bigtable_v2.services.bigtable.client", "BigtableClient"),
-    ("typing", "AsyncIterable"): ("typing", "Iterable"),
-    ("typing", "AsyncIterator"): ("typing", "Iterator"),
-    ("typing", "AsyncGenerator"): ("typing", "Generator"),
-    (
-        "google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio",
-        "PooledBigtableGrpcAsyncIOTransport",
-    ): (
-        "google.cloud.bigtable_v2.services.bigtable.transports.grpc",
-        "BigtableGrpcTransport",
-    ),
-    ("grpc.aio", "Channel"): ("grpc", "Channel"),
-}
-
-# methods that are replaced with an empty implementation in sync surface
-pass_methods=["__init__async__", "_prepare_stream", "_manage_channel", "_register_instance", "__init__transport__", "start_background_channel_refresh", "_start_idle_timer"]
-# methods that are dropped from sync surface
-drop_methods=["_buffer_to_generator", "_generator_to_buffer", "_idle_timeout_coroutine"]
-# methods that raise a NotImplementedError in sync surface
-error_methods=[]
-
 class AsyncToSyncTransformer(ast.NodeTransformer):
     """
     This class is used to transform async classes into sync classes.
@@ -459,65 +385,15 @@ def generate_full_surface(save_path=None):
     """
     Generate a sync surface from all async classes
     """
-    from google.cloud.bigtable._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.client import Table
-    from google.cloud.bigtable.client import BigtableDataClient
-    from google.cloud.bigtable.iterators import ReadRowsIterator
-    from google.cloud.bigtable.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.mutations_batcher import _FlowControl
+    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
-    conversion_list = [_ReadRowsOperation, Table, BigtableDataClient, ReadRowsIterator, _MutateRowsOperation, MutationsBatcher, _FlowControl]
-    code = transform_sync(conversion_list,
-        concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-        pass_methods=pass_methods, drop_methods=drop_methods, error_methods=error_methods,
-        add_imports=["import google.cloud.bigtable.exceptions as bt_exceptions"],
-    )
+    conversion_list = [_ReadRowsOperationAsync]
+    code = transform_sync(conversion_list)
     if save_path is not None:
         with open(save_path, "w") as f:
             f.write(code)
     return code
 
-def generate_system_tests(save_path=None):
-    from tests.system import test_system
-    conversion_list = [test_system]
-    code = transform_sync(conversion_list,
-        concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-        drop_methods=["test_read_rows_stream_inactive_timer"],
-        add_imports=["import google.cloud.bigtable"]
-    )
-    if save_path is not None:
-        with open(save_path, "w") as f:
-            f.write(code)
-    return code
-
-def generate_unit_tests(test_path="./tests/unit", save_path=None):
-    """
-    Unit tests should typically not be generated using this script.
-    But this is useful to generate a starting point.
-    """
-    import importlib
-    if save_path is None:
-        save_path = os.path.join(test_path, "sync")
-    updated_list = []
-    # find files in test_path
-    conversion_list = [f for f in os.listdir(test_path) if f.endswith(".py")]
-    # attempt tp convert each file
-    for f in conversion_list:
-        old_code = open(os.path.join(test_path, f), "r").read()
-        obj = importlib.import_module(f"tests.unit.{f[:-3]}")
-        new_code = transform_sync([obj],
-            concrete_class_map=concrete_class_map, name_replacements=name_map, asyncio_replacements=asynciomap, import_replacements=import_map,
-            add_imports=["import google.cloud.bigtable"]
-        )
-        # only save files with async code
-        if any([a in new_code for a in asynciomap]) or "async def" in old_code:
-            with open(os.path.join(save_path, f), "w") as out:
-                out.write(new_code)
-            updated_list.append(f)
-    print(f"Updated {len(updated_list)} files: {updated_list}")
-    return updated_list
 
 if __name__ == "__main__":
-    generate_full_surface(save_path="./google/cloud/bigtable/_sync/_autogen.py")
-    generate_system_tests("./tests/system/test_system_sync_autogen.py")
+    generate_full_surface(save_path="./google/cloud/bigtable/data/_sync/_autogen.py")
