@@ -302,15 +302,15 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                             )
         return imports
 
-def transform_class(in_obj: Type, new_name_format="{}_Sync", **kwargs):
+def transform_class(in_obj: Type, **kwargs):
     filename = inspect.getfile(in_obj)
     lines, lineno = inspect.getsourcelines(in_obj)
     ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
         # update name
         old_name = ast_tree.body[0].name
-        new_name = new_name_format.format(old_name)
-        ast_tree.body[0].name = new_name
+        # set default name for new class if unset
+        ast_tree.body[0].name = kwargs.pop("autogen_sync_name", f"{old_name}_SyncGen")
         ast.increment_lineno(ast_tree, lineno - 1)
         # add ABC as base class
         ast_tree.body[0].bases = ast_tree.body[0].bases + [
@@ -341,18 +341,24 @@ def transform_class(in_obj: Type, new_name_format="{}_Sync", **kwargs):
     return ast_tree.body, imports
 
 
-def transform_all(class_list:list[Type], new_name_format="{}_Sync", add_imports=None, **kwargs):
+def transform_from_config(config_dict: dict):
+    # initialize new tree and import list
     combined_tree = ast.parse("")
     combined_imports = set()
-    for in_obj in class_list:
-        tree_body, imports = transform_class(in_obj, new_name_format, **kwargs)
+    # process each class
+    for class_dict in config_dict["classes"]:
+        # convert string class path into class object
+        module_path, class_name = class_dict.pop("path").rsplit(".", 1)
+        class_object = getattr(importlib.import_module(module_path), class_name)
+        # transform class
+        tree_body, imports = transform_class(class_object, **class_dict)
         # update combined data
         combined_tree.body.extend(tree_body)
         combined_imports.update(imports)
     # add extra imports
-    if add_imports:
-        for import_str in add_imports:
-            combined_imports.add(ast.parse(import_str).body[0])
+    # if add_imports:
+    #     for import_str in add_imports:
+    #         combined_imports.add(ast.parse(import_str).body[0])
     # render tree as string of code
     import_unique = list(set([ast.unparse(i) for i in combined_imports]))
     import_unique.sort()
@@ -386,25 +392,25 @@ def transform_all(class_list:list[Type], new_name_format="{}_Sync", add_imports=
     return formatted_code
 
 
-
 if __name__ == "__main__":
-    classes = [
-        {
-            "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
-            "drop_methods": ["read_rows"],
-        }
-    ]
+    config = {
+        "classes": [
+            {
+                "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
+                "autogen_sync_name": "_ReadRowsOperation_SyncGen",
+                "pass_methods": ["start_operation"],
+                "drop_methods": [],
+                "error_methods": [],
+            }
+        ]
+    }
 
     save_path = "./google/cloud/bigtable/data/_sync/_autogen.py"
 
-    for class_dict in classes:
-        # convert string class path into class object
-        module_path, class_name = class_dict["path"].rsplit(".", 1)
-        class_object = getattr(importlib.import_module(module_path), class_name)
+    code = transform_from_config(config)
 
-        code = transform_all([class_object])
-        if save_path is not None:
-            with open(save_path, "w") as f:
-                f.write(code)
+    if save_path is not None:
+        with open(save_path, "w") as f:
+            f.write(code)
 
 
