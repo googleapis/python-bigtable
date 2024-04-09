@@ -586,7 +586,7 @@ class MutationsBatcher_SyncGen(ABC):
     def _start_flush_timer(
         self, interval: float | None
     ) -> concurrent.futures.Future[None]:
-        """Implementation purposely removed in sync mode"""
+        raise NotImplementedError("Function not implemented in sync class")
 
     def append(self, mutation_entry: RowMutationEntry):
         """
@@ -725,7 +725,7 @@ class MutationsBatcher_SyncGen(ABC):
         self.close()
 
     def close(self):
-        """Implementation purposely removed in sync mode"""
+        """Flush queue and clean up resources"""
 
     def _on_exit(self):
         """Called when program is exited. Raises warning if unflushed mutations remain"""
@@ -736,14 +736,25 @@ class MutationsBatcher_SyncGen(ABC):
 
     @staticmethod
     def _create_bg_task(func, *args, **kwargs) -> concurrent.futures.Future[Any]:
-        """Implementation purposely removed in sync mode"""
+        raise NotImplementedError("Function not implemented in sync class")
 
     @staticmethod
     def _wait_for_batch_results(
         *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
         | concurrent.futures.Future[None],
     ) -> list[Exception]:
-        """Implementation purposely removed in sync mode"""
+        """
+        Takes in a list of futures representing _execute_mutate_rows tasks,
+        waits for them to complete, and returns a list of errors encountered.
+
+        Args:
+          - *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
+        Returns:
+          - list of Exceptions encountered by any of the tasks. Errors are expected
+              to be FailedMutationEntryError, representing a failed mutation operation.
+              If a task fails with a different exception, it will be included in the
+              output list. Successful tasks will not be represented in the output list.
+        """
 
 
 class _FlowControl_SyncGen(ABC):
@@ -917,7 +928,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableClient(
+        self._gapic_client = BigtableAsyncClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
@@ -955,15 +966,25 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         return f"{google.cloud.bigtable.__version__}-data-async"
 
     def _start_background_channel_refresh(self) -> None:
-        """Implementation purposely removed in sync mode"""
+        raise NotImplementedError("Function not implemented in sync class")
 
     def close(self, timeout: float = 2.0):
-        """Implementation purposely removed in sync mode"""
+        """Cancel all background tasks"""
 
     def _ping_and_warm_instances(
         self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
-        """Implementation purposely removed in sync mode"""
+        """
+        Prepares the backend for requests on a channel
+
+        Pings each Bigtable instance registered in `_active_instances` on the client
+
+        Args:
+            - channel: grpc channel to warm
+            - instance_key: if provided, only warm the instance associated with the key
+        Returns:
+            - sequence of results or exceptions from the ping requests
+        """
 
     def _manage_channel(
         self,
@@ -1147,7 +1168,43 @@ class Table_SyncGen(ABC):
             ServiceUnavailable,
         ),
     ):
-        """Implementation purposely removed in sync mode"""
+        """
+        Initialize a Table instance
+
+        Must be created within an async context (running event loop)
+
+        Args:
+            instance_id: The Bigtable instance ID to associate with this client.
+                instance_id is combined with the client's project to fully
+                specify the instance
+            table_id: The ID of the table. table_id is combined with the
+                instance_id and the client's project to fully specify the table
+            app_profile_id: The app profile to associate with requests.
+                https://cloud.google.com/bigtable/docs/app-profiles
+            default_read_rows_operation_timeout: The default timeout for read rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_read_rows_attempt_timeout: The default timeout for individual
+                read rows rpc requests, in seconds. If not set, defaults to 20 seconds
+            default_mutate_rows_operation_timeout: The default timeout for mutate rows
+                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
+            default_mutate_rows_attempt_timeout: The default timeout for individual
+                mutate rows rpc requests, in seconds. If not set, defaults to 60 seconds
+            default_operation_timeout: The default timeout for all other operations, in
+                seconds. If not set, defaults to 60 seconds
+            default_attempt_timeout: The default timeout for all other individual rpc
+                requests, in seconds. If not set, defaults to 20 seconds
+            default_read_rows_retryable_errors: a list of errors that will be retried
+                if encountered during read_rows and related operations.
+                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
+            default_mutate_rows_retryable_errors: a list of errors that will be retried
+                if encountered during mutate_rows and related operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+            default_retryable_errors: a list of errors that will be retried if
+                encountered during all other operations.
+                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+        Raises:
+          - RuntimeError if called outside of an async context (no running event loop)
+        """
 
     def read_rows_stream(
         self,
@@ -1312,7 +1369,38 @@ class Table_SyncGen(ABC):
         retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
     ) -> list[Row]:
-        """Implementation purposely removed in sync mode"""
+        """
+        Runs a sharded query in parallel, then return the results in a single list.
+        Results will be returned in the order of the input queries.
+
+        This function is intended to be run on the results on a query.shard() call:
+
+        ```
+        table_shard_keys = await table.sample_row_keys()
+        query = ReadRowsQuery(...)
+        shard_queries = query.shard(table_shard_keys)
+        results = await table.read_rows_sharded(shard_queries)
+        ```
+
+        Warning: BigtableDataClientAsync is currently in preview, and is not
+        yet recommended for production use.
+
+        Args:
+            - sharded_query: a sharded query to execute
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 Defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the Table's default_read_rows_attempt_timeout.
+                If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
+        Raises:
+            - ShardedReadRowsExceptionGroup: if any of the queries failed
+            - ValueError: if the query_list is empty
+        """
 
     def row_exists(
         self,

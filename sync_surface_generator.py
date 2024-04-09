@@ -90,10 +90,10 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         if node.name in self.drop_methods:
             return None
         elif node.name in self.pass_methods:
-            # replace with pass
-            node.body = [ast.Expr(value=ast.Str(s="Implementation purposely removed in sync mode"))]
+            # keep only docstring in pass mode
+            node.body = [ast.Expr(value=ast.Str(s=docstring))]
         elif node.name in self.error_methods:
-            self._create_error_node(node, "Function marked as unsupported in sync mode")
+            self._create_error_node(node, "Function not implemented in sync class")
         else:
             # check if the function contains non-replaced usage of asyncio
             func_ast = ast.parse(ast.unparse(node))
@@ -412,12 +412,12 @@ if __name__ == "__main__":
             "AsyncIterator": "Iterator",
             "AsyncGenerator": "Generator",
             "StopAsyncIteration": "StopIteration",
-            "BigtableAsyncClient": "BigtableClient",
             "AsyncRetry": "Retry",
-            "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
             "Awaitable": None,
             "pytest_asyncio": "pytest",
             "AsyncMock": "mock.Mock",
+            "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
+            # "BigtableAsyncClient": "BigtableClient",
             # "_ReadRowsOperation": "_ReadRowsOperation_Sync",
             # "Table": "Table_Sync",
             # "BigtableDataClient": "BigtableDataClient_Sync",
@@ -430,9 +430,9 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
                 "autogen_sync_name": "_ReadRowsOperation_SyncGen",
-                "pass_methods": [],
-                "drop_methods": [],
-                "error_methods": [],
+                "pass_methods": [],  # useful if you want to keep docstring
+                "drop_methods": [],  # useful when the function can be completely removed
+                "error_methods": [],  # useful when the implementation and docstring depend heavily on asyncio
             },
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync",
@@ -441,7 +441,8 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync",
                 "autogen_sync_name": "MutationsBatcher_SyncGen",
-                "pass_methods": ["_start_flush_timer", "close", "_create_bg_task", "_wait_for_batch_results"]
+                "pass_methods": ["close", "_wait_for_batch_results"],
+                "error_methods": ["_create_bg_task", "_start_flush_timer"]
             },
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync",
@@ -450,12 +451,13 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async.client.BigtableDataClientAsync",
                 "autogen_sync_name": "BigtableDataClient_SyncGen",
-                "pass_methods": ["_start_background_channel_refresh", "close", "_ping_and_warm_instances"]
+                "pass_methods": ["close", "_ping_and_warm_instances"],
+                "error_methods": ["_start_background_channel_refresh"],
             },
             {
                 "path": "google.cloud.bigtable.data._async.client.TableAsync",
                 "autogen_sync_name": "Table_SyncGen",
-                "pass_methods": ["__init__", "read_rows_sharded"]
+                "pass_methods": ["__init__", "read_rows_sharded"],
             },
         ]
     }
