@@ -108,10 +108,16 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                         )
         # remove pytest.mark.asyncio decorator
         if hasattr(node, "decorator_list"):
+            # TODO: make generic
             is_asyncio_decorator = lambda d: all(x in ast.dump(d) for x in ["pytest", "mark", "asyncio"])
             node.decorator_list = [
                 d for d in node.decorator_list if not is_asyncio_decorator(d)
             ]
+        # visit string type annotations
+        for arg in node.args.args:
+            if arg.annotation:
+                if isinstance(arg.annotation, ast.Constant):
+                    arg.annotation.value = self.text_replacements.get(arg.annotation.value, arg.annotation.value)
         return ast.copy_location(
             ast.FunctionDef(
                 self.text_replacements.get(node.name, node.name),
@@ -124,11 +130,6 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         )
 
     def visit_Call(self, node):
-        # name replacement for class method calls
-        if isinstance(node.func, ast.Attribute) and isinstance(
-            node.func.value, ast.Name
-        ):
-            node.func.value.id = self.text_replacements.get(node.func.value.id, node.func.value.id)
         return ast.copy_location(
             ast.Call(
                 self.visit(node.func),
@@ -215,6 +216,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         )
 
     def visit_Subscript(self, node):
+        # TODO: generalize?
         if (
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
@@ -422,6 +424,7 @@ if __name__ == "__main__":
             "AsyncGenerator": "Generator",
             "StopAsyncIteration": "StopIteration",
             "Awaitable": None,
+            "BigtableAsyncClient": "BigtableClient",
         },  # performs find/replace for these terms in docstrings and generated code
         "classes": [
             {

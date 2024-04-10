@@ -48,7 +48,6 @@ from google.cloud.bigtable.data._async._mutate_rows import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
-from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
@@ -75,6 +74,7 @@ from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
@@ -121,7 +121,7 @@ class _ReadRowsOperation_SyncGen(ABC):
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "TableAsync",
+        table: "google.cloud.bigtable.data._sync.client.Table",
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -353,8 +353,8 @@ class _MutateRowsOperation_SyncGen(ABC):
 
     def __init__(
         self,
-        gapic_client: "BigtableAsyncClient",
-        table: "TableAsync",
+        gapic_client: "BigtableClient",
+        table: "google.cloud.bigtable.data._sync.client.Table",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,
@@ -516,7 +516,7 @@ class MutationsBatcher_SyncGen(ABC):
 
     def __init__(
         self,
-        table: "TableAsync",
+        table: "google.cloud.bigtable.data._sync.client.Table",
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -925,7 +925,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableAsyncClient(
+        self._gapic_client = BigtableClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
