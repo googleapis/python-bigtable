@@ -39,31 +39,30 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
     outside of this autogeneration system are always applied
     """
 
-    def __init__(self, *, name=None, import_replacements=None, name_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
+    def __init__(self, *, name=None, module_replacements=None, text_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
         """
         Args:
           - name: the name of the class being processed. Just used in exceptions
-          - import_replacements: dict of (module, name) to (module, name) replacement import statements
-                For example, {("foo", "bar"): ("baz", "qux")} will replace "from foo import bar" with "from baz import qux"
-          - name_replacements: dict of names to replace directly in the source code and docstrings
+          - module_replacements: modules to replace
+          - text_replacements: dict of text to replace directly in the source code and docstrings
           - drop_methods: list of method names to drop from the class
           - pass_methods: list of method names to replace with "pass" in the class
           - error_methods: list of method names to replace with "raise NotImplementedError" in the class
         """
         self.name = name
-        self.import_replacements = import_replacements or {}
-        self.name_replacements = name_replacements or {}
+        self.module_replacements = module_replacements or {}
+        self.text_replacements = text_replacements or {}
         self.drop_methods = drop_methods or []
         self.pass_methods = pass_methods or []
         self.error_methods = error_methods or []
 
     def update_docstring(self, docstring):
         """
-        Update docstring to replace any key words in the name_replacements dict
+        Update docstring to replace any key words in the text_replacements dict
         """
         if not docstring:
             return docstring
-        for key_word, replacement in self.name_replacements.items():
+        for key_word, replacement in self.text_replacements.items():
             docstring = docstring.replace(f" {key_word} ", f" {replacement} ")
         if "\n" in docstring:
             # if multiline docstring, add linebreaks to put the """ on a separate line
@@ -102,7 +101,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                     and isinstance(n.func, ast.Attribute) \
                     and isinstance(n.func.value, ast.Name) \
                     and n.func.value.id == "asyncio" \
-                    and f"asyncio.{n.func.attr}" not in self.import_replacements:
+                    and f"asyncio.{n.func.attr}" not in self.module_replacements:
                         path_str = f"{self.name}.{node.name}" if self.name else node.name
                         raise RuntimeError(
                             f"{path_str} contains unhandled asyncio calls: {n.func.attr}. Add method to drop_methods, pass_methods, or error_methods to handle safely."
@@ -115,7 +114,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             ]
         return ast.copy_location(
             ast.FunctionDef(
-                self.name_replacements.get(node.name, node.name),
+                self.text_replacements.get(node.name, node.name),
                 self.visit(node.args),
                 [self.visit(stmt) for stmt in node.body],
                 [self.visit(stmt) for stmt in node.decorator_list],
@@ -129,7 +128,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         if isinstance(node.func, ast.Attribute) and isinstance(
             node.func.value, ast.Name
         ):
-            node.func.value.id = self.name_replacements.get(node.func.value.id, node.func.value.id)
+            node.func.value.id = self.text_replacements.get(node.func.value.id, node.func.value.id)
         return ast.copy_location(
             ast.Call(
                 self.visit(node.func),
@@ -152,20 +151,20 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             parts.append(attr_node.id)
         full_name = ".".join(parts[::-1])
 
-        if full_name in self.import_replacements:
-            # replace from import_replacements
-            ieplacement = self.import_replacements[full_name]
+        if full_name in self.module_replacements:
+            # replace from module_replacements
+            replacement = self.module_replacements[full_name]
             return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
-        elif node.attr in self.name_replacements:
-            # replace from name_replacements
+        elif node.attr in self.text_replacements:
+            # replace from text_replacements
             new_node = ast.copy_location(
-                ast.Attribute(self.visit(node.value), self.name_replacements[node.attr], node.ctx), node
+                ast.Attribute(self.visit(node.value), self.text_replacements[node.attr], node.ctx), node
             )
             return new_node
         return node
 
     def visit_Name(self, node):
-        node.id = self.name_replacements.get(node.id, node.id)
+        node.id = self.text_replacements.get(node.id, node.id)
         return node
 
     def visit_AsyncFor(self, node):
@@ -220,7 +219,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
             and node.value.id == "AsyncGenerator"
-            and self.name_replacements.get(node.value.id, "") == "Generator"
+            and self.text_replacements.get(node.value.id, "") == "Generator"
         ):
             # Generator has different argument signature than AsyncGenerator
             return ast.copy_location(
@@ -241,7 +240,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         elif (
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
-            and self.name_replacements.get(node.value.id, False) is None
+            and self.text_replacements.get(node.value.id, False) is None
         ):
             # needed for Awaitable
             return self.visit(node.slice)
@@ -268,7 +267,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
 
     def get_imports(self, filename):
         """
-        Get the imports from a file, and do a find-and-replace against import_replacements
+        Get the imports from a file, and do a find-and-replace against module_replacements
         """
         imports = set()
         with open(filename, "r") as f:
@@ -278,14 +277,14 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                     for alias in node.names:
                         if isinstance(node, ast.Import):
                             # import statments
-                            new_import = self.import_replacements.get(alias.name, alias.name)
+                            new_import = self.module_replacements.get(alias.name, alias.name)
                             imports.add(ast.parse(f"import {new_import}").body[0])
                         else:
                             # import from statements
                             # break into individual components
                             full_path = f"{node.module}.{alias.name}"
-                            if full_path in self.import_replacements:
-                                full_path = self.import_replacements[full_path]
+                            if full_path in self.module_replacements:
+                                full_path = self.module_replacements[full_path]
                             module, name = full_path.rsplit(".", 1)
                             # don't import from same file
                             if module == ".":
@@ -349,8 +348,8 @@ def transform_from_config(config_dict: dict):
         module_path, class_name = class_dict.pop("path").rsplit(".", 1)
         class_object = getattr(importlib.import_module(module_path), class_name)
         # add globals to class_dict
-        class_dict["import_replacements"] = {**config_dict.get("import_replacements", {}), **class_dict.get("import_replacements", {})}
-        class_dict["name_replacements"] = {**config_dict.get("name_replacements", {}), **class_dict.get("name_replacements", {})}
+        class_dict["module_replacements"] = {**config_dict.get("module_replacements", {}), **class_dict.get("module_replacements", {})}
+        class_dict["text_replacements"] = {**config_dict.get("text_replacements", {}), **class_dict.get("text_replacements", {})}
         # transform class
         tree_body, imports = transform_class(class_object, **class_dict)
         # update combined data
@@ -395,7 +394,7 @@ def transform_from_config(config_dict: dict):
 
 if __name__ == "__main__":
     config = {
-        "import_replacements": {
+        "module_replacements": {
             "asyncio.sleep": "time.sleep",
             "asyncio.Queue": "queue.Queue",
             "asyncio.Condition": "threading.Condition",
@@ -406,8 +405,8 @@ if __name__ == "__main__":
             "typing.AsyncGenerator": "typing.Generator",
             "grpc.aio.Channel": "grpc.Channel",
             "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient": "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient",
-        }, # replace imports with corresponding sync version.
-        "name_replacements": {
+        }, # replace modules with corresponding sync version.
+        "text_replacements": {
             "__anext__": "__next__",
             "__aiter__": "__iter__",
             "__aenter__": "__enter__",

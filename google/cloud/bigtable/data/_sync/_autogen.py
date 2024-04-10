@@ -86,6 +86,9 @@ from google.cloud.bigtable.mutations_batcher import _FlowControlAsync
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledBigtableGrpcAsyncIOTransport,
+)
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledChannel,
 )
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
