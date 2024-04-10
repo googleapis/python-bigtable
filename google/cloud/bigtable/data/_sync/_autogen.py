@@ -43,19 +43,13 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable._mutate_rows import _EntryWithProto
-from google.cloud.bigtable._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable._read_rows import _ResetRow
-from google.cloud.bigtable.client import BigtableDataClientAsync
 from google.cloud.bigtable.client import TableAsync
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data._async._mutate_rows import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data._async.client import TableAsync
-from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
@@ -66,6 +60,12 @@ from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+from google.cloud.bigtable.data._sync.client import BigtableDataClient
+from google.cloud.bigtable.data._sync.client import Table
+from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -81,8 +81,6 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable.mutations_batcher import MutationsBatcherAsync
-from google.cloud.bigtable.mutations_batcher import _FlowControlAsync
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
@@ -565,7 +563,7 @@ class MutationsBatcher_SyncGen(ABC):
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         (self._staged_count, self._staged_bytes) = (0, 0)
-        self._flow_control = _FlowControlAsync(
+        self._flow_control = _FlowControl(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
@@ -661,7 +659,7 @@ class MutationsBatcher_SyncGen(ABC):
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = _MutateRowsOperationAsync(
+            operation = _MutateRowsOperation(
                 self._table.client._gapic_client,
                 self._table,
                 batch,
@@ -887,7 +885,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
 
         Client should be created within an async context (running event loop)
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1034,7 +1032,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
+    def _register_instance(self, instance_id: str, owner: Table) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -1061,9 +1059,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             else:
                 self._start_background_channel_refresh()
 
-    def _remove_instance_registration(
-        self, instance_id: str, owner: TableAsync
-    ) -> bool:
+    def _remove_instance_registration(self, instance_id: str, owner: Table) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -1091,10 +1087,10 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         except KeyError:
             return False
 
-    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
+    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> Table:
         """
         Returns a table instance for making data API requests. All arguments are passed
-        directly to the TableAsync constructor.
+        directly to the Table constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -1126,7 +1122,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return TableAsync(self, instance_id, table_id, *args, **kwargs)
+        return Table(self, instance_id, table_id, *args, **kwargs)
 
     def __enter__(self):
         self._start_background_channel_refresh()
@@ -1147,7 +1143,7 @@ class Table_SyncGen(ABC):
 
     def __init__(
         self,
-        client: BigtableDataClientAsync,
+        client: BigtableDataClient,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
@@ -1226,7 +1222,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1253,7 +1249,7 @@ class Table_SyncGen(ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = _ReadRowsOperation(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1279,7 +1275,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1328,7 +1324,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1386,7 +1382,7 @@ class Table_SyncGen(ABC):
         results = await table.read_rows_sharded(shard_queries)
         ```
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1419,7 +1415,7 @@ class Table_SyncGen(ABC):
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1475,7 +1471,7 @@ class Table_SyncGen(ABC):
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1538,14 +1534,14 @@ class Table_SyncGen(ABC):
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcherAsync:
+    ) -> MutationsBatcher:
         """
         Returns a new mutations batcher instance.
 
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1564,9 +1560,9 @@ class Table_SyncGen(ABC):
           - batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
-            - a MutationsBatcherAsync context manager that can batch requests
+            - a MutationsBatcher context manager that can batch requests
         """
-        return MutationsBatcherAsync(
+        return MutationsBatcher(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
@@ -1597,7 +1593,7 @@ class Table_SyncGen(ABC):
         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
         retried on server failure. Non-idempotent operations will not.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1674,7 +1670,7 @@ class Table_SyncGen(ABC):
         will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1700,7 +1696,7 @@ class Table_SyncGen(ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        operation = _MutateRowsOperationAsync(
+        operation = _MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,
@@ -1724,7 +1720,7 @@ class Table_SyncGen(ABC):
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1795,7 +1791,7 @@ class Table_SyncGen(ABC):
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:

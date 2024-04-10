@@ -342,6 +342,14 @@ def transform_from_config(config_dict: dict):
     # initialize new tree and import list
     combined_tree = ast.parse("")
     combined_imports = set()
+    # add new concrete classes to text_replacements
+    global_text_replacements = config_dict.get("text_replacements", {})
+    for class_dict in config_dict["classes"]:
+        if "concrete_path" in class_dict:
+            class_name = class_dict["path"].rsplit(".", 1)[1]
+            new_module, new_class_name = class_dict.pop("concrete_path").rsplit(".", 1)
+            global_text_replacements[class_name] = new_class_name
+            combined_imports.add(ast.parse(f"from {new_module} import {new_class_name}").body[0])
     # process each class
     for class_dict in config_dict["classes"]:
         # convert string class path into class object
@@ -349,7 +357,7 @@ def transform_from_config(config_dict: dict):
         class_object = getattr(importlib.import_module(module_path), class_name)
         # add globals to class_dict
         class_dict["module_replacements"] = {**config_dict.get("module_replacements", {}), **class_dict.get("module_replacements", {})}
-        class_dict["text_replacements"] = {**config_dict.get("text_replacements", {}), **class_dict.get("text_replacements", {})}
+        class_dict["text_replacements"] = {**global_text_replacements, **class_dict.get("text_replacements", {})}
         # transform class
         tree_body, imports = transform_class(class_object, **class_dict)
         # update combined data
@@ -422,33 +430,39 @@ if __name__ == "__main__":
             {
                 "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
                 "autogen_sync_name": "_ReadRowsOperation_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
                 "pass_methods": [],  # useful if you want to keep docstring
                 "drop_methods": [],  # useful when the function can be completely removed
                 "error_methods": [],  # useful when the implementation and docstring depend heavily on asyncio
             },
             {
-                "path": "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync",
+                "path": "google.cloud.bigtable.data._async._mutate_rows._MutateRowsOperationAsync",
                 "autogen_sync_name": "_MutateRowsOperation_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
             },
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync",
                 "autogen_sync_name": "MutationsBatcher_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
                 "pass_methods": ["close", "_wait_for_batch_results"],
                 "error_methods": ["_create_bg_task", "_start_flush_timer"]
             },
             {
                 "path": "google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync",
                 "autogen_sync_name": "_FlowControl_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync.mutations_batcher._FlowControl",
             },
             {
                 "path": "google.cloud.bigtable.data._async.client.BigtableDataClientAsync",
                 "autogen_sync_name": "BigtableDataClient_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync.client.BigtableDataClient",
                 "pass_methods": ["close", "_ping_and_warm_instances"],
                 "error_methods": ["_start_background_channel_refresh"],
             },
             {
                 "path": "google.cloud.bigtable.data._async.client.TableAsync",
                 "autogen_sync_name": "Table_SyncGen",
+                "concrete_path": "google.cloud.bigtable.data._sync.client.Table",
                 "pass_methods": ["__init__", "read_rows_sharded"],
             },
         ]
