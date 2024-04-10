@@ -346,9 +346,7 @@ def transform_from_config(config_dict: dict):
     for class_dict in config_dict["classes"]:
         if "concrete_path" in class_dict:
             class_name = class_dict["path"].rsplit(".", 1)[1]
-            new_module, new_class_name = class_dict.pop("concrete_path").rsplit(".", 1)
-            global_text_replacements[class_name] = new_class_name
-            combined_imports.add(ast.parse(f"from {new_module} import {new_class_name}").body[0])
+            global_text_replacements[class_name] = class_dict.pop("concrete_path")
     # process each class
     for class_dict in config_dict["classes"]:
         # convert string class path into class object

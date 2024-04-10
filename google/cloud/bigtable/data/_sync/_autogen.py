@@ -59,12 +59,6 @@ from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-from google.cloud.bigtable.data._sync.client import BigtableDataClient
-from google.cloud.bigtable.data._sync.client import Table
-from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -562,8 +556,10 @@ class MutationsBatcher_SyncGen(ABC):
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         (self._staged_count, self._staged_bytes) = (0, 0)
-        self._flow_control = _FlowControl(
-            flow_control_max_mutation_count, flow_control_max_bytes
+        self._flow_control = (
+            google.cloud.bigtable.data._sync.mutations_batcher._FlowControl(
+                flow_control_max_mutation_count, flow_control_max_bytes
+            )
         )
         self._flush_limit_bytes = flush_limit_bytes
         self._flush_limit_count = (
@@ -658,13 +654,15 @@ class MutationsBatcher_SyncGen(ABC):
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = _MutateRowsOperation(
-                self._table.client._gapic_client,
-                self._table,
-                batch,
-                operation_timeout=self._operation_timeout,
-                attempt_timeout=self._attempt_timeout,
-                retryable_exceptions=self._retryable_errors,
+            operation = (
+                google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation(
+                    self._table.client._gapic_client,
+                    self._table,
+                    batch,
+                    operation_timeout=self._operation_timeout,
+                    attempt_timeout=self._attempt_timeout,
+                    retryable_exceptions=self._retryable_errors,
+                )
             )
             operation.start()
         except MutationsExceptionGroup as e:
@@ -884,7 +882,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
 
         Client should be created within an async context (running event loop)
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1031,7 +1029,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.time() - start_timestamp)
 
-    def _register_instance(self, instance_id: str, owner: Table) -> None:
+    def _register_instance(
+        self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
+    ) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -1058,7 +1058,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             else:
                 self._start_background_channel_refresh()
 
-    def _remove_instance_registration(self, instance_id: str, owner: Table) -> bool:
+    def _remove_instance_registration(
+        self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
+    ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -1086,10 +1088,12 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         except KeyError:
             return False
 
-    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> Table:
+    def get_table(
+        self, instance_id: str, table_id: str, *args, **kwargs
+    ) -> google.cloud.bigtable.data._sync.client.Table:
         """
         Returns a table instance for making data API requests. All arguments are passed
-        directly to the Table constructor.
+        directly to the google.cloud.bigtable.data._sync.client.Table constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -1121,7 +1125,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return Table(self, instance_id, table_id, *args, **kwargs)
+        return google.cloud.bigtable.data._sync.client.Table(
+            self, instance_id, table_id, *args, **kwargs
+        )
 
     def __enter__(self):
         self._start_background_channel_refresh()
@@ -1142,7 +1148,7 @@ class Table_SyncGen(ABC):
 
     def __init__(
         self,
-        client: BigtableDataClient,
+        client: google.cloud.bigtable.data._sync.client.BigtableDataClient,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
@@ -1221,7 +1227,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1248,7 +1254,7 @@ class Table_SyncGen(ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        row_merger = _ReadRowsOperation(
+        row_merger = google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1274,7 +1280,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1323,7 +1329,7 @@ class Table_SyncGen(ABC):
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1381,7 +1387,7 @@ class Table_SyncGen(ABC):
         results = await table.read_rows_sharded(shard_queries)
         ```
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1414,7 +1420,7 @@ class Table_SyncGen(ABC):
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1470,7 +1476,7 @@ class Table_SyncGen(ABC):
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1533,14 +1539,14 @@ class Table_SyncGen(ABC):
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcher:
+    ) -> google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher:
         """
         Returns a new mutations batcher instance.
 
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1559,9 +1565,9 @@ class Table_SyncGen(ABC):
           - batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
-            - a MutationsBatcher context manager that can batch requests
+            - a google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher context manager that can batch requests
         """
-        return MutationsBatcher(
+        return google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
@@ -1592,7 +1598,7 @@ class Table_SyncGen(ABC):
         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
         retried on server failure. Non-idempotent operations will not.
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1669,7 +1675,7 @@ class Table_SyncGen(ABC):
         will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1695,7 +1701,7 @@ class Table_SyncGen(ABC):
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _get_retryable_errors(retryable_errors, self)
-        operation = _MutateRowsOperation(
+        operation = google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,
@@ -1719,7 +1725,7 @@ class Table_SyncGen(ABC):
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1790,7 +1796,7 @@ class Table_SyncGen(ABC):
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClient is currently in preview, and is not
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
