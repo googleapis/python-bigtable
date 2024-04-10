@@ -31,7 +31,6 @@ import atexit
 import functools
 import grpc
 import os
-import random
 import time
 import warnings
 
@@ -58,6 +57,7 @@ from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -75,12 +75,8 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel,
+from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
+    BigtableGrpcTransport,
 )
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
@@ -903,9 +899,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
+        transport_str = self._transport_init(pool_size)
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
         if type(client_options) is dict:
@@ -931,9 +925,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             client_options=client_options,
             client_info=client_info,
         )
-        self.transport = cast(
-            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
-        )
+        self.transport = cast(BigtableGrpcTransport, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
@@ -944,9 +936,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.transport._grpc_channel = PooledChannel(
-                pool_size=pool_size, host=self._emulator_host, insecure=True
-            )
+            self._prep_emulator_channel(pool_size)
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
         else:
@@ -959,10 +949,15 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                     stacklevel=2,
                 )
 
+    def _transport_init(self, pool_size: int) -> str:
+        raise NotImplementedError("Function not implemented in sync class")
+
+    def _prep_emulator_channel(self, pool_size: int):
+        raise NotImplementedError("Function not implemented in sync class")
+
     @staticmethod
     def _client_version() -> str:
-        """Helper function to return the client version string for this client"""
-        return f"{google.cloud.bigtable.__version__}-data-async"
+        raise NotImplementedError("Function not implemented in sync class")
 
     def _start_background_channel_refresh(self) -> None:
         raise NotImplementedError("Function not implemented in sync class")
@@ -984,50 +979,6 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         Returns:
             - sequence of results or exceptions from the ping requests
         """
-
-    def _manage_channel(
-        self,
-        channel_idx: int,
-        refresh_interval_min: float = 60 * 35,
-        refresh_interval_max: float = 60 * 45,
-        grace_period: float = 60 * 10,
-    ) -> None:
-        """
-        Background coroutine that periodically refreshes and warms a grpc channel
-
-        The backend will automatically close channels after 60 minutes, so
-        `refresh_interval` + `grace_period` should be < 60 minutes
-
-        Runs continuously until the client is closed
-
-        Args:
-            channel_idx: index of the channel in the transport's channel pool
-            refresh_interval_min: minimum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            refresh_interval_max: maximum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
-        first_refresh = self._channel_init_time + random.uniform(
-            refresh_interval_min, refresh_interval_max
-        )
-        next_sleep = max(first_refresh - time.monotonic(), 0)
-        if next_sleep > 0:
-            channel = self.transport.channels[channel_idx]
-            self._ping_and_warm_instances(channel)
-        while True:
-            time.sleep(next_sleep)
-            new_channel = self.transport.grpc_channel._create_channel()
-            self._ping_and_warm_instances(new_channel)
-            start_timestamp = time.time()
-            self.transport.replace_channel(
-                channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
-            )
-            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = next_refresh - (time.time() - start_timestamp)
 
     def _register_instance(
         self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
@@ -1210,6 +1161,48 @@ class Table_SyncGen(ABC):
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
+        _validate_timeouts(
+            default_operation_timeout, default_attempt_timeout, allow_none=True
+        )
+        _validate_timeouts(
+            default_read_rows_operation_timeout,
+            default_read_rows_attempt_timeout,
+            allow_none=True,
+        )
+        _validate_timeouts(
+            default_mutate_rows_operation_timeout,
+            default_mutate_rows_attempt_timeout,
+            allow_none=True,
+        )
+        self.client = client
+        self.instance_id = instance_id
+        self.instance_name = self.client._gapic_client.instance_path(
+            self.client.project, instance_id
+        )
+        self.table_id = table_id
+        self.table_name = self.client._gapic_client.table_path(
+            self.client.project, instance_id, table_id
+        )
+        self.app_profile_id = app_profile_id
+        self.default_operation_timeout = default_operation_timeout
+        self.default_attempt_timeout = default_attempt_timeout
+        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
+        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
+        self.default_mutate_rows_operation_timeout = (
+            default_mutate_rows_operation_timeout
+        )
+        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
+        self.default_read_rows_retryable_errors = (
+            default_read_rows_retryable_errors or ()
+        )
+        self.default_mutate_rows_retryable_errors = (
+            default_mutate_rows_retryable_errors or ()
+        )
+        self.default_retryable_errors = default_retryable_errors or ()
+        self._register_with_client()
+
+    def _register_with_client(self):
+        raise NotImplementedError("Function not implemented in sync class")
 
     def read_rows_stream(
         self,
@@ -1835,7 +1828,8 @@ class Table_SyncGen(ABC):
 
     def close(self):
         """Called to close the Table instance and release any resources held by it."""
-        self._register_instance_task.cancel()
+        if self._register_instance_task:
+            self._register_instance_task.cancel()
         self.client._remove_instance_registration(self.instance_id, self)
 
     def __enter__(self):
@@ -1845,7 +1839,8 @@ class Table_SyncGen(ABC):
         Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        self._register_instance_task
+        if self._register_instance_task:
+            self._register_instance_task
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

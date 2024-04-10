@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import grpc
+
 import google.auth.credentials
 
 from google.cloud.bigtable.data._sync._autogen import BigtableDataClient_SyncGen
@@ -34,12 +36,26 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
     ):
         # remove pool size option in sync client
         super().__init__(
-            project=project, credentials=credentials, client_options=client_options
+            project=project, credentials=credentials, client_options=client_options, pool_size=1
         )
+
+    def _transport_init(self, pool_size: int) -> str:
+        return "grpc"
+
+    def _prep_emulator_channel(self, pool_size: int) -> str:
+        self.transport._grpc_channel = grpc.insecure_channel(host=self._emulator_host)
+
+    @staticmethod
+    def _client_version() -> str:
+        return f"{google.cloud.bigtable.__version__}-data"
+
+    def _start_background_channel_refresh(self) -> None:
+        # TODO: implement channel refresh
+        pass
 
 
 class Table(Table_SyncGen):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # register table with client
+
+    def _register_with_client(self):
         self.client._register_instance(self.instance_id, self)
+        self._register_instance_task = None

@@ -123,9 +123,7 @@ class BigtableDataClientAsync(ClientWithProject):
           - ValueError if pool_size is less than 1
         """
         # set up transport in registry
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
+        transport_str = self._transport_init(pool_size)
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -172,11 +170,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.transport._grpc_channel = PooledChannel(
-                pool_size=pool_size,
-                host=self._emulator_host,
-                insecure=True,
-            )
+            self._prep_emulator_channel(pool_size)
             # refresh cached stubs to use emulator pool
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
@@ -191,6 +185,29 @@ class BigtableDataClientAsync(ClientWithProject):
                     RuntimeWarning,
                     stacklevel=2,
                 )
+
+    def _transport_init(self, pool_size: int) -> str:
+        """
+        Helper function for intiializing the transport object
+
+        Different implementations for sync vs async client
+        """
+        transport_str = f"pooled_grpc_asyncio_{pool_size}"
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
+        return transport_str
+
+    def _prep_emulator_channel(self, pool_size:int):
+        """
+        Helper function for initializing emulator's insecure grpc channel
+
+        Different implementations for sync vs async client
+        """
+        self.transport._grpc_channel = PooledChannel(
+            pool_size=pool_size,
+            host=self._emulator_host,
+            insecure=True,
+        )
 
     @staticmethod
     def _client_version() -> str:
@@ -539,11 +556,20 @@ class TableAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
+        self._register_with_client()
 
+
+
+    def _register_with_client(self):
+        """
+        Calls the client's _register_instance method to warm the grpc channels for this instance
+
+        Different implementations for sync vs async client
+        """
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
             self._register_instance_task = asyncio.create_task(
-                self.client._register_instance(instance_id, self)
+                self.client._register_instance(self.instance_id, self)
             )
         except RuntimeError as e:
             raise RuntimeError(
@@ -1241,7 +1267,8 @@ class TableAsync:
         """
         Called to close the Table instance and release any resources held by it.
         """
-        self._register_instance_task.cancel()
+        if self._register_instance_task:
+            self._register_instance_task.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
@@ -1251,7 +1278,8 @@ class TableAsync:
         Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        await self._register_instance_task
+        if self._register_instance_task:
+            await self._register_instance_task
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

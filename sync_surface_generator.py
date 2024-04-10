@@ -412,6 +412,7 @@ if __name__ == "__main__":
             "typing.AsyncGenerator": "typing.Generator",
             "grpc.aio.Channel": "grpc.Channel",
             "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient": "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient",
+            "google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio.PooledBigtableGrpcAsyncIOTransport": "google.cloud.bigtable_v2.services.bigtable.transports.grpc.BigtableGrpcTransport",
         }, # replace modules with corresponding sync version.
         "text_replacements": {
             "__anext__": "__next__",
@@ -425,6 +426,7 @@ if __name__ == "__main__":
             "StopAsyncIteration": "StopIteration",
             "Awaitable": None,
             "BigtableAsyncClient": "BigtableClient",
+            "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
         },  # performs find/replace for these terms in docstrings and generated code
         "classes": [
             {
@@ -457,13 +459,15 @@ if __name__ == "__main__":
                 "autogen_sync_name": "BigtableDataClient_SyncGen",
                 "concrete_path": "google.cloud.bigtable.data._sync.client.BigtableDataClient",
                 "pass_methods": ["close", "_ping_and_warm_instances"],
-                "error_methods": ["_start_background_channel_refresh"],
+                "drop_methods": ["_manage_channel"],
+                "error_methods": ["_start_background_channel_refresh", "_client_version", "_prep_emulator_channel", "_transport_init"]
             },
             {
                 "path": "google.cloud.bigtable.data._async.client.TableAsync",
                 "autogen_sync_name": "Table_SyncGen",
                 "concrete_path": "google.cloud.bigtable.data._sync.client.Table",
-                "pass_methods": ["__init__", "read_rows_sharded"],
+                "pass_methods": ["read_rows_sharded"],
+                "error_methods": ["_register_with_client"]
             },
         ]
     }
