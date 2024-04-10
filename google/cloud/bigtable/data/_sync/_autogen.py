@@ -42,13 +42,12 @@ from google.api_core.exceptions import Aborted
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.retry import exponential_sleep_generator
-from google.cloud.bigtable._mutate_rows import _EntryWithProto
-from google.cloud.bigtable._read_rows import _ResetRow
-from google.cloud.bigtable.client import TableAsync
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 from google.cloud.bigtable.data._async._mutate_rows import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
+from google.cloud.bigtable.data._async._read_rows import _ResetRow
 from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples

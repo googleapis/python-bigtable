@@ -326,13 +326,12 @@ def transform_class(in_obj: Type, **kwargs):
     #     imports.add(ast.parse(f"import {g}").body[0])
     # add locals from file, in case they are needed
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
-        file_basename = os.path.splitext(os.path.basename(filename))[0]
         with open(filename, "r") as f:
             for node in ast.walk(ast.parse(f.read(), filename)):
                 if isinstance(node, ast.ClassDef):
                     imports.add(
                         ast.parse(
-                            f"from google.cloud.bigtable.{file_basename} import {node.name}"
+                            f"from {in_obj.__module__} import {node.name}"
                         ).body[0]
                     )
     return ast_tree.body, imports
