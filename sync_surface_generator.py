@@ -143,17 +143,23 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         return self.visit(node.value)
 
     def visit_Attribute(self, node):
-        if (
-            isinstance(node.value, ast.Name)
-            and isinstance(node.value.ctx, ast.Load)
-            and node.value.id == "asyncio"
-            and f"asyncio.{node.attr}" in self.import_replacements
-        ):
-            replacement = self.import_replacements[f"asyncio.{node.attr}"]
+        parts = []
+        attr_node = node
+        while isinstance(attr_node, ast.Attribute):
+            parts.append(attr_node.attr)
+            attr_node = attr_node.value
+        if isinstance(attr_node, ast.Name):
+            parts.append(attr_node.id)
+        full_name = ".".join(parts[::-1])
+
+        if full_name in self.import_replacements:
+            # replace from import_replacements
+            ieplacement = self.import_replacements[full_name]
             return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
-        elif isinstance(node, ast.Attribute) and node.attr in self.name_replacements:
+        elif node.attr in self.name_replacements:
+            # replace from name_replacements
             new_node = ast.copy_location(
-                ast.Attribute(node.value, self.name_replacements[node.attr], node.ctx), node
+                ast.Attribute(self.visit(node.value), self.name_replacements[node.attr], node.ctx), node
             )
             return new_node
         return node
@@ -399,9 +405,8 @@ if __name__ == "__main__":
             "typing.AsyncIterator": "typing.Iterator",
             "typing.AsyncGenerator": "typing.Generator",
             "grpc.aio.Channel": "grpc.Channel",
-            # "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient": "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient",
-            # "google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio.PooledBigtableGrpcAsyncIOTransport": "google.cloud.bigtable_v2.services.bigtable.transports.BigtableGrpcTransport",
-        }, # replace imports with corresponding sync version. Does not touch the code, only import lines
+            "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient": "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient",
+        }, # replace imports with corresponding sync version.
         "name_replacements": {
             "__anext__": "__next__",
             "__aiter__": "__iter__",
@@ -412,19 +417,7 @@ if __name__ == "__main__":
             "AsyncIterator": "Iterator",
             "AsyncGenerator": "Generator",
             "StopAsyncIteration": "StopIteration",
-            "AsyncRetry": "Retry",
             "Awaitable": None,
-            "pytest_asyncio": "pytest",
-            "AsyncMock": "mock.Mock",
-            "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
-            # "BigtableAsyncClient": "BigtableClient",
-            # "_ReadRowsOperation": "_ReadRowsOperation_Sync",
-            # "Table": "Table_Sync",
-            # "BigtableDataClient": "BigtableDataClient_Sync",
-            # "ReadRowsIterator": "ReadRowsIterator_Sync",
-            # "_MutateRowsOperation": "_MutateRowsOperation_Sync",
-            # "MutationsBatcher": "MutationsBatcher_Sync",
-            # "_FlowControl": "_FlowControl_Sync",
         },  # performs find/replace for these terms in docstrings and generated code
         "classes": [
             {

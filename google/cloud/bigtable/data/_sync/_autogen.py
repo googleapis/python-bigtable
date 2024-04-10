@@ -83,7 +83,6 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.mutations_batcher import _FlowControlAsync
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
@@ -907,7 +906,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
           - ValueError if pool_size is less than 1
         """
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = BigtableGrpcTransport.with_fixed_size(pool_size)
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -934,7 +933,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             client_options=client_options,
             client_info=client_info,
         )
-        self.transport = cast(BigtableGrpcTransport, self._gapic_client.transport)
+        self.transport = cast(
+            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+        )
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
@@ -972,7 +973,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         """Cancel all background tasks"""
 
     def _ping_and_warm_instances(
-        self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
+        self, channel: grpc.Channel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
