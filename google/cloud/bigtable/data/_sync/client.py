@@ -43,7 +43,7 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
         return "grpc"
 
     def _prep_emulator_channel(self, pool_size: int) -> str:
-        self.transport._grpc_channel = grpc.insecure_channel(host=self._emulator_host)
+        self.transport._grpc_channel = grpc.insecure_channel(target=self._emulator_host)
 
     @staticmethod
     def _client_version() -> str:
