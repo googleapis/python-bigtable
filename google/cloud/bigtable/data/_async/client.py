@@ -170,7 +170,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self._prep_emulator_channel(pool_size)
+            self._prep_emulator_channel(self._emulator_host, pool_size)
             # refresh cached stubs to use emulator pool
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
@@ -197,7 +197,7 @@ class BigtableDataClientAsync(ClientWithProject):
         BigtableClientMeta._transport_registry[transport_str] = transport
         return transport_str
 
-    def _prep_emulator_channel(self, pool_size:int):
+    def _prep_emulator_channel(self, host:str, pool_size:int):
         """
         Helper function for initializing emulator's insecure grpc channel
 
@@ -205,7 +205,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         self.transport._grpc_channel = PooledChannel(
             pool_size=pool_size,
-            host=self._emulator_host,
+            host=host,
             insecure=True,
         )
 

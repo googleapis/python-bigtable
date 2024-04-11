@@ -933,7 +933,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self._prep_emulator_channel(pool_size)
+            self._prep_emulator_channel(self._emulator_host, pool_size)
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
         else:
@@ -949,7 +949,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
     def _transport_init(self, pool_size: int) -> str:
         raise NotImplementedError("Function not implemented in sync class")
 
-    def _prep_emulator_channel(self, pool_size: int):
+    def _prep_emulator_channel(self, host: str, pool_size: int):
         raise NotImplementedError("Function not implemented in sync class")
 
     @staticmethod
