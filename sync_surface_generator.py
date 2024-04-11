@@ -208,30 +208,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         )
 
     def visit_Subscript(self, node):
-        # TODO: generalize?
         if (
-            hasattr(node, "value")
-            and isinstance(node.value, ast.Name)
-            and node.value.id == "AsyncGenerator"
-            and self.text_replacements.get(node.value.id, "") == "Generator"
-        ):
-            # Generator has different argument signature than AsyncGenerator
-            return ast.copy_location(
-                ast.Subscript(
-                    ast.Name("Generator"),
-                    ast.Index(
-                        ast.Tuple(
-                            [
-                                self.visit(i)
-                                for i in node.slice.elts + [ast.Constant("Any")]
-                            ]
-                        )
-                    ),
-                    node.ctx,
-                ),
-                node,
-            )
-        elif (
             hasattr(node, "value")
             and isinstance(node.value, ast.Name)
             and self.text_replacements.get(node.value.id, False) is None

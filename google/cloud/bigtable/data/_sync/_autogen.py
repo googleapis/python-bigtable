@@ -21,7 +21,7 @@ from collections import deque
 from functools import partial
 from grpc import Channel
 from typing import Any
-from typing import Generator, Iterable
+from typing import Iterable
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -137,7 +137,7 @@ class _ReadRowsOperation_SyncGen(ABC):
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> Generator[Row, None, "Any"]:
+    def start_operation(self) -> Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors."""
         return retries.retry_target_stream(
             self._read_rows_attempt,
@@ -147,7 +147,7 @@ class _ReadRowsOperation_SyncGen(ABC):
             exception_factory=_retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> Generator[Row, None, "Any"]:
+    def _read_rows_attempt(self) -> Iterable[Row]:
         """
         Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
@@ -177,7 +177,7 @@ class _ReadRowsOperation_SyncGen(ABC):
 
     def chunk_stream(
         self, stream: None[Iterable[ReadRowsResponsePB]]
-    ) -> Generator[ReadRowsResponsePB.CellChunk, None, "Any"]:
+    ) -> Iterable[ReadRowsResponsePB.CellChunk]:
         """process chunks out of raw read_rows stream"""
         for resp in stream:
             resp = resp._pb
@@ -211,7 +211,7 @@ class _ReadRowsOperation_SyncGen(ABC):
                     current_key = None
 
     @staticmethod
-    def merge_rows(chunks: Generator[ReadRowsResponsePB.CellChunk, None, "Any"] | None):
+    def merge_rows(chunks: Iterable[ReadRowsResponsePB.CellChunk] | None):
         """Merge chunks into rows"""
         if chunks is None:
             return

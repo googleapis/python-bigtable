@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    AsyncGenerator,
     AsyncIterable,
     Awaitable,
     Sequence,
@@ -101,7 +100,7 @@ class _ReadRowsOperationAsync:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> AsyncGenerator[Row, None]:
+    def start_operation(self) -> AsyncIterable[Row]:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
@@ -113,7 +112,7 @@ class _ReadRowsOperationAsync:
             exception_factory=_retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> AsyncGenerator[Row, None]:
+    def _read_rows_attempt(self) -> AsyncIterable[Row]:
         """
         Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
@@ -148,7 +147,7 @@ class _ReadRowsOperationAsync:
 
     async def chunk_stream(
         self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
-    ) -> AsyncGenerator[ReadRowsResponsePB.CellChunk, None]:
+    ) -> AsyncIterable[ReadRowsResponsePB.CellChunk]:
         """
         process chunks out of raw read_rows stream
         """
@@ -194,7 +193,7 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     async def merge_rows(
-        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
+        chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None
     ):
         """
         Merge chunks into rows

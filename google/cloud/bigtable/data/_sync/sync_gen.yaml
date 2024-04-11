@@ -13,7 +13,6 @@ text_replacements:  # Find and replace specific text patterns
   aclose: close
   AsyncIterable: Iterable
   AsyncIterator: Iterator
-  AsyncGenerator: Generator
   StopAsyncIteration: StopIteration
   Awaitable: None
   BigtableAsyncClient: BigtableClient
