@@ -214,7 +214,7 @@ class Client(ClientWithProject):
         return scopes
 
     def _emulator_channel(self, transport, options):
-        """Create a channelfor use with the Bigtable emulator.
+        """Create a channel for use with the Bigtable emulator.
 
         Insecure channels are used for the emulator as secure channels
         cannot be used to communicate on some environments.
