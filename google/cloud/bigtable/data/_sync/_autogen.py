@@ -84,6 +84,7 @@ from google.cloud.environment_vars import BIGTABLE_EMULATOR
 import google.auth._default
 import google.auth.credentials
 import google.cloud.bigtable.data.exceptions
+import google.cloud.bigtable.data.exceptions as bt_exceptions
 import google.cloud.bigtable_v2.types.bigtable
 
 
@@ -379,7 +380,7 @@ class _MutateRowsOperation_SyncGen(ABC):
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        self._operation = retries.retry_target(
+        self._operation = lambda: retries.retry_target(
             self._run_attempt,
             self.is_retryable,
             sleep_generator,
@@ -401,7 +402,7 @@ class _MutateRowsOperation_SyncGen(ABC):
           - MutationsExceptionGroup: if any mutations failed
         """
         try:
-            self._operation
+            self._operation()
         except Exception as exc:
             incomplete_indices = self.remaining_indices.copy()
             for idx in incomplete_indices:

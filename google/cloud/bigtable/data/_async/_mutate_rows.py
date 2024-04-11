@@ -101,7 +101,9 @@ class _MutateRowsOperationAsync:
             bt_exceptions._MutateRowsIncomplete,
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        self._operation = retries.retry_target_async(
+        # Note: _operation could be a raw coroutine, but using a lambda
+        # wrapper helps unify with sync code
+        self._operation = lambda: retries.retry_target_async(
             self._run_attempt,
             self.is_retryable,
             sleep_generator,
@@ -125,7 +127,7 @@ class _MutateRowsOperationAsync:
         """
         try:
             # trigger mutate_rows
-            await self._operation
+            await self._operation()
         except Exception as exc:
             # exceptions raised by retryable are added to the list of exceptions for all unfinalized mutations
             incomplete_indices = self.remaining_indices.copy()

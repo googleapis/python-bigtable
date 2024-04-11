@@ -36,7 +36,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
     outside of this autogeneration system are always applied
     """
 
-    def __init__(self, *, name=None, asyncio_replacements=None, text_replacements=None, drop_methods=None, pass_methods=None, error_methods=None):
+    def __init__(self, *, name=None, asyncio_replacements=None, text_replacements=None, drop_methods=None, pass_methods=None, error_methods=None, replace_methods=None):
         """
         Args:
           - name: the name of the class being processed. Just used in exceptions
@@ -45,6 +45,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
           - drop_methods: list of method names to drop from the class
           - pass_methods: list of method names to replace with "pass" in the class
           - error_methods: list of method names to replace with "raise NotImplementedError" in the class
+          - replace_methods: dict of method names to replace with custom code
         """
         self.name = name
         self.asyncio_replacements = asyncio_replacements or {}
@@ -52,6 +53,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         self.drop_methods = drop_methods or []
         self.pass_methods = pass_methods or []
         self.error_methods = error_methods or []
+        self.replace_methods = replace_methods or {}
 
     def update_docstring(self, docstring):
         """
@@ -90,6 +92,14 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             node.body = [ast.Expr(value=ast.Str(s=docstring))]
         elif node.name in self.error_methods:
             self._create_error_node(node, "Function not implemented in sync class")
+        elif node.name in self.replace_methods:
+            # replace function body with custom code
+            new_body = []
+            for line in self.replace_methods[node.name].split("\n"):
+                parsed = ast.parse(line)
+                if len(parsed.body) > 0:
+                    new_body.append(parsed.body[0])
+            node.body = new_body
         else:
             # check if the function contains non-replaced usage of asyncio
             func_ast = ast.parse(ast.unparse(node))
@@ -365,14 +375,14 @@ def transform_from_config(config_dict: dict):
 
 
 if __name__ == "__main__":
-    load_path = "./google/cloud/bigtable/data/_sync/sync_gen.yaml"
-    config = yaml.safe_load(Path(load_path).read_text())
+    for load_path in ["./google/cloud/bigtable/data/_sync/sync_gen.yaml", "./google/cloud/bigtable/data/_sync/unit_tests.yaml"]:
+        config = yaml.safe_load(Path(load_path).read_text())
 
-    save_path = config.get("save_path")
-    code = transform_from_config(config)
+        save_path = config.get("save_path")
+        code = transform_from_config(config)
 
-    if save_path is not None:
-        with open(save_path, "w") as f:
-            f.write(code)
+        if save_path is not None:
+            with open(save_path, "w") as f:
+                f.write(code)
 
 
