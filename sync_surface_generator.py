@@ -400,8 +400,7 @@ if __name__ == "__main__":
     load_path = "./google/cloud/bigtable/data/_sync/sync_gen.yaml"
     config = yaml.safe_load(Path(load_path).read_text())
 
-    save_path = "./google/cloud/bigtable/data/_sync/_autogen.py"
-
+    save_path = config.get("save_path")
     code = transform_from_config(config)
 
     if save_path is not None:

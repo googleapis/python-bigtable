@@ -51,3 +51,5 @@ classes:  # Specify transformations for individual classes
     concrete_path: google.cloud.bigtable.data._sync.client.Table
     drop_methods: ["read_rows_sharded"]
     error_methods: ["_register_with_client"]
+
+save_path: "google/cloud/bigtable/data/_sync/_autogen.py"
