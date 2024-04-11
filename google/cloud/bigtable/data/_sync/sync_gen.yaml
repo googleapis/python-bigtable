@@ -1,15 +1,8 @@
-module_replacements:  # Replace entire modules
-  asyncio.sleep: time.sleep
-  asyncio.Queue: queue.Queue
-  asyncio.Condition: threading.Condition
-  asyncio.Future: concurrent.futures.Future
-  google.api_core.retry_async: google.api_core.retry
-  typing.AsyncIterable: typing.Iterable
-  typing.AsyncIterator: typing.Iterator
-  typing.AsyncGenerator: typing.Generator
-  grpc.aio.Channel: grpc.Channel
-  google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient: google.cloud.bigtable_v2.services.bigtable.client.BigtableClient
-  google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio.PooledBigtableGrpcAsyncIOTransport: google.cloud.bigtable_v2.services.bigtable.transports.grpc.BigtableGrpcTransport
+asyncio_replacements:  # Replace asyncio functionaility
+  sleep: time.sleep
+  Queue: queue.Queue
+  Condition: threading.Condition
+  Future: concurrent.futures.Future
 
 text_replacements:  # Find and replace specific text patterns
   __anext__: __next__
@@ -24,6 +17,13 @@ text_replacements:  # Find and replace specific text patterns
   Awaitable: None
   BigtableAsyncClient: BigtableClient
   PooledBigtableGrpcAsyncIOTransport: BigtableGrpcTransport
+  AsyncChannel: Channel
+
+added_imports:
+  - "from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient"
+  - "from google.cloud.bigtable_v2.services.bigtable.transports.grpc import BigtableGrpcTransport"
+  - "from typing import Generator, Iterable, Iterator"
+  - "from grpc import Channel"
 
 classes:  # Specify transformations for individual classes 
   - path: google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync

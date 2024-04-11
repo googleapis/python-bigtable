@@ -26,7 +26,6 @@ from typing import (
 )
 
 import asyncio
-import grpc
 import time
 import warnings
 import sys
@@ -34,6 +33,7 @@ import random
 import os
 
 from functools import partial
+from grpc.aio import Channel as AsyncChannel
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
@@ -246,7 +246,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
-        self, channel: grpc.aio.Channel, instance_key: _WarmedInstanceKey | None = None
+        self, channel: AsyncChannel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel

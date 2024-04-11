@@ -19,9 +19,9 @@ from __future__ import annotations
 from abc import ABC
 from collections import deque
 from functools import partial
+from grpc import Channel
 from typing import Any
-from typing import Generator
-from typing import Iterable
+from typing import Generator, Iterable
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -29,7 +29,6 @@ from typing import cast
 import asyncio
 import atexit
 import functools
-import grpc
 import os
 import time
 import warnings
@@ -965,7 +964,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         """Cancel all background tasks"""
 
     def _ping_and_warm_instances(
-        self, channel: grpc.Channel, instance_key: _WarmedInstanceKey | None = None
+        self, channel: Channel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
