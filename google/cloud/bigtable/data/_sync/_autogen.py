@@ -40,6 +40,7 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
+from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 from google.cloud.bigtable.data._async._mutate_rows import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
@@ -120,7 +121,7 @@ class _ReadRowsOperation_SyncGen(ABC):
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
     ):
-        self.attempt_timeout_gen = _attempt_timeout_generator(
+        self.attempt_timeout_gen = _helpers._attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
         self.operation_timeout = operation_timeout
@@ -134,7 +135,7 @@ class _ReadRowsOperation_SyncGen(ABC):
             self.request = query._to_pb(table)
         self.table = table
         self._predicate = retries.if_exception_type(*retryable_exceptions)
-        self._metadata = _make_metadata(table.table_name, table.app_profile_id)
+        self._metadata = _helpers._make_metadata(table.table_name, table.app_profile_id)
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
@@ -145,7 +146,7 @@ class _ReadRowsOperation_SyncGen(ABC):
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
             self.operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=_helpers._retry_exception_factory,
         )
 
     def _read_rows_attempt(self) -> Iterable[Row]:

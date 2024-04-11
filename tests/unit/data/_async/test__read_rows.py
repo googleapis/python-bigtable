@@ -61,7 +61,7 @@ class TestReadRowsOperation:
         expected_request_timeout = 44
         time_gen_mock = mock.Mock()
         with mock.patch(
-            "google.cloud.bigtable.data._async._read_rows._attempt_timeout_generator",
+            "google.cloud.bigtable.data._helpers._attempt_timeout_generator",
             time_gen_mock,
         ):
             instance = self._make_one(
@@ -308,7 +308,7 @@ class TestReadRowsOperation:
                 yield 1
 
         with mock.patch.object(
-            _ReadRowsOperationAsync, "_read_rows_attempt"
+            self._get_target_class(), "_read_rows_attempt"
         ) as mock_attempt:
             instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
             wrapped_gen = mock_stream()
@@ -330,7 +330,6 @@ class TestReadRowsOperation:
         """
         Duplicate rows should cause an invalid chunk error
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
         from google.cloud.bigtable.data.exceptions import InvalidChunk
         from google.cloud.bigtable_v2.types import ReadRowsResponse
 
@@ -355,37 +354,8 @@ class TestReadRowsOperation:
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        stream = _ReadRowsOperationAsync.chunk_stream(instance, mock_awaitable_stream())
+        stream = self._get_target_class().chunk_stream(instance, mock_awaitable_stream())
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:
             await stream.__anext__()
         assert "row keys should be strictly increasing" in str(exc.value)
-
-
-class MockStream(_ReadRowsOperationAsync):
-    """
-    Mock a _ReadRowsOperationAsync stream for testing
-    """
-
-    def __init__(self, items=None, errors=None, operation_timeout=None):
-        self.transient_errors = errors
-        self.operation_timeout = operation_timeout
-        self.next_idx = 0
-        if items is None:
-            items = list(range(10))
-        self.items = items
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self.next_idx >= len(self.items):
-            raise StopAsyncIteration
-        item = self.items[self.next_idx]
-        self.next_idx += 1
-        if isinstance(item, Exception):
-            raise item
-        return item
-
-    async def aclose(self):
-        pass
