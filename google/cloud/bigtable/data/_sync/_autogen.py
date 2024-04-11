@@ -140,7 +140,7 @@ class _ReadRowsOperation_SyncGen(ABC):
 
     def start_operation(self) -> Generator[Row, None, "Any"]:
         """Start the read_rows operation, retrying on retryable errors."""
-        return retries.retry_target_stream_async(
+        return retries.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
@@ -380,7 +380,7 @@ class _MutateRowsOperation_SyncGen(ABC):
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        self._operation = retries.retry_target_async(
+        self._operation = retries.retry_target(
             self._run_attempt,
             self.is_retryable,
             sleep_generator,
@@ -1468,7 +1468,7 @@ class Table_SyncGen(ABC):
             )
             return [(s.row_key, s.offset_bytes) for s in results]
 
-        return retries.retry_target_async(
+        return retries.retry_target(
             execute_rpc,
             predicate,
             sleep_generator,
@@ -1595,7 +1595,7 @@ class Table_SyncGen(ABC):
             metadata=_make_metadata(self.table_name, self.app_profile_id),
             retry=None,
         )
-        return retries.retry_target_async(
+        return retries.retry_target(
             target,
             predicate,
             sleep_generator,

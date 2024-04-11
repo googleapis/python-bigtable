@@ -18,6 +18,8 @@ text_replacements:  # Find and replace specific text patterns
   BigtableAsyncClient: BigtableClient
   PooledBigtableGrpcAsyncIOTransport: BigtableGrpcTransport
   AsyncChannel: Channel
+  retry_target_async: retry_target
+  retry_target_stream_async: retry_target_stream
 
 added_imports:
   - "from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient"
