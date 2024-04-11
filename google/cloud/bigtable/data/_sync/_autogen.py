@@ -26,7 +26,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import cast
-import asyncio
 import atexit
 import functools
 import os
@@ -927,7 +926,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._channel_refresh_tasks: list[threading.Thread[None]] = []
         if self._emulator_host is not None:
             warnings.warn(
                 "Connecting to Bigtable emulator at {}".format(self._emulator_host),
