@@ -18,12 +18,9 @@ from __future__ import annotations
 import inspect
 import ast
 import textwrap
-import time
-import queue
-import os
-import threading
-import concurrent.futures
 import importlib
+import yaml
+from pathlib import Path
 
 from black import format_str, FileMode
 import autoflake
@@ -400,77 +397,8 @@ def transform_from_config(config_dict: dict):
 
 
 if __name__ == "__main__":
-    config = {
-        "module_replacements": {
-            "asyncio.sleep": "time.sleep",
-            "asyncio.Queue": "queue.Queue",
-            "asyncio.Condition": "threading.Condition",
-            "asyncio.Future": "concurrent.futures.Future",
-            "google.api_core.retry_async": "google.api_core.retry",
-            "typing.AsyncIterable": "typing.Iterable",
-            "typing.AsyncIterator": "typing.Iterator",
-            "typing.AsyncGenerator": "typing.Generator",
-            "grpc.aio.Channel": "grpc.Channel",
-            "google.cloud.bigtable_v2.services.bigtable.async_client.BigtableAsyncClient": "google.cloud.bigtable_v2.services.bigtable.client.BigtableClient",
-            "google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio.PooledBigtableGrpcAsyncIOTransport": "google.cloud.bigtable_v2.services.bigtable.transports.grpc.BigtableGrpcTransport",
-        }, # replace modules with corresponding sync version.
-        "text_replacements": {
-            "__anext__": "__next__",
-            "__aiter__": "__iter__",
-            "__aenter__": "__enter__",
-            "__aexit__": "__exit__",
-            "aclose": "close",
-            "AsyncIterable": "Iterable",
-            "AsyncIterator": "Iterator",
-            "AsyncGenerator": "Generator",
-            "StopAsyncIteration": "StopIteration",
-            "Awaitable": None,
-            "BigtableAsyncClient": "BigtableClient",
-            "PooledBigtableGrpcAsyncIOTransport": "BigtableGrpcTransport",
-        },  # performs find/replace for these terms in docstrings and generated code
-        "classes": [
-            {
-                "path": "google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync",
-                "autogen_sync_name": "_ReadRowsOperation_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
-                "pass_methods": [],  # useful if you want to keep docstring
-                "drop_methods": [],  # useful when the function can be completely removed
-                "error_methods": [],  # useful when the implementation and docstring depend heavily on asyncio
-            },
-            {
-                "path": "google.cloud.bigtable.data._async._mutate_rows._MutateRowsOperationAsync",
-                "autogen_sync_name": "_MutateRowsOperation_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
-            },
-            {
-                "path": "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync",
-                "autogen_sync_name": "MutationsBatcher_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
-                "pass_methods": ["close", "_wait_for_batch_results"],
-                "error_methods": ["_create_bg_task", "_start_flush_timer"]
-            },
-            {
-                "path": "google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync",
-                "autogen_sync_name": "_FlowControl_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync.mutations_batcher._FlowControl",
-            },
-            {
-                "path": "google.cloud.bigtable.data._async.client.BigtableDataClientAsync",
-                "autogen_sync_name": "BigtableDataClient_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync.client.BigtableDataClient",
-                "pass_methods": ["close", "_ping_and_warm_instances"],
-                "drop_methods": ["_manage_channel"],
-                "error_methods": ["_start_background_channel_refresh", "_client_version", "_prep_emulator_channel", "_transport_init"]
-            },
-            {
-                "path": "google.cloud.bigtable.data._async.client.TableAsync",
-                "autogen_sync_name": "Table_SyncGen",
-                "concrete_path": "google.cloud.bigtable.data._sync.client.Table",
-                "pass_methods": ["read_rows_sharded"],
-                "error_methods": ["_register_with_client"]
-            },
-        ]
-    }
+    load_path = "./google/cloud/bigtable/data/_sync/sync_gen.yaml"
+    config = yaml.safe_load(Path(load_path).read_text())
 
     save_path = "./google/cloud/bigtable/data/_sync/_autogen.py"
 

@@ -49,7 +49,6 @@ from google.cloud.bigtable.data._async._mutate_rows import (
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
-from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
@@ -179,7 +178,7 @@ class _ReadRowsOperation_SyncGen(ABC):
         return self.merge_rows(chunked_stream)
 
     def chunk_stream(
-        self, stream: Iterable[ReadRowsResponsePB]
+        self, stream: None[Iterable[ReadRowsResponsePB]]
     ) -> Generator[ReadRowsResponsePB.CellChunk, None, "Any"]:
         """process chunks out of raw read_rows stream"""
         for resp in stream:
@@ -1357,48 +1356,6 @@ class Table_SyncGen(ABC):
         if len(results) == 0:
             return None
         return results[0]
-
-    def read_rows_sharded(
-        self,
-        sharded_query: ShardedQuery,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> list[Row]:
-        """
-        Runs a sharded query in parallel, then return the results in a single list.
-        Results will be returned in the order of the input queries.
-
-        This function is intended to be run on the results on a query.shard() call:
-
-        ```
-        table_shard_keys = await table.sample_row_keys()
-        query = ReadRowsQuery(...)
-        shard_queries = query.shard(table_shard_keys)
-        results = await table.read_rows_sharded(shard_queries)
-        ```
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - sharded_query: a sharded query to execute
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors.
-        Raises:
-            - ShardedReadRowsExceptionGroup: if any of the queries failed
-            - ValueError: if the query_list is empty
-        """
 
     def row_exists(
         self,
