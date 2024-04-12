@@ -274,9 +274,7 @@ class MutationsBatcherAsync:
                 # add new flush task to list
                 if not self.closed and self._staged_entries:
                     self._schedule_flush()
-
-        timer_task = asyncio.create_task(timer_routine(self, interval))
-        return timer_task
+        return self._create_bg_task(timer_routine, self, interval)
 
     async def append(self, mutation_entry: RowMutationEntry):
         """

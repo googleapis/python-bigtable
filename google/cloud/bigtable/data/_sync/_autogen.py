@@ -27,6 +27,7 @@ from typing import Sequence
 from typing import Set
 from typing import cast
 import atexit
+import concurrent.futures
 import functools
 import os
 import threading
@@ -574,7 +575,30 @@ class MutationsBatcher_SyncGen(ABC):
     def _start_flush_timer(
         self, interval: float | None
     ) -> concurrent.futures.Future[None]:
-        raise NotImplementedError("Function not implemented in sync class")
+        """
+        Set up a background task to flush the batcher every interval seconds
+
+        If interval is None, an empty future is returned
+
+        Args:
+          - flush_interval: Automatically flush every flush_interval seconds.
+              If None, no time-based flushing is performed.
+        Returns:
+            - asyncio.Future that represents the background task
+        """
+        if interval is None or self.closed:
+            empty_future: concurrent.futures.Future[None] = concurrent.futures.Future()
+            empty_future.set_result(None)
+            return empty_future
+
+        def timer_routine(self, interval: float):
+            """Triggers new flush tasks every `interval` seconds"""
+            while not self.closed:
+                time.sleep(interval)
+                if not self.closed and self._staged_entries:
+                    self._schedule_flush()
+
+        return self._create_bg_task(timer_routine, self, interval)
 
     def append(self, mutation_entry: RowMutationEntry):
         """

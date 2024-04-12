@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 
 from google.cloud.bigtable.data._sync._autogen import _FlowControl_SyncGen
 from google.cloud.bigtable.data._sync._autogen import MutationsBatcher_SyncGen
@@ -22,5 +23,12 @@ from google.cloud.bigtable.data._sync._autogen import MutationsBatcher_SyncGen
 class _FlowControl(_FlowControl_SyncGen):
     pass
 
+
 class MutationsBatcher(MutationsBatcher_SyncGen):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        self._executor = ThreadPoolExecutor(max_workers=8)
+        super().__init__(*args, **kwargs)
+
+    def _create_bg_task(self, func, *args, **kwargs):
+        return self._executor.submit(func, *args, **kwargs)

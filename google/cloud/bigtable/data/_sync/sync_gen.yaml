@@ -28,6 +28,7 @@ added_imports:
   - "from grpc import Channel"
   - "import google.cloud.bigtable.data.exceptions as bt_exceptions"
   - "import threading"
+  - "import concurrent.futures"
 
 classes:  # Specify transformations for individual classes 
   - path: google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync
@@ -40,7 +41,7 @@ classes:  # Specify transformations for individual classes
     autogen_sync_name: MutationsBatcher_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher
     pass_methods: ["close", "_wait_for_batch_results"]
-    error_methods: ["_create_bg_task", "_start_flush_timer"]
+    error_methods: ["_create_bg_task"]
   - path: google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync
     autogen_sync_name: _FlowControl_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher._FlowControl
