@@ -158,13 +158,14 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         ):
             replacement = self.asyncio_replacements[node.attr]
             return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
-        if node.attr in self.text_replacements:
-            # replace from text_replacements
-            new_node = ast.copy_location(
-                ast.Attribute(self.visit(node.value), self.text_replacements[node.attr], node.ctx), node
-            )
-            return new_node
-        return node
+        fixed =  ast.copy_location(
+            ast.Attribute(
+                self.visit(node.value),
+                self.text_replacements.get(node.attr, node.attr),  # replace attr value
+                node.ctx
+            ), node
+        )
+        return fixed
 
     def visit_Name(self, node):
         node.id = self.text_replacements.get(node.id, node.id)

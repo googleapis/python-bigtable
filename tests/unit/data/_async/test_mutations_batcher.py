@@ -17,6 +17,7 @@ import asyncio
 import google.api_core.exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data import TABLE_DEFAULT
+from google.cloud.bigtable.data import TableAsync
 
 # try/except added for compatibility with python < 3.8
 try:
@@ -467,10 +468,6 @@ class TestMutationsBatcherAsync:
         table.mutations_batcher. Make sure any changes to defaults are applied to
         both places
         """
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.mutations_batcher import (
-            MutationsBatcherAsync,
-        )
         import inspect
 
         get_batcher_signature = dict(
@@ -478,7 +475,7 @@ class TestMutationsBatcherAsync:
         )
         get_batcher_signature.pop("self")
         batcher_init_signature = dict(
-            inspect.signature(MutationsBatcherAsync).parameters
+            inspect.signature(self._get_target_class()).parameters
         )
         batcher_init_signature.pop("table")
         # both should have same number of arguments
@@ -1161,8 +1158,6 @@ class TestMutationsBatcherAsync:
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        from google.cloud.bigtable.data._async.client import TableAsync
-
         with mock.patch(
             "google.api_core.retry.if_exception_type"
         ) as predicate_builder_mock:

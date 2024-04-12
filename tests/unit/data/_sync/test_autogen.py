@@ -23,6 +23,7 @@ import pytest
 import time
 
 from google.cloud.bigtable.data import TABLE_DEFAULT
+from google.cloud.bigtable.data import Table
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 import google.api_core.exceptions as core_exceptions
 
@@ -201,18 +202,14 @@ class TestMutationsBatcher(ABC):
         table.mutations_batcher. Make sure any changes to defaults are applied to
         both places
         """
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.mutations_batcher import (
-            MutationsBatcherAsync,
-        )
         import inspect
 
         get_batcher_signature = dict(
-            inspect.signature(TableAsync.mutations_batcher).parameters
+            inspect.signature(Table.mutations_batcher).parameters
         )
         get_batcher_signature.pop("self")
         batcher_init_signature = dict(
-            inspect.signature(MutationsBatcherAsync).parameters
+            inspect.signature(self._get_target_class()).parameters
         )
         batcher_init_signature.pop("table")
         assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
@@ -838,8 +835,6 @@ class TestMutationsBatcher(ABC):
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        from google.cloud.bigtable.data._async.client import TableAsync
-
         with mock.patch(
             "google.api_core.retry.if_exception_type"
         ) as predicate_builder_mock:
@@ -848,7 +843,7 @@ class TestMutationsBatcher(ABC):
             ) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
-                    table = TableAsync(mock.Mock(), "instance", "table")
+                    table = Table(mock.Mock(), "instance", "table")
                 with self._make_one(
                     table, batch_retryable_errors=input_retryables
                 ) as instance:
