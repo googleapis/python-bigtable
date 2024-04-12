@@ -20,7 +20,6 @@ import atexit
 import warnings
 from collections import deque
 
-from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
@@ -28,13 +27,14 @@ from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._mutate_rows import (
+from google.cloud.bigtable.data.mutations import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024

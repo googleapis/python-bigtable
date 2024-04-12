@@ -18,9 +18,12 @@
 from abc import ABC
 from tests.unit.data._async.test__mutate_rows import TestMutateRowsOperation
 from tests.unit.data._async.test__read_rows import TestReadRowsOperation
+from tests.unit.data._async.test_mutations_batcher import Test_FlowControl
 from unittest import mock
 import mock
 import pytest
+import threading
+import time
 
 from google.cloud.bigtable_v2.types import MutateRowsResponse
 from google.rpc import status_pb2
@@ -644,3 +647,241 @@ class TestReadRowsOperation(ABC):
         with pytest.raises(InvalidChunk) as exc:
             stream.__next__()
         assert "row keys should be strictly increasing" in str(exc.value)
+
+
+class Test_FlowControl(ABC):
+    @staticmethod
+    def _target_class():
+        from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
+
+        return _FlowControl
+
+    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
+        return self._target_class()(max_mutation_count, max_mutation_bytes)
+
+    @staticmethod
+    def _make_mutation(count=1, size=1):
+        mutation = mock.Mock()
+        mutation.size.return_value = size
+        mutation.mutations = [mock.Mock()] * count
+        return mutation
+
+    def test_ctor(self):
+        max_mutation_count = 9
+        max_mutation_bytes = 19
+        instance = self._make_one(max_mutation_count, max_mutation_bytes)
+        assert instance._max_mutation_count == max_mutation_count
+        assert instance._max_mutation_bytes == max_mutation_bytes
+        assert instance._in_flight_mutation_count == 0
+        assert instance._in_flight_mutation_bytes == 0
+        assert isinstance(instance._capacity_condition, threading.Condition)
+
+    def test_ctor_invalid_values(self):
+        """Test that values are positive, and fit within expected limits"""
+        with pytest.raises(ValueError) as e:
+            self._make_one(0, 1)
+            assert "max_mutation_count must be greater than 0" in str(e.value)
+        with pytest.raises(ValueError) as e:
+            self._make_one(1, 0)
+            assert "max_mutation_bytes must be greater than 0" in str(e.value)
+
+    @pytest.mark.parametrize(
+        "max_count,max_size,existing_count,existing_size,new_count,new_size,expected",
+        [
+            (1, 1, 0, 0, 0, 0, True),
+            (1, 1, 1, 1, 1, 1, False),
+            (10, 10, 0, 0, 0, 0, True),
+            (10, 10, 0, 0, 9, 9, True),
+            (10, 10, 0, 0, 11, 9, True),
+            (10, 10, 0, 1, 11, 9, True),
+            (10, 10, 1, 0, 11, 9, False),
+            (10, 10, 0, 0, 9, 11, True),
+            (10, 10, 1, 0, 9, 11, True),
+            (10, 10, 0, 1, 9, 11, False),
+            (10, 1, 0, 0, 1, 0, True),
+            (1, 10, 0, 0, 0, 8, True),
+            (float("inf"), float("inf"), 0, 0, 10000000000.0, 10000000000.0, True),
+            (8, 8, 0, 0, 10000000000.0, 10000000000.0, True),
+            (12, 12, 6, 6, 5, 5, True),
+            (12, 12, 5, 5, 6, 6, True),
+            (12, 12, 6, 6, 6, 6, True),
+            (12, 12, 6, 6, 7, 7, False),
+            (12, 12, 0, 0, 13, 13, True),
+            (12, 12, 12, 0, 0, 13, True),
+            (12, 12, 0, 12, 13, 0, True),
+            (12, 12, 1, 1, 13, 13, False),
+            (12, 12, 1, 1, 0, 13, False),
+            (12, 12, 1, 1, 13, 0, False),
+        ],
+    )
+    def test__has_capacity(
+        self,
+        max_count,
+        max_size,
+        existing_count,
+        existing_size,
+        new_count,
+        new_size,
+        expected,
+    ):
+        """_has_capacity should return True if the new mutation will will not exceed the max count or size"""
+        instance = self._make_one(max_count, max_size)
+        instance._in_flight_mutation_count = existing_count
+        instance._in_flight_mutation_bytes = existing_size
+        assert instance._has_capacity(new_count, new_size) == expected
+
+    @pytest.mark.parametrize(
+        "existing_count,existing_size,added_count,added_size,new_count,new_size",
+        [
+            (0, 0, 0, 0, 0, 0),
+            (2, 2, 1, 1, 1, 1),
+            (2, 0, 1, 0, 1, 0),
+            (0, 2, 0, 1, 0, 1),
+            (10, 10, 0, 0, 10, 10),
+            (10, 10, 5, 5, 5, 5),
+            (0, 0, 1, 1, -1, -1),
+        ],
+    )
+    def test_remove_from_flow_value_update(
+        self,
+        existing_count,
+        existing_size,
+        added_count,
+        added_size,
+        new_count,
+        new_size,
+    ):
+        """completed mutations should lower the inflight values"""
+        instance = self._make_one()
+        instance._in_flight_mutation_count = existing_count
+        instance._in_flight_mutation_bytes = existing_size
+        mutation = self._make_mutation(added_count, added_size)
+        instance.remove_from_flow(mutation)
+        assert instance._in_flight_mutation_count == new_count
+        assert instance._in_flight_mutation_bytes == new_size
+
+    def test__remove_from_flow_unlock(self):
+        """capacity condition should notify after mutation is complete"""
+        import inspect
+
+        instance = self._make_one(10, 10)
+        instance._in_flight_mutation_count = 10
+        instance._in_flight_mutation_bytes = 10
+
+        def task_routine():
+            with instance._capacity_condition:
+                instance._capacity_condition.wait_for(
+                    lambda: instance._has_capacity(1, 1)
+                )
+
+        if inspect.iscoroutinefunction(task_routine):
+            task = threading.Thread(task_routine())
+            task_alive = lambda: not task.done()
+        else:
+            import threading
+
+            thread = threading.Thread(target=task_routine)
+            thread.start()
+            task_alive = thread.is_alive
+        time.sleep(0.05)
+        assert task_alive() is True
+        mutation = self._make_mutation(count=0, size=5)
+        instance.remove_from_flow([mutation])
+        time.sleep(0.05)
+        assert instance._in_flight_mutation_count == 10
+        assert instance._in_flight_mutation_bytes == 5
+        assert task_alive() is True
+        instance._in_flight_mutation_bytes = 10
+        mutation = self._make_mutation(count=5, size=0)
+        instance.remove_from_flow([mutation])
+        time.sleep(0.05)
+        assert instance._in_flight_mutation_count == 5
+        assert instance._in_flight_mutation_bytes == 10
+        assert task_alive() is True
+        instance._in_flight_mutation_count = 10
+        mutation = self._make_mutation(count=5, size=5)
+        instance.remove_from_flow([mutation])
+        time.sleep(0.05)
+        assert instance._in_flight_mutation_count == 5
+        assert instance._in_flight_mutation_bytes == 5
+        assert task_alive() is False
+
+    @pytest.mark.parametrize(
+        "mutations,count_cap,size_cap,expected_results",
+        [
+            ([(5, 5), (1, 1), (1, 1)], 10, 10, [[(5, 5), (1, 1), (1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 1, 1, [[(1, 1)], [(1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 2, 10, [[(1, 1), (1, 1)], [(1, 1)]]),
+            ([(1, 1), (1, 1), (1, 1)], 10, 2, [[(1, 1), (1, 1)], [(1, 1)]]),
+            (
+                [(1, 1), (5, 5), (4, 1), (1, 4), (1, 1)],
+                5,
+                5,
+                [[(1, 1)], [(5, 5)], [(4, 1), (1, 4)], [(1, 1)]],
+            ),
+        ],
+    )
+    def test_add_to_flow(self, mutations, count_cap, size_cap, expected_results):
+        """Test batching with various flow control settings"""
+        mutation_objs = [self._make_mutation(count=m[0], size=m[1]) for m in mutations]
+        instance = self._make_one(count_cap, size_cap)
+        i = 0
+        for batch in instance.add_to_flow(mutation_objs):
+            expected_batch = expected_results[i]
+            assert len(batch) == len(expected_batch)
+            for j in range(len(expected_batch)):
+                assert len(batch[j].mutations) == expected_batch[j][0]
+                assert batch[j].size() == expected_batch[j][1]
+            instance.remove_from_flow(batch)
+            i += 1
+        assert i == len(expected_results)
+
+    @pytest.mark.parametrize(
+        "mutations,max_limit,expected_results",
+        [
+            ([(1, 1)] * 11, 10, [[(1, 1)] * 10, [(1, 1)]]),
+            ([(1, 1)] * 10, 1, [[(1, 1)] for _ in range(10)]),
+            ([(1, 1)] * 10, 2, [[(1, 1), (1, 1)] for _ in range(5)]),
+        ],
+    )
+    def test_add_to_flow_max_mutation_limits(
+        self, mutations, max_limit, expected_results
+    ):
+        """
+        Test flow control running up against the max API limit
+        Should submit request early, even if the flow control has room for more
+        """
+        async_patch = mock.patch(
+            "google.cloud.bigtable.data._async.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            max_limit,
+        )
+        sync_patch = mock.patch(
+            "google.cloud.bigtable.data._sync._autogen._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            max_limit,
+        )
+        with async_patch, sync_patch:
+            mutation_objs = [
+                self._make_mutation(count=m[0], size=m[1]) for m in mutations
+            ]
+            instance = self._make_one(float("inf"), float("inf"))
+            i = 0
+            for batch in instance.add_to_flow(mutation_objs):
+                expected_batch = expected_results[i]
+                assert len(batch) == len(expected_batch)
+                for j in range(len(expected_batch)):
+                    assert len(batch[j].mutations) == expected_batch[j][0]
+                    assert batch[j].size() == expected_batch[j][1]
+                instance.remove_from_flow(batch)
+                i += 1
+            assert i == len(expected_results)
+
+    def test_add_to_flow_oversize(self):
+        """mutations over the flow control limits should still be accepted"""
+        instance = self._make_one(2, 3)
+        large_size_mutation = self._make_mutation(count=1, size=10)
+        large_count_mutation = self._make_mutation(count=10, size=1)
+        results = [out for out in instance.add_to_flow([large_size_mutation])]
+        assert len(results) == 1
+        instance.remove_from_flow(results[0])
+        count_results = [out for out in instance.add_to_flow(large_count_mutation)]
+        assert len(count_results) == 1

@@ -27,20 +27,24 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
-def _make_mutation(count=1, size=1):
-    mutation = mock.Mock()
-    mutation.size.return_value = size
-    mutation.mutations = [mock.Mock()] * count
-    return mutation
-
-
 class Test_FlowControl:
-    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
+
+    @staticmethod
+    def _target_class():
         from google.cloud.bigtable.data._async.mutations_batcher import (
             _FlowControlAsync,
         )
+        return _FlowControlAsync
 
-        return _FlowControlAsync(max_mutation_count, max_mutation_bytes)
+    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
+        return self._target_class()(max_mutation_count, max_mutation_bytes)
+
+    @staticmethod
+    def _make_mutation(count=1, size=1):
+        mutation = mock.Mock()
+        mutation.size.return_value = size
+        mutation.mutations = [mock.Mock()] * count
+        return mutation
 
     def test_ctor(self):
         max_mutation_count = 9
@@ -138,7 +142,7 @@ class Test_FlowControl:
         instance = self._make_one()
         instance._in_flight_mutation_count = existing_count
         instance._in_flight_mutation_bytes = existing_size
-        mutation = _make_mutation(added_count, added_size)
+        mutation = self._make_mutation(added_count, added_size)
         await instance.remove_from_flow(mutation)
         assert instance._in_flight_mutation_count == new_count
         assert instance._in_flight_mutation_bytes == new_size
@@ -146,6 +150,7 @@ class Test_FlowControl:
     @pytest.mark.asyncio
     async def test__remove_from_flow_unlock(self):
         """capacity condition should notify after mutation is complete"""
+        import inspect
         instance = self._make_one(10, 10)
         instance._in_flight_mutation_count = 10
         instance._in_flight_mutation_bytes = 10
@@ -155,35 +160,44 @@ class Test_FlowControl:
                 await instance._capacity_condition.wait_for(
                     lambda: instance._has_capacity(1, 1)
                 )
-
-        task = asyncio.create_task(task_routine())
+        if inspect.iscoroutinefunction(task_routine):
+            # for async class, build task to test flow unlock
+            task = asyncio.create_task(task_routine())
+            task_alive = lambda: not task.done()
+        else:
+            # this branch will be tested in sync version of this test
+            import threading
+            thread = threading.Thread(target=task_routine)
+            thread.start()
+            task_alive = thread.is_alive
         await asyncio.sleep(0.05)
         # should be blocked due to capacity
-        assert task.done() is False
+        assert task_alive() is True
         # try changing size
-        mutation = _make_mutation(count=0, size=5)
+        mutation = self._make_mutation(count=0, size=5)
+
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance._in_flight_mutation_count == 10
         assert instance._in_flight_mutation_bytes == 5
-        assert task.done() is False
+        assert task_alive() is True
         # try changing count
         instance._in_flight_mutation_bytes = 10
-        mutation = _make_mutation(count=5, size=0)
+        mutation = self._make_mutation(count=5, size=0)
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance._in_flight_mutation_count == 5
         assert instance._in_flight_mutation_bytes == 10
-        assert task.done() is False
+        assert task_alive() is True
         # try changing both
         instance._in_flight_mutation_count = 10
-        mutation = _make_mutation(count=5, size=5)
+        mutation = self._make_mutation(count=5, size=5)
         await instance.remove_from_flow([mutation])
         await asyncio.sleep(0.05)
         assert instance._in_flight_mutation_count == 5
         assert instance._in_flight_mutation_bytes == 5
         # task should be complete
-        assert task.done() is True
+        assert task_alive() is False
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -210,7 +224,7 @@ class Test_FlowControl:
         """
         Test batching with various flow control settings
         """
-        mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
+        mutation_objs = [self._make_mutation(count=m[0], size=m[1]) for m in mutations]
         instance = self._make_one(count_cap, size_cap)
         i = 0
         async for batch in instance.add_to_flow(mutation_objs):
@@ -242,11 +256,16 @@ class Test_FlowControl:
         Test flow control running up against the max API limit
         Should submit request early, even if the flow control has room for more
         """
-        with mock.patch(
+        async_patch = mock.patch(
             "google.cloud.bigtable.data._async.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
             max_limit,
-        ):
-            mutation_objs = [_make_mutation(count=m[0], size=m[1]) for m in mutations]
+        )
+        sync_patch = mock.patch(
+            "google.cloud.bigtable.data._sync._autogen._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            max_limit,
+        )
+        with async_patch, sync_patch:
+            mutation_objs = [self._make_mutation(count=m[0], size=m[1]) for m in mutations]
             # flow control has no limits except API restrictions
             instance = self._make_one(float("inf"), float("inf"))
             i = 0
@@ -269,8 +288,8 @@ class Test_FlowControl:
         mutations over the flow control limits should still be accepted
         """
         instance = self._make_one(2, 3)
-        large_size_mutation = _make_mutation(count=1, size=10)
-        large_count_mutation = _make_mutation(count=10, size=1)
+        large_size_mutation = self._make_mutation(count=1, size=10)
+        large_count_mutation = self._make_mutation(count=10, size=1)
         results = [out async for out in instance.add_to_flow([large_size_mutation])]
         assert len(results) == 1
         await instance.remove_from_flow(results[0])
@@ -302,6 +321,13 @@ class TestMutationsBatcherAsync:
             )
 
         return self._get_target_class()(table, **kwargs)
+
+    @staticmethod
+    def _make_mutation(count=1, size=1):
+        mutation = mock.Mock()
+        mutation.size.return_value = size
+        mutation.mutations = [mock.Mock()] * count
+        return mutation
 
     @mock.patch(
         "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._start_flush_timer"
@@ -580,7 +606,7 @@ class TestMutationsBatcherAsync:
         async with self._make_one(
             flow_control_max_mutation_count=1, flow_control_max_bytes=1
         ) as instance:
-            oversized_entry = _make_mutation(count=0, size=2)
+            oversized_entry = self._make_mutation(count=0, size=2)
             await instance.append(oversized_entry)
             assert instance._staged_entries == [oversized_entry]
             assert instance._staged_count == 0
@@ -589,7 +615,7 @@ class TestMutationsBatcherAsync:
         async with self._make_one(
             flow_control_max_mutation_count=1, flow_control_max_bytes=1
         ) as instance:
-            overcount_entry = _make_mutation(count=2, size=0)
+            overcount_entry = self._make_mutation(count=2, size=0)
             await instance.append(overcount_entry)
             assert instance._staged_entries == [overcount_entry]
             assert instance._staged_count == 2
@@ -616,11 +642,11 @@ class TestMutationsBatcherAsync:
 
                 op_mock.side_effect = mock_call
                 # append a mutation just under the size limit
-                await instance.append(_make_mutation(size=99))
+                await instance.append(self._make_mutation(size=99))
                 # append a bunch of entries back-to-back in a loop
                 num_entries = 10
                 for _ in range(num_entries):
-                    await instance.append(_make_mutation(size=1))
+                    await instance.append(self._make_mutation(size=1))
                 # let any flush jobs finish
                 await asyncio.gather(*instance._flush_jobs)
                 # should have only flushed once, with large mutation and first mutation in loop
@@ -653,7 +679,7 @@ class TestMutationsBatcherAsync:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
             assert instance._staged_entries == []
-            mutation = _make_mutation(count=mutation_count, size=mutation_bytes)
+            mutation = self._make_mutation(count=mutation_count, size=mutation_bytes)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 await instance.append(mutation)
             assert flush_mock.call_count == bool(expect_flush)
@@ -671,7 +697,7 @@ class TestMutationsBatcherAsync:
             assert instance._staged_count == 0
             assert instance._staged_bytes == 0
             assert instance._staged_entries == []
-            mutation = _make_mutation(count=2, size=3)
+            mutation = self._make_mutation(count=2, size=3)
             with mock.patch.object(instance, "_schedule_flush") as flush_mock:
                 await instance.append(mutation)
                 assert flush_mock.call_count == 0
@@ -698,7 +724,7 @@ class TestMutationsBatcherAsync:
         import time
 
         num_calls = 10
-        fake_mutations = [_make_mutation(count=1) for _ in range(num_calls)]
+        fake_mutations = [self._make_mutation(count=1) for _ in range(num_calls)]
         async with self._make_one(flow_control_max_mutation_count=1) as instance:
             with mock.patch.object(
                 instance, "_execute_mutate_rows", AsyncMock()
@@ -717,7 +743,7 @@ class TestMutationsBatcherAsync:
                 # make room for new mutations
                 for i in range(num_calls):
                     await instance._flow_control.remove_from_flow(
-                        [_make_mutation(count=1)]
+                        [self._make_mutation(count=1)]
                     )
                     await asyncio.sleep(0.01)
                 # allow flushes to complete
@@ -775,7 +801,7 @@ class TestMutationsBatcherAsync:
                         yield x
 
                     flow_mock.side_effect = lambda x: gen(x)
-                    mutations = [_make_mutation(count=1, size=1)] * num_entries
+                    mutations = [self._make_mutation(count=1, size=1)] * num_entries
                     await instance._flush_internal(mutations)
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
@@ -791,7 +817,7 @@ class TestMutationsBatcherAsync:
         """
         async with self._make_one() as instance:
             with mock.patch.object(instance, "_flush_internal", AsyncMock()):
-                mutations = [_make_mutation(count=1, size=1)]
+                mutations = [self._make_mutation(count=1, size=1)]
                 instance._staged_entries = mutations
                 assert instance._flush_jobs == set()
                 new_job = instance._schedule_flush()
@@ -836,7 +862,7 @@ class TestMutationsBatcherAsync:
                         yield x
 
                     flow_mock.side_effect = lambda x: gen(x)
-                    mutations = [_make_mutation(count=1, size=1)] * num_entries
+                    mutations = [self._make_mutation(count=1, size=1)] * num_entries
                     await instance._flush_internal(mutations)
                     assert instance._entries_processed_since_last_raise == num_entries
                     assert execute_mock.call_count == 1
@@ -870,7 +896,7 @@ class TestMutationsBatcherAsync:
     async def test_timer_flush_end_to_end(self):
         """Flush should automatically trigger after flush_interval"""
         num_nutations = 10
-        mutations = [_make_mutation(count=2, size=2)] * num_nutations
+        mutations = [self._make_mutation(count=2, size=2)] * num_nutations
 
         async with self._make_one(flush_interval=0.05) as instance:
             instance._table.default_operation_timeout = 10
@@ -902,7 +928,7 @@ class TestMutationsBatcherAsync:
         table.default_mutate_rows_attempt_timeout = 13
         table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
-            batch = [_make_mutation()]
+            batch = [self._make_mutation()]
             result = await instance._execute_mutate_rows(batch)
             assert start_operation.call_count == 1
             args, kwargs = mutate_rows.call_args
@@ -932,7 +958,7 @@ class TestMutationsBatcherAsync:
         table.default_mutate_rows_attempt_timeout = 13
         table.default_mutate_rows_retryable_errors = ()
         async with self._make_one(table) as instance:
-            batch = [_make_mutation()]
+            batch = [self._make_mutation()]
             result = await instance._execute_mutate_rows(batch)
             assert len(result) == 2
             assert result[0] == err1
@@ -1058,7 +1084,7 @@ class TestMutationsBatcherAsync:
             assert instance._operation_timeout == expected_operation_timeout
             assert instance._attempt_timeout == expected_attempt_timeout
             # make simulated gapic call
-            await instance._execute_mutate_rows([_make_mutation()])
+            await instance._execute_mutate_rows([self._make_mutation()])
             assert mutate_rows.call_count == 1
             kwargs = mutate_rows.call_args[1]
             assert kwargs["operation_timeout"] == expected_operation_timeout
@@ -1173,7 +1199,7 @@ class TestMutationsBatcherAsync:
                     expected_predicate = lambda a: a in expected_retryables  # noqa
                     predicate_builder_mock.return_value = expected_predicate
                     retry_fn_mock.side_effect = RuntimeError("stop early")
-                    mutation = _make_mutation(count=1, size=1)
+                    mutation = self._make_mutation(count=1, size=1)
                     await instance._execute_mutate_rows([mutation])
                     # passed in errors should be used to build the predicate
                     predicate_builder_mock.assert_called_once_with(

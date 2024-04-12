@@ -27,6 +27,7 @@ added_imports:
   - "from typing import Generator, Iterable, Iterator"
   - "from grpc import Channel"
   - "import google.cloud.bigtable.data.exceptions as bt_exceptions"
+  - "import threading"
 
 classes:  # Specify transformations for individual classes 
   - path: google.cloud.bigtable.data._async._read_rows._ReadRowsOperationAsync
