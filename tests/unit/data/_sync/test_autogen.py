@@ -16,648 +16,39 @@
 
 
 from abc import ABC
-from tests.unit.data._async.test__mutate_rows import TestMutateRowsOperation
-from tests.unit.data._async.test__read_rows import TestReadRowsOperation
-from tests.unit.data._async.test_mutations_batcher import Test_FlowControl
 from unittest import mock
+import concurrent.futures
 import mock
 import pytest
-import threading
 import time
 
-from google.cloud.bigtable_v2.types import MutateRowsResponse
-from google.rpc import status_pb2
+from google.cloud.bigtable.data import TABLE_DEFAULT
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 import google.api_core.exceptions as core_exceptions
 
 
-class TestMutateRowsOperation(ABC):
-    def _target_class(self):
-        from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+class TestMutationsBatcher(ABC):
+    def _get_target_class(self):
+        from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 
-        return _MutateRowsOperation
+        return MutationsBatcher
 
-    def _make_one(self, *args, **kwargs):
-        if not args:
-            kwargs["gapic_client"] = kwargs.pop("gapic_client", mock.Mock())
-            kwargs["table"] = kwargs.pop("table", mock.Mock())
-            kwargs["operation_timeout"] = kwargs.pop("operation_timeout", 5)
-            kwargs["attempt_timeout"] = kwargs.pop("attempt_timeout", 0.1)
-            kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
-            kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
-        return self._target_class()(*args, **kwargs)
+    def _get_mutate_rows_class_path(self):
+        return "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation"
 
-    def _make_mutation(self, count=1, size=1):
-        mutation = mock.Mock()
-        mutation.size.return_value = size
-        mutation.mutations = [mock.Mock()] * count
-        return mutation
-
-    def _mock_stream(self, mutation_list, error_dict):
-        for idx, entry in enumerate(mutation_list):
-            code = error_dict.get(idx, 0)
-            yield MutateRowsResponse(
-                entries=[
-                    MutateRowsResponse.Entry(
-                        index=idx, status=status_pb2.Status(code=code)
-                    )
-                ]
-            )
-
-    def _make_mock_gapic(self, mutation_list, error_dict=None):
-        mock_fn = mock.Mock()
-        if error_dict is None:
-            error_dict = {}
-        mock_fn.side_effect = lambda *args, **kwargs: self._mock_stream(
-            mutation_list, error_dict
-        )
-        return mock_fn
-
-    def test_ctor(self):
-        """test that constructor sets all the attributes correctly"""
-        from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
-        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+    def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
-        from google.api_core.exceptions import Aborted
+        from google.api_core.exceptions import ServiceUnavailable
 
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation(), self._make_mutation()]
-        operation_timeout = 0.05
-        attempt_timeout = 0.01
-        retryable_exceptions = ()
-        instance = self._make_one(
-            client,
-            table,
-            entries,
-            operation_timeout,
-            attempt_timeout,
-            retryable_exceptions,
-        )
-        assert client.mutate_rows.call_count == 0
-        instance._gapic_fn()
-        assert client.mutate_rows.call_count == 1
-        inner_kwargs = client.mutate_rows.call_args[1]
-        assert len(inner_kwargs) == 4
-        assert inner_kwargs["table_name"] == table.table_name
-        assert inner_kwargs["app_profile_id"] == table.app_profile_id
-        assert inner_kwargs["retry"] is None
-        metadata = inner_kwargs["metadata"]
-        assert len(metadata) == 1
-        assert metadata[0][0] == "x-goog-request-params"
-        assert str(table.table_name) in metadata[0][1]
-        assert str(table.app_profile_id) in metadata[0][1]
-        entries_w_pb = [_EntryWithProto(e, e._to_pb()) for e in entries]
-        assert instance.mutations == entries_w_pb
-        assert next(instance.timeout_generator) == attempt_timeout
-        assert instance.is_retryable is not None
-        assert instance.is_retryable(DeadlineExceeded("")) is False
-        assert instance.is_retryable(Aborted("")) is False
-        assert instance.is_retryable(_MutateRowsIncomplete("")) is True
-        assert instance.is_retryable(RuntimeError("")) is False
-        assert instance.remaining_indices == list(range(len(entries)))
-        assert instance.errors == {}
-
-    def test_ctor_too_many_entries(self):
-        """should raise an error if an operation is created with more than 100,000 entries"""
-        from google.cloud.bigtable.data._async._mutate_rows import (
-            _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
-        )
-
-        assert _MUTATE_ROWS_REQUEST_MUTATION_LIMIT == 100000
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation()] * _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-        operation_timeout = 0.05
-        attempt_timeout = 0.01
-        self._make_one(client, table, entries, operation_timeout, attempt_timeout)
-        with pytest.raises(ValueError) as e:
-            self._make_one(
-                client,
-                table,
-                entries + [self._make_mutation()],
-                operation_timeout,
-                attempt_timeout,
+        if table is None:
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 10
+            table.default_mutate_rows_retryable_errors = (
+                DeadlineExceeded,
+                ServiceUnavailable,
             )
-        assert "mutate_rows requests can contain at most 100000 mutations" in str(
-            e.value
-        )
-        assert "Found 100001" in str(e.value)
-
-    def test_mutate_rows_operation(self):
-        """Test successful case of mutate_rows_operation"""
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation(), self._make_mutation()]
-        operation_timeout = 0.05
-        cls = self._target_class()
-        with mock.patch(
-            f"{cls.__module__}.{cls.__name__}._run_attempt", mock.Mock()
-        ) as attempt_mock:
-            instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
-            )
-            instance.start()
-            assert attempt_mock.call_count == 1
-
-    @pytest.mark.parametrize(
-        "exc_type", [RuntimeError, ZeroDivisionError, core_exceptions.Forbidden]
-    )
-    def test_mutate_rows_attempt_exception(self, exc_type):
-        """exceptions raised from attempt should be raised in MutationsExceptionGroup"""
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation(), self._make_mutation()]
-        operation_timeout = 0.05
-        expected_exception = exc_type("test")
-        client.mutate_rows.side_effect = expected_exception
-        found_exc = None
-        try:
-            instance = self._make_one(
-                client, table, entries, operation_timeout, operation_timeout
-            )
-            instance._run_attempt()
-        except Exception as e:
-            found_exc = e
-        assert client.mutate_rows.call_count == 1
-        assert type(found_exc) is exc_type
-        assert found_exc == expected_exception
-        assert len(instance.errors) == 2
-        assert len(instance.remaining_indices) == 0
-
-    @pytest.mark.parametrize(
-        "exc_type", [RuntimeError, ZeroDivisionError, core_exceptions.Forbidden]
-    )
-    def test_mutate_rows_exception(self, exc_type):
-        """exceptions raised from retryable should be raised in MutationsExceptionGroup"""
-        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-        from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
-
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation(), self._make_mutation()]
-        operation_timeout = 0.05
-        expected_cause = exc_type("abort")
-        with mock.patch.object(
-            self._target_class(), "_run_attempt", mock.Mock()
-        ) as attempt_mock:
-            attempt_mock.side_effect = expected_cause
-            found_exc = None
-            try:
-                instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
-                )
-                instance.start()
-            except MutationsExceptionGroup as e:
-                found_exc = e
-            assert attempt_mock.call_count == 1
-            assert len(found_exc.exceptions) == 2
-            assert isinstance(found_exc.exceptions[0], FailedMutationEntryError)
-            assert isinstance(found_exc.exceptions[1], FailedMutationEntryError)
-            assert found_exc.exceptions[0].__cause__ == expected_cause
-            assert found_exc.exceptions[1].__cause__ == expected_cause
-
-    @pytest.mark.parametrize(
-        "exc_type", [core_exceptions.DeadlineExceeded, RuntimeError]
-    )
-    def test_mutate_rows_exception_retryable_eventually_pass(self, exc_type):
-        """If an exception fails but eventually passes, it should not raise an exception"""
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation()]
-        operation_timeout = 1
-        expected_cause = exc_type("retry")
-        num_retries = 2
-        with mock.patch.object(
-            self._target_class(), "_run_attempt", mock.Mock()
-        ) as attempt_mock:
-            attempt_mock.side_effect = [expected_cause] * num_retries + [None]
-            instance = self._make_one(
-                client,
-                table,
-                entries,
-                operation_timeout,
-                operation_timeout,
-                retryable_exceptions=(exc_type,),
-            )
-            instance.start()
-            assert attempt_mock.call_count == num_retries + 1
-
-    def test_mutate_rows_incomplete_ignored(self):
-        """MutateRowsIncomplete exceptions should not be added to error list"""
-        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
-        from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-        from google.api_core.exceptions import DeadlineExceeded
-
-        client = mock.Mock()
-        table = mock.Mock()
-        entries = [self._make_mutation()]
-        operation_timeout = 0.05
-        with mock.patch.object(
-            self._target_class(), "_run_attempt", mock.Mock()
-        ) as attempt_mock:
-            attempt_mock.side_effect = _MutateRowsIncomplete("ignored")
-            found_exc = None
-            try:
-                instance = self._make_one(
-                    client, table, entries, operation_timeout, operation_timeout
-                )
-                instance.start()
-            except MutationsExceptionGroup as e:
-                found_exc = e
-            assert attempt_mock.call_count > 0
-            assert len(found_exc.exceptions) == 1
-            assert isinstance(found_exc.exceptions[0].__cause__, DeadlineExceeded)
-
-    def test_run_attempt_single_entry_success(self):
-        """Test mutating a single entry"""
-        mutation = self._make_mutation()
-        expected_timeout = 1.3
-        mock_gapic_fn = self._make_mock_gapic({0: mutation})
-        instance = self._make_one(
-            mutation_entries=[mutation], attempt_timeout=expected_timeout
-        )
-        with mock.patch.object(instance, "_gapic_fn", mock_gapic_fn):
-            instance._run_attempt()
-        assert len(instance.remaining_indices) == 0
-        assert mock_gapic_fn.call_count == 1
-        (_, kwargs) = mock_gapic_fn.call_args
-        assert kwargs["timeout"] == expected_timeout
-        assert kwargs["entries"] == [mutation._to_pb()]
-
-    def test_run_attempt_empty_request(self):
-        """Calling with no mutations should result in no API calls"""
-        mock_gapic_fn = self._make_mock_gapic([])
-        instance = self._make_one(mutation_entries=[])
-        instance._run_attempt()
-        assert mock_gapic_fn.call_count == 0
-
-    def test_run_attempt_partial_success_retryable(self):
-        """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
-        from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
-
-        success_mutation = self._make_mutation()
-        success_mutation_2 = self._make_mutation()
-        failure_mutation = self._make_mutation()
-        mutations = [success_mutation, failure_mutation, success_mutation_2]
-        mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
-        instance = self._make_one(mutation_entries=mutations)
-        instance.is_retryable = lambda x: True
-        with mock.patch.object(instance, "_gapic_fn", mock_gapic_fn):
-            with pytest.raises(_MutateRowsIncomplete):
-                instance._run_attempt()
-        assert instance.remaining_indices == [1]
-        assert 0 not in instance.errors
-        assert len(instance.errors[1]) == 1
-        assert instance.errors[1][0].grpc_status_code == 300
-        assert 2 not in instance.errors
-
-    def test_run_attempt_partial_success_non_retryable(self):
-        """Some entries succeed, but one fails. Exception marked as non-retryable. Do not raise incomplete error"""
-        success_mutation = self._make_mutation()
-        success_mutation_2 = self._make_mutation()
-        failure_mutation = self._make_mutation()
-        mutations = [success_mutation, failure_mutation, success_mutation_2]
-        mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
-        instance = self._make_one(mutation_entries=mutations)
-        instance.is_retryable = lambda x: False
-        with mock.patch.object(instance, "_gapic_fn", mock_gapic_fn):
-            instance._run_attempt()
-        assert instance.remaining_indices == []
-        assert 0 not in instance.errors
-        assert len(instance.errors[1]) == 1
-        assert instance.errors[1][0].grpc_status_code == 300
-        assert 2 not in instance.errors
-
-
-class TestReadRowsOperation(ABC):
-    """
-    Tests helper functions in the ReadRowsOperation class
-    in-depth merging logic in merge_row_response_stream and _read_rows_retryable_attempt
-    is tested in test_read_rows_acceptance test_client_read_rows, and conformance tests
-    """
-
-    @staticmethod
-    def _get_target_class():
-        from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-
-        return _ReadRowsOperation
-
-    def _make_one(self, *args, **kwargs):
-        return self._get_target_class()(*args, **kwargs)
-
-    def test_ctor(self):
-        from google.cloud.bigtable.data import ReadRowsQuery
-
-        row_limit = 91
-        query = ReadRowsQuery(limit=row_limit)
-        client = mock.Mock()
-        client.read_rows = mock.Mock()
-        client.read_rows.return_value = None
-        table = mock.Mock()
-        table._client = client
-        table.table_name = "test_table"
-        table.app_profile_id = "test_profile"
-        expected_operation_timeout = 42
-        expected_request_timeout = 44
-        time_gen_mock = mock.Mock()
-        with mock.patch(
-            "google.cloud.bigtable.data._helpers._attempt_timeout_generator",
-            time_gen_mock,
-        ):
-            instance = self._make_one(
-                query,
-                table,
-                operation_timeout=expected_operation_timeout,
-                attempt_timeout=expected_request_timeout,
-            )
-        assert time_gen_mock.call_count == 1
-        time_gen_mock.assert_called_once_with(
-            expected_request_timeout, expected_operation_timeout
-        )
-        assert instance._last_yielded_row_key is None
-        assert instance._remaining_count == row_limit
-        assert instance.operation_timeout == expected_operation_timeout
-        assert client.read_rows.call_count == 0
-        assert instance._metadata == [
-            (
-                "x-goog-request-params",
-                "table_name=test_table&app_profile_id=test_profile",
-            )
-        ]
-        assert instance.request.table_name == table.table_name
-        assert instance.request.app_profile_id == table.app_profile_id
-        assert instance.request.rows_limit == row_limit
-
-    @pytest.mark.parametrize(
-        "in_keys,last_key,expected",
-        [
-            (["b", "c", "d"], "a", ["b", "c", "d"]),
-            (["a", "b", "c"], "b", ["c"]),
-            (["a", "b", "c"], "c", []),
-            (["a", "b", "c"], "d", []),
-            (["d", "c", "b", "a"], "b", ["d", "c"]),
-        ],
-    )
-    def test_revise_request_rowset_keys(self, in_keys, last_key, expected):
-        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
-        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
-
-        in_keys = [key.encode("utf-8") for key in in_keys]
-        expected = [key.encode("utf-8") for key in expected]
-        last_key = last_key.encode("utf-8")
-        sample_range = RowRangePB(start_key_open=last_key)
-        row_set = RowSetPB(row_keys=in_keys, row_ranges=[sample_range])
-        revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
-        assert revised.row_keys == expected
-        assert revised.row_ranges == [sample_range]
-
-    @pytest.mark.parametrize(
-        "in_ranges,last_key,expected",
-        [
-            (
-                [{"start_key_open": "b", "end_key_closed": "d"}],
-                "a",
-                [{"start_key_open": "b", "end_key_closed": "d"}],
-            ),
-            (
-                [{"start_key_closed": "b", "end_key_closed": "d"}],
-                "a",
-                [{"start_key_closed": "b", "end_key_closed": "d"}],
-            ),
-            (
-                [{"start_key_open": "a", "end_key_closed": "d"}],
-                "b",
-                [{"start_key_open": "b", "end_key_closed": "d"}],
-            ),
-            (
-                [{"start_key_closed": "a", "end_key_open": "d"}],
-                "b",
-                [{"start_key_open": "b", "end_key_open": "d"}],
-            ),
-            (
-                [{"start_key_closed": "b", "end_key_closed": "d"}],
-                "b",
-                [{"start_key_open": "b", "end_key_closed": "d"}],
-            ),
-            ([{"start_key_closed": "b", "end_key_closed": "d"}], "d", []),
-            ([{"start_key_closed": "b", "end_key_open": "d"}], "d", []),
-            ([{"start_key_closed": "b", "end_key_closed": "d"}], "e", []),
-            ([{"start_key_closed": "b"}], "z", [{"start_key_open": "z"}]),
-            ([{"start_key_closed": "b"}], "a", [{"start_key_closed": "b"}]),
-            (
-                [{"end_key_closed": "z"}],
-                "a",
-                [{"start_key_open": "a", "end_key_closed": "z"}],
-            ),
-            (
-                [{"end_key_open": "z"}],
-                "a",
-                [{"start_key_open": "a", "end_key_open": "z"}],
-            ),
-        ],
-    )
-    def test_revise_request_rowset_ranges(self, in_ranges, last_key, expected):
-        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
-        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
-
-        next_key = (last_key + "a").encode("utf-8")
-        last_key = last_key.encode("utf-8")
-        in_ranges = [
-            RowRangePB(**{k: v.encode("utf-8") for (k, v) in r.items()})
-            for r in in_ranges
-        ]
-        expected = [
-            RowRangePB(**{k: v.encode("utf-8") for (k, v) in r.items()})
-            for r in expected
-        ]
-        row_set = RowSetPB(row_ranges=in_ranges, row_keys=[next_key])
-        revised = self._get_target_class()._revise_request_rowset(row_set, last_key)
-        assert revised.row_keys == [next_key]
-        assert revised.row_ranges == expected
-
-    @pytest.mark.parametrize("last_key", ["a", "b", "c"])
-    def test_revise_request_full_table(self, last_key):
-        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
-        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
-
-        last_key = last_key.encode("utf-8")
-        row_set = RowSetPB()
-        for selected_set in [row_set, None]:
-            revised = self._get_target_class()._revise_request_rowset(
-                selected_set, last_key
-            )
-            assert revised.row_keys == []
-            assert len(revised.row_ranges) == 1
-            assert revised.row_ranges[0] == RowRangePB(start_key_open=last_key)
-
-    def test_revise_to_empty_rowset(self):
-        """revising to an empty rowset should raise error"""
-        from google.cloud.bigtable.data.exceptions import _RowSetComplete
-        from google.cloud.bigtable_v2.types import RowSet as RowSetPB
-        from google.cloud.bigtable_v2.types import RowRange as RowRangePB
-
-        row_keys = [b"a", b"b", b"c"]
-        row_range = RowRangePB(end_key_open=b"c")
-        row_set = RowSetPB(row_keys=row_keys, row_ranges=[row_range])
-        with pytest.raises(_RowSetComplete):
-            self._get_target_class()._revise_request_rowset(row_set, b"d")
-
-    @pytest.mark.parametrize(
-        "start_limit,emit_num,expected_limit",
-        [
-            (10, 0, 10),
-            (10, 1, 9),
-            (10, 10, 0),
-            (None, 10, None),
-            (None, 0, None),
-            (4, 2, 2),
-        ],
-    )
-    def test_revise_limit(self, start_limit, emit_num, expected_limit):
-        """
-        revise_limit should revise the request's limit field
-        - if limit is 0 (unlimited), it should never be revised
-        - if start_limit-emit_num == 0, the request should end early
-        - if the number emitted exceeds the new limit, an exception should
-          should be raised (tested in test_revise_limit_over_limit)
-        """
-        from google.cloud.bigtable.data import ReadRowsQuery
-        from google.cloud.bigtable_v2.types import ReadRowsResponse
-
-        def awaitable_stream():
-            def mock_stream():
-                for i in range(emit_num):
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(
-                                row_key=str(i).encode(),
-                                family_name="b",
-                                qualifier=b"c",
-                                value=b"d",
-                                commit_row=True,
-                            )
-                        ]
-                    )
-
-            return mock_stream()
-
-        query = ReadRowsQuery(limit=start_limit)
-        table = mock.Mock()
-        table.table_name = "table_name"
-        table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
-        assert instance._remaining_count == start_limit
-        for val in instance.chunk_stream(awaitable_stream()):
-            pass
-        assert instance._remaining_count == expected_limit
-
-    @pytest.mark.parametrize("start_limit,emit_num", [(5, 10), (3, 9), (1, 10)])
-    def test_revise_limit_over_limit(self, start_limit, emit_num):
-        """
-        Should raise runtime error if we get in state where emit_num > start_num
-        (unless start_num == 0, which represents unlimited)
-        """
-        from google.cloud.bigtable.data import ReadRowsQuery
-        from google.cloud.bigtable_v2.types import ReadRowsResponse
-        from google.cloud.bigtable.data.exceptions import InvalidChunk
-
-        def awaitable_stream():
-            def mock_stream():
-                for i in range(emit_num):
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(
-                                row_key=str(i).encode(),
-                                family_name="b",
-                                qualifier=b"c",
-                                value=b"d",
-                                commit_row=True,
-                            )
-                        ]
-                    )
-
-            return mock_stream()
-
-        query = ReadRowsQuery(limit=start_limit)
-        table = mock.Mock()
-        table.table_name = "table_name"
-        table.app_profile_id = "app_profile_id"
-        instance = self._make_one(query, table, 10, 10)
-        assert instance._remaining_count == start_limit
-        with pytest.raises(InvalidChunk) as e:
-            for val in instance.chunk_stream(awaitable_stream()):
-                pass
-        assert "emit count exceeds row limit" in str(e.value)
-
-    def test_close(self):
-        """
-        should be able to close a stream safely with aclose.
-        Closed generators should raise StopIteration on next yield
-        """
-
-        def mock_stream():
-            while True:
-                yield 1
-
-        with mock.patch.object(
-            self._get_target_class(), "_read_rows_attempt"
-        ) as mock_attempt:
-            instance = self._make_one(mock.Mock(), mock.Mock(), 1, 1)
-            wrapped_gen = mock_stream()
-            mock_attempt.return_value = wrapped_gen
-            gen = instance.start_operation()
-            gen.__next__()
-            gen.close()
-            with pytest.raises(StopIteration):
-                gen.__next__()
-            gen.close()
-            with pytest.raises(StopIteration):
-                wrapped_gen.__next__()
-
-    def test_retryable_ignore_repeated_rows(self):
-        """Duplicate rows should cause an invalid chunk error"""
-        from google.cloud.bigtable.data.exceptions import InvalidChunk
-        from google.cloud.bigtable_v2.types import ReadRowsResponse
-
-        row_key = b"duplicate"
-
-        def mock_awaitable_stream():
-            def mock_stream():
-                while True:
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
-                        ]
-                    )
-                    yield ReadRowsResponse(
-                        chunks=[
-                            ReadRowsResponse.CellChunk(row_key=row_key, commit_row=True)
-                        ]
-                    )
-
-            return mock_stream()
-
-        instance = mock.Mock()
-        instance._last_yielded_row_key = None
-        instance._remaining_count = None
-        stream = self._get_target_class().chunk_stream(
-            instance, mock_awaitable_stream()
-        )
-        stream.__next__()
-        with pytest.raises(InvalidChunk) as exc:
-            stream.__next__()
-        assert "row keys should be strictly increasing" in str(exc.value)
-
-
-class Test_FlowControl(ABC):
-    @staticmethod
-    def _target_class():
-        from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
-
-        return _FlowControl
-
-    def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
-        return self._target_class()(max_mutation_count, max_mutation_bytes)
+        return self._get_target_class()(table, **kwargs)
 
     @staticmethod
     def _make_mutation(count=1, size=1):
@@ -666,222 +57,809 @@ class Test_FlowControl(ABC):
         mutation.mutations = [mock.Mock()] * count
         return mutation
 
-    def test_ctor(self):
-        max_mutation_count = 9
-        max_mutation_bytes = 19
-        instance = self._make_one(max_mutation_count, max_mutation_bytes)
-        assert instance._max_mutation_count == max_mutation_count
-        assert instance._max_mutation_bytes == max_mutation_bytes
-        assert instance._in_flight_mutation_count == 0
-        assert instance._in_flight_mutation_bytes == 0
-        assert isinstance(instance._capacity_condition, threading.Condition)
+    def test_ctor_defaults(self):
+        with mock.patch.object(
+            self._get_target_class(),
+            "_start_flush_timer",
+            return_value=concurrent.futures.Future(),
+        ) as flush_timer_mock:
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 8
+            table.default_mutate_rows_retryable_errors = [Exception]
+            with self._make_one(table) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._flush_jobs == set()
+                assert len(instance._staged_entries) == 0
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert instance._flow_control._max_mutation_count == 100000
+                assert instance._flow_control._max_mutation_bytes == 104857600
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                assert (
+                    instance._operation_timeout
+                    == table.default_mutate_rows_operation_timeout
+                )
+                assert (
+                    instance._attempt_timeout
+                    == table.default_mutate_rows_attempt_timeout
+                )
+                assert (
+                    instance._retryable_errors
+                    == table.default_mutate_rows_retryable_errors
+                )
+                time.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] == 5
+                assert isinstance(instance._flush_timer, concurrent.futures.Future)
+
+    def test_ctor_explicit(self):
+        """Test with explicit parameters"""
+        with mock.patch.object(
+            self._get_target_class(),
+            "_start_flush_timer",
+            return_value=concurrent.futures.Future(),
+        ) as flush_timer_mock:
+            table = mock.Mock()
+            flush_interval = 20
+            flush_limit_count = 17
+            flush_limit_bytes = 19
+            flow_control_max_mutation_count = 1001
+            flow_control_max_bytes = 12
+            operation_timeout = 11
+            attempt_timeout = 2
+            retryable_errors = [Exception]
+            with self._make_one(
+                table,
+                flush_interval=flush_interval,
+                flush_limit_mutation_count=flush_limit_count,
+                flush_limit_bytes=flush_limit_bytes,
+                flow_control_max_mutation_count=flow_control_max_mutation_count,
+                flow_control_max_bytes=flow_control_max_bytes,
+                batch_operation_timeout=operation_timeout,
+                batch_attempt_timeout=attempt_timeout,
+                batch_retryable_errors=retryable_errors,
+            ) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._flush_jobs == set()
+                assert len(instance._staged_entries) == 0
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert (
+                    instance._flow_control._max_mutation_count
+                    == flow_control_max_mutation_count
+                )
+                assert (
+                    instance._flow_control._max_mutation_bytes == flow_control_max_bytes
+                )
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                assert instance._operation_timeout == operation_timeout
+                assert instance._attempt_timeout == attempt_timeout
+                assert instance._retryable_errors == retryable_errors
+                time.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] == flush_interval
+                assert isinstance(instance._flush_timer, concurrent.futures.Future)
+
+    def test_ctor_no_flush_limits(self):
+        """Test with None for flush limits"""
+        with mock.patch.object(
+            self._get_target_class(),
+            "_start_flush_timer",
+            return_value=concurrent.futures.Future(),
+        ) as flush_timer_mock:
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 8
+            table.default_mutate_rows_retryable_errors = ()
+            flush_interval = None
+            flush_limit_count = None
+            flush_limit_bytes = None
+            with self._make_one(
+                table,
+                flush_interval=flush_interval,
+                flush_limit_mutation_count=flush_limit_count,
+                flush_limit_bytes=flush_limit_bytes,
+            ) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._staged_entries == []
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                time.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] is None
+                assert isinstance(instance._flush_timer, concurrent.futures.Future)
 
     def test_ctor_invalid_values(self):
-        """Test that values are positive, and fit within expected limits"""
+        """Test that timeout values are positive, and fit within expected limits"""
         with pytest.raises(ValueError) as e:
-            self._make_one(0, 1)
-            assert "max_mutation_count must be greater than 0" in str(e.value)
+            self._make_one(batch_operation_timeout=-1)
+        assert "operation_timeout must be greater than 0" in str(e.value)
         with pytest.raises(ValueError) as e:
-            self._make_one(1, 0)
-            assert "max_mutation_bytes must be greater than 0" in str(e.value)
+            self._make_one(batch_attempt_timeout=-1)
+        assert "attempt_timeout must be greater than 0" in str(e.value)
 
-    @pytest.mark.parametrize(
-        "max_count,max_size,existing_count,existing_size,new_count,new_size,expected",
-        [
-            (1, 1, 0, 0, 0, 0, True),
-            (1, 1, 1, 1, 1, 1, False),
-            (10, 10, 0, 0, 0, 0, True),
-            (10, 10, 0, 0, 9, 9, True),
-            (10, 10, 0, 0, 11, 9, True),
-            (10, 10, 0, 1, 11, 9, True),
-            (10, 10, 1, 0, 11, 9, False),
-            (10, 10, 0, 0, 9, 11, True),
-            (10, 10, 1, 0, 9, 11, True),
-            (10, 10, 0, 1, 9, 11, False),
-            (10, 1, 0, 0, 1, 0, True),
-            (1, 10, 0, 0, 0, 8, True),
-            (float("inf"), float("inf"), 0, 0, 10000000000.0, 10000000000.0, True),
-            (8, 8, 0, 0, 10000000000.0, 10000000000.0, True),
-            (12, 12, 6, 6, 5, 5, True),
-            (12, 12, 5, 5, 6, 6, True),
-            (12, 12, 6, 6, 6, 6, True),
-            (12, 12, 6, 6, 7, 7, False),
-            (12, 12, 0, 0, 13, 13, True),
-            (12, 12, 12, 0, 0, 13, True),
-            (12, 12, 0, 12, 13, 0, True),
-            (12, 12, 1, 1, 13, 13, False),
-            (12, 12, 1, 1, 0, 13, False),
-            (12, 12, 1, 1, 13, 0, False),
-        ],
-    )
-    def test__has_capacity(
-        self,
-        max_count,
-        max_size,
-        existing_count,
-        existing_size,
-        new_count,
-        new_size,
-        expected,
-    ):
-        """_has_capacity should return True if the new mutation will will not exceed the max count or size"""
-        instance = self._make_one(max_count, max_size)
-        instance._in_flight_mutation_count = existing_count
-        instance._in_flight_mutation_bytes = existing_size
-        assert instance._has_capacity(new_count, new_size) == expected
-
-    @pytest.mark.parametrize(
-        "existing_count,existing_size,added_count,added_size,new_count,new_size",
-        [
-            (0, 0, 0, 0, 0, 0),
-            (2, 2, 1, 1, 1, 1),
-            (2, 0, 1, 0, 1, 0),
-            (0, 2, 0, 1, 0, 1),
-            (10, 10, 0, 0, 10, 10),
-            (10, 10, 5, 5, 5, 5),
-            (0, 0, 1, 1, -1, -1),
-        ],
-    )
-    def test_remove_from_flow_value_update(
-        self,
-        existing_count,
-        existing_size,
-        added_count,
-        added_size,
-        new_count,
-        new_size,
-    ):
-        """completed mutations should lower the inflight values"""
-        instance = self._make_one()
-        instance._in_flight_mutation_count = existing_count
-        instance._in_flight_mutation_bytes = existing_size
-        mutation = self._make_mutation(added_count, added_size)
-        instance.remove_from_flow(mutation)
-        assert instance._in_flight_mutation_count == new_count
-        assert instance._in_flight_mutation_bytes == new_size
-
-    def test__remove_from_flow_unlock(self):
-        """capacity condition should notify after mutation is complete"""
+    def test_default_argument_consistency(self):
+        """
+        We supply default arguments in MutationsBatcherAsync.__init__, and in
+        table.mutations_batcher. Make sure any changes to defaults are applied to
+        both places
+        """
+        from google.cloud.bigtable.data._async.client import TableAsync
+        from google.cloud.bigtable.data._async.mutations_batcher import (
+            MutationsBatcherAsync,
+        )
         import inspect
 
-        instance = self._make_one(10, 10)
-        instance._in_flight_mutation_count = 10
-        instance._in_flight_mutation_bytes = 10
+        get_batcher_signature = dict(
+            inspect.signature(TableAsync.mutations_batcher).parameters
+        )
+        get_batcher_signature.pop("self")
+        batcher_init_signature = dict(
+            inspect.signature(MutationsBatcherAsync).parameters
+        )
+        batcher_init_signature.pop("table")
+        assert len(get_batcher_signature.keys()) == len(batcher_init_signature.keys())
+        assert len(get_batcher_signature) == 8
+        assert set(get_batcher_signature.keys()) == set(batcher_init_signature.keys())
+        for arg_name in get_batcher_signature.keys():
+            assert (
+                get_batcher_signature[arg_name].default
+                == batcher_init_signature[arg_name].default
+            )
 
-        def task_routine():
-            with instance._capacity_condition:
-                instance._capacity_condition.wait_for(
-                    lambda: instance._has_capacity(1, 1)
-                )
+    def test__start_flush_timer_w_None(self):
+        """Empty timer should return immediately"""
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
+            with self._make_one() as instance:
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    instance._start_flush_timer(None)
+                    assert sleep_mock.call_count == 0
+                    assert flush_mock.call_count == 0
 
-        if inspect.iscoroutinefunction(task_routine):
-            task = threading.Thread(task_routine())
-            task_alive = lambda: not task.done()
-        else:
-            import threading
+    def test__start_flush_timer_call_when_closed(self):
+        """closed batcher's timer should return immediately"""
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
+            with self._make_one() as instance:
+                instance.close()
+                flush_mock.reset_mock()
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    instance._start_flush_timer(1)
+                    assert sleep_mock.call_count == 0
+                    assert flush_mock.call_count == 0
 
-            thread = threading.Thread(target=task_routine)
-            thread.start()
-            task_alive = thread.is_alive
-        time.sleep(0.05)
-        assert task_alive() is True
-        mutation = self._make_mutation(count=0, size=5)
-        instance.remove_from_flow([mutation])
-        time.sleep(0.05)
-        assert instance._in_flight_mutation_count == 10
-        assert instance._in_flight_mutation_bytes == 5
-        assert task_alive() is True
-        instance._in_flight_mutation_bytes = 10
-        mutation = self._make_mutation(count=5, size=0)
-        instance.remove_from_flow([mutation])
-        time.sleep(0.05)
-        assert instance._in_flight_mutation_count == 5
-        assert instance._in_flight_mutation_bytes == 10
-        assert task_alive() is True
-        instance._in_flight_mutation_count = 10
-        mutation = self._make_mutation(count=5, size=5)
-        instance.remove_from_flow([mutation])
-        time.sleep(0.05)
-        assert instance._in_flight_mutation_count == 5
-        assert instance._in_flight_mutation_bytes == 5
-        assert task_alive() is False
+    def test__flush_timer(self):
+        """Timer should continue to call _schedule_flush in a loop"""
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
+            expected_sleep = 12
+            with self._make_one(flush_interval=expected_sleep) as instance:
+                instance._staged_entries = [mock.Mock()]
+                loop_num = 3
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    sleep_mock.side_effect = [None] * loop_num + [
+                        ZeroDivisionError("expected")
+                    ]
+                    try:
+                        instance._flush_timer
+                    except ZeroDivisionError:
+                        instance._flush_timer = concurrent.futures.Future()
+                    assert sleep_mock.call_count == loop_num + 1
+                    sleep_mock.assert_called_with(expected_sleep)
+                    assert flush_mock.call_count == loop_num
+
+    def test__flush_timer_no_mutations(self):
+        """Timer should not flush if no new mutations have been staged"""
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
+            expected_sleep = 12
+            with self._make_one(flush_interval=expected_sleep) as instance:
+                loop_num = 3
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
+                    try:
+                        instance._flush_timer
+                    except TabError:
+                        instance._flush_timer = concurrent.futures.Future()
+                    assert sleep_mock.call_count == loop_num + 1
+                    sleep_mock.assert_called_with(expected_sleep)
+                    assert flush_mock.call_count == 0
+
+    def test__flush_timer_close(self):
+        """Timer should continue terminate after close"""
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
+            with self._make_one() as instance:
+                with mock.patch("asyncio.sleep"):
+                    time.sleep(0.5)
+                    assert instance._flush_timer.done() is False
+                    instance.close()
+                    time.sleep(0.1)
+                    assert instance._flush_timer.done() is True
+
+    def test_append_closed(self):
+        """Should raise exception"""
+        with pytest.raises(RuntimeError):
+            instance = self._make_one()
+            instance.close()
+            instance.append(mock.Mock())
+
+    def test_append_wrong_mutation(self):
+        """
+        Mutation objects should raise an exception.
+        Only support RowMutationEntry
+        """
+        from google.cloud.bigtable.data.mutations import DeleteAllFromRow
+
+        with self._make_one() as instance:
+            expected_error = "invalid mutation type: DeleteAllFromRow. Only RowMutationEntry objects are supported by batcher"
+            with pytest.raises(ValueError) as e:
+                instance.append(DeleteAllFromRow())
+            assert str(e.value) == expected_error
+
+    def test_append_outside_flow_limits(self):
+        """entries larger than mutation limits are still processed"""
+        with self._make_one(
+            flow_control_max_mutation_count=1, flow_control_max_bytes=1
+        ) as instance:
+            oversized_entry = self._make_mutation(count=0, size=2)
+            instance.append(oversized_entry)
+            assert instance._staged_entries == [oversized_entry]
+            assert instance._staged_count == 0
+            assert instance._staged_bytes == 2
+            instance._staged_entries = []
+        with self._make_one(
+            flow_control_max_mutation_count=1, flow_control_max_bytes=1
+        ) as instance:
+            overcount_entry = self._make_mutation(count=2, size=0)
+            instance.append(overcount_entry)
+            assert instance._staged_entries == [overcount_entry]
+            assert instance._staged_count == 2
+            assert instance._staged_bytes == 0
+            instance._staged_entries = []
+
+    def test_append_flush_runs_after_limit_hit(self):
+        """
+        If the user appends a bunch of entries above the flush limits back-to-back,
+        it should still flush in a single task
+        """
+        with mock.patch.object(
+            self._get_target_class(), "_execute_mutate_rows"
+        ) as op_mock:
+            with self._make_one(flush_limit_bytes=100) as instance:
+
+                def mock_call(*args, **kwargs):
+                    return []
+
+                op_mock.side_effect = mock_call
+                instance.append(self._make_mutation(size=99))
+                num_entries = 10
+                for _ in range(num_entries):
+                    instance.append(self._make_mutation(size=1))
+                print(*instance._flush_jobs)
+                assert op_mock.call_count == 1
+                sent_batch = op_mock.call_args[0][0]
+                assert len(sent_batch) == 2
+                assert len(instance._staged_entries) == num_entries - 1
 
     @pytest.mark.parametrize(
-        "mutations,count_cap,size_cap,expected_results",
+        "flush_count,flush_bytes,mutation_count,mutation_bytes,expect_flush",
         [
-            ([(5, 5), (1, 1), (1, 1)], 10, 10, [[(5, 5), (1, 1), (1, 1)]]),
-            ([(1, 1), (1, 1), (1, 1)], 1, 1, [[(1, 1)], [(1, 1)], [(1, 1)]]),
-            ([(1, 1), (1, 1), (1, 1)], 2, 10, [[(1, 1), (1, 1)], [(1, 1)]]),
-            ([(1, 1), (1, 1), (1, 1)], 10, 2, [[(1, 1), (1, 1)], [(1, 1)]]),
-            (
-                [(1, 1), (5, 5), (4, 1), (1, 4), (1, 1)],
-                5,
-                5,
-                [[(1, 1)], [(5, 5)], [(4, 1), (1, 4)], [(1, 1)]],
-            ),
+            (10, 10, 1, 1, False),
+            (10, 10, 9, 9, False),
+            (10, 10, 10, 1, True),
+            (10, 10, 1, 10, True),
+            (10, 10, 10, 10, True),
+            (1, 1, 10, 10, True),
+            (1, 1, 0, 0, False),
         ],
     )
-    def test_add_to_flow(self, mutations, count_cap, size_cap, expected_results):
-        """Test batching with various flow control settings"""
-        mutation_objs = [self._make_mutation(count=m[0], size=m[1]) for m in mutations]
-        instance = self._make_one(count_cap, size_cap)
-        i = 0
-        for batch in instance.add_to_flow(mutation_objs):
-            expected_batch = expected_results[i]
-            assert len(batch) == len(expected_batch)
-            for j in range(len(expected_batch)):
-                assert len(batch[j].mutations) == expected_batch[j][0]
-                assert batch[j].size() == expected_batch[j][1]
-            instance.remove_from_flow(batch)
-            i += 1
-        assert i == len(expected_results)
-
-    @pytest.mark.parametrize(
-        "mutations,max_limit,expected_results",
-        [
-            ([(1, 1)] * 11, 10, [[(1, 1)] * 10, [(1, 1)]]),
-            ([(1, 1)] * 10, 1, [[(1, 1)] for _ in range(10)]),
-            ([(1, 1)] * 10, 2, [[(1, 1), (1, 1)] for _ in range(5)]),
-        ],
-    )
-    def test_add_to_flow_max_mutation_limits(
-        self, mutations, max_limit, expected_results
+    def test_append(
+        self, flush_count, flush_bytes, mutation_count, mutation_bytes, expect_flush
     ):
-        """
-        Test flow control running up against the max API limit
-        Should submit request early, even if the flow control has room for more
-        """
-        async_patch = mock.patch(
-            "google.cloud.bigtable.data._async.mutations_batcher._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
-            max_limit,
-        )
-        sync_patch = mock.patch(
-            "google.cloud.bigtable.data._sync._autogen._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
-            max_limit,
-        )
-        with async_patch, sync_patch:
-            mutation_objs = [
-                self._make_mutation(count=m[0], size=m[1]) for m in mutations
-            ]
-            instance = self._make_one(float("inf"), float("inf"))
-            i = 0
-            for batch in instance.add_to_flow(mutation_objs):
-                expected_batch = expected_results[i]
-                assert len(batch) == len(expected_batch)
-                for j in range(len(expected_batch)):
-                    assert len(batch[j].mutations) == expected_batch[j][0]
-                    assert batch[j].size() == expected_batch[j][1]
-                instance.remove_from_flow(batch)
-                i += 1
-            assert i == len(expected_results)
+        """test appending different mutations, and checking if it causes a flush"""
+        with self._make_one(
+            flush_limit_mutation_count=flush_count, flush_limit_bytes=flush_bytes
+        ) as instance:
+            assert instance._staged_count == 0
+            assert instance._staged_bytes == 0
+            assert instance._staged_entries == []
+            mutation = self._make_mutation(count=mutation_count, size=mutation_bytes)
+            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
+                instance.append(mutation)
+            assert flush_mock.call_count == bool(expect_flush)
+            assert instance._staged_count == mutation_count
+            assert instance._staged_bytes == mutation_bytes
+            assert instance._staged_entries == [mutation]
+            instance._staged_entries = []
 
-    def test_add_to_flow_oversize(self):
-        """mutations over the flow control limits should still be accepted"""
-        instance = self._make_one(2, 3)
-        large_size_mutation = self._make_mutation(count=1, size=10)
-        large_count_mutation = self._make_mutation(count=10, size=1)
-        results = [out for out in instance.add_to_flow([large_size_mutation])]
-        assert len(results) == 1
-        instance.remove_from_flow(results[0])
-        count_results = [out for out in instance.add_to_flow(large_count_mutation)]
-        assert len(count_results) == 1
+    def test_append_multiple_sequentially(self):
+        """Append multiple mutations"""
+        with self._make_one(
+            flush_limit_mutation_count=8, flush_limit_bytes=8
+        ) as instance:
+            assert instance._staged_count == 0
+            assert instance._staged_bytes == 0
+            assert instance._staged_entries == []
+            mutation = self._make_mutation(count=2, size=3)
+            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
+                instance.append(mutation)
+                assert flush_mock.call_count == 0
+                assert instance._staged_count == 2
+                assert instance._staged_bytes == 3
+                assert len(instance._staged_entries) == 1
+                instance.append(mutation)
+                assert flush_mock.call_count == 0
+                assert instance._staged_count == 4
+                assert instance._staged_bytes == 6
+                assert len(instance._staged_entries) == 2
+                instance.append(mutation)
+                assert flush_mock.call_count == 1
+                assert instance._staged_count == 6
+                assert instance._staged_bytes == 9
+                assert len(instance._staged_entries) == 3
+            instance._staged_entries = []
+
+    def test_flush_flow_control_concurrent_requests(self):
+        """requests should happen in parallel if flow control breaks up single flush into batches"""
+        import time
+
+        num_calls = 10
+        fake_mutations = [self._make_mutation(count=1) for _ in range(num_calls)]
+        with self._make_one(flow_control_max_mutation_count=1) as instance:
+            with mock.patch.object(
+                instance, "_execute_mutate_rows", mock.Mock()
+            ) as op_mock:
+
+                def mock_call(*args, **kwargs):
+                    time.sleep(0.1)
+                    return []
+
+                op_mock.side_effect = mock_call
+                start_time = time.monotonic()
+                instance._staged_entries = fake_mutations
+                instance._schedule_flush()
+                time.sleep(0.01)
+                for i in range(num_calls):
+                    instance._flow_control.remove_from_flow(
+                        [self._make_mutation(count=1)]
+                    )
+                    time.sleep(0.01)
+                print(*instance._flush_jobs)
+                duration = time.monotonic() - start_time
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert duration < 0.5
+                assert op_mock.call_count == num_calls
+
+    def test_schedule_flush_no_mutations(self):
+        """schedule flush should return None if no staged mutations"""
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "_flush_internal") as flush_mock:
+                for i in range(3):
+                    assert instance._schedule_flush() is None
+                    assert flush_mock.call_count == 0
+
+    def test_schedule_flush_with_mutations(self):
+        """if new mutations exist, should add a new flush task to _flush_jobs"""
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "_flush_internal") as flush_mock:
+                for i in range(1, 4):
+                    mutation = mock.Mock()
+                    instance._staged_entries = [mutation]
+                    instance._schedule_flush()
+                    assert instance._staged_entries == []
+                    time.sleep(0)
+                    assert instance._staged_entries == []
+                    assert instance._staged_count == 0
+                    assert instance._staged_bytes == 0
+                    assert flush_mock.call_count == i
+
+    def test__flush_internal(self):
+        """
+        _flush_internal should:
+          - await previous flush call
+          - delegate batching to _flow_control
+          - call _execute_mutate_rows on each batch
+          - update self.exceptions and self._entries_processed_since_last_raise
+        """
+        num_entries = 10
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "_execute_mutate_rows") as execute_mock:
+                with mock.patch.object(
+                    instance._flow_control, "add_to_flow"
+                ) as flow_mock:
+
+                    def gen(x):
+                        yield x
+
+                    flow_mock.side_effect = lambda x: gen(x)
+                    mutations = [self._make_mutation(count=1, size=1)] * num_entries
+                    instance._flush_internal(mutations)
+                    assert instance._entries_processed_since_last_raise == num_entries
+                    assert execute_mock.call_count == 1
+                    assert flow_mock.call_count == 1
+                    instance._oldest_exceptions.clear()
+                    instance._newest_exceptions.clear()
+
+    def test_flush_clears_job_list(self):
+        """
+        a job should be added to _flush_jobs when _schedule_flush is called,
+        and removed when it completes
+        """
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "_flush_internal", mock.Mock()):
+                mutations = [self._make_mutation(count=1, size=1)]
+                instance._staged_entries = mutations
+                assert instance._flush_jobs == set()
+                new_job = instance._schedule_flush()
+                assert instance._flush_jobs == {new_job}
+                new_job
+                assert instance._flush_jobs == set()
+
+    @pytest.mark.parametrize(
+        "num_starting,num_new_errors,expected_total_errors",
+        [
+            (0, 0, 0),
+            (0, 1, 1),
+            (0, 2, 2),
+            (1, 0, 1),
+            (1, 1, 2),
+            (10, 2, 12),
+            (10, 20, 20),
+        ],
+    )
+    def test__flush_internal_with_errors(
+        self, num_starting, num_new_errors, expected_total_errors
+    ):
+        """errors returned from _execute_mutate_rows should be added to internal exceptions"""
+        from google.cloud.bigtable.data import exceptions
+
+        num_entries = 10
+        expected_errors = [
+            exceptions.FailedMutationEntryError(mock.Mock(), mock.Mock(), ValueError())
+        ] * num_new_errors
+        with self._make_one() as instance:
+            instance._oldest_exceptions = [mock.Mock()] * num_starting
+            with mock.patch.object(instance, "_execute_mutate_rows") as execute_mock:
+                execute_mock.return_value = expected_errors
+                with mock.patch.object(
+                    instance._flow_control, "add_to_flow"
+                ) as flow_mock:
+
+                    def gen(x):
+                        yield x
+
+                    flow_mock.side_effect = lambda x: gen(x)
+                    mutations = [self._make_mutation(count=1, size=1)] * num_entries
+                    instance._flush_internal(mutations)
+                    assert instance._entries_processed_since_last_raise == num_entries
+                    assert execute_mock.call_count == 1
+                    assert flow_mock.call_count == 1
+                    found_exceptions = instance._oldest_exceptions + list(
+                        instance._newest_exceptions
+                    )
+                    assert len(found_exceptions) == expected_total_errors
+                    for i in range(num_starting, expected_total_errors):
+                        assert found_exceptions[i] == expected_errors[i - num_starting]
+                        assert found_exceptions[i].index is None
+            instance._oldest_exceptions.clear()
+            instance._newest_exceptions.clear()
+
+    def _mock_gapic_return(self, num=5):
+        from google.cloud.bigtable_v2.types import MutateRowsResponse
+        from google.rpc import status_pb2
+
+        def gen(num):
+            for i in range(num):
+                entry = MutateRowsResponse.Entry(
+                    index=i, status=status_pb2.Status(code=0)
+                )
+                yield MutateRowsResponse(entries=[entry])
+
+        return gen(num)
+
+    def test_timer_flush_end_to_end(self):
+        """Flush should automatically trigger after flush_interval"""
+        num_nutations = 10
+        mutations = [self._make_mutation(count=2, size=2)] * num_nutations
+        with self._make_one(flush_interval=0.05) as instance:
+            instance._table.default_operation_timeout = 10
+            instance._table.default_attempt_timeout = 9
+            with mock.patch.object(
+                instance._table.client._gapic_client, "mutate_rows"
+            ) as gapic_mock:
+                gapic_mock.side_effect = (
+                    lambda *args, **kwargs: self._mock_gapic_return(num_nutations)
+                )
+                for m in mutations:
+                    instance.append(m)
+                assert instance._entries_processed_since_last_raise == 0
+                time.sleep(0.1)
+                assert instance._entries_processed_since_last_raise == num_nutations
+
+    def test__execute_mutate_rows(self):
+        mutate_path = self._get_mutate_rows_class_path()
+        with mock.patch(mutate_path) as mutate_rows:
+            mutate_rows.return_value = mock.Mock()
+            start_operation = mutate_rows().start
+            table = mock.Mock()
+            table.table_name = "test-table"
+            table.app_profile_id = "test-app-profile"
+            table.default_mutate_rows_operation_timeout = 17
+            table.default_mutate_rows_attempt_timeout = 13
+            table.default_mutate_rows_retryable_errors = ()
+            with self._make_one(table) as instance:
+                batch = [self._make_mutation()]
+                result = instance._execute_mutate_rows(batch)
+                assert start_operation.call_count == 1
+                (args, kwargs) = mutate_rows.call_args
+                assert args[0] == table.client._gapic_client
+                assert args[1] == table
+                assert args[2] == batch
+                kwargs["operation_timeout"] == 17
+                kwargs["attempt_timeout"] == 13
+                assert result == []
+
+    def test__execute_mutate_rows_returns_errors(self):
+        """Errors from operation should be retruned as list"""
+        from google.cloud.bigtable.data.exceptions import (
+            MutationsExceptionGroup,
+            FailedMutationEntryError,
+        )
+
+        cls_path = self._get_mutate_rows_class_path()
+        with mock.patch(f"{cls_path}.start") as mutate_rows:
+            err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
+            err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
+            mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 17
+            table.default_mutate_rows_attempt_timeout = 13
+            table.default_mutate_rows_retryable_errors = ()
+            with self._make_one(table) as instance:
+                batch = [self._make_mutation()]
+                result = instance._execute_mutate_rows(batch)
+                assert len(result) == 2
+                assert result[0] == err1
+                assert result[1] == err2
+                assert result[0].index is None
+                assert result[1].index is None
+
+    def test__raise_exceptions(self):
+        """Raise exceptions and reset error state"""
+        from google.cloud.bigtable.data import exceptions
+
+        expected_total = 1201
+        expected_exceptions = [RuntimeError("mock")] * 3
+        with self._make_one() as instance:
+            instance._oldest_exceptions = expected_exceptions
+            instance._entries_processed_since_last_raise = expected_total
+            try:
+                instance._raise_exceptions()
+            except exceptions.MutationsExceptionGroup as exc:
+                assert list(exc.exceptions) == expected_exceptions
+                assert str(expected_total) in str(exc)
+            assert instance._entries_processed_since_last_raise == 0
+            (instance._oldest_exceptions, instance._newest_exceptions) = ([], [])
+            instance._raise_exceptions()
+
+    def test___aenter__(self):
+        """Should return self"""
+        with self._make_one() as instance:
+            assert instance.__enter__() == instance
+
+    def test___aexit__(self):
+        """aexit should call close"""
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "close") as close_mock:
+                instance.__exit__(None, None, None)
+                assert close_mock.call_count == 1
+
+    def test_close(self):
+        """Should clean up all resources"""
+        with self._make_one() as instance:
+            with mock.patch.object(instance, "_schedule_flush") as flush_mock:
+                with mock.patch.object(instance, "_raise_exceptions") as raise_mock:
+                    instance.close()
+                    assert instance.closed is True
+                    assert instance._flush_timer.done() is True
+                    assert instance._flush_jobs == set()
+                    assert flush_mock.call_count == 1
+                    assert raise_mock.call_count == 1
+
+    def test_close_w_exceptions(self):
+        """Raise exceptions on close"""
+        from google.cloud.bigtable.data import exceptions
+
+        expected_total = 10
+        expected_exceptions = [RuntimeError("mock")]
+        with self._make_one() as instance:
+            instance._oldest_exceptions = expected_exceptions
+            instance._entries_processed_since_last_raise = expected_total
+            try:
+                instance.close()
+            except exceptions.MutationsExceptionGroup as exc:
+                assert list(exc.exceptions) == expected_exceptions
+                assert str(expected_total) in str(exc)
+            assert instance._entries_processed_since_last_raise == 0
+            (instance._oldest_exceptions, instance._newest_exceptions) = ([], [])
+
+    def test__on_exit(self, recwarn):
+        """Should raise warnings if unflushed mutations exist"""
+        with self._make_one() as instance:
+            instance._on_exit()
+            assert len(recwarn) == 0
+            num_left = 4
+            instance._staged_entries = [mock.Mock()] * num_left
+            with pytest.warns(UserWarning) as w:
+                instance._on_exit()
+                assert len(w) == 1
+                assert "unflushed mutations" in str(w[0].message).lower()
+                assert str(num_left) in str(w[0].message)
+            instance.closed = True
+            instance._on_exit()
+            assert len(recwarn) == 0
+            instance._staged_entries = []
+
+    def test_atexit_registration(self):
+        """Should run _on_exit on program termination"""
+        import atexit
+
+        with mock.patch.object(atexit, "register") as register_mock:
+            assert register_mock.call_count == 0
+            with self._make_one():
+                assert register_mock.call_count == 1
+
+    def test_timeout_args_passed(self):
+        """
+        batch_operation_timeout and batch_attempt_timeout should be used
+        in api calls
+        """
+        mutate_path = self._get_mutate_rows_class_path()
+        with mock.patch(mutate_path, return_value=mock.Mock()) as mutate_rows:
+            expected_operation_timeout = 17
+            expected_attempt_timeout = 13
+            with self._make_one(
+                batch_operation_timeout=expected_operation_timeout,
+                batch_attempt_timeout=expected_attempt_timeout,
+            ) as instance:
+                assert instance._operation_timeout == expected_operation_timeout
+                assert instance._attempt_timeout == expected_attempt_timeout
+                instance._execute_mutate_rows([self._make_mutation()])
+                assert mutate_rows.call_count == 1
+                kwargs = mutate_rows.call_args[1]
+                assert kwargs["operation_timeout"] == expected_operation_timeout
+                assert kwargs["attempt_timeout"] == expected_attempt_timeout
+
+    @pytest.mark.parametrize(
+        "limit,in_e,start_e,end_e",
+        [
+            (10, 0, (10, 0), (10, 0)),
+            (1, 10, (0, 0), (1, 1)),
+            (10, 1, (0, 0), (1, 0)),
+            (10, 10, (0, 0), (10, 0)),
+            (10, 11, (0, 0), (10, 1)),
+            (3, 20, (0, 0), (3, 3)),
+            (10, 20, (0, 0), (10, 10)),
+            (10, 21, (0, 0), (10, 10)),
+            (2, 1, (2, 0), (2, 1)),
+            (2, 1, (1, 0), (2, 0)),
+            (2, 2, (1, 0), (2, 1)),
+            (3, 1, (3, 1), (3, 2)),
+            (3, 3, (3, 1), (3, 3)),
+            (1000, 5, (999, 0), (1000, 4)),
+            (1000, 5, (0, 0), (5, 0)),
+            (1000, 5, (1000, 0), (1000, 5)),
+        ],
+    )
+    def test__add_exceptions(self, limit, in_e, start_e, end_e):
+        """
+        Test that the _add_exceptions function properly updates the
+        _oldest_exceptions and _newest_exceptions lists
+        Args:
+          - limit: the _exception_list_limit representing the max size of either list
+          - in_e: size of list of exceptions to send to _add_exceptions
+          - start_e: a tuple of ints representing the initial sizes of _oldest_exceptions and _newest_exceptions
+          - end_e: a tuple of ints representing the expected sizes of _oldest_exceptions and _newest_exceptions
+        """
+        from collections import deque
+
+        input_list = [RuntimeError(f"mock {i}") for i in range(in_e)]
+        mock_batcher = mock.Mock()
+        mock_batcher._oldest_exceptions = [
+            RuntimeError(f"starting mock {i}") for i in range(start_e[0])
+        ]
+        mock_batcher._newest_exceptions = deque(
+            [RuntimeError(f"starting mock {i}") for i in range(start_e[1])],
+            maxlen=limit,
+        )
+        mock_batcher._exception_list_limit = limit
+        mock_batcher._exceptions_since_last_raise = 0
+        self._get_target_class()._add_exceptions(mock_batcher, input_list)
+        assert len(mock_batcher._oldest_exceptions) == end_e[0]
+        assert len(mock_batcher._newest_exceptions) == end_e[1]
+        assert mock_batcher._exceptions_since_last_raise == in_e
+        oldest_list_diff = end_e[0] - start_e[0]
+        newest_list_diff = min(max(in_e - oldest_list_diff, 0), limit)
+        for i in range(oldest_list_diff):
+            assert mock_batcher._oldest_exceptions[i + start_e[0]] == input_list[i]
+        for i in range(1, newest_list_diff + 1):
+            assert mock_batcher._newest_exceptions[-i] == input_list[-i]
+
+    @pytest.mark.parametrize(
+        "input_retryables,expected_retryables",
+        [
+            (
+                TABLE_DEFAULT.READ_ROWS,
+                [
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                    core_exceptions.Aborted,
+                ],
+            ),
+            (
+                TABLE_DEFAULT.DEFAULT,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            (
+                TABLE_DEFAULT.MUTATE_ROWS,
+                [core_exceptions.DeadlineExceeded, core_exceptions.ServiceUnavailable],
+            ),
+            ([], []),
+            ([4], [core_exceptions.DeadlineExceeded]),
+        ],
+    )
+    def test_customizable_retryable_errors(self, input_retryables, expected_retryables):
+        """
+        Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
+        down to the gapic layer.
+        """
+        from google.cloud.bigtable.data._async.client import TableAsync
+
+        with mock.patch(
+            "google.api_core.retry.if_exception_type"
+        ) as predicate_builder_mock:
+            with mock.patch(
+                "google.api_core.retry.retry_target_async"
+            ) as retry_fn_mock:
+                table = None
+                with mock.patch("asyncio.create_task"):
+                    table = TableAsync(mock.Mock(), "instance", "table")
+                with self._make_one(
+                    table, batch_retryable_errors=input_retryables
+                ) as instance:
+                    assert instance._retryable_errors == expected_retryables
+                    expected_predicate = lambda a: a in expected_retryables
+                    predicate_builder_mock.return_value = expected_predicate
+                    retry_fn_mock.side_effect = RuntimeError("stop early")
+                    mutation = self._make_mutation(count=1, size=1)
+                    instance._execute_mutate_rows([mutation])
+                    predicate_builder_mock.assert_called_once_with(
+                        *expected_retryables, _MutateRowsIncomplete
+                    )
+                    retry_call_args = retry_fn_mock.call_args_list[0].args
+                    assert retry_call_args[1] is expected_predicate

@@ -19,6 +19,8 @@ from concurrent.futures import ThreadPoolExecutor
 from google.cloud.bigtable.data._sync._autogen import _FlowControl_SyncGen
 from google.cloud.bigtable.data._sync._autogen import MutationsBatcher_SyncGen
 
+# import required so MutationsBatcher_SyncGen can create _MutateRowsOperation
+import google.cloud.bigtable.data._sync._mutate_rows  # noqa: F401
 
 class _FlowControl(_FlowControl_SyncGen):
     pass

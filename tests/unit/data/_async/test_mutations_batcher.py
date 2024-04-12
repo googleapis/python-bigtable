@@ -307,6 +307,12 @@ class TestMutationsBatcherAsync:
 
         return MutationsBatcherAsync
 
+    def _get_mutate_rows_class_path(self):
+        # location the MutateRowsOperation class is imported for mocking
+        # will be different in sync vs async versions
+
+        return "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync"
+
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
         from google.api_core.exceptions import ServiceUnavailable
@@ -329,130 +335,121 @@ class TestMutationsBatcherAsync:
         mutation.mutations = [mock.Mock()] * count
         return mutation
 
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._start_flush_timer"
-    )
     @pytest.mark.asyncio
-    async def test_ctor_defaults(self, flush_timer_mock):
-        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
-        table = mock.Mock()
-        table.default_mutate_rows_operation_timeout = 10
-        table.default_mutate_rows_attempt_timeout = 8
-        table.default_mutate_rows_retryable_errors = [Exception]
-        async with self._make_one(table) as instance:
-            assert instance._table == table
-            assert instance.closed is False
-            assert instance._flush_jobs == set()
-            assert len(instance._staged_entries) == 0
-            assert len(instance._oldest_exceptions) == 0
-            assert len(instance._newest_exceptions) == 0
-            assert instance._exception_list_limit == 10
-            assert instance._exceptions_since_last_raise == 0
-            assert instance._flow_control._max_mutation_count == 100000
-            assert instance._flow_control._max_mutation_bytes == 104857600
-            assert instance._flow_control._in_flight_mutation_count == 0
-            assert instance._flow_control._in_flight_mutation_bytes == 0
-            assert instance._entries_processed_since_last_raise == 0
-            assert (
-                instance._operation_timeout
-                == table.default_mutate_rows_operation_timeout
-            )
-            assert (
-                instance._attempt_timeout == table.default_mutate_rows_attempt_timeout
-            )
-            assert (
-                instance._retryable_errors == table.default_mutate_rows_retryable_errors
-            )
-            await asyncio.sleep(0)
-            assert flush_timer_mock.call_count == 1
-            assert flush_timer_mock.call_args[0][0] == 5
-            assert isinstance(instance._flush_timer, asyncio.Future)
+    async def test_ctor_defaults(self):
+        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 8
+            table.default_mutate_rows_retryable_errors = [Exception]
+            async with self._make_one(table) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._flush_jobs == set()
+                assert len(instance._staged_entries) == 0
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert instance._flow_control._max_mutation_count == 100000
+                assert instance._flow_control._max_mutation_bytes == 104857600
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                assert (
+                    instance._operation_timeout
+                    == table.default_mutate_rows_operation_timeout
+                )
+                assert (
+                    instance._attempt_timeout == table.default_mutate_rows_attempt_timeout
+                )
+                assert (
+                    instance._retryable_errors == table.default_mutate_rows_retryable_errors
+                )
+                await asyncio.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] == 5
+                assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._start_flush_timer",
-    )
     @pytest.mark.asyncio
-    async def test_ctor_explicit(self, flush_timer_mock):
+    async def test_ctor_explicit(self):
         """Test with explicit parameters"""
-        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
-        table = mock.Mock()
-        flush_interval = 20
-        flush_limit_count = 17
-        flush_limit_bytes = 19
-        flow_control_max_mutation_count = 1001
-        flow_control_max_bytes = 12
-        operation_timeout = 11
-        attempt_timeout = 2
-        retryable_errors = [Exception]
-        async with self._make_one(
-            table,
-            flush_interval=flush_interval,
-            flush_limit_mutation_count=flush_limit_count,
-            flush_limit_bytes=flush_limit_bytes,
-            flow_control_max_mutation_count=flow_control_max_mutation_count,
-            flow_control_max_bytes=flow_control_max_bytes,
-            batch_operation_timeout=operation_timeout,
-            batch_attempt_timeout=attempt_timeout,
-            batch_retryable_errors=retryable_errors,
-        ) as instance:
-            assert instance._table == table
-            assert instance.closed is False
-            assert instance._flush_jobs == set()
-            assert len(instance._staged_entries) == 0
-            assert len(instance._oldest_exceptions) == 0
-            assert len(instance._newest_exceptions) == 0
-            assert instance._exception_list_limit == 10
-            assert instance._exceptions_since_last_raise == 0
-            assert (
-                instance._flow_control._max_mutation_count
-                == flow_control_max_mutation_count
-            )
-            assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
-            assert instance._flow_control._in_flight_mutation_count == 0
-            assert instance._flow_control._in_flight_mutation_bytes == 0
-            assert instance._entries_processed_since_last_raise == 0
-            assert instance._operation_timeout == operation_timeout
-            assert instance._attempt_timeout == attempt_timeout
-            assert instance._retryable_errors == retryable_errors
-            await asyncio.sleep(0)
-            assert flush_timer_mock.call_count == 1
-            assert flush_timer_mock.call_args[0][0] == flush_interval
-            assert isinstance(instance._flush_timer, asyncio.Future)
+        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+            table = mock.Mock()
+            flush_interval = 20
+            flush_limit_count = 17
+            flush_limit_bytes = 19
+            flow_control_max_mutation_count = 1001
+            flow_control_max_bytes = 12
+            operation_timeout = 11
+            attempt_timeout = 2
+            retryable_errors = [Exception]
+            async with self._make_one(
+                table,
+                flush_interval=flush_interval,
+                flush_limit_mutation_count=flush_limit_count,
+                flush_limit_bytes=flush_limit_bytes,
+                flow_control_max_mutation_count=flow_control_max_mutation_count,
+                flow_control_max_bytes=flow_control_max_bytes,
+                batch_operation_timeout=operation_timeout,
+                batch_attempt_timeout=attempt_timeout,
+                batch_retryable_errors=retryable_errors,
+            ) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._flush_jobs == set()
+                assert len(instance._staged_entries) == 0
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert (
+                    instance._flow_control._max_mutation_count
+                    == flow_control_max_mutation_count
+                )
+                assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                assert instance._operation_timeout == operation_timeout
+                assert instance._attempt_timeout == attempt_timeout
+                assert instance._retryable_errors == retryable_errors
+                await asyncio.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] == flush_interval
+                assert isinstance(instance._flush_timer, asyncio.Future)
 
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._start_flush_timer"
-    )
     @pytest.mark.asyncio
-    async def test_ctor_no_flush_limits(self, flush_timer_mock):
+    async def test_ctor_no_flush_limits(self):
         """Test with None for flush limits"""
-        flush_timer_mock.return_value = asyncio.create_task(asyncio.sleep(0))
-        table = mock.Mock()
-        table.default_mutate_rows_operation_timeout = 10
-        table.default_mutate_rows_attempt_timeout = 8
-        table.default_mutate_rows_retryable_errors = ()
-        flush_interval = None
-        flush_limit_count = None
-        flush_limit_bytes = None
-        async with self._make_one(
-            table,
-            flush_interval=flush_interval,
-            flush_limit_mutation_count=flush_limit_count,
-            flush_limit_bytes=flush_limit_bytes,
-        ) as instance:
-            assert instance._table == table
-            assert instance.closed is False
-            assert instance._staged_entries == []
-            assert len(instance._oldest_exceptions) == 0
-            assert len(instance._newest_exceptions) == 0
-            assert instance._exception_list_limit == 10
-            assert instance._exceptions_since_last_raise == 0
-            assert instance._flow_control._in_flight_mutation_count == 0
-            assert instance._flow_control._in_flight_mutation_bytes == 0
-            assert instance._entries_processed_since_last_raise == 0
-            await asyncio.sleep(0)
-            assert flush_timer_mock.call_count == 1
-            assert flush_timer_mock.call_args[0][0] is None
-            assert isinstance(instance._flush_timer, asyncio.Future)
+        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 10
+            table.default_mutate_rows_attempt_timeout = 8
+            table.default_mutate_rows_retryable_errors = ()
+            flush_interval = None
+            flush_limit_count = None
+            flush_limit_bytes = None
+            async with self._make_one(
+                table,
+                flush_interval=flush_interval,
+                flush_limit_mutation_count=flush_limit_count,
+                flush_limit_bytes=flush_limit_bytes,
+            ) as instance:
+                assert instance._table == table
+                assert instance.closed is False
+                assert instance._staged_entries == []
+                assert len(instance._oldest_exceptions) == 0
+                assert len(instance._newest_exceptions) == 0
+                assert instance._exception_list_limit == 10
+                assert instance._exceptions_since_last_raise == 0
+                assert instance._flow_control._in_flight_mutation_count == 0
+                assert instance._flow_control._in_flight_mutation_bytes == 0
+                assert instance._entries_processed_since_last_raise == 0
+                await asyncio.sleep(0)
+                assert flush_timer_mock.call_count == 1
+                assert flush_timer_mock.call_args[0][0] is None
+                assert isinstance(instance._flush_timer, asyncio.Future)
 
     @pytest.mark.asyncio
     async def test_ctor_invalid_values(self):
@@ -496,87 +493,79 @@ class TestMutationsBatcherAsync:
                 == batcher_init_signature[arg_name].default
             )
 
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._schedule_flush"
-    )
     @pytest.mark.asyncio
-    async def test__start_flush_timer_w_None(self, flush_mock):
+    async def test__start_flush_timer_w_None(self):
         """Empty timer should return immediately"""
-        async with self._make_one() as instance:
-            with mock.patch("asyncio.sleep") as sleep_mock:
-                await instance._start_flush_timer(None)
-                assert sleep_mock.call_count == 0
-                assert flush_mock.call_count == 0
+        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            async with self._make_one() as instance:
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    await instance._start_flush_timer(None)
+                    assert sleep_mock.call_count == 0
+                    assert flush_mock.call_count == 0
 
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._schedule_flush"
-    )
     @pytest.mark.asyncio
-    async def test__start_flush_timer_call_when_closed(self, flush_mock):
+    async def test__start_flush_timer_call_when_closed(self,):
         """closed batcher's timer should return immediately"""
-        async with self._make_one() as instance:
-            await instance.close()
-            flush_mock.reset_mock()
-            with mock.patch("asyncio.sleep") as sleep_mock:
-                await instance._start_flush_timer(1)
-                assert sleep_mock.call_count == 0
-                assert flush_mock.call_count == 0
-
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._schedule_flush"
-    )
-    @pytest.mark.asyncio
-    async def test__flush_timer(self, flush_mock):
-        """Timer should continue to call _schedule_flush in a loop"""
-        expected_sleep = 12
-        async with self._make_one(flush_interval=expected_sleep) as instance:
-            instance._staged_entries = [mock.Mock()]
-            loop_num = 3
-            with mock.patch("asyncio.sleep") as sleep_mock:
-                sleep_mock.side_effect = [None] * loop_num + [asyncio.CancelledError()]
-                try:
-                    await instance._flush_timer
-                except asyncio.CancelledError:
-                    pass
-                assert sleep_mock.call_count == loop_num + 1
-                sleep_mock.assert_called_with(expected_sleep)
-                assert flush_mock.call_count == loop_num
-
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._schedule_flush"
-    )
-    @pytest.mark.asyncio
-    async def test__flush_timer_no_mutations(self, flush_mock):
-        """Timer should not flush if no new mutations have been staged"""
-        expected_sleep = 12
-        async with self._make_one(flush_interval=expected_sleep) as instance:
-            loop_num = 3
-            with mock.patch("asyncio.sleep") as sleep_mock:
-                sleep_mock.side_effect = [None] * loop_num + [asyncio.CancelledError()]
-                try:
-                    await instance._flush_timer
-                except asyncio.CancelledError:
-                    pass
-                assert sleep_mock.call_count == loop_num + 1
-                sleep_mock.assert_called_with(expected_sleep)
-                assert flush_mock.call_count == 0
-
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync._schedule_flush"
-    )
-    @pytest.mark.asyncio
-    async def test__flush_timer_close(self, flush_mock):
-        """Timer should continue terminate after close"""
-        async with self._make_one() as instance:
-            with mock.patch("asyncio.sleep"):
-                # let task run in background
-                await asyncio.sleep(0.5)
-                assert instance._flush_timer.done() is False
-                # close the batcher
+        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            async with self._make_one() as instance:
                 await instance.close()
-                await asyncio.sleep(0.1)
-                # task should be complete
-                assert instance._flush_timer.done() is True
+                flush_mock.reset_mock()
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    await instance._start_flush_timer(1)
+                    assert sleep_mock.call_count == 0
+                    assert flush_mock.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test__flush_timer(self):
+        """Timer should continue to call _schedule_flush in a loop"""
+        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            expected_sleep = 12
+            async with self._make_one(flush_interval=expected_sleep) as instance:
+                instance._staged_entries = [mock.Mock()]
+                loop_num = 3
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    sleep_mock.side_effect = [None] * loop_num + [ZeroDivisionError("expected")]
+                    try:
+                        await instance._flush_timer
+                    except ZeroDivisionError:
+                        # replace with np-op so there are no issues on close
+                        instance._flush_timer = asyncio.Future()
+                    assert sleep_mock.call_count == loop_num + 1
+                    sleep_mock.assert_called_with(expected_sleep)
+                    assert flush_mock.call_count == loop_num
+
+    @pytest.mark.asyncio
+    async def test__flush_timer_no_mutations(self):
+        """Timer should not flush if no new mutations have been staged"""
+        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            expected_sleep = 12
+            async with self._make_one(flush_interval=expected_sleep) as instance:
+                loop_num = 3
+                with mock.patch("asyncio.sleep") as sleep_mock:
+                    sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
+                    try:
+                        await instance._flush_timer
+                    except TabError:
+                        # replace with np-op so there are no issues on close
+                        instance._flush_timer = asyncio.Future()
+                    assert sleep_mock.call_count == loop_num + 1
+                    sleep_mock.assert_called_with(expected_sleep)
+                    assert flush_mock.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test__flush_timer_close(self):
+        """Timer should continue terminate after close"""
+        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            async with self._make_one() as instance:
+                with mock.patch("asyncio.sleep"):
+                    # let task run in background
+                    await asyncio.sleep(0.5)
+                    assert instance._flush_timer.done() is False
+                    # close the batcher
+                    await instance.close()
+                    await asyncio.sleep(0.1)
+                    # task should be complete
+                    assert instance._flush_timer.done() is True
 
     @pytest.mark.asyncio
     async def test_append_closed(self):
@@ -628,12 +617,8 @@ class TestMutationsBatcherAsync:
         If the user appends a bunch of entries above the flush limits back-to-back,
         it should still flush in a single task
         """
-        from google.cloud.bigtable.data._async.mutations_batcher import (
-            MutationsBatcherAsync,
-        )
-
         with mock.patch.object(
-            MutationsBatcherAsync, "_execute_mutate_rows"
+            self._get_target_class(), "_execute_mutate_rows"
         ) as op_mock:
             async with self._make_one(flush_limit_bytes=100) as instance:
                 # mock network calls
@@ -915,57 +900,54 @@ class TestMutationsBatcherAsync:
                 assert instance._entries_processed_since_last_raise == num_nutations
 
     @pytest.mark.asyncio
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync",
-    )
-    async def test__execute_mutate_rows(self, mutate_rows):
-        mutate_rows.return_value = AsyncMock()
-        start_operation = mutate_rows().start
-        table = mock.Mock()
-        table.table_name = "test-table"
-        table.app_profile_id = "test-app-profile"
-        table.default_mutate_rows_operation_timeout = 17
-        table.default_mutate_rows_attempt_timeout = 13
-        table.default_mutate_rows_retryable_errors = ()
-        async with self._make_one(table) as instance:
-            batch = [self._make_mutation()]
-            result = await instance._execute_mutate_rows(batch)
-            assert start_operation.call_count == 1
-            args, kwargs = mutate_rows.call_args
-            assert args[0] == table.client._gapic_client
-            assert args[1] == table
-            assert args[2] == batch
-            kwargs["operation_timeout"] == 17
-            kwargs["attempt_timeout"] == 13
-            assert result == []
+    async def test__execute_mutate_rows(self):
+        mutate_path = self._get_mutate_rows_class_path()
+        with mock.patch(mutate_path) as mutate_rows:
+            mutate_rows.return_value = AsyncMock()
+            start_operation = mutate_rows().start
+            table = mock.Mock()
+            table.table_name = "test-table"
+            table.app_profile_id = "test-app-profile"
+            table.default_mutate_rows_operation_timeout = 17
+            table.default_mutate_rows_attempt_timeout = 13
+            table.default_mutate_rows_retryable_errors = ()
+            async with self._make_one(table) as instance:
+                batch = [self._make_mutation()]
+                result = await instance._execute_mutate_rows(batch)
+                assert start_operation.call_count == 1
+                args, kwargs = mutate_rows.call_args
+                assert args[0] == table.client._gapic_client
+                assert args[1] == table
+                assert args[2] == batch
+                kwargs["operation_timeout"] == 17
+                kwargs["attempt_timeout"] == 13
+                assert result == []
 
     @pytest.mark.asyncio
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync.start"
-    )
-    async def test__execute_mutate_rows_returns_errors(self, mutate_rows):
+    async def test__execute_mutate_rows_returns_errors(self):
         """Errors from operation should be retruned as list"""
         from google.cloud.bigtable.data.exceptions import (
             MutationsExceptionGroup,
             FailedMutationEntryError,
         )
-
-        err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
-        err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
-        mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
-        table = mock.Mock()
-        table.default_mutate_rows_operation_timeout = 17
-        table.default_mutate_rows_attempt_timeout = 13
-        table.default_mutate_rows_retryable_errors = ()
-        async with self._make_one(table) as instance:
-            batch = [self._make_mutation()]
-            result = await instance._execute_mutate_rows(batch)
-            assert len(result) == 2
-            assert result[0] == err1
-            assert result[1] == err2
-            # indices should be set to None
-            assert result[0].index is None
-            assert result[1].index is None
+        cls_path = self._get_mutate_rows_class_path()
+        with mock.patch(f"{cls_path}.start") as mutate_rows:
+            err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
+            err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
+            mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
+            table = mock.Mock()
+            table.default_mutate_rows_operation_timeout = 17
+            table.default_mutate_rows_attempt_timeout = 13
+            table.default_mutate_rows_retryable_errors = ()
+            async with self._make_one(table) as instance:
+                batch = [self._make_mutation()]
+                result = await instance._execute_mutate_rows(batch)
+                assert len(result) == 2
+                assert result[0] == err1
+                assert result[1] == err2
+                # indices should be set to None
+                assert result[0].index is None
+                assert result[1].index is None
 
     @pytest.mark.asyncio
     async def test__raise_exceptions(self):
@@ -1066,29 +1048,27 @@ class TestMutationsBatcherAsync:
                 assert register_mock.call_count == 1
 
     @pytest.mark.asyncio
-    @mock.patch(
-        "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync",
-    )
-    async def test_timeout_args_passed(self, mutate_rows):
+    async def test_timeout_args_passed(self):
         """
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        mutate_rows.return_value = AsyncMock()
-        expected_operation_timeout = 17
-        expected_attempt_timeout = 13
-        async with self._make_one(
-            batch_operation_timeout=expected_operation_timeout,
-            batch_attempt_timeout=expected_attempt_timeout,
-        ) as instance:
-            assert instance._operation_timeout == expected_operation_timeout
-            assert instance._attempt_timeout == expected_attempt_timeout
-            # make simulated gapic call
-            await instance._execute_mutate_rows([self._make_mutation()])
-            assert mutate_rows.call_count == 1
-            kwargs = mutate_rows.call_args[1]
-            assert kwargs["operation_timeout"] == expected_operation_timeout
-            assert kwargs["attempt_timeout"] == expected_attempt_timeout
+        mutate_path = self._get_mutate_rows_class_path()
+        with mock.patch(mutate_path, return_value=AsyncMock()) as mutate_rows:
+            expected_operation_timeout = 17
+            expected_attempt_timeout = 13
+            async with self._make_one(
+                batch_operation_timeout=expected_operation_timeout,
+                batch_attempt_timeout=expected_attempt_timeout,
+            ) as instance:
+                assert instance._operation_timeout == expected_operation_timeout
+                assert instance._attempt_timeout == expected_attempt_timeout
+                # make simulated gapic call
+                await instance._execute_mutate_rows([self._make_mutation()])
+                assert mutate_rows.call_count == 1
+                kwargs = mutate_rows.call_args[1]
+                assert kwargs["operation_timeout"] == expected_operation_timeout
+                assert kwargs["attempt_timeout"] == expected_attempt_timeout
 
     @pytest.mark.parametrize(
         "limit,in_e,start_e,end_e",
