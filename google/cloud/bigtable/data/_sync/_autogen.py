@@ -561,7 +561,7 @@ class MutationsBatcher_SyncGen(ABC):
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._flush_timer = self._start_flush_timer(flush_interval)
+        self._flush_timer = self._create_bg_task(self._timer_routine, flush_interval)
         self._flush_jobs: set[concurrent.futures.Future[None]] = set()
         self._entries_processed_since_last_raise: int = 0
         self._exceptions_since_last_raise: int = 0
@@ -572,9 +572,7 @@ class MutationsBatcher_SyncGen(ABC):
         )
         atexit.register(self._on_exit)
 
-    def _start_flush_timer(
-        self, interval: float | None
-    ) -> concurrent.futures.Future[None]:
+    def _timer_routine(self, interval: float | None) -> None:
         raise NotImplementedError("Function not implemented in sync class")
 
     def append(self, mutation_entry: RowMutationEntry):
@@ -611,8 +609,9 @@ class MutationsBatcher_SyncGen(ABC):
             (entries, self._staged_entries) = (self._staged_entries, [])
             (self._staged_count, self._staged_bytes) = (0, 0)
             new_task = self._create_bg_task(self._flush_internal, entries)
-            new_task.add_done_callback(self._flush_jobs.remove)
-            self._flush_jobs.add(new_task)
+            if not new_task.done():
+                self._flush_jobs.add(new_task)
+                new_task.add_done_callback(self._flush_jobs.remove)
             return new_task
         return None
 

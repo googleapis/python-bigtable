@@ -14,6 +14,7 @@
 
 import pytest
 import asyncio
+import time
 import google.api_core.exceptions as core_exceptions
 import google.api_core.retry
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
@@ -309,11 +310,10 @@ class TestMutationsBatcherAsync:
 
         return MutationsBatcherAsync
 
-    def _get_mutate_rows_class_path(self):
-        # location the MutateRowsOperation class is imported for mocking
-        # will be different in sync vs async versions
-
-        return "google.cloud.bigtable.data._async.mutations_batcher._MutateRowsOperationAsync"
+    @staticmethod
+    def is_async():
+        # helepr function for changing tests between sync and async versions
+        return True
 
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
@@ -339,7 +339,7 @@ class TestMutationsBatcherAsync:
 
     @pytest.mark.asyncio
     async def test_ctor_defaults(self):
-        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 8
@@ -376,7 +376,7 @@ class TestMutationsBatcherAsync:
     @pytest.mark.asyncio
     async def test_ctor_explicit(self):
         """Test with explicit parameters"""
-        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
             table = mock.Mock()
             flush_interval = 20
             flush_limit_count = 17
@@ -424,7 +424,7 @@ class TestMutationsBatcherAsync:
     @pytest.mark.asyncio
     async def test_ctor_no_flush_limits(self):
         """Test with None for flush limits"""
-        with mock.patch.object(self._get_target_class(), "_start_flush_timer", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 8
@@ -492,65 +492,65 @@ class TestMutationsBatcherAsync:
             )
 
     @pytest.mark.asyncio
-    async def test__start_flush_timer_w_None(self):
-        """Empty timer should return immediately"""
+    @pytest.mark.parametrize("input_val", [None, 0, -1])
+    async def test__start_flush_timer_w_empty_input(self, input_val):
+        """Empty/invalid timer should return immediately"""
         with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+            # mock different method depending on sync vs async
             async with self._make_one() as instance:
-                with mock.patch("asyncio.sleep") as sleep_mock:
-                    await instance._start_flush_timer(None)
+                if self.is_async():
+                    sleep_obj, sleep_method = asyncio, "wait_for"
+                else:
+                    sleep_obj, sleep_method = instance._closed, "wait"
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
+                    result = await instance._timer_routine(input_val)
                     assert sleep_mock.call_count == 0
                     assert flush_mock.call_count == 0
+                    assert result is None
 
     @pytest.mark.asyncio
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__start_flush_timer_call_when_closed(self,):
         """closed batcher's timer should return immediately"""
         with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
             async with self._make_one() as instance:
                 await instance.close()
                 flush_mock.reset_mock()
-                with mock.patch("asyncio.sleep") as sleep_mock:
-                    await instance._start_flush_timer(1)
+                # mock different method depending on sync vs async
+                if self.is_async():
+                    sleep_obj, sleep_method = asyncio, "wait_for"
+                else:
+                    sleep_obj, sleep_method = instance._closed, "wait"
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
+                    await instance._timer_routine(10)
                     assert sleep_mock.call_count == 0
                     assert flush_mock.call_count == 0
 
     @pytest.mark.asyncio
-    async def test__flush_timer(self):
+    @pytest.mark.parametrize("num_staged", [0, 1, 10])
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    async def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
         with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
             expected_sleep = 12
             async with self._make_one(flush_interval=expected_sleep) as instance:
-                instance._staged_entries = [mock.Mock()]
                 loop_num = 3
-                with mock.patch("asyncio.wait_for") as sleep_mock:
-                    sleep_mock.side_effect = [None] * loop_num + [ZeroDivisionError("expected")]
-                    try:
-                        await instance._flush_timer
-                    except ZeroDivisionError:
-                        # replace with np-op so there are no issues on close
-                        instance._flush_timer = asyncio.Future()
-                    assert sleep_mock.call_count == loop_num + 1
-                    sleep_kwargs = sleep_mock.call_args[1]
-                    assert sleep_kwargs["timeout"] == expected_sleep
-                    assert flush_mock.call_count == loop_num
-
-    @pytest.mark.asyncio
-    async def test__flush_timer_no_mutations(self):
-        """Timer should not flush if no new mutations have been staged"""
-        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
-            expected_sleep = 12
-            async with self._make_one(flush_interval=expected_sleep) as instance:
-                loop_num = 3
-                with mock.patch("asyncio.wait_for") as sleep_mock:
+                instance._staged_entries = [mock.Mock()] * num_staged
+                # mock different method depending on sync vs async
+                if self.is_async():
+                    sleep_obj, sleep_method = asyncio, "wait_for"
+                else:
+                    sleep_obj, sleep_method = instance._closed, "wait"
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
-                    try:
-                        await instance._flush_timer
-                    except TabError:
-                        # replace with np-op so there are no issues on close
-                        instance._flush_timer = asyncio.Future()
+                    with pytest.raises(TabError):
+                        await self._get_target_class()._timer_routine(instance, expected_sleep)
+                    # replace with np-op so there are no issues on close
+                    instance._flush_timer = asyncio.Future()
                     assert sleep_mock.call_count == loop_num + 1
                     sleep_kwargs = sleep_mock.call_args[1]
                     assert sleep_kwargs["timeout"] == expected_sleep
-                    assert flush_mock.call_count == 0
+                    assert flush_mock.call_count == (0 if num_staged == 0 else loop_num)
 
     @pytest.mark.asyncio
     async def test__flush_timer_close(self):
@@ -570,9 +570,9 @@ class TestMutationsBatcherAsync:
     @pytest.mark.asyncio
     async def test_append_closed(self):
         """Should raise exception"""
+        instance = self._make_one()
+        await instance.close()
         with pytest.raises(RuntimeError):
-            instance = self._make_one()
-            await instance.close()
             await instance.append(mock.Mock())
 
     @pytest.mark.asyncio
@@ -633,7 +633,7 @@ class TestMutationsBatcherAsync:
                 for _ in range(num_entries):
                     await instance.append(self._make_mutation(size=1))
                 # let any flush jobs finish
-                await asyncio.gather(*instance._flush_jobs)
+                await instance._wait_for_batch_results(*instance._flush_jobs)
                 # should have only flushed once, with large mutation and first mutation in loop
                 assert op_mock.call_count == 1
                 sent_batch = op_mock.call_args[0][0]
@@ -654,6 +654,7 @@ class TestMutationsBatcherAsync:
         ],
     )
     @pytest.mark.asyncio
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test_append(
         self, flush_count, flush_bytes, mutation_count, mutation_bytes, expect_flush
     ):
@@ -732,7 +733,7 @@ class TestMutationsBatcherAsync:
                     )
                     await asyncio.sleep(0.01)
                 # allow flushes to complete
-                await asyncio.gather(*instance._flush_jobs)
+                await instance._wait_for_batch_results(*instance._flush_jobs)
                 duration = time.monotonic() - start_time
                 assert len(instance._oldest_exceptions) == 0
                 assert len(instance._newest_exceptions) == 0
@@ -750,10 +751,14 @@ class TestMutationsBatcherAsync:
                     assert flush_mock.call_count == 0
 
     @pytest.mark.asyncio
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test_schedule_flush_with_mutations(self):
         """if new mutations exist, should add a new flush task to _flush_jobs"""
         async with self._make_one() as instance:
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
+                if not self.is_async():
+                    # simulate operation
+                    flush_mock.side_effect = lambda x: time.sleep(0.1)
                 for i in range(1, 4):
                     mutation = mock.Mock()
                     instance._staged_entries = [mutation]
@@ -764,7 +769,8 @@ class TestMutationsBatcherAsync:
                     assert instance._staged_entries == []
                     assert instance._staged_count == 0
                     assert instance._staged_bytes == 0
-                    assert flush_mock.call_count == i
+                    assert flush_mock.call_count == 1
+                    flush_mock.reset_mock()
 
     @pytest.mark.asyncio
     async def test__flush_internal(self):
@@ -801,13 +807,19 @@ class TestMutationsBatcherAsync:
         and removed when it completes
         """
         async with self._make_one() as instance:
-            with mock.patch.object(instance, "_flush_internal", AsyncMock()):
+            with mock.patch.object(instance, "_flush_internal", AsyncMock()) as flush_mock:
+                if not self.is_async():
+                    # simulate operation
+                    flush_mock.side_effect = lambda x: time.sleep(0.1)
                 mutations = [self._make_mutation(count=1, size=1)]
                 instance._staged_entries = mutations
                 assert instance._flush_jobs == set()
                 new_job = instance._schedule_flush()
                 assert instance._flush_jobs == {new_job}
-                await new_job
+                if self.is_async():
+                    await new_job
+                else:
+                    new_job.result()
                 assert instance._flush_jobs == set()
 
     @pytest.mark.parametrize(
@@ -901,8 +913,11 @@ class TestMutationsBatcherAsync:
 
     @pytest.mark.asyncio
     async def test__execute_mutate_rows(self):
-        mutate_path = self._get_mutate_rows_class_path()
-        with mock.patch(mutate_path) as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}") as mutate_rows:
             mutate_rows.return_value = AsyncMock()
             start_operation = mutate_rows().start
             table = mock.Mock()
@@ -930,8 +945,11 @@ class TestMutationsBatcherAsync:
             MutationsExceptionGroup,
             FailedMutationEntryError,
         )
-        cls_path = self._get_mutate_rows_class_path()
-        with mock.patch(f"{cls_path}.start") as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}.start") as mutate_rows:
             err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
             err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
             mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
@@ -1053,8 +1071,11 @@ class TestMutationsBatcherAsync:
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        mutate_path = self._get_mutate_rows_class_path()
-        with mock.patch(mutate_path, return_value=AsyncMock()) as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}", return_value=AsyncMock()) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
             async with self._make_one(

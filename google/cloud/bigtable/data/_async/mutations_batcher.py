@@ -234,7 +234,7 @@ class MutationsBatcherAsync:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._flush_timer = self._start_flush_timer(flush_interval)
+        self._flush_timer = self._create_bg_task(self._timer_routine, flush_interval)
         self._flush_jobs: set[asyncio.Future[None]] = set()
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
@@ -248,36 +248,21 @@ class MutationsBatcherAsync:
         # clean up on program exit
         atexit.register(self._on_exit)
 
-    def _start_flush_timer(self, interval: float | None) -> asyncio.Future[None]:
+    async def _timer_routine(self, interval: float | None) -> None:
         """
-        Set up a background task to flush the batcher every interval seconds
-
-        If interval is None, an empty future is returned
-
-        Args:
-          - flush_interval: Automatically flush every flush_interval seconds.
-              If None, no time-based flushing is performed.
-        Returns:
-            - asyncio.Future that represents the background task
+        Triggers new flush tasks every `interval` seconds
+        Ends when the batcher is closed
         """
-        if interval is None or self._closed.is_set():
-            empty_future: asyncio.Future[None] = asyncio.Future()
-            empty_future.set_result(None)
-            return empty_future
-
-        async def timer_routine(self, interval: float):
-            """
-            Triggers new flush tasks every `interval` seconds
-            """
-            while not self._closed.is_set():
-                # wait until interval has passed, or until closed
-                try:
-                    await asyncio.wait_for(self._closed.wait(), timeout=interval)
-                except asyncio.TimeoutError:
-                    pass
-                if not self._closed.is_set() and self._staged_entries:
-                    self._schedule_flush()
-        return self._create_bg_task(timer_routine, self, interval)
+        if not interval or interval <= 0:
+            return None
+        while not self._closed.is_set():
+            # wait until interval has passed, or until closed
+            try:
+                await asyncio.wait_for(self._closed.wait(), timeout=interval)
+            except asyncio.TimeoutError:
+                pass
+            if not self._closed.is_set() and self._staged_entries:
+                self._schedule_flush()
 
     async def append(self, mutation_entry: RowMutationEntry):
         """
@@ -315,8 +300,9 @@ class MutationsBatcherAsync:
             entries, self._staged_entries = self._staged_entries, []
             self._staged_count, self._staged_bytes = 0, 0
             new_task = self._create_bg_task(self._flush_internal, entries)
-            new_task.add_done_callback(self._flush_jobs.remove)
-            self._flush_jobs.add(new_task)
+            if not new_task.done():
+                self._flush_jobs.add(new_task)
+                new_task.add_done_callback(self._flush_jobs.remove)
             return new_task
         return None
 

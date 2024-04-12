@@ -17,6 +17,7 @@
 
 from abc import ABC
 from unittest import mock
+import asyncio
 import concurrent.futures
 import mock
 import pytest
@@ -36,8 +37,9 @@ class TestMutationsBatcher(ABC):
 
         return MutationsBatcher
 
-    def _get_mutate_rows_class_path(self):
-        return "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation"
+    @staticmethod
+    def is_async():
+        return False
 
     def _make_one(self, table=None, **kwargs):
         from google.api_core.exceptions import DeadlineExceeded
@@ -63,7 +65,7 @@ class TestMutationsBatcher(ABC):
     def test_ctor_defaults(self):
         with mock.patch.object(
             self._get_target_class(),
-            "_start_flush_timer",
+            "_timer_routine",
             return_value=concurrent.futures.Future(),
         ) as flush_timer_mock:
             table = mock.Mock()
@@ -105,7 +107,7 @@ class TestMutationsBatcher(ABC):
         """Test with explicit parameters"""
         with mock.patch.object(
             self._get_target_class(),
-            "_start_flush_timer",
+            "_timer_routine",
             return_value=concurrent.futures.Future(),
         ) as flush_timer_mock:
             table = mock.Mock()
@@ -158,7 +160,7 @@ class TestMutationsBatcher(ABC):
         """Test with None for flush limits"""
         with mock.patch.object(
             self._get_target_class(),
-            "_start_flush_timer",
+            "_timer_routine",
             return_value=concurrent.futures.Future(),
         ) as flush_timer_mock:
             table = mock.Mock()
@@ -223,17 +225,24 @@ class TestMutationsBatcher(ABC):
                 == batcher_init_signature[arg_name].default
             )
 
-    def test__start_flush_timer_w_None(self):
-        """Empty timer should return immediately"""
+    @pytest.mark.parametrize("input_val", [None, 0, -1])
+    def test__start_flush_timer_w_empty_input(self, input_val):
+        """Empty/invalid timer should return immediately"""
         with mock.patch.object(
             self._get_target_class(), "_schedule_flush"
         ) as flush_mock:
             with self._make_one() as instance:
-                with mock.patch("asyncio.sleep") as sleep_mock:
-                    instance._start_flush_timer(None)
+                if self.is_async():
+                    (sleep_obj, sleep_method) = (asyncio, "wait_for")
+                else:
+                    (sleep_obj, sleep_method) = (instance._closed, "wait")
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
+                    result = instance._timer_routine(input_val)
                     assert sleep_mock.call_count == 0
                     assert flush_mock.call_count == 0
+                    assert result is None
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test__start_flush_timer_call_when_closed(self):
         """closed batcher's timer should return immediately"""
         with mock.patch.object(
@@ -242,51 +251,41 @@ class TestMutationsBatcher(ABC):
             with self._make_one() as instance:
                 instance.close()
                 flush_mock.reset_mock()
-                with mock.patch("asyncio.sleep") as sleep_mock:
-                    instance._start_flush_timer(1)
+                if self.is_async():
+                    (sleep_obj, sleep_method) = (asyncio, "wait_for")
+                else:
+                    (sleep_obj, sleep_method) = (instance._closed, "wait")
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
+                    instance._timer_routine(10)
                     assert sleep_mock.call_count == 0
                     assert flush_mock.call_count == 0
 
-    def test__flush_timer(self):
+    @pytest.mark.parametrize("num_staged", [0, 1, 10])
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
         with mock.patch.object(
             self._get_target_class(), "_schedule_flush"
         ) as flush_mock:
             expected_sleep = 12
             with self._make_one(flush_interval=expected_sleep) as instance:
-                instance._staged_entries = [mock.Mock()]
                 loop_num = 3
-                with mock.patch("asyncio.wait_for") as sleep_mock:
-                    sleep_mock.side_effect = [None] * loop_num + [
-                        ZeroDivisionError("expected")
-                    ]
-                    try:
-                        instance._flush_timer
-                    except ZeroDivisionError:
-                        instance._flush_timer = concurrent.futures.Future()
-                    assert sleep_mock.call_count == loop_num + 1
-                    sleep_kwargs = sleep_mock.call_args[1]
-                    assert sleep_kwargs["timeout"] == expected_sleep
-                    assert flush_mock.call_count == loop_num
-
-    def test__flush_timer_no_mutations(self):
-        """Timer should not flush if no new mutations have been staged"""
-        with mock.patch.object(
-            self._get_target_class(), "_schedule_flush"
-        ) as flush_mock:
-            expected_sleep = 12
-            with self._make_one(flush_interval=expected_sleep) as instance:
-                loop_num = 3
-                with mock.patch("asyncio.wait_for") as sleep_mock:
+                instance._staged_entries = [mock.Mock()] * num_staged
+                if self.is_async():
+                    (sleep_obj, sleep_method) = (asyncio, "wait_for")
+                else:
+                    (sleep_obj, sleep_method) = (instance._closed, "wait")
+                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
-                    try:
-                        instance._flush_timer
-                    except TabError:
-                        instance._flush_timer = concurrent.futures.Future()
+                    with pytest.raises(TabError):
+                        self._get_target_class()._timer_routine(
+                            instance, expected_sleep
+                        )
+                    instance._flush_timer = concurrent.futures.Future()
                     assert sleep_mock.call_count == loop_num + 1
                     sleep_kwargs = sleep_mock.call_args[1]
                     assert sleep_kwargs["timeout"] == expected_sleep
-                    assert flush_mock.call_count == 0
+                    assert flush_mock.call_count == (0 if num_staged == 0 else loop_num)
 
     def test__flush_timer_close(self):
         """Timer should continue terminate after close"""
@@ -301,9 +300,9 @@ class TestMutationsBatcher(ABC):
 
     def test_append_closed(self):
         """Should raise exception"""
+        instance = self._make_one()
+        instance.close()
         with pytest.raises(RuntimeError):
-            instance = self._make_one()
-            instance.close()
             instance.append(mock.Mock())
 
     def test_append_wrong_mutation(self):
@@ -358,7 +357,7 @@ class TestMutationsBatcher(ABC):
                 num_entries = 10
                 for _ in range(num_entries):
                     instance.append(self._make_mutation(size=1))
-                print(*instance._flush_jobs)
+                instance._wait_for_batch_results(*instance._flush_jobs)
                 assert op_mock.call_count == 1
                 sent_batch = op_mock.call_args[0][0]
                 assert len(sent_batch) == 2
@@ -376,6 +375,7 @@ class TestMutationsBatcher(ABC):
             (1, 1, 0, 0, False),
         ],
     )
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_append(
         self, flush_count, flush_bytes, mutation_count, mutation_bytes, expect_flush
     ):
@@ -447,7 +447,7 @@ class TestMutationsBatcher(ABC):
                         [self._make_mutation(count=1)]
                     )
                     time.sleep(0.01)
-                print(*instance._flush_jobs)
+                instance._wait_for_batch_results(*instance._flush_jobs)
                 duration = time.monotonic() - start_time
                 assert len(instance._oldest_exceptions) == 0
                 assert len(instance._newest_exceptions) == 0
@@ -462,10 +462,13 @@ class TestMutationsBatcher(ABC):
                     assert instance._schedule_flush() is None
                     assert flush_mock.call_count == 0
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_schedule_flush_with_mutations(self):
         """if new mutations exist, should add a new flush task to _flush_jobs"""
         with self._make_one() as instance:
             with mock.patch.object(instance, "_flush_internal") as flush_mock:
+                if not self.is_async():
+                    flush_mock.side_effect = lambda x: time.sleep(0.1)
                 for i in range(1, 4):
                     mutation = mock.Mock()
                     instance._staged_entries = [mutation]
@@ -475,7 +478,8 @@ class TestMutationsBatcher(ABC):
                     assert instance._staged_entries == []
                     assert instance._staged_count == 0
                     assert instance._staged_bytes == 0
-                    assert flush_mock.call_count == i
+                    assert flush_mock.call_count == 1
+                    flush_mock.reset_mock()
 
     def test__flush_internal(self):
         """
@@ -510,13 +514,20 @@ class TestMutationsBatcher(ABC):
         and removed when it completes
         """
         with self._make_one() as instance:
-            with mock.patch.object(instance, "_flush_internal", mock.Mock()):
+            with mock.patch.object(
+                instance, "_flush_internal", mock.Mock()
+            ) as flush_mock:
+                if not self.is_async():
+                    flush_mock.side_effect = lambda x: time.sleep(0.1)
                 mutations = [self._make_mutation(count=1, size=1)]
                 instance._staged_entries = mutations
                 assert instance._flush_jobs == set()
                 new_job = instance._schedule_flush()
                 assert instance._flush_jobs == {new_job}
-                new_job
+                if self.is_async():
+                    new_job
+                else:
+                    new_job.result()
                 assert instance._flush_jobs == set()
 
     @pytest.mark.parametrize(
@@ -601,8 +612,11 @@ class TestMutationsBatcher(ABC):
                 assert instance._entries_processed_since_last_raise == num_nutations
 
     def test__execute_mutate_rows(self):
-        mutate_path = self._get_mutate_rows_class_path()
-        with mock.patch(mutate_path) as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}") as mutate_rows:
             mutate_rows.return_value = mock.Mock()
             start_operation = mutate_rows().start
             table = mock.Mock()
@@ -630,8 +644,13 @@ class TestMutationsBatcher(ABC):
             FailedMutationEntryError,
         )
 
-        cls_path = self._get_mutate_rows_class_path()
-        with mock.patch(f"{cls_path}.start") as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(
+            f"google.cloud.bigtable.data.{mutate_path}.start"
+        ) as mutate_rows:
             err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
             err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
             mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
@@ -738,8 +757,13 @@ class TestMutationsBatcher(ABC):
         batch_operation_timeout and batch_attempt_timeout should be used
         in api calls
         """
-        mutate_path = self._get_mutate_rows_class_path()
-        with mock.patch(mutate_path, return_value=mock.Mock()) as mutate_rows:
+        if self.is_async():
+            mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
+        else:
+            mutate_path = "_sync._mutate_rows._MutateRowsOperation"
+        with mock.patch(
+            f"google.cloud.bigtable.data.{mutate_path}", return_value=mock.Mock()
+        ) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
             with self._make_one(

@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import concurrent.futures
 import atexit
 
@@ -23,15 +25,24 @@ from google.cloud.bigtable.data._sync._autogen import MutationsBatcher_SyncGen
 # import required so MutationsBatcher_SyncGen can create _MutateRowsOperation
 import google.cloud.bigtable.data._sync._mutate_rows  # noqa: F401
 
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+
+
 class _FlowControl(_FlowControl_SyncGen):
     pass
 
 
 class MutationsBatcher(MutationsBatcher_SyncGen):
 
-    def __init__(self, *args, **kwargs):
-        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
-        super().__init__(*args, **kwargs)
+    @property
+    def _executor(self):
+        """
+        Return a ThreadPoolExecutor for background tasks
+        """
+        if not hasattr(self, "_threadpool"):
+            self._threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        return self._threadpool
 
     def close(self):
         """
@@ -68,22 +79,16 @@ class MutationsBatcher(MutationsBatcher_SyncGen):
                 exceptions.append(e)
         return exceptions
 
-    def _start_flush_timer(
-        self, interval: float | None
-    ) -> concurrent.futures.Future[None]:
-        if interval is None or self._closed.is_set():
-            empty_future: concurrent.futures.Future[None] = concurrent.futures.Future()
-            empty_future.set_result(None)
-            return empty_future
-
-        def timer_routine(self, interval: float):
-            """
-            Triggers new flush tasks every `interval` seconds
-            """
-            while not self._closed.is_set():
-                # wait until interval has passed, or until closed
-                self._closed.wait(interval)
-                if not self._closed.is_set() and self._staged_entries:
-                    self._schedule_flush()
-        return self._create_bg_task(timer_routine, self, interval)
+    def _timer_routine(self, interval: float | None) -> None:
+        """
+        Triggers new flush tasks every `interval` seconds
+        Ends when the batcher is closed
+        """
+        if not interval or interval <= 0:
+            return None
+        while not self._closed.is_set():
+            # wait until interval has passed, or until closed
+            self._closed.wait(timeout=interval)
+            if not self._closed.is_set() and self._staged_entries:
+                self._schedule_flush()
 

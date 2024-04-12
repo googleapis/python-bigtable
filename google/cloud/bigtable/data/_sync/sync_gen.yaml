@@ -41,7 +41,7 @@ classes:  # Specify transformations for individual classes
   - path: google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync
     autogen_sync_name: MutationsBatcher_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher
-    error_methods: ["_create_bg_task", "close", "_wait_for_batch_results", "_start_flush_timer"]
+    error_methods: ["_create_bg_task", "close", "_wait_for_batch_results", "_timer_routine"]
   - path: google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync
     autogen_sync_name: _FlowControl_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher._FlowControl
