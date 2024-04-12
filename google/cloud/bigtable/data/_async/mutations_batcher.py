@@ -221,7 +221,7 @@ class MutationsBatcherAsync:
             batch_retryable_errors, table
         )
 
-        self.closed: bool = False
+        self._closed: bool = asyncio.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
@@ -260,7 +260,7 @@ class MutationsBatcherAsync:
         Returns:
             - asyncio.Future that represents the background task
         """
-        if interval is None or self.closed:
+        if interval is None or self._closed.is_set():
             empty_future: asyncio.Future[None] = asyncio.Future()
             empty_future.set_result(None)
             return empty_future
@@ -269,10 +269,13 @@ class MutationsBatcherAsync:
             """
             Triggers new flush tasks every `interval` seconds
             """
-            while not self.closed:
-                await asyncio.sleep(interval)
-                # add new flush task to list
-                if not self.closed and self._staged_entries:
+            while not self._closed.is_set():
+                # wait until interval has passed, or until closed
+                try:
+                    await asyncio.wait_for(self._closed.wait(), timeout=interval)
+                except asyncio.TimeoutError:
+                    pass
+                if not self._closed.is_set() and self._staged_entries:
                     self._schedule_flush()
         return self._create_bg_task(timer_routine, self, interval)
 
@@ -288,7 +291,7 @@ class MutationsBatcherAsync:
           - RuntimeError if batcher is closed
           - ValueError if an invalid mutation type is added
         """
-        if self.closed:
+        if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         if isinstance(mutation_entry, Mutation):  # type: ignore
             raise ValueError(
@@ -419,11 +422,19 @@ class MutationsBatcherAsync:
         """For context manager API"""
         await self.close()
 
+    @property
+    def closed(self) -> bool:
+        """
+        Returns:
+          - True if the batcher is closed, False otherwise
+        """
+        return self._closed.is_set()
+
     async def close(self):
         """
         Flush queue and clean up resources
         """
-        self.closed = True
+        self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
         if self._flush_jobs:
@@ -440,7 +451,7 @@ class MutationsBatcherAsync:
         """
         Called when program is exited. Raises warning if unflushed mutations remain
         """
-        if not self.closed and self._staged_entries:
+        if not self._closed.is_set() and self._staged_entries:
             warnings.warn(
                 f"MutationsBatcher for table {self._table.table_name} was not closed. "
                 f"{len(self._staged_entries)} Unflushed mutations will not be sent to the server."

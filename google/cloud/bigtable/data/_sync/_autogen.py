@@ -546,7 +546,7 @@ class MutationsBatcher_SyncGen(ABC):
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
             batch_retryable_errors, table
         )
-        self.closed: bool = False
+        self._closed: bool = threading.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         (self._staged_count, self._staged_bytes) = (0, 0)
@@ -575,30 +575,7 @@ class MutationsBatcher_SyncGen(ABC):
     def _start_flush_timer(
         self, interval: float | None
     ) -> concurrent.futures.Future[None]:
-        """
-        Set up a background task to flush the batcher every interval seconds
-
-        If interval is None, an empty future is returned
-
-        Args:
-          - flush_interval: Automatically flush every flush_interval seconds.
-              If None, no time-based flushing is performed.
-        Returns:
-            - asyncio.Future that represents the background task
-        """
-        if interval is None or self.closed:
-            empty_future: concurrent.futures.Future[None] = concurrent.futures.Future()
-            empty_future.set_result(None)
-            return empty_future
-
-        def timer_routine(self, interval: float):
-            """Triggers new flush tasks every `interval` seconds"""
-            while not self.closed:
-                time.sleep(interval)
-                if not self.closed and self._staged_entries:
-                    self._schedule_flush()
-
-        return self._create_bg_task(timer_routine, self, interval)
+        raise NotImplementedError("Function not implemented in sync class")
 
     def append(self, mutation_entry: RowMutationEntry):
         """
@@ -612,7 +589,7 @@ class MutationsBatcher_SyncGen(ABC):
           - RuntimeError if batcher is closed
           - ValueError if an invalid mutation type is added
         """
-        if self.closed:
+        if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         if isinstance(mutation_entry, Mutation):
             raise ValueError(
@@ -738,12 +715,20 @@ class MutationsBatcher_SyncGen(ABC):
         """For context manager API"""
         self.close()
 
+    @property
+    def closed(self) -> bool:
+        """
+        Returns:
+          - True if the batcher is closed, False otherwise
+        """
+        return self._closed.is_set()
+
     def close(self):
-        """Flush queue and clean up resources"""
+        raise NotImplementedError("Function not implemented in sync class")
 
     def _on_exit(self):
         """Called when program is exited. Raises warning if unflushed mutations remain"""
-        if not self.closed and self._staged_entries:
+        if not self._closed.is_set() and self._staged_entries:
             warnings.warn(
                 f"MutationsBatcher for table {self._table.table_name} was not closed. {len(self._staged_entries)} Unflushed mutations will not be sent to the server."
             )
@@ -757,18 +742,7 @@ class MutationsBatcher_SyncGen(ABC):
         *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
         | concurrent.futures.Future[None],
     ) -> list[Exception]:
-        """
-        Takes in a list of futures representing _execute_mutate_rows tasks,
-        waits for them to complete, and returns a list of errors encountered.
-
-        Args:
-          - *tasks: futures representing _execute_mutate_rows or _flush_internal tasks
-        Returns:
-          - list of Exceptions encountered by any of the tasks. Errors are expected
-              to be FailedMutationEntryError, representing a failed mutation operation.
-              If a task fails with a different exception, it will be included in the
-              output list. Successful tasks will not be represented in the output list.
-        """
+        raise NotImplementedError("Function not implemented in sync class")
 
 
 class _FlowControl_SyncGen(ABC):

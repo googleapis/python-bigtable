@@ -4,6 +4,7 @@ asyncio_replacements:  # Replace asyncio functionaility
   Condition: threading.Condition
   Future: concurrent.futures.Future
   Task: threading.Thread
+  Event: threading.Event
 
 text_replacements:  # Find and replace specific text patterns
   __anext__: __next__
@@ -40,8 +41,7 @@ classes:  # Specify transformations for individual classes
   - path: google.cloud.bigtable.data._async.mutations_batcher.MutationsBatcherAsync
     autogen_sync_name: MutationsBatcher_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher
-    pass_methods: ["close", "_wait_for_batch_results"]
-    error_methods: ["_create_bg_task"]
+    error_methods: ["_create_bg_task", "close", "_wait_for_batch_results", "_start_flush_timer"]
   - path: google.cloud.bigtable.data._async.mutations_batcher._FlowControlAsync
     autogen_sync_name: _FlowControl_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.mutations_batcher._FlowControl

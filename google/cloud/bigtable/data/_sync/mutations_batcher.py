@@ -14,7 +14,8 @@
 #
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+import atexit
 
 from google.cloud.bigtable.data._sync._autogen import _FlowControl_SyncGen
 from google.cloud.bigtable.data._sync._autogen import MutationsBatcher_SyncGen
@@ -29,8 +30,60 @@ class _FlowControl(_FlowControl_SyncGen):
 class MutationsBatcher(MutationsBatcher_SyncGen):
 
     def __init__(self, *args, **kwargs):
-        self._executor = ThreadPoolExecutor(max_workers=8)
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         super().__init__(*args, **kwargs)
+
+    def close(self):
+        """
+        Flush queue and clean up resources
+        """
+        self._closed.set()
+        # attempt cancel timer if not started
+        self._flush_timer.cancel()
+        self._schedule_flush()
+        self._executor.shutdown(wait=True)
+        atexit.unregister(self._on_exit)
+        # raise unreported exceptions
+        self._raise_exceptions()
 
     def _create_bg_task(self, func, *args, **kwargs):
         return self._executor.submit(func, *args, **kwargs)
+
+    @staticmethod
+    def _wait_for_batch_results(
+        *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
+        | concurrent.futures.Future[None],
+    ) -> list[Exception]:
+        if not tasks:
+            return []
+        exceptions = []
+        for task in tasks:
+            try:
+                exc_list = task.result()
+                for exc in exc_list:
+                    # strip index information
+                    exc.index = None
+                exceptions.extend(exc_list)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions
+
+    def _start_flush_timer(
+        self, interval: float | None
+    ) -> concurrent.futures.Future[None]:
+        if interval is None or self._closed.is_set():
+            empty_future: concurrent.futures.Future[None] = concurrent.futures.Future()
+            empty_future.set_result(None)
+            return empty_future
+
+        def timer_routine(self, interval: float):
+            """
+            Triggers new flush tasks every `interval` seconds
+            """
+            while not self._closed.is_set():
+                # wait until interval has passed, or until closed
+                self._closed.wait(interval)
+                if not self._closed.is_set() and self._staged_entries:
+                    self._schedule_flush()
+        return self._create_bg_task(timer_routine, self, interval)
+

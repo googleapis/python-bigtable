@@ -25,7 +25,9 @@ import time
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data import Table
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
+import google.api_core.exceptions
 import google.api_core.exceptions as core_exceptions
+import google.api_core.retry
 
 
 class TestMutationsBatcher(ABC):
@@ -254,7 +256,7 @@ class TestMutationsBatcher(ABC):
             with self._make_one(flush_interval=expected_sleep) as instance:
                 instance._staged_entries = [mock.Mock()]
                 loop_num = 3
-                with mock.patch("asyncio.sleep") as sleep_mock:
+                with mock.patch("asyncio.wait_for") as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [
                         ZeroDivisionError("expected")
                     ]
@@ -263,7 +265,8 @@ class TestMutationsBatcher(ABC):
                     except ZeroDivisionError:
                         instance._flush_timer = concurrent.futures.Future()
                     assert sleep_mock.call_count == loop_num + 1
-                    sleep_mock.assert_called_with(expected_sleep)
+                    sleep_kwargs = sleep_mock.call_args[1]
+                    assert sleep_kwargs["timeout"] == expected_sleep
                     assert flush_mock.call_count == loop_num
 
     def test__flush_timer_no_mutations(self):
@@ -274,21 +277,20 @@ class TestMutationsBatcher(ABC):
             expected_sleep = 12
             with self._make_one(flush_interval=expected_sleep) as instance:
                 loop_num = 3
-                with mock.patch("asyncio.sleep") as sleep_mock:
+                with mock.patch("asyncio.wait_for") as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
                     try:
                         instance._flush_timer
                     except TabError:
                         instance._flush_timer = concurrent.futures.Future()
                     assert sleep_mock.call_count == loop_num + 1
-                    sleep_mock.assert_called_with(expected_sleep)
+                    sleep_kwargs = sleep_mock.call_args[1]
+                    assert sleep_kwargs["timeout"] == expected_sleep
                     assert flush_mock.call_count == 0
 
     def test__flush_timer_close(self):
         """Timer should continue terminate after close"""
-        with mock.patch.object(
-            self._get_target_class(), "_schedule_flush"
-        ) as flush_mock:
+        with mock.patch.object(self._get_target_class(), "_schedule_flush"):
             with self._make_one() as instance:
                 with mock.patch("asyncio.sleep"):
                     time.sleep(0.5)
@@ -717,7 +719,7 @@ class TestMutationsBatcher(ABC):
                 assert len(w) == 1
                 assert "unflushed mutations" in str(w[0].message).lower()
                 assert str(num_left) in str(w[0].message)
-            instance.closed = True
+            instance._closed.set()
             instance._on_exit()
             assert len(recwarn) == 0
             instance._staged_entries = []
@@ -835,12 +837,15 @@ class TestMutationsBatcher(ABC):
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        with mock.patch(
-            "google.api_core.retry.if_exception_type"
+        retryn_fn = (
+            "retry_target_async"
+            if "Async" in self._get_target_class().__name__
+            else "retry_target"
+        )
+        with mock.patch.object(
+            google.api_core.retry, "if_exception_type"
         ) as predicate_builder_mock:
-            with mock.patch(
-                "google.api_core.retry.retry_target_async"
-            ) as retry_fn_mock:
+            with mock.patch.object(google.api_core.retry, retryn_fn) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
                     table = Table(mock.Mock(), "instance", "table")

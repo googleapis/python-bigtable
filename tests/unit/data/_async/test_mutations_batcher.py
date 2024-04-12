@@ -15,6 +15,7 @@
 import pytest
 import asyncio
 import google.api_core.exceptions as core_exceptions
+import google.api_core.retry
 from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data import TABLE_DEFAULT
 from google.cloud.bigtable.data import TableAsync
@@ -520,7 +521,7 @@ class TestMutationsBatcherAsync:
             async with self._make_one(flush_interval=expected_sleep) as instance:
                 instance._staged_entries = [mock.Mock()]
                 loop_num = 3
-                with mock.patch("asyncio.sleep") as sleep_mock:
+                with mock.patch("asyncio.wait_for") as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [ZeroDivisionError("expected")]
                     try:
                         await instance._flush_timer
@@ -528,7 +529,8 @@ class TestMutationsBatcherAsync:
                         # replace with np-op so there are no issues on close
                         instance._flush_timer = asyncio.Future()
                     assert sleep_mock.call_count == loop_num + 1
-                    sleep_mock.assert_called_with(expected_sleep)
+                    sleep_kwargs = sleep_mock.call_args[1]
+                    assert sleep_kwargs["timeout"] == expected_sleep
                     assert flush_mock.call_count == loop_num
 
     @pytest.mark.asyncio
@@ -538,7 +540,7 @@ class TestMutationsBatcherAsync:
             expected_sleep = 12
             async with self._make_one(flush_interval=expected_sleep) as instance:
                 loop_num = 3
-                with mock.patch("asyncio.sleep") as sleep_mock:
+                with mock.patch("asyncio.wait_for") as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
                     try:
                         await instance._flush_timer
@@ -546,13 +548,14 @@ class TestMutationsBatcherAsync:
                         # replace with np-op so there are no issues on close
                         instance._flush_timer = asyncio.Future()
                     assert sleep_mock.call_count == loop_num + 1
-                    sleep_mock.assert_called_with(expected_sleep)
+                    sleep_kwargs = sleep_mock.call_args[1]
+                    assert sleep_kwargs["timeout"] == expected_sleep
                     assert flush_mock.call_count == 0
 
     @pytest.mark.asyncio
     async def test__flush_timer_close(self):
         """Timer should continue terminate after close"""
-        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+        with mock.patch.object(self._get_target_class(), "_schedule_flush"):
             async with self._make_one() as instance:
                 with mock.patch("asyncio.sleep"):
                     # let task run in background
@@ -1028,7 +1031,7 @@ class TestMutationsBatcherAsync:
                 assert "unflushed mutations" in str(w[0].message).lower()
                 assert str(num_left) in str(w[0].message)
             # calling while closed is noop
-            instance.closed = True
+            instance._closed.set()
             instance._on_exit()
             assert len(recwarn) == 0
             # reset staged mutations for cleanup
@@ -1158,12 +1161,9 @@ class TestMutationsBatcherAsync:
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        with mock.patch(
-            "google.api_core.retry.if_exception_type"
-        ) as predicate_builder_mock:
-            with mock.patch(
-                "google.api_core.retry.retry_target_async"
-            ) as retry_fn_mock:
+        retryn_fn = "retry_target_async" if "Async" in self._get_target_class().__name__ else "retry_target"
+        with mock.patch.object(google.api_core.retry, "if_exception_type") as predicate_builder_mock:
+            with mock.patch.object(google.api_core.retry, retryn_fn) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
                     table = TableAsync(mock.Mock(), "instance", "table")
