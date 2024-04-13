@@ -33,6 +33,7 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
         client_options: dict[str, Any]
         | "google.api_core.client_options.ClientOptions"
         | None = None,
+        **kwargs
     ):
         # remove pool size option in sync client
         super().__init__(
