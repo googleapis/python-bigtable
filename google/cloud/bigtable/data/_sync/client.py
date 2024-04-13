@@ -24,6 +24,10 @@ import concurrent.futures
 from google.cloud.bigtable.data._sync._autogen import BigtableDataClient_SyncGen
 from google.cloud.bigtable.data._sync._autogen import Table_SyncGen
 
+# import required so Table_SyncGen can create _MutateRowsOperation and _ReadRowsOperation
+import google.cloud.bigtable.data._sync._read_rows  # noqa: F401
+import google.cloud.bigtable.data._sync._mutate_rows  # noqa: F401
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.row import Row
 
@@ -69,7 +73,7 @@ class Table(Table_SyncGen):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures_list = [executor.submit(self.read_rows, **kwargs) for kwargs in kwargs_list]
         results_list: list[list[Row] | BaseException] = []
-        for future in concurrent.futures.as_completed(futures_list):
+        for future in futures_list:
             if future.exception():
                 results_list.append(future.exception())
             else:

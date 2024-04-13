@@ -1329,7 +1329,7 @@ class TestTableAsync:
                     assert "app_profile_id=" not in goog_metadata
 
 
-class TestReadRows:
+class TestReadRowsAsync:
     """
     Tests for table.read_rows and related methods.
     """
@@ -1835,7 +1835,7 @@ class TestReadRows:
                 assert query.filter._to_dict() == expected_filter
 
 
-class TestReadRowsSharded:
+class TestReadRowsShardedAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
