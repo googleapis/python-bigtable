@@ -14,14 +14,18 @@
 #
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import grpc
 
 import google.auth.credentials
+import concurrent.futures
 
 from google.cloud.bigtable.data._sync._autogen import BigtableDataClient_SyncGen
 from google.cloud.bigtable.data._sync._autogen import Table_SyncGen
+
+if TYPE_CHECKING:
+    from google.cloud.bigtable.data.row import Row
 
 
 class BigtableDataClient(BigtableDataClient_SyncGen):
@@ -60,3 +64,14 @@ class Table(Table_SyncGen):
     def _register_with_client(self):
         self.client._register_instance(self.instance_id, self)
         self._register_instance_task = None
+
+    def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures_list = [executor.submit(self.read_rows, **kwargs) for kwargs in kwargs_list]
+        results_list: list[list[Row] | BaseException] = []
+        for future in concurrent.futures.as_completed(futures_list):
+            if future.exception():
+                results_list.append(future.exception())
+            else:
+                results_list.append(future.result())
+        return results_list

@@ -1944,6 +1944,7 @@ class TestReadRowsSharded:
         Large queries should be processed in batches to limit concurrency
         operation timeout should change between batches
         """
+        import functools
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable.data._async.client import _CONCURRENCY_LIMIT
 
@@ -1958,6 +1959,7 @@ class TestReadRowsSharded:
         start_attempt_timeout = 3
         table_mock.default_read_rows_operation_timeout = start_operation_timeout
         table_mock.default_read_rows_attempt_timeout = start_attempt_timeout
+        table_mock._shard_batch_helper = functools.partial(TableAsync._shard_batch_helper, table_mock)
         # clock ticks one second on each check
         with mock.patch("time.monotonic", side_effect=range(0, 100000)):
             with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:

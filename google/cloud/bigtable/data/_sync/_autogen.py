@@ -47,7 +47,9 @@ from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
+from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
@@ -56,8 +58,10 @@ from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.mutations import Mutation
 from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -1351,6 +1355,98 @@ class Table_SyncGen(ABC):
         if len(results) == 0:
             return None
         return results[0]
+
+    def read_rows_sharded(
+        self,
+        sharded_query: ShardedQuery,
+        *,
+        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+        retryable_errors: Sequence[type[Exception]]
+        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
+    ) -> list[Row]:
+        """
+        Runs a sharded query in parallel, then return the results in a single list.
+        Results will be returned in the order of the input queries.
+
+        This function is intended to be run on the results on a query.shard() call:
+
+        ```
+        table_shard_keys = await table.sample_row_keys()
+        query = ReadRowsQuery(...)
+        shard_queries = query.shard(table_shard_keys)
+        results = await table.read_rows_sharded(shard_queries)
+        ```
+
+        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
+        yet recommended for production use.
+
+        Args:
+            - sharded_query: a sharded query to execute
+            - operation_timeout: the time budget for the entire operation, in seconds.
+                 Failed requests will be retried within the budget.
+                 Defaults to the Table's default_read_rows_operation_timeout
+            - attempt_timeout: the time budget for an individual network request, in seconds.
+                If it takes longer than this time to complete, the request will be cancelled with
+                a DeadlineExceeded exception, and a retry will be attempted.
+                Defaults to the Table's default_read_rows_attempt_timeout.
+                If None, defaults to operation_timeout.
+            - retryable_errors: a list of errors that will be retried if encountered.
+                Defaults to the Table's default_read_rows_retryable_errors.
+        Raises:
+            - ShardedReadRowsExceptionGroup: if any of the queries failed
+            - ValueError: if the query_list is empty
+        """
+        if not sharded_query:
+            raise ValueError("empty sharded_query")
+        (operation_timeout, attempt_timeout) = _get_timeouts(
+            operation_timeout, attempt_timeout, self
+        )
+        timeout_generator = _attempt_timeout_generator(
+            operation_timeout, operation_timeout
+        )
+        batched_queries = [
+            sharded_query[i : i + _CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), _CONCURRENCY_LIMIT)
+        ]
+        results_list = []
+        error_dict = {}
+        shard_idx = 0
+        for batch in batched_queries:
+            batch_operation_timeout = next(timeout_generator)
+            batch_kwargs_list = [
+                {
+                    "query": query,
+                    "operation_timeout": batch_operation_timeout,
+                    "attempt_timeout": min(attempt_timeout, batch_operation_timeout),
+                    "retryable_errors": retryable_errors,
+                }
+                for query in batch
+            ]
+            batch_result = self._shard_batch_helper(batch_kwargs_list)
+            for result in batch_result:
+                if isinstance(result, Exception):
+                    error_dict[shard_idx] = result
+                elif isinstance(result, BaseException):
+                    raise result
+                else:
+                    results_list.extend(result)
+                shard_idx += 1
+        if error_dict:
+            raise ShardedReadRowsExceptionGroup(
+                [
+                    FailedQueryShardError(idx, sharded_query[idx], e)
+                    for (idx, e) in error_dict.items()
+                ],
+                results_list,
+                len(sharded_query),
+            )
+        return results_list
+
+    def _shard_batch_helper(
+        self, kwargs_list: list[dict]
+    ) -> list[list[Row] | BaseException]:
+        raise NotImplementedError("Function not implemented in sync class")
 
     def row_exists(
         self,

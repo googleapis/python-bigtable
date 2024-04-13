@@ -792,16 +792,16 @@ class TableAsync:
         shard_idx = 0
         for batch in batched_queries:
             batch_operation_timeout = next(timeout_generator)
-            routine_list = [
-                self.read_rows(
-                    query,
-                    operation_timeout=batch_operation_timeout,
-                    attempt_timeout=min(attempt_timeout, batch_operation_timeout),
-                    retryable_errors=retryable_errors,
-                )
+            batch_kwargs_list = [
+                {
+                    "query": query,
+                    "operation_timeout": batch_operation_timeout,
+                    "attempt_timeout": min(attempt_timeout, batch_operation_timeout),
+                    "retryable_errors": retryable_errors,
+                }
                 for query in batch
             ]
-            batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
+            batch_result = await self._shard_batch_helper(batch_kwargs_list)
             for result in batch_result:
                 if isinstance(result, Exception):
                     error_dict[shard_idx] = result
@@ -822,6 +822,18 @@ class TableAsync:
                 len(sharded_query),
             )
         return results_list
+
+    async def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
+        """
+        Helper function for executing a batch of read_rows queries in parallel
+
+        Sync client implementation will override this method
+        """
+        routine_list = [
+            self.read_rows(**kwargs) for kwargs in kwargs_list
+        ]
+        return await asyncio.gather(*routine_list, return_exceptions=True)
+
 
     async def row_exists(
         self,
