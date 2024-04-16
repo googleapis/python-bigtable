@@ -50,14 +50,11 @@ from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
-from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._helpers import _validate_timeouts
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import InvalidChunk
@@ -931,8 +928,8 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         )
         self._is_closed = threading.Event()
         self.transport = cast(PooledBigtableGrpcTransport, self._gapic_client.transport)
-        self._active_instances: Set[_WarmedInstanceKey] = set()
-        self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
+        self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
+        self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[threading.Thread[None]] = []
         if self._emulator_host is not None:
@@ -964,7 +961,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         raise NotImplementedError("Function not implemented in sync class")
 
     def _ping_and_warm_instances(
-        self, channel: Channel, instance_key: _WarmedInstanceKey | None = None
+        self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
@@ -1069,7 +1066,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             owners call _remove_instance_registration
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
+        instance_key = _helpers._WarmedInstanceKey(
             instance_name, owner.table_name, owner.app_profile_id
         )
         self._instance_owners.setdefault(instance_key, set()).add(id(owner))
@@ -1099,7 +1096,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             - True if instance was removed
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
-        instance_key = _WarmedInstanceKey(
+        instance_key = _helpers._WarmedInstanceKey(
             instance_name, owner.table_name, owner.app_profile_id
         )
         owner_list = self._instance_owners.get(instance_key, set())
@@ -1233,15 +1230,15 @@ class Table_SyncGen(ABC):
         Raises:
           - RuntimeError if called outside of an async context (no running event loop)
         """
-        _validate_timeouts(
+        _helpers._validate_timeouts(
             default_operation_timeout, default_attempt_timeout, allow_none=True
         )
-        _validate_timeouts(
+        _helpers._validate_timeouts(
             default_read_rows_operation_timeout,
             default_read_rows_attempt_timeout,
             allow_none=True,
         )
-        _validate_timeouts(
+        _helpers._validate_timeouts(
             default_mutate_rows_operation_timeout,
             default_mutate_rows_attempt_timeout,
             allow_none=True,
@@ -1317,10 +1314,10 @@ class Table_SyncGen(ABC):
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        (operation_timeout, attempt_timeout) = _get_timeouts(
+        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        retryable_excs = _get_retryable_errors(retryable_errors, self)
+        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
         row_merger = google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation(
             query,
             self,
@@ -1475,15 +1472,15 @@ class Table_SyncGen(ABC):
         """
         if not sharded_query:
             raise ValueError("empty sharded_query")
-        (operation_timeout, attempt_timeout) = _get_timeouts(
+        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        timeout_generator = _attempt_timeout_generator(
+        timeout_generator = _helpers._attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
         batched_queries = [
-            sharded_query[i : i + _CONCURRENCY_LIMIT]
-            for i in range(0, len(sharded_query), _CONCURRENCY_LIMIT)
+            sharded_query[i : i + _helpers._CONCURRENCY_LIMIT]
+            for i in range(0, len(sharded_query), _helpers._CONCURRENCY_LIMIT)
         ]
         results_list = []
         error_dict = {}
@@ -1615,16 +1612,16 @@ class Table_SyncGen(ABC):
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        (operation_timeout, attempt_timeout) = _get_timeouts(
+        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        attempt_timeout_gen = _attempt_timeout_generator(
+        attempt_timeout_gen = _helpers._attempt_timeout_generator(
             attempt_timeout, operation_timeout
         )
-        retryable_excs = _get_retryable_errors(retryable_errors, self)
+        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
         predicate = retries.if_exception_type(*retryable_excs)
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
 
         def execute_rpc():
             results = self.client._gapic_client.sample_row_keys(
@@ -1641,7 +1638,7 @@ class Table_SyncGen(ABC):
             predicate,
             sleep_generator,
             operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=_helpers._retry_exception_factory,
         )
 
     def mutations_batcher(
@@ -1740,7 +1737,7 @@ class Table_SyncGen(ABC):
                safely retried.
           - ValueError if invalid arguments are provided
         """
-        (operation_timeout, attempt_timeout) = _get_timeouts(
+        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         if not mutations:
@@ -1748,7 +1745,7 @@ class Table_SyncGen(ABC):
         mutations_list = mutations if isinstance(mutations, list) else [mutations]
         if all((mutation.is_idempotent() for mutation in mutations_list)):
             predicate = retries.if_exception_type(
-                *_get_retryable_errors(retryable_errors, self)
+                *_helpers._get_retryable_errors(retryable_errors, self)
             )
         else:
             predicate = retries.if_exception_type()
@@ -1760,7 +1757,7 @@ class Table_SyncGen(ABC):
             table_name=self.table_name,
             app_profile_id=self.app_profile_id,
             timeout=attempt_timeout,
-            metadata=_make_metadata(self.table_name, self.app_profile_id),
+            metadata=_helpers._make_metadata(self.table_name, self.app_profile_id),
             retry=None,
         )
         return retries.retry_target(
@@ -1768,7 +1765,7 @@ class Table_SyncGen(ABC):
             predicate,
             sleep_generator,
             operation_timeout,
-            exception_factory=_retry_exception_factory,
+            exception_factory=_helpers._retry_exception_factory,
         )
 
     def bulk_mutate_rows(
@@ -1814,10 +1811,10 @@ class Table_SyncGen(ABC):
                 Contains details about any failed entries in .exceptions
             - ValueError if invalid arguments are provided
         """
-        (operation_timeout, attempt_timeout) = _get_timeouts(
+        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
-        retryable_excs = _get_retryable_errors(retryable_errors, self)
+        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
         operation = google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation(
             self.client._gapic_client,
             self,
@@ -1872,7 +1869,7 @@ class Table_SyncGen(ABC):
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        (operation_timeout, _) = _get_timeouts(operation_timeout, None, self)
+        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and (
             not isinstance(true_case_mutations, list)
         ):
@@ -1883,7 +1880,7 @@ class Table_SyncGen(ABC):
         ):
             false_case_mutations = [false_case_mutations]
         false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
         result = self.client._gapic_client.check_and_mutate_row(
             true_mutations=true_case_list,
             false_mutations=false_case_list,
@@ -1931,14 +1928,14 @@ class Table_SyncGen(ABC):
             - GoogleAPIError exceptions from grpc call
             - ValueError if invalid arguments are provided
         """
-        (operation_timeout, _) = _get_timeouts(operation_timeout, None, self)
+        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         if rules is not None and (not isinstance(rules, list)):
             rules = [rules]
         if not rules:
             raise ValueError("rules must contain at least one item")
-        metadata = _make_metadata(self.table_name, self.app_profile_id)
+        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
         result = self.client._gapic_client.read_modify_write_row(
             rules=[rule._to_pb() for rule in rules],
             row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,

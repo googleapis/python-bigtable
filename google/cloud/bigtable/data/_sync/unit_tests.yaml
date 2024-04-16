@@ -27,38 +27,39 @@ text_replacements:  # Find and replace specific text patterns
   AsyncMock: mock.Mock
   retry_target_async: retry_target
   TestBigtableDataClientAsync: TestBigtableDataClient
+  TestReadRowsAsync: TestReadRows
   assert_awaited_once: assert_called_once
   assert_awaited: assert_called_once
   grpc_helpers_async: grpc_helpers
 
 classes:
-  #- path: tests.unit.data._async.test__mutate_rows.TestMutateRowsOperation
-  #  autogen_sync_name: TestMutateRowsOperation
-  #  replace_methods:
-  #      _target_class: |
-  #          from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-  #          return _MutateRowsOperation
-  #- path: tests.unit.data._async.test__read_rows.TestReadRowsOperation
-  #  autogen_sync_name: TestReadRowsOperation
-  #  text_replacements:
-  #    test_aclose: test_close
-  #  replace_methods:
-  #      _get_target_class: |
-  #          from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-  #          return _ReadRowsOperation
-  #- path: tests.unit.data._async.test_mutations_batcher.Test_FlowControl
-  #  autogen_sync_name: Test_FlowControl
-  #  replace_methods:
-  #      _target_class: |
-  #          from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
-  #          return _FlowControl
-  #- path: tests.unit.data._async.test_mutations_batcher.TestMutationsBatcherAsync
-  #  autogen_sync_name: TestMutationsBatcher
-  #  replace_methods:
-  #      _get_target_class: |
-  #          from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-  #          return MutationsBatcher
-  #      is_async: "return False"
+  - path: tests.unit.data._async.test__mutate_rows.TestMutateRowsOperation
+    autogen_sync_name: TestMutateRowsOperation
+    replace_methods:
+        _target_class: |
+            from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+            return _MutateRowsOperation
+  - path: tests.unit.data._async.test__read_rows.TestReadRowsOperation
+    autogen_sync_name: TestReadRowsOperation
+    text_replacements:
+      test_aclose: test_close
+    replace_methods:
+        _get_target_class: |
+            from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+            return _ReadRowsOperation
+  - path: tests.unit.data._async.test_mutations_batcher.Test_FlowControl
+    autogen_sync_name: Test_FlowControl
+    replace_methods:
+        _target_class: |
+            from google.cloud.bigtable.data._sync.mutations_batcher import _FlowControl
+            return _FlowControl
+  - path: tests.unit.data._async.test_mutations_batcher.TestMutationsBatcherAsync
+    autogen_sync_name: TestMutationsBatcher
+    replace_methods:
+        _get_target_class: |
+            from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+            return MutationsBatcher
+        is_async: "return False"
   - path: tests.unit.data._async.test_client.TestBigtableDataClientAsync
     autogen_sync_name: TestBigtableDataClient
     added_imports:
@@ -84,9 +85,23 @@ classes:
             return Table
         is_async: "return False"
     drop_methods: ["test_table_ctor_sync"]
-  #- path: tests.unit.data._async.test_client.TestReadRowsShardedAsync
-  #  autogen_sync_name: TestReadRowsSharded
-  #- path: tests.unit.data._async.test_client.TestReadRowsAsync
-  #  autogen_sync_name: TestReadRows
+  - path: tests.unit.data._async.test_client.TestReadRowsAsync
+    autogen_sync_name: TestReadRows
+    replace_methods:
+        _get_operation_class: |
+            from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+            return _ReadRowsOperation
+  - path: tests.unit.data._async.test_client.TestReadRowsShardedAsync
+    autogen_sync_name: TestReadRowsSharded
+  - path: tests.unit.data._async.test_client.TestSampleRowKeysAsync
+    autogen_sync_name: TestSampleRowKeys
+  - path: tests.unit.data._async.test_client.TestMutateRowAsync
+    autogen_sync_name: TestMutateRow
+  - path: tests.unit.data._async.test_client.TestBulkMutateRowsAsync
+    autogen_sync_name: TestBulkMutateRows
+  - path: tests.unit.data._async.test_client.TestCheckAndMutateRowAsync
+    autogen_sync_name: TestCheckAndMutateRow
+  - path: tests.unit.data._async.test_client.TestReadModifyWriteRowAsync
+    autogen_sync_name: TestReadModifyWriteRow
 
 save_path: "tests/unit/data/_sync/test_autogen.py"

@@ -791,7 +791,7 @@ class TestBigtableDataClientAsync:
         add multiple owners to instance_owners, but only keep one copy
         of shared key in active_instances
         """
-        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         async with self._make_client(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
@@ -839,7 +839,7 @@ class TestBigtableDataClientAsync:
         registering with multiple instance keys should update the key
         in instance_owners and active_instances
         """
-        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         async with self._make_client(project="project-id") as client:
             async with client.get_table("instance_1", "table_1") as table_1:
@@ -874,8 +874,7 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_get_table(self):
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         client = self._make_client(project="project-id")
         assert not client._active_instances
@@ -888,7 +887,7 @@ class TestBigtableDataClientAsync:
             expected_app_profile_id,
         )
         await asyncio.sleep(0)
-        assert isinstance(table, TableAsync)
+        assert isinstance(table, TestTableAsync._get_target_class())
         assert table.table_id == expected_table_id
         assert (
             table.table_name
@@ -941,15 +940,14 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_get_table_context_manager(self):
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
         expected_app_profile_id = "app-profile-id"
         expected_project_id = "project-id"
 
-        with mock.patch.object(TableAsync, "close") as close_mock:
+        with mock.patch.object(TestTableAsync._get_target_class(), "close") as close_mock:
             async with self._make_client(project=expected_project_id) as client:
                 async with client.get_table(
                     expected_instance_id,
@@ -957,7 +955,7 @@ class TestBigtableDataClientAsync:
                     expected_app_profile_id,
                 ) as table:
                     await asyncio.sleep(0)
-                    assert isinstance(table, TableAsync)
+                    assert isinstance(table, TestTableAsync._get_target_class())
                     assert table.table_id == expected_table_id
                     assert (
                         table.table_name
@@ -1077,7 +1075,7 @@ class TestTableAsync:
 
     @pytest.mark.asyncio
     async def test_table_ctor(self):
-        from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
+        from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
         expected_table_id = "table-id"
         expected_instance_id = "instance-id"
@@ -1379,6 +1377,11 @@ class TestReadRowsAsync:
     Tests for table.read_rows and related methods.
     """
 
+    @staticmethod
+    def _get_operation_class():
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+        return _ReadRowsOperationAsync
+
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -1668,13 +1671,12 @@ class TestReadRowsAsync:
         """
         Ensure that _revise_request is called between retries
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
         from google.cloud.bigtable.data.exceptions import InvalidChunk
         from google.cloud.bigtable_v2.types import RowSet
 
         return_val = RowSet()
         with mock.patch.object(
-            _ReadRowsOperationAsync, "_revise_request_rowset"
+            self._get_operation_class(), "_revise_request_rowset"
         ) as revise_rowset:
             revise_rowset.return_value = return_val
             async with self._make_table() as table:
@@ -1703,11 +1705,9 @@ class TestReadRowsAsync:
         """
         Ensure that the default timeouts are set on the read rows operation when not overridden
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
         operation_timeout = 8
         attempt_timeout = 4
-        with mock.patch.object(_ReadRowsOperationAsync, "__init__") as mock_op:
+        with mock.patch.object(self._get_operation_class(), "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
             async with self._make_table(
                 default_read_rows_operation_timeout=operation_timeout,
@@ -1726,11 +1726,9 @@ class TestReadRowsAsync:
         """
         When timeouts are passed, they overwrite default values
         """
-        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-
         operation_timeout = 8
         attempt_timeout = 4
-        with mock.patch.object(_ReadRowsOperationAsync, "__init__") as mock_op:
+        with mock.patch.object(self._get_operation_class(), "__init__") as mock_op:
             mock_op.side_effect = RuntimeError("mock error")
             async with self._make_table(
                 default_operation_timeout=99, default_attempt_timeout=97
@@ -1904,9 +1902,9 @@ class TestReadRowsShardedAsync:
                     table.client._gapic_client, "read_rows"
                 ) as read_rows:
                     read_rows.side_effect = (
-                        lambda *args, **kwargs: TestReadRows._make_gapic_stream(
+                        lambda *args, **kwargs: TestReadRowsAsync._make_gapic_stream(
                             [
-                                TestReadRows._make_chunk(row_key=k)
+                                TestReadRowsAsync._make_chunk(row_key=k)
                                 for k in args[0].rows.row_keys
                             ]
                         )
@@ -1989,9 +1987,7 @@ class TestReadRowsShardedAsync:
         Large queries should be processed in batches to limit concurrency
         operation timeout should change between batches
         """
-        import functools
-        from google.cloud.bigtable.data._async.client import TableAsync
-        from google.cloud.bigtable.data._async.client import _CONCURRENCY_LIMIT
+        from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 
         assert _CONCURRENCY_LIMIT == 10  # change this test if this changes
 
@@ -1999,23 +1995,32 @@ class TestReadRowsShardedAsync:
         expected_num_batches = n_queries // _CONCURRENCY_LIMIT
         query_list = [ReadRowsQuery() for _ in range(n_queries)]
 
-        table_mock = AsyncMock()
         start_operation_timeout = 10
         start_attempt_timeout = 3
-        table_mock.default_read_rows_operation_timeout = start_operation_timeout
-        table_mock.default_read_rows_attempt_timeout = start_attempt_timeout
-        table_mock._shard_batch_helper = functools.partial(TableAsync._shard_batch_helper, table_mock)
-        # clock ticks one second on each check
-        with mock.patch("time.monotonic", side_effect=range(0, 100000)):
-            with mock.patch("asyncio.gather", AsyncMock()) as gather_mock:
-                await TableAsync.read_rows_sharded(table_mock, query_list)
+
+        client = self._make_client(use_emulator=True)
+        table = client.get_table(
+            "instance", "table",
+            default_read_rows_operation_timeout=start_operation_timeout,
+            default_read_rows_attempt_timeout=start_attempt_timeout
+        )
+
+        # make timeout generator that reduces timeout by one each call
+        def mock_time_generator(start_op, _):
+            for i in range(0, 100000):
+                yield start_op - i
+
+        with mock.patch(f"google.cloud.bigtable.data._helpers._attempt_timeout_generator") as time_gen_mock:
+            time_gen_mock.side_effect = mock_time_generator
+
+            with mock.patch.object(table, "read_rows", AsyncMock()) as read_rows_mock:
+                read_rows_mock.return_value = []
+                await table.read_rows_sharded(query_list)
                 # should have individual calls for each query
-                assert table_mock.read_rows.call_count == n_queries
-                # should have single gather call for each batch
-                assert gather_mock.call_count == expected_num_batches
+                assert read_rows_mock.call_count == n_queries
                 # ensure that timeouts decrease over time
                 kwargs = [
-                    table_mock.read_rows.call_args_list[idx][1]
+                    read_rows_mock.call_args_list[idx][1]
                     for idx in range(n_queries)
                 ]
                 for batch_idx in range(expected_num_batches):
@@ -2027,24 +2032,19 @@ class TestReadRowsShardedAsync:
                     for req_kwargs in batch_kwargs:
                         # each batch should have the same operation_timeout, and it should decrease in each batch
                         expected_operation_timeout = start_operation_timeout - (
-                            batch_idx + 1
+                            batch_idx
                         )
                         assert (
-                            req_kwargs["operation_timeout"]
-                            == expected_operation_timeout
+                            req_kwargs["operation_timeout"] == expected_operation_timeout
                         )
                         # each attempt_timeout should start with default value, but decrease when operation_timeout reaches it
                         expected_attempt_timeout = min(
                             start_attempt_timeout, expected_operation_timeout
                         )
                         assert req_kwargs["attempt_timeout"] == expected_attempt_timeout
-                # await all created coroutines to avoid warnings
-                for i in range(len(gather_mock.call_args_list)):
-                    for j in range(len(gather_mock.call_args_list[i][0])):
-                        await gather_mock.call_args_list[i][0][j]
 
 
-class TestSampleRowKeys:
+class TestSampleRowKeysAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2196,7 +2196,7 @@ class TestSampleRowKeys:
                         await table.sample_row_keys()
 
 
-class TestMutateRow:
+class TestMutateRowAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2372,7 +2372,7 @@ class TestMutateRow:
                     assert e.value.args[0] == "No mutations provided"
 
 
-class TestBulkMutateRows:
+class TestBulkMutateRowsAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2752,7 +2752,7 @@ class TestBulkMutateRows:
                 await table.bulk_mutate_rows(entries, operation_timeout=1000)
 
 
-class TestCheckAndMutateRow:
+class TestCheckAndMutateRowAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
@@ -2904,7 +2904,7 @@ class TestCheckAndMutateRow:
                     )
 
 
-class TestReadModifyWriteRow:
+class TestReadModifyWriteRowAsync:
 
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)

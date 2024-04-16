@@ -94,8 +94,7 @@ class Table(Table_SyncGen):
         )
 
     def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures_list = [executor.submit(self.read_rows, **kwargs) for kwargs in kwargs_list]
+        futures_list = [self.client._executor.submit(self.read_rows, **kwargs) for kwargs in kwargs_list]
         results_list: list[list[Row] | BaseException] = []
         for future in futures_list:
             if future.exception():
