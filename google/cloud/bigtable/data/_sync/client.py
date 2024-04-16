@@ -88,9 +88,10 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
 
 class Table(Table_SyncGen):
 
-    def _register_with_client(self):
-        self.client._register_instance(self.instance_id, self)
-        self._register_instance_task = None
+    def _register_with_client(self) -> concurrent.futures.Future[None]:
+        return self.client._executor.submit(
+            self.client._register_instance, self.instance_id, self
+        )
 
     def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -102,3 +103,14 @@ class Table(Table_SyncGen):
             else:
                 results_list.append(future.result())
         return results_list
+
+    def __enter__(self):
+        """
+        Implement  context manager protocol
+
+        Ensure registration task has time to run, so that
+        grpc channels will be warmed for the specified instance
+        """
+        if self._register_instance_future:
+            self._register_instance_future.result()
+        return self

@@ -82,6 +82,8 @@ classes:
         _get_target_class: |
             from google.cloud.bigtable.data._sync.client import Table
             return Table
+        is_async: "return False"
+    drop_methods: ["test_table_ctor_sync"]
   #- path: tests.unit.data._async.test_client.TestReadRowsShardedAsync
   #  autogen_sync_name: TestReadRowsSharded
   #- path: tests.unit.data._async.test_client.TestReadRowsAsync

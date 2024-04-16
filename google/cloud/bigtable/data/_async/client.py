@@ -559,11 +559,11 @@ class TableAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        self._register_with_client()
+        self._register_instance_future: asyncio.Future[None] = self._register_with_client()
 
 
 
-    def _register_with_client(self):
+    def _register_with_client(self) -> asyncio.Future[None]:
         """
         Calls the client's _register_instance method to warm the grpc channels for this instance
 
@@ -571,7 +571,7 @@ class TableAsync:
         """
         # raises RuntimeError if called outside of an async context (no running event loop)
         try:
-            self._register_instance_task = asyncio.create_task(
+            return asyncio.create_task(
                 self.client._register_instance(self.instance_id, self)
             )
         except RuntimeError as e:
@@ -1282,8 +1282,8 @@ class TableAsync:
         """
         Called to close the Table instance and release any resources held by it.
         """
-        if self._register_instance_task:
-            self._register_instance_task.cancel()
+        if self._register_instance_future:
+            self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
     async def __aenter__(self):
@@ -1293,8 +1293,8 @@ class TableAsync:
         Ensure registration task has time to run, so that
         grpc channels will be warmed for the specified instance
         """
-        if self._register_instance_task:
-            await self._register_instance_task
+        if self._register_instance_future:
+            await self._register_instance_future
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

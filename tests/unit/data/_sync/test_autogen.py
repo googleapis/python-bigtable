@@ -929,6 +929,10 @@ class TestTable(ABC):
 
         return Table
 
+    @property
+    def is_async(self):
+        return False
+
     def test_table_ctor(self):
         from google.cloud.bigtable.data._async.client import _WarmedInstanceKey
 
@@ -983,10 +987,10 @@ class TestTable(ABC):
             table.default_mutate_rows_attempt_timeout
             == expected_mutate_rows_attempt_timeout
         )
-        table._register_instance_task
-        assert table._register_instance_task.done()
-        assert not table._register_instance_task.cancelled()
-        assert table._register_instance_task.exception() is None
+        table._register_instance_future
+        assert table._register_instance_future.done()
+        assert not table._register_instance_future.cancelled()
+        assert table._register_instance_future.exception() is None
         client.close()
 
     def test_table_ctor_defaults(self):
@@ -1032,56 +1036,20 @@ class TestTable(ABC):
             assert "operation_timeout must be greater than 0" in str(e.value)
         client.close()
 
-    def test_table_ctor_sync(self):
-        client = mock.Mock()
-        with pytest.raises(RuntimeError) as e:
-            Table(client, "instance-id", "table-id")
-        assert e.match("TableAsync must be created within an async event loop context.")
-
     @pytest.mark.parametrize(
-        "fn_name,fn_args,retry_fn_path,extra_retryables",
+        "fn_name,fn_args,is_stream,extra_retryables",
         [
-            (
-                "read_rows_stream",
-                (ReadRowsQuery(),),
-                "google.api_core.retry.retry_target_stream_async",
-                (),
-            ),
-            (
-                "read_rows",
-                (ReadRowsQuery(),),
-                "google.api_core.retry.retry_target_stream_async",
-                (),
-            ),
-            (
-                "read_row",
-                (b"row_key",),
-                "google.api_core.retry.retry_target_stream_async",
-                (),
-            ),
-            (
-                "read_rows_sharded",
-                ([ReadRowsQuery()],),
-                "google.api_core.retry.retry_target_stream_async",
-                (),
-            ),
-            (
-                "row_exists",
-                (b"row_key",),
-                "google.api_core.retry.retry_target_stream_async",
-                (),
-            ),
-            ("sample_row_keys", (), "google.api_core.retry.retry_target_async", ()),
-            (
-                "mutate_row",
-                (b"row_key", [mock.Mock()]),
-                "google.api_core.retry.retry_target_async",
-                (),
-            ),
+            ("read_rows_stream", (ReadRowsQuery(),), True, ()),
+            ("read_rows", (ReadRowsQuery(),), True, ()),
+            ("read_row", (b"row_key",), True, ()),
+            ("read_rows_sharded", ([ReadRowsQuery()],), True, ()),
+            ("row_exists", (b"row_key",), True, ()),
+            ("sample_row_keys", (), False, ()),
+            ("mutate_row", (b"row_key", [mock.Mock()]), False, ()),
             (
                 "bulk_mutate_rows",
-                ([mutations.RowMutationEntry(b"key", [mock.Mock()])],),
-                "google.api_core.retry.retry_target_async",
+                ([mutations.RowMutationEntry(b"key", [mutations.DeleteAllFromRow()])],),
+                False,
                 (_MutateRowsIncomplete,),
             ),
         ],
@@ -1115,14 +1083,19 @@ class TestTable(ABC):
         expected_retryables,
         fn_name,
         fn_args,
-        retry_fn_path,
+        is_stream,
         extra_retryables,
     ):
         """
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        with mock.patch(retry_fn_path) as retry_fn_mock:
+        retry_fn = "retry_target"
+        if is_stream:
+            retry_fn += "_stream"
+        if self.is_async:
+            retry_fn += "_async"
+        with mock.patch(f"google.api_core.retry.{retry_fn}") as retry_fn_mock:
             with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")
                 expected_predicate = lambda a: a in expected_retryables

@@ -57,6 +57,6 @@ classes:  # Specify transformations for individual classes
   - path: google.cloud.bigtable.data._async.client.TableAsync
     autogen_sync_name: Table_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.client.Table
-    error_methods: ["_register_with_client", "_shard_batch_helper"]
+    error_methods: ["_register_with_client", "_shard_batch_helper", "__aenter__"]
 
 save_path: "google/cloud/bigtable/data/_sync/_autogen.py"

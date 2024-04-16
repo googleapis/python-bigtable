@@ -1271,9 +1271,11 @@ class Table_SyncGen(ABC):
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        self._register_with_client()
+        self._register_instance_future: concurrent.futures.Future[
+            None
+        ] = self._register_with_client()
 
-    def _register_with_client(self):
+    def _register_with_client(self) -> concurrent.futures.Future[None]:
         raise NotImplementedError("Function not implemented in sync class")
 
     def read_rows_stream(
@@ -1950,20 +1952,12 @@ class Table_SyncGen(ABC):
 
     def close(self):
         """Called to close the Table instance and release any resources held by it."""
-        if self._register_instance_task:
-            self._register_instance_task.cancel()
+        if self._register_instance_future:
+            self._register_instance_future.cancel()
         self.client._remove_instance_registration(self.instance_id, self)
 
     def __enter__(self):
-        """
-        Implement async context manager protocol
-
-        Ensure registration task has time to run, so that
-        grpc channels will be warmed for the specified instance
-        """
-        if self._register_instance_task:
-            self._register_instance_task
-        return self
+        raise NotImplementedError("Function not implemented in sync class")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
