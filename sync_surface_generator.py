@@ -334,6 +334,9 @@ def transform_from_config(config_dict: dict):
         # add globals to class_dict
         class_dict["asyncio_replacements"] = {**config_dict.get("asyncio_replacements", {}), **class_dict.get("asyncio_replacements", {})}
         class_dict["text_replacements"] = {**global_text_replacements, **class_dict.get("text_replacements", {})}
+        # add class-specific imports
+        for import_str in class_dict.pop("added_imports", []):
+            combined_imports.add(ast.parse(import_str).body[0])
         # transform class
         tree_body, imports = transform_class(class_object, **class_dict)
         # update combined data

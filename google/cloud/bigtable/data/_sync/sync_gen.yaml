@@ -48,8 +48,7 @@ classes:  # Specify transformations for individual classes
   - path: google.cloud.bigtable.data._async.client.BigtableDataClientAsync
     autogen_sync_name: BigtableDataClient_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.client.BigtableDataClient
-    pass_methods: ["close", "_ping_and_warm_instances"]
-    drop_methods: ["_manage_channel"]
+    pass_methods: ["close", "_ping_and_warm_instances", "_manage_channel"]
     error_methods: ["_start_background_channel_refresh", "_client_version", "_prep_emulator_channel", "_transport_init"] 
   - path: google.cloud.bigtable.data._async.client.TableAsync
     autogen_sync_name: Table_SyncGen

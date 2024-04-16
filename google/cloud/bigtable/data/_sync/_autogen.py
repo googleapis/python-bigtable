@@ -978,6 +978,33 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             - sequence of results or exceptions from the ping requests
         """
 
+    def _manage_channel(
+        self,
+        channel_idx: int,
+        refresh_interval_min: float = 60 * 35,
+        refresh_interval_max: float = 60 * 45,
+        grace_period: float = 60 * 10,
+    ) -> None:
+        """
+        Background coroutine that periodically refreshes and warms a grpc channel
+
+        The backend will automatically close channels after 60 minutes, so
+        `refresh_interval` + `grace_period` should be < 60 minutes
+
+        Runs continuously until the client is closed
+
+        Args:
+            channel_idx: index of the channel in the transport's channel pool
+            refresh_interval_min: minimum interval before initiating refresh
+                process in seconds. Actual interval will be a random value
+                between `refresh_interval_min` and `refresh_interval_max`
+            refresh_interval_max: maximum interval before initiating refresh
+                process in seconds. Actual interval will be a random value
+                between `refresh_interval_min` and `refresh_interval_max`
+            grace_period: time to allow previous channel to serve existing
+                requests before closing, in seconds
+        """
+
     def _register_instance(
         self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
     ) -> None:

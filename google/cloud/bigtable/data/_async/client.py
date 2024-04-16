@@ -328,7 +328,7 @@ class BigtableDataClientAsync(ClientWithProject):
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.time()
             await self.transport.replace_channel(
-                channel_idx, grace=grace_period, swap_sleep=10, new_channel=new_channel
+                channel_idx, grace=grace_period, new_channel=new_channel
             )
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)

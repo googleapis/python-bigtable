@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import asyncio
 import warnings
 from functools import partialmethod
 from functools import partial
+import time
 from typing import (
     Awaitable,
     Callable,
@@ -30,16 +30,15 @@ from typing import (
 )
 
 from google.api_core import gapic_v1
-from google.api_core import grpc_helpers_async
+from google.api_core import grpc_helpers
 from google.auth import credentials as ga_credentials  # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
 
 import grpc  # type: ignore
-from grpc.experimental import aio  # type: ignore
 
 from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
-from .grpc_asyncio import BigtableGrpcAsyncIOTransport
+from .grpc import BigtableGrpcTransport
 
 
 class PooledMultiCallable:
@@ -48,38 +47,43 @@ class PooledMultiCallable:
         self._init_kwargs = kwargs
         self.next_channel_fn = channel_pool.next_channel
 
+    def with_call(self, *args, **kwargs):
+        raise NotImplementedError()
 
-class PooledUnaryUnaryMultiCallable(PooledMultiCallable, aio.UnaryUnaryMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.UnaryUnaryCall:
+    def future(self, *args, **kwargs):
+        raise NotImplementedError()
+
+class PooledUnaryUnaryMultiCallable(PooledMultiCallable, grpc.UnaryUnaryMultiCallable):
+    def __call__(self, *args, **kwargs):
         return self.next_channel_fn().unary_unary(
             *self._init_args, **self._init_kwargs
         )(*args, **kwargs)
 
 
-class PooledUnaryStreamMultiCallable(PooledMultiCallable, aio.UnaryStreamMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.UnaryStreamCall:
+class PooledUnaryStreamMultiCallable(PooledMultiCallable, grpc.UnaryStreamMultiCallable):
+    def __call__(self, *args, **kwargs):
         return self.next_channel_fn().unary_stream(
             *self._init_args, **self._init_kwargs
         )(*args, **kwargs)
 
 
-class PooledStreamUnaryMultiCallable(PooledMultiCallable, aio.StreamUnaryMultiCallable):
-    def __call__(self, *args, **kwargs) -> aio.StreamUnaryCall:
+class PooledStreamUnaryMultiCallable(PooledMultiCallable, grpc.StreamUnaryMultiCallable):
+    def __call__(self, *args, **kwargs):
         return self.next_channel_fn().stream_unary(
             *self._init_args, **self._init_kwargs
         )(*args, **kwargs)
 
 
 class PooledStreamStreamMultiCallable(
-    PooledMultiCallable, aio.StreamStreamMultiCallable
+    PooledMultiCallable, grpc.StreamStreamMultiCallable
 ):
-    def __call__(self, *args, **kwargs) -> aio.StreamStreamCall:
+    def __call__(self, *args, **kwargs):
         return self.next_channel_fn().stream_stream(
             *self._init_args, **self._init_kwargs
         )(*args, **kwargs)
 
 
-class PooledChannel(aio.Channel):
+class PooledChannel(grpc.Channel):
     def __init__(
         self,
         pool_size: int = 3,
@@ -93,13 +97,13 @@ class PooledChannel(aio.Channel):
         insecure: bool = False,
         **kwargs,
     ):
-        self._pool: List[aio.Channel] = []
+        self._pool: List[grpc.Channel] = []
         self._next_idx = 0
         if insecure:
-            self._create_channel = partial(aio.insecure_channel, host)
+            self._create_channel = partial(grpc.insecure_channel, host)
         else:
             self._create_channel = partial(
-                grpc_helpers_async.create_channel,
+                grpc_helpers.create_channel,
                 target=host,
                 credentials=credentials,
                 credentials_file=credentials_file,
@@ -112,59 +116,65 @@ class PooledChannel(aio.Channel):
         for i in range(pool_size):
             self._pool.append(self._create_channel())
 
-    def next_channel(self) -> aio.Channel:
+    def next_channel(self) -> grpc.Channel:
         channel = self._pool[self._next_idx]
         self._next_idx = (self._next_idx + 1) % len(self._pool)
         return channel
 
-    def unary_unary(self, *args, **kwargs) -> grpc.aio.UnaryUnaryMultiCallable:
+    def unary_unary(self, *args, **kwargs) -> grpc.UnaryUnaryMultiCallable:
         return PooledUnaryUnaryMultiCallable(self, *args, **kwargs)
 
-    def unary_stream(self, *args, **kwargs) -> grpc.aio.UnaryStreamMultiCallable:
+    def unary_stream(self, *args, **kwargs) -> grpc.UnaryStreamMultiCallable:
         return PooledUnaryStreamMultiCallable(self, *args, **kwargs)
 
-    def stream_unary(self, *args, **kwargs) -> grpc.aio.StreamUnaryMultiCallable:
+    def stream_unary(self, *args, **kwargs) -> grpc.StreamUnaryMultiCallable:
         return PooledStreamUnaryMultiCallable(self, *args, **kwargs)
 
-    def stream_stream(self, *args, **kwargs) -> grpc.aio.StreamStreamMultiCallable:
+    def stream_stream(self, *args, **kwargs) -> grpc.StreamStreamMultiCallable:
         return PooledStreamStreamMultiCallable(self, *args, **kwargs)
 
-    async def close(self, grace=None):
-        close_fns = [channel.close(grace=grace) for channel in self._pool]
-        return await asyncio.gather(*close_fns)
+    def close(self):
+        for channel in self._pool:
+            channel.close()
 
-    async def channel_ready(self):
-        ready_fns = [channel.channel_ready() for channel in self._pool]
-        return asyncio.gather(*ready_fns)
-
-    async def __aenter__(self):
+    def __enter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def get_state(self, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
         raise NotImplementedError()
 
-    async def wait_for_state_change(self, last_observed_state):
+    def wait_for_state_change(self, last_observed_state):
         raise NotImplementedError()
 
-    async def replace_channel(
-        self, channel_idx, grace=1, new_channel=None
-    ) -> aio.Channel:
+    def subscribe(self, callback, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
+        raise NotImplementedError()
+
+    def unsubscribe(self, callback):
+        raise NotImplementedError()
+
+    def replace_channel(
+        self, channel_idx, grace=1, new_channel=None, event=None
+    ) -> grpc.Channel:
         """
         Replaces a channel in the pool with a fresh one.
 
         The `new_channel` will start processing new requests immidiately,
-        but the old channel will continue serving existing clients for `grace` seconds
+        but the old channel will continue serving existing clients for 
+        `grace` seconds
 
         Args:
           channel_idx(int): the channel index in the pool to replace
           grace(Optional[float]): The time to wait for active RPCs to
             finish. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
-          new_channel(grpc.aio.Channel): a new channel to insert into the pool
+          new_channel(grpc.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
+          event(Optional[threading.Event]): an event to signal when the
+            replacement should be aborted. If set, will call `event.wait()`
+            instead of the `time.sleep` function.
         """
         if channel_idx >= len(self._pool) or channel_idx < 0:
             raise ValueError(
@@ -174,12 +184,16 @@ class PooledChannel(aio.Channel):
             new_channel = self._create_channel()
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
-        await old_channel.close(grace=grace)
+        if event:
+            event.wait(grace)
+        else:
+            time.sleep(grace)
+        old_channel.close()
         return new_channel
 
 
-class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
-    """Pooled gRPC AsyncIO backend transport for Bigtable.
+class PooledBigtableGrpcTransport(BigtableGrpcTransport):
+    """Pooled gRPC backend transport for Bigtable.
 
     Service for reading from and writing to existing Bigtable
     tables.
@@ -196,7 +210,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
     """
 
     @classmethod
-    def with_fixed_size(cls, pool_size) -> Type["PooledBigtableGrpcAsyncIOTransport"]:
+    def with_fixed_size(cls, pool_size) -> Type["PooledBigtableGrpcTransport"]:
         """
         Creates a new class with a fixed channel pool size.
 
@@ -221,8 +235,8 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         scopes: Optional[Sequence[str]] = None,
         quota_project_id: Optional[str] = None,
         **kwargs,
-    ) -> aio.Channel:
-        """Create and return a PooledChannel object, representing a pool of gRPC AsyncIO channels
+    ) -> grpc.Channel:
+        """Create and return a PooledChannel object, representing a pool of gRPC channels
         Args:
             pool_size (int): The number of channels in the pool.
             host (Optional[str]): The host for the channel to use.
@@ -396,9 +410,9 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         """Acccess the internal list of grpc channels."""
         return self._grpc_channel._pool
 
-    async def replace_channel(
-        self, channel_idx, grace=1, new_channel=None
-    ) -> aio.Channel:
+    def replace_channel(
+        self, channel_idx, grace=1, new_channel=None, event=None
+    ) -> grpc.Channel:
         """
         Replaces a channel in the pool with a fresh one.
 
@@ -408,14 +422,17 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         Args:
           channel_idx(int): the channel index in the pool to replace
           grace(Optional[float]): The time to wait for active RPCs to
-            finished. If a grace period is not specified (by passing None for
+            finish. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
-          new_channel(grpc.aio.Channel): a new channel to insert into the pool
+          new_channel(grpc.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
+          event(Optional[threading.Event]): an event to signal when the
+            replacement should be aborted. If set, will call `event.wait()`
+            instead of the `time.sleep` function.
         """
-        return await self._grpc_channel.replace_channel(
-            channel_idx=channel_idx, grace=grace, new_channel=new_channel
+        return self._grpc_channel.replace_channel(
+            channel_idx=channel_idx, grace=grace, new_channel=new_channel, event=event
         )
 
 
-__all__ = ("PooledBigtableGrpcAsyncIOTransport",)
+__all__ = ("PooledBigtableGrpcTransport",)

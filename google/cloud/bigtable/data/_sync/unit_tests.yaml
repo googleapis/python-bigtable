@@ -22,10 +22,14 @@ text_replacements:  # Find and replace specific text patterns
   StopAsyncIteration: StopIteration
   Awaitable: None
   BigtableDataClientAsync: BigtableDataClient
+  BigtableAsyncClient: BigtableClient
   TableAsync: Table
   AsyncMock: mock.Mock
   retry_target_async: retry_target
   TestBigtableDataClientAsync: TestBigtableDataClient
+  assert_awaited_once: assert_called_once
+  assert_awaited: assert_called_once
+  grpc_helpers_async: grpc_helpers
 
 classes:
   #- path: tests.unit.data._async.test__mutate_rows.TestMutateRowsOperation
@@ -57,14 +61,30 @@ classes:
   #      is_async: "return False"
   - path: tests.unit.data._async.test_client.TestBigtableDataClientAsync
     autogen_sync_name: TestBigtableDataClient
+    added_imports:
+      - "from google.api_core import grpc_helpers"
+      - "from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient"
+      - "from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport"
+      - "from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledChannel"
+    text_replacements:
+      PooledBigtableGrpcAsyncIOTransport: PooledBigtableGrpcTransport
+      PooledChannelAsync: PooledChannel
+      TestTableAsync: TestTable
     replace_methods:
         _get_target_class: |
             from google.cloud.bigtable.data._sync.client import BigtableDataClient
             return BigtableDataClient
-    drop_methods: ["test_client_ctor_sync", "test_channel_pool_creation", "test_channel_pool_rotation", "test_channel_pool_replace"]
-  - path: tests.unit.data._async.test_client.TestReadRowsShardedAsync
-    autogen_sync_name: TestReadRowsSharded
-  - path: tests.unit.data._async.test_client.TestReadRowsAsync
-    autogen_sync_name: TestReadRows
+        is_async: "return False"
+    drop_methods: ["test_client_ctor_sync", "test__start_background_channel_refresh_sync", "test__start_background_channel_refresh_tasks_names", "test_close_with_timeout"]
+  - path: tests.unit.data._async.test_client.TestTableAsync
+    autogen_sync_name: TestTable
+    replace_methods:
+        _get_target_class: |
+            from google.cloud.bigtable.data._sync.client import Table
+            return Table
+  #- path: tests.unit.data._async.test_client.TestReadRowsShardedAsync
+  #  autogen_sync_name: TestReadRowsSharded
+  #- path: tests.unit.data._async.test_client.TestReadRowsAsync
+  #  autogen_sync_name: TestReadRows
 
 save_path: "tests/unit/data/_sync/test_autogen.py"
