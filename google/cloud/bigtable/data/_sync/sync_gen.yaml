@@ -17,14 +17,12 @@ text_replacements:  # Find and replace specific text patterns
   StopAsyncIteration: StopIteration
   Awaitable: None
   BigtableAsyncClient: BigtableClient
-  PooledBigtableGrpcAsyncIOTransport: BigtableGrpcTransport
-  AsyncChannel: Channel
   retry_target_async: retry_target
   retry_target_stream_async: retry_target_stream
 
 added_imports:
   - "from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient"
-  - "from google.cloud.bigtable_v2.services.bigtable.transports.grpc import BigtableGrpcTransport"
+  - "from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport, PooledChannel"
   - "from typing import Generator, Iterable, Iterator"
   - "from grpc import Channel"
   - "import google.cloud.bigtable.data.exceptions as bt_exceptions"
@@ -48,8 +46,14 @@ classes:  # Specify transformations for individual classes
   - path: google.cloud.bigtable.data._async.client.BigtableDataClientAsync
     autogen_sync_name: BigtableDataClient_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.client.BigtableDataClient
-    pass_methods: ["close", "_ping_and_warm_instances", "_manage_channel"]
-    error_methods: ["_start_background_channel_refresh", "_client_version", "_prep_emulator_channel", "_transport_init"] 
+    drop_methods: ["close"]
+    error_methods: ["_start_background_channel_refresh", "_client_version", "_execute_ping_and_warms"]
+    asyncio_replacements:
+      sleep: self._is_closed.wait
+    text_replacements:
+      PooledBigtableGrpcAsyncIOTransport: PooledBigtableGrpcTransport
+      AsyncChannel: Channel
+      AsyncPooledChannel: PooledChannel
   - path: google.cloud.bigtable.data._async.client.TableAsync
     autogen_sync_name: Table_SyncGen
     concrete_path: google.cloud.bigtable.data._sync.client.Table

@@ -33,15 +33,15 @@ import random
 import os
 
 from functools import partial
-from grpc.aio import Channel as AsyncChannel
+from grpc import Channel
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
-    PooledChannel,
 )
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledChannel as AsyncPooledChannel
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
@@ -123,7 +123,10 @@ class BigtableDataClientAsync(ClientWithProject):
           - ValueError if pool_size is less than 1
         """
         # set up transport in registry
-        transport_str = self._transport_init(pool_size)
+        # TODO: simplify when released: https://github.com/googleapis/gapic-generator-python/pull/1699
+        transport_str = f"bt-{self._client_version()}-{pool_size}"
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
         # set up client info headers for veneer library
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -153,6 +156,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
         )
+        self._is_closed = asyncio.Event()
         self.transport = cast(
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
@@ -170,7 +174,11 @@ class BigtableDataClientAsync(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self._prep_emulator_channel(self._emulator_host, pool_size)
+            self.transport._grpc_channel = AsyncPooledChannel(
+                pool_size=pool_size,
+                host=self._emulator_host,
+                insecure=True,
+            )
             # refresh cached stubs to use emulator pool
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
@@ -186,29 +194,6 @@ class BigtableDataClientAsync(ClientWithProject):
                     stacklevel=2,
                 )
 
-    def _transport_init(self, pool_size: int) -> str:
-        """
-        Helper function for intiializing the transport object
-
-        Different implementations for sync vs async client
-        """
-        transport_str = f"pooled_grpc_asyncio_{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
-        return transport_str
-
-    def _prep_emulator_channel(self, host:str, pool_size:int):
-        """
-        Helper function for initializing emulator's insecure grpc channel
-
-        Different implementations for sync vs async client
-        """
-        self.transport._grpc_channel = PooledChannel(
-            pool_size=pool_size,
-            host=host,
-            insecure=True,
-        )
-
     @staticmethod
     def _client_version() -> str:
         """
@@ -222,7 +207,7 @@ class BigtableDataClientAsync(ClientWithProject):
         Raises:
           - RuntimeError if not called in an asyncio event loop
         """
-        if not self._channel_refresh_tasks and not self._emulator_host:
+        if not self._channel_refresh_tasks and not self._emulator_host and not self._is_closed.is_set():
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
@@ -238,6 +223,7 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Cancel all background tasks
         """
+        self._is_closed.set()
         for task in self._channel_refresh_tasks:
             task.cancel()
         group = asyncio.gather(*self._channel_refresh_tasks, return_exceptions=True)
@@ -246,7 +232,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
-        self, channel: AsyncChannel, instance_key: _WarmedInstanceKey | None = None
+        self, channel: Channel, instance_key: _WarmedInstanceKey | None = None
     ) -> list[BaseException | None]:
         """
         Prepares the backend for requests on a channel
@@ -267,8 +253,9 @@ class BigtableDataClientAsync(ClientWithProject):
             request_serializer=PingAndWarmRequest.serialize,
         )
         # prepare list of coroutines to run
-        tasks = [
-            ping_rpc(
+        partial_list = [
+            partial(
+                ping_rpc,
                 request={"name": instance_name, "app_profile_id": app_profile_id},
                 metadata=[
                     (
@@ -280,8 +267,22 @@ class BigtableDataClientAsync(ClientWithProject):
             )
             for (instance_name, table_name, app_profile_id) in instance_list
         ]
-        # execute coroutines in parallel
-        result_list = await asyncio.gather(*tasks, return_exceptions=True)
+        return await self._execute_ping_and_warms(*partial_list)
+
+    async def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
+        """
+        Execute batch of ping and warm requests in parallel
+
+        Will have separate implementation for sync and async clients
+
+        Args:
+          - fns: list of partial functions to execute ping and warm requests
+        Returns:
+          - list of results or exceptions from the ping requests
+        """
+        # extract coroutine out of partials
+        coro_list = [fn() for fn in fns]
+        result_list = await asyncio.gather(*coro_list, return_exceptions=True)
         # return None in place of empty successful responses
         return [r or None for r in result_list]
 
@@ -320,19 +321,21 @@ class BigtableDataClientAsync(ClientWithProject):
             channel = self.transport.channels[channel_idx]
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
-        while True:
+        while not self._is_closed.is_set():
             await asyncio.sleep(next_sleep)
+            if self._is_closed.is_set():
+                break
             # prepare new channel for use
             new_channel = self.transport.grpc_channel._create_channel()
             await self._ping_and_warm_instances(new_channel)
             # cycle channel out of use, with long grace window before closure
-            start_timestamp = time.time()
+            start_timestamp = time.monotonic()
             await self.transport.replace_channel(
-                channel_idx, grace=grace_period, new_channel=new_channel
+                channel_idx, grace=grace_period, new_channel=new_channel, event=self._is_closed
             )
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = next_refresh - (time.time() - start_timestamp)
+            next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
     async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """

@@ -30,6 +30,7 @@ import atexit
 import concurrent.futures
 import functools
 import os
+import random
 import threading
 import time
 import warnings
@@ -76,13 +77,16 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-from google.cloud.bigtable_v2.services.bigtable.transports.grpc import (
-    BigtableGrpcTransport,
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    PooledBigtableGrpcTransport,
+    PooledChannel,
 )
 from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
 from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
 from google.cloud.bigtable_v2.types import RowRange as RowRangePB
 from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 import google.auth._default
@@ -897,7 +901,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
           - RuntimeError if called outside of an async context (no running event loop)
           - ValueError if pool_size is less than 1
         """
-        transport_str = self._transport_init(pool_size)
+        transport_str = f"bt-{self._client_version()}-{pool_size}"
+        transport = PooledBigtableGrpcTransport.with_fixed_size(pool_size)
+        BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
         if type(client_options) is dict:
@@ -923,7 +929,8 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             client_options=client_options,
             client_info=client_info,
         )
-        self.transport = cast(BigtableGrpcTransport, self._gapic_client.transport)
+        self._is_closed = threading.Event()
+        self.transport = cast(PooledBigtableGrpcTransport, self._gapic_client.transport)
         self._active_instances: Set[_WarmedInstanceKey] = set()
         self._instance_owners: dict[_WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
@@ -934,7 +941,9 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self._prep_emulator_channel(self._emulator_host, pool_size)
+            self.transport._grpc_channel = PooledChannel(
+                pool_size=pool_size, host=self._emulator_host, insecure=True
+            )
             self.transport._stubs = {}
             self.transport._prep_wrapped_messages(client_info)
         else:
@@ -947,21 +956,12 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                     stacklevel=2,
                 )
 
-    def _transport_init(self, pool_size: int) -> str:
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def _prep_emulator_channel(self, host: str, pool_size: int):
-        raise NotImplementedError("Function not implemented in sync class")
-
     @staticmethod
     def _client_version() -> str:
         raise NotImplementedError("Function not implemented in sync class")
 
     def _start_background_channel_refresh(self) -> None:
         raise NotImplementedError("Function not implemented in sync class")
-
-    def close(self, timeout: float = 2.0):
-        """Cancel all background tasks"""
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _WarmedInstanceKey | None = None
@@ -977,6 +977,31 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         Returns:
             - sequence of results or exceptions from the ping requests
         """
+        instance_list = (
+            [instance_key] if instance_key is not None else self._active_instances
+        )
+        ping_rpc = channel.unary_unary(
+            "/google.bigtable.v2.Bigtable/PingAndWarm",
+            request_serializer=PingAndWarmRequest.serialize,
+        )
+        partial_list = [
+            partial(
+                ping_rpc,
+                request={"name": instance_name, "app_profile_id": app_profile_id},
+                metadata=[
+                    (
+                        "x-goog-request-params",
+                        f"name={instance_name}&app_profile_id={app_profile_id}",
+                    )
+                ],
+                wait_for_ready=True,
+            )
+            for (instance_name, table_name, app_profile_id) in instance_list
+        ]
+        return self._execute_ping_and_warms(*partial_list)
+
+    def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
+        raise NotImplementedError("Function not implemented in sync class")
 
     def _manage_channel(
         self,
@@ -1004,6 +1029,28 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        first_refresh = self._channel_init_time + random.uniform(
+            refresh_interval_min, refresh_interval_max
+        )
+        next_sleep = max(first_refresh - time.monotonic(), 0)
+        if next_sleep > 0:
+            channel = self.transport.channels[channel_idx]
+            self._ping_and_warm_instances(channel)
+        while not self._is_closed.is_set():
+            self._is_closed.wait(next_sleep)
+            if self._is_closed.is_set():
+                break
+            new_channel = self.transport.grpc_channel._create_channel()
+            self._ping_and_warm_instances(new_channel)
+            start_timestamp = time.monotonic()
+            self.transport.replace_channel(
+                channel_idx,
+                grace=grace_period,
+                new_channel=new_channel,
+                event=self._is_closed,
+            )
+            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
+            next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
     def _register_instance(
         self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table

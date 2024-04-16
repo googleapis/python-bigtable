@@ -51,124 +51,19 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
             self._executor_instance = concurrent.futures.ThreadPoolExecutor()
         return self._executor_instance
 
-    @property
-    def _is_closed(self) -> threading.Event:
-        if not hasattr(self, "_is_closed_instance"):
-            self._is_closed_instance = threading.Event()
-        return self._is_closed_instance
-
-    def _transport_init(self, pool_size: int) -> str:
-        transport_str = f"pooled_grpc_{pool_size}"
-        transport = PooledBigtableGrpcTransport.with_fixed_size(pool_size)
-        BigtableClientMeta._transport_registry[transport_str] = transport
-        return transport_str
-
-    def _prep_emulator_channel(self, host:str, pool_size: int) -> str:
-        self.transport._grpc_channel = PooledChannel(
-            pool_size=pool_size,
-            host=host,
-            insecure=True,
-        )
-
     @staticmethod
     def _client_version() -> str:
         return f"{google.cloud.bigtable.__version__}-data"
 
     def _start_background_channel_refresh(self) -> None:
-        if not self._channel_refresh_tasks and not self._emulator_host:
+        if not self._channel_refresh_tasks and not self._emulator_host and not self._is_closed.is_set():
             for channel_idx in range(self.transport.pool_size):
                 self._channel_refresh_tasks.append(
                     self._executor.submit(self._manage_channel, channel_idx)
                 )
 
-    def _manage_channel(
-        self,
-        channel_idx: int,
-        refresh_interval_min: float = 60 * 35,
-        refresh_interval_max: float = 60 * 45,
-        grace_period: float = 60 * 10,
-    ) -> None:
-        """
-        Background routine that periodically refreshes and warms a grpc channel
-
-        The backend will automatically close channels after 60 minutes, so
-        `refresh_interval` + `grace_period` should be < 60 minutes
-
-        Runs continuously until the client is closed
-
-        Args:
-            channel_idx: index of the channel in the transport's channel pool
-            refresh_interval_min: minimum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            refresh_interval_max: maximum interval before initiating refresh
-                process in seconds. Actual interval will be a random value
-                between `refresh_interval_min` and `refresh_interval_max`
-            grace_period: time to allow previous channel to serve existing
-                requests before closing, in seconds
-        """
-        first_refresh = self._channel_init_time + random.uniform(
-            refresh_interval_min, refresh_interval_max
-        )
-        next_sleep = max(first_refresh - time.monotonic(), 0)
-        if next_sleep > 0:
-            # warm the current channel immediately
-            channel = self.transport.channels[channel_idx]
-            self._ping_and_warm_instances(channel)
-        # continuously refresh the channel every `refresh_interval` seconds
-        while not self._is_closed.is_set():
-            # sleep until next refresh, or until client is closed
-            self._is_closed.wait(next_sleep)
-            if self._is_closed.is_set():
-                break
-            # prepare new channel for use
-            new_channel = self.transport.grpc_channel._create_channel()
-            self._ping_and_warm_instances(new_channel)
-            # cycle channel out of use, with long grace window before closure
-            start_timestamp = time.monotonic()
-            self.transport.replace_channel(
-                channel_idx, grace=grace_period, new_channel=new_channel, event=self._is_closed
-            )
-            # subtract the time spent waiting for the channel to be replaced
-            next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = next_refresh - (time.monotonic() - start_timestamp)
-
-    def _ping_and_warm_instances(
-        self, channel: grpc.Channel, instance_key: _WarmedInstanceKey | None = None
-    ) -> list[BaseException | None]:
-        """
-        Prepares the backend for requests on a channel
-
-        Pings each Bigtable instance registered in `_active_instances` on the client
-
-        Args:
-            - channel: grpc channel to warm
-            - instance_key: if provided, only warm the instance associated with the key
-        Returns:
-            - sequence of results or exceptions from the ping requests
-        """
-        instance_list = (
-            [instance_key] if instance_key is not None else self._active_instances
-        )
-        ping_rpc = channel.unary_unary(
-            "/google.bigtable.v2.Bigtable/PingAndWarm",
-            request_serializer=PingAndWarmRequest.serialize,
-        )
-        # execute pings in parallel
-        futures_list = []
-        for (instance_name, table_name, app_profile_id) in instance_list:
-            future = self._executor.submit(
-                ping_rpc,
-                request={"name": instance_name, "app_profile_id": app_profile_id},
-                metadata=[
-                    (
-                        "x-goog-request-params",
-                        f"name={instance_name}&app_profile_id={app_profile_id}",
-                    )
-                ],
-                wait_for_ready=True,
-            )
-            futures_list.append(future)
+    def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
+        futures_list = [self._executor.submit(f) for f in fns]
         results_list = []
         for future in futures_list:
             try:
@@ -189,7 +84,6 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
             self._executor.shutdown(wait=False)
         self._channel_refresh_tasks = []
         self.transport.close()
-        super().close()
 
 
 class Table(Table_SyncGen):

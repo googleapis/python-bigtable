@@ -150,7 +150,7 @@ class PooledChannel(aio.Channel):
         raise NotImplementedError()
 
     async def replace_channel(
-        self, channel_idx, grace=1, new_channel=None
+        self, channel_idx, grace=1, new_channel=None, event=None
     ) -> aio.Channel:
         """
         Replaces a channel in the pool with a fresh one.
@@ -163,8 +163,11 @@ class PooledChannel(aio.Channel):
           grace(Optional[float]): The time to wait for active RPCs to
             finish. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
+            If event is set at close time, grace is ignored
           new_channel(grpc.aio.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
+          event(Optional[threading.Event]): an event to signal when the
+            replacement should be aborted. If set, grace is ignored.
         """
         if channel_idx >= len(self._pool) or channel_idx < 0:
             raise ValueError(
@@ -174,6 +177,8 @@ class PooledChannel(aio.Channel):
             new_channel = self._create_channel()
         old_channel = self._pool[channel_idx]
         self._pool[channel_idx] = new_channel
+        if event is not None and not event.is_set():
+            grace = None
         await old_channel.close(grace=grace)
         return new_channel
 
@@ -397,7 +402,7 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         return self._grpc_channel._pool
 
     async def replace_channel(
-        self, channel_idx, grace=1, new_channel=None
+        self, channel_idx, grace=1, new_channel=None, event=None
     ) -> aio.Channel:
         """
         Replaces a channel in the pool with a fresh one.
@@ -408,13 +413,16 @@ class PooledBigtableGrpcAsyncIOTransport(BigtableGrpcAsyncIOTransport):
         Args:
           channel_idx(int): the channel index in the pool to replace
           grace(Optional[float]): The time to wait for active RPCs to
-            finished. If a grace period is not specified (by passing None for
+            finish. If a grace period is not specified (by passing None for
             grace), all existing RPCs are cancelled immediately.
+            If event is set at close time, grace is ignored
           new_channel(grpc.aio.Channel): a new channel to insert into the pool
             at `channel_idx`. If `None`, a new channel will be created.
+          event(Optional[threading.Event]): an event to signal when the
+            replacement should be aborted. If set, grace is ignored.
         """
         return await self._grpc_channel.replace_channel(
-            channel_idx=channel_idx, grace=grace, new_channel=new_channel
+            channel_idx=channel_idx, grace=grace, new_channel=new_channel, event=event
         )
 
 

@@ -246,7 +246,6 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         raise_node = ast.Raise(exc=exc_node, cause=None)
         node.body = [raise_node]
 
-
     def get_imports(self, filename):
         """
         Get the imports from a file, and do a find-and-replace against asyncio_replacements

@@ -91,14 +91,15 @@ class TestBigtableDataClient(ABC):
     def test_ctor_super_inits(self):
         from google.cloud.client import ClientWithProject
         from google.api_core import client_options as client_options_lib
+        from google.cloud.bigtable import __version__ as bigtable_version
 
         project = "project-id"
         pool_size = 11
         credentials = AnonymousCredentials()
         client_options = {"api_endpoint": "foo.bar:1234"}
         options_parsed = client_options_lib.from_dict(client_options)
-        asyncio_portion = "_asyncio" if self.is_async else ""
-        transport_str = f"pooled_grpc{asyncio_portion}_{pool_size}"
+        asyncio_portion = "-async" if self.is_async else ""
+        transport_str = f"bt-{bigtable_version}-data{asyncio_portion}-{pool_size}"
         with mock.patch.object(BigtableClient, "__init__") as bigtable_client_init:
             bigtable_client_init.return_value = None
             with mock.patch.object(
@@ -275,6 +276,11 @@ class TestBigtableDataClient(ABC):
     def test__ping_and_warm_instances(self):
         """test ping and warm with mocked asyncio.gather"""
         client_mock = mock.Mock()
+        client_mock._execute_ping_and_warms = (
+            lambda *args: self._get_target_class()._execute_ping_and_warms(
+                client_mock, *args
+            )
+        )
         gather_tuple = (
             (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
         )
@@ -327,6 +333,11 @@ class TestBigtableDataClient(ABC):
     def test__ping_and_warm_single_instance(self):
         """should be able to call ping and warm with single instance"""
         client_mock = mock.Mock()
+        client_mock._execute_ping_and_warms = (
+            lambda *args: self._get_target_class()._execute_ping_and_warms(
+                client_mock, *args
+            )
+        )
         gather_tuple = (
             (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
         )
@@ -392,8 +403,7 @@ class TestBigtableDataClient(ABC):
         import threading
 
         client_mock = mock.Mock()
-        if not self.is_async:
-            client_mock._is_closed.is_set.return_value = False
+        client_mock._is_closed.is_set.return_value = False
         client_mock._channel_init_time = time.monotonic()
         channel_list = [mock.Mock(), mock.Mock()]
         client_mock.transport.channels = channel_list
