@@ -22,15 +22,23 @@ from itertools import zip_longest
 
 from google.cloud.bigtable_v2 import ReadRowsResponse
 
-from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
-from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data.row import Row
 
-from ...v2_client.test_row_merger import ReadRowsTest, TestFile
+from tests.unit.v2_client.test_row_merger import ReadRowsTest, TestFile
 
 
 class TestReadRowsAcceptanceAsync:
+
+    @staticmethod
+    def _get_operation_class():
+        from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+        return _ReadRowsOperationAsync
+
+    @staticmethod
+    def _get_client_class():
+        from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
+        return BigtableDataClientAsync
 
     def parse_readrows_acceptance_tests():
         dirname = os.path.dirname(__file__)
@@ -68,10 +76,10 @@ class TestReadRowsAcceptanceAsync:
         instance = mock.Mock()
         instance._remaining_count = None
         instance._last_yielded_row_key = None
-        chunker = _ReadRowsOperationAsync.chunk_stream(
+        chunker = self._get_operation_class().chunk_stream(
             instance, self._coro_wrapper(_row_stream())
         )
-        merger = _ReadRowsOperationAsync.merge_rows(chunker)
+        merger = self._get_operation_class().merge_rows(chunker)
         results = []
         async for row in merger:
             results.append(row)
@@ -91,10 +99,10 @@ class TestReadRowsAcceptanceAsync:
             instance = mock.Mock()
             instance._last_yielded_row_key = None
             instance._remaining_count = None
-            chunker = _ReadRowsOperationAsync.chunk_stream(
+            chunker = self._get_operation_class().chunk_stream(
                 instance, self._coro_wrapper(_scenerio_stream())
             )
-            merger = _ReadRowsOperationAsync.merge_rows(chunker)
+            merger = self._get_operation_class().merge_rows(chunker)
             async for row in merger:
                 for cell in row:
                     cell_result = ReadRowsTest.Result(
@@ -139,13 +147,12 @@ class TestReadRowsAcceptanceAsync:
                     pass
 
             return mock_stream(chunk_list)
-
+        with mock.patch.dict(os.environ, {"BIGTABLE_EMULATOR_HOST": "localhost"}):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                # use emulator mode to avoid auth issues in CI
+                client = self._get_client_class()()
         try:
-            with mock.patch.dict(os.environ, {"BIGTABLE_EMULATOR_HOST": "localhost"}):
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    # use emulator mode to avoid auth issues in CI
-                    client = BigtableDataClientAsync()
             table = client.get_table("instance", "table")
             results = []
             with mock.patch.object(table.client._gapic_client, "read_rows") as read_rows:
@@ -178,10 +185,10 @@ class TestReadRowsAcceptanceAsync:
         instance = mock.Mock()
         instance._remaining_count = None
         instance._last_yielded_row_key = b"b"
-        chunker = _ReadRowsOperationAsync.chunk_stream(
+        chunker = self._get_operation_class().chunk_stream(
             instance, self._coro_wrapper(_row_stream())
         )
-        merger = _ReadRowsOperationAsync.merge_rows(chunker)
+        merger = self._get_operation_class().merge_rows(chunker)
         with pytest.raises(InvalidChunk):
             async for _ in merger:
                 pass
