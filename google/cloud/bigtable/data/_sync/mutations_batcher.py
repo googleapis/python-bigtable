@@ -34,7 +34,6 @@ class _FlowControl(_FlowControl_SyncGen):
 
 
 class MutationsBatcher(MutationsBatcher_SyncGen):
-
     @property
     def _executor(self):
         """
@@ -91,4 +90,3 @@ class MutationsBatcher(MutationsBatcher_SyncGen):
             self._closed.wait(timeout=interval)
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
-

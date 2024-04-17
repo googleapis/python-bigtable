@@ -354,7 +354,9 @@ class TestReadRowsOperation:
         instance = mock.Mock()
         instance._last_yielded_row_key = None
         instance._remaining_count = None
-        stream = self._get_target_class().chunk_stream(instance, mock_awaitable_stream())
+        stream = self._get_target_class().chunk_stream(
+            instance, mock_awaitable_stream()
+        )
         await stream.__anext__()
         with pytest.raises(InvalidChunk) as exc:
             await stream.__anext__()

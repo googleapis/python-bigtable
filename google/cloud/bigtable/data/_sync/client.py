@@ -33,7 +33,7 @@ import google.cloud.bigtable.data._sync._mutate_rows  # noqa: F401
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
     PooledBigtableGrpcTransport,
-    PooledChannel
+    PooledChannel,
 )
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 
@@ -44,7 +44,6 @@ if TYPE_CHECKING:
 
 
 class BigtableDataClient(BigtableDataClient_SyncGen):
-
     @property
     def _executor(self) -> concurrent.futures.ThreadPoolExecutor:
         if not hasattr(self, "_executor_instance"):
@@ -56,7 +55,11 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
         return f"{google.cloud.bigtable.__version__}-data"
 
     def _start_background_channel_refresh(self) -> None:
-        if not self._channel_refresh_tasks and not self._emulator_host and not self._is_closed.is_set():
+        if (
+            not self._channel_refresh_tasks
+            and not self._emulator_host
+            and not self._is_closed.is_set()
+        ):
             for channel_idx in range(self.transport.pool_size):
                 self._channel_refresh_tasks.append(
                     self._executor.submit(self._manage_channel, channel_idx)
@@ -87,14 +90,18 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
 
 
 class Table(Table_SyncGen):
-
     def _register_with_client(self) -> concurrent.futures.Future[None]:
         return self.client._executor.submit(
             self.client._register_instance, self.instance_id, self
         )
 
-    def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
-        futures_list = [self.client._executor.submit(self.read_rows, **kwargs) for kwargs in kwargs_list]
+    def _shard_batch_helper(
+        self, kwargs_list: list[dict]
+    ) -> list[list[Row] | BaseException]:
+        futures_list = [
+            self.client._executor.submit(self.read_rows, **kwargs)
+            for kwargs in kwargs_list
+        ]
         results_list: list[list[Row] | BaseException] = []
         for future in futures_list:
             if future.exception():

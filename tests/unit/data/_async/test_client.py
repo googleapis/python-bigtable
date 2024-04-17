@@ -30,7 +30,9 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import (
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledChannel as PooledChannelAsync
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledChannel as PooledChannelAsync,
+)
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
 from google.api_core import exceptions as core_exceptions
 from google.cloud.bigtable.data.exceptions import InvalidChunk
@@ -50,7 +52,6 @@ except ImportError:  # pragma: NO COVER
 
 
 class TestBigtableDataClientAsync:
-
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
@@ -67,7 +68,8 @@ class TestBigtableDataClientAsync:
         if use_emulator:
             env_mask["BIGTABLE_EMULATOR_HOST"] = "localhost"
             import warnings
-            warnings.filterwarnings('ignore', category=RuntimeWarning)
+
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
         else:
             # set some default values
             kwargs["credentials"] = kwargs.get("credentials", AnonymousCredentials())
@@ -158,7 +160,9 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(
             self._get_target_class(), "_start_background_channel_refresh"
         ) as start_background_refresh:
-            client = self._make_client(client_options=client_options, use_emulator=False)
+            client = self._make_client(
+                client_options=client_options, use_emulator=False
+            )
             start_background_refresh.assert_called_once()
             await client.close()
 
@@ -166,7 +170,9 @@ class TestBigtableDataClientAsync:
     async def test_veneer_grpc_headers(self):
         client_component = "data-async" if self.is_async else "data"
         VENEER_HEADER_REGEX = re.compile(
-            r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+-" + client_component + r" gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
+            r"gapic\/[0-9]+\.[\w.-]+ gax\/[0-9]+\.[\w.-]+ gccl\/[0-9]+\.[\w.-]+-"
+            + client_component
+            + r" gl-python\/[0-9]+\.[\w.-]+ grpc\/[0-9]+\.[\w.-]+"
         )
 
         # client_info should be populated with headers to
@@ -194,7 +200,9 @@ class TestBigtableDataClientAsync:
     @pytest.mark.asyncio
     async def test_channel_pool_creation(self):
         pool_size = 14
-        with mock.patch.object(grpc_helpers_async, "create_channel", AsyncMock()) as create_channel:
+        with mock.patch.object(
+            grpc_helpers_async, "create_channel", AsyncMock()
+        ) as create_channel:
             client = self._make_client(project="project-id", pool_size=pool_size)
             assert create_channel.call_count == pool_size
             await client.close()
@@ -232,6 +240,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.asyncio
     async def test_channel_pool_replace(self):
         import time
+
         sleep_module = asyncio if self.is_async else time
         with mock.patch.object(sleep_module, "sleep"):
             pool_size = 7
@@ -281,8 +290,11 @@ class TestBigtableDataClientAsync:
     @pytest.mark.parametrize("pool_size", [1, 3, 7])
     async def test__start_background_channel_refresh(self, pool_size):
         import concurrent.futures
+
         # should create background tasks for each channel
-        with mock.patch.object(self._get_target_class(), "_ping_and_warm_instances", AsyncMock()) as ping_and_warm:
+        with mock.patch.object(
+            self._get_target_class(), "_ping_and_warm_instances", AsyncMock()
+        ) as ping_and_warm:
             client = self._make_client(
                 project="project-id", pool_size=pool_size, use_emulator=False
             )
@@ -321,8 +333,14 @@ class TestBigtableDataClientAsync:
         test ping and warm with mocked asyncio.gather
         """
         client_mock = mock.Mock()
-        client_mock._execute_ping_and_warms = lambda *args: self._get_target_class()._execute_ping_and_warms(client_mock, *args)
-        gather_tuple = (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
+        client_mock._execute_ping_and_warms = (
+            lambda *args: self._get_target_class()._execute_ping_and_warms(
+                client_mock, *args
+            )
+        )
+        gather_tuple = (
+            (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
+        )
         with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
             if self.is_async:
                 # simulate gather by returning the same number of items as passed in
@@ -383,8 +401,14 @@ class TestBigtableDataClientAsync:
         should be able to call ping and warm with single instance
         """
         client_mock = mock.Mock()
-        client_mock._execute_ping_and_warms = lambda *args: self._get_target_class()._execute_ping_and_warms(client_mock, *args)
-        gather_tuple = (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
+        client_mock._execute_ping_and_warms = (
+            lambda *args: self._get_target_class()._execute_ping_and_warms(
+                client_mock, *args
+            )
+        )
+        gather_tuple = (
+            (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
+        )
         with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
             gather.side_effect = lambda *args, **kwargs: [mock.Mock() for _ in args]
             if self.is_async:
@@ -438,7 +462,9 @@ class TestBigtableDataClientAsync:
 
         with mock.patch.object(time, "monotonic") as monotonic:
             monotonic.return_value = 0
-            sleep_tuple = (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+            sleep_tuple = (
+                (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+            )
             with mock.patch.object(*sleep_tuple) as sleep:
                 sleep.side_effect = asyncio.CancelledError
                 try:
@@ -523,7 +549,9 @@ class TestBigtableDataClientAsync:
             uniform.side_effect = lambda min_, max_: min_
             with mock.patch.object(time, "time") as time_mock:
                 time_mock.return_value = 0
-                sleep_tuple = (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+                sleep_tuple = (
+                    (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+                )
                 with mock.patch.object(*sleep_tuple) as sleep:
                     sleep.side_effect = [None for i in range(num_cycles - 1)] + [
                         asyncio.CancelledError
@@ -592,7 +620,9 @@ class TestBigtableDataClientAsync:
         with mock.patch.object(
             PooledBigtableGrpcAsyncIOTransport, "replace_channel"
         ) as replace_channel:
-            sleep_tuple = (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+            sleep_tuple = (
+                (asyncio, "sleep") if self.is_async else (threading.Event, "wait")
+            )
             with mock.patch.object(*sleep_tuple) as sleep:
                 sleep.side_effect = [None for i in range(num_cycles)] + [
                     asyncio.CancelledError
@@ -601,8 +631,12 @@ class TestBigtableDataClientAsync:
                     grpc_helpers_async, "create_channel"
                 ) as create_channel:
                     create_channel.return_value = new_channel
-                    with mock.patch.object(self._get_target_class(), "_start_background_channel_refresh"):
-                        client = self._make_client(project="project-id", use_emulator=False)
+                    with mock.patch.object(
+                        self._get_target_class(), "_start_background_channel_refresh"
+                    ):
+                        client = self._make_client(
+                            project="project-id", use_emulator=False
+                        )
                     create_channel.reset_mock()
                     try:
                         await client._manage_channel(
@@ -913,7 +947,9 @@ class TestBigtableDataClientAsync:
         All arguments passed in get_table should be sent to constructor
         """
         async with self._make_client(project="project-id") as client:
-            with mock.patch.object(TestTableAsync._get_target_class(), "__init__") as mock_constructor:
+            with mock.patch.object(
+                TestTableAsync._get_target_class(), "__init__"
+            ) as mock_constructor:
                 mock_constructor.return_value = None
                 assert not client._active_instances
                 expected_table_id = "table-id"
@@ -947,7 +983,9 @@ class TestBigtableDataClientAsync:
         expected_app_profile_id = "app-profile-id"
         expected_project_id = "project-id"
 
-        with mock.patch.object(TestTableAsync._get_target_class(), "close") as close_mock:
+        with mock.patch.object(
+            TestTableAsync._get_target_class(), "close"
+        ) as close_mock:
             async with self._make_client(project=expected_project_id) as client:
                 async with client.get_table(
                     expected_instance_id,
@@ -1060,13 +1098,13 @@ class TestBigtableDataClientAsync:
 
 
 class TestTableAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
     @staticmethod
     def _get_target_class():
         from google.cloud.bigtable.data._async.client import TableAsync
+
         return TableAsync
 
     @property
@@ -1347,7 +1385,9 @@ class TestTableAsync:
         from google.cloud.bigtable.data import TableAsync
 
         profile = "profile" if include_app_profile else None
-        with mock.patch.object(BigtableAsyncClient, gapic_fn, mock.AsyncMock()) as gapic_mock:
+        with mock.patch.object(
+            BigtableAsyncClient, gapic_fn, mock.AsyncMock()
+        ) as gapic_mock:
             gapic_mock.side_effect = RuntimeError("stop early")
             async with self._make_client() as client:
                 table = TableAsync(client, "instance-id", "table-id", profile)
@@ -1380,6 +1420,7 @@ class TestReadRowsAsync:
     @staticmethod
     def _get_operation_class():
         from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+
         return _ReadRowsOperationAsync
 
     def _make_client(self, *args, **kwargs):
@@ -1879,7 +1920,6 @@ class TestReadRowsAsync:
 
 
 class TestReadRowsShardedAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2000,9 +2040,10 @@ class TestReadRowsShardedAsync:
 
         client = self._make_client(use_emulator=True)
         table = client.get_table(
-            "instance", "table",
+            "instance",
+            "table",
             default_read_rows_operation_timeout=start_operation_timeout,
-            default_read_rows_attempt_timeout=start_attempt_timeout
+            default_read_rows_attempt_timeout=start_attempt_timeout,
         )
 
         # make timeout generator that reduces timeout by one each call
@@ -2010,7 +2051,9 @@ class TestReadRowsShardedAsync:
             for i in range(0, 100000):
                 yield start_op - i
 
-        with mock.patch(f"google.cloud.bigtable.data._helpers._attempt_timeout_generator") as time_gen_mock:
+        with mock.patch(
+            f"google.cloud.bigtable.data._helpers._attempt_timeout_generator"
+        ) as time_gen_mock:
             time_gen_mock.side_effect = mock_time_generator
 
             with mock.patch.object(table, "read_rows", AsyncMock()) as read_rows_mock:
@@ -2020,8 +2063,7 @@ class TestReadRowsShardedAsync:
                 assert read_rows_mock.call_count == n_queries
                 # ensure that timeouts decrease over time
                 kwargs = [
-                    read_rows_mock.call_args_list[idx][1]
-                    for idx in range(n_queries)
+                    read_rows_mock.call_args_list[idx][1] for idx in range(n_queries)
                 ]
                 for batch_idx in range(expected_num_batches):
                     batch_kwargs = kwargs[
@@ -2035,7 +2077,8 @@ class TestReadRowsShardedAsync:
                             batch_idx
                         )
                         assert (
-                            req_kwargs["operation_timeout"] == expected_operation_timeout
+                            req_kwargs["operation_timeout"]
+                            == expected_operation_timeout
                         )
                         # each attempt_timeout should start with default value, but decrease when operation_timeout reaches it
                         expected_attempt_timeout = min(
@@ -2045,7 +2088,6 @@ class TestReadRowsShardedAsync:
 
 
 class TestSampleRowKeysAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2197,7 +2239,6 @@ class TestSampleRowKeysAsync:
 
 
 class TestMutateRowAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2373,7 +2414,6 @@ class TestMutateRowAsync:
 
 
 class TestBulkMutateRowsAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2753,7 +2793,6 @@ class TestBulkMutateRowsAsync:
 
 
 class TestCheckAndMutateRowAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 
@@ -2905,7 +2944,6 @@ class TestCheckAndMutateRowAsync:
 
 
 class TestReadModifyWriteRowAsync:
-
     def _make_client(self, *args, **kwargs):
         return TestBigtableDataClientAsync._make_client(*args, **kwargs)
 

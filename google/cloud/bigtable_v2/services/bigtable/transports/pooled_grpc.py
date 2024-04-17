@@ -53,6 +53,7 @@ class PooledMultiCallable:
     def future(self, *args, **kwargs):
         raise NotImplementedError()
 
+
 class PooledUnaryUnaryMultiCallable(PooledMultiCallable, grpc.UnaryUnaryMultiCallable):
     def __call__(self, *args, **kwargs):
         return self.next_channel_fn().unary_unary(
@@ -60,14 +61,18 @@ class PooledUnaryUnaryMultiCallable(PooledMultiCallable, grpc.UnaryUnaryMultiCal
         )(*args, **kwargs)
 
 
-class PooledUnaryStreamMultiCallable(PooledMultiCallable, grpc.UnaryStreamMultiCallable):
+class PooledUnaryStreamMultiCallable(
+    PooledMultiCallable, grpc.UnaryStreamMultiCallable
+):
     def __call__(self, *args, **kwargs):
         return self.next_channel_fn().unary_stream(
             *self._init_args, **self._init_kwargs
         )(*args, **kwargs)
 
 
-class PooledStreamUnaryMultiCallable(PooledMultiCallable, grpc.StreamUnaryMultiCallable):
+class PooledStreamUnaryMultiCallable(
+    PooledMultiCallable, grpc.StreamUnaryMultiCallable
+):
     def __call__(self, *args, **kwargs):
         return self.next_channel_fn().stream_unary(
             *self._init_args, **self._init_kwargs
@@ -149,7 +154,9 @@ class PooledChannel(grpc.Channel):
     def wait_for_state_change(self, last_observed_state):
         raise NotImplementedError()
 
-    def subscribe(self, callback, try_to_connect: bool = False) -> grpc.ChannelConnectivity:
+    def subscribe(
+        self, callback, try_to_connect: bool = False
+    ) -> grpc.ChannelConnectivity:
         raise NotImplementedError()
 
     def unsubscribe(self, callback):
@@ -162,7 +169,7 @@ class PooledChannel(grpc.Channel):
         Replaces a channel in the pool with a fresh one.
 
         The `new_channel` will start processing new requests immidiately,
-        but the old channel will continue serving existing clients for 
+        but the old channel will continue serving existing clients for
         `grace` seconds
 
         Args:

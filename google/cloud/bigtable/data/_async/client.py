@@ -41,7 +41,9 @@ from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIE
 from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
     PooledBigtableGrpcAsyncIOTransport,
 )
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import PooledChannel as AsyncPooledChannel
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledChannel as AsyncPooledChannel,
+)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
@@ -200,7 +202,11 @@ class BigtableDataClientAsync(ClientWithProject):
         Raises:
           - RuntimeError if not called in an asyncio event loop
         """
-        if not self._channel_refresh_tasks and not self._emulator_host and not self._is_closed.is_set():
+        if (
+            not self._channel_refresh_tasks
+            and not self._emulator_host
+            and not self._is_closed.is_set()
+        ):
             # raise RuntimeError if there is no event loop
             asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
@@ -324,7 +330,10 @@ class BigtableDataClientAsync(ClientWithProject):
             # cycle channel out of use, with long grace window before closure
             start_timestamp = time.monotonic()
             await self.transport.replace_channel(
-                channel_idx, grace=grace_period, new_channel=new_channel, event=self._is_closed
+                channel_idx,
+                grace=grace_period,
+                new_channel=new_channel,
+                event=self._is_closed,
             )
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
@@ -552,9 +561,9 @@ class TableAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        self._register_instance_future: asyncio.Future[None] = self._register_with_client()
-
-
+        self._register_instance_future: asyncio.Future[
+            None
+        ] = self._register_with_client()
 
     def _register_with_client(self) -> asyncio.Future[None]:
         """
@@ -819,17 +828,16 @@ class TableAsync:
             )
         return results_list
 
-    async def _shard_batch_helper(self, kwargs_list: list[dict]) -> list[list[Row] | BaseException]:
+    async def _shard_batch_helper(
+        self, kwargs_list: list[dict]
+    ) -> list[list[Row] | BaseException]:
         """
         Helper function for executing a batch of read_rows queries in parallel
 
         Sync client implementation will override this method
         """
-        routine_list = [
-            self.read_rows(**kwargs) for kwargs in kwargs_list
-        ]
+        routine_list = [self.read_rows(**kwargs) for kwargs in kwargs_list]
         return await asyncio.gather(*routine_list, return_exceptions=True)
-
 
     async def row_exists(
         self,

@@ -31,12 +31,12 @@ except ImportError:  # pragma: NO COVER
 
 
 class Test_FlowControl:
-
     @staticmethod
     def _target_class():
         from google.cloud.bigtable.data._async.mutations_batcher import (
             _FlowControlAsync,
         )
+
         return _FlowControlAsync
 
     def _make_one(self, max_mutation_count=10, max_mutation_bytes=100):
@@ -154,6 +154,7 @@ class Test_FlowControl:
     async def test__remove_from_flow_unlock(self):
         """capacity condition should notify after mutation is complete"""
         import inspect
+
         instance = self._make_one(10, 10)
         instance._in_flight_mutation_count = 10
         instance._in_flight_mutation_bytes = 10
@@ -163,6 +164,7 @@ class Test_FlowControl:
                 await instance._capacity_condition.wait_for(
                     lambda: instance._has_capacity(1, 1)
                 )
+
         if inspect.iscoroutinefunction(task_routine):
             # for async class, build task to test flow unlock
             task = asyncio.create_task(task_routine())
@@ -170,6 +172,7 @@ class Test_FlowControl:
         else:
             # this branch will be tested in sync version of this test
             import threading
+
             thread = threading.Thread(target=task_routine)
             thread.start()
             task_alive = thread.is_alive
@@ -268,7 +271,9 @@ class Test_FlowControl:
             max_limit,
         )
         with async_patch, sync_patch:
-            mutation_objs = [self._make_mutation(count=m[0], size=m[1]) for m in mutations]
+            mutation_objs = [
+                self._make_mutation(count=m[0], size=m[1]) for m in mutations
+            ]
             # flow control has no limits except API restrictions
             instance = self._make_one(float("inf"), float("inf"))
             i = 0
@@ -339,7 +344,9 @@ class TestMutationsBatcherAsync:
 
     @pytest.mark.asyncio
     async def test_ctor_defaults(self):
-        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+        ) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 8
@@ -363,10 +370,12 @@ class TestMutationsBatcherAsync:
                     == table.default_mutate_rows_operation_timeout
                 )
                 assert (
-                    instance._attempt_timeout == table.default_mutate_rows_attempt_timeout
+                    instance._attempt_timeout
+                    == table.default_mutate_rows_attempt_timeout
                 )
                 assert (
-                    instance._retryable_errors == table.default_mutate_rows_retryable_errors
+                    instance._retryable_errors
+                    == table.default_mutate_rows_retryable_errors
                 )
                 await asyncio.sleep(0)
                 assert flush_timer_mock.call_count == 1
@@ -376,7 +385,9 @@ class TestMutationsBatcherAsync:
     @pytest.mark.asyncio
     async def test_ctor_explicit(self):
         """Test with explicit parameters"""
-        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+        ) as flush_timer_mock:
             table = mock.Mock()
             flush_interval = 20
             flush_limit_count = 17
@@ -409,7 +420,9 @@ class TestMutationsBatcherAsync:
                     instance._flow_control._max_mutation_count
                     == flow_control_max_mutation_count
                 )
-                assert instance._flow_control._max_mutation_bytes == flow_control_max_bytes
+                assert (
+                    instance._flow_control._max_mutation_bytes == flow_control_max_bytes
+                )
                 assert instance._flow_control._in_flight_mutation_count == 0
                 assert instance._flow_control._in_flight_mutation_bytes == 0
                 assert instance._entries_processed_since_last_raise == 0
@@ -424,7 +437,9 @@ class TestMutationsBatcherAsync:
     @pytest.mark.asyncio
     async def test_ctor_no_flush_limits(self):
         """Test with None for flush limits"""
-        with mock.patch.object(self._get_target_class(), "_timer_routine", return_value=asyncio.Future()) as flush_timer_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_timer_routine", return_value=asyncio.Future()
+        ) as flush_timer_mock:
             table = mock.Mock()
             table.default_mutate_rows_operation_timeout = 10
             table.default_mutate_rows_attempt_timeout = 8
@@ -495,7 +510,9 @@ class TestMutationsBatcherAsync:
     @pytest.mark.parametrize("input_val", [None, 0, -1])
     async def test__start_flush_timer_w_empty_input(self, input_val):
         """Empty/invalid timer should return immediately"""
-        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
             # mock different method depending on sync vs async
             async with self._make_one() as instance:
                 if self.is_async():
@@ -510,9 +527,13 @@ class TestMutationsBatcherAsync:
 
     @pytest.mark.asyncio
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    async def test__start_flush_timer_call_when_closed(self,):
+    async def test__start_flush_timer_call_when_closed(
+        self,
+    ):
         """closed batcher's timer should return immediately"""
-        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
             async with self._make_one() as instance:
                 await instance.close()
                 flush_mock.reset_mock()
@@ -531,7 +552,9 @@ class TestMutationsBatcherAsync:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
-        with mock.patch.object(self._get_target_class(), "_schedule_flush") as flush_mock:
+        with mock.patch.object(
+            self._get_target_class(), "_schedule_flush"
+        ) as flush_mock:
             expected_sleep = 12
             async with self._make_one(flush_interval=expected_sleep) as instance:
                 loop_num = 3
@@ -544,7 +567,9 @@ class TestMutationsBatcherAsync:
                 with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
                     with pytest.raises(TabError):
-                        await self._get_target_class()._timer_routine(instance, expected_sleep)
+                        await self._get_target_class()._timer_routine(
+                            instance, expected_sleep
+                        )
                     # replace with np-op so there are no issues on close
                     instance._flush_timer = asyncio.Future()
                     assert sleep_mock.call_count == loop_num + 1
@@ -807,7 +832,9 @@ class TestMutationsBatcherAsync:
         and removed when it completes
         """
         async with self._make_one() as instance:
-            with mock.patch.object(instance, "_flush_internal", AsyncMock()) as flush_mock:
+            with mock.patch.object(
+                instance, "_flush_internal", AsyncMock()
+            ) as flush_mock:
                 if not self.is_async():
                     # simulate operation
                     flush_mock.side_effect = lambda x: time.sleep(0.1)
@@ -945,11 +972,14 @@ class TestMutationsBatcherAsync:
             MutationsExceptionGroup,
             FailedMutationEntryError,
         )
+
         if self.is_async():
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
         else:
             mutate_path = "_sync._mutate_rows._MutateRowsOperation"
-        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}.start") as mutate_rows:
+        with mock.patch(
+            f"google.cloud.bigtable.data.{mutate_path}.start"
+        ) as mutate_rows:
             err1 = FailedMutationEntryError(0, mock.Mock(), RuntimeError("test error"))
             err2 = FailedMutationEntryError(1, mock.Mock(), RuntimeError("test error"))
             mutate_rows.side_effect = MutationsExceptionGroup([err1, err2], 10)
@@ -1075,7 +1105,9 @@ class TestMutationsBatcherAsync:
             mutate_path = "_async.mutations_batcher._MutateRowsOperationAsync"
         else:
             mutate_path = "_sync._mutate_rows._MutateRowsOperation"
-        with mock.patch(f"google.cloud.bigtable.data.{mutate_path}", return_value=AsyncMock()) as mutate_rows:
+        with mock.patch(
+            f"google.cloud.bigtable.data.{mutate_path}", return_value=AsyncMock()
+        ) as mutate_rows:
             expected_operation_timeout = 17
             expected_attempt_timeout = 13
             async with self._make_one(
@@ -1182,8 +1214,14 @@ class TestMutationsBatcherAsync:
         Test that retryable functions support user-configurable arguments, and that the configured retryables are passed
         down to the gapic layer.
         """
-        retryn_fn = "retry_target_async" if "Async" in self._get_target_class().__name__ else "retry_target"
-        with mock.patch.object(google.api_core.retry, "if_exception_type") as predicate_builder_mock:
+        retryn_fn = (
+            "retry_target_async"
+            if "Async" in self._get_target_class().__name__
+            else "retry_target"
+        )
+        with mock.patch.object(
+            google.api_core.retry, "if_exception_type"
+        ) as predicate_builder_mock:
             with mock.patch.object(google.api_core.retry, retryn_fn) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):

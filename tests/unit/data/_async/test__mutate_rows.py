@@ -27,7 +27,6 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
-
 class TestMutateRowsOperation:
     def _target_class(self):
         from google.cloud.bigtable.data._async._mutate_rows import (

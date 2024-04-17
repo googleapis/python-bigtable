@@ -190,9 +190,7 @@ class _ReadRowsOperationAsync:
                     current_key = None
 
     @staticmethod
-    async def merge_rows(
-        chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None
-    ):
+    async def merge_rows(chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None):
         """
         Merge chunks into rows
         """
