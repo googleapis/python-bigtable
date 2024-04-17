@@ -2052,7 +2052,7 @@ class TestReadRowsShardedAsync:
                 yield start_op - i
 
         with mock.patch(
-            f"google.cloud.bigtable.data._helpers._attempt_timeout_generator"
+            "google.cloud.bigtable.data._helpers._attempt_timeout_generator"
         ) as time_gen_mock:
             time_gen_mock.side_effect = mock_time_generator
 

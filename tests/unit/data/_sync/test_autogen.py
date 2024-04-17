@@ -3473,7 +3473,7 @@ class TestReadRowsSharded(ABC):
                 yield (start_op - i)
 
         with mock.patch(
-            f"google.cloud.bigtable.data._helpers._attempt_timeout_generator"
+            "google.cloud.bigtable.data._helpers._attempt_timeout_generator"
         ) as time_gen_mock:
             time_gen_mock.side_effect = mock_time_generator
             with mock.patch.object(table, "read_rows", mock.Mock()) as read_rows_mock:

@@ -168,7 +168,7 @@ class Test_FlowControl:
         if inspect.iscoroutinefunction(task_routine):
             # for async class, build task to test flow unlock
             task = asyncio.create_task(task_routine())
-            task_alive = lambda: not task.done()
+            task_alive = lambda: not task.done()  # noqa
         else:
             # this branch will be tested in sync version of this test
             import threading

@@ -14,11 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
-
-import time
-import random
-import threading
+from typing import TYPE_CHECKING
 
 import google.auth.credentials
 import concurrent.futures
@@ -30,17 +26,8 @@ from google.cloud.bigtable.data._sync._autogen import Table_SyncGen
 import google.cloud.bigtable.data._sync._read_rows  # noqa: F401
 import google.cloud.bigtable.data._sync._mutate_rows  # noqa: F401
 
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledBigtableGrpcTransport,
-    PooledChannel,
-)
-from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
-
 if TYPE_CHECKING:
-    import grpc
     from google.cloud.bigtable.data.row import Row
-    from google.cloud.bigtable.data._helpers import _WarmedInstanceKey
 
 
 class BigtableDataClient(BigtableDataClient_SyncGen):
