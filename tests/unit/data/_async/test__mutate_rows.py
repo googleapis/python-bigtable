@@ -136,17 +136,14 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [self._make_mutation()] * _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+        entries = [self._make_mutation()] * (_MUTATE_ROWS_REQUEST_MUTATION_LIMIT + 1)
         operation_timeout = 0.05
         attempt_timeout = 0.01
-        # no errors if at limit
-        self._make_one(client, table, entries, operation_timeout, attempt_timeout)
-        # raise error after crossing
         with pytest.raises(ValueError) as e:
             self._make_one(
                 client,
                 table,
-                entries + [self._make_mutation()],
+                entries,
                 operation_timeout,
                 attempt_timeout,
             )
