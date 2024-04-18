@@ -551,7 +551,7 @@ class MutationsBatcher_SyncGen(ABC):
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
             batch_retryable_errors, table
         )
-        self._closed: bool = threading.Event()
+        self._closed: threading.Event = threading.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         (self._staged_count, self._staged_bytes) = (0, 0)
@@ -931,7 +931,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_tasks: list[threading.Thread[None]] = []
+        self._channel_refresh_tasks: list[concurrent.futures.Future[None]] = []
         if self._emulator_host is not None:
             warnings.warn(
                 "Connecting to Bigtable emulator at {}".format(self._emulator_host),

@@ -66,14 +66,15 @@ class MutationsBatcher(MutationsBatcher_SyncGen):
     ) -> list[Exception]:
         if not tasks:
             return []
-        exceptions = []
+        exceptions: list[Exception] = []
         for task in tasks:
             try:
                 exc_list = task.result()
-                for exc in exc_list:
-                    # strip index information
-                    exc.index = None
-                exceptions.extend(exc_list)
+                if exc_list:
+                    for exc in exc_list:
+                        # strip index information
+                        exc.index = None
+                    exceptions.extend(exc_list)
             except Exception as e:
                 exceptions.append(e)
         return exceptions

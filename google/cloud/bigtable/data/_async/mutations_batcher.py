@@ -221,7 +221,7 @@ class MutationsBatcherAsync:
             batch_retryable_errors, table
         )
 
-        self._closed: bool = asyncio.Event()
+        self._closed: asyncio.Event = asyncio.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0

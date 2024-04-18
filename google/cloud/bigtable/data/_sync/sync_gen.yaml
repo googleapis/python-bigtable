@@ -3,7 +3,7 @@ asyncio_replacements:  # Replace asyncio functionaility
   Queue: queue.Queue
   Condition: threading.Condition
   Future: concurrent.futures.Future
-  Task: threading.Thread
+  Task: concurrent.futures.Future
   Event: threading.Event
 
 text_replacements:  # Find and replace specific text patterns

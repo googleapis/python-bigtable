@@ -54,7 +54,7 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
 
     def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
         futures_list = [self._executor.submit(f) for f in fns]
-        results_list = []
+        results_list: list[BaseException | None] = []
         for future in futures_list:
             try:
                 future.result()
@@ -94,7 +94,9 @@ class Table(Table_SyncGen):
             if future.exception():
                 results_list.append(future.exception())
             else:
-                results_list.append(future.result())
+                result = future.result()
+                if result is not None:
+                    results_list.append(result)
         return results_list
 
     def __enter__(self):
