@@ -529,7 +529,7 @@ class BigtableGrpcAsyncIOTransport(BigtableTransport):
             ),
             self.mutate_row: gapic_v1.method_async.wrap_method(
                 self.mutate_row,
-                default_retry=retries.Retry(
+                default_retry=retries.AsyncRetry(
                     initial=0.01,
                     maximum=60.0,
                     multiplier=2,
