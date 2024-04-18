@@ -51,7 +51,8 @@ class MutationsBatcher(MutationsBatcher_SyncGen):
         # attempt cancel timer if not started
         self._flush_timer.cancel()
         self._schedule_flush()
-        self._executor.shutdown(wait=True)
+        with self._executor:
+            self._executor.shutdown(wait=True)
         atexit.unregister(self._on_exit)
         # raise unreported exceptions
         self._raise_exceptions()
