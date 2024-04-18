@@ -17,7 +17,6 @@
 
 from .test_system_async import TEST_FAMILY, TEST_FAMILY_2
 from abc import ABC
-from tests.system.data.test_system_async import TempRowBuilder
 import os
 import pytest
 import time

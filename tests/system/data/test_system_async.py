@@ -27,7 +27,7 @@ TEST_FAMILY = "test-family"
 TEST_FAMILY_2 = "test-family-2"
 
 
-class TempRowBuilder:
+class TempRowBuilderAsync:
     """
     Used to add rows to a table for testing purposes.
     """
@@ -161,7 +161,7 @@ class TestSystemAsync:
 
     @pytest_asyncio.fixture(scope="function")
     async def temp_rows(self, table):
-        builder = TempRowBuilder(table)
+        builder = TempRowBuilderAsync(table)
         yield builder
         await builder.delete_rows()
 

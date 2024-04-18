@@ -10,12 +10,13 @@ text_replacements:
   pytest_asyncio: pytest
   AsyncRetry: Retry
   BigtableDataClientAsync: BigtableDataClient
+  TempRowBuilderAsync: TempRowBuilder
   StopAsyncIteration: StopIteration
   __anext__: __next__
   aclose: close
 
 classes:
-  - path: tests.system.data.test_system_async.TempRowBuilder
+  - path: tests.system.data.test_system_async.TempRowBuilderAsync
     autogen_sync_name: TempRowBuilder
   - path: tests.system.data.test_system_async.TestSystemAsync
     autogen_sync_name: TestSystemSync
