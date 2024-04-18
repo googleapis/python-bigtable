@@ -15,10 +15,10 @@ text_replacements:
   aclose: close
 
 classes:
+  - path: tests.system.data.test_system_async.TempRowBuilder
+    autogen_sync_name: TempRowBuilder
   - path: tests.system.data.test_system_async.TestSystemAsync
     autogen_sync_name: TestSystemSync
     drop_methods: ["event_loop"]
-  - path: tests.system.data.test_system_async.TempRowBuilder
-    autogen_sync_name: TempRowBuilder
 
 save_path: "tests/system/data/test_system.py"

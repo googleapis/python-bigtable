@@ -30,6 +30,50 @@ from google.cloud.bigtable.data.read_modify_write_rules import _MAX_INCREMENT_VA
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 
 
+class TempRowBuilder(ABC):
+    """
+    Used to add rows to a table for testing purposes.
+    """
+
+    def __init__(self, table):
+        self.rows = []
+        self.table = table
+
+    def add_row(
+        self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
+    ):
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        elif isinstance(value, int):
+            value = value.to_bytes(8, byteorder="big", signed=True)
+        request = {
+            "table_name": self.table.table_name,
+            "row_key": row_key,
+            "mutations": [
+                {
+                    "set_cell": {
+                        "family_name": family,
+                        "column_qualifier": qualifier,
+                        "value": value,
+                    }
+                }
+            ],
+        }
+        self.table.client._gapic_client.mutate_row(request)
+        self.rows.append(row_key)
+
+    def delete_rows(self):
+        if self.rows:
+            request = {
+                "table_name": self.table.table_name,
+                "entries": [
+                    {"row_key": row, "mutations": [{"delete_from_row": {}}]}
+                    for row in self.rows
+                ],
+            }
+            self.table.client._gapic_client.mutate_rows(request)
+
+
 class TestSystemSync(ABC):
     @pytest.fixture(scope="session")
     def client(self):
@@ -737,47 +781,3 @@ class TestSystemSync(ABC):
         assert len(row_list) == bool(
             expect_match
         ), f"row {type(cell_value)}({cell_value}) not found with {type(filter_input)}({filter_input}) filter"
-
-
-class TempRowBuilder(ABC):
-    """
-    Used to add rows to a table for testing purposes.
-    """
-
-    def __init__(self, table):
-        self.rows = []
-        self.table = table
-
-    def add_row(
-        self, row_key, *, family=TEST_FAMILY, qualifier=b"q", value=b"test-value"
-    ):
-        if isinstance(value, str):
-            value = value.encode("utf-8")
-        elif isinstance(value, int):
-            value = value.to_bytes(8, byteorder="big", signed=True)
-        request = {
-            "table_name": self.table.table_name,
-            "row_key": row_key,
-            "mutations": [
-                {
-                    "set_cell": {
-                        "family_name": family,
-                        "column_qualifier": qualifier,
-                        "value": value,
-                    }
-                }
-            ],
-        }
-        self.table.client._gapic_client.mutate_row(request)
-        self.rows.append(row_key)
-
-    def delete_rows(self):
-        if self.rows:
-            request = {
-                "table_name": self.table.table_name,
-                "entries": [
-                    {"row_key": row, "mutations": [{"delete_from_row": {}}]}
-                    for row in self.rows
-                ],
-            }
-            self.table.client._gapic_client.mutate_rows(request)
