@@ -27,13 +27,6 @@ except ImportError:  # pragma: NO COVER
     from mock import AsyncMock  # type: ignore
 
 
-def _make_mutation(count=1, size=1):
-    mutation = mock.Mock()
-    mutation.size.return_value = size
-    mutation.mutations = [mock.Mock()] * count
-    return mutation
-
-
 class TestMutateRowsOperation:
     def _target_class(self):
         from google.cloud.bigtable.data._async._mutate_rows import (
@@ -51,6 +44,12 @@ class TestMutateRowsOperation:
             kwargs["retryable_exceptions"] = kwargs.pop("retryable_exceptions", ())
             kwargs["mutation_entries"] = kwargs.pop("mutation_entries", [])
         return self._target_class()(*args, **kwargs)
+
+    def _make_mutation(self, count=1, size=1):
+        mutation = mock.Mock()
+        mutation.size.return_value = size
+        mutation.mutations = [mock.Mock()] * count
+        return mutation
 
     async def _mock_stream(self, mutation_list, error_dict):
         for idx, entry in enumerate(mutation_list):
@@ -83,7 +82,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation(), _make_mutation()]
+        entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         attempt_timeout = 0.01
         retryable_exceptions = ()
@@ -136,17 +135,14 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation()] * _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+        entries = [self._make_mutation()] * (_MUTATE_ROWS_REQUEST_MUTATION_LIMIT + 1)
         operation_timeout = 0.05
         attempt_timeout = 0.01
-        # no errors if at limit
-        self._make_one(client, table, entries, operation_timeout, attempt_timeout)
-        # raise error after crossing
         with pytest.raises(ValueError) as e:
             self._make_one(
                 client,
                 table,
-                entries + [_make_mutation()],
+                entries,
                 operation_timeout,
                 attempt_timeout,
             )
@@ -162,7 +158,7 @@ class TestMutateRowsOperation:
         """
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation(), _make_mutation()]
+        entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         cls = self._target_class()
         with mock.patch(
@@ -184,7 +180,7 @@ class TestMutateRowsOperation:
         """
         client = AsyncMock()
         table = mock.Mock()
-        entries = [_make_mutation(), _make_mutation()]
+        entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         expected_exception = exc_type("test")
         client.mutate_rows.side_effect = expected_exception
@@ -215,7 +211,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation(), _make_mutation()]
+        entries = [self._make_mutation(), self._make_mutation()]
         operation_timeout = 0.05
         expected_cause = exc_type("abort")
         with mock.patch.object(
@@ -248,18 +244,15 @@ class TestMutateRowsOperation:
         """
         If an exception fails but eventually passes, it should not raise an exception
         """
-        from google.cloud.bigtable.data._async._mutate_rows import (
-            _MutateRowsOperationAsync,
-        )
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation()]
+        entries = [self._make_mutation()]
         operation_timeout = 1
         expected_cause = exc_type("retry")
         num_retries = 2
         with mock.patch.object(
-            _MutateRowsOperationAsync,
+            self._target_class(),
             "_run_attempt",
             AsyncMock(),
         ) as attempt_mock:
@@ -286,7 +279,7 @@ class TestMutateRowsOperation:
 
         client = mock.Mock()
         table = mock.Mock()
-        entries = [_make_mutation()]
+        entries = [self._make_mutation()]
         operation_timeout = 0.05
         with mock.patch.object(
             self._target_class(),
@@ -309,7 +302,7 @@ class TestMutateRowsOperation:
     @pytest.mark.asyncio
     async def test_run_attempt_single_entry_success(self):
         """Test mutating a single entry"""
-        mutation = _make_mutation()
+        mutation = self._make_mutation()
         expected_timeout = 1.3
         mock_gapic_fn = self._make_mock_gapic({0: mutation})
         instance = self._make_one(
@@ -339,9 +332,9 @@ class TestMutateRowsOperation:
         """Some entries succeed, but one fails. Should report the proper index, and raise incomplete exception"""
         from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 
-        success_mutation = _make_mutation()
-        success_mutation_2 = _make_mutation()
-        failure_mutation = _make_mutation()
+        success_mutation = self._make_mutation()
+        success_mutation_2 = self._make_mutation()
+        failure_mutation = self._make_mutation()
         mutations = [success_mutation, failure_mutation, success_mutation_2]
         mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
         instance = self._make_one(
@@ -360,9 +353,9 @@ class TestMutateRowsOperation:
     @pytest.mark.asyncio
     async def test_run_attempt_partial_success_non_retryable(self):
         """Some entries succeed, but one fails. Exception marked as non-retryable. Do not raise incomplete error"""
-        success_mutation = _make_mutation()
-        success_mutation_2 = _make_mutation()
-        failure_mutation = _make_mutation()
+        success_mutation = self._make_mutation()
+        success_mutation_2 = self._make_mutation()
+        failure_mutation = self._make_mutation()
         mutations = [success_mutation, failure_mutation, success_mutation_2]
         mock_gapic_fn = self._make_mock_gapic(mutations, error_dict={1: 300})
         instance = self._make_one(

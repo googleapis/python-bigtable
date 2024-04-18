@@ -20,7 +20,6 @@ import atexit
 import warnings
 from collections import deque
 
-from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
@@ -28,13 +27,14 @@ from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._mutate_rows import (
+from google.cloud.bigtable.data.mutations import (
     _MUTATE_ROWS_REQUEST_MUTATION_LIMIT,
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
 
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024
@@ -221,7 +221,7 @@ class MutationsBatcherAsync:
             batch_retryable_errors, table
         )
 
-        self.closed: bool = False
+        self._closed: asyncio.Event = asyncio.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
@@ -234,7 +234,7 @@ class MutationsBatcherAsync:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._flush_timer = self._start_flush_timer(flush_interval)
+        self._flush_timer = self._create_bg_task(self._timer_routine, flush_interval)
         self._flush_jobs: set[asyncio.Future[None]] = set()
         # MutationExceptionGroup reports number of successful entries along with failures
         self._entries_processed_since_last_raise: int = 0
@@ -248,35 +248,21 @@ class MutationsBatcherAsync:
         # clean up on program exit
         atexit.register(self._on_exit)
 
-    def _start_flush_timer(self, interval: float | None) -> asyncio.Future[None]:
+    async def _timer_routine(self, interval: float | None) -> None:
         """
-        Set up a background task to flush the batcher every interval seconds
-
-        If interval is None, an empty future is returned
-
-        Args:
-          - flush_interval: Automatically flush every flush_interval seconds.
-              If None, no time-based flushing is performed.
-        Returns:
-            - asyncio.Future that represents the background task
+        Triggers new flush tasks every `interval` seconds
+        Ends when the batcher is closed
         """
-        if interval is None or self.closed:
-            empty_future: asyncio.Future[None] = asyncio.Future()
-            empty_future.set_result(None)
-            return empty_future
-
-        async def timer_routine(self, interval: float):
-            """
-            Triggers new flush tasks every `interval` seconds
-            """
-            while not self.closed:
-                await asyncio.sleep(interval)
-                # add new flush task to list
-                if not self.closed and self._staged_entries:
-                    self._schedule_flush()
-
-        timer_task = asyncio.create_task(timer_routine(self, interval))
-        return timer_task
+        if not interval or interval <= 0:
+            return None
+        while not self._closed.is_set():
+            # wait until interval has passed, or until closed
+            try:
+                await asyncio.wait_for(self._closed.wait(), timeout=interval)
+            except asyncio.TimeoutError:
+                pass
+            if not self._closed.is_set() and self._staged_entries:
+                self._schedule_flush()
 
     async def append(self, mutation_entry: RowMutationEntry):
         """
@@ -290,7 +276,7 @@ class MutationsBatcherAsync:
           - RuntimeError if batcher is closed
           - ValueError if an invalid mutation type is added
         """
-        if self.closed:
+        if self._closed.is_set():
             raise RuntimeError("Cannot append to closed MutationsBatcher")
         if isinstance(mutation_entry, Mutation):  # type: ignore
             raise ValueError(
@@ -314,8 +300,9 @@ class MutationsBatcherAsync:
             entries, self._staged_entries = self._staged_entries, []
             self._staged_count, self._staged_bytes = 0, 0
             new_task = self._create_bg_task(self._flush_internal, entries)
-            new_task.add_done_callback(self._flush_jobs.remove)
-            self._flush_jobs.add(new_task)
+            if not new_task.done():
+                self._flush_jobs.add(new_task)
+                new_task.add_done_callback(self._flush_jobs.remove)
             return new_task
         return None
 
@@ -421,11 +408,19 @@ class MutationsBatcherAsync:
         """For context manager API"""
         await self.close()
 
+    @property
+    def closed(self) -> bool:
+        """
+        Returns:
+          - True if the batcher is closed, False otherwise
+        """
+        return self._closed.is_set()
+
     async def close(self):
         """
         Flush queue and clean up resources
         """
-        self.closed = True
+        self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
         if self._flush_jobs:
@@ -442,7 +437,7 @@ class MutationsBatcherAsync:
         """
         Called when program is exited. Raises warning if unflushed mutations remain
         """
-        if not self.closed and self._staged_entries:
+        if not self._closed.is_set() and self._staged_entries:
             warnings.warn(
                 f"MutationsBatcher for table {self._table.table_name} was not closed. "
                 f"{len(self._staged_entries)} Unflushed mutations will not be sent to the server."
