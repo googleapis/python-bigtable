@@ -17,9 +17,7 @@ Bigtable database for testing purposes.
 """
 
 import pytest
-import pytest_asyncio
 import os
-import asyncio
 import uuid
 
 

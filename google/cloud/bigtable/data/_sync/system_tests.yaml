@@ -1,0 +1,24 @@
+asyncio_replacements:  # Replace asyncio functionaility
+  sleep: time.sleep
+
+added_imports:
+  - "from .test_system_async import TEST_FAMILY, TEST_FAMILY_2"
+  - "from google.cloud.bigtable.data import BigtableDataClient"
+  - "import time"
+
+text_replacements:
+  pytest_asyncio: pytest
+  AsyncRetry: Retry
+  BigtableDataClientAsync: BigtableDataClient
+  StopAsyncIteration: StopIteration
+  __anext__: __next__
+  aclose: close
+
+classes:
+  - path: tests.system.data.test_system_async.TestSystemAsync
+    autogen_sync_name: TestSystemSync
+    drop_methods: ["event_loop"]
+  - path: tests.system.data.test_system_async.TempRowBuilder
+    autogen_sync_name: TempRowBuilder
+
+save_path: "tests/system/data/test_system.py"
