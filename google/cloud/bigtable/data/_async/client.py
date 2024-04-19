@@ -82,12 +82,8 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
-if CrossSync.SyncImports:
-    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport, PooledChannel
 
-
-@CrossSync.sync_output("google.cloud.bigtable.data._sync._autogen.BigtableDataClient_SyncGen")
+@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.BigtableDataClient")
 class BigtableDataClientAsync(ClientWithProject):
 
     def __init__(
@@ -441,6 +437,7 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
+@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.Table")
 class TableAsync:
     """
     Main Data API surface

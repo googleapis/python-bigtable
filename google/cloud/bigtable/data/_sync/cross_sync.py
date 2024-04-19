@@ -1,5 +1,21 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import asyncio
 import sys
+import concurrent.futures
 
 
 class CrossSync:
@@ -44,6 +60,26 @@ class CrossSync:
         return await asyncio.gather(*awaitable_list, return_exceptions=return_exceptions)
 
     @staticmethod
+    def gather_partials_sync(partial_list, return_exceptions=False, sync_executor=None):
+        if not partial_list:
+            return []
+        if not sync_executor:
+            raise ValueError("sync_executor is required for sync version")
+        futures_list = [
+            sync_executor.submit(partial) for partial in partial_list
+        ]
+        results_list = []
+        for future in futures_list:
+            if future.exception():
+                if return_exceptions:
+                    results_list.append(future.exception())
+                else:
+                    raise future.exception()
+            else:
+                results_list.append(future.result())
+        return results_list
+
+    @staticmethod
     async def wait(futures, timeout=None):
         """
         abstraction over asyncio.wait
@@ -51,6 +87,15 @@ class CrossSync:
         if not futures:
             return set(), set()
         return await asyncio.wait(futures, timeout=timeout)
+
+    @staticmethod
+    def wait_sync(futures, timeout=None):
+        """
+        abstraction over asyncio.wait
+        """
+        if not futures:
+            return set(), set()
+        return concurrent.futures.wait(futures, timeout=timeout)
 
     @staticmethod
     def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
@@ -63,3 +108,14 @@ class CrossSync:
         if task_name and sys.version_info >= (3, 8):
             task.set_name(task_name)
         return task
+
+    @staticmethod
+    def create_task_sync(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
+        """
+        abstraction over asyncio.create_task. Sync version implemented with threadpool executor
+
+        sync_executor: ThreadPoolExecutor to use for sync operations. Ignored in async version
+        """
+        if not sync_executor:
+            raise ValueError("sync_executor is required for sync version")
+        return sync_executor.submit(fn, *fn_args, **fn_kwargs)

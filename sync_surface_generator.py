@@ -57,6 +57,9 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             "Task": "concurrent.futures.Future",
             "Event": "threading.Event",
             "is_async": "False",
+            "gather_partials": "gather_partials_sync",
+            "wait": "wait_sync",
+            "create_task": "create_task_sync",
         }
         self.text_replacements = text_replacements or {}
         self.drop_methods = drop_methods or []
@@ -127,9 +130,11 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         if hasattr(node, "decorator_list"):
             # TODO: make generic
             is_asyncio_decorator = lambda d: all(x in ast.dump(d) for x in ["pytest", "mark", "asyncio"])
+            is_cross_sync_decorator = lambda d: all(x in ast.dump(d) for x in ["CrossSync", "sync_output"])
             node.decorator_list = [
-                d for d in node.decorator_list if not is_asyncio_decorator(d)
+                d for d in node.decorator_list if not is_asyncio_decorator(d) and not is_cross_sync_decorator(d)
             ]
+
         # visit string type annotations
         for arg in node.args.args:
             if arg.annotation:
@@ -399,7 +404,7 @@ if __name__ == "__main__":
     #         with open(save_path, "w") as f:
     #             f.write(code)
     # find all classes in the library
-    import google.cloud.bigtable.data as data_lib
+    import google.cloud.bigtable.data._async as data_lib
     lib_classes = inspect.getmembers(data_lib, inspect.isclass)
     # keep only those with CrossSync annotation
     enabled_classes = [c[1] for c in lib_classes if hasattr(c[1], "cross_sync_enabled")]

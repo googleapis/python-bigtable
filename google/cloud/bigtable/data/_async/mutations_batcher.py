@@ -32,6 +32,8 @@ from google.cloud.bigtable.data.mutations import (
 )
 from google.cloud.bigtable.data.mutations import Mutation
 
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._async.client import TableAsync
     from google.cloud.bigtable.data.mutations import RowMutationEntry
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
 _MB_SIZE = 1024 * 1024
 
 
+@CrossSync.sync_output("google.cloud.bigtable.data._sync.mutations_batcher._FlowControl")
 class _FlowControlAsync:
     """
     Manages flow control for batched mutations. Mutations are registered against
@@ -164,6 +167,7 @@ class _FlowControlAsync:
             yield mutations[start_idx:end_idx]
 
 
+@CrossSync.sync_output("google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher")
 class MutationsBatcherAsync:
     """
     Allows users to send batches using context manager API:
