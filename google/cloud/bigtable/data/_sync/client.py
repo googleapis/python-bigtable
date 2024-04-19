@@ -70,8 +70,7 @@ class BigtableDataClient(BigtableDataClient_SyncGen):
         This method should be called when the client is no longer needed.
         """
         self._is_closed.set()
-        with self._executor:
-            self._executor.shutdown(wait=False)
+        self._executor.shutdown(wait=True)
         self._channel_refresh_tasks = []
         self.transport.close()
 

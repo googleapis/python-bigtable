@@ -31,6 +31,7 @@ import warnings
 import sys
 import random
 import os
+import concurrent.futures
 
 from functools import partial
 from grpc import Channel
@@ -74,13 +75,21 @@ from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
 from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
+if CrossSync.SyncImports:
+    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport, PooledChannel
 
+
+@CrossSync.sync_output("google.cloud.bigtable._sync._autogen.BigtableDataClient")
 class BigtableDataClientAsync(ClientWithProject):
+
     def __init__(
         self,
         *,
@@ -162,6 +171,7 @@ class BigtableDataClientAsync(ClientWithProject):
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._executor = concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         if self._emulator_host is not None:
             # connect to an emulator host
             warnings.warn(
@@ -194,7 +204,10 @@ class BigtableDataClientAsync(ClientWithProject):
         """
         Helper function to return the client version string for this client
         """
-        return f"{google.cloud.bigtable.__version__}-data-async"
+        if CrossSync.is_async:
+            return f"{google.cloud.bigtable.__version__}-data-async"
+        else:
+            return f"{google.cloud.bigtable.__version__}-data"
 
     def _start_background_channel_refresh(self) -> None:
         """
@@ -207,28 +220,26 @@ class BigtableDataClientAsync(ClientWithProject):
             and not self._emulator_host
             and not self._is_closed.is_set()
         ):
-            # raise RuntimeError if there is no event loop
-            asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
-                refresh_task = asyncio.create_task(self._manage_channel(channel_idx))
-                if sys.version_info >= (3, 8):
-                    # task names supported in Python 3.8+
-                    refresh_task.set_name(
-                        f"{self.__class__.__name__} channel refresh {channel_idx}"
-                    )
+                refresh_task = CrossSync.create_task(
+                    self._manage_channel, channel_idx,
+                    sync_executor=self._executor,
+                    task_name=f"{self.__class__.__name__} channel refresh {channel_idx}"
+                )
                 self._channel_refresh_tasks.append(refresh_task)
+                refresh_task.add_done_callback(lambda _: self._channel_refresh_tasks.remove(refresh_task))
 
-    async def close(self, timeout: float = 2.0):
+    async def close(self, timeout: float | None = None):
         """
         Cancel all background tasks
         """
         self._is_closed.set()
         for task in self._channel_refresh_tasks:
             task.cancel()
-        group = asyncio.gather(*self._channel_refresh_tasks, return_exceptions=True)
-        await asyncio.wait_for(group, timeout=timeout)
         await self.transport.close()
-        self._channel_refresh_tasks = []
+        if self._executor:
+            self._executor.shutdown(wait=False)
+        await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
 
     async def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
@@ -266,23 +277,7 @@ class BigtableDataClientAsync(ClientWithProject):
             )
             for (instance_name, table_name, app_profile_id) in instance_list
         ]
-        return await self._execute_ping_and_warms(*partial_list)
-
-    async def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
-        """
-        Execute batch of ping and warm requests in parallel
-
-        Will have separate implementation for sync and async clients
-
-        Args:
-          - fns: list of partial functions to execute ping and warm requests
-        Returns:
-          - list of results or exceptions from the ping requests
-        """
-        # extract coroutine out of partials
-        coro_list = [fn() for fn in fns]
-        result_list = await asyncio.gather(*coro_list, return_exceptions=True)
-        # return None in place of empty successful responses
+        result_list = await CrossSync.gather_partials(partial_list, return_exceptions=True, sync_executor=self._executor)
         return [r or None for r in result_list]
 
     async def _manage_channel(
@@ -311,6 +306,7 @@ class BigtableDataClientAsync(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        sleep_fn = asyncio.sleep if CrossSync.is_async else self._is_closed.wait
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -321,7 +317,7 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
-            await asyncio.sleep(next_sleep)
+            await sleep_fn(next_sleep)
             if self._is_closed.is_set():
                 break
             # prepare new channel for use
@@ -561,20 +557,10 @@ class TableAsync:
             default_mutate_rows_retryable_errors or ()
         )
         self.default_retryable_errors = default_retryable_errors or ()
-        self._register_instance_future: asyncio.Future[
-            None
-        ] = self._register_with_client()
-
-    def _register_with_client(self) -> asyncio.Future[None]:
-        """
-        Calls the client's _register_instance method to warm the grpc channels for this instance
-
-        Different implementations for sync vs async client
-        """
-        # raises RuntimeError if called outside of an async context (no running event loop)
         try:
-            return asyncio.create_task(
-                self.client._register_instance(self.instance_id, self)
+            self._register_instance_future = CrossSync.create_task(
+                self.client._register_instance, self.instance_id, self,
+                sync_executor=self.client._executor,
             )
         except RuntimeError as e:
             raise RuntimeError(
@@ -797,16 +783,19 @@ class TableAsync:
         shard_idx = 0
         for batch in batched_queries:
             batch_operation_timeout = next(timeout_generator)
-            batch_kwargs_list = [
-                {
-                    "query": query,
-                    "operation_timeout": batch_operation_timeout,
-                    "attempt_timeout": min(attempt_timeout, batch_operation_timeout),
-                    "retryable_errors": retryable_errors,
-                }
+            batch_partial_list = [
+                partial(
+                    self.read_rows,
+                    query=query,
+                    operation_timeout=batch_operation_timeout,
+                    attempt_timeout=min(attempt_timeout, batch_operation_timeout),
+                    retryable_errors=retryable_errors,
+                )
                 for query in batch
             ]
-            batch_result = await self._shard_batch_helper(batch_kwargs_list)
+            batch_result = await CrossSync.gather_partials(
+                batch_partial_list, return_exceptions=True, sync_executor=self.client._executor
+            )
             for result in batch_result:
                 if isinstance(result, Exception):
                     error_dict[shard_idx] = result
@@ -827,17 +816,6 @@ class TableAsync:
                 len(sharded_query),
             )
         return results_list
-
-    async def _shard_batch_helper(
-        self, kwargs_list: list[dict]
-    ) -> list[list[Row] | BaseException]:
-        """
-        Helper function for executing a batch of read_rows queries in parallel
-
-        Sync client implementation will override this method
-        """
-        routine_list = [self.read_rows(**kwargs) for kwargs in kwargs_list]
-        return await asyncio.gather(*routine_list, return_exceptions=True)
 
     async def row_exists(
         self,
