@@ -17,850 +17,43 @@
 
 from __future__ import annotations
 from abc import ABC
-from collections import deque
 from functools import partial
 from grpc import Channel
 from typing import Any
-from typing import Iterable
 from typing import Optional
-from typing import Sequence
 from typing import Set
 from typing import cast
-import atexit
+import asyncio
 import concurrent.futures
-import functools
 import os
 import random
-import threading
 import time
 import warnings
 
 from google.api_core import client_options as client_options_lib
-from google.api_core import exceptions as core_exceptions
-from google.api_core import retry as retries
-from google.api_core.exceptions import Aborted
-from google.api_core.exceptions import DeadlineExceeded
-from google.api_core.exceptions import ServiceUnavailable
-from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data import _helpers
-from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
-from google.cloud.bigtable.data._async._read_rows import _ResetRow
-from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
-from google.cloud.bigtable.data._helpers import RowKeySamples
-from google.cloud.bigtable.data._helpers import ShardedQuery
-from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
-from google.cloud.bigtable.data._helpers import _get_retryable_errors
-from google.cloud.bigtable.data._helpers import _get_timeouts
-from google.cloud.bigtable.data._helpers import _make_metadata
-from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
-from google.cloud.bigtable.data.exceptions import FailedQueryShardError
-from google.cloud.bigtable.data.exceptions import InvalidChunk
-from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
-from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
-from google.cloud.bigtable.data.exceptions import _RowSetComplete
-from google.cloud.bigtable.data.mutations import Mutation
-from google.cloud.bigtable.data.mutations import RowMutationEntry
-from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
-from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
-from google.cloud.bigtable.data.row import Cell
-from google.cloud.bigtable.data.row import Row
-from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
-from google.cloud.bigtable.data.row_filters import RowFilter
-from google.cloud.bigtable.data.row_filters import RowFilterChain
-from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
+from google.cloud.bigtable.data._async.client import TableAsync
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
-from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
-    PooledBigtableGrpcTransport,
-    PooledChannel,
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledBigtableGrpcAsyncIOTransport,
 )
-from google.cloud.bigtable_v2.types import ReadRowsRequest as ReadRowsRequestPB
-from google.cloud.bigtable_v2.types import ReadRowsResponse as ReadRowsResponsePB
-from google.cloud.bigtable_v2.types import RowRange as RowRangePB
-from google.cloud.bigtable_v2.types import RowSet as RowSetPB
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+    PooledChannel as AsyncPooledChannel,
+)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
 import google.auth._default
 import google.auth.credentials
-import google.cloud.bigtable.data.exceptions
-import google.cloud.bigtable.data.exceptions as bt_exceptions
-import google.cloud.bigtable_v2.types.bigtable
 
 
-class _ReadRowsOperation_SyncGen(ABC):
-    """
-    ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream
-    into a stream of Row objects.
-
-    ReadRowsOperation.merge_row_response_stream takes in a stream of ReadRowsResponse
-    and turns them into a stream of Row objects using an internal
-    StateMachine.
-
-    ReadRowsOperation(request, client) handles row merging logic end-to-end, including
-    performing retries on stream errors.
-    """
-
-    __slots__ = (
-        "attempt_timeout_gen",
-        "operation_timeout",
-        "request",
-        "table",
-        "_predicate",
-        "_metadata",
-        "_last_yielded_row_key",
-        "_remaining_count",
-    )
-
-    def __init__(
-        self,
-        query: ReadRowsQuery,
-        table: "google.cloud.bigtable.data._sync.client.Table",
-        operation_timeout: float,
-        attempt_timeout: float,
-        retryable_exceptions: Sequence[type[Exception]] = (),
-    ):
-        self.attempt_timeout_gen = _helpers._attempt_timeout_generator(
-            attempt_timeout, operation_timeout
-        )
-        self.operation_timeout = operation_timeout
-        if isinstance(query, dict):
-            self.request = ReadRowsRequestPB(
-                **query,
-                table_name=table.table_name,
-                app_profile_id=table.app_profile_id,
-            )
-        else:
-            self.request = query._to_pb(table)
-        self.table = table
-        self._predicate = retries.if_exception_type(*retryable_exceptions)
-        self._metadata = _helpers._make_metadata(table.table_name, table.app_profile_id)
-        self._last_yielded_row_key: bytes | None = None
-        self._remaining_count: int | None = self.request.rows_limit or None
-
-    def start_operation(self) -> Iterable[Row]:
-        """Start the read_rows operation, retrying on retryable errors."""
-        return retries.retry_target_stream(
-            self._read_rows_attempt,
-            self._predicate,
-            exponential_sleep_generator(0.01, 60, multiplier=2),
-            self.operation_timeout,
-            exception_factory=_helpers._retry_exception_factory,
-        )
-
-    def _read_rows_attempt(self) -> Iterable[Row]:
-        """
-        Attempt a single read_rows rpc call.
-        This function is intended to be wrapped by retry logic,
-        which will call this function until it succeeds or
-        a non-retryable error is raised.
-        """
-        if self._last_yielded_row_key is not None:
-            try:
-                self.request.rows = self._revise_request_rowset(
-                    row_set=self.request.rows,
-                    last_seen_row_key=self._last_yielded_row_key,
-                )
-            except _RowSetComplete:
-                return self.merge_rows(None)
-        if self._remaining_count is not None:
-            self.request.rows_limit = self._remaining_count
-            if self._remaining_count == 0:
-                return self.merge_rows(None)
-        gapic_stream = self.table.client._gapic_client.read_rows(
-            self.request,
-            timeout=next(self.attempt_timeout_gen),
-            metadata=self._metadata,
-            retry=None,
-        )
-        chunked_stream = self.chunk_stream(gapic_stream)
-        return self.merge_rows(chunked_stream)
-
-    def chunk_stream(
-        self, stream: None[Iterable[ReadRowsResponsePB]]
-    ) -> Iterable[ReadRowsResponsePB.CellChunk]:
-        """process chunks out of raw read_rows stream"""
-        for resp in stream:
-            resp = resp._pb
-            if resp.last_scanned_row_key:
-                if (
-                    self._last_yielded_row_key is not None
-                    and resp.last_scanned_row_key <= self._last_yielded_row_key
-                ):
-                    raise InvalidChunk("last scanned out of order")
-                self._last_yielded_row_key = resp.last_scanned_row_key
-            current_key = None
-            for c in resp.chunks:
-                if current_key is None:
-                    current_key = c.row_key
-                    if current_key is None:
-                        raise InvalidChunk("first chunk is missing a row key")
-                    elif (
-                        self._last_yielded_row_key
-                        and current_key <= self._last_yielded_row_key
-                    ):
-                        raise InvalidChunk("row keys should be strictly increasing")
-                yield c
-                if c.reset_row:
-                    current_key = None
-                elif c.commit_row:
-                    self._last_yielded_row_key = current_key
-                    if self._remaining_count is not None:
-                        self._remaining_count -= 1
-                        if self._remaining_count < 0:
-                            raise InvalidChunk("emit count exceeds row limit")
-                    current_key = None
-
-    @staticmethod
-    def merge_rows(chunks: Iterable[ReadRowsResponsePB.CellChunk] | None):
-        """Merge chunks into rows"""
-        if chunks is None:
-            return
-        it = chunks.__iter__()
-        while True:
-            try:
-                c = it.__next__()
-            except StopIteration:
-                return
-            row_key = c.row_key
-            if not row_key:
-                raise InvalidChunk("first row chunk is missing key")
-            cells = []
-            family: str | None = None
-            qualifier: bytes | None = None
-            try:
-                while True:
-                    if c.reset_row:
-                        raise _ResetRow(c)
-                    k = c.row_key
-                    f = c.family_name.value
-                    q = c.qualifier.value if c.HasField("qualifier") else None
-                    if k and k != row_key:
-                        raise InvalidChunk("unexpected new row key")
-                    if f:
-                        family = f
-                        if q is not None:
-                            qualifier = q
-                        else:
-                            raise InvalidChunk("new family without qualifier")
-                    elif family is None:
-                        raise InvalidChunk("missing family")
-                    elif q is not None:
-                        if family is None:
-                            raise InvalidChunk("new qualifier without family")
-                        qualifier = q
-                    elif qualifier is None:
-                        raise InvalidChunk("missing qualifier")
-                    ts = c.timestamp_micros
-                    labels = c.labels if c.labels else []
-                    value = c.value
-                    if c.value_size > 0:
-                        buffer = [value]
-                        while c.value_size > 0:
-                            c = it.__next__()
-                            t = c.timestamp_micros
-                            cl = c.labels
-                            k = c.row_key
-                            if (
-                                c.HasField("family_name")
-                                and c.family_name.value != family
-                            ):
-                                raise InvalidChunk("family changed mid cell")
-                            if (
-                                c.HasField("qualifier")
-                                and c.qualifier.value != qualifier
-                            ):
-                                raise InvalidChunk("qualifier changed mid cell")
-                            if t and t != ts:
-                                raise InvalidChunk("timestamp changed mid cell")
-                            if cl and cl != labels:
-                                raise InvalidChunk("labels changed mid cell")
-                            if k and k != row_key:
-                                raise InvalidChunk("row key changed mid cell")
-                            if c.reset_row:
-                                raise _ResetRow(c)
-                            buffer.append(c.value)
-                        value = b"".join(buffer)
-                    cells.append(
-                        Cell(value, row_key, family, qualifier, ts, list(labels))
-                    )
-                    if c.commit_row:
-                        yield Row(row_key, cells)
-                        break
-                    c = it.__next__()
-            except _ResetRow as e:
-                c = e.chunk
-                if (
-                    c.row_key
-                    or c.HasField("family_name")
-                    or c.HasField("qualifier")
-                    or c.timestamp_micros
-                    or c.labels
-                    or c.value
-                ):
-                    raise InvalidChunk("reset row with data")
-                continue
-            except StopIteration:
-                raise InvalidChunk("premature end of stream")
-
-    @staticmethod
-    def _revise_request_rowset(row_set: RowSetPB, last_seen_row_key: bytes) -> RowSetPB:
-        """
-        Revise the rows in the request to avoid ones we've already processed.
-
-        Args:
-          - row_set: the row set from the request
-          - last_seen_row_key: the last row key encountered
-        Raises:
-          - _RowSetComplete: if there are no rows left to process after the revision
-        """
-        if row_set is None or (not row_set.row_ranges and row_set.row_keys is not None):
-            last_seen = last_seen_row_key
-            return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
-        adjusted_keys: list[bytes] = [
-            k for k in row_set.row_keys if k > last_seen_row_key
-        ]
-        adjusted_ranges: list[RowRangePB] = []
-        for row_range in row_set.row_ranges:
-            end_key = row_range.end_key_closed or row_range.end_key_open or None
-            if end_key is None or end_key > last_seen_row_key:
-                new_range = RowRangePB(row_range)
-                start_key = row_range.start_key_closed or row_range.start_key_open
-                if start_key is None or start_key <= last_seen_row_key:
-                    new_range.start_key_open = last_seen_row_key
-                adjusted_ranges.append(new_range)
-        if len(adjusted_keys) == 0 and len(adjusted_ranges) == 0:
-            raise _RowSetComplete()
-        return RowSetPB(row_keys=adjusted_keys, row_ranges=adjusted_ranges)
-
-
-class _MutateRowsOperation_SyncGen(ABC):
-    """
-    MutateRowsOperation manages the logic of sending a set of row mutations,
-    and retrying on failed entries. It manages this using the _run_attempt
-    function, which attempts to mutate all outstanding entries, and raises
-    _MutateRowsIncomplete if any retryable errors are encountered.
-
-    Errors are exposed as a MutationsExceptionGroup, which contains a list of
-    exceptions organized by the related failed mutation entries.
-    """
-
-    def __init__(
-        self,
-        gapic_client: "BigtableClient",
-        table: "google.cloud.bigtable.data._sync.client.Table",
-        mutation_entries: list["RowMutationEntry"],
-        operation_timeout: float,
-        attempt_timeout: float | None,
-        retryable_exceptions: Sequence[type[Exception]] = (),
-    ):
-        """
-        Args:
-          - gapic_client: the client to use for the mutate_rows call
-          - table: the table associated with the request
-          - mutation_entries: a list of RowMutationEntry objects to send to the server
-          - operation_timeout: the timeout to use for the entire operation, in seconds.
-          - attempt_timeout: the timeout to use for each mutate_rows attempt, in seconds.
-              If not specified, the request will run until operation_timeout is reached.
-        """
-        total_mutations = sum((len(entry.mutations) for entry in mutation_entries))
-        if total_mutations > _MUTATE_ROWS_REQUEST_MUTATION_LIMIT:
-            raise ValueError(
-                f"mutate_rows requests can contain at most {_MUTATE_ROWS_REQUEST_MUTATION_LIMIT} mutations across all entries. Found {total_mutations}."
-            )
-        metadata = _make_metadata(table.table_name, table.app_profile_id)
-        self._gapic_fn = functools.partial(
-            gapic_client.mutate_rows,
-            table_name=table.table_name,
-            app_profile_id=table.app_profile_id,
-            metadata=metadata,
-            retry=None,
-        )
-        self.is_retryable = retries.if_exception_type(
-            *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
-        )
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        self._operation = lambda: retries.retry_target(
-            self._run_attempt,
-            self.is_retryable,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_retry_exception_factory,
-        )
-        self.timeout_generator = _attempt_timeout_generator(
-            attempt_timeout, operation_timeout
-        )
-        self.mutations = [_EntryWithProto(m, m._to_pb()) for m in mutation_entries]
-        self.remaining_indices = list(range(len(self.mutations)))
-        self.errors: dict[int, list[Exception]] = {}
-
-    def start(self):
-        """
-        Start the operation, and run until completion
-
-        Raises:
-          - MutationsExceptionGroup: if any mutations failed
-        """
-        try:
-            self._operation()
-        except Exception as exc:
-            incomplete_indices = self.remaining_indices.copy()
-            for idx in incomplete_indices:
-                self._handle_entry_error(idx, exc)
-        finally:
-            all_errors: list[Exception] = []
-            for idx, exc_list in self.errors.items():
-                if len(exc_list) == 0:
-                    raise core_exceptions.ClientError(
-                        f"Mutation {idx} failed with no associated errors"
-                    )
-                elif len(exc_list) == 1:
-                    cause_exc = exc_list[0]
-                else:
-                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
-                entry = self.mutations[idx].entry
-                all_errors.append(
-                    bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
-                )
-            if all_errors:
-                raise bt_exceptions.MutationsExceptionGroup(
-                    all_errors, len(self.mutations)
-                )
-
-    def _run_attempt(self):
-        """
-        Run a single attempt of the mutate_rows rpc.
-
-        Raises:
-          - _MutateRowsIncomplete: if there are failed mutations eligible for
-              retry after the attempt is complete
-          - GoogleAPICallError: if the gapic rpc fails
-        """
-        request_entries = [self.mutations[idx].proto for idx in self.remaining_indices]
-        active_request_indices = {
-            req_idx: orig_idx
-            for (req_idx, orig_idx) in enumerate(self.remaining_indices)
-        }
-        self.remaining_indices = []
-        if not request_entries:
-            return
-        try:
-            result_generator = self._gapic_fn(
-                timeout=next(self.timeout_generator),
-                entries=request_entries,
-                retry=None,
-            )
-            for result_list in result_generator:
-                for result in result_list.entries:
-                    orig_idx = active_request_indices[result.index]
-                    entry_error = core_exceptions.from_grpc_status(
-                        result.status.code,
-                        result.status.message,
-                        details=result.status.details,
-                    )
-                    if result.status.code != 0:
-                        self._handle_entry_error(orig_idx, entry_error)
-                    elif orig_idx in self.errors:
-                        del self.errors[orig_idx]
-                    del active_request_indices[result.index]
-        except Exception as exc:
-            for idx in active_request_indices.values():
-                self._handle_entry_error(idx, exc)
-            raise
-        if self.remaining_indices:
-            raise bt_exceptions._MutateRowsIncomplete
-
-    def _handle_entry_error(self, idx: int, exc: Exception):
-        """
-        Add an exception to the list of exceptions for a given mutation index,
-        and add the index to the list of remaining indices if the exception is
-        retryable.
-
-        Args:
-          - idx: the index of the mutation that failed
-          - exc: the exception to add to the list
-        """
-        entry = self.mutations[idx].entry
-        self.errors.setdefault(idx, []).append(exc)
-        if (
-            entry.is_idempotent()
-            and self.is_retryable(exc)
-            and (idx not in self.remaining_indices)
-        ):
-            self.remaining_indices.append(idx)
-
-
-class MutationsBatcher_SyncGen(ABC):
-    """
-    Allows users to send batches using context manager API:
-
-    Runs mutate_row,  mutate_rows, and check_and_mutate_row internally, combining
-    to use as few network requests as required
-
-    Flushes:
-      - every flush_interval seconds
-      - after queue reaches flush_count in quantity
-      - after queue reaches flush_size_bytes in storage size
-      - when batcher is closed or destroyed
-
-    async with table.mutations_batcher() as batcher:
-       for i in range(10):
-         batcher.add(row, mut)
-    """
-
-    def __init__(
-        self,
-        table: "google.cloud.bigtable.data._sync.client.Table",
-        *,
-        flush_interval: float | None = 5,
-        flush_limit_mutation_count: int | None = 1000,
-        flush_limit_bytes: int = 20 * _MB_SIZE,
-        flow_control_max_mutation_count: int = 100000,
-        flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ):
-        """
-        Args:
-          - table: Table to preform rpc calls
-          - flush_interval: Automatically flush every flush_interval seconds.
-              If None, no time-based flushing is performed.
-          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
-              mutations are added across all entries. If None, this limit is ignored.
-          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-          - flow_control_max_mutation_count: Maximum number of inflight mutations.
-          - flow_control_max_bytes: Maximum number of inflight bytes.
-          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds.
-              If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_operation_timeout.
-          - batch_attempt_timeout: timeout for each individual request, in seconds.
-              If TABLE_DEFAULT, defaults to the Table's default_mutate_rows_attempt_timeout.
-              If None, defaults to batch_operation_timeout.
-          - batch_retryable_errors: a list of errors that will be retried if encountered.
-              Defaults to the Table's default_mutate_rows_retryable_errors.
-        """
-        (self._operation_timeout, self._attempt_timeout) = _get_timeouts(
-            batch_operation_timeout, batch_attempt_timeout, table
-        )
-        self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
-            batch_retryable_errors, table
-        )
-        self._closed: threading.Event = threading.Event()
-        self._table = table
-        self._staged_entries: list[RowMutationEntry] = []
-        (self._staged_count, self._staged_bytes) = (0, 0)
-        self._flow_control = (
-            google.cloud.bigtable.data._sync.mutations_batcher._FlowControl(
-                flow_control_max_mutation_count, flow_control_max_bytes
-            )
-        )
-        self._flush_limit_bytes = flush_limit_bytes
-        self._flush_limit_count = (
-            flush_limit_mutation_count
-            if flush_limit_mutation_count is not None
-            else float("inf")
-        )
-        self._flush_timer = self._create_bg_task(self._timer_routine, flush_interval)
-        self._flush_jobs: set[concurrent.futures.Future[None]] = set()
-        self._entries_processed_since_last_raise: int = 0
-        self._exceptions_since_last_raise: int = 0
-        self._exception_list_limit: int = 10
-        self._oldest_exceptions: list[Exception] = []
-        self._newest_exceptions: deque[Exception] = deque(
-            maxlen=self._exception_list_limit
-        )
-        atexit.register(self._on_exit)
-
-    def _timer_routine(self, interval: float | None) -> None:
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def append(self, mutation_entry: RowMutationEntry):
-        """
-        Add a new set of mutations to the internal queue
-
-        TODO: return a future to track completion of this entry
-
-        Args:
-          - mutation_entry: new entry to add to flush queue
-        Raises:
-          - RuntimeError if batcher is closed
-          - ValueError if an invalid mutation type is added
-        """
-        if self._closed.is_set():
-            raise RuntimeError("Cannot append to closed MutationsBatcher")
-        if isinstance(mutation_entry, Mutation):
-            raise ValueError(
-                f"invalid mutation type: {type(mutation_entry).__name__}. Only RowMutationEntry objects are supported by batcher"
-            )
-        self._staged_entries.append(mutation_entry)
-        self._staged_count += len(mutation_entry.mutations)
-        self._staged_bytes += mutation_entry.size()
-        if (
-            self._staged_count >= self._flush_limit_count
-            or self._staged_bytes >= self._flush_limit_bytes
-        ):
-            self._schedule_flush()
-            time.sleep(0)
-
-    def _schedule_flush(self) -> concurrent.futures.Future[None] | None:
-        """Update the flush task to include the latest staged entries"""
-        if self._staged_entries:
-            (entries, self._staged_entries) = (self._staged_entries, [])
-            (self._staged_count, self._staged_bytes) = (0, 0)
-            new_task = self._create_bg_task(self._flush_internal, entries)
-            if not new_task.done():
-                self._flush_jobs.add(new_task)
-                new_task.add_done_callback(self._flush_jobs.remove)
-            return new_task
-        return None
-
-    def _flush_internal(self, new_entries: list[RowMutationEntry]):
-        """
-        Flushes a set of mutations to the server, and updates internal state
-
-        Args:
-          - new_entries: list of RowMutationEntry objects to flush
-        """
-        in_process_requests: list[
-            concurrent.futures.Future[list[FailedMutationEntryError]]
-        ] = []
-        for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = self._create_bg_task(self._execute_mutate_rows, batch)
-            in_process_requests.append(batch_task)
-        found_exceptions = self._wait_for_batch_results(*in_process_requests)
-        self._entries_processed_since_last_raise += len(new_entries)
-        self._add_exceptions(found_exceptions)
-
-    def _execute_mutate_rows(
-        self, batch: list[RowMutationEntry]
-    ) -> list[FailedMutationEntryError]:
-        """
-        Helper to execute mutation operation on a batch
-
-        Args:
-          - batch: list of RowMutationEntry objects to send to server
-          - timeout: timeout in seconds. Used as operation_timeout and attempt_timeout.
-              If not given, will use table defaults
-        Returns:
-          - list of FailedMutationEntryError objects for mutations that failed.
-              FailedMutationEntryError objects will not contain index information
-        """
-        try:
-            operation = (
-                google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation(
-                    self._table.client._gapic_client,
-                    self._table,
-                    batch,
-                    operation_timeout=self._operation_timeout,
-                    attempt_timeout=self._attempt_timeout,
-                    retryable_exceptions=self._retryable_errors,
-                )
-            )
-            operation.start()
-        except MutationsExceptionGroup as e:
-            for subexc in e.exceptions:
-                subexc.index = None
-            return list(e.exceptions)
-        finally:
-            self._flow_control.remove_from_flow(batch)
-        return []
-
-    def _add_exceptions(self, excs: list[Exception]):
-        """
-        Add new list of exceptions to internal store. To avoid unbounded memory,
-        the batcher will store the first and last _exception_list_limit exceptions,
-        and discard any in between.
-        """
-        self._exceptions_since_last_raise += len(excs)
-        if excs and len(self._oldest_exceptions) < self._exception_list_limit:
-            addition_count = self._exception_list_limit - len(self._oldest_exceptions)
-            self._oldest_exceptions.extend(excs[:addition_count])
-            excs = excs[addition_count:]
-        if excs:
-            self._newest_exceptions.extend(excs[-self._exception_list_limit :])
-
-    def _raise_exceptions(self):
-        """
-        Raise any unreported exceptions from background flush operations
-
-        Raises:
-          - MutationsExceptionGroup with all unreported exceptions
-        """
-        if self._oldest_exceptions or self._newest_exceptions:
-            (oldest, self._oldest_exceptions) = (self._oldest_exceptions, [])
-            newest = list(self._newest_exceptions)
-            self._newest_exceptions.clear()
-            (entry_count, self._entries_processed_since_last_raise) = (
-                self._entries_processed_since_last_raise,
-                0,
-            )
-            (exc_count, self._exceptions_since_last_raise) = (
-                self._exceptions_since_last_raise,
-                0,
-            )
-            raise MutationsExceptionGroup.from_truncated_lists(
-                first_list=oldest,
-                last_list=newest,
-                total_excs=exc_count,
-                entry_count=entry_count,
-            )
-
-    def __enter__(self):
-        """For context manager API"""
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        """For context manager API"""
-        self.close()
-
-    @property
-    def closed(self) -> bool:
-        """
-        Returns:
-          - True if the batcher is closed, False otherwise
-        """
-        return self._closed.is_set()
-
-    def close(self):
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def _on_exit(self):
-        """Called when program is exited. Raises warning if unflushed mutations remain"""
-        if not self._closed.is_set() and self._staged_entries:
-            warnings.warn(
-                f"MutationsBatcher for table {self._table.table_name} was not closed. {len(self._staged_entries)} Unflushed mutations will not be sent to the server."
-            )
-
-    @staticmethod
-    def _create_bg_task(func, *args, **kwargs) -> concurrent.futures.Future[Any]:
-        raise NotImplementedError("Function not implemented in sync class")
-
-    @staticmethod
-    def _wait_for_batch_results(
-        *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
-        | concurrent.futures.Future[None],
-    ) -> list[Exception]:
-        raise NotImplementedError("Function not implemented in sync class")
-
-
-class _FlowControl_SyncGen(ABC):
-    """
-    Manages flow control for batched mutations. Mutations are registered against
-    the FlowControl object before being sent, which will block if size or count
-    limits have reached capacity. As mutations completed, they are removed from
-    the FlowControl object, which will notify any blocked requests that there
-    is additional capacity.
-
-    Flow limits are not hard limits. If a single mutation exceeds the configured
-    limits, it will be allowed as a single batch when the capacity is available.
-    """
-
-    def __init__(self, max_mutation_count: int, max_mutation_bytes: int):
-        """
-        Args:
-          - max_mutation_count: maximum number of mutations to send in a single rpc.
-             This corresponds to individual mutations in a single RowMutationEntry.
-          - max_mutation_bytes: maximum number of bytes to send in a single rpc.
-        """
-        self._max_mutation_count = max_mutation_count
-        self._max_mutation_bytes = max_mutation_bytes
-        if self._max_mutation_count < 1:
-            raise ValueError("max_mutation_count must be greater than 0")
-        if self._max_mutation_bytes < 1:
-            raise ValueError("max_mutation_bytes must be greater than 0")
-        self._capacity_condition = threading.Condition()
-        self._in_flight_mutation_count = 0
-        self._in_flight_mutation_bytes = 0
-
-    def _has_capacity(self, additional_count: int, additional_size: int) -> bool:
-        """
-        Checks if there is capacity to send a new entry with the given size and count
-
-        FlowControl limits are not hard limits. If a single mutation exceeds
-        the configured flow limits, it will be sent in a single batch when
-        previous batches have completed.
-
-        Args:
-          - additional_count: number of mutations in the pending entry
-          - additional_size: size of the pending entry
-        Returns:
-          -  True if there is capacity to send the pending entry, False otherwise
-        """
-        acceptable_size = max(self._max_mutation_bytes, additional_size)
-        acceptable_count = max(self._max_mutation_count, additional_count)
-        new_size = self._in_flight_mutation_bytes + additional_size
-        new_count = self._in_flight_mutation_count + additional_count
-        return new_size <= acceptable_size and new_count <= acceptable_count
-
-    def remove_from_flow(
-        self, mutations: RowMutationEntry | list[RowMutationEntry]
-    ) -> None:
-        """
-        Removes mutations from flow control. This method should be called once
-        for each mutation that was sent to add_to_flow, after the corresponding
-        operation is complete.
-
-        Args:
-          - mutations: mutation or list of mutations to remove from flow control
-        """
-        if not isinstance(mutations, list):
-            mutations = [mutations]
-        total_count = sum((len(entry.mutations) for entry in mutations))
-        total_size = sum((entry.size() for entry in mutations))
-        self._in_flight_mutation_count -= total_count
-        self._in_flight_mutation_bytes -= total_size
-        with self._capacity_condition:
-            self._capacity_condition.notify_all()
-
-    def add_to_flow(self, mutations: RowMutationEntry | list[RowMutationEntry]):
-        """
-        Generator function that registers mutations with flow control. As mutations
-        are accepted into the flow control, they are yielded back to the caller,
-        to be sent in a batch. If the flow control is at capacity, the generator
-        will block until there is capacity available.
-
-        Args:
-          - mutations: list mutations to break up into batches
-        Yields:
-          - list of mutations that have reserved space in the flow control.
-            Each batch contains at least one mutation.
-        """
-        if not isinstance(mutations, list):
-            mutations = [mutations]
-        start_idx = 0
-        end_idx = 0
-        while end_idx < len(mutations):
-            start_idx = end_idx
-            batch_mutation_count = 0
-            with self._capacity_condition:
-                while end_idx < len(mutations):
-                    next_entry = mutations[end_idx]
-                    next_size = next_entry.size()
-                    next_count = len(next_entry.mutations)
-                    if (
-                        self._has_capacity(next_count, next_size)
-                        and batch_mutation_count + next_count
-                        <= _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-                    ):
-                        end_idx += 1
-                        batch_mutation_count += next_count
-                        self._in_flight_mutation_bytes += next_size
-                        self._in_flight_mutation_count += next_count
-                    elif start_idx != end_idx:
-                        break
-                    else:
-                        self._capacity_condition.wait_for(
-                            lambda: self._has_capacity(next_count, next_size)
-                        )
-            yield mutations[start_idx:end_idx]
-
-
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync._autogen.BigtableDataClient_SyncGen"
+)
 class BigtableDataClient_SyncGen(ClientWithProject, ABC):
     def __init__(
         self,
@@ -877,7 +70,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
 
         Client should be created within an async context (running event loop)
 
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
+        Warning: BigtableDataClientAsync is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -899,7 +92,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
           - ValueError if pool_size is less than 1
         """
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = PooledBigtableGrpcTransport.with_fixed_size(pool_size)
+        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -920,25 +113,28 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableClient(
+        self._gapic_client = BigtableAsyncClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
             client_info=client_info,
         )
-        self._is_closed = threading.Event()
-        self.transport = cast(PooledBigtableGrpcTransport, self._gapic_client.transport)
+        self._is_closed = asyncio.Event()
+        self.transport = cast(
+            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+        )
         self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_tasks: list[concurrent.futures.Future[None]] = []
+        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._executor = concurrent.futures.ThreadPoolExecutor() if not False else None
         if self._emulator_host is not None:
             warnings.warn(
                 "Connecting to Bigtable emulator at {}".format(self._emulator_host),
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.transport._grpc_channel = PooledChannel(
+            self.transport._grpc_channel = AsyncPooledChannel(
                 pool_size=pool_size, host=self._emulator_host, insecure=True
             )
             self.transport._stubs = {}
@@ -955,10 +151,44 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
 
     @staticmethod
     def _client_version() -> str:
-        raise NotImplementedError("Function not implemented in sync class")
+        """Helper function to return the client version string for this client"""
+        if False:
+            return f"{google.cloud.bigtable.__version__}-data-async"
+        else:
+            return f"{google.cloud.bigtable.__version__}-data"
 
     def _start_background_channel_refresh(self) -> None:
-        raise NotImplementedError("Function not implemented in sync class")
+        """
+        Starts a background task to ping and warm each channel in the pool
+        Raises:
+          - RuntimeError if not called in an asyncio event loop
+        """
+        if (
+            not self._channel_refresh_tasks
+            and (not self._emulator_host)
+            and (not self._is_closed.is_set())
+        ):
+            for channel_idx in range(self.transport.pool_size):
+                refresh_task = CrossSync.create_task(
+                    self._manage_channel,
+                    channel_idx,
+                    sync_executor=self._executor,
+                    task_name=f"{self.__class__.__name__} channel refresh {channel_idx}",
+                )
+                self._channel_refresh_tasks.append(refresh_task)
+                refresh_task.add_done_callback(
+                    lambda _: self._channel_refresh_tasks.remove(refresh_task)
+                )
+
+    def close(self, timeout: float | None = None):
+        """Cancel all background tasks"""
+        self._is_closed.set()
+        for task in self._channel_refresh_tasks:
+            task.cancel()
+        self.transport.close()
+        if self._executor:
+            self._executor.shutdown(wait=False)
+        CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
@@ -995,10 +225,10 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             )
             for (instance_name, table_name, app_profile_id) in instance_list
         ]
-        return self._execute_ping_and_warms(*partial_list)
-
-    def _execute_ping_and_warms(self, *fns) -> list[BaseException | None]:
-        raise NotImplementedError("Function not implemented in sync class")
+        result_list = CrossSync.gather_partials(
+            partial_list, return_exceptions=True, sync_executor=self._executor
+        )
+        return [r or None for r in result_list]
 
     def _manage_channel(
         self,
@@ -1026,6 +256,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
+        sleep_fn = asyncio.sleep if False else self._is_closed.wait
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -1034,7 +265,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             channel = self.transport.channels[channel_idx]
             self._ping_and_warm_instances(channel)
         while not self._is_closed.is_set():
-            self._is_closed.wait(next_sleep)
+            sleep_fn(next_sleep)
             if self._is_closed.is_set():
                 break
             new_channel = self.transport.grpc_channel._create_channel()
@@ -1049,9 +280,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    def _register_instance(
-        self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
-    ) -> None:
+    def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -1079,7 +308,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 self._start_background_channel_refresh()
 
     def _remove_instance_registration(
-        self, instance_id: str, owner: google.cloud.bigtable.data._sync.client.Table
+        self, instance_id: str, owner: TableAsync
     ) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
@@ -1108,12 +337,10 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
         except KeyError:
             return False
 
-    def get_table(
-        self, instance_id: str, table_id: str, *args, **kwargs
-    ) -> google.cloud.bigtable.data._sync.client.Table:
+    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
         """
         Returns a table instance for making data API requests. All arguments are passed
-        directly to the google.cloud.bigtable.data._sync.client.Table constructor.
+        directly to the TableAsync constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -1145,9 +372,7 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return google.cloud.bigtable.data._sync.client.Table(
-            self, instance_id, table_id, *args, **kwargs
-        )
+        return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
     def __enter__(self):
         self._start_background_channel_refresh()
@@ -1156,811 +381,3 @@ class BigtableDataClient_SyncGen(ClientWithProject, ABC):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
         self._gapic_client.__exit__(exc_type, exc_val, exc_tb)
-
-
-class Table_SyncGen(ABC):
-    """
-    Main Data API surface
-
-    Table object maintains table_id, and app_profile_id context, and passes them with
-    each call
-    """
-
-    def __init__(
-        self,
-        client: google.cloud.bigtable.data._sync.client.BigtableDataClient,
-        instance_id: str,
-        table_id: str,
-        app_profile_id: str | None = None,
-        *,
-        default_read_rows_operation_timeout: float = 600,
-        default_read_rows_attempt_timeout: float | None = 20,
-        default_mutate_rows_operation_timeout: float = 600,
-        default_mutate_rows_attempt_timeout: float | None = 60,
-        default_operation_timeout: float = 60,
-        default_attempt_timeout: float | None = 20,
-        default_read_rows_retryable_errors: Sequence[type[Exception]] = (
-            DeadlineExceeded,
-            ServiceUnavailable,
-            Aborted,
-        ),
-        default_mutate_rows_retryable_errors: Sequence[type[Exception]] = (
-            DeadlineExceeded,
-            ServiceUnavailable,
-        ),
-        default_retryable_errors: Sequence[type[Exception]] = (
-            DeadlineExceeded,
-            ServiceUnavailable,
-        ),
-    ):
-        """
-        Initialize a Table instance
-
-        Must be created within an async context (running event loop)
-
-        Args:
-            instance_id: The Bigtable instance ID to associate with this client.
-                instance_id is combined with the client's project to fully
-                specify the instance
-            table_id: The ID of the table. table_id is combined with the
-                instance_id and the client's project to fully specify the table
-            app_profile_id: The app profile to associate with requests.
-                https://cloud.google.com/bigtable/docs/app-profiles
-            default_read_rows_operation_timeout: The default timeout for read rows
-                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
-            default_read_rows_attempt_timeout: The default timeout for individual
-                read rows rpc requests, in seconds. If not set, defaults to 20 seconds
-            default_mutate_rows_operation_timeout: The default timeout for mutate rows
-                operations, in seconds. If not set, defaults to 600 seconds (10 minutes)
-            default_mutate_rows_attempt_timeout: The default timeout for individual
-                mutate rows rpc requests, in seconds. If not set, defaults to 60 seconds
-            default_operation_timeout: The default timeout for all other operations, in
-                seconds. If not set, defaults to 60 seconds
-            default_attempt_timeout: The default timeout for all other individual rpc
-                requests, in seconds. If not set, defaults to 20 seconds
-            default_read_rows_retryable_errors: a list of errors that will be retried
-                if encountered during read_rows and related operations.
-                Defaults to 4 (DeadlineExceeded), 14 (ServiceUnavailable), and 10 (Aborted)
-            default_mutate_rows_retryable_errors: a list of errors that will be retried
-                if encountered during mutate_rows and related operations.
-                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
-            default_retryable_errors: a list of errors that will be retried if
-                encountered during all other operations.
-                Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
-        Raises:
-          - RuntimeError if called outside of an async context (no running event loop)
-        """
-        _helpers._validate_timeouts(
-            default_operation_timeout, default_attempt_timeout, allow_none=True
-        )
-        _helpers._validate_timeouts(
-            default_read_rows_operation_timeout,
-            default_read_rows_attempt_timeout,
-            allow_none=True,
-        )
-        _helpers._validate_timeouts(
-            default_mutate_rows_operation_timeout,
-            default_mutate_rows_attempt_timeout,
-            allow_none=True,
-        )
-        self.client = client
-        self.instance_id = instance_id
-        self.instance_name = self.client._gapic_client.instance_path(
-            self.client.project, instance_id
-        )
-        self.table_id = table_id
-        self.table_name = self.client._gapic_client.table_path(
-            self.client.project, instance_id, table_id
-        )
-        self.app_profile_id = app_profile_id
-        self.default_operation_timeout = default_operation_timeout
-        self.default_attempt_timeout = default_attempt_timeout
-        self.default_read_rows_operation_timeout = default_read_rows_operation_timeout
-        self.default_read_rows_attempt_timeout = default_read_rows_attempt_timeout
-        self.default_mutate_rows_operation_timeout = (
-            default_mutate_rows_operation_timeout
-        )
-        self.default_mutate_rows_attempt_timeout = default_mutate_rows_attempt_timeout
-        self.default_read_rows_retryable_errors = (
-            default_read_rows_retryable_errors or ()
-        )
-        self.default_mutate_rows_retryable_errors = (
-            default_mutate_rows_retryable_errors or ()
-        )
-        self.default_retryable_errors = default_retryable_errors or ()
-        self._register_instance_future: concurrent.futures.Future[
-            None
-        ] = self._register_with_client()
-
-    def _register_with_client(self) -> concurrent.futures.Future[None]:
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def read_rows_stream(
-        self,
-        query: ReadRowsQuery,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> Iterable[Row]:
-        """
-        Read a set of rows from the table, based on the specified query.
-        Returns an iterator to asynchronously stream back row data.
-
-        Failed requests within operation_timeout will be retried based on the
-        retryable_errors list until operation_timeout is reached.
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - query: contains details about which rows to return
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors
-        Returns:
-            - an asynchronous iterator that yields rows returned by the query
-        Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
-                from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
-        """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        row_merger = google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation(
-            query,
-            self,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_exceptions=retryable_excs,
-        )
-        return row_merger.start_operation()
-
-    def read_rows(
-        self,
-        query: ReadRowsQuery,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> list[Row]:
-        """
-        Read a set of rows from the table, based on the specified query.
-        Retruns results as a list of Row objects when the request is complete.
-        For streamed results, use read_rows_stream.
-
-        Failed requests within operation_timeout will be retried based on the
-        retryable_errors list until operation_timeout is reached.
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - query: contains details about which rows to return
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-                If None, defaults to the Table's default_read_rows_attempt_timeout,
-                or the operation_timeout if that is also None.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors.
-        Returns:
-            - a list of Rows returned by the query
-        Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
-                from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
-        """
-        row_generator = self.read_rows_stream(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_errors=retryable_errors,
-        )
-        return [row for row in row_generator]
-
-    def read_row(
-        self,
-        row_key: str | bytes,
-        *,
-        row_filter: RowFilter | None = None,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> Row | None:
-        """
-        Read a single row from the table, based on the specified key.
-
-        Failed requests within operation_timeout will be retried based on the
-        retryable_errors list until operation_timeout is reached.
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - query: contains details about which rows to return
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors.
-        Returns:
-            - a Row object if the row exists, otherwise None
-        Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
-                from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
-        """
-        if row_key is None:
-            raise ValueError("row_key must be string or bytes")
-        query = ReadRowsQuery(row_keys=row_key, row_filter=row_filter, limit=1)
-        results = self.read_rows(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_errors=retryable_errors,
-        )
-        if len(results) == 0:
-            return None
-        return results[0]
-
-    def read_rows_sharded(
-        self,
-        sharded_query: ShardedQuery,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> list[Row]:
-        """
-        Runs a sharded query in parallel, then return the results in a single list.
-        Results will be returned in the order of the input queries.
-
-        This function is intended to be run on the results on a query.shard() call:
-
-        ```
-        table_shard_keys = await table.sample_row_keys()
-        query = ReadRowsQuery(...)
-        shard_queries = query.shard(table_shard_keys)
-        results = await table.read_rows_sharded(shard_queries)
-        ```
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - sharded_query: a sharded query to execute
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors.
-        Raises:
-            - ShardedReadRowsExceptionGroup: if any of the queries failed
-            - ValueError: if the query_list is empty
-        """
-        if not sharded_query:
-            raise ValueError("empty sharded_query")
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        timeout_generator = _helpers._attempt_timeout_generator(
-            operation_timeout, operation_timeout
-        )
-        batched_queries = [
-            sharded_query[i : i + _helpers._CONCURRENCY_LIMIT]
-            for i in range(0, len(sharded_query), _helpers._CONCURRENCY_LIMIT)
-        ]
-        results_list = []
-        error_dict = {}
-        shard_idx = 0
-        for batch in batched_queries:
-            batch_operation_timeout = next(timeout_generator)
-            batch_kwargs_list = [
-                {
-                    "query": query,
-                    "operation_timeout": batch_operation_timeout,
-                    "attempt_timeout": min(attempt_timeout, batch_operation_timeout),
-                    "retryable_errors": retryable_errors,
-                }
-                for query in batch
-            ]
-            batch_result = self._shard_batch_helper(batch_kwargs_list)
-            for result in batch_result:
-                if isinstance(result, Exception):
-                    error_dict[shard_idx] = result
-                elif isinstance(result, BaseException):
-                    raise result
-                else:
-                    results_list.extend(result)
-                shard_idx += 1
-        if error_dict:
-            raise ShardedReadRowsExceptionGroup(
-                [
-                    FailedQueryShardError(idx, sharded_query[idx], e)
-                    for (idx, e) in error_dict.items()
-                ],
-                results_list,
-                len(sharded_query),
-            )
-        return results_list
-
-    def _shard_batch_helper(
-        self, kwargs_list: list[dict]
-    ) -> list[list[Row] | BaseException]:
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def row_exists(
-        self,
-        row_key: str | bytes,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.READ_ROWS,
-    ) -> bool:
-        """
-        Return a boolean indicating whether the specified row exists in the table.
-        uses the filters: chain(limit cells per row = 1, strip value)
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - row_key: the key of the row to check
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                 Failed requests will be retried within the budget.
-                 Defaults to the Table's default_read_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_read_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_read_rows_retryable_errors.
-        Returns:
-            - a bool indicating whether the row exists
-        Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
-                from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
-        """
-        if row_key is None:
-            raise ValueError("row_key must be string or bytes")
-        strip_filter = StripValueTransformerFilter(flag=True)
-        limit_filter = CellsRowLimitFilter(1)
-        chain_filter = RowFilterChain(filters=[limit_filter, strip_filter])
-        query = ReadRowsQuery(row_keys=row_key, limit=1, row_filter=chain_filter)
-        results = self.read_rows(
-            query,
-            operation_timeout=operation_timeout,
-            attempt_timeout=attempt_timeout,
-            retryable_errors=retryable_errors,
-        )
-        return len(results) > 0
-
-    def sample_row_keys(
-        self,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-    ) -> RowKeySamples:
-        """
-        Return a set of RowKeySamples that delimit contiguous sections of the table of
-        approximately equal size
-
-        RowKeySamples output can be used with ReadRowsQuery.shard() to create a sharded query that
-        can be parallelized across multiple backend nodes read_rows and read_rows_stream
-        requests will call sample_row_keys internally for this purpose when sharding is enabled
-
-        RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
-            row_keys, along with offset positions in the table
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will be retried within the budget.i
-                Defaults to the Table's default_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_retryable_errors.
-        Returns:
-            - a set of RowKeySamples the delimit contiguous sections of the table
-        Raises:
-            - DeadlineExceeded: raised after operation timeout
-                will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
-                from any retries that failed
-            - GoogleAPIError: raised if the request encounters an unrecoverable error
-        """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        attempt_timeout_gen = _helpers._attempt_timeout_generator(
-            attempt_timeout, operation_timeout
-        )
-        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        predicate = retries.if_exception_type(*retryable_excs)
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
-
-        def execute_rpc():
-            results = self.client._gapic_client.sample_row_keys(
-                table_name=self.table_name,
-                app_profile_id=self.app_profile_id,
-                timeout=next(attempt_timeout_gen),
-                metadata=metadata,
-                retry=None,
-            )
-            return [(s.row_key, s.offset_bytes) for s in results]
-
-        return retries.retry_target(
-            execute_rpc,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_helpers._retry_exception_factory,
-        )
-
-    def mutations_batcher(
-        self,
-        *,
-        flush_interval: float | None = 5,
-        flush_limit_mutation_count: int | None = 1000,
-        flush_limit_bytes: int = 20 * _MB_SIZE,
-        flow_control_max_mutation_count: int = 100000,
-        flow_control_max_bytes: int = 100 * _MB_SIZE,
-        batch_operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        batch_retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher:
-        """
-        Returns a new mutations batcher instance.
-
-        Can be used to iteratively add mutations that are flushed as a group,
-        to avoid excess network calls
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-          - flush_interval: Automatically flush every flush_interval seconds. If None,
-              a table default will be used
-          - flush_limit_mutation_count: Flush immediately after flush_limit_mutation_count
-              mutations are added across all entries. If None, this limit is ignored.
-          - flush_limit_bytes: Flush immediately after flush_limit_bytes bytes are added.
-          - flow_control_max_mutation_count: Maximum number of inflight mutations.
-          - flow_control_max_bytes: Maximum number of inflight bytes.
-          - batch_operation_timeout: timeout for each mutate_rows operation, in seconds.
-              Defaults to the Table's default_mutate_rows_operation_timeout
-          - batch_attempt_timeout: timeout for each individual request, in seconds.
-              Defaults to the Table's default_mutate_rows_attempt_timeout.
-              If None, defaults to batch_operation_timeout.
-          - batch_retryable_errors: a list of errors that will be retried if encountered.
-              Defaults to the Table's default_mutate_rows_retryable_errors.
-        Returns:
-            - a google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher context manager that can batch requests
-        """
-        return google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher(
-            self,
-            flush_interval=flush_interval,
-            flush_limit_mutation_count=flush_limit_mutation_count,
-            flush_limit_bytes=flush_limit_bytes,
-            flow_control_max_mutation_count=flow_control_max_mutation_count,
-            flow_control_max_bytes=flow_control_max_bytes,
-            batch_operation_timeout=batch_operation_timeout,
-            batch_attempt_timeout=batch_attempt_timeout,
-            batch_retryable_errors=batch_retryable_errors,
-        )
-
-    def mutate_row(
-        self,
-        row_key: str | bytes,
-        mutations: list[Mutation] | Mutation,
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-    ):
-        """
-        Mutates a row atomically.
-
-        Cells already present in the row are left unchanged unless explicitly changed
-        by ``mutation``.
-
-        Idempotent operations (i.e, all mutations have an explicit timestamp) will be
-        retried on server failure. Non-idempotent operations will not.
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-          - row_key: the row to apply mutations to
-          - mutations: the set of mutations to apply to the row
-          - operation_timeout: the time budget for the entire operation, in seconds.
-              Failed requests will be retried within the budget.
-              Defaults to the Table's default_operation_timeout
-          - attempt_timeout: the time budget for an individual network request, in seconds.
-              If it takes longer than this time to complete, the request will be cancelled with
-              a DeadlineExceeded exception, and a retry will be attempted.
-              Defaults to the Table's default_attempt_timeout.
-              If None, defaults to operation_timeout.
-          - retryable_errors: a list of errors that will be retried if encountered.
-              Only idempotent mutations will be retried. Defaults to the Table's
-              default_retryable_errors.
-        Raises:
-           - DeadlineExceeded: raised after operation timeout
-               will be chained with a RetryExceptionGroup containing all
-               GoogleAPIError exceptions from any retries that failed
-           - GoogleAPIError: raised on non-idempotent operations that cannot be
-               safely retried.
-          - ValueError if invalid arguments are provided
-        """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        if not mutations:
-            raise ValueError("No mutations provided")
-        mutations_list = mutations if isinstance(mutations, list) else [mutations]
-        if all((mutation.is_idempotent() for mutation in mutations_list)):
-            predicate = retries.if_exception_type(
-                *_helpers._get_retryable_errors(retryable_errors, self)
-            )
-        else:
-            predicate = retries.if_exception_type()
-        sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        target = partial(
-            self.client._gapic_client.mutate_row,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            mutations=[mutation._to_pb() for mutation in mutations_list],
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            timeout=attempt_timeout,
-            metadata=_helpers._make_metadata(self.table_name, self.app_profile_id),
-            retry=None,
-        )
-        return retries.retry_target(
-            target,
-            predicate,
-            sleep_generator,
-            operation_timeout,
-            exception_factory=_helpers._retry_exception_factory,
-        )
-
-    def bulk_mutate_rows(
-        self,
-        mutation_entries: list[RowMutationEntry],
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-        retryable_errors: Sequence[type[Exception]]
-        | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ):
-        """
-        Applies mutations for multiple rows in a single batched request.
-
-        Each individual RowMutationEntry is applied atomically, but separate entries
-        may be applied in arbitrary order (even for entries targetting the same row)
-        In total, the row_mutations can contain at most 100000 individual mutations
-        across all entries
-
-        Idempotent entries (i.e., entries with mutations with explicit timestamps)
-        will be retried on failure. Non-idempotent will not, and will reported in a
-        raised exception group
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - mutation_entries: the batches of mutations to apply
-                Each entry will be applied atomically, but entries will be applied
-                in arbitrary order
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will be retried within the budget.
-                Defaults to the Table's default_mutate_rows_operation_timeout
-            - attempt_timeout: the time budget for an individual network request, in seconds.
-                If it takes longer than this time to complete, the request will be cancelled with
-                a DeadlineExceeded exception, and a retry will be attempted.
-                Defaults to the Table's default_mutate_rows_attempt_timeout.
-                If None, defaults to operation_timeout.
-            - retryable_errors: a list of errors that will be retried if encountered.
-                Defaults to the Table's default_mutate_rows_retryable_errors
-        Raises:
-            - MutationsExceptionGroup if one or more mutations fails
-                Contains details about any failed entries in .exceptions
-            - ValueError if invalid arguments are provided
-        """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
-            operation_timeout, attempt_timeout, self
-        )
-        retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        operation = google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation(
-            self.client._gapic_client,
-            self,
-            mutation_entries,
-            operation_timeout,
-            attempt_timeout,
-            retryable_exceptions=retryable_excs,
-        )
-        operation.start()
-
-    def check_and_mutate_row(
-        self,
-        row_key: str | bytes,
-        predicate: RowFilter | None,
-        *,
-        true_case_mutations: Mutation | list[Mutation] | None = None,
-        false_case_mutations: Mutation | list[Mutation] | None = None,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-    ) -> bool:
-        """
-        Mutates a row atomically based on the output of a predicate filter
-
-        Non-idempotent operation: will not be retried
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - row_key: the key of the row to mutate
-            - predicate: the filter to be applied to the contents of the specified row.
-                Depending on whether or not any results  are yielded,
-                either true_case_mutations or false_case_mutations will be executed.
-                If None, checks that the row contains any values at all.
-            - true_case_mutations:
-                Changes to be atomically applied to the specified row if
-                predicate yields at least one cell when
-                applied to row_key. Entries are applied in order,
-                meaning that earlier mutations can be masked by later
-                ones. Must contain at least one entry if
-                false_case_mutations is empty, and at most 100000.
-            - false_case_mutations:
-                Changes to be atomically applied to the specified row if
-                predicate_filter does not yield any cells when
-                applied to row_key. Entries are applied in order,
-                meaning that earlier mutations can be masked by later
-                ones. Must contain at least one entry if
-                `true_case_mutations is empty, and at most 100000.
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will not be retried. Defaults to the Table's default_operation_timeout
-        Returns:
-            - bool indicating whether the predicate was true or false
-        Raises:
-            - GoogleAPIError exceptions from grpc call
-        """
-        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
-        if true_case_mutations is not None and (
-            not isinstance(true_case_mutations, list)
-        ):
-            true_case_mutations = [true_case_mutations]
-        true_case_list = [m._to_pb() for m in true_case_mutations or []]
-        if false_case_mutations is not None and (
-            not isinstance(false_case_mutations, list)
-        ):
-            false_case_mutations = [false_case_mutations]
-        false_case_list = [m._to_pb() for m in false_case_mutations or []]
-        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
-        result = self.client._gapic_client.check_and_mutate_row(
-            true_mutations=true_case_list,
-            false_mutations=false_case_list,
-            predicate_filter=predicate._to_pb() if predicate is not None else None,
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        return result.predicate_matched
-
-    def read_modify_write_row(
-        self,
-        row_key: str | bytes,
-        rules: ReadModifyWriteRule | list[ReadModifyWriteRule],
-        *,
-        operation_timeout: float | TABLE_DEFAULT = TABLE_DEFAULT.DEFAULT,
-    ) -> Row:
-        """
-        Reads and modifies a row atomically according to input ReadModifyWriteRules,
-        and returns the contents of all modified cells
-
-        The new value for the timestamp is the greater of the existing timestamp or
-        the current server time.
-
-        Non-idempotent operation: will not be retried
-
-        Warning: google.cloud.bigtable.data._sync.client.BigtableDataClient is currently in preview, and is not
-        yet recommended for production use.
-
-        Args:
-            - row_key: the key of the row to apply read/modify/write rules to
-            - rules: A rule or set of rules to apply to the row.
-                Rules are applied in order, meaning that earlier rules will affect the
-                results of later ones.
-            - operation_timeout: the time budget for the entire operation, in seconds.
-                Failed requests will not be retried.
-                Defaults to the Table's default_operation_timeout.
-        Returns:
-            - Row: containing cell data that was modified as part of the
-                operation
-        Raises:
-            - GoogleAPIError exceptions from grpc call
-            - ValueError if invalid arguments are provided
-        """
-        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
-        if operation_timeout <= 0:
-            raise ValueError("operation_timeout must be greater than 0")
-        if rules is not None and (not isinstance(rules, list)):
-            rules = [rules]
-        if not rules:
-            raise ValueError("rules must contain at least one item")
-        metadata = _helpers._make_metadata(self.table_name, self.app_profile_id)
-        result = self.client._gapic_client.read_modify_write_row(
-            rules=[rule._to_pb() for rule in rules],
-            row_key=row_key.encode("utf-8") if isinstance(row_key, str) else row_key,
-            table_name=self.table_name,
-            app_profile_id=self.app_profile_id,
-            metadata=metadata,
-            timeout=operation_timeout,
-            retry=None,
-        )
-        return Row._from_pb(result.row)
-
-    def close(self):
-        """Called to close the Table instance and release any resources held by it."""
-        if self._register_instance_future:
-            self._register_instance_future.cancel()
-        self.client._remove_instance_registration(self.instance_id, self)
-
-    def __enter__(self):
-        raise NotImplementedError("Function not implemented in sync class")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Implement async context manager protocol
-
-        Unregister this instance with the client, so that
-        grpc channels will no longer be warmed
-        """
-        self.close()

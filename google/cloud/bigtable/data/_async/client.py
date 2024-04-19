@@ -87,7 +87,7 @@ if CrossSync.SyncImports:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import PooledBigtableGrpcTransport, PooledChannel
 
 
-@CrossSync.sync_output("google.cloud.bigtable._sync._autogen.BigtableDataClient")
+@CrossSync.sync_output("google.cloud.bigtable.data._sync._autogen.BigtableDataClient_SyncGen")
 class BigtableDataClientAsync(ClientWithProject):
 
     def __init__(

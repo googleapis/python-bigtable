@@ -17,7 +17,13 @@ class CrossSync:
     @classmethod
     def sync_output(cls, sync_path):
         # return the async class unchanged
-        return lambda async_cls: async_cls
+        def decorator(async_cls):
+            async_cls.cross_sync_enabled = True
+            async_cls.cross_sync_import_path = sync_path
+            async_cls.cross_sync_class_name = sync_path.rsplit('.', 1)[-1]
+            async_cls.cross_sync_file_path = "/".join(sync_path.split(".")[:-1]) + ".py"
+            return async_cls
+        return decorator
 
     @staticmethod
     async def gather_partials(partial_list, return_exceptions=False, sync_executor=None):
