@@ -103,9 +103,6 @@ class BigtableDataClientAsync(ClientWithProject):
 
         Client should be created within an async context (running event loop)
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             project: the project which the client acts on behalf of.
                 If not passed, falls back to the default inferred
@@ -575,9 +572,6 @@ class TableAsync:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             - query: contains details about which rows to return
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -629,9 +623,6 @@ class TableAsync:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             - query: contains details about which rows to return
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -677,9 +668,6 @@ class TableAsync:
 
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
-
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
 
         Args:
             - query: contains details about which rows to return
@@ -735,9 +723,6 @@ class TableAsync:
         shard_queries = query.shard(table_shard_keys)
         results = await table.read_rows_sharded(shard_queries)
         ```
-
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
 
         Args:
             - sharded_query: a sharded query to execute
@@ -819,9 +804,6 @@ class TableAsync:
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             - row_key: the key of the row to check
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -875,9 +857,6 @@ class TableAsync:
 
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
-
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
 
         Args:
             - operation_timeout: the time budget for the entire operation, in seconds.
@@ -951,9 +930,6 @@ class TableAsync:
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
           - flush_interval: Automatically flush every flush_interval seconds. If None,
               a table default will be used
@@ -1002,9 +978,6 @@ class TableAsync:
 
         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
         retried on server failure. Non-idempotent operations will not.
-
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
 
         Args:
           - row_key: the row to apply mutations to
@@ -1086,9 +1059,6 @@ class TableAsync:
         will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             - mutation_entries: the batches of mutations to apply
                 Each entry will be applied atomically, but entries will be applied
@@ -1137,9 +1107,6 @@ class TableAsync:
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
-
         Args:
             - row_key: the key of the row to mutate
             - predicate: the filter to be applied to the contents of the specified row.
@@ -1159,7 +1126,7 @@ class TableAsync:
                 applied to row_key. Entries are applied in order,
                 meaning that earlier mutations can be masked by later
                 ones. Must contain at least one entry if
-                `true_case_mutations is empty, and at most 100000.
+                `true_case_mutations` is empty, and at most 100000.
             - operation_timeout: the time budget for the entire operation, in seconds.
                 Failed requests will not be retried. Defaults to the Table's default_operation_timeout
         Returns:
@@ -1207,9 +1174,6 @@ class TableAsync:
         the current server time.
 
         Non-idempotent operation: will not be retried
-
-        Warning: BigtableDataClientAsync is currently in preview, and is not
-        yet recommended for production use.
 
         Args:
             - row_key: the key of the row to apply read/modify/write rules to
