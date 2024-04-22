@@ -18,6 +18,7 @@ import os
 import re
 from typing import (
     Dict,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -678,7 +679,13 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTableAdminTransport]] = None,
+        transport: Optional[
+            Union[
+                str,
+                BigtableTableAdminTransport,
+                Callable[..., BigtableTableAdminTransport],
+            ]
+        ] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -690,9 +697,11 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, BigtableTableAdminTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
+            transport (Optional[Union[str,BigtableTableAdminTransport,Callable[..., BigtableTableAdminTransport]]]):
+                The transport to use, or a Callable that constructs and returns a new transport.
+                If a Callable is given, it will be called with the same set of initialization
+                arguments as used in the BigtableTableAdminTransport constructor.
+                If set to None, a transport is chosen automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
                 Custom options for the client.
 
@@ -801,8 +810,16 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                     api_key_value
                 )
 
-            Transport = type(self).get_transport_class(cast(str, transport))
-            self._transport = Transport(
+            transport_init: Union[
+                Type[BigtableTableAdminTransport],
+                Callable[..., BigtableTableAdminTransport],
+            ] = (
+                type(self).get_transport_class(transport)
+                if isinstance(transport, str) or transport is None
+                else cast(Callable[..., BigtableTableAdminTransport], transport)
+            )
+            # initialize with the provided callable or the passed in class
+            self._transport = transport_init(
                 credentials=credentials,
                 credentials_file=self._client_options.credentials_file,
                 host=self._api_endpoint,
@@ -870,8 +887,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, table])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -879,10 +896,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CreateTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateTableRequest):
             request = bigtable_table_admin.CreateTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -994,8 +1009,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, source_snapshot])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1003,10 +1018,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CreateTableFromSnapshotRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateTableFromSnapshotRequest):
             request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1091,8 +1104,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1100,10 +1113,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.ListTablesRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListTablesRequest):
             request = bigtable_table_admin.ListTablesRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1182,8 +1193,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1191,10 +1202,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.GetTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetTableRequest):
             request = bigtable_table_admin.GetTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1284,8 +1293,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1293,10 +1302,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.UpdateTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateTableRequest):
             request = bigtable_table_admin.UpdateTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1371,8 +1378,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1380,10 +1387,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.DeleteTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteTableRequest):
             request = bigtable_table_admin.DeleteTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1454,8 +1459,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1463,10 +1468,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.UndeleteTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UndeleteTableRequest):
             request = bigtable_table_admin.UndeleteTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1567,8 +1570,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, authorized_view, authorized_view_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1576,10 +1579,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CreateAuthorizedViewRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateAuthorizedViewRequest):
             request = bigtable_table_admin.CreateAuthorizedViewRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1664,8 +1665,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1673,10 +1674,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.ListAuthorizedViewsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListAuthorizedViewsRequest):
             request = bigtable_table_admin.ListAuthorizedViewsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1759,8 +1758,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1768,10 +1767,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.GetAuthorizedViewRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetAuthorizedViewRequest):
             request = bigtable_table_admin.GetAuthorizedViewRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1860,8 +1857,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([authorized_view, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1869,10 +1866,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.UpdateAuthorizedViewRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateAuthorizedViewRequest):
             request = bigtable_table_admin.UpdateAuthorizedViewRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1948,8 +1943,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1957,10 +1952,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.DeleteAuthorizedViewRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteAuthorizedViewRequest):
             request = bigtable_table_admin.DeleteAuthorizedViewRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2050,8 +2043,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, modifications])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2059,10 +2052,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.ModifyColumnFamiliesRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ModifyColumnFamiliesRequest):
             request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2120,10 +2111,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.DropRowRangeRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DropRowRangeRequest):
             request = bigtable_table_admin.DropRowRangeRequest(request)
 
@@ -2190,8 +2179,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2199,10 +2188,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.GenerateConsistencyTokenRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(
             request, bigtable_table_admin.GenerateConsistencyTokenRequest
         ):
@@ -2287,8 +2274,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, consistency_token])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2296,10 +2283,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CheckConsistencyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CheckConsistencyRequest):
             request = bigtable_table_admin.CheckConsistencyRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2423,8 +2408,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, cluster, snapshot_id, description])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2432,10 +2417,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.SnapshotTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.SnapshotTableRequest):
             request = bigtable_table_admin.SnapshotTableRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2542,8 +2525,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2551,10 +2534,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.GetSnapshotRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetSnapshotRequest):
             request = bigtable_table_admin.GetSnapshotRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2651,8 +2632,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2660,10 +2641,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.ListSnapshotsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListSnapshotsRequest):
             request = bigtable_table_admin.ListSnapshotsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2750,8 +2729,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2759,10 +2738,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.DeleteSnapshotRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteSnapshotRequest):
             request = bigtable_table_admin.DeleteSnapshotRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2858,8 +2835,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, backup_id, backup])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2867,10 +2844,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CreateBackupRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CreateBackupRequest):
             request = bigtable_table_admin.CreateBackupRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2948,8 +2923,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2957,10 +2932,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.GetBackupRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.GetBackupRequest):
             request = bigtable_table_admin.GetBackupRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3042,8 +3015,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([backup, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3051,10 +3024,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.UpdateBackupRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.UpdateBackupRequest):
             request = bigtable_table_admin.UpdateBackupRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3120,8 +3091,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3129,10 +3100,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.DeleteBackupRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.DeleteBackupRequest):
             request = bigtable_table_admin.DeleteBackupRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3204,8 +3173,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3213,10 +3182,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.ListBackupsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.ListBackupsRequest):
             request = bigtable_table_admin.ListBackupsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3294,10 +3261,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.RestoreTableRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.RestoreTableRequest):
             request = bigtable_table_admin.RestoreTableRequest(request)
 
@@ -3413,8 +3378,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, backup_id, source_backup, expire_time])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3422,10 +3387,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable_table_admin.CopyBackupRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable_table_admin.CopyBackupRequest):
             request = bigtable_table_admin.CopyBackupRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3537,8 +3500,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3547,8 +3510,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             )
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.GetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
@@ -3645,8 +3608,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3655,8 +3618,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             )
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.SetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
@@ -3733,8 +3696,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
                 Response message for TestIamPermissions method.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource, permissions])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3743,8 +3706,8 @@ class BigtableTableAdminClient(metaclass=BigtableTableAdminClientMeta):
             )
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.TestIamPermissionsRequest(**request)
         elif not request:
             # Null request, just make one.
