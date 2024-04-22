@@ -18,7 +18,6 @@ import functools
 import re
 from typing import (
     Dict,
-    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -226,13 +225,7 @@ class BigtableTableAdminAsyncClient:
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[
-            Union[
-                str,
-                BigtableTableAdminTransport,
-                Callable[..., BigtableTableAdminTransport],
-            ]
-        ] = "grpc_asyncio",
+        transport: Union[str, BigtableTableAdminTransport] = "grpc_asyncio",
         client_options: Optional[ClientOptions] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -244,11 +237,9 @@ class BigtableTableAdminAsyncClient:
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Optional[Union[str,BigtableTableAdminTransport,Callable[..., BigtableTableAdminTransport]]]):
-                The transport to use, or a Callable that constructs and returns a new transport to use.
-                If a Callable is given, it will be called with the same set of initialization
-                arguments as used in the BigtableTableAdminTransport constructor.
-                If set to None, a transport is chosen automatically.
+            transport (Union[str, ~.BigtableTableAdminTransport]): The
+                transport to use. If set to None, a transport is chosen
+                automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
                 Custom options for the client.
 
@@ -348,8 +339,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, table])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -357,10 +348,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CreateTableRequest):
-            request = bigtable_table_admin.CreateTableRequest(request)
+        request = bigtable_table_admin.CreateTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -373,9 +361,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.create_table,
+            default_timeout=300.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -473,8 +463,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, table_id, source_snapshot])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -482,10 +472,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CreateTableFromSnapshotRequest):
-            request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
+        request = bigtable_table_admin.CreateTableFromSnapshotRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -498,9 +485,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_table_from_snapshot
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.create_table_from_snapshot,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -569,8 +558,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -578,10 +567,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.ListTablesRequest):
-            request = bigtable_table_admin.ListTablesRequest(request)
+        request = bigtable_table_admin.ListTablesRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -590,9 +576,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_tables
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.list_tables,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -661,8 +659,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -670,10 +668,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.GetTableRequest):
-            request = bigtable_table_admin.GetTableRequest(request)
+        request = bigtable_table_admin.GetTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -682,9 +677,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.get_table,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -764,8 +771,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([table, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -773,10 +780,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.UpdateTableRequest):
-            request = bigtable_table_admin.UpdateTableRequest(request)
+        request = bigtable_table_admin.UpdateTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -787,9 +791,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.update_table,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -852,8 +858,8 @@ class BigtableTableAdminAsyncClient:
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -861,10 +867,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.DeleteTableRequest):
-            request = bigtable_table_admin.DeleteTableRequest(request)
+        request = bigtable_table_admin.DeleteTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -873,9 +876,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.delete_table,
+            default_timeout=300.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -936,8 +941,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -945,10 +950,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.UndeleteTableRequest):
-            request = bigtable_table_admin.UndeleteTableRequest(request)
+        request = bigtable_table_admin.UndeleteTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -957,9 +959,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.undelete_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.undelete_table,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1050,8 +1054,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, authorized_view, authorized_view_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1059,10 +1063,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CreateAuthorizedViewRequest):
-            request = bigtable_table_admin.CreateAuthorizedViewRequest(request)
+        request = bigtable_table_admin.CreateAuthorizedViewRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1075,9 +1076,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_authorized_view
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.create_authorized_view,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1148,8 +1151,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1157,10 +1160,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.ListAuthorizedViewsRequest):
-            request = bigtable_table_admin.ListAuthorizedViewsRequest(request)
+        request = bigtable_table_admin.ListAuthorizedViewsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1169,9 +1169,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_authorized_views
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.list_authorized_views,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1244,8 +1246,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1253,10 +1255,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.GetAuthorizedViewRequest):
-            request = bigtable_table_admin.GetAuthorizedViewRequest(request)
+        request = bigtable_table_admin.GetAuthorizedViewRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1265,9 +1264,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_authorized_view
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.get_authorized_view,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1346,8 +1347,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([authorized_view, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1355,10 +1356,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.UpdateAuthorizedViewRequest):
-            request = bigtable_table_admin.UpdateAuthorizedViewRequest(request)
+        request = bigtable_table_admin.UpdateAuthorizedViewRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1369,9 +1367,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_authorized_view
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.update_authorized_view,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1435,8 +1435,8 @@ class BigtableTableAdminAsyncClient:
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1444,10 +1444,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.DeleteAuthorizedViewRequest):
-            request = bigtable_table_admin.DeleteAuthorizedViewRequest(request)
+        request = bigtable_table_admin.DeleteAuthorizedViewRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1456,9 +1453,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_authorized_view
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.delete_authorized_view,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1538,8 +1537,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, modifications])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1547,10 +1546,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.ModifyColumnFamiliesRequest):
-            request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
+        request = bigtable_table_admin.ModifyColumnFamiliesRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1561,9 +1557,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.modify_column_families
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.modify_column_families,
+            default_timeout=300.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1609,16 +1607,15 @@ class BigtableTableAdminAsyncClient:
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.DropRowRangeRequest):
-            request = bigtable_table_admin.DropRowRangeRequest(request)
+        request = bigtable_table_admin.DropRowRangeRequest(request)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.drop_row_range
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.drop_row_range,
+            default_timeout=3600.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1679,8 +1676,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1688,12 +1685,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(
-            request, bigtable_table_admin.GenerateConsistencyTokenRequest
-        ):
-            request = bigtable_table_admin.GenerateConsistencyTokenRequest(request)
+        request = bigtable_table_admin.GenerateConsistencyTokenRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1702,9 +1694,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.generate_consistency_token
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.generate_consistency_token,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1775,8 +1779,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, consistency_token])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1784,10 +1788,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CheckConsistencyRequest):
-            request = bigtable_table_admin.CheckConsistencyRequest(request)
+        request = bigtable_table_admin.CheckConsistencyRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1798,9 +1799,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.check_consistency
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.check_consistency,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -1912,8 +1925,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, cluster, snapshot_id, description])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1921,10 +1934,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.SnapshotTableRequest):
-            request = bigtable_table_admin.SnapshotTableRequest(request)
+        request = bigtable_table_admin.SnapshotTableRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -1939,9 +1949,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.snapshot_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.snapshot_table,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2032,8 +2044,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2041,10 +2053,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.GetSnapshotRequest):
-            request = bigtable_table_admin.GetSnapshotRequest(request)
+        request = bigtable_table_admin.GetSnapshotRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2053,9 +2062,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_snapshot
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.get_snapshot,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2142,8 +2163,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2151,10 +2172,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.ListSnapshotsRequest):
-            request = bigtable_table_admin.ListSnapshotsRequest(request)
+        request = bigtable_table_admin.ListSnapshotsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2163,9 +2181,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_snapshots
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.list_snapshots,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2242,8 +2272,8 @@ class BigtableTableAdminAsyncClient:
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2251,10 +2281,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.DeleteSnapshotRequest):
-            request = bigtable_table_admin.DeleteSnapshotRequest(request)
+        request = bigtable_table_admin.DeleteSnapshotRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2263,9 +2290,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_snapshot
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.delete_snapshot,
+            default_timeout=300.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2351,8 +2380,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, backup_id, backup])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2360,10 +2389,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CreateBackupRequest):
-            request = bigtable_table_admin.CreateBackupRequest(request)
+        request = bigtable_table_admin.CreateBackupRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2376,9 +2402,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.create_backup
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.create_backup,
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2442,8 +2470,8 @@ class BigtableTableAdminAsyncClient:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2451,10 +2479,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.GetBackupRequest):
-            request = bigtable_table_admin.GetBackupRequest(request)
+        request = bigtable_table_admin.GetBackupRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2463,9 +2488,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_backup
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.get_backup,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2537,8 +2574,8 @@ class BigtableTableAdminAsyncClient:
                 A backup of a Cloud Bigtable table.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([backup, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2546,10 +2583,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.UpdateBackupRequest):
-            request = bigtable_table_admin.UpdateBackupRequest(request)
+        request = bigtable_table_admin.UpdateBackupRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2560,9 +2594,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.update_backup
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.update_backup,
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2616,8 +2652,8 @@ class BigtableTableAdminAsyncClient:
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2625,10 +2661,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.DeleteBackupRequest):
-            request = bigtable_table_admin.DeleteBackupRequest(request)
+        request = bigtable_table_admin.DeleteBackupRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2637,9 +2670,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.delete_backup
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.delete_backup,
+            default_timeout=300.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2701,8 +2736,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2710,10 +2745,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.ListBackupsRequest):
-            request = bigtable_table_admin.ListBackupsRequest(request)
+        request = bigtable_table_admin.ListBackupsRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2722,9 +2754,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.list_backups
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.list_backups,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2792,16 +2836,15 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.RestoreTableRequest):
-            request = bigtable_table_admin.RestoreTableRequest(request)
+        request = bigtable_table_admin.RestoreTableRequest(request)
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.restore_table
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.restore_table,
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -2911,8 +2954,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, backup_id, source_backup, expire_time])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -2920,10 +2963,7 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - Use the request object if provided (there's no risk of modifying the input as
-        #   there are no flattened fields), or create one.
-        if not isinstance(request, bigtable_table_admin.CopyBackupRequest):
-            request = bigtable_table_admin.CopyBackupRequest(request)
+        request = bigtable_table_admin.CopyBackupRequest(request)
 
         # If we have keyword arguments corresponding to fields on the
         # request, apply these.
@@ -2938,9 +2978,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.copy_backup
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.copy_backup,
+            default_timeout=None,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3036,8 +3078,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3045,8 +3087,8 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
+        # The request isn't a proto-plus wrapped type,
+        # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.GetIamPolicyRequest(**request)
         elif not request:
@@ -3054,9 +3096,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.get_iam_policy
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.get_iam_policy,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3143,8 +3197,8 @@ class BigtableTableAdminAsyncClient:
 
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3152,8 +3206,8 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
+        # The request isn't a proto-plus wrapped type,
+        # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.SetIamPolicyRequest(**request)
         elif not request:
@@ -3161,9 +3215,11 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.set_iam_policy
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.set_iam_policy,
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.
@@ -3230,8 +3286,8 @@ class BigtableTableAdminAsyncClient:
                 Response message for TestIamPermissions method.
         """
         # Create or coerce a protobuf request object.
-        # - Quick check: If we got a request object, we should *not* have
-        #   gotten any keyword arguments that map to the request.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource, permissions])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -3239,8 +3295,8 @@ class BigtableTableAdminAsyncClient:
                 "the individual field arguments should be set."
             )
 
-        # - The request isn't a proto-plus wrapped type,
-        #   so it must be constructed via keyword expansion.
+        # The request isn't a proto-plus wrapped type,
+        # so it must be constructed via keyword expansion.
         if isinstance(request, dict):
             request = iam_policy_pb2.TestIamPermissionsRequest(**request)
         elif not request:
@@ -3250,9 +3306,21 @@ class BigtableTableAdminAsyncClient:
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._client._transport._wrapped_methods[
-            self._client._transport.test_iam_permissions
-        ]
+        rpc = gapic_v1.method_async.wrap_method(
+            self._client._transport.test_iam_permissions,
+            default_retry=retries.AsyncRetry(
+                initial=1.0,
+                maximum=60.0,
+                multiplier=2,
+                predicate=retries.if_exception_type(
+                    core_exceptions.DeadlineExceeded,
+                    core_exceptions.ServiceUnavailable,
+                ),
+                deadline=60.0,
+            ),
+            default_timeout=60.0,
+            client_info=DEFAULT_CLIENT_INFO,
+        )
 
         # Certain fields should be provided within the metadata header;
         # add these here.

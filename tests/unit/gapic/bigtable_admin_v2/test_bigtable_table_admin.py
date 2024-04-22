@@ -1272,39 +1272,6 @@ def test_create_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_create_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.create_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.create_table] = mock_rpc
-
-        request = {}
-        client.create_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.create_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_create_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -1328,52 +1295,6 @@ async def test_create_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CreateTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_create_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.create_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.create_table
-        ] = mock_object
-
-        request = {}
-        await client.create_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.create_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -1663,48 +1584,6 @@ def test_create_table_from_snapshot_non_empty_request_with_auto_populated_field(
         )
 
 
-def test_create_table_from_snapshot_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.create_table_from_snapshot
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.create_table_from_snapshot
-        ] = mock_rpc
-
-        request = {}
-        client.create_table_from_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_table_from_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_create_table_from_snapshot_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -1726,56 +1605,6 @@ async def test_create_table_from_snapshot_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CreateTableFromSnapshotRequest()
-
-
-@pytest.mark.asyncio
-async def test_create_table_from_snapshot_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.create_table_from_snapshot
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.create_table_from_snapshot
-        ] = mock_object
-
-        request = {}
-        await client.create_table_from_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.create_table_from_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -2067,39 +1896,6 @@ def test_list_tables_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_list_tables_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_tables in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_tables] = mock_rpc
-
-        request = {}
-        client.list_tables(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_tables(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_list_tables_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -2121,52 +1917,6 @@ async def test_list_tables_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.ListTablesRequest()
-
-
-@pytest.mark.asyncio
-async def test_list_tables_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.list_tables
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.list_tables
-        ] = mock_object
-
-        request = {}
-        await client.list_tables(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.list_tables(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -2622,39 +2372,6 @@ def test_get_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_get_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_table] = mock_rpc
-
-        request = {}
-        client.get_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_get_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -2678,50 +2395,6 @@ async def test_get_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GetTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_get_table_async_use_cached_wrapped_rpc(transport: str = "grpc_asyncio"):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.get_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.get_table
-        ] = mock_object
-
-        request = {}
-        await client.get_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.get_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -2976,43 +2649,6 @@ def test_update_table_non_empty_request_with_auto_populated_field():
         assert args[0] == bigtable_table_admin.UpdateTableRequest()
 
 
-def test_update_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.update_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.update_table] = mock_rpc
-
-        request = {}
-        client.update_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.update_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_update_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -3032,56 +2668,6 @@ async def test_update_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.UpdateTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_update_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.update_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.update_table
-        ] = mock_object
-
-        request = {}
-        await client.update_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.update_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -3348,39 +2934,6 @@ def test_delete_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_delete_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_table] = mock_rpc
-
-        request = {}
-        client.delete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_delete_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -3398,52 +2951,6 @@ async def test_delete_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.DeleteTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_delete_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.delete_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.delete_table
-        ] = mock_object
-
-        request = {}
-        await client.delete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.delete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -3694,43 +3201,6 @@ def test_undelete_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_undelete_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.undelete_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.undelete_table] = mock_rpc
-
-        request = {}
-        client.undelete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.undelete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_undelete_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -3750,56 +3220,6 @@ async def test_undelete_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.UndeleteTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_undelete_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.undelete_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.undelete_table
-        ] = mock_object
-
-        request = {}
-        await client.undelete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.undelete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -4064,48 +3484,6 @@ def test_create_authorized_view_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_create_authorized_view_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.create_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.create_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.create_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_create_authorized_view_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -4127,56 +3505,6 @@ async def test_create_authorized_view_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CreateAuthorizedViewRequest()
-
-
-@pytest.mark.asyncio
-async def test_create_authorized_view_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.create_authorized_view
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.create_authorized_view
-        ] = mock_object
-
-        request = {}
-        await client.create_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.create_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -4474,44 +3802,6 @@ def test_list_authorized_views_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_list_authorized_views_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.list_authorized_views
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.list_authorized_views
-        ] = mock_rpc
-
-        request = {}
-        client.list_authorized_views(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_authorized_views(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_list_authorized_views_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -4535,52 +3825,6 @@ async def test_list_authorized_views_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.ListAuthorizedViewsRequest()
-
-
-@pytest.mark.asyncio
-async def test_list_authorized_views_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.list_authorized_views
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.list_authorized_views
-        ] = mock_object
-
-        request = {}
-        await client.list_authorized_views(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.list_authorized_views(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -5061,43 +4305,6 @@ def test_get_authorized_view_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_get_authorized_view_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.get_authorized_view in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.get_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.get_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_get_authorized_view_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -5123,52 +4330,6 @@ async def test_get_authorized_view_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GetAuthorizedViewRequest()
-
-
-@pytest.mark.asyncio
-async def test_get_authorized_view_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.get_authorized_view
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.get_authorized_view
-        ] = mock_object
-
-        request = {}
-        await client.get_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.get_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -5444,48 +4605,6 @@ def test_update_authorized_view_non_empty_request_with_auto_populated_field():
         assert args[0] == bigtable_table_admin.UpdateAuthorizedViewRequest()
 
 
-def test_update_authorized_view_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.update_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.update_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.update_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.update_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_update_authorized_view_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -5507,56 +4626,6 @@ async def test_update_authorized_view_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.UpdateAuthorizedViewRequest()
-
-
-@pytest.mark.asyncio
-async def test_update_authorized_view_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.update_authorized_view
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.update_authorized_view
-        ] = mock_object
-
-        request = {}
-        await client.update_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.update_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -5841,44 +4910,6 @@ def test_delete_authorized_view_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_delete_authorized_view_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.delete_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.delete_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.delete_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_delete_authorized_view_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -5898,52 +4929,6 @@ async def test_delete_authorized_view_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.DeleteAuthorizedViewRequest()
-
-
-@pytest.mark.asyncio
-async def test_delete_authorized_view_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.delete_authorized_view
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.delete_authorized_view
-        ] = mock_object
-
-        request = {}
-        await client.delete_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.delete_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -6217,44 +5202,6 @@ def test_modify_column_families_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_modify_column_families_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.modify_column_families
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.modify_column_families
-        ] = mock_rpc
-
-        request = {}
-        client.modify_column_families(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.modify_column_families(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_modify_column_families_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -6280,52 +5227,6 @@ async def test_modify_column_families_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.ModifyColumnFamiliesRequest()
-
-
-@pytest.mark.asyncio
-async def test_modify_column_families_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.modify_column_families
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.modify_column_families
-        ] = mock_object
-
-        request = {}
-        await client.modify_column_families(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.modify_column_families(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -6625,39 +5526,6 @@ def test_drop_row_range_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_drop_row_range_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.drop_row_range in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.drop_row_range] = mock_rpc
-
-        request = {}
-        client.drop_row_range(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.drop_row_range(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_drop_row_range_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -6675,52 +5543,6 @@ async def test_drop_row_range_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.DropRowRangeRequest()
-
-
-@pytest.mark.asyncio
-async def test_drop_row_range_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.drop_row_range
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.drop_row_range
-        ] = mock_object
-
-        request = {}
-        await client.drop_row_range(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.drop_row_range(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -6900,44 +5722,6 @@ def test_generate_consistency_token_non_empty_request_with_auto_populated_field(
         )
 
 
-def test_generate_consistency_token_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.generate_consistency_token
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.generate_consistency_token
-        ] = mock_rpc
-
-        request = {}
-        client.generate_consistency_token(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.generate_consistency_token(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_generate_consistency_token_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -6961,52 +5745,6 @@ async def test_generate_consistency_token_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GenerateConsistencyTokenRequest()
-
-
-@pytest.mark.asyncio
-async def test_generate_consistency_token_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.generate_consistency_token
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.generate_consistency_token
-        ] = mock_object
-
-        request = {}
-        await client.generate_consistency_token(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.generate_consistency_token(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -7287,41 +6025,6 @@ def test_check_consistency_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_check_consistency_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.check_consistency in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.check_consistency
-        ] = mock_rpc
-
-        request = {}
-        client.check_consistency(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.check_consistency(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_check_consistency_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -7345,52 +6048,6 @@ async def test_check_consistency_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CheckConsistencyRequest()
-
-
-@pytest.mark.asyncio
-async def test_check_consistency_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.check_consistency
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.check_consistency
-        ] = mock_object
-
-        request = {}
-        await client.check_consistency(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.check_consistency(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -7676,43 +6333,6 @@ def test_snapshot_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_snapshot_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.snapshot_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.snapshot_table] = mock_rpc
-
-        request = {}
-        client.snapshot_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.snapshot_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_snapshot_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -7732,56 +6352,6 @@ async def test_snapshot_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.SnapshotTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_snapshot_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.snapshot_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.snapshot_table
-        ] = mock_object
-
-        request = {}
-        await client.snapshot_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.snapshot_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -8077,39 +6647,6 @@ def test_get_snapshot_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_get_snapshot_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_snapshot in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_snapshot] = mock_rpc
-
-        request = {}
-        client.get_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_get_snapshot_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -8134,52 +6671,6 @@ async def test_get_snapshot_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GetSnapshotRequest()
-
-
-@pytest.mark.asyncio
-async def test_get_snapshot_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.get_snapshot
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.get_snapshot
-        ] = mock_object
-
-        request = {}
-        await client.get_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.get_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -8446,39 +6937,6 @@ def test_list_snapshots_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_list_snapshots_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_snapshots in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_snapshots] = mock_rpc
-
-        request = {}
-        client.list_snapshots(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_snapshots(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_list_snapshots_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -8500,52 +6958,6 @@ async def test_list_snapshots_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.ListSnapshotsRequest()
-
-
-@pytest.mark.asyncio
-async def test_list_snapshots_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.list_snapshots
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.list_snapshots
-        ] = mock_object
-
-        request = {}
-        await client.list_snapshots(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.list_snapshots(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -8995,39 +7407,6 @@ def test_delete_snapshot_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_delete_snapshot_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_snapshot in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_snapshot] = mock_rpc
-
-        request = {}
-        client.delete_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_delete_snapshot_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -9045,52 +7424,6 @@ async def test_delete_snapshot_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.DeleteSnapshotRequest()
-
-
-@pytest.mark.asyncio
-async def test_delete_snapshot_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.delete_snapshot
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.delete_snapshot
-        ] = mock_object
-
-        request = {}
-        await client.delete_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.delete_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -9343,43 +7676,6 @@ def test_create_backup_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_create_backup_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.create_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.create_backup] = mock_rpc
-
-        request = {}
-        client.create_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_create_backup_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -9399,56 +7695,6 @@ async def test_create_backup_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CreateBackupRequest()
-
-
-@pytest.mark.asyncio
-async def test_create_backup_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.create_backup
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.create_backup
-        ] = mock_object
-
-        request = {}
-        await client.create_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.create_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -9736,39 +7982,6 @@ def test_get_backup_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_get_backup_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_backup] = mock_rpc
-
-        request = {}
-        client.get_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_get_backup_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -9794,50 +8007,6 @@ async def test_get_backup_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.GetBackupRequest()
-
-
-@pytest.mark.asyncio
-async def test_get_backup_async_use_cached_wrapped_rpc(transport: str = "grpc_asyncio"):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.get_backup
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.get_backup
-        ] = mock_object
-
-        request = {}
-        await client.get_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.get_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -10107,39 +8276,6 @@ def test_update_backup_non_empty_request_with_auto_populated_field():
         assert args[0] == bigtable_table_admin.UpdateBackupRequest()
 
 
-def test_update_backup_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.update_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.update_backup] = mock_rpc
-
-        request = {}
-        client.update_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.update_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_update_backup_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -10165,52 +8301,6 @@ async def test_update_backup_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.UpdateBackupRequest()
-
-
-@pytest.mark.asyncio
-async def test_update_backup_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.update_backup
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.update_backup
-        ] = mock_object
-
-        request = {}
-        await client.update_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.update_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -10484,39 +8574,6 @@ def test_delete_backup_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_delete_backup_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_backup] = mock_rpc
-
-        request = {}
-        client.delete_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_delete_backup_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -10534,52 +8591,6 @@ async def test_delete_backup_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.DeleteBackupRequest()
-
-
-@pytest.mark.asyncio
-async def test_delete_backup_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.delete_backup
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.delete_backup
-        ] = mock_object
-
-        request = {}
-        await client.delete_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.delete_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -10839,39 +8850,6 @@ def test_list_backups_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_list_backups_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_backups in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_backups] = mock_rpc
-
-        request = {}
-        client.list_backups(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_backups(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_list_backups_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -10893,52 +8871,6 @@ async def test_list_backups_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.ListBackupsRequest()
-
-
-@pytest.mark.asyncio
-async def test_list_backups_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.list_backups
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.list_backups
-        ] = mock_object
-
-        request = {}
-        await client.list_backups(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.list_backups(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -11392,43 +9324,6 @@ def test_restore_table_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_restore_table_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.restore_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.restore_table] = mock_rpc
-
-        request = {}
-        client.restore_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.restore_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_restore_table_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -11448,56 +9343,6 @@ async def test_restore_table_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.RestoreTableRequest()
-
-
-@pytest.mark.asyncio
-async def test_restore_table_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.restore_table
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.restore_table
-        ] = mock_object
-
-        request = {}
-        await client.restore_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.restore_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -11676,43 +9521,6 @@ def test_copy_backup_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_copy_backup_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.copy_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.copy_backup] = mock_rpc
-
-        request = {}
-        client.copy_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.copy_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_copy_backup_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -11732,56 +9540,6 @@ async def test_copy_backup_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == bigtable_table_admin.CopyBackupRequest()
-
-
-@pytest.mark.asyncio
-async def test_copy_backup_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.copy_backup
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.copy_backup
-        ] = mock_object
-
-        request = {}
-        await client.copy_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        await client.copy_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -12072,39 +9830,6 @@ def test_get_iam_policy_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_get_iam_policy_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_iam_policy in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_iam_policy] = mock_rpc
-
-        request = {}
-        client.get_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_get_iam_policy_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -12127,52 +9852,6 @@ async def test_get_iam_policy_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == iam_policy_pb2.GetIamPolicyRequest()
-
-
-@pytest.mark.asyncio
-async def test_get_iam_policy_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.get_iam_policy
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.get_iam_policy
-        ] = mock_object
-
-        request = {}
-        await client.get_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.get_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -12451,39 +10130,6 @@ def test_set_iam_policy_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_set_iam_policy_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.set_iam_policy in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.set_iam_policy] = mock_rpc
-
-        request = {}
-        client.set_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.set_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_set_iam_policy_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -12506,52 +10152,6 @@ async def test_set_iam_policy_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == iam_policy_pb2.SetIamPolicyRequest()
-
-
-@pytest.mark.asyncio
-async def test_set_iam_policy_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.set_iam_policy
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.set_iam_policy
-        ] = mock_object
-
-        request = {}
-        await client.set_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.set_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -12835,43 +10435,6 @@ def test_test_iam_permissions_non_empty_request_with_auto_populated_field():
         )
 
 
-def test_test_iam_permissions_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="grpc",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.test_iam_permissions in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.test_iam_permissions
-        ] = mock_rpc
-
-        request = {}
-        client.test_iam_permissions(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.test_iam_permissions(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 @pytest.mark.asyncio
 async def test_test_iam_permissions_empty_call_async():
     # This test is a coverage failsafe to make sure that totally empty calls,
@@ -12895,52 +10458,6 @@ async def test_test_iam_permissions_empty_call_async():
         call.assert_called()
         _, args, _ = call.mock_calls[0]
         assert args[0] == iam_policy_pb2.TestIamPermissionsRequest()
-
-
-@pytest.mark.asyncio
-async def test_test_iam_permissions_async_use_cached_wrapped_rpc(
-    transport: str = "grpc_asyncio",
-):
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method_async.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminAsyncClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport=transport,
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._client._transport.test_iam_permissions
-            in client._client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        class AwaitableMock(mock.AsyncMock):
-            def __await__(self):
-                self.await_count += 1
-                return iter([])
-
-        mock_object = AwaitableMock()
-        client._client._transport._wrapped_methods[
-            client._client._transport.test_iam_permissions
-        ] = mock_object
-
-        request = {}
-        await client.test_iam_permissions(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_object.call_count == 1
-
-        await client.test_iam_permissions(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_object.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -13207,39 +10724,6 @@ def test_create_table_rest(request_type):
     assert response.name == "name_value"
     assert response.granularity == gba_table.Table.TimestampGranularity.MILLIS
     assert response.deletion_protection is True
-
-
-def test_create_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.create_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.create_table] = mock_rpc
-
-        request = {}
-        client.create_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.create_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_create_table_rest_required_fields(
@@ -13517,48 +11001,6 @@ def test_create_table_from_snapshot_rest(request_type):
 
     # Establish that the response is the type that we expect.
     assert response.operation.name == "operations/spam"
-
-
-def test_create_table_from_snapshot_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.create_table_from_snapshot
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.create_table_from_snapshot
-        ] = mock_rpc
-
-        request = {}
-        client.create_table_from_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_table_from_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_create_table_from_snapshot_rest_required_fields(
@@ -13846,39 +11288,6 @@ def test_list_tables_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListTablesPager)
     assert response.next_page_token == "next_page_token_value"
-
-
-def test_list_tables_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_tables in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_tables] = mock_rpc
-
-        request = {}
-        client.list_tables(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_tables(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_list_tables_rest_required_fields(
@@ -14223,39 +11632,6 @@ def test_get_table_rest(request_type):
     assert response.name == "name_value"
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
     assert response.deletion_protection is True
-
-
-def test_get_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_table] = mock_rpc
-
-        request = {}
-        client.get_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_get_table_rest_required_fields(
@@ -14607,43 +11983,6 @@ def test_update_table_rest(request_type):
     assert response.operation.name == "operations/spam"
 
 
-def test_update_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.update_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.update_table] = mock_rpc
-
-        request = {}
-        client.update_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.update_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_update_table_rest_required_fields(
     request_type=bigtable_table_admin.UpdateTableRequest,
 ):
@@ -14915,39 +12254,6 @@ def test_delete_table_rest(request_type):
     assert response is None
 
 
-def test_delete_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_table] = mock_rpc
-
-        request = {}
-        client.delete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_delete_table_rest_required_fields(
     request_type=bigtable_table_admin.DeleteTableRequest,
 ):
@@ -15194,43 +12500,6 @@ def test_undelete_table_rest(request_type):
 
     # Establish that the response is the type that we expect.
     assert response.operation.name == "operations/spam"
-
-
-def test_undelete_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.undelete_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.undelete_table] = mock_rpc
-
-        request = {}
-        client.undelete_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.undelete_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_undelete_table_rest_required_fields(
@@ -15571,48 +12840,6 @@ def test_create_authorized_view_rest(request_type):
     assert response.operation.name == "operations/spam"
 
 
-def test_create_authorized_view_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.create_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.create_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.create_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_create_authorized_view_rest_required_fields(
     request_type=bigtable_table_admin.CreateAuthorizedViewRequest,
 ):
@@ -15905,44 +13132,6 @@ def test_list_authorized_views_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListAuthorizedViewsPager)
     assert response.next_page_token == "next_page_token_value"
-
-
-def test_list_authorized_views_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.list_authorized_views
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.list_authorized_views
-        ] = mock_rpc
-
-        request = {}
-        client.list_authorized_views(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_authorized_views(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_list_authorized_views_rest_required_fields(
@@ -16298,43 +13487,6 @@ def test_get_authorized_view_rest(request_type):
     assert response.deletion_protection is True
 
 
-def test_get_authorized_view_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.get_authorized_view in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.get_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.get_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_get_authorized_view_rest_required_fields(
     request_type=bigtable_table_admin.GetAuthorizedViewRequest,
 ):
@@ -16683,48 +13835,6 @@ def test_update_authorized_view_rest(request_type):
     assert response.operation.name == "operations/spam"
 
 
-def test_update_authorized_view_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.update_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.update_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.update_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.update_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_update_authorized_view_rest_required_fields(
     request_type=bigtable_table_admin.UpdateAuthorizedViewRequest,
 ):
@@ -17008,44 +14118,6 @@ def test_delete_authorized_view_rest(request_type):
     assert response is None
 
 
-def test_delete_authorized_view_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.delete_authorized_view
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.delete_authorized_view
-        ] = mock_rpc
-
-        request = {}
-        client.delete_authorized_view(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_authorized_view(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_delete_authorized_view_rest_required_fields(
     request_type=bigtable_table_admin.DeleteAuthorizedViewRequest,
 ):
@@ -17309,44 +14381,6 @@ def test_modify_column_families_rest(request_type):
     assert response.name == "name_value"
     assert response.granularity == table.Table.TimestampGranularity.MILLIS
     assert response.deletion_protection is True
-
-
-def test_modify_column_families_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.modify_column_families
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.modify_column_families
-        ] = mock_rpc
-
-        request = {}
-        client.modify_column_families(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.modify_column_families(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_modify_column_families_rest_required_fields(
@@ -17629,39 +14663,6 @@ def test_drop_row_range_rest(request_type):
     assert response is None
 
 
-def test_drop_row_range_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.drop_row_range in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.drop_row_range] = mock_rpc
-
-        request = {}
-        client.drop_row_range(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.drop_row_range(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_drop_row_range_rest_required_fields(
     request_type=bigtable_table_admin.DropRowRangeRequest,
 ):
@@ -17862,44 +14863,6 @@ def test_generate_consistency_token_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.GenerateConsistencyTokenResponse)
     assert response.consistency_token == "consistency_token_value"
-
-
-def test_generate_consistency_token_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.generate_consistency_token
-            in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.generate_consistency_token
-        ] = mock_rpc
-
-        request = {}
-        client.generate_consistency_token(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.generate_consistency_token(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_generate_consistency_token_rest_required_fields(
@@ -18175,41 +15138,6 @@ def test_check_consistency_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, bigtable_table_admin.CheckConsistencyResponse)
     assert response.consistent is True
-
-
-def test_check_consistency_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.check_consistency in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.check_consistency
-        ] = mock_rpc
-
-        request = {}
-        client.check_consistency(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.check_consistency(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_check_consistency_rest_required_fields(
@@ -18491,43 +15419,6 @@ def test_snapshot_table_rest(request_type):
 
     # Establish that the response is the type that we expect.
     assert response.operation.name == "operations/spam"
-
-
-def test_snapshot_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.snapshot_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.snapshot_table] = mock_rpc
-
-        request = {}
-        client.snapshot_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.snapshot_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_snapshot_table_rest_required_fields(
@@ -18826,39 +15717,6 @@ def test_get_snapshot_rest(request_type):
     assert response.description == "description_value"
 
 
-def test_get_snapshot_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_snapshot in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_snapshot] = mock_rpc
-
-        request = {}
-        client.get_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_get_snapshot_rest_required_fields(
     request_type=bigtable_table_admin.GetSnapshotRequest,
 ):
@@ -19126,39 +15984,6 @@ def test_list_snapshots_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListSnapshotsPager)
     assert response.next_page_token == "next_page_token_value"
-
-
-def test_list_snapshots_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_snapshots in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_snapshots] = mock_rpc
-
-        request = {}
-        client.list_snapshots(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_snapshots(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_list_snapshots_rest_required_fields(
@@ -19499,39 +16324,6 @@ def test_delete_snapshot_rest(request_type):
 
     # Establish that the response is the type that we expect.
     assert response is None
-
-
-def test_delete_snapshot_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_snapshot in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_snapshot] = mock_rpc
-
-        request = {}
-        client.delete_snapshot(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_snapshot(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_delete_snapshot_rest_required_fields(
@@ -19878,43 +16670,6 @@ def test_create_backup_rest(request_type):
     assert response.operation.name == "operations/spam"
 
 
-def test_create_backup_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.create_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.create_backup] = mock_rpc
-
-        request = {}
-        client.create_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.create_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_create_backup_rest_required_fields(
     request_type=bigtable_table_admin.CreateBackupRequest,
 ):
@@ -20218,39 +16973,6 @@ def test_get_backup_rest(request_type):
     assert response.source_backup == "source_backup_value"
     assert response.size_bytes == 1089
     assert response.state == table.Backup.State.CREATING
-
-
-def test_get_backup_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_backup] = mock_rpc
-
-        request = {}
-        client.get_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_get_backup_rest_required_fields(
@@ -20625,39 +17347,6 @@ def test_update_backup_rest(request_type):
     assert response.state == table.Backup.State.CREATING
 
 
-def test_update_backup_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.update_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.update_backup] = mock_rpc
-
-        request = {}
-        client.update_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.update_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_update_backup_rest_required_fields(
     request_type=bigtable_table_admin.UpdateBackupRequest,
 ):
@@ -20936,39 +17625,6 @@ def test_delete_backup_rest(request_type):
     assert response is None
 
 
-def test_delete_backup_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.delete_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.delete_backup] = mock_rpc
-
-        request = {}
-        client.delete_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.delete_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_delete_backup_rest_required_fields(
     request_type=bigtable_table_admin.DeleteBackupRequest,
 ):
@@ -21225,39 +17881,6 @@ def test_list_backups_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, pagers.ListBackupsPager)
     assert response.next_page_token == "next_page_token_value"
-
-
-def test_list_backups_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.list_backups in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.list_backups] = mock_rpc
-
-        request = {}
-        client.list_backups(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.list_backups(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_list_backups_rest_required_fields(
@@ -21602,43 +18225,6 @@ def test_restore_table_rest(request_type):
     assert response.operation.name == "operations/spam"
 
 
-def test_restore_table_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.restore_table in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.restore_table] = mock_rpc
-
-        request = {}
-        client.restore_table(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.restore_table(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_restore_table_rest_required_fields(
     request_type=bigtable_table_admin.RestoreTableRequest,
 ):
@@ -21854,43 +18440,6 @@ def test_copy_backup_rest(request_type):
 
     # Establish that the response is the type that we expect.
     assert response.operation.name == "operations/spam"
-
-
-def test_copy_backup_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.copy_backup in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.copy_backup] = mock_rpc
-
-        request = {}
-        client.copy_backup(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        # Operation methods build a cached wrapper on first rpc call
-        # subsequent calls should use the cached wrapper
-        wrapper_fn.reset_mock()
-
-        client.copy_backup(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_copy_backup_rest_required_fields(
@@ -22184,39 +18733,6 @@ def test_get_iam_policy_rest(request_type):
     assert response.etag == b"etag_blob"
 
 
-def test_get_iam_policy_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.get_iam_policy in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.get_iam_policy] = mock_rpc
-
-        request = {}
-        client.get_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.get_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
-
-
 def test_get_iam_policy_rest_required_fields(
     request_type=iam_policy_pb2.GetIamPolicyRequest,
 ):
@@ -22477,39 +18993,6 @@ def test_set_iam_policy_rest(request_type):
     assert isinstance(response, policy_pb2.Policy)
     assert response.version == 774
     assert response.etag == b"etag_blob"
-
-
-def test_set_iam_policy_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert client._transport.set_iam_policy in client._transport._wrapped_methods
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[client._transport.set_iam_policy] = mock_rpc
-
-        request = {}
-        client.set_iam_policy(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.set_iam_policy(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_set_iam_policy_rest_required_fields(
@@ -22778,43 +19261,6 @@ def test_test_iam_permissions_rest(request_type):
     # Establish that the response is the type that we expect.
     assert isinstance(response, iam_policy_pb2.TestIamPermissionsResponse)
     assert response.permissions == ["permissions_value"]
-
-
-def test_test_iam_permissions_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableTableAdminClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
-        )
-
-        # Should wrap all calls on client creation
-        assert wrapper_fn.call_count > 0
-        wrapper_fn.reset_mock()
-
-        # Ensure method has been cached
-        assert (
-            client._transport.test_iam_permissions in client._transport._wrapped_methods
-        )
-
-        # Replace cached wrapped function with mock
-        mock_rpc = mock.Mock()
-        client._transport._wrapped_methods[
-            client._transport.test_iam_permissions
-        ] = mock_rpc
-
-        request = {}
-        client.test_iam_permissions(request)
-
-        # Establish that the underlying gRPC stub method was called.
-        assert mock_rpc.call_count == 1
-
-        client.test_iam_permissions(request)
-
-        # Establish that a new wrapper was not created for this call
-        assert wrapper_fn.call_count == 0
-        assert mock_rpc.call_count == 2
 
 
 def test_test_iam_permissions_rest_required_fields(
