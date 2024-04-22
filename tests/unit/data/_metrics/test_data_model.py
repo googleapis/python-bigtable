@@ -213,17 +213,12 @@ class TestActiveOperationMetric:
         If operation has a backoff generator, it should be used to attach backoff
         times to attempts
         """
+        from google.cloud.bigtable.data._helpers import BackoffGenerator
 
-        def mock_generator():
-            """
-            always send back what was sent in
-            """
-            sent = None
-            while True:
-                sent = yield sent
-
-        metric = self._make_one(mock.Mock())
-        metric.backoff_generator = mock_generator()
+        generator = BackoffGenerator()
+        # pre-seed generator with exepcted values
+        generator.history = list(range(10))
+        metric = self._make_one(mock.Mock(), backoff_generator=generator)
         # initialize generator
         next(metric.backoff_generator)
         metric.start_attempt()
