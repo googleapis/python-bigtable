@@ -41,9 +41,3 @@ at the lowest level of the nesting:
     # **OR** anything that has more than 3 versions.
     rule4 = GarbageCollectionRule(max_num_versions=3)
     rule5 = GarbageCollectionUnion(rules=[rule3, rule4])
-
-----
-
-.. automodule:: google.cloud.bigtable.column_family
-  :members:
-  :show-inheritance:

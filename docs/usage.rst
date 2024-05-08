@@ -5,20 +5,6 @@ Using the Sync Client
   :maxdepth: 2
 
   client-intro
-  client
-  cluster
-  instance
-  table
-  app-profile
-  backup
-  column-family
-  encryption-info
-  row
-  row-data
-  row-filters
-  row-set
-  batcher
-
 
 In the hierarchy of API concepts
 

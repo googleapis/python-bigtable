@@ -54,9 +54,3 @@ level. For example:
 
     # Bring our two labeled columns together.
     row_filter = RowFilterUnion(filters=[chain1, chain2])
-
-----
-
-.. automodule:: google.cloud.bigtable.data.row_filters
-  :members:
-  :show-inheritance:
