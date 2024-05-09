@@ -177,7 +177,7 @@ def test_client_constructor_w_emulator_host():
 
     emulator_host = "localhost:8081"
     with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
-        channel = grpc.insecure_channel('no-host')
+        channel = grpc.insecure_channel("no-host")
         with mock.patch("grpc.insecure_channel", return_value=channel) as factory:
             factory.return_value = channel
             client = _make_client()
@@ -202,7 +202,7 @@ def test_client_constructor_w_emulator_host_w_project():
 
     emulator_host = "localhost:8081"
     with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
-        channel = grpc.insecure_channel('no-host')
+        channel = grpc.insecure_channel("no-host")
         with mock.patch("grpc.insecure_channel", return_value=channel) as factory:
             client = _make_client(project=PROJECT)
             # channels are formed when needed, so access a client
@@ -226,7 +226,7 @@ def test_client_constructor_w_emulator_host_w_credentials():
     emulator_host = "localhost:8081"
     credentials = _make_credentials()
     with mock.patch("os.environ", {BIGTABLE_EMULATOR: emulator_host}):
-        channel = grpc.insecure_channel('no-host')
+        channel = grpc.insecure_channel("no-host")
         with mock.patch("grpc.insecure_channel", return_value=channel) as factory:
             client = _make_client(credentials=credentials)
             # channels are formed when needed, so access a client
