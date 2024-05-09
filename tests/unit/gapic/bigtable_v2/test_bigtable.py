@@ -4830,13 +4830,17 @@ def test_read_rows_rest(request_type):
     assert response.last_scanned_row_key == b"last_scanned_row_key_blob"
 
 
-def test_read_rows_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
+def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
         )
 
         # Should wrap all calls on client creation
@@ -5063,13 +5067,19 @@ def test_sample_row_keys_rest(request_type):
     assert response.offset_bytes == 1293
 
 
-def test_sample_row_keys_rest_use_cached_wrapped_rpc():
-    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
-    # instead of constructing them on each call
-    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
-        client = BigtableClient(
-            credentials=ga_credentials.AnonymousCredentials(),
-            transport="rest",
+def test_sample_row_keys_rest_required_fields(
+    request_type=bigtable.SampleRowKeysRequest,
+):
+    transport_class = transports.BigtableRestTransport
+
+    request_init = {}
+    request_init["table_name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
         )
 
         # Should wrap all calls on client creation
@@ -5328,7 +5338,10 @@ def test_mutate_row_rest_required_fields(request_type=bigtable.MutateRowRequest)
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -5653,7 +5666,10 @@ def test_mutate_rows_rest_required_fields(request_type=bigtable.MutateRowsReques
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -5966,7 +5982,10 @@ def test_check_and_mutate_row_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -6311,7 +6330,10 @@ def test_ping_and_warm_rest_required_fields(request_type=bigtable.PingAndWarmReq
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -6613,7 +6635,10 @@ def test_read_modify_write_row_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -6942,7 +6967,10 @@ def test_generate_initial_change_stream_partitions_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
@@ -7282,7 +7310,10 @@ def test_read_change_stream_rest_required_fields(
     request = request_type(**request_init)
     pb_request = request_type.pb(request)
     jsonified_request = json.loads(
-        json_format.MessageToJson(pb_request, use_integers_for_enums=False)
+        json_format.MessageToJson(
+            pb_request,
+            use_integers_for_enums=False,
+        )
     )
 
     # verify fields with default values are dropped
