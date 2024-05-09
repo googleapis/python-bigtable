@@ -4830,17 +4830,13 @@ def test_read_rows_rest(request_type):
     assert response.last_scanned_row_key == b"last_scanned_row_key_blob"
 
 
-def test_read_rows_rest_required_fields(request_type=bigtable.ReadRowsRequest):
-    transport_class = transports.BigtableRestTransport
-
-    request_init = {}
-    request_init["table_name"] = ""
-    request = request_type(**request_init)
-    pb_request = request_type.pb(request)
-    jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            use_integers_for_enums=False,
+def test_read_rows_rest_use_cached_wrapped_rpc():
+    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
+    # instead of constructing them on each call
+    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport="rest",
         )
 
         # Should wrap all calls on client creation
@@ -5067,19 +5063,13 @@ def test_sample_row_keys_rest(request_type):
     assert response.offset_bytes == 1293
 
 
-def test_sample_row_keys_rest_required_fields(
-    request_type=bigtable.SampleRowKeysRequest,
-):
-    transport_class = transports.BigtableRestTransport
-
-    request_init = {}
-    request_init["table_name"] = ""
-    request = request_type(**request_init)
-    pb_request = request_type.pb(request)
-    jsonified_request = json.loads(
-        json_format.MessageToJson(
-            pb_request,
-            use_integers_for_enums=False,
+def test_sample_row_keys_rest_use_cached_wrapped_rpc():
+    # Clients should use _prep_wrapped_messages to create cached wrapped rpcs,
+    # instead of constructing them on each call
+    with mock.patch("google.api_core.gapic_v1.method.wrap_method") as wrapper_fn:
+        client = BigtableClient(
+            credentials=ga_credentials.AnonymousCredentials(),
+            transport="rest",
         )
 
         # Should wrap all calls on client creation
