@@ -91,7 +91,7 @@ templated_files = common.py_library(
     microgenerator=True,
     cov_level=99,
     system_test_external_dependencies=[
-        "pytest-asyncio",
+        "pytest-asyncio==0.21.2",
     ],
 )
 

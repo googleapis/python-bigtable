@@ -11,8 +11,3 @@ grpc-google-iam-v1==0.12.4
 proto-plus==1.22.0
 libcst==0.2.5
 protobuf==3.19.5
-
-# pin pytest-asyncio to give control over event loop
-# https://pytest-asyncio.readthedocs.io/en/latest/reference/changelog.html#known-issues
-pytest-asyncio==0.21.2
-pytest==8.1.2
