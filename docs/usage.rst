@@ -5,6 +5,11 @@ Standard Client
   :maxdepth: 2
 
   client-intro
+
+  instance-api
+  table-api
+  data-api
+
   client
   cluster
   instance
@@ -18,10 +23,6 @@ Standard Client
   row-filters
   row-set
   batcher
-
-   instance-api
-   table-api
-   data-api
 
 
 In the hierarchy of API concepts
