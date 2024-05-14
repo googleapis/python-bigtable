@@ -3,19 +3,21 @@
     name: Overview
   - href: changelog.md
     name: Changelog
+  - name: bigtable APIs
+    items:
+    - href: summary_overview.md
+      name: Overview
+    - href: summary_class.yml
+      name: Classes
+    - href: summary_method.yml
+      name: Methods
+    - href: summary_property.yml
+      name: Properties and Attributes
 
   - name: Standard Client
     items:
     - href: client-intro.md
       name: Base for Everything
-    - name: Overview
-      items:
-      - href: summary_class.yml
-        name: Classes
-      - href: summary_method.yml
-        name: Methods
-      - href: summary_property.yml
-        name: Properties and Attributes
     - href: data-api.md
       name: Data API
     - href: table-api.md
@@ -371,5 +373,5 @@
         uid: google.cloud.bigtable.table.TooManyMutationsError
       name: table
       uid: google.cloud.bigtable.table
-    name: Bigtable API Reference
+    name: Bigtable
   name: google-cloud-bigtable
