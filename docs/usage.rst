@@ -1,5 +1,5 @@
-Using the Sync Client
-=====================
+Standard Client
+===============
 
 .. toctree::
   :maxdepth: 2
@@ -18,6 +18,10 @@ Using the Sync Client
   row-filters
   row-set
   batcher
+
+   instance-api
+   table-api
+   data-api
 
 
 In the hierarchy of API concepts

@@ -1,5 +1,5 @@
-Using the Async Data Client
-===========================
+Async Data Client
+=================
 
 .. toctree::
   :maxdepth: 2

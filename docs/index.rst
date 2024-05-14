@@ -2,23 +2,13 @@
 
 .. include:: multiprocessing.rst
 
-Using the API
+Client Types
 -------------
 .. toctree::
    :maxdepth: 2
 
    usage
    async_data_usage
-
-
-API Reference
--------------
-.. toctree::
-   :maxdepth: 2
-
-   instance-api
-   table-api
-   data-api
 
 
 Changelog
