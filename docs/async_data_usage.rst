@@ -5,6 +5,7 @@ Async Data Client
   :maxdepth: 2
 
   async_data_client
+  async_data_table
   async_data_mutations_batcher
   async_data_read_rows_query
   async_data_row

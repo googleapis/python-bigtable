@@ -59,6 +59,8 @@
     items:
       - name: BigtableDataClientAsync
         href: async_data_client.md
+      - name: TableAsync
+        href: async_data_table.md
       - name: Mutations Batcher
         href: async_data_mutations_batcher.md
       - name: ReadRowsQuery
