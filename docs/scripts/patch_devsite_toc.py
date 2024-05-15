@@ -41,6 +41,7 @@ def add_sections(toc_file_path, section_list, output_file_path=None):
     """
     current_toc = yaml.safe_load(open(toc_file_path, "r"))
     for section in section_list:
+        print(f"Adding section {section.title}...")
         current_toc[0]["items"].insert(-1, section.to_dict())
         section.copy_markdown()
     # save file
@@ -141,3 +142,33 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
         md_files = [d["href"] for d in items_in_toc]
         for file in md_files:
             assert os.path.exists(f"_build/html/docfx_yaml/{file}")
+    print("Toc validation passed")
+
+if __name__ == "__main__":
+    """
+    Add secrtions for the async_data_client and standard_client directories
+    """
+    toc_path = "_build/html/docfx_yaml/toc.yml"
+    custom_sections = [
+        TocSection(
+            dir_name="async_data_client", index_file_name="async_data_usage.rst"
+        ),
+        TocSection(
+            dir_name="standard_client", index_file_name="usage.rst"
+        ),
+    ]
+    add_sections(toc_path, custom_sections)
+    # run validation to make sure yaml is structured as we expect
+    validate_toc(
+        toc_file_path=toc_path,
+        expected_section_list=[
+            "Overview",
+            "bigtable APIs",
+            "Changelog",
+            "Multiprocessing",
+            "Async Data Client",
+            "Standard Client",
+            "Bigtable",
+        ],
+        added_sections=custom_sections,
+    )

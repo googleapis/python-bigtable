@@ -216,33 +216,8 @@ def mypy(session):
 # add customization to docfx
 docfx_postprocess = """
     # Customization: Add extra sections to the table of contents for the Standard vs Async clients
-    import sys
-
     session.install("pyyaml")
-    # import local module at docs/scripts/patch_devsite_toc.py
-    sys.path.append(os.path.join("docs", "scripts"))
-    import patch_devsite_toc
-    toc_path = os.path.join("_build", "html", "docfx_yaml", "toc.yml")
-    custom_sections = [
-        patch_devsite_toc.TocSection(
-            dir_name="async_data_client",
-            index_file_name="async_data_usage.rst"
-        ),
-        patch_devsite_toc.TocSection(
-            dir_name="standard_client",
-            index_file_name="usage.rst"
-        ),
-    ]
-    patch_devsite_toc.add_sections(toc_path, custom_sections)
-    # run validation to make sure yaml is structured as we expect
-    patch_devsite_toc.validate_toc(
-        toc_file_path=toc_path,
-        expected_section_list=[
-            "Overview", "bigtable APIs", "Changelog", "Multiprocessing",
-            "Async Data Client", "Standard Client", "Bigtable"
-        ],
-        added_sections=custom_sections
-    )
+    session.run("python", "docs/scripts/patch_devsite_toc.py")
 """
 
 place_before(
