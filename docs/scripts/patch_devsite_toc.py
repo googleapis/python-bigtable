@@ -80,7 +80,9 @@ class TocSection:
                             # load the file to get the title
                             with open(f"{dir_name}/{file_name}.rst", "r") as f2:
                                 file_title = f2.readline().replace("\n", "")
-                                self.items.append({"name": file_title, "href": f"{file_name}.md"})
+                                self.items.append(
+                                    {"name": file_title, "href": f"{file_name}.md"}
+                                )
                     else:
                         # if we are out of the indented block, we are done
                         break
@@ -96,7 +98,7 @@ class TocSection:
         """
         Copy markdown files from _build/markdown/dir_name to _build/html/docfx_yaml
 
-        This is necessary because the markdown files in dub-directories 
+        This is necessary because the markdown files in dub-directories
         are not copied over by the docfx build by default
         """
         for file in os.listdir("_build/markdown/" + self.dir_name):
@@ -116,7 +118,11 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
         assert section.title in found_sections
     # make sure each rst file in each custom section dir is listed in the toc
     for section in added_sections:
-        items_in_toc = [d["items"] for d in current_toc[0]["items"] if d["name"] == section.title and ".rst"][0]
+        items_in_toc = [
+            d["items"]
+            for d in current_toc[0]["items"]
+            if d["name"] == section.title and ".rst"
+        ][0]
         items_in_dir = [f for f in os.listdir(section.dir_name) if f.endswith(".rst")]
         # subtract 1 for index
         assert len(items_in_toc) == len(items_in_dir) - 1
@@ -126,7 +132,11 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
                 assert any(d["href"] == f"{base_name}.md" for d in items_in_toc)
     # make sure the markdown files are present in the docfx_yaml directory
     for section in added_sections:
-        items_in_toc = [d["items"] for d in current_toc[0]["items"] if d["name"] == section.title and ".rst"][0]
+        items_in_toc = [
+            d["items"]
+            for d in current_toc[0]["items"]
+            if d["name"] == section.title and ".rst"
+        ][0]
         md_files = [d["href"] for d in items_in_toc]
         for file in md_files:
             assert os.path.exists(f"_build/html/docfx_yaml/{file}")
