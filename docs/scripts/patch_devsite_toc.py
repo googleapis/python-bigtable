@@ -144,6 +144,7 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
             assert os.path.exists(f"_build/html/docfx_yaml/{file}")
     print("Toc validation passed")
 
+
 if __name__ == "__main__":
     """
     Add secrtions for the async_data_client and standard_client directories
@@ -153,9 +154,7 @@ if __name__ == "__main__":
         TocSection(
             dir_name="async_data_client", index_file_name="async_data_usage.rst"
         ),
-        TocSection(
-            dir_name="standard_client", index_file_name="usage.rst"
-        ),
+        TocSection(dir_name="standard_client", index_file_name="usage.rst"),
     ]
     add_sections(toc_path, custom_sections)
     # run validation to make sure yaml is structured as we expect
