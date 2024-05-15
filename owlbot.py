@@ -213,6 +213,36 @@ def mypy(session):
     )
 
 
+# add customization to docfx
+docfx_postprocess = """
+    # Customization: Add extra sections to the table of contents for the Standard vs Async clients
+    import sys
+    sys.path.append(os.path.abspath(os.path.join("docs", "scripts")))
+    from docs.scripts import patch_devsite_toc
+    patch_devsite_toc.add_sections(
+        os.path.join("_build", "html", "docfx_yaml", "toc.yml"),
+        [
+            patch_devsite_toc.TocSection(
+                dir_name="async_data_client",
+                index_file_name="async_data_usage.rst"
+            ),
+            patch_devsite_toc.TocSection(
+                dir_name="standard_client",
+                index_file_name="usage.rst"
+            ),
+        ],
+    )
+"""
+
+place_before(
+    "noxfile.py",
+    "@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)\n"
+    "def prerelease_deps(session):",
+    docfx_postprocess,
+    escape="()"
+)
+
+
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
 ''',
