@@ -428,6 +428,7 @@ def docfx(session):
     # Customization: Add extra sections to the table of contents for the Standard vs Async clients
     import sys
 
+    session.install("pyyaml")
     # import local module at docs/scripts/patch_devsite_toc.py
     sys.path.append(os.path.join("docs", "scripts"))
     import patch_devsite_toc

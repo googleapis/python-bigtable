@@ -217,8 +217,11 @@ def mypy(session):
 docfx_postprocess = """
     # Customization: Add extra sections to the table of contents for the Standard vs Async clients
     import sys
-    sys.path.append(os.path.abspath(os.path.join("docs", "scripts")))
-    from docs.scripts import patch_devsite_toc
+
+    session.install("pyyaml")
+    # import local module at docs/scripts/patch_devsite_toc.py
+    sys.path.append(os.path.join("docs", "scripts"))
+    import patch_devsite_toc
     toc_path = os.path.join("_build", "html", "docfx_yaml", "toc.yml")
     custom_sections = [
         patch_devsite_toc.TocSection(

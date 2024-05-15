@@ -61,6 +61,7 @@ class TocSection:
         self.dir_name = dir_name
         self.index_file_name = index_file_name
         index_file_path = os.path.join(dir_name, index_file_name)
+        # find set of files referenced by the index file
         with open(index_file_path, "r") as f:
             self.title = f.readline().replace("\n", "")
             in_toc = False
