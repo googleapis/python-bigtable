@@ -23,6 +23,7 @@ class TocSection:
             list of the other files which should be included
         """
         self.dir_name = dir_name
+        self.index_file_name = index_file_name
         index_file_path = os.path.join(dir_name, index_file_name)
         with open(index_file_path, "r") as f:
             self.title = f.readline().replace("\n", "")
@@ -88,3 +89,29 @@ def add_sections(toc_file_path, section_list, output_file_path=None):
         output_file_path = toc_file_path
     with open(output_file_path, "w") as f:
         yaml.dump(current_toc, f)
+
+
+def validate_toc(toc_file_path, expected_section_list, added_sections):
+    current_toc = yaml.safe_load(open(toc_file_path, "r"))
+    # make sure the set of sections matches what we expect
+    found_sections = [d["name"] for d in current_toc[0]["items"]]
+    assert found_sections == expected_section_list
+    # make sure each customs ection is in the toc
+    for section in added_sections:
+        assert section.title in found_sections
+    # make sure each rst file in each custom section dir is listed in the toc
+    for section in added_sections:
+        items_in_toc = [d["items"] for d in current_toc[0]["items"] if d["name"] == section.title and ".rst"][0]
+        items_in_dir = [f for f in os.listdir(section.dir_name) if f.endswith(".rst")]
+        # subtract 1 for index
+        assert len(items_in_toc) == len(items_in_dir) - 1
+        for file in items_in_dir:
+            if file != section.index_file_name:
+                base_name, _ = os.path.splitext(file)
+                assert any(d["href"] == f"{base_name}.md" for d in items_in_toc)
+    # make sure the markdown files are present in the docfx_yaml directory
+    for section in added_sections:
+        items_in_toc = [d["items"] for d in current_toc[0]["items"] if d["name"] == section.title and ".rst"][0]
+        md_files = [d["href"] for d in items_in_toc]
+        for file in md_files:
+            assert os.path.exists(f"_build/html/docfx_yaml/{file}")
