@@ -411,7 +411,7 @@ class BigtableDataClientAsync(ClientWithProject):
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Returns:
             TableAsync: a table instance for making data API requests
-        Raises
+        Raises:
             RuntimeError: if called outside of an async context (no running event loop)
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
