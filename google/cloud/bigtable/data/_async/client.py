@@ -583,10 +583,10 @@ class TableAsync:
         Returns:
             an asynchronous iterator that yields rows returned by the query
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
@@ -636,10 +636,10 @@ class TableAsync:
         Returns:
             a list of Rows returned by the query
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         row_generator = await self.read_rows_stream(
             query,
@@ -680,10 +680,10 @@ class TableAsync:
         Returns:
             a Row object if the row exists, otherwise None
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
@@ -815,10 +815,10 @@ class TableAsync:
         Returns:
             a bool indicating whether the row exists
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         if row_key is None:
             raise ValueError("row_key must be string or bytes")
@@ -868,10 +868,10 @@ class TableAsync:
         Returns:
             a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
                 from any retries that failed
-            GoogleAPIError: raised if the request encounters an unrecoverable error
+            google.api_core.exceptions.GoogleAPIError: raised if the request encounters an unrecoverable error
         """
         # prepare timeouts
         operation_timeout, attempt_timeout = _get_timeouts(
@@ -990,10 +990,10 @@ class TableAsync:
                 Only idempotent mutations will be retried. Defaults to the Table's
                 default_retryable_errors.
         Raises:
-            DeadlineExceeded: raised after operation timeout
+            google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing all
                 GoogleAPIError exceptions from any retries that failed
-            GoogleAPIError: raised on non-idempotent operations that cannot be
+            google.api_core.exceptions.GoogleAPIError: raised on non-idempotent operations that cannot be
                 safely retried.
             ValueError: if invalid arguments are provided
         """
@@ -1128,7 +1128,7 @@ class TableAsync:
         Returns:
             bool indicating whether the predicate was true or false
         Raises:
-            GoogleAPIError: exceptions from grpc call
+            google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and not isinstance(
@@ -1182,7 +1182,7 @@ class TableAsync:
         Returns:
             Row: containing cell data that was modified as part of the operation
         Raises:
-            GoogleAPIError: exceptions from grpc call
+            google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
             ValueError: if invalid arguments are provided
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
