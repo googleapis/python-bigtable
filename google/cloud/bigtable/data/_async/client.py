@@ -116,8 +116,8 @@ class BigtableDataClientAsync(ClientWithProject):
                 Client options used to set user options
                 on the client. API Endpoint should be set through client_options.
         Raises:
-          RuntimeError if called outside of an async context (no running event loop)
-          ValueError if pool_size is less than 1
+          RuntimeError: if called outside of an async context (no running event loop)
+          ValueError: if pool_size is less than 1
         """
         # set up transport in registry
         transport_str = f"pooled_grpc_asyncio_{pool_size}"
@@ -199,8 +199,9 @@ class BigtableDataClientAsync(ClientWithProject):
     def _start_background_channel_refresh(self) -> None:
         """
         Starts a background task to ping and warm each channel in the pool
+
         Raises:
-          RuntimeError if not called in an asyncio event loop
+          RuntimeError: if not called in an asyncio event loop
         """
         if not self._channel_refresh_tasks and not self._emulator_host:
             # raise RuntimeError if there is no event loop
@@ -408,6 +409,10 @@ class BigtableDataClientAsync(ClientWithProject):
             default_retryable_errors: a list of errors that will be retried if
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
+        Returns:
+            TableAsync: a table instance for making data API requests
+        Raises
+            RuntimeError: if called outside of an async context (no running event loop)
         """
         return TableAsync(self, instance_id, table_id, *args, **kwargs)
 
@@ -490,7 +495,7 @@ class TableAsync:
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         Raises:
-            RuntimeError if called outside of an async context (no running event loop)
+            RuntimeError: if called outside of an async context (no running event loop)
         """
         # NOTE: any changes to the signature of this method should also be reflected
         # in client.get_table()
@@ -990,7 +995,7 @@ class TableAsync:
                 GoogleAPIError exceptions from any retries that failed
             GoogleAPIError: raised on non-idempotent operations that cannot be
                 safely retried.
-            ValueError if invalid arguments are provided
+            ValueError: if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
@@ -1065,9 +1070,9 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_mutate_rows_retryable_errors
         Raises:
-            MutationsExceptionGroup if one or more mutations fails
+            MutationsExceptionGroup: if one or more mutations fails
                 Contains details about any failed entries in .exceptions
-            ValueError if invalid arguments are provided
+            ValueError: if invalid arguments are provided
         """
         operation_timeout, attempt_timeout = _get_timeouts(
             operation_timeout, attempt_timeout, self
@@ -1123,7 +1128,7 @@ class TableAsync:
         Returns:
             bool indicating whether the predicate was true or false
         Raises:
-            GoogleAPIError exceptions from grpc call
+            GoogleAPIError: exceptions from grpc call
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and not isinstance(
@@ -1175,11 +1180,10 @@ class TableAsync:
                 Failed requests will not be retried.
                 Defaults to the Table's default_operation_timeout.
         Returns:
-            Row: containing cell data that was modified as part of the
-                operation
+            Row: containing cell data that was modified as part of the operation
         Raises:
-            GoogleAPIError exceptions from grpc call
-            ValueError if invalid arguments are provided
+            GoogleAPIError: exceptions from grpc call
+            ValueError: if invalid arguments are provided
         """
         operation_timeout, _ = _get_timeouts(operation_timeout, None, self)
         if operation_timeout <= 0:
