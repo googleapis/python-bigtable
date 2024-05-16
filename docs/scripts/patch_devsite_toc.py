@@ -122,7 +122,7 @@ class TocSection:
         """
         Copy markdown files from _build/markdown/dir_name to _build/html/docfx_yaml
 
-        This is necessary because the markdown files in dub-directories
+        This is necessary because the markdown files in sub-directories
         are not copied over by the docfx build by default
         """
         for file in os.listdir("_build/markdown/" + self.dir_name):
