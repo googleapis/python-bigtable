@@ -86,31 +86,38 @@ class TocSection:
         index_file_path = os.path.join(dir_name, index_file_name)
         # find set of files referenced by the index file
         with open(index_file_path, "r") as f:
-            self.title = f.readline().replace("\n", "")
+            self.title = f.readline().strip()
             in_toc = False
             self.items = []
             for line in f:
+                # ignore empty lines
+                if not line.strip():
+                    continue
                 if line.startswith(".. toctree::"):
                     in_toc = True
-                elif in_toc:
-                    if not line.strip():
-                        # ignore empty lines
-                        continue
-                    elif line.startswith(" ") or line.startswith("\t"):
-                        # keep track of the items in the table of contents
-                        # ignore : directives
-                        if ":" not in line:
-                            file_name = line.strip()
-                            # load the file to get the title
-                            with open(f"{dir_name}/{file_name}.rst", "r") as f2:
-                                file_title = f2.readline().replace("\n", "")
-                                self.items.append(
-                                    {"name": file_title, "href": f"{file_name}.md"}
-                                )
-                    else:
-                        # if we are out of the indented block, we are done
-                        break
-                        in_toc = False
+                    continue
+                # ignore directives
+                if ":" in line:
+                    continue
+                if not in_toc:
+                    continue
+                # bail when toc indented block is done
+                if not line.startswith(" ") and not line.startswith("\t"):
+                    break
+                # extract entries
+                self.items.append(self.extract_toc_entry(line.strip()))
+
+
+    def extract_toc_entry(self, file_name):
+        """
+        Given the name of a file, extract the title and href for the toc entry,
+        and return as a dictionary
+        """
+        # load the file to get the title
+        with open(f"{self.dir_name}/{file_name}.rst", "r") as f2:
+            file_title = f2.readline().strip()
+            return {"name": file_title, "href": f"{file_name}.md"}
+
 
     def to_dict(self):
         """
