@@ -986,7 +986,7 @@ class TableAsync:
                 a DeadlineExceeded exception, and a retry will be attempted.
                 Defaults to the Table's default_attempt_timeout.
                 If None, defaults to operation_timeout.
-          retryable_errors: a list of errors that will be retried if encountered.
+            retryable_errors: a list of errors that will be retried if encountered.
                 Only idempotent mutations will be retried. Defaults to the Table's
                 default_retryable_errors.
         Raises:
