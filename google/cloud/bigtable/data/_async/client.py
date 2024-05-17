@@ -238,7 +238,7 @@ class BigtableDataClientAsync(ClientWithProject):
             channel: grpc channel to warm
             instance_key: if provided, only warm the instance associated with the key
         Returns:
-            sequence of results or exceptions from the ping requests
+            list[BaseException | None]: sequence of results or exceptions from the ping requests
         """
         instance_list = (
             [instance_key] if instance_key is not None else self._active_instances
@@ -360,7 +360,7 @@ class BigtableDataClientAsync(ClientWithProject):
               _instance_owners, and instances will only be unregistered when all
               owners call _remove_instance_registration
         Returns:
-            True if instance was removed
+            bool: True if instance was removed, else False
         """
         instance_name = self._gapic_client.instance_path(self.project, instance_id)
         instance_key = _WarmedInstanceKey(
@@ -581,7 +581,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors
         Returns:
-            an asynchronous iterator that yields rows returned by the query
+            AsyncIterable[Row]: an asynchronous iterator that yields rows returned by the query
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -634,7 +634,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            a list of Rows returned by the query
+            list[Row]: a list of Rows returned by the query
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -678,7 +678,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            a Row object if the row exists, otherwise None
+            Row | None: a Row object if the row exists, otherwise None
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -732,6 +732,8 @@ class TableAsync:
                 If None, defaults to operation_timeout.
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
+        Returns:
+            list[Row]: a list of Rows returned by the query
         Raises:
             ShardedReadRowsExceptionGroup: if any of the queries failed
             ValueError: if the query_list is empty
@@ -813,7 +815,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_read_rows_retryable_errors.
         Returns:
-            a bool indicating whether the row exists
+            bool: a bool indicating whether the row exists
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -852,7 +854,7 @@ class TableAsync:
         requests will call sample_row_keys internally for this purpose when sharding is enabled
 
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
-            row_keys, along with offset positions in the table
+        row_keys, along with offset positions in the table
 
         Args:
             operation_timeout: the time budget for the entire operation, in seconds.
@@ -866,7 +868,7 @@ class TableAsync:
             retryable_errors: a list of errors that will be retried if encountered.
                 Defaults to the Table's default_retryable_errors.
         Returns:
-            a set of RowKeySamples the delimit contiguous sections of the table
+            RowKeySamples: a set of RowKeySamples the delimit contiguous sections of the table
         Raises:
             google.api_core.exceptions.DeadlineExceeded: raised after operation timeout
                 will be chained with a RetryExceptionGroup containing GoogleAPIError exceptions
@@ -942,7 +944,7 @@ class TableAsync:
           batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
-            a MutationsBatcherAsync context manager that can batch requests
+            MutationsBatcherAsync: a MutationsBatcherAsync context manager that can batch requests
         """
         return MutationsBatcherAsync(
             self,
@@ -1180,7 +1182,7 @@ class TableAsync:
                 Failed requests will not be retried.
                 Defaults to the Table's default_operation_timeout.
         Returns:
-            Row: containing cell data that was modified as part of the operation
+            Row: a Row containing cell data that was modified as part of the operation
         Raises:
             google.api_core.exceptions.GoogleAPIError: exceptions from grpc call
             ValueError: if invalid arguments are provided
