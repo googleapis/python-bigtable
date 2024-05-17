@@ -47,19 +47,26 @@ async def write_batch(table):
         async with BigtableDataClientAsync(project=project_id) as client:
             async with client.get_table(instance_id, table_id) as table:
                 family_id = "stats_summary"
-
-                async with table.mutations_batcher() as batcher:
-                    mutation_list = [
-                        SetCell(family_id, "connected_cell", 1),
-                        SetCell(family_id, "connected_wifi", 1),
-                        SetCell(family_id, "os_build", "12155.0.0-rc1"),
-                    ]
-                    batcher.append(
-                        RowMutationEntry("tablet#a0b81f74#20190501", mutation_list)
-                    )
-                    batcher.append(
-                        RowMutationEntry("tablet#a0b81f74#20190502", mutation_list)
-                    )
+                try:
+                    async with table.mutations_batcher() as batcher:
+                        mutation_list = [
+                            SetCell(family_id, "connected_cell", 1),
+                            SetCell(family_id, "connected_wifi", 1),
+                            SetCell(family_id, "os_build", "12155.0.0-rc1"),
+                        ]
+                        await batcher.append(
+                            RowMutationEntry("tablet#a0b81f74#20190501", mutation_list)
+                        )
+                        await batcher.append(
+                            RowMutationEntry("tablet#a0b81f74#20190502", mutation_list)
+                        )
+                except MutationsExceptionGroup as e:
+                    # MutationsExceptionGroup contains a FailedMutationEntryError for
+                    # each mutation that failed.
+                    for sub_exception in e.exceptions:
+                        failed_entry: RowMutationEntry = sub_exception.entry
+                        cause: Exception = sub_exception.__cause__
+                        print(f"Failed mutation: {failed_entry.row_key} with error: {cause!r}")
     # [END bigtable_async_writes_batch]
     await write_batch(table.client.project, table.instance_id, table.table_id)
 
