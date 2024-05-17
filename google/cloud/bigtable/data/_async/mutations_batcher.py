@@ -196,6 +196,7 @@ class MutationsBatcherAsync:
         batch_retryable_errors: a list of errors that will be retried if encountered.
             Defaults to the Table's default_mutate_rows_retryable_errors.
     """
+
     def __init__(
         self,
         table: "TableAsync",

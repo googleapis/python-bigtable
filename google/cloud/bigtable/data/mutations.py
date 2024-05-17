@@ -153,6 +153,7 @@ class SetCell(Mutation):
         TypeError: If `new_value` is not `bytes`, `str`, or `int`.
         ValueError: If `timestamp_micros` is less than `_SERVER_SIDE_TIMESTAMP`.
     """
+
     def __init__(
         self,
         family: str,
@@ -216,6 +217,7 @@ class DeleteRangeFromColumn(Mutation):
     Raises:
         ValueError: If `start_timestamp_micros` is greater than `end_timestamp_micros`.
     """
+
     family: str
     qualifier: bytes
     # None represents 0
@@ -254,6 +256,7 @@ class DeleteAllFromFamily(Mutation):
     Args:
         family_to_delete (str): The name of the column family to delete.
     """
+
     family_to_delete: str
 
     def _to_dict(self) -> dict[str, Any]:
@@ -269,6 +272,7 @@ class DeleteAllFromRow(Mutation):
     """
     Mutation to delete all cells from a row.
     """
+
     def _to_dict(self) -> dict[str, Any]:
         return {
             "delete_from_row": {},
@@ -288,7 +292,7 @@ class RowMutationEntry:
             to the row.
 
     Raises:
-        ValueError: If `mutations` is empty or contains more than 
+        ValueError: If `mutations` is empty or contains more than
             `_MUTATE_ROWS_REQUEST_MUTATION_LIMIT` mutations.
     """
 

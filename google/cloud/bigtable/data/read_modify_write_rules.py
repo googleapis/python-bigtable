@@ -26,6 +26,7 @@ class ReadModifyWriteRule(abc.ABC):
     """
     Abstract base class for read-modify-write rules.
     """
+
     def __init__(self, family: str, qualifier: bytes | str):
         qualifier = (
             qualifier if isinstance(qualifier, bytes) else qualifier.encode("utf-8")
@@ -58,6 +59,7 @@ class IncrementRule(ReadModifyWriteRule):
         ValueError:
             If increment_amount is not between -2**63 and 2**63 (64-bit signed int).
     """
+
     def __init__(self, family: str, qualifier: bytes | str, increment_amount: int = 1):
         if not isinstance(increment_amount, int):
             raise TypeError("increment_amount must be an integer")
@@ -90,6 +92,7 @@ class AppendValueRule(ReadModifyWriteRule):
     Raises:
         TypeError: If append_value is not bytes or str.
     """
+
     def __init__(self, family: str, qualifier: bytes | str, append_value: bytes | str):
         append_value = (
             append_value.encode("utf-8")

@@ -467,10 +467,10 @@ class Cell:
         Returns:
             bool: True if this cell is less than the other cell, False otherwise
         Raises:
-            NotImplemented: If other is not a Cell
+            NotImplementedError: If other is not a Cell
         """
         if not isinstance(other, Cell):
-            raise NotImplemented
+            raise NotImplementedError
         this_ordering = (
             self.family,
             self.qualifier,
@@ -496,10 +496,10 @@ class Cell:
         Returns:
             bool: True if cells are equal, False otherwise
         Raises:
-            NotImplemented: If other is not a Cell
+            NotImplementedError: If other is not a Cell
         """
         if not isinstance(other, Cell):
-            raise NotImplemented
+            raise NotImplementedError
         return (
             self.row_key == other.row_key
             and self.family == other.family
@@ -519,7 +519,7 @@ class Cell:
         Returns:
             bool: True if cells are not equal, False otherwise
         Raises:
-            NotImplemented: If other is not a Cell
+            NotImplementedError: If other is not a Cell
         """
         return not self == other
 
