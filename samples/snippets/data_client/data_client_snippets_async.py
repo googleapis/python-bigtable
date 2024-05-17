@@ -42,6 +42,7 @@ async def write_batch(table):
     from google.cloud.bigtable.data import BigtableDataClientAsync
     from google.cloud.bigtable.data.mutations import SetCell
     from google.cloud.bigtable.data.mutations import RowMutationEntry
+    from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 
     async def write_batch(project_id, instance_id, table_id):
         async with BigtableDataClientAsync(project=project_id) as client:
