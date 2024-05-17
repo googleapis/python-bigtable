@@ -313,7 +313,7 @@ class BigtableDataClientAsync(ClientWithProject):
             )
             # subtract the time spent waiting for the channel to be replaced
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
-            next_sleep = next_refresh(time.time() - start_timestamp)
+            next_sleep = next_refresh - (time.time() - start_timestamp)
 
     async def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
         """
