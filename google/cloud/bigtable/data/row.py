@@ -495,11 +495,9 @@ class Cell:
             other: Cell to compare with
         Returns:
             bool: True if cells are equal, False otherwise
-        Raises:
-            NotImplementedError: If other is not a Cell
         """
         if not isinstance(other, Cell):
-            raise NotImplementedError
+            return False
         return (
             self.row_key == other.row_key
             and self.family == other.family
@@ -518,8 +516,6 @@ class Cell:
             other: Cell to compare with
         Returns:
             bool: True if cells are not equal, False otherwise
-        Raises:
-            NotImplementedError: If other is not a Cell
         """
         return not self == other
 
