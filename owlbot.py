@@ -215,7 +215,7 @@ def mypy(session):
 
 # add customization to docfx
 docfx_postprocess = """
-    # Customization: Add extra sections to the table of contents for the Standard vs Async clients
+    # Customization: Add extra sections to the table of contents for the Classic vs Async clients
     session.install("pyyaml")
     session.run("python", "docs/scripts/patch_devsite_toc.py")
 """

@@ -7,7 +7,7 @@ Client Types
 .. toctree::
    :maxdepth: 2
 
-   standard_client/usage
+   classic_client/usage
    async_data_client/async_data_usage
 
 
