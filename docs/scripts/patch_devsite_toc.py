@@ -175,13 +175,13 @@ def validate_toc(toc_file_path, expected_section_list, added_sections):
 
 
 if __name__ == "__main__":
-    # Add secrtions for the async_data_client and standard_client directories
+    # Add secrtions for the async_data_client and classic_client directories
     toc_path = "_build/html/docfx_yaml/toc.yml"
     custom_sections = [
         TocSection(
             dir_name="async_data_client", index_file_name="async_data_usage.rst"
         ),
-        TocSection(dir_name="standard_client", index_file_name="usage.rst"),
+        TocSection(dir_name="classic_client", index_file_name="usage.rst"),
     ]
     add_sections(toc_path, custom_sections)
     # Remove the Bigtable section, since it has duplicated data
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             "Changelog",
             "Multiprocessing",
             "Async Data Client",
-            "Standard Client",
+            "Classic Client",
         ],
         added_sections=custom_sections,
     )

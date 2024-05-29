@@ -1,5 +1,5 @@
-Standard Client
-===============
+Classic Client
+==============
 
 .. toctree::
   :maxdepth: 2
