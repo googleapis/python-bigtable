@@ -55,6 +55,8 @@ async def write_batch(table):
                             SetCell(family_id, "connected_wifi", 1),
                             SetCell(family_id, "os_build", "12155.0.0-rc1"),
                         ]
+                        # awaiting the batcher.append method adds the RowMutationEntry
+                        # to the batcher's queue to be written in the next flush.
                         await batcher.append(
                             RowMutationEntry("tablet#a0b81f74#20190501", mutation_list)
                         )
