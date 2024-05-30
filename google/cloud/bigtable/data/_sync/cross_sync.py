@@ -98,6 +98,26 @@ class CrossSync:
         return concurrent.futures.wait(futures, timeout=timeout)
 
     @staticmethod
+    async def condition_wait(condition, timeout=None):
+        """
+        abstraction over asyncio.Condition.wait
+
+        returns False if the timeout is reached before the condition is set, otherwise True
+        """
+        try:
+            await asyncio.wait_for(condition.wait(), timeout=timeout)
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    @staticmethod
+    def condition_wait_sync(condition, timeout=None):
+        """
+        returns False if the timeout is reached before the condition is set, otherwise True
+        """
+        return condition.wait(timeout=timeout)
+
+    @staticmethod
     def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
         """
         abstraction over asyncio.create_task. Sync version implemented with threadpool executor
@@ -119,3 +139,14 @@ class CrossSync:
         if not sync_executor:
             raise ValueError("sync_executor is required for sync version")
         return sync_executor.submit(fn, *fn_args, **fn_kwargs)
+
+    @staticmethod
+    async def yield_to_event_loop():
+        """
+        Call asyncio.sleep(0) to yield to allow other tasks to run
+        """
+        await asyncio.sleep(0)
+
+    @staticmethod
+    def yield_to_event_loop_sync():
+        pass

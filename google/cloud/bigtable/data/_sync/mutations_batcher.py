@@ -18,7 +18,6 @@
 from __future__ import annotations
 from abc import ABC
 from collections import deque
-from typing import Any
 from typing import Sequence
 import asyncio
 import atexit
@@ -90,16 +89,16 @@ class MutationsBatcher(ABC):
           - batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         """
-        (self._operation_timeout, self._attempt_timeout) = _get_timeouts(
+        self._operation_timeout, self._attempt_timeout = _get_timeouts(
             batch_operation_timeout, batch_attempt_timeout, table
         )
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
             batch_retryable_errors, table
         )
-        self._closed: asyncio.Event = asyncio.Event()
+        self._closed = threading.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
-        (self._staged_count, self._staged_bytes) = (0, 0)
+        self._staged_count, self._staged_bytes = (0, 0)
         self._flow_control = _FlowControlAsync(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
@@ -109,8 +108,10 @@ class MutationsBatcher(ABC):
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._flush_timer = self._create_bg_task(self._timer_routine, flush_interval)
-        self._flush_jobs: set[asyncio.Future[None]] = set()
+        self._flush_timer = CrossSync.create_task_sync(
+            self._timer_routine, flush_interval, sync_executor=self._sync_executor
+        )
+        self._flush_jobs: set[concurrent.futures.Future[None]] = set()
         self._entries_processed_since_last_raise: int = 0
         self._exceptions_since_last_raise: int = 0
         self._exception_list_limit: int = 10
@@ -119,6 +120,10 @@ class MutationsBatcher(ABC):
             maxlen=self._exception_list_limit
         )
         atexit.register(self._on_exit)
+        if not False:
+            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        else:
+            self._sync_executor = None
 
     def _timer_routine(self, interval: float | None) -> None:
         """
@@ -128,10 +133,7 @@ class MutationsBatcher(ABC):
         if not interval or interval <= 0:
             return None
         while not self._closed.is_set():
-            try:
-                asyncio.wait_for(self._closed.wait(), timeout=interval)
-            except asyncio.TimeoutError:
-                pass
+            CrossSync.condition_wait_sync(self._closed, timeout=interval)
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 
@@ -161,14 +163,16 @@ class MutationsBatcher(ABC):
             or self._staged_bytes >= self._flush_limit_bytes
         ):
             self._schedule_flush()
-            asyncio.sleep(0)
+            CrossSync.yield_to_event_loop_sync()
 
-    def _schedule_flush(self) -> asyncio.Future[None] | None:
+    def _schedule_flush(self) -> concurrent.futures.Future[None] | None:
         """Update the flush task to include the latest staged entries"""
         if self._staged_entries:
-            (entries, self._staged_entries) = (self._staged_entries, [])
-            (self._staged_count, self._staged_bytes) = (0, 0)
-            new_task = self._create_bg_task(self._flush_internal, entries)
+            entries, self._staged_entries = (self._staged_entries, [])
+            self._staged_count, self._staged_bytes = (0, 0)
+            new_task = CrossSync.create_task_sync(
+                self._flush_internal, entries, sync_executor=self._sync_executor
+            )
             if not new_task.done():
                 self._flush_jobs.add(new_task)
                 new_task.add_done_callback(self._flush_jobs.remove)
@@ -182,9 +186,13 @@ class MutationsBatcher(ABC):
         Args:
           - new_entries: list of RowMutationEntry objects to flush
         """
-        in_process_requests: list[asyncio.Future[list[FailedMutationEntryError]]] = []
+        in_process_requests: list[
+            concurrent.futures.Future[list[FailedMutationEntryError]]
+        ] = []
         for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = self._create_bg_task(self._execute_mutate_rows, batch)
+            batch_task = CrossSync.create_task_sync(
+                self._execute_mutate_rows, batch, sync_executor=self._sync_executor
+            )
             in_process_requests.append(batch_task)
         found_exceptions = self._wait_for_batch_results(*in_process_requests)
         self._entries_processed_since_last_raise += len(new_entries)
@@ -244,14 +252,14 @@ class MutationsBatcher(ABC):
           - MutationsExceptionGroup with all unreported exceptions
         """
         if self._oldest_exceptions or self._newest_exceptions:
-            (oldest, self._oldest_exceptions) = (self._oldest_exceptions, [])
+            oldest, self._oldest_exceptions = (self._oldest_exceptions, [])
             newest = list(self._newest_exceptions)
             self._newest_exceptions.clear()
-            (entry_count, self._entries_processed_since_last_raise) = (
+            entry_count, self._entries_processed_since_last_raise = (
                 self._entries_processed_since_last_raise,
                 0,
             )
-            (exc_count, self._exceptions_since_last_raise) = (
+            exc_count, self._exceptions_since_last_raise = (
                 self._exceptions_since_last_raise,
                 0,
             )
@@ -283,12 +291,16 @@ class MutationsBatcher(ABC):
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        if self._flush_jobs:
-            asyncio.gather(*self._flush_jobs, return_exceptions=True)
-        try:
-            self._flush_timer
-        except asyncio.CancelledError:
-            pass
+        if False:
+            if self._flush_jobs:
+                asyncio.gather(*self._flush_jobs, return_exceptions=True)
+            try:
+                self._flush_timer
+            except asyncio.CancelledError:
+                pass
+        else:
+            with self._sync_executor:
+                self._sync_executor.shutdown(wait=True)
         atexit.unregister(self._on_exit)
         self._raise_exceptions()
 
@@ -300,25 +312,9 @@ class MutationsBatcher(ABC):
             )
 
     @staticmethod
-    def _create_bg_task(func, *args, **kwargs) -> asyncio.Future[Any]:
-        """
-        Create a new background task, and return a future
-
-        This method wraps asyncio to make it easier to maintain subclasses
-        with different concurrency models.
-
-        Args:
-          - func: function to execute in background task
-          - *args: positional arguments to pass to func
-          - **kwargs: keyword arguments to pass to func
-        Returns:
-          - Future object representing the background task
-        """
-        return asyncio.create_task(func(*args, **kwargs))
-
-    @staticmethod
     def _wait_for_batch_results(
-        *tasks: asyncio.Future[list[FailedMutationEntryError]] | asyncio.Future[None],
+        *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
+        | concurrent.futures.Future[None],
     ) -> list[Exception]:
         """
         Takes in a list of futures representing _execute_mutate_rows tasks,
@@ -334,15 +330,16 @@ class MutationsBatcher(ABC):
         """
         if not tasks:
             return []
-        all_results = asyncio.gather(*tasks, return_exceptions=True)
-        found_errors = []
-        for result in all_results:
-            if isinstance(result, Exception):
-                found_errors.append(result)
-            elif isinstance(result, BaseException):
-                raise result
-            elif result:
-                for e in result:
-                    e.index = None
-                found_errors.extend(result)
-        return found_errors
+        exceptions: list[Exception] = []
+        for task in tasks:
+            if False:
+                task
+            try:
+                exc_list = task.result()
+                if exc_list:
+                    for exc in exc_list:
+                        exc.index = None
+                    exceptions.extend(exc_list)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions

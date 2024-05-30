@@ -57,9 +57,11 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             "Task": "concurrent.futures.Future",
             "Event": "threading.Event",
             "is_async": "False",
-            "gather_partials": "gather_partials_sync",
-            "wait": "wait_sync",
-            "create_task": "create_task_sync",
+            "gather_partials": "CrossSync.gather_partials_sync",
+            "wait": "CrossSync.wait_sync",
+            "condition_wait": "CrossSync.condition_wait_sync",
+            "create_task": "CrossSync.create_task_sync",
+            "yield_to_event_loop": "CrossSync.yield_to_event_loop_sync",
         }
         self.text_replacements = text_replacements or {}
         self.drop_methods = drop_methods or []

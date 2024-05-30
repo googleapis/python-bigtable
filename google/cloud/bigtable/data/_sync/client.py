@@ -191,7 +191,7 @@ class BigtableDataClient(ClientWithProject, ABC):
             and (not self._is_closed.is_set())
         ):
             for channel_idx in range(self.transport.pool_size):
-                refresh_task = create_task_sync(
+                refresh_task = CrossSync.create_task_sync(
                     self._manage_channel,
                     channel_idx,
                     sync_executor=self._executor,
@@ -210,7 +210,7 @@ class BigtableDataClient(ClientWithProject, ABC):
         self.transport.close()
         if self._executor:
             self._executor.shutdown(wait=False)
-        wait_sync(self._channel_refresh_tasks, timeout=timeout)
+        CrossSync.wait_sync(self._channel_refresh_tasks, timeout=timeout)
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
@@ -245,9 +245,9 @@ class BigtableDataClient(ClientWithProject, ABC):
                 ],
                 wait_for_ready=True,
             )
-            for (instance_name, table_name, app_profile_id) in instance_list
+            for instance_name, table_name, app_profile_id in instance_list
         ]
-        result_list = gather_partials_sync(
+        result_list = CrossSync.gather_partials_sync(
             partial_list, return_exceptions=True, sync_executor=self._executor
         )
         return [r or None for r in result_list]
@@ -517,7 +517,7 @@ class Table(ABC):
         )
         self.default_retryable_errors = default_retryable_errors or ()
         try:
-            self._register_instance_future = create_task_sync(
+            self._register_instance_future = CrossSync.create_task_sync(
                 self.client._register_instance,
                 self.instance_id,
                 self,
@@ -567,7 +567,7 @@ class Table(ABC):
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
+        operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
@@ -725,7 +725,7 @@ class Table(ABC):
         """
         if not sharded_query:
             raise ValueError("empty sharded_query")
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
+        operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         timeout_generator = _helpers._attempt_timeout_generator(
@@ -750,7 +750,7 @@ class Table(ABC):
                 )
                 for query in batch
             ]
-            batch_result = gather_partials_sync(
+            batch_result = CrossSync.gather_partials_sync(
                 batch_partial_list,
                 return_exceptions=True,
                 sync_executor=self.client._executor,
@@ -767,7 +767,7 @@ class Table(ABC):
             raise ShardedReadRowsExceptionGroup(
                 [
                     FailedQueryShardError(idx, sharded_query[idx], e)
-                    for (idx, e) in error_dict.items()
+                    for idx, e in error_dict.items()
                 ],
                 results_list,
                 len(sharded_query),
@@ -865,7 +865,7 @@ class Table(ABC):
                 from any retries that failed
             - GoogleAPIError: raised if the request encounters an unrecoverable error
         """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
+        operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         attempt_timeout_gen = _helpers._attempt_timeout_generator(
@@ -990,7 +990,7 @@ class Table(ABC):
                safely retried.
           - ValueError if invalid arguments are provided
         """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
+        operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         if not mutations:
@@ -1064,7 +1064,7 @@ class Table(ABC):
                 Contains details about any failed entries in .exceptions
             - ValueError if invalid arguments are provided
         """
-        (operation_timeout, attempt_timeout) = _helpers._get_timeouts(
+        operation_timeout, attempt_timeout = _helpers._get_timeouts(
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
@@ -1122,7 +1122,7 @@ class Table(ABC):
         Raises:
             - GoogleAPIError exceptions from grpc call
         """
-        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
+        operation_timeout, _ = _helpers._get_timeouts(operation_timeout, None, self)
         if true_case_mutations is not None and (
             not isinstance(true_case_mutations, list)
         ):
@@ -1181,7 +1181,7 @@ class Table(ABC):
             - GoogleAPIError exceptions from grpc call
             - ValueError if invalid arguments are provided
         """
-        (operation_timeout, _) = _helpers._get_timeouts(operation_timeout, None, self)
+        operation_timeout, _ = _helpers._get_timeouts(operation_timeout, None, self)
         if operation_timeout <= 0:
             raise ValueError("operation_timeout must be greater than 0")
         if rules is not None and (not isinstance(rules, list)):
