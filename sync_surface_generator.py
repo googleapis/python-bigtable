@@ -56,6 +56,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             "Future": "concurrent.futures.Future",
             "Task": "concurrent.futures.Future",
             "Event": "threading.Event",
+            "retry_target": "retries.retry_target",
             "is_async": "False",
             "gather_partials": "CrossSync.gather_partials_sync",
             "wait": "CrossSync.wait_sync",
@@ -406,10 +407,15 @@ if __name__ == "__main__":
     #         with open(save_path, "w") as f:
     #             f.write(code)
     # find all classes in the library
-    import google.cloud.bigtable.data._async as data_lib
-    lib_classes = inspect.getmembers(data_lib, inspect.isclass)
-    # keep only those with CrossSync annotation
-    enabled_classes = [c[1] for c in lib_classes if hasattr(c[1], "cross_sync_enabled")]
+    lib_root = "google/cloud/bigtable/data/_async"
+    lib_files = [f"{lib_root}/{f}" for f in os.listdir(lib_root) if f.endswith(".py")]
+    enabled_classes = []
+    for file in lib_files:
+        file_module = file.replace("/", ".")[:-3]
+        for cls_name, cls in inspect.getmembers(importlib.import_module(file_module), inspect.isclass):
+            # keep only those with CrossSync annotation
+            if hasattr(cls, "cross_sync_enabled") and not cls in enabled_classes:
+                enabled_classes.append(cls)
     # bucket classes by output location
     all_paths = {c.cross_sync_file_path for c in enabled_classes}
     class_map = {loc: [c for c in enabled_classes if c.cross_sync_file_path == loc] for loc in all_paths}
@@ -468,7 +474,7 @@ if __name__ == "__main__":
         full_code = f"{header}\n\n{import_str}\n\n{ast.unparse(combined_tree)}"
         full_code = autoflake.fix_code(full_code, remove_all_unused_imports=True)
         formatted_code = format_str(full_code, mode=FileMode())
-        print(f"saving {async_class.cross_sync_class_name} to {output_file}...")
+        print(f"saving {[c.cross_sync_class_name for c in class_map[output_file]]} to {output_file}...")
         with open(output_file, "w") as f:
             f.write(formatted_code)
 

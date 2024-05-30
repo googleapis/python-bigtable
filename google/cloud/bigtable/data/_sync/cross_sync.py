@@ -16,6 +16,7 @@
 import asyncio
 import sys
 import concurrent.futures
+import google.api_core.retry as retries
 
 
 class CrossSync:
@@ -29,6 +30,7 @@ class CrossSync:
     Future = asyncio.Future
     Task = asyncio.Task
     Event = asyncio.Event
+    retry_target = retries.retry_target_async
 
     @classmethod
     def sync_output(cls, sync_path):
