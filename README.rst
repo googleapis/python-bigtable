@@ -29,7 +29,7 @@ Async Data Client
 
 The new client brings a simplified API and increased performance using asyncio.
 The new client is focused on the data API (i.e. reading and writing Bigtable data), with admin operations
-remaining in the existing client.
+remaining exclusively in the existing synchronous client.
 
 Feedback and bug reports are welcome at cbt-python-client-v3-feedback@google.com,
 or through the Github `issue tracker`_.
