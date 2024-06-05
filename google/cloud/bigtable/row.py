@@ -20,6 +20,7 @@ import struct
 from google.cloud._helpers import _datetime_from_microseconds  # type: ignore
 from google.cloud._helpers import _microseconds_from_datetime  # type: ignore
 from google.cloud._helpers import _to_bytes  # type: ignore
+from google.cloud.bigtable.logging import log_usage
 from google.cloud.bigtable_v2.types import data as data_v2_pb2
 
 
@@ -301,6 +302,7 @@ class DirectRow(_SetDeleteRow):
         """
         return self._pb_mutations
 
+    @log_usage
     def get_mutations_size(self):
         """Gets the total mutations size for current row
 
@@ -318,6 +320,7 @@ class DirectRow(_SetDeleteRow):
 
         return mutation_size
 
+    @log_usage
     def set_cell(self, column_family_id, column, value, timestamp=None):
         """Sets a value in this row.
 
@@ -358,6 +361,7 @@ class DirectRow(_SetDeleteRow):
         """
         self._set_cell(column_family_id, column, value, timestamp=timestamp, state=None)
 
+    @log_usage
     def delete(self):
         """Deletes this row from the table.
 
@@ -377,6 +381,7 @@ class DirectRow(_SetDeleteRow):
         """
         self._delete(state=None)
 
+    @log_usage
     def delete_cell(self, column_family_id, column, time_range=None):
         """Deletes cell in this row.
 
@@ -411,6 +416,7 @@ class DirectRow(_SetDeleteRow):
             column_family_id, [column], time_range=time_range, state=None
         )
 
+    @log_usage
     def delete_cells(self, column_family_id, columns, time_range=None):
         """Deletes cells in this row.
 
@@ -445,6 +451,7 @@ class DirectRow(_SetDeleteRow):
         """
         self._delete_cells(column_family_id, columns, time_range=time_range, state=None)
 
+    @log_usage
     def commit(self):
         """Makes a ``MutateRow`` API request.
 
@@ -476,6 +483,7 @@ class DirectRow(_SetDeleteRow):
 
         return response[0]
 
+    @log_usage
     def clear(self):
         """Removes all currently accumulated mutations on the current row.
 

@@ -28,6 +28,7 @@ from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes  # type: ignore
+from google.cloud.bigtable.logging import log_usage
 from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily
@@ -564,6 +565,7 @@ class Table(object):
             raise ValueError("More than one row was returned.")
         return row
 
+    @log_usage
     def read_rows(
         self,
         start_key=None,
@@ -677,6 +679,7 @@ class Table(object):
         )
         return self.read_rows(**kwargs)
 
+    @log_usage
     def mutate_rows(self, rows, retry=DEFAULT_RETRY, timeout=DEFAULT):
         """Mutates multiple rows in bulk.
 
@@ -728,6 +731,7 @@ class Table(object):
         )
         return retryable_mutate_rows(retry=retry)
 
+    @log_usage
     def sample_row_keys(self):
         """Read a sample of row keys in the table.
 
@@ -773,6 +777,7 @@ class Table(object):
 
         return response_iterator
 
+    @log_usage
     def truncate(self, timeout=None):
         """Truncate the table
 
@@ -805,6 +810,7 @@ class Table(object):
                 request={"name": self.name, "delete_all_data_from_table": True}
             )
 
+    @log_usage
     def drop_by_prefix(self, row_key_prefix, timeout=None):
         """
 
@@ -844,6 +850,7 @@ class Table(object):
                 request={"name": self.name, "row_key_prefix": _to_bytes(row_key_prefix)}
             )
 
+    @log_usage
     def mutations_batcher(
         self, flush_count=FLUSH_COUNT, max_row_bytes=MAX_MUTATION_SIZE
     ):
@@ -870,6 +877,7 @@ class Table(object):
         """
         return MutationsBatcher(self, flush_count, max_row_bytes)
 
+    @log_usage
     def backup(self, backup_id, cluster_id=None, expire_time=None):
         """Factory to create a Backup linked to this Table.
 
@@ -894,6 +902,7 @@ class Table(object):
             expire_time=expire_time,
         )
 
+    @log_usage
     def list_backups(self, cluster_id=None, filter_=None, order_by=None, page_size=0):
         """List Backups for this Table.
 
@@ -1001,6 +1010,7 @@ class Table(object):
 
         return result
 
+    @log_usage
     def restore(self, new_table_id, cluster_id=None, backup_id=None, backup_name=None):
         """Creates a new Table by restoring from the Backup specified by either
         `backup_id` or `backup_name`. The returned ``long-running operation``
@@ -1070,6 +1080,7 @@ class _RetryableMutateRowsWorker(object):
         self.responses_statuses = [None] * len(self.rows)
         self.timeout = timeout
 
+    @log_usage
     def __call__(self, retry=DEFAULT_RETRY):
         """Attempt to mutate all rows and retry rows with transient errors.
 
@@ -1097,9 +1108,11 @@ class _RetryableMutateRowsWorker(object):
         return self.responses_statuses
 
     @staticmethod
+    @log_usage
     def _is_retryable(status):
         return status is None or status.code in RETRYABLE_CODES
 
+    @log_usage
     def _do_mutate_retryable_rows(self):
         """Mutate all the rows that are eligible for retry.
 
