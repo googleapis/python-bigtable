@@ -32,7 +32,7 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
 
-from google.cloud.bigtable.logging import log_usage
+from google.cloud.bigtable.logging import gapic_wrap_method
 
 
 class BigtableTransport(abc.ABC):
@@ -136,17 +136,17 @@ class BigtableTransport(abc.ABC):
     def _prep_wrapped_messages(self, client_info):
         # Precompute the wrapped methods.
         self._wrapped_methods = {
-            self.read_rows: gapic_v1.method.wrap_method(
+            self.read_rows: gapic_wrap_method(
                 self.read_rows,
                 default_timeout=43200.0,
                 client_info=client_info,
             ),
-            self.sample_row_keys: gapic_v1.method.wrap_method(
+            self.sample_row_keys: gapic_wrap_method(
                 self.sample_row_keys,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.mutate_row: gapic_v1.method.wrap_method(
+            self.mutate_row: gapic_wrap_method(
                 self.mutate_row,
                 default_retry=retries.Retry(
                     initial=0.01,
@@ -161,39 +161,37 @@ class BigtableTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.mutate_rows: gapic_v1.method.wrap_method(
+            self.mutate_rows: gapic_wrap_method(
                 self.mutate_rows,
                 default_timeout=600.0,
                 client_info=client_info,
             ),
-            self.check_and_mutate_row: gapic_v1.method.wrap_method(
+            self.check_and_mutate_row: gapic_wrap_method(
                 self.check_and_mutate_row,
                 default_timeout=20.0,
                 client_info=client_info,
             ),
-            self.ping_and_warm: gapic_v1.method.wrap_method(
+            self.ping_and_warm: gapic_wrap_method(
                 self.ping_and_warm,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.read_modify_write_row: gapic_v1.method.wrap_method(
+            self.read_modify_write_row: gapic_wrap_method(
                 self.read_modify_write_row,
                 default_timeout=20.0,
                 client_info=client_info,
             ),
-            self.generate_initial_change_stream_partitions: gapic_v1.method.wrap_method(
+            self.generate_initial_change_stream_partitions: gapic_wrap_method(
                 self.generate_initial_change_stream_partitions,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.read_change_stream: gapic_v1.method.wrap_method(
+            self.read_change_stream: gapic_wrap_method(
                 self.read_change_stream,
                 default_timeout=43200.0,
                 client_info=client_info,
             ),
         }
-        for key, gapic_method in self._wrapped_methods.items():
-            self._wrapped_methods[key] = log_usage(gapic_method, name=f"_GapicCallable")
 
 
     def close(self):

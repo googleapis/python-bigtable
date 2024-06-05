@@ -16,6 +16,12 @@ import uuid
 import grpc
 import time
 import datetime
+import functools
+
+from google.api_core import grpc_helpers
+from google.api_core.gapic_v1 import client_info
+from google.api_core.gapic_v1.method import _GapicCallable
+
 
 def log_usage(func, name=None):
     def wrapper(*args, **kwargs):
@@ -32,6 +38,43 @@ def log_usage(func, name=None):
             raise
 
     return wrapper
+
+def gapic_wrap_method(
+    func,
+    default_retry=None,
+    default_timeout=None,
+    default_compression=None,
+    client_info=client_info.DEFAULT_CLIENT_INFO,
+    *,
+    with_call=False,
+):
+    """
+    Copy of google.api_core.gapic_v1.method.wrap_method, to add our own logging decorator
+    """
+    if with_call:
+        try:
+            func = func.with_call
+        except AttributeError as exc:
+            raise ValueError(
+                "with_call=True is only supported for unary calls."
+            ) from exc
+    func = log_usage(grpc_helpers.wrap_errors(func), name="grpc_helpers.wrap_errors")
+    if client_info is not None:
+        user_agent_metadata = [client_info.to_grpc_metadata()]
+    else:
+        user_agent_metadata = None
+
+    return log_usage(
+        functools.wraps(func)(
+            _GapicCallable(
+                func,
+                default_retry,
+                default_timeout,
+                default_compression,
+                metadata=user_agent_metadata,
+            )
+        ), name="_GapicCallable"
+    )
 
 
 class WrappedMultiCallable:
