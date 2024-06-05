@@ -750,6 +750,7 @@ class TableAsync:
 
         # limit the number of concurrent requests using a semaphore
         concurrency_sem = asyncio.Semaphore(_CONCURRENCY_LIMIT)
+
         async def read_rows_with_semaphore(query):
             async with concurrency_sem:
                 # calculate new timeout based on time left in overall operation
