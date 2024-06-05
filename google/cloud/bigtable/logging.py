@@ -22,6 +22,14 @@ from google.api_core import grpc_helpers
 from google.api_core.gapic_v1 import client_info
 from google.api_core.gapic_v1.method import _GapicCallable
 
+import logging
+
+# add handler for retry logging
+retry_logger = logging.getLogger("google.api_core.retry")
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+retry_logger.addHandler(handler)
+
 
 def log_usage(func, name=None):
     def wrapper(*args, **kwargs):
