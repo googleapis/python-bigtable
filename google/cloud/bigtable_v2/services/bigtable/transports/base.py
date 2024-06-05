@@ -32,6 +32,8 @@ DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
 
+from google.cloud.bigtable.logging import log_usage
+
 
 class BigtableTransport(abc.ABC):
     """Abstract transport class for Bigtable."""
@@ -190,6 +192,9 @@ class BigtableTransport(abc.ABC):
                 client_info=client_info,
             ),
         }
+        for key, gapic_method in self._wrapped_methods.items():
+            self._wrapped_methods[key] = log_usage(gapic_method, name=f"_GapicCallable")
+
 
     def close(self):
         """Closes resources associated with the transport.
