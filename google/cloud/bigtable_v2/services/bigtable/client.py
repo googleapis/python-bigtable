@@ -58,6 +58,8 @@ from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
 from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
+from google.cloud.bigtable.logging import log_usage
+
 
 class BigtableClientMeta(type):
     """Metaclass for the Bigtable client.
@@ -718,6 +720,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 api_audience=self._client_options.api_audience,
             )
 
+    @log_usage
     def read_rows(
         self,
         request: Optional[Union[bigtable.ReadRowsRequest, dict]] = None,
@@ -951,6 +954,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def mutate_row(
         self,
         request: Optional[Union[bigtable.MutateRowRequest, dict]] = None,
@@ -1088,6 +1092,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def mutate_rows(
         self,
         request: Optional[Union[bigtable.MutateRowsRequest, dict]] = None,
@@ -1219,6 +1224,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def check_and_mutate_row(
         self,
         request: Optional[Union[bigtable.CheckAndMutateRowRequest, dict]] = None,
@@ -1393,6 +1399,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def ping_and_warm(
         self,
         request: Optional[Union[bigtable.PingAndWarmRequest, dict]] = None,
@@ -1495,6 +1502,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def read_modify_write_row(
         self,
         request: Optional[Union[bigtable.ReadModifyWriteRowRequest, dict]] = None,
@@ -1638,6 +1646,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def generate_initial_change_stream_partitions(
         self,
         request: Optional[
@@ -1745,6 +1754,7 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def read_change_stream(
         self,
         request: Optional[Union[bigtable.ReadChangeStreamRequest, dict]] = None,
@@ -1844,9 +1854,11 @@ class BigtableClient(metaclass=BigtableClientMeta):
         # Done; return the response.
         return response
 
+    @log_usage
     def __enter__(self) -> "BigtableClient":
         return self
 
+    @log_usage
     def __exit__(self, type, value, traceback):
         """Releases underlying transport's resources.
 
