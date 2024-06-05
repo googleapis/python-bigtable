@@ -23,7 +23,6 @@ from google.api_core.gapic_v1 import client_info
 from google.api_core.gapic_v1.method import _GapicCallable
 
 import logging
-
 # add handler for retry logging
 retry_logger = logging.getLogger("google.api_core.retry")
 handler = logging.StreamHandler()
@@ -39,7 +38,7 @@ def log_usage(func, name=None):
         print(f"Entering {fn_name}(args={args}, kwargs={kwargs}). (call_id={call_id}, utc_time={datetime.datetime.utcnow()})")
         try:
             result = func(*args, **kwargs)
-            print(f"Exiting {fn_name} (call_id={call_id}, elapsed_time={time.monotonic() - start_time}, utc_time={datetime.datetime.utcnow()})")
+            print(f"Exiting {fn_name} with success (call_id={call_id}, elapsed_time={time.monotonic() - start_time}, utc_time={datetime.datetime.utcnow()})")
             return result
         except Exception as e:
             print(f"Exiting {fn_name} with exception={e} (call_id={call_id}, elapsed_time={time.monotonic() - start_time}, utc_time={datetime.datetime.utcnow()})")

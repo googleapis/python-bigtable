@@ -58,7 +58,7 @@ from .transports.grpc_asyncio import BigtableGrpcAsyncIOTransport
 from .transports.pooled_grpc_asyncio import PooledBigtableGrpcAsyncIOTransport
 from .transports.rest import BigtableRestTransport
 
-from google.cloud.bigtable.logging import log_usage
+from google.cloud.log_wrappers import log_usage
 
 
 class BigtableClientMeta(type):

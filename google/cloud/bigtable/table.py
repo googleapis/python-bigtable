@@ -28,7 +28,7 @@ from google.api_core.gapic_v1.method import DEFAULT
 from google.api_core.retry import if_exception_type
 from google.api_core.retry import Retry
 from google.cloud._helpers import _to_bytes  # type: ignore
-from google.cloud.bigtable.logging import log_usage
+from google.cloud.log_wrappers import log_usage
 from google.cloud.bigtable.backup import Backup
 from google.cloud.bigtable.column_family import _gc_rule_from_pb
 from google.cloud.bigtable.column_family import ColumnFamily

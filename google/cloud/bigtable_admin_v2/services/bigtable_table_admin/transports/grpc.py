@@ -34,7 +34,7 @@ from google.longrunning import operations_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from .base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
 
-from google.cloud.bigtable.logging import WrappedChannel
+from google.cloud.log_wrappers import WrappedChannel
 
 
 class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):

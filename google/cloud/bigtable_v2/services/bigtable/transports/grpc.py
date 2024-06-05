@@ -27,7 +27,7 @@ import grpc  # type: ignore
 from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 
-from google.cloud.bigtable.logging import WrappedChannel
+from google.cloud.log_wrappers import WrappedChannel
 
 
 class BigtableGrpcTransport(BigtableTransport):
