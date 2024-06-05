@@ -27,6 +27,8 @@ import grpc  # type: ignore
 from google.cloud.bigtable_v2.types import bigtable
 from .base import BigtableTransport, DEFAULT_CLIENT_INFO
 
+from google.cloud.bigtable.logging import WrappedChannel
+
 
 class BigtableGrpcTransport(BigtableTransport):
     """gRPC backend transport for Bigtable.
@@ -219,7 +221,7 @@ class BigtableGrpcTransport(BigtableTransport):
               and ``credentials_file`` are passed.
         """
 
-        return grpc_helpers.create_channel(
+        channel = grpc_helpers.create_channel(
             host,
             credentials=credentials,
             credentials_file=credentials_file,
@@ -229,6 +231,7 @@ class BigtableGrpcTransport(BigtableTransport):
             default_host=cls.DEFAULT_HOST,
             **kwargs,
         )
+        return WrappedChannel(channel)
 
     @property
     def grpc_channel(self) -> grpc.Channel:
