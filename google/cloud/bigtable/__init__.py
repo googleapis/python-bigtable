@@ -13,7 +13,6 @@
 # limitations under the License.
 
 """Google Cloud Bigtable API package."""
-import uuid
 
 from google.cloud.bigtable.client import Client
 
