@@ -34,6 +34,8 @@ from google.longrunning import operations_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from .base import BigtableTableAdminTransport, DEFAULT_CLIENT_INFO
 
+from google.cloud.bigtable.logging import WrappedChannel
+
 
 class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
     """gRPC backend transport for BigtableTableAdmin.
@@ -230,7 +232,7 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
               and ``credentials_file`` are passed.
         """
 
-        return grpc_helpers.create_channel(
+        channel = grpc_helpers.create_channel(
             host,
             credentials=credentials,
             credentials_file=credentials_file,
@@ -240,6 +242,7 @@ class BigtableTableAdminGrpcTransport(BigtableTableAdminTransport):
             default_host=cls.DEFAULT_HOST,
             **kwargs,
         )
+        return WrappedChannel(channel)
 
     @property
     def grpc_channel(self) -> grpc.Channel:

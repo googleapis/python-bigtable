@@ -34,6 +34,8 @@ from google.iam.v1 import policy_pb2  # type: ignore
 from google.longrunning import operations_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 
+from google.cloud.bigtable.logging import gapic_wrap_method
+
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
@@ -141,12 +143,12 @@ class BigtableInstanceAdminTransport(abc.ABC):
     def _prep_wrapped_messages(self, client_info):
         # Precompute the wrapped methods.
         self._wrapped_methods = {
-            self.create_instance: gapic_v1.method.wrap_method(
+            self.create_instance: gapic_wrap_method(
                 self.create_instance,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.get_instance: gapic_v1.method.wrap_method(
+            self.get_instance: gapic_wrap_method(
                 self.get_instance,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -161,7 +163,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.list_instances: gapic_v1.method.wrap_method(
+            self.list_instances: gapic_wrap_method(
                 self.list_instances,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -176,7 +178,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.update_instance: gapic_v1.method.wrap_method(
+            self.update_instance: gapic_wrap_method(
                 self.update_instance,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -191,7 +193,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.partial_update_instance: gapic_v1.method.wrap_method(
+            self.partial_update_instance: gapic_wrap_method(
                 self.partial_update_instance,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -206,17 +208,17 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.delete_instance: gapic_v1.method.wrap_method(
+            self.delete_instance: gapic_wrap_method(
                 self.delete_instance,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.create_cluster: gapic_v1.method.wrap_method(
+            self.create_cluster: gapic_wrap_method(
                 self.create_cluster,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.get_cluster: gapic_v1.method.wrap_method(
+            self.get_cluster: gapic_wrap_method(
                 self.get_cluster,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -231,7 +233,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.list_clusters: gapic_v1.method.wrap_method(
+            self.list_clusters: gapic_wrap_method(
                 self.list_clusters,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -246,7 +248,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.update_cluster: gapic_v1.method.wrap_method(
+            self.update_cluster: gapic_wrap_method(
                 self.update_cluster,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -261,22 +263,22 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.partial_update_cluster: gapic_v1.method.wrap_method(
+            self.partial_update_cluster: gapic_wrap_method(
                 self.partial_update_cluster,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.delete_cluster: gapic_v1.method.wrap_method(
+            self.delete_cluster: gapic_wrap_method(
                 self.delete_cluster,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.create_app_profile: gapic_v1.method.wrap_method(
+            self.create_app_profile: gapic_wrap_method(
                 self.create_app_profile,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.get_app_profile: gapic_v1.method.wrap_method(
+            self.get_app_profile: gapic_wrap_method(
                 self.get_app_profile,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -291,7 +293,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.list_app_profiles: gapic_v1.method.wrap_method(
+            self.list_app_profiles: gapic_wrap_method(
                 self.list_app_profiles,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -306,7 +308,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.update_app_profile: gapic_v1.method.wrap_method(
+            self.update_app_profile: gapic_wrap_method(
                 self.update_app_profile,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -321,12 +323,12 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.delete_app_profile: gapic_v1.method.wrap_method(
+            self.delete_app_profile: gapic_wrap_method(
                 self.delete_app_profile,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.get_iam_policy: gapic_v1.method.wrap_method(
+            self.get_iam_policy: gapic_wrap_method(
                 self.get_iam_policy,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -341,12 +343,12 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.set_iam_policy: gapic_v1.method.wrap_method(
+            self.set_iam_policy: gapic_wrap_method(
                 self.set_iam_policy,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.test_iam_permissions: gapic_v1.method.wrap_method(
+            self.test_iam_permissions: gapic_wrap_method(
                 self.test_iam_permissions,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -361,7 +363,7 @@ class BigtableInstanceAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.list_hot_tablets: gapic_v1.method.wrap_method(
+            self.list_hot_tablets: gapic_wrap_method(
                 self.list_hot_tablets,
                 default_retry=retries.Retry(
                     initial=1.0,

@@ -35,6 +35,8 @@ from google.iam.v1 import policy_pb2  # type: ignore
 from google.longrunning import operations_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 
+from google.cloud.bigtable.logging import gapic_wrap_method
+
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(
     gapic_version=package_version.__version__
 )
@@ -141,17 +143,17 @@ class BigtableTableAdminTransport(abc.ABC):
     def _prep_wrapped_messages(self, client_info):
         # Precompute the wrapped methods.
         self._wrapped_methods = {
-            self.create_table: gapic_v1.method.wrap_method(
+            self.create_table: gapic_wrap_method(
                 self.create_table,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.create_table_from_snapshot: gapic_v1.method.wrap_method(
+            self.create_table_from_snapshot: gapic_wrap_method(
                 self.create_table_from_snapshot,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.list_tables: gapic_v1.method.wrap_method(
+            self.list_tables: gapic_wrap_method(
                 self.list_tables,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -166,7 +168,7 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.get_table: gapic_v1.method.wrap_method(
+            self.get_table: gapic_wrap_method(
                 self.get_table,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -181,57 +183,57 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.update_table: gapic_v1.method.wrap_method(
+            self.update_table: gapic_wrap_method(
                 self.update_table,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.delete_table: gapic_v1.method.wrap_method(
+            self.delete_table: gapic_wrap_method(
                 self.delete_table,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.undelete_table: gapic_v1.method.wrap_method(
+            self.undelete_table: gapic_wrap_method(
                 self.undelete_table,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.create_authorized_view: gapic_v1.method.wrap_method(
+            self.create_authorized_view: gapic_wrap_method(
                 self.create_authorized_view,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.list_authorized_views: gapic_v1.method.wrap_method(
+            self.list_authorized_views: gapic_wrap_method(
                 self.list_authorized_views,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.get_authorized_view: gapic_v1.method.wrap_method(
+            self.get_authorized_view: gapic_wrap_method(
                 self.get_authorized_view,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.update_authorized_view: gapic_v1.method.wrap_method(
+            self.update_authorized_view: gapic_wrap_method(
                 self.update_authorized_view,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.delete_authorized_view: gapic_v1.method.wrap_method(
+            self.delete_authorized_view: gapic_wrap_method(
                 self.delete_authorized_view,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.modify_column_families: gapic_v1.method.wrap_method(
+            self.modify_column_families: gapic_wrap_method(
                 self.modify_column_families,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.drop_row_range: gapic_v1.method.wrap_method(
+            self.drop_row_range: gapic_wrap_method(
                 self.drop_row_range,
                 default_timeout=3600.0,
                 client_info=client_info,
             ),
-            self.generate_consistency_token: gapic_v1.method.wrap_method(
+            self.generate_consistency_token: gapic_wrap_method(
                 self.generate_consistency_token,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -246,7 +248,7 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.check_consistency: gapic_v1.method.wrap_method(
+            self.check_consistency: gapic_wrap_method(
                 self.check_consistency,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -261,12 +263,12 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.snapshot_table: gapic_v1.method.wrap_method(
+            self.snapshot_table: gapic_wrap_method(
                 self.snapshot_table,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.get_snapshot: gapic_v1.method.wrap_method(
+            self.get_snapshot: gapic_wrap_method(
                 self.get_snapshot,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -281,7 +283,7 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.list_snapshots: gapic_v1.method.wrap_method(
+            self.list_snapshots: gapic_wrap_method(
                 self.list_snapshots,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -296,17 +298,17 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.delete_snapshot: gapic_v1.method.wrap_method(
+            self.delete_snapshot: gapic_wrap_method(
                 self.delete_snapshot,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.create_backup: gapic_v1.method.wrap_method(
+            self.create_backup: gapic_wrap_method(
                 self.create_backup,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.get_backup: gapic_v1.method.wrap_method(
+            self.get_backup: gapic_wrap_method(
                 self.get_backup,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -321,17 +323,17 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.update_backup: gapic_v1.method.wrap_method(
+            self.update_backup: gapic_wrap_method(
                 self.update_backup,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.delete_backup: gapic_v1.method.wrap_method(
+            self.delete_backup: gapic_wrap_method(
                 self.delete_backup,
                 default_timeout=300.0,
                 client_info=client_info,
             ),
-            self.list_backups: gapic_v1.method.wrap_method(
+            self.list_backups: gapic_wrap_method(
                 self.list_backups,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -346,17 +348,17 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.restore_table: gapic_v1.method.wrap_method(
+            self.restore_table: gapic_wrap_method(
                 self.restore_table,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.copy_backup: gapic_v1.method.wrap_method(
+            self.copy_backup: gapic_wrap_method(
                 self.copy_backup,
                 default_timeout=None,
                 client_info=client_info,
             ),
-            self.get_iam_policy: gapic_v1.method.wrap_method(
+            self.get_iam_policy: gapic_wrap_method(
                 self.get_iam_policy,
                 default_retry=retries.Retry(
                     initial=1.0,
@@ -371,12 +373,12 @@ class BigtableTableAdminTransport(abc.ABC):
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.set_iam_policy: gapic_v1.method.wrap_method(
+            self.set_iam_policy: gapic_wrap_method(
                 self.set_iam_policy,
                 default_timeout=60.0,
                 client_info=client_info,
             ),
-            self.test_iam_permissions: gapic_v1.method.wrap_method(
+            self.test_iam_permissions: gapic_wrap_method(
                 self.test_iam_permissions,
                 default_retry=retries.Retry(
                     initial=1.0,
