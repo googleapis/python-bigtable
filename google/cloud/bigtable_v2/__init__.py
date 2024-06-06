@@ -122,6 +122,8 @@ __all__ = (
     "RowSet",
     "SampleRowKeysRequest",
     "SampleRowKeysResponse",
+    "ExecuteQueryRequest",
+    "ExecuteQueryResponse",
     "StreamContinuationToken",
     "StreamContinuationTokens",
     "StreamPartition",
