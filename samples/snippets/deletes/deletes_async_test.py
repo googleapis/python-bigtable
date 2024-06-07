@@ -73,7 +73,7 @@ async def _populate_table(table_id):
     timestamp = datetime.datetime(2019, 5, 1)
     timestamp_minus_hr = timestamp - datetime.timedelta(hours=1)
 
-    async with (BigtableDataClientAsync(project=PROJECT) as client):
+    async with BigtableDataClientAsync(project=PROJECT) as client:
         async with client.get_table(BIGTABLE_INSTANCE, table_id) as table:
             async with table.mutations_batcher() as batcher:
                 await batcher.append(
