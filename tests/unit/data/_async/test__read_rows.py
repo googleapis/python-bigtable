@@ -99,7 +99,9 @@ class TestReadRowsOperation:
         ],
     )
     @pytest.mark.parametrize("with_range", [True, False])
-    def test_revise_request_rowset_keys_with_range(self, in_keys, last_key, expected, with_range):
+    def test_revise_request_rowset_keys_with_range(
+        self, in_keys, last_key, expected, with_range
+    ):
         from google.cloud.bigtable_v2.types import RowSet as RowSetPB
         from google.cloud.bigtable_v2.types import RowRange as RowRangePB
         from google.cloud.bigtable.data.exceptions import _RowSetComplete
@@ -168,7 +170,9 @@ class TestReadRowsOperation:
         ],
     )
     @pytest.mark.parametrize("with_key", [True, False])
-    def test_revise_request_rowset_ranges(self, in_ranges, last_key, expected, with_key):
+    def test_revise_request_rowset_ranges(
+        self, in_ranges, last_key, expected, with_key
+    ):
         from google.cloud.bigtable_v2.types import RowSet as RowSetPB
         from google.cloud.bigtable_v2.types import RowRange as RowRangePB
         from google.cloud.bigtable.data.exceptions import _RowSetComplete
