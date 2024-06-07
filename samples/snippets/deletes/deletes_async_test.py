@@ -18,7 +18,8 @@ import os
 from typing import AsyncGenerator
 
 from google.cloud._helpers import _microseconds_from_datetime
-import pytest, pytest_asyncio
+import pytest
+import pytest_asyncio
 
 import deletes_snippets_async
 
