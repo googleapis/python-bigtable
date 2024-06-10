@@ -2022,7 +2022,6 @@ class TestReadRowsSharded:
 
         They should raise DeadlineExceeded errors
         """
-        import time
         from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
         from google.api_core.exceptions import DeadlineExceeded
 
