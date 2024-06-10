@@ -2015,6 +2015,35 @@ class TestReadRowsSharded:
                     # should keep successful queries
                     assert len(exc.value.successful_rows) == _CONCURRENCY_LIMIT
 
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_negative_batch_timeout(self):
+        """
+        try to run with batch that starts after operation timeout
+
+        They should raise DeadlineExceeded errors
+        """
+        import time
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        async def mock_call(*args, **kwargs):
+            await asyncio.sleep(0.05)
+            return [mock.Mock()]
+
+        async with _make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(15)]
+                    with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
+                        await table.read_rows_sharded(queries, operation_timeout=0.01)
+                    assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
+                    assert len(exc.value.exceptions) == 5
+                    assert all(
+                        isinstance(e.__cause__, DeadlineExceeded)
+                        for e in exc.value.exceptions
+                    )
+
 
 class TestSampleRowKeys:
     async def _make_gapic_stream(self, sample_list: list[tuple[bytes, int]]):

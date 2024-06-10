@@ -755,6 +755,10 @@ class TableAsync:
             async with concurrency_sem:
                 # calculate new timeout based on time left in overall operation
                 shard_timeout = next(rpc_timeout_generator)
+                if shard_timeout <= 0:
+                    raise DeadlineExceeded(
+                        "Operation timeout exceeded before starting query"
+                    )
                 return await self.read_rows(
                     query,
                     operation_timeout=shard_timeout,
