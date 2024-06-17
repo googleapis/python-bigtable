@@ -36,6 +36,12 @@ or through the Github `issue tracker`_.
 
 .. _issue tracker: https://github.com/googleapis/python-bigtable/issues
 
+.. note::
+
+    It is generally not recommended to use the async client in an otherwise synchronous codebase. To make use of asyncio's
+    potential performance benefits, the codebase should be designed to be async from the ground up.
+
+
 Quick Start
 -----------
 
