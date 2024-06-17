@@ -1,7 +1,5 @@
 .. include:: README.rst
 
-.. include:: multiprocessing.rst
-
 Client Types
 -------------
 .. toctree::
