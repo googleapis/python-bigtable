@@ -16,12 +16,14 @@
 
 
 from __future__ import annotations
+from typing import Iterable
 from typing import Sequence
 
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
+from google.cloud.bigtable.data._sync.client import Table
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
@@ -162,10 +164,10 @@ class _ReadRowsOperation:
         """Merge chunks into rows"""
         if chunks is None:
             return
-        it = chunks.__aiter__()
+        it = chunks.__iter__()
         while True:
             try:
-                c = it.__anext__()
+                c = it.__next__()
             except StopIteration:
                 return
             row_key = c.row_key
@@ -203,7 +205,7 @@ class _ReadRowsOperation:
                     if c.value_size > 0:
                         buffer = [value]
                         while c.value_size > 0:
-                            c = it.__anext__()
+                            c = it.__next__()
                             t = c.timestamp_micros
                             cl = c.labels
                             k = c.row_key
@@ -233,7 +235,7 @@ class _ReadRowsOperation:
                     if c.commit_row:
                         yield Row(row_key, cells)
                         break
-                    c = it.__anext__()
+                    c = it.__next__()
             except _ResetRow as e:
                 c = e.chunk
                 if (

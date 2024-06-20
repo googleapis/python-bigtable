@@ -39,7 +39,11 @@ from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.client import TableAsync
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.client import TableAsync
+    else:
+        from google.cloud.bigtable.data._sync.client import Table
+        from typing import Iterable
 
 
 class _ResetRow(Exception):
@@ -49,7 +53,7 @@ class _ResetRow(Exception):
 
 @CrossSync.sync_output("google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
     replace_symbols={
-        "AsyncIterable": "Iterable", "StopAsyncIteration": "StopIteration", "Awaitable": None, "TableAsync": "Table",
+        "AsyncIterable": "Iterable", "StopAsyncIteration": "StopIteration", "Awaitable": None, "TableAsync": "Table", "__aiter__": "__iter__", "__anext__": "__next__"
     }
 )
 class _ReadRowsOperationAsync:
