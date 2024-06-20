@@ -238,6 +238,11 @@ class MutationsBatcherAsync:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
+        # in sync mode, use a threadpool executor for background tasks
+        if not CrossSync.is_async:
+            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        else:
+            self._sync_executor = None
         self._flush_timer = CrossSync.create_task(self._timer_routine, flush_interval, sync_executor=self._sync_executor)
         self._flush_jobs: set[CrossSync.Future[None]] = set()
         # MutationExceptionGroup reports number of successful entries along with failures
@@ -251,12 +256,6 @@ class MutationsBatcherAsync:
         )
         # clean up on program exit
         atexit.register(self._on_exit)
-        # in sync mode, use a threadpool executor for background tasks
-        if not CrossSync.is_async:
-            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
-        else:
-            self._sync_executor = None
-
     async def _timer_routine(self, interval: float | None) -> None:
         """
         Triggers new flush tasks every `interval` seconds

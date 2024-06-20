@@ -1215,14 +1215,14 @@ class TestMutationsBatcherAsync:
         down to the gapic layer.
         """
         retryn_fn = (
-            "retry_target_async"
+            "google.cloud.bigtable.data._sync.cross_sync.CrossSync.retry_target"
             if "Async" in self._get_target_class().__name__
-            else "retry_target"
+            else "google.api_core.retry.retry_target"
         )
         with mock.patch.object(
             google.api_core.retry, "if_exception_type"
         ) as predicate_builder_mock:
-            with mock.patch.object(google.api_core.retry, retryn_fn) as retry_fn_mock:
+            with mock.patch(retryn_fn) as retry_fn_mock:
                 table = None
                 with mock.patch("asyncio.create_task"):
                     table = TableAsync(mock.Mock(), "instance", "table")
