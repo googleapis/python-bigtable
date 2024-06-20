@@ -27,6 +27,12 @@ class _AsyncGetAttr(type):
     def __getitem__(cls, item):
         return item
 
+class _SyncGetAttr(type):
+
+    def __getitem__(cls, item):
+        breakpoint()
+        return CrossSync.generated_replacements[item]
+
 class CrossSync(metaclass=_AsyncGetAttr):
 
     SyncImports = False
@@ -121,76 +127,70 @@ class CrossSync(metaclass=_AsyncGetAttr):
         """
         await asyncio.sleep(0)
 
-class _SyncGetAttr(type):
 
-    def __getitem__(cls, item):
-        breakpoint()
-        return CrossSync.generated_replacements[item]
+    class _Sync_Impl(metaclass=_SyncGetAttr):
 
+        is_async = False
 
-class _CrossSync_Sync(metaclass=_SyncGetAttr):
+        sleep = time.sleep
+        Queue = queue.Queue
+        Condition = threading.Condition
+        Future = concurrent.futures.Future
+        Task = concurrent.futures.Future
+        Event = threading.Event
+        retry_target = retries.retry_target
+        retry_target_stream = retries.retry_target_stream
+        generated_replacements = {}
 
-    is_async = False
+        @staticmethod
+        def wait(futures, timeout=None):
+            """
+            abstraction over asyncio.wait
+            """
+            if not futures:
+                return set(), set()
+            return concurrent.futures.wait(futures, timeout=timeout)
 
-    sleep = time.sleep
-    Queue = queue.Queue
-    Condition = threading.Condition
-    Future = concurrent.futures.Future
-    Task = concurrent.futures.Future
-    Event = threading.Event
-    retry_target = retries.retry_target
-    retry_target_stream = retries.retry_target_stream
-    generated_replacements = {}
+        @staticmethod
+        def condition_wait(condition, timeout=None):
+            """
+            returns False if the timeout is reached before the condition is set, otherwise True
+            """
+            return condition.wait(timeout=timeout)
 
-    @staticmethod
-    def wait(futures, timeout=None):
-        """
-        abstraction over asyncio.wait
-        """
-        if not futures:
-            return set(), set()
-        return concurrent.futures.wait(futures, timeout=timeout)
-
-    @staticmethod
-    def condition_wait(condition, timeout=None):
-        """
-        returns False if the timeout is reached before the condition is set, otherwise True
-        """
-        return condition.wait(timeout=timeout)
-
-    @staticmethod
-    def gather_partials(partial_list, return_exceptions=False, sync_executor=None):
-        if not partial_list:
-            return []
-        if not sync_executor:
-            raise ValueError("sync_executor is required for sync version")
-        futures_list = [
-            sync_executor.submit(partial) for partial in partial_list
-        ]
-        results_list = []
-        for future in futures_list:
-            if future.exception():
-                if return_exceptions:
-                    results_list.append(future.exception())
+        @staticmethod
+        def gather_partials(partial_list, return_exceptions=False, sync_executor=None):
+            if not partial_list:
+                return []
+            if not sync_executor:
+                raise ValueError("sync_executor is required for sync version")
+            futures_list = [
+                sync_executor.submit(partial) for partial in partial_list
+            ]
+            results_list = []
+            for future in futures_list:
+                if future.exception():
+                    if return_exceptions:
+                        results_list.append(future.exception())
+                    else:
+                        raise future.exception()
                 else:
-                    raise future.exception()
-            else:
-                results_list.append(future.result())
-        return results_list
+                    results_list.append(future.result())
+            return results_list
 
 
 
-    @staticmethod
-    def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
-        """
-        abstraction over asyncio.create_task. Sync version implemented with threadpool executor
+        @staticmethod
+        def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
+            """
+            abstraction over asyncio.create_task. Sync version implemented with threadpool executor
 
-        sync_executor: ThreadPoolExecutor to use for sync operations. Ignored in async version
-        """
-        if not sync_executor:
-            raise ValueError("sync_executor is required for sync version")
-        return sync_executor.submit(fn, *fn_args, **fn_kwargs)
+            sync_executor: ThreadPoolExecutor to use for sync operations. Ignored in async version
+            """
+            if not sync_executor:
+                raise ValueError("sync_executor is required for sync version")
+            return sync_executor.submit(fn, *fn_args, **fn_kwargs)
 
-    @staticmethod
-    def yield_to_event_loop():
-        pass
+        @staticmethod
+        def yield_to_event_loop():
+            pass

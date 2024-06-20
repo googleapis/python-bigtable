@@ -22,7 +22,7 @@ from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
-from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
@@ -86,7 +86,7 @@ class _ReadRowsOperation:
 
     def start_operation(self) -> Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors."""
-        return _CrossSync_Sync.retry_target_stream(
+        return CrossSync._Sync_Impl.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),

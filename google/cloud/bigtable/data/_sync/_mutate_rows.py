@@ -25,7 +25,7 @@ from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
-from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
@@ -76,7 +76,7 @@ class _MutateRowsOperation:
             *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
-        self._operation = lambda: _CrossSync_Sync.retry_target(
+        self._operation = lambda: CrossSync._Sync_Impl.retry_target(
             self._run_attempt,
             self.is_retryable,
             sleep_generator,

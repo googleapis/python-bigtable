@@ -316,8 +316,7 @@ def transform_class(in_obj: Type, **kwargs):
     transformer.visit(ast_tree)
     # find imports
     imports = transformer.get_imports(filename)
-    imports.add(ast.parse("from abc import ABC").body[0])
-    imports.add(ast.parse("from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync").body[0])
+    # imports.add(ast.parse("from abc import ABC").body[0])
     # add locals from file, in case they are needed
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
         with open(filename, "r") as f:
@@ -361,7 +360,7 @@ if __name__ == "__main__":
         combined_tree = ast.parse("")
         combined_imports = set()
         for async_class in class_map[output_file]:
-            text_replacements = {"CrossSync": "_CrossSync_Sync", **async_class.cross_sync_replace_symbols}
+            text_replacements = {"CrossSync": "CrossSync._Sync_Impl", **async_class.cross_sync_replace_symbols}
             tree_body, imports = transform_class(async_class, autogen_sync_name=async_class.cross_sync_class_name, text_replacements=text_replacements)
             # update combined data
             combined_tree.body.extend(tree_body)

@@ -43,7 +43,7 @@ from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
+from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.mutations import Mutation
@@ -139,7 +139,7 @@ class BigtableDataClient(ClientWithProject):
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
         self._executor = (
             concurrent.futures.ThreadPoolExecutor()
-            if not _CrossSync_Sync.is_async
+            if not CrossSync._Sync_Impl.is_async
             else None
         )
         if self._emulator_host is not None:
@@ -166,7 +166,7 @@ class BigtableDataClient(ClientWithProject):
     @staticmethod
     def _client_version() -> str:
         """Helper function to return the client version string for this client"""
-        if _CrossSync_Sync.is_async:
+        if CrossSync._Sync_Impl.is_async:
             return f"{google.cloud.bigtable.__version__}-data-async"
         else:
             return f"{google.cloud.bigtable.__version__}-data"
@@ -183,7 +183,7 @@ class BigtableDataClient(ClientWithProject):
             and (not self._is_closed.is_set())
         ):
             for channel_idx in range(self.transport.pool_size):
-                refresh_task = _CrossSync_Sync.create_task(
+                refresh_task = CrossSync._Sync_Impl.create_task(
                     self._manage_channel,
                     channel_idx,
                     sync_executor=self._executor,
@@ -202,7 +202,7 @@ class BigtableDataClient(ClientWithProject):
         self.transport.close()
         if self._executor:
             self._executor.shutdown(wait=False)
-        _CrossSync_Sync.wait(self._channel_refresh_tasks, timeout=timeout)
+        CrossSync._Sync_Impl.wait(self._channel_refresh_tasks, timeout=timeout)
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
@@ -239,7 +239,7 @@ class BigtableDataClient(ClientWithProject):
             )
             for instance_name, table_name, app_profile_id in instance_list
         ]
-        result_list = _CrossSync_Sync.gather_partials(
+        result_list = CrossSync._Sync_Impl.gather_partials(
             partial_list, return_exceptions=True, sync_executor=self._executor
         )
         return [r or None for r in result_list]
@@ -270,7 +270,9 @@ class BigtableDataClient(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        sleep_fn = asyncio.sleep if _CrossSync_Sync.is_async else self._is_closed.wait
+        sleep_fn = (
+            asyncio.sleep if CrossSync._Sync_Impl.is_async else self._is_closed.wait
+        )
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -506,7 +508,7 @@ class Table:
         )
         self.default_retryable_errors = default_retryable_errors or ()
         try:
-            self._register_instance_future = _CrossSync_Sync.create_task(
+            self._register_instance_future = CrossSync._Sync_Impl.create_task(
                 self.client._register_instance,
                 self.instance_id,
                 self,
@@ -560,7 +562,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        row_merger = _CrossSync_Sync[_ReadRowsOperationAsync](
+        row_merger = CrossSync._Sync_Impl[_ReadRowsOperationAsync](
             query,
             self,
             operation_timeout=operation_timeout,
@@ -739,7 +741,7 @@ class Table:
                 )
                 for query in batch
             ]
-            batch_result = _CrossSync_Sync.gather_partials(
+            batch_result = CrossSync._Sync_Impl.gather_partials(
                 batch_partial_list,
                 return_exceptions=True,
                 sync_executor=self.client._executor,
@@ -1057,7 +1059,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        operation = _CrossSync_Sync[_MutateRowsOperationAsync](
+        operation = CrossSync._Sync_Impl[_MutateRowsOperationAsync](
             self.client._gapic_client,
             self,
             mutation_entries,
