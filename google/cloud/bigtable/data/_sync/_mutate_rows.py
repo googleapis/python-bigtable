@@ -16,7 +16,6 @@
 
 
 from __future__ import annotations
-from abc import ABC
 from typing import Sequence
 import functools
 
@@ -33,10 +32,7 @@ from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_L
 from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 
 
-@_CrossSync_Sync.sync_output(
-    "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation"
-)
-class _MutateRowsOperation(ABC):
+class _MutateRowsOperation:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
     and retrying on failed entries. It manages this using the _run_attempt

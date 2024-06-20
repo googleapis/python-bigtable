@@ -295,16 +295,20 @@ def transform_class(in_obj: Type, **kwargs):
     ast_tree = ast.parse(textwrap.dedent("".join(lines)), filename)
     new_name = None
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
+        cls_node = ast_tree.body[0]
+        # remove cross_sync decorator
+        if hasattr(cls_node, "decorator_list"):
+            cls_node.decorator_list = [d for d in cls_node.decorator_list if not isinstance(d, ast.Call) or not isinstance(d.func, ast.Attribute) or not isinstance(d.func.value, ast.Name) or d.func.value.id != "CrossSync"]
         # update name
-        old_name = ast_tree.body[0].name
+        old_name = cls_node.name
         # set default name for new class if unset
         new_name = kwargs.pop("autogen_sync_name", f"{old_name}_SyncGen")
-        ast_tree.body[0].name = new_name
+        cls_node.name = new_name
         ast.increment_lineno(ast_tree, lineno - 1)
         # add ABC as base class
-        ast_tree.body[0].bases = ast_tree.body[0].bases + [
-            ast.Name("ABC", ast.Load()),
-        ]
+        # cls_node.bases = ast_tree.body[0].bases + [
+        #     ast.Name("ABC", ast.Load()),
+        # ]
     # remove top-level imports if any. Add them back later
     ast_tree.body = [n for n in ast_tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
     # transform

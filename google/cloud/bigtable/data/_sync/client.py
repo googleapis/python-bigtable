@@ -47,7 +47,7 @@ from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.mutations import Mutation
@@ -75,8 +75,7 @@ import google.auth._default
 import google.auth.credentials
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.BigtableDataClient")
-class BigtableDataClient(ClientWithProject, ABC):
+class BigtableDataClient(ClientWithProject):
     def __init__(
         self,
         *,
@@ -149,7 +148,11 @@ class BigtableDataClient(ClientWithProject, ABC):
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        self._executor = concurrent.futures.ThreadPoolExecutor() if not False else None
+        self._executor = (
+            concurrent.futures.ThreadPoolExecutor()
+            if not _CrossSync_Sync.is_async
+            else None
+        )
         if self._emulator_host is not None:
             warnings.warn(
                 "Connecting to Bigtable emulator at {}".format(self._emulator_host),
@@ -405,8 +408,7 @@ class BigtableDataClient(ClientWithProject, ABC):
         self._gapic_client.__exit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.Table")
-class Table(ABC):
+class Table:
     """
     Main Data API surface
 
@@ -517,7 +519,7 @@ class Table(ABC):
         )
         self.default_retryable_errors = default_retryable_errors or ()
         try:
-            self._register_instance_future = CrossSync.create_task_sync(
+            self._register_instance_future = _CrossSync_Sync.create_task(
                 self.client._register_instance,
                 self.instance_id,
                 self,
@@ -750,7 +752,7 @@ class Table(ABC):
                 )
                 for query in batch
             ]
-            batch_result = CrossSync.gather_partials_sync(
+            batch_result = _CrossSync_Sync.gather_partials(
                 batch_partial_list,
                 return_exceptions=True,
                 sync_executor=self.client._executor,

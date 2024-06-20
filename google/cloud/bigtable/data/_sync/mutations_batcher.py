@@ -16,7 +16,6 @@
 
 
 from __future__ import annotations
-from abc import ABC
 from collections import deque
 from typing import Sequence
 import asyncio
@@ -37,10 +36,7 @@ from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 
-@_CrossSync_Sync.sync_output(
-    "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher"
-)
-class MutationsBatcher(ABC):
+class MutationsBatcher:
     """
     Allows users to send batches using context manager API:
 
@@ -346,10 +342,7 @@ class MutationsBatcher(ABC):
         return exceptions
 
 
-@_CrossSync_Sync.sync_output(
-    "google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
-)
-class _FlowControl(ABC):
+class _FlowControl:
     """
     Manages flow control for batched mutations. Mutations are registered against
     the FlowControl object before being sent, which will block if size or count
