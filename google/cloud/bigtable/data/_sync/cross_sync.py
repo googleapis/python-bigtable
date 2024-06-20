@@ -39,6 +39,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
     Task = asyncio.Task
     Event = asyncio.Event
     retry_target = retries.retry_target_async
+    retry_target_stream = retries.retry_target_stream_async
     generated_replacements = {}
 
     @staticmethod
@@ -138,6 +139,7 @@ class _CrossSync_Sync(metaclass=_SyncGetAttr):
     Task = concurrent.futures.Future
     Event = threading.Event
     retry_target = retries.retry_target
+    retry_target_stream = retries.retry_target_stream
     generated_replacements = {}
 
     @staticmethod

@@ -109,7 +109,7 @@ class _ReadRowsOperationAsync:
         """
         Start the read_rows operation, retrying on retryable errors.
         """
-        return retries.retry_target_stream_async(
+        return CrossSync.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
             exponential_sleep_generator(0.01, 60, multiplier=2),
