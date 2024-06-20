@@ -174,7 +174,7 @@ class BigtableDataClient(ClientWithProject, ABC):
     @staticmethod
     def _client_version() -> str:
         """Helper function to return the client version string for this client"""
-        if False:
+        if _CrossSync_Sync.is_async:
             return f"{google.cloud.bigtable.__version__}-data-async"
         else:
             return f"{google.cloud.bigtable.__version__}-data"
@@ -191,7 +191,7 @@ class BigtableDataClient(ClientWithProject, ABC):
             and (not self._is_closed.is_set())
         ):
             for channel_idx in range(self.transport.pool_size):
-                refresh_task = CrossSync.create_task_sync(
+                refresh_task = _CrossSync_Sync.create_task(
                     self._manage_channel,
                     channel_idx,
                     sync_executor=self._executor,
@@ -210,7 +210,7 @@ class BigtableDataClient(ClientWithProject, ABC):
         self.transport.close()
         if self._executor:
             self._executor.shutdown(wait=False)
-        CrossSync.wait_sync(self._channel_refresh_tasks, timeout=timeout)
+        _CrossSync_Sync.wait(self._channel_refresh_tasks, timeout=timeout)
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None
@@ -247,7 +247,7 @@ class BigtableDataClient(ClientWithProject, ABC):
             )
             for instance_name, table_name, app_profile_id in instance_list
         ]
-        result_list = CrossSync.gather_partials_sync(
+        result_list = _CrossSync_Sync.gather_partials(
             partial_list, return_exceptions=True, sync_executor=self._executor
         )
         return [r or None for r in result_list]
@@ -278,7 +278,7 @@ class BigtableDataClient(ClientWithProject, ABC):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        sleep_fn = asyncio.sleep if False else self._is_closed.wait
+        sleep_fn = asyncio.sleep if _CrossSync_Sync.is_async else self._is_closed.wait
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )

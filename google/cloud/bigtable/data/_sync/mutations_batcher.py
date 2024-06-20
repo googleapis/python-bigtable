@@ -29,7 +29,7 @@ from google.cloud.bigtable.data._async.mutations_batcher import _FlowControlAsyn
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
-from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.mutations import Mutation
@@ -37,7 +37,7 @@ from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
 
 
-@CrossSync.sync_output(
+@_CrossSync_Sync.sync_output(
     "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher"
 )
 class MutationsBatcher(ABC):
@@ -60,7 +60,7 @@ class MutationsBatcher(ABC):
 
     def __init__(
         self,
-        table: "TableAsync",
+        table: _CrossSync_Sync[TableAsync],
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -96,11 +96,11 @@ class MutationsBatcher(ABC):
         self._retryable_errors: list[type[Exception]] = _get_retryable_errors(
             batch_retryable_errors, table
         )
-        self._closed = threading.Event()
+        self._closed = _CrossSync_Sync.Event()
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = (0, 0)
-        self._flow_control = _FlowControlAsync(
+        self._flow_control = _CrossSync_Sync[_FlowControlAsync](
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
@@ -109,10 +109,14 @@ class MutationsBatcher(ABC):
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        self._flush_timer = CrossSync.create_task_sync(
+        if not _CrossSync_Sync.is_async:
+            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        else:
+            self._sync_executor = None
+        self._flush_timer = _CrossSync_Sync.create_task(
             self._timer_routine, flush_interval, sync_executor=self._sync_executor
         )
-        self._flush_jobs: set[concurrent.futures.Future[None]] = set()
+        self._flush_jobs: set[_CrossSync_Sync.Future[None]] = set()
         self._entries_processed_since_last_raise: int = 0
         self._exceptions_since_last_raise: int = 0
         self._exception_list_limit: int = 10
@@ -121,10 +125,6 @@ class MutationsBatcher(ABC):
             maxlen=self._exception_list_limit
         )
         atexit.register(self._on_exit)
-        if not False:
-            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
-        else:
-            self._sync_executor = None
 
     def _timer_routine(self, interval: float | None) -> None:
         """
@@ -134,7 +134,7 @@ class MutationsBatcher(ABC):
         if not interval or interval <= 0:
             return None
         while not self._closed.is_set():
-            CrossSync.condition_wait_sync(self._closed, timeout=interval)
+            _CrossSync_Sync.condition_wait(self._closed, timeout=interval)
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 
@@ -164,14 +164,14 @@ class MutationsBatcher(ABC):
             or self._staged_bytes >= self._flush_limit_bytes
         ):
             self._schedule_flush()
-            CrossSync.yield_to_event_loop_sync()
+            _CrossSync_Sync.yield_to_event_loop()
 
-    def _schedule_flush(self) -> concurrent.futures.Future[None] | None:
+    def _schedule_flush(self) -> _CrossSync_Sync.Future[None] | None:
         """Update the flush task to include the latest staged entries"""
         if self._staged_entries:
             entries, self._staged_entries = (self._staged_entries, [])
             self._staged_count, self._staged_bytes = (0, 0)
-            new_task = CrossSync.create_task_sync(
+            new_task = _CrossSync_Sync.create_task(
                 self._flush_internal, entries, sync_executor=self._sync_executor
             )
             if not new_task.done():
@@ -188,10 +188,10 @@ class MutationsBatcher(ABC):
           - new_entries: list of RowMutationEntry objects to flush
         """
         in_process_requests: list[
-            concurrent.futures.Future[list[FailedMutationEntryError]]
+            _CrossSync_Sync.Future[list[FailedMutationEntryError]]
         ] = []
         for batch in self._flow_control.add_to_flow(new_entries):
-            batch_task = CrossSync.create_task_sync(
+            batch_task = _CrossSync_Sync.create_task(
                 self._execute_mutate_rows, batch, sync_executor=self._sync_executor
             )
             in_process_requests.append(batch_task)
@@ -214,7 +214,7 @@ class MutationsBatcher(ABC):
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = _MutateRowsOperationAsync(
+            operation = _CrossSync_Sync[_MutateRowsOperationAsync](
                 self._table.client._gapic_client,
                 self._table,
                 batch,
@@ -292,7 +292,7 @@ class MutationsBatcher(ABC):
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        if False:
+        if _CrossSync_Sync.is_async:
             if self._flush_jobs:
                 asyncio.gather(*self._flush_jobs, return_exceptions=True)
             try:
@@ -314,8 +314,8 @@ class MutationsBatcher(ABC):
 
     @staticmethod
     def _wait_for_batch_results(
-        *tasks: concurrent.futures.Future[list[FailedMutationEntryError]]
-        | concurrent.futures.Future[None],
+        *tasks: _CrossSync_Sync.Future[list[FailedMutationEntryError]]
+        | _CrossSync_Sync.Future[None],
     ) -> list[Exception]:
         """
         Takes in a list of futures representing _execute_mutate_rows tasks,
@@ -333,7 +333,7 @@ class MutationsBatcher(ABC):
             return []
         exceptions: list[Exception] = []
         for task in tasks:
-            if False:
+            if _CrossSync_Sync.is_async:
                 task
             try:
                 exc_list = task.result()
@@ -346,7 +346,7 @@ class MutationsBatcher(ABC):
         return exceptions
 
 
-@CrossSync.sync_output(
+@_CrossSync_Sync.sync_output(
     "google.cloud.bigtable.data._sync.mutations_batcher._FlowControl"
 )
 class _FlowControl(ABC):
@@ -374,7 +374,7 @@ class _FlowControl(ABC):
             raise ValueError("max_mutation_count must be greater than 0")
         if self._max_mutation_bytes < 1:
             raise ValueError("max_mutation_bytes must be greater than 0")
-        self._capacity_condition = threading.Condition()
+        self._capacity_condition = _CrossSync_Sync.Condition()
         self._in_flight_mutation_count = 0
         self._in_flight_mutation_bytes = 0
 

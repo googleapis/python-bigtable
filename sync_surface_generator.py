@@ -37,11 +37,11 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
     outside of this autogeneration system are always applied
     """
 
-    def __init__(self, *, name=None, cross_sync_replacements=None, text_replacements=None, drop_methods=None, pass_methods=None, error_methods=None, replace_methods=None):
+    def __init__(self, *, name=None, asyncio_replacements=None, text_replacements=None, drop_methods=None, pass_methods=None, error_methods=None, replace_methods=None):
         """
         Args:
           - name: the name of the class being processed. Just used in exceptions
-          - cross_sync_replacements: CrossSync functionality to replace
+          - asyncio_replacements: asyncio functionality to replace
           - text_replacements: dict of text to replace directly in the source code and docstrings
           - drop_methods: list of method names to drop from the class
           - pass_methods: list of method names to replace with "pass" in the class
@@ -49,21 +49,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
           - replace_methods: dict of method names to replace with custom code
         """
         self.name = name
-        self.cross_sync_replacements = cross_sync_replacements or {
-            "sleep": "time.sleep",
-            "Queue": "queue.Queue",
-            "Condition": "threading.Condition",
-            "Future": "concurrent.futures.Future",
-            "Task": "concurrent.futures.Future",
-            "Event": "threading.Event",
-            "retry_target": "retries.retry_target",
-            "is_async": "False",
-            "gather_partials": "CrossSync.gather_partials_sync",
-            "wait": "CrossSync.wait_sync",
-            "condition_wait": "CrossSync.condition_wait_sync",
-            "create_task": "CrossSync.create_task_sync",
-            "yield_to_event_loop": "CrossSync.yield_to_event_loop_sync",
-        }
+        self.asyncio_replacements = asyncio_replacements or {}
         self.text_replacements = text_replacements or {}
         self.drop_methods = drop_methods or []
         self.pass_methods = pass_methods or []
@@ -115,27 +101,23 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                 if len(parsed.body) > 0:
                     new_body.append(parsed.body[0])
             node.body = new_body
-        # else:
+        else:
             # check if the function contains non-replaced usage of asyncio
-            # func_ast = ast.parse(ast.unparse(node))
-            # for n in ast.walk(func_ast):
-            #     if isinstance(n, ast.Call) \
-            #         and isinstance(n.func, ast.Attribute) \
-            #         and isinstance(n.func.value, ast.Name) \
-            #         and n.func.value.id == "CrossSync" \
-            #         and n.func.attr not in self.cross_sync_replacements:
-            #             path_str = f"{self.name}.{node.name}" if self.name else node.name
-            #             breakpoint()
-            #             raise RuntimeError(
-            #                 f"{path_str} contains unhandled asyncio calls: {n.func.attr}. Add method to drop_methods, pass_methods, or error_methods to handle safely."
-            #             )
+            func_ast = ast.parse(ast.unparse(node))
+            for n in ast.walk(func_ast):
+                if isinstance(n, ast.Call) \
+                    and isinstance(n.func, ast.Attribute) \
+                    and isinstance(n.func.value, ast.Name) \
+                    and n.func.value.id == "asyncio" \
+                    and n.func.attr not in self.asyncio_replacements:
+                        path_str = f"{self.name}.{node.name}" if self.name else node.name
+                        print(f"{path_str} contains unhandled asyncio calls: {n.func.attr}. Add method to drop_methods, pass_methods, or error_methods to handle safely.")
         # remove pytest.mark.asyncio decorator
         if hasattr(node, "decorator_list"):
             # TODO: make generic
             is_asyncio_decorator = lambda d: all(x in ast.dump(d) for x in ["pytest", "mark", "asyncio"])
-            is_cross_sync_decorator = lambda d: all(x in ast.dump(d) for x in ["CrossSync", "sync_output"])
             node.decorator_list = [
-                d for d in node.decorator_list if not is_asyncio_decorator(d) and not is_cross_sync_decorator(d)
+                d for d in node.decorator_list if not is_asyncio_decorator(d)
             ]
 
         # visit string type annotations
@@ -171,10 +153,10 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         if (
             isinstance(node.value, ast.Name)
             and isinstance(node.value.ctx, ast.Load)
-            and node.value.id == "CrossSync"
-            and node.attr in self.cross_sync_replacements
+            and node.value.id == "asyncio"
+            and node.attr in self.asyncio_replacements
         ):
-            replacement = self.cross_sync_replacements[node.attr]
+            replacement = self.asyncio_replacements[node.attr]
             return ast.copy_location(ast.parse(replacement, mode="eval").body, node)
         fixed =  ast.copy_location(
             ast.Attribute(
@@ -266,7 +248,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
 
     def get_imports(self, filename):
         """
-        Get the imports from a file, and do a find-and-replace against cross_sync_replacements
+        Get the imports from a file, and do a find-and-replace against asyncio_replacements
         """
         imports = set()
         with open(filename, "r") as f:
@@ -276,14 +258,14 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                     for alias in node.names:
                         if isinstance(node, ast.Import):
                             # import statments
-                            new_import = self.cross_sync_replacements.get(alias.name, alias.name)
+                            new_import = self.asyncio_replacements.get(alias.name, alias.name)
                             imports.add(ast.parse(f"import {new_import}").body[0])
                         else:
                             # import from statements
                             # break into individual components
                             full_path = f"{node.module}.{alias.name}"
-                            if full_path in self.cross_sync_replacements:
-                                full_path = self.cross_sync_replacements[full_path]
+                            if full_path in self.asyncio_replacements:
+                                full_path = self.asyncio_replacements[full_path]
                             module, name = full_path.rsplit(".", 1)
                             # don't import from same file
                             if module == ".":
@@ -320,6 +302,7 @@ def transform_class(in_obj: Type, **kwargs):
     # find imports
     imports = transformer.get_imports(filename)
     imports.add(ast.parse("from abc import ABC").body[0])
+    imports.add(ast.parse("from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync").body[0])
     # add locals from file, in case they are needed
     if ast_tree.body and isinstance(ast_tree.body[0], ast.ClassDef):
         with open(filename, "r") as f:
@@ -331,68 +314,6 @@ def transform_class(in_obj: Type, **kwargs):
                         ).body[0]
                     )
     return ast_tree.body, imports
-
-
-def transform_from_config(config_dict: dict):
-    # initialize new tree and import list
-    combined_tree = ast.parse("")
-    combined_imports = set()
-    # add new concrete classes to text_replacements
-    global_text_replacements = config_dict.get("text_replacements", {})
-    for class_dict in config_dict["classes"]:
-        if "concrete_path" in class_dict:
-            class_name = class_dict["path"].rsplit(".", 1)[1]
-            global_text_replacements[class_name] = class_dict.pop("concrete_path")
-    # process each class
-    for class_dict in config_dict["classes"]:
-        # convert string class path into class object
-        module_path, class_name = class_dict.pop("path").rsplit(".", 1)
-        class_object = getattr(importlib.import_module(module_path), class_name)
-        # add globals to class_dict
-        class_dict["asyncio_replacements"] = {**config_dict.get("asyncio_replacements", {}), **class_dict.get("asyncio_replacements", {})}
-        class_dict["text_replacements"] = {**global_text_replacements, **class_dict.get("text_replacements", {})}
-        # add class-specific imports
-        for import_str in class_dict.pop("added_imports", []):
-            combined_imports.add(ast.parse(import_str).body[0])
-        # transform class
-        tree_body, imports = transform_class(class_object, **class_dict)
-        # update combined data
-        combined_tree.body.extend(tree_body)
-        combined_imports.update(imports)
-    # add extra imports
-    for import_str in config_dict.get("added_imports", []):
-        combined_imports.add(ast.parse(import_str).body[0])
-    # render tree as string of code
-    import_unique = list(set([ast.unparse(i) for i in combined_imports]))
-    import_unique.sort()
-    google, non_google = [], []
-    for i in import_unique:
-        if "google" in i:
-            google.append(i)
-        else:
-            non_google.append(i)
-    import_str = "\n".join(non_google + [""] + google)
-    # append clean tree
-    header = """# Copyright 2024 Google LLC
-    #
-    # Licensed under the Apache License, Version 2.0 (the "License");
-    # you may not use this file except in compliance with the License.
-    # You may obtain a copy of the License at
-    #
-    #     http://www.apache.org/licenses/LICENSE-2.0
-    #
-    # Unless required by applicable law or agreed to in writing, software
-    # distributed under the License is distributed on an "AS IS" BASIS,
-    # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    # See the License for the specific language governing permissions and
-    # limitations under the License.
-    #
-    # This file is automatically generated by sync_surface_generator.py. Do not edit.
-    """
-    full_code = f"{header}\n\n{import_str}\n\n{ast.unparse(combined_tree)}"
-    full_code = autoflake.fix_code(full_code, remove_all_unused_imports=True)
-    formatted_code = format_str(full_code, mode=FileMode())
-    return formatted_code
 
 
 if __name__ == "__main__":
@@ -425,22 +346,7 @@ if __name__ == "__main__":
         combined_tree = ast.parse("")
         combined_imports = set()
         for async_class in class_map[output_file]:
-            class_dict = {
-                "text_replacements": {
-                    "__anext__": "__next__",
-                    "__aenter__": "__enter__",
-                    "__aexit__": "__exit__",
-                    "__aiter__": "__iter__",
-                    "aclose": "close",
-                    "AsyncIterable": "Iterable",
-                    "AsyncIterator": "Iterator",
-                    "StopAsyncIteration": "StopIteration",
-                    "Awaitable": None,
-                    "CrossSync.Event": "threading.Event",
-                },
-                "autogen_sync_name": async_class.cross_sync_class_name,
-            }
-            tree_body, imports = transform_class(async_class, **class_dict)
+            tree_body, imports = transform_class(async_class, autogen_sync_name=async_class.cross_sync_class_name, text_replacements={"CrossSync": "_CrossSync_Sync"})
             # update combined data
             combined_tree.body.extend(tree_body)
             combined_imports.update(imports)
