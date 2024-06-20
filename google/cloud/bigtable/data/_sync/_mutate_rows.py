@@ -25,9 +25,15 @@ from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
+from google.cloud.bigtable.data._sync.client import Table
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
+from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
+from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
+from google.cloud.bigtable.data.exceptions import _MutateRowsIncomplete
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 
 
 class _MutateRowsOperation:
@@ -73,7 +79,7 @@ class _MutateRowsOperation:
             retry=None,
         )
         self.is_retryable = retries.if_exception_type(
-            *retryable_exceptions, bt_exceptions._MutateRowsIncomplete
+            *retryable_exceptions, _MutateRowsIncomplete
         )
         sleep_generator = retries.exponential_sleep_generator(0.01, 2, 60)
         self._operation = lambda: CrossSync._Sync_Impl.retry_target(
@@ -113,15 +119,11 @@ class _MutateRowsOperation:
                 elif len(exc_list) == 1:
                     cause_exc = exc_list[0]
                 else:
-                    cause_exc = bt_exceptions.RetryExceptionGroup(exc_list)
+                    cause_exc = RetryExceptionGroup(exc_list)
                 entry = self.mutations[idx].entry
-                all_errors.append(
-                    bt_exceptions.FailedMutationEntryError(idx, entry, cause_exc)
-                )
+                all_errors.append(FailedMutationEntryError(idx, entry, cause_exc))
             if all_errors:
-                raise bt_exceptions.MutationsExceptionGroup(
-                    all_errors, len(self.mutations)
-                )
+                raise MutationsExceptionGroup(all_errors, len(self.mutations))
 
     def _run_attempt(self):
         """
@@ -163,7 +165,7 @@ class _MutateRowsOperation:
                 self._handle_entry_error(idx, exc)
             raise
         if self.remaining_indices:
-            raise bt_exceptions._MutateRowsIncomplete
+            raise _MutateRowsIncomplete
 
     def _handle_entry_error(self, idx: int, exc: Exception):
         """
