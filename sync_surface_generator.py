@@ -115,6 +115,17 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         # remove pytest.mark.asyncio decorator
         if hasattr(node, "decorator_list"):
             # TODO: make generic
+            new_list = []
+            for decorator in node.decorator_list:
+                # check for cross_sync decorator
+                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and isinstance(decorator.func.value, ast.Name) and decorator.func.value.id == "CrossSync":
+                    decorator_type = decorator.func.attr
+                    if decorator_type == "rename_sync":
+                        new_name = decorator.args[0].value
+                        node.name = new_name
+                else:
+                    new_list.append(decorator)
+            node.decorator_list = new_list
             is_asyncio_decorator = lambda d: all(x in ast.dump(d) for x in ["pytest", "mark", "asyncio"])
             node.decorator_list = [
                 d for d in node.decorator_list if not is_asyncio_decorator(d)
