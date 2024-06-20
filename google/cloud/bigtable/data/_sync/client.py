@@ -16,7 +16,6 @@
 
 
 from __future__ import annotations
-from abc import ABC
 from functools import partial
 from grpc import Channel
 from typing import Any

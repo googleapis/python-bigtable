@@ -361,7 +361,8 @@ if __name__ == "__main__":
         combined_tree = ast.parse("")
         combined_imports = set()
         for async_class in class_map[output_file]:
-            tree_body, imports = transform_class(async_class, autogen_sync_name=async_class.cross_sync_class_name, text_replacements={"CrossSync": "_CrossSync_Sync"})
+            text_replacements = {"CrossSync": "_CrossSync_Sync", **async_class.cross_sync_replace_symbols}
+            tree_body, imports = transform_class(async_class, autogen_sync_name=async_class.cross_sync_class_name, text_replacements=text_replacements)
             # update combined data
             combined_tree.body.extend(tree_body)
             combined_imports.update(imports)

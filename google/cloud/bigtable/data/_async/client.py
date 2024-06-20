@@ -83,7 +83,10 @@ if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import ShardedQuery
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.BigtableDataClient")
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync.client.BigtableDataClient",
+    replace_symbols={"__aenter__": "__enter__", "__aexit__": "__exit__"}
+)
 class BigtableDataClientAsync(ClientWithProject):
 
     def __init__(
@@ -437,7 +440,10 @@ class BigtableDataClientAsync(ClientWithProject):
         await self._gapic_client.__aexit__(exc_type, exc_val, exc_tb)
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.client.Table")
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync.client.Table",
+    replace_symbols={"AsyncIterable": "Iterable"}
+)
 class TableAsync:
     """
     Main Data API surface
@@ -1262,6 +1268,7 @@ class TableAsync:
             self._register_instance_future.cancel()
         await self.client._remove_instance_registration(self.instance_id, self)
 
+    @CrossSync.rename_sync("__enter__")
     async def __aenter__(self):
         """
         Implement async context manager protocol
@@ -1273,6 +1280,7 @@ class TableAsync:
             await self._register_instance_future
         return self
 
+    @CrossSync.rename_sync("__exit__")
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Implement async context manager protocol

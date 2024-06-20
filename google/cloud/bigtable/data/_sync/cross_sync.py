@@ -48,7 +48,8 @@ class CrossSync(metaclass=_AsyncGetAttr):
         return decorator
 
     @classmethod
-    def sync_output(cls, sync_path):
+    def sync_output(cls, sync_path, replace_symbols=None):
+        replace_symbols = replace_symbols or {}
         # return the async class unchanged
         def decorator(async_cls):
             cls.generated_replacements[async_cls] = sync_path
@@ -56,6 +57,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
             async_cls.cross_sync_import_path = sync_path
             async_cls.cross_sync_class_name = sync_path.rsplit('.', 1)[-1]
             async_cls.cross_sync_file_path = "/".join(sync_path.split(".")[:-1]) + ".py"
+            async_cls.cross_sync_replace_symbols = replace_symbols
             return async_cls
         return decorator
 
