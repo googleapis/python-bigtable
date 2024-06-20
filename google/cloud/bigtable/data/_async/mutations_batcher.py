@@ -188,7 +188,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: "TableAsync",
+        table: CrossSync[TableAsync],
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -229,7 +229,7 @@ class MutationsBatcherAsync:
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
-        self._flow_control = _FlowControlAsync(
+        self._flow_control = CrossSync[_FlowControlAsync](
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
@@ -344,7 +344,7 @@ class MutationsBatcherAsync:
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = _MutateRowsOperationAsync(
+            operation = CrossSync[_MutateRowsOperationAsync](
                 self._table.client._gapic_client,
                 self._table,
                 batch,
@@ -405,10 +405,12 @@ class MutationsBatcherAsync:
                 entry_count=entry_count,
             )
 
+    @CrossSync.rename_sync("__enter__")
     async def __aenter__(self):
         """For context manager API"""
         return self
 
+    @CrossSync.rename_sync("__exit__")
     async def __aexit__(self, exc_type, exc, tb):
         """For context manager API"""
         await self.close()

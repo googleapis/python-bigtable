@@ -18,8 +18,12 @@ import sys
 import concurrent.futures
 import google.api_core.retry as retries
 
+class _AsyncGetAttr(type):
 
-class CrossSync:
+    def __getitem__(cls, item):
+        return item
+
+class CrossSync(metaclass=_AsyncGetAttr):
 
     SyncImports = False
     is_async = True
@@ -31,11 +35,19 @@ class CrossSync:
     Task = asyncio.Task
     Event = asyncio.Event
     retry_target = retries.retry_target_async
+    generated_replacements = {}
+
+    @staticmethod
+    def rename_sync(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
 
     @classmethod
     def sync_output(cls, sync_path):
         # return the async class unchanged
         def decorator(async_cls):
+            cls.generated_replacements[async_cls] = sync_path
             async_cls.cross_sync_enabled = True
             async_cls.cross_sync_import_path = sync_path
             async_cls.cross_sync_class_name = sync_path.rsplit('.', 1)[-1]
