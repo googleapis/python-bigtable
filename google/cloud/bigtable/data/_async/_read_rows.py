@@ -47,7 +47,11 @@ class _ResetRow(Exception):
         self.chunk = chunk
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation")
+@CrossSync.sync_output("google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
+    replace_symbols={
+        "AsyncIterable": "Iterable", "StopAsyncIteration": "StopIteration", "Awaitable": None, "TableAsync": "Table",
+    }
+)
 class _ReadRowsOperationAsync:
     """
     ReadRowsOperation handles the logic of merging chunks from a ReadRowsResponse stream

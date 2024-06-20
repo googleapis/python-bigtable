@@ -16,15 +16,12 @@
 
 
 from __future__ import annotations
-from typing import AsyncIterable
-from typing import Awaitable
 from typing import Sequence
 
 from google.api_core import retry as retries
 from google.api_core.retry import exponential_sleep_generator
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._read_rows import _ResetRow
-from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data.exceptions import InvalidChunk
 from google.cloud.bigtable.data.exceptions import _RowSetComplete
 from google.cloud.bigtable.data.read_rows_query import ReadRowsQuery
@@ -63,7 +60,7 @@ class _ReadRowsOperation:
     def __init__(
         self,
         query: ReadRowsQuery,
-        table: "TableAsync",
+        table: "Table",
         operation_timeout: float,
         attempt_timeout: float,
         retryable_exceptions: Sequence[type[Exception]] = (),
@@ -86,7 +83,7 @@ class _ReadRowsOperation:
         self._last_yielded_row_key: bytes | None = None
         self._remaining_count: int | None = self.request.rows_limit or None
 
-    def start_operation(self) -> AsyncIterable[Row]:
+    def start_operation(self) -> Iterable[Row]:
         """Start the read_rows operation, retrying on retryable errors."""
         return retries.retry_target_stream_async(
             self._read_rows_attempt,
@@ -96,7 +93,7 @@ class _ReadRowsOperation:
             exception_factory=_helpers._retry_exception_factory,
         )
 
-    def _read_rows_attempt(self) -> AsyncIterable[Row]:
+    def _read_rows_attempt(self) -> Iterable[Row]:
         """
         Attempt a single read_rows rpc call.
         This function is intended to be wrapped by retry logic,
@@ -125,8 +122,8 @@ class _ReadRowsOperation:
         return self.merge_rows(chunked_stream)
 
     def chunk_stream(
-        self, stream: Awaitable[AsyncIterable[ReadRowsResponsePB]]
-    ) -> AsyncIterable[ReadRowsResponsePB.CellChunk]:
+        self, stream: Iterable[ReadRowsResponsePB]
+    ) -> Iterable[ReadRowsResponsePB.CellChunk]:
         """process chunks out of raw read_rows stream"""
         for resp in stream:
             resp = resp._pb
@@ -160,7 +157,7 @@ class _ReadRowsOperation:
                     current_key = None
 
     @staticmethod
-    def merge_rows(chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None):
+    def merge_rows(chunks: Iterable[ReadRowsResponsePB.CellChunk] | None):
         """Merge chunks into rows"""
         if chunks is None:
             return
@@ -168,7 +165,7 @@ class _ReadRowsOperation:
         while True:
             try:
                 c = it.__anext__()
-            except StopAsyncIteration:
+            except StopIteration:
                 return
             row_key = c.row_key
             if not row_key:
@@ -248,7 +245,7 @@ class _ReadRowsOperation:
                 ):
                     raise InvalidChunk("reset row with data")
                 continue
-            except StopAsyncIteration:
+            except StopIteration:
                 raise InvalidChunk("premature end of stream")
 
     @staticmethod
