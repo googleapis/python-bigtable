@@ -22,14 +22,12 @@ import functools
 from google.api_core import exceptions as core_exceptions
 from google.api_core import retry as retries
 from google.cloud.bigtable.data._async._mutate_rows import _EntryWithProto
-from google.cloud.bigtable.data._async.client import TableAsync
 from google.cloud.bigtable.data._helpers import _attempt_timeout_generator
 from google.cloud.bigtable.data._helpers import _make_metadata
 from google.cloud.bigtable.data._helpers import _retry_exception_factory
 from google.cloud.bigtable.data._sync.cross_sync import _CrossSync_Sync
 from google.cloud.bigtable.data.mutations import RowMutationEntry
 from google.cloud.bigtable.data.mutations import _MUTATE_ROWS_REQUEST_MUTATION_LIMIT
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 
 
 class _MutateRowsOperation:
@@ -45,8 +43,8 @@ class _MutateRowsOperation:
 
     def __init__(
         self,
-        gapic_client: "BigtableAsyncClient",
-        table: "TableAsync",
+        gapic_client: "BigtableClient",
+        table: "Table",
         mutation_entries: list["RowMutationEntry"],
         operation_timeout: float,
         attempt_timeout: float | None,

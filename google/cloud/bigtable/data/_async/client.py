@@ -85,7 +85,11 @@ if TYPE_CHECKING:
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
-    replace_symbols={"__aenter__": "__enter__", "__aexit__": "__exit__"}
+    replace_symbols={
+        "__aenter__": "__enter__", "__aexit__": "__exit__", 
+        "TableAsync": "Table", "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcIOTransport",
+        "BigtableAsyncClient": "BigtableClient", "AsyncPooledChannel": "PooledChannel"
+    }
 )
 class BigtableDataClientAsync(ClientWithProject):
 
@@ -442,7 +446,11 @@ class BigtableDataClientAsync(ClientWithProject):
 
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.client.Table",
-    replace_symbols={"AsyncIterable": "Iterable"}
+    replace_symbols={
+        "AsyncIterable": "Iterable",
+        "MutationsBatcherAsync": "MutationsBatcher",
+        "BigtableDataClientAsync": "BigtableDataClient",
+    }
 )
 class TableAsync:
     """
@@ -614,7 +622,7 @@ class TableAsync:
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
 
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = CrossSync[_ReadRowsOperationAsync](
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1127,7 +1135,7 @@ class TableAsync:
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
 
-        operation = _MutateRowsOperationAsync(
+        operation = CrossSync[_MutateRowsOperationAsync](
             self.client._gapic_client,
             self,
             mutation_entries,

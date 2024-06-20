@@ -39,9 +39,6 @@ from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async.client import BigtableDataClientAsync
-from google.cloud.bigtable.data._async.client import TableAsync
-from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
 from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
@@ -58,15 +55,8 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
 from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel as AsyncPooledChannel,
-)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
@@ -112,7 +102,7 @@ class BigtableDataClient(ClientWithProject):
           - ValueError if pool_size is less than 1
         """
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = PooledBigtableGrpcAsyncIOTransport.with_fixed_size(pool_size)
+        transport = PooledBigtableGrpcIOTransport.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -133,7 +123,7 @@ class BigtableDataClient(ClientWithProject):
             project=project,
             client_options=client_options,
         )
-        self._gapic_client = BigtableAsyncClient(
+        self._gapic_client = BigtableClient(
             transport=transport_str,
             credentials=credentials,
             client_options=client_options,
@@ -141,7 +131,7 @@ class BigtableDataClient(ClientWithProject):
         )
         self._is_closed = asyncio.Event()
         self.transport = cast(
-            PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
+            PooledBigtableGrpcIOTransport, self._gapic_client.transport
         )
         self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
@@ -158,7 +148,7 @@ class BigtableDataClient(ClientWithProject):
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.transport._grpc_channel = AsyncPooledChannel(
+            self.transport._grpc_channel = PooledChannel(
                 pool_size=pool_size, host=self._emulator_host, insecure=True
             )
             self.transport._stubs = {}
@@ -304,7 +294,7 @@ class BigtableDataClient(ClientWithProject):
             next_refresh = random.uniform(refresh_interval_min, refresh_interval_max)
             next_sleep = next_refresh - (time.monotonic() - start_timestamp)
 
-    def _register_instance(self, instance_id: str, owner: TableAsync) -> None:
+    def _register_instance(self, instance_id: str, owner: Table) -> None:
         """
         Registers an instance with the client, and warms the channel pool
         for the instance
@@ -331,9 +321,7 @@ class BigtableDataClient(ClientWithProject):
             else:
                 self._start_background_channel_refresh()
 
-    def _remove_instance_registration(
-        self, instance_id: str, owner: TableAsync
-    ) -> bool:
+    def _remove_instance_registration(self, instance_id: str, owner: Table) -> bool:
         """
         Removes an instance from the client's registered instances, to prevent
         warming new channels for the instance
@@ -361,10 +349,10 @@ class BigtableDataClient(ClientWithProject):
         except KeyError:
             return False
 
-    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> TableAsync:
+    def get_table(self, instance_id: str, table_id: str, *args, **kwargs) -> Table:
         """
         Returns a table instance for making data API requests. All arguments are passed
-        directly to the TableAsync constructor.
+        directly to the Table constructor.
 
         Args:
             instance_id: The Bigtable instance ID to associate with this client.
@@ -396,7 +384,7 @@ class BigtableDataClient(ClientWithProject):
                 encountered during all other operations.
                 Defaults to 4 (DeadlineExceeded) and 14 (ServiceUnavailable)
         """
-        return TableAsync(self, instance_id, table_id, *args, **kwargs)
+        return Table(self, instance_id, table_id, *args, **kwargs)
 
     def __enter__(self):
         self._start_background_channel_refresh()
@@ -417,7 +405,7 @@ class Table:
 
     def __init__(
         self,
-        client: BigtableDataClientAsync,
+        client: BigtableDataClient,
         instance_id: str,
         table_id: str,
         app_profile_id: str | None = None,
@@ -545,7 +533,7 @@ class Table:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -572,7 +560,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = _CrossSync_Sync[_ReadRowsOperationAsync](
             query,
             self,
             operation_timeout=operation_timeout,
@@ -598,7 +586,7 @@ class Table:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -647,7 +635,7 @@ class Table:
         Failed requests within operation_timeout will be retried based on the
         retryable_errors list until operation_timeout is reached.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -705,7 +693,7 @@ class Table:
         results = await table.read_rows_sharded(shard_queries)
         ```
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -788,7 +776,7 @@ class Table:
         Return a boolean indicating whether the specified row exists in the table.
         uses the filters: chain(limit cells per row = 1, strip value)
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -844,7 +832,7 @@ class Table:
         RowKeySamples is simply a type alias for list[tuple[bytes, int]]; a list of
             row_keys, along with offset positions in the table
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -907,14 +895,14 @@ class Table:
         batch_attempt_timeout: float | None | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
         batch_retryable_errors: Sequence[type[Exception]]
         | TABLE_DEFAULT = TABLE_DEFAULT.MUTATE_ROWS,
-    ) -> MutationsBatcherAsync:
+    ) -> MutationsBatcher:
         """
         Returns a new mutations batcher instance.
 
         Can be used to iteratively add mutations that are flushed as a group,
         to avoid excess network calls
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -933,9 +921,9 @@ class Table:
           - batch_retryable_errors: a list of errors that will be retried if encountered.
               Defaults to the Table's default_mutate_rows_retryable_errors.
         Returns:
-            - a MutationsBatcherAsync context manager that can batch requests
+            - a MutationsBatcher context manager that can batch requests
         """
-        return MutationsBatcherAsync(
+        return MutationsBatcher(
             self,
             flush_interval=flush_interval,
             flush_limit_mutation_count=flush_limit_mutation_count,
@@ -966,7 +954,7 @@ class Table:
         Idempotent operations (i.e, all mutations have an explicit timestamp) will be
         retried on server failure. Non-idempotent operations will not.
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1043,7 +1031,7 @@ class Table:
         will be retried on failure. Non-idempotent will not, and will reported in a
         raised exception group
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1069,7 +1057,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        operation = _MutateRowsOperationAsync(
+        operation = _CrossSync_Sync[_MutateRowsOperationAsync](
             self.client._gapic_client,
             self,
             mutation_entries,
@@ -1093,7 +1081,7 @@ class Table:
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:
@@ -1164,7 +1152,7 @@ class Table:
 
         Non-idempotent operation: will not be retried
 
-        Warning: BigtableDataClientAsync is currently in preview, and is not
+        Warning: BigtableDataClient is currently in preview, and is not
         yet recommended for production use.
 
         Args:

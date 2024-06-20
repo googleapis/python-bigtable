@@ -49,7 +49,13 @@ class _EntryWithProto:
     proto: types_pb.MutateRowsRequest.Entry
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation")
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync._mutate_rows._MutateRowsOperation",
+    replace_symbols={
+        "BigtableAsyncClient": "BigtableClient",
+        "TableAsync": "Table",
+    }
+)
 class _MutateRowsOperationAsync:
     """
     MutateRowsOperation manages the logic of sending a set of row mutations,
