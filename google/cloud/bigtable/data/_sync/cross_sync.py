@@ -14,8 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence
-from typing_extensions import TypeAlias
+from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence, TYPE_CHECKING
 
 import asyncio
 import sys
@@ -24,6 +23,9 @@ import google.api_core.retry as retries
 import time
 import threading
 import queue
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeAlias
 
 T = TypeVar("T")
 
