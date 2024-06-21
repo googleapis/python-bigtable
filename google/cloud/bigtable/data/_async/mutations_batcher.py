@@ -284,7 +284,7 @@ class MutationsBatcherAsync:
             return None
         while not self._closed.is_set():
             # wait until interval has passed, or until closed
-            await CrossSync.event_wait(self._closed, timeout=interval)
+            await CrossSync.event_wait(self._closed, timeout=interval, async_break_early=False)
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 

@@ -552,6 +552,7 @@ class TestMutationsBatcherAsync:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     async def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
+        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
         with mock.patch.object(
             self._get_target_class(), "_schedule_flush"
         ) as flush_mock:
@@ -559,12 +560,7 @@ class TestMutationsBatcherAsync:
             async with self._make_one(flush_interval=expected_sleep) as instance:
                 loop_num = 3
                 instance._staged_entries = [mock.Mock()] * num_staged
-                # mock different method depending on sync vs async
-                if self.is_async():
-                    sleep_obj, sleep_method = asyncio, "wait_for"
-                else:
-                    sleep_obj, sleep_method = instance._closed, "wait"
-                with mock.patch.object(sleep_obj, sleep_method) as sleep_mock:
+                with mock.patch.object(CrossSync, "event_wait") as sleep_mock:
                     sleep_mock.side_effect = [None] * loop_num + [TabError("expected")]
                     with pytest.raises(TabError):
                         await self._get_target_class()._timer_routine(
