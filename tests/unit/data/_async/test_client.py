@@ -1333,8 +1333,10 @@ class TestTableAsync:
         if is_stream:
             retry_fn += "_stream"
         if self.is_async:
-            retry_fn += "_async"
-        with mock.patch(f"google.api_core.retry.{retry_fn}") as retry_fn_mock:
+            retry_fn = f"CrossSync.{retry_fn}"
+        else:
+            retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
+        with mock.patch(f"google.cloud.bigtable.data._sync.cross_sync.{retry_fn}") as retry_fn_mock:
             async with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")
                 expected_predicate = lambda a: a in expected_retryables  # noqa
