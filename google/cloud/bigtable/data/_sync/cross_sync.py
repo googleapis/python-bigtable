@@ -163,6 +163,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
         """
         await asyncio.sleep(0)
 
+
     class _Sync_Impl(metaclass=_SyncGetAttr):
         is_async = False
 
