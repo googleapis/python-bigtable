@@ -106,6 +106,11 @@ class MutationsBatcher:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
+        self._sync_executor = (
+            concurrent.futures.ThreadPoolExecutor(max_workers=8)
+            if not CrossSync._Sync_Impl.is_async
+            else None
+        )
         self._flush_timer = CrossSync._Sync_Impl.create_task(
             self._timer_routine, flush_interval, sync_executor=self._sync_executor
         )
@@ -118,16 +123,6 @@ class MutationsBatcher:
             maxlen=self._exception_list_limit
         )
         atexit.register(self._on_exit)
-
-    @property
-    def _sync_executor(self) -> concurrent.futures.ThreadPoolExecutor:
-        if CrossSync._Sync_Impl.is_async:
-            raise AttributeError("sync_executor is not available in async mode")
-        if not hasattr(self, "_sync_executor_instance"):
-            self._sync_executor_instance = concurrent.futures.ThreadPoolExecutor(
-                max_workers=8
-            )
-        return self._sync_executor_instance
 
     def _timer_routine(self, interval: float | None) -> None:
         """
@@ -302,7 +297,7 @@ class MutationsBatcher:
                 self._flush_timer
             except asyncio.CancelledError:
                 pass
-        else:
+        if self._sync_executor:
             with self._sync_executor:
                 self._sync_executor.shutdown(wait=True)
         atexit.unregister(self._on_exit)
