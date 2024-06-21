@@ -37,14 +37,7 @@ from functools import partial
 from grpc import Channel
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
-from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledBigtableGrpcAsyncIOTransport,
-)
-from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
-    PooledChannel as AsyncPooledChannel,
-)
+from google.cloud.bigtable_v2.services.bigtable.transports.base import DEFAULT_CLIENT_INFO
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
@@ -52,7 +45,6 @@ from google.api_core import retry as retries
 from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.api_core.exceptions import Aborted
-from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 
 import google.auth.credentials
 import google.auth._default
@@ -67,8 +59,7 @@ from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
@@ -77,6 +68,29 @@ from google.cloud.bigtable.data.row_filters import RowFilterChain
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+if CrossSync.is_async:
+    from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
+    from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+    from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledBigtableGrpcAsyncIOTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
+        PooledChannel as AsyncPooledChannel,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+else:
+    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+    from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
+    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledBigtableGrpcTransport,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+        PooledChannel,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+    from typing import Iterable
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -87,7 +101,7 @@ if TYPE_CHECKING:
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
     replace_symbols={
         "__aenter__": "__enter__", "__aexit__": "__exit__", 
-        "TableAsync": "Table", "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcIOTransport",
+        "TableAsync": "Table", "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
         "BigtableAsyncClient": "BigtableClient", "AsyncPooledChannel": "PooledChannel"
     }
 )
@@ -946,7 +960,7 @@ class TableAsync:
             )
             return [(s.row_key, s.offset_bytes) async for s in results]
 
-        return await retries.retry_target_async(
+        return await CrossSync.retry_target(
             execute_rpc,
             predicate,
             sleep_generator,
@@ -1079,7 +1093,7 @@ class TableAsync:
             metadata=_helpers._make_metadata(self.table_name, self.app_profile_id),
             retry=None,
         )
-        return await retries.retry_target_async(
+        return await CrossSync.retry_target(
             target,
             predicate,
             sleep_generator,

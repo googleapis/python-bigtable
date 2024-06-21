@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
 from typing_extensions import TypeAlias
 
 import asyncio
@@ -48,7 +50,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
     Task: TypeAlias = asyncio.Task
     Event: TypeAlias = asyncio.Event
 
-    generated_replacements = {}
+    generated_replacements: dict[type, str] = {}
 
     @staticmethod
     def rename_sync(*args, **kwargs):
@@ -143,7 +145,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
         Task:TypeAlias = concurrent.futures.Future
         Event:TypeAlias = threading.Event
 
-        generated_replacements = {}
+        generated_replacements: dict[type, str] = {}
 
         @staticmethod
         def wait(futures, timeout=None):

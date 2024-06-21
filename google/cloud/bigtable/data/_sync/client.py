@@ -19,6 +19,7 @@ from __future__ import annotations
 from functools import partial
 from grpc import Channel
 from typing import Any
+from typing import Iterable
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -44,6 +45,7 @@ from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 from google.cloud.bigtable.data.mutations import Mutation
@@ -55,8 +57,17 @@ from google.cloud.bigtable.data.row_filters import CellsRowLimitFilter
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import RowFilterChain
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
-from google.cloud.bigtable_v2.services.bigtable.async_client import DEFAULT_CLIENT_INFO
+from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
+from google.cloud.bigtable_v2.services.bigtable.transports.base import (
+    DEFAULT_CLIENT_INFO,
+)
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    PooledBigtableGrpcTransport,
+)
+from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    PooledChannel,
+)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR
@@ -102,7 +113,7 @@ class BigtableDataClient(ClientWithProject):
           - ValueError if pool_size is less than 1
         """
         transport_str = f"bt-{self._client_version()}-{pool_size}"
-        transport = PooledBigtableGrpcIOTransport.with_fixed_size(pool_size)
+        transport = PooledBigtableGrpcTransport.with_fixed_size(pool_size)
         BigtableClientMeta._transport_registry[transport_str] = transport
         client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = self._client_version()
@@ -130,9 +141,7 @@ class BigtableDataClient(ClientWithProject):
             client_info=client_info,
         )
         self._is_closed = asyncio.Event()
-        self.transport = cast(
-            PooledBigtableGrpcIOTransport, self._gapic_client.transport
-        )
+        self.transport = cast(PooledBigtableGrpcTransport, self._gapic_client.transport)
         self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
@@ -877,7 +886,7 @@ class Table:
             )
             return [(s.row_key, s.offset_bytes) for s in results]
 
-        return retries.retry_target_async(
+        return CrossSync._Sync_Impl.retry_target(
             execute_rpc,
             predicate,
             sleep_generator,
@@ -1004,7 +1013,7 @@ class Table:
             metadata=_helpers._make_metadata(self.table_name, self.app_profile_id),
             retry=None,
         )
-        return retries.retry_target_async(
+        return CrossSync._Sync_Impl.retry_target(
             target,
             predicate,
             sleep_generator,
