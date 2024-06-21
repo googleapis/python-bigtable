@@ -192,7 +192,7 @@ class BigtableDataClientAsync(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
         )
-        self._is_closed = asyncio.Event()
+        self._is_closed = CrossSync.Event()
         self.transport = cast(
             PooledBigtableGrpcAsyncIOTransport, self._gapic_client.transport
         )
@@ -202,7 +202,7 @@ class BigtableDataClientAsync(ClientWithProject):
         # only remove instance from _active_instances when all associated tables remove it
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._channel_refresh_tasks: list[CrossSync.Task[None]] = []
         self._executor = (
             concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
         )

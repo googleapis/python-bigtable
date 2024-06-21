@@ -140,12 +140,12 @@ class BigtableDataClient(ClientWithProject):
             client_options=client_options,
             client_info=client_info,
         )
-        self._is_closed = asyncio.Event()
+        self._is_closed = CrossSync._Sync_Impl.Event()
         self.transport = cast(PooledBigtableGrpcTransport, self._gapic_client.transport)
         self._active_instances: Set[_helpers._WarmedInstanceKey] = set()
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
-        self._channel_refresh_tasks: list[asyncio.Task[None]] = []
+        self._channel_refresh_tasks: list[CrossSync._Sync_Impl.Task[None]] = []
         self._executor = (
             concurrent.futures.ThreadPoolExecutor()
             if not CrossSync._Sync_Impl.is_async
@@ -191,6 +191,8 @@ class BigtableDataClient(ClientWithProject):
             and (not self._emulator_host)
             and (not self._is_closed.is_set())
         ):
+            if CrossSync._Sync_Impl.is_async:
+                asyncio.get_running_loop()
             for channel_idx in range(self.transport.pool_size):
                 refresh_task = CrossSync._Sync_Impl.create_task(
                     self._manage_channel,
@@ -212,6 +214,7 @@ class BigtableDataClient(ClientWithProject):
         if self._executor:
             self._executor.shutdown(wait=False)
         CrossSync._Sync_Impl.wait(self._channel_refresh_tasks, timeout=timeout)
+        self._channel_refresh_tasks = []
 
     def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None

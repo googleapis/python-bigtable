@@ -131,7 +131,7 @@ class MutationsBatcher:
         if not interval or interval <= 0:
             return None
         while not self._closed.is_set():
-            CrossSync._Sync_Impl.condition_wait(self._closed, timeout=interval)
+            CrossSync._Sync_Impl.event_wait(self._closed, timeout=interval)
             if not self._closed.is_set() and self._staged_entries:
                 self._schedule_flush()
 
@@ -289,8 +289,7 @@ class MutationsBatcher:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        CrossSync._Sync_Impl.wait(self._flush_jobs)
-        CrossSync._Sync_Impl.wait(self._flush_timer)
+        CrossSync._Sync_Impl.wait([*self._flush_jobs, self._flush_timer])
         if self._sync_executor:
             with self._sync_executor:
                 self._sync_executor.shutdown(wait=True)
