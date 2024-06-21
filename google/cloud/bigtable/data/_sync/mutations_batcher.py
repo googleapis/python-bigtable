@@ -18,7 +18,6 @@
 from __future__ import annotations
 from collections import deque
 from typing import Sequence
-import asyncio
 import atexit
 import concurrent.futures
 import warnings
@@ -290,13 +289,8 @@ class MutationsBatcher:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        if CrossSync._Sync_Impl.is_async:
-            if self._flush_jobs:
-                asyncio.gather(*self._flush_jobs, return_exceptions=True)
-            try:
-                self._flush_timer
-            except asyncio.CancelledError:
-                pass
+        CrossSync._Sync_Impl.wait(self._flush_jobs)
+        CrossSync._Sync_Impl.wait(self._flush_timer)
         if self._sync_executor:
             with self._sync_executor:
                 self._sync_executor.shutdown(wait=True)

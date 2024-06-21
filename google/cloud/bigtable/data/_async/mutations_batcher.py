@@ -450,14 +450,8 @@ class MutationsBatcherAsync:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        if CrossSync.is_async:
-            # flush remaining tasks
-            if self._flush_jobs:
-                await asyncio.gather(*self._flush_jobs, return_exceptions=True)
-            try:
-                await self._flush_timer
-            except asyncio.CancelledError:
-                pass
+        await CrossSync.wait(self._flush_jobs)
+        await CrossSync.wait(self._flush_timer)
         # shut down executor
         if self._sync_executor:
             with self._sync_executor:
