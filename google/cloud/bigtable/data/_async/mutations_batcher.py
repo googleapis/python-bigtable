@@ -14,8 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Sequence, TYPE_CHECKING
-import asyncio
+from typing import Sequence, TYPE_CHECKING
 import atexit
 import warnings
 from collections import deque
@@ -38,12 +37,15 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 
 if TYPE_CHECKING:
+    from google.cloud.bigtable.data.mutations import RowMutationEntry
+
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
     else:
-        from google.cloud.bigtable.data._sync.client import Table
-        from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.data.mutations import RowMutationEntry
+        from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
+        from google.cloud.bigtable.data._sync._mutate_rows import (  # noqa: F401
+            _MutateRowsOperation,
+        )
 
 
 @CrossSync.sync_output(

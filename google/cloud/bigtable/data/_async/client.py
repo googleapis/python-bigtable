@@ -28,7 +28,6 @@ from typing import (
 import asyncio
 import time
 import warnings
-import sys
 import random
 import os
 import concurrent.futures
@@ -86,17 +85,25 @@ if CrossSync.is_async:
         BigtableAsyncClient,
     )
 else:
-    from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
-    from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
-    from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    from google.cloud.bigtable.data._sync._mutate_rows import (  # noqa: F401
+        _MutateRowsOperation,
+    )
+    from google.cloud.bigtable.data._sync.mutations_batcher import (  # noqa: F401
+        MutationsBatcher,
+    )
+    from google.cloud.bigtable.data._sync._read_rows import (  # noqa: F401
+        _ReadRowsOperation,
+    )
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
         PooledBigtableGrpcTransport,
     )
-    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (
+    from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc import (  # noqa: F401
         PooledChannel,
     )
-    from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
-    from typing import Iterable
+    from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
+        BigtableClient,
+    )
+    from typing import Iterable  # noqa: F401
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data._helpers import RowKeySamples
@@ -348,7 +355,9 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
-            await CrossSync.event_wait(self._is_closed, next_sleep, async_break_early=False)
+            await CrossSync.event_wait(
+                self._is_closed, next_sleep, async_break_early=False
+            )
             if self._is_closed.is_set():
                 break
             # prepare new channel for use

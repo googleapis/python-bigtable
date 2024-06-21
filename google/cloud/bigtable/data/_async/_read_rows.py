@@ -42,8 +42,8 @@ if TYPE_CHECKING:
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
     else:
-        from google.cloud.bigtable.data._sync.client import Table
-        from typing import Iterable
+        from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
+        from typing import Iterable  # noqa: F401
 
 
 class _ResetRow(Exception):

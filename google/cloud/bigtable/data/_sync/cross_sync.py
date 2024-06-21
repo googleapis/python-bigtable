@@ -82,7 +82,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
     ):
         """
         abstraction over asyncio.gather, but with a set of partial functions instead
-        of coroutines, to work with sync functions. 
+        of coroutines, to work with sync functions.
         To use gather with a set of futures instead of partials, use CrpssSync.wait
 
         In the async version, the partials are expected to return an awaitable object. Patials

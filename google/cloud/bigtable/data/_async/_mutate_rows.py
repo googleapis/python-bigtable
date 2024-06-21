@@ -43,8 +43,10 @@ if TYPE_CHECKING:
             BigtableAsyncClient,
         )
     else:
-        from google.cloud.bigtable.data._sync.client import Table
-        from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+        from google.cloud.bigtable.data._sync.client import Table  # noqa: F401
+        from google.cloud.bigtable_v2.services.bigtable.client import (  # noqa: F401
+            BigtableClient,
+        )
 
 
 @dataclass
