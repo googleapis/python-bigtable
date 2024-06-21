@@ -333,6 +333,7 @@ class TestBigtableDataClientAsync:
         test ping and warm with mocked asyncio.gather
         """
         from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
         client_mock = mock.Mock()
         client_mock._execute_ping_and_warms = (
             lambda *args: self._get_target_class()._execute_ping_and_warms(
@@ -1044,6 +1045,7 @@ class TestBigtableDataClientAsync:
     @pytest.mark.asyncio
     async def test_close_with_timeout(self):
         from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
         pool_size = 7
         expected_timeout = 19
         client = self._make_client(project="project-id", pool_size=pool_size)
@@ -1328,7 +1330,9 @@ class TestTableAsync:
             retry_fn = f"CrossSync.{retry_fn}"
         else:
             retry_fn = f"CrossSync._Sync_Impl.{retry_fn}"
-        with mock.patch(f"google.cloud.bigtable.data._sync.cross_sync.{retry_fn}") as retry_fn_mock:
+        with mock.patch(
+            f"google.cloud.bigtable.data._sync.cross_sync.{retry_fn}"
+        ) as retry_fn_mock:
             async with self._make_client() as client:
                 table = client.get_table("instance-id", "table-id")
                 expected_predicate = lambda a: a in expected_retryables  # noqa

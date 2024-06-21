@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+from typing import TypeVar, Any, Awaitable, Callable, Coroutine, Sequence
 from typing_extensions import TypeAlias
 
 import asyncio
@@ -23,6 +24,8 @@ import google.api_core.retry as retries
 import time
 import threading
 import queue
+
+T = TypeVar("T")
 
 
 class _AsyncGetAttr(type):
@@ -59,7 +62,12 @@ class CrossSync(metaclass=_AsyncGetAttr):
         return decorator
 
     @classmethod
-    def sync_output(cls, sync_path, replace_symbols=None, mypy_ignore=None):
+    def sync_output(
+        cls,
+        sync_path: str,
+        replace_symbols: dict["str", "str"] | None = None,
+        mypy_ignore: list[str] | None = None,
+    ):
         replace_symbols = replace_symbols or {}
         mypy_ignore = mypy_ignore or []
 
@@ -78,8 +86,10 @@ class CrossSync(metaclass=_AsyncGetAttr):
 
     @staticmethod
     async def gather_partials(
-        partial_list, return_exceptions=False, sync_executor=None
-    ):
+        partial_list: Sequence[Callable[[], Awaitable[T]]],
+        return_exceptions: bool = False,
+        sync_executor: concurrent.futures.ThreadPoolExecutor | None = None,
+    ) -> list[T | BaseException]:
         """
         abstraction over asyncio.gather, but with a set of partial functions instead
         of coroutines, to work with sync functions.
@@ -101,16 +111,23 @@ class CrossSync(metaclass=_AsyncGetAttr):
         )
 
     @staticmethod
-    async def wait(futures, timeout=None):
+    async def wait(
+        futures: Sequence[CrossSync.Future[T]], timeout: float | None = None
+    ) -> tuple[set[CrossSync.Future[T]], set[CrossSync.Future[T]]]:
         """
         abstraction over asyncio.wait
+
+        Return:
+            - a tuple of (done, pending) sets of futures
         """
         if not futures:
             return set(), set()
         return await asyncio.wait(futures, timeout=timeout)
 
     @staticmethod
-    async def condition_wait(condition, timeout=None):
+    async def condition_wait(
+        condition: CrossSync.Condition, timeout: float | None = None
+    ) -> bool:
         """
         abstraction over asyncio.Condition.wait
 
@@ -123,7 +140,11 @@ class CrossSync(metaclass=_AsyncGetAttr):
             return False
 
     @staticmethod
-    async def event_wait(event, timeout=None, async_break_early=True):
+    async def event_wait(
+        event: CrossSync.Event,
+        timeout: float | None = None,
+        async_break_early: bool = True,
+    ) -> None:
         """
         abstraction over asyncio.Event.wait
 
@@ -145,24 +166,29 @@ class CrossSync(metaclass=_AsyncGetAttr):
                 pass
 
     @staticmethod
-    def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
+    def create_task(
+        fn: Callable[..., Coroutine[Any, Any, T]],
+        *fn_args,
+        sync_executor: concurrent.futures.ThreadPoolExecutor | None = None,
+        task_name: str | None = None,
+        **fn_kwargs,
+    ) -> CrossSync.Task[T]:
         """
         abstraction over asyncio.create_task. Sync version implemented with threadpool executor
 
         sync_executor: ThreadPoolExecutor to use for sync operations. Ignored in async version
         """
-        task = asyncio.create_task(fn(*fn_args, **fn_kwargs))
+        task: CrossSync.Task[T] = asyncio.create_task(fn(*fn_args, **fn_kwargs))
         if task_name and sys.version_info >= (3, 8):
             task.set_name(task_name)
         return task
 
     @staticmethod
-    async def yield_to_event_loop():
+    async def yield_to_event_loop() -> None:
         """
         Call asyncio.sleep(0) to yield to allow other tasks to run
         """
         await asyncio.sleep(0)
-
 
     class _Sync_Impl(metaclass=_SyncGetAttr):
         is_async = False
@@ -179,7 +205,12 @@ class CrossSync(metaclass=_AsyncGetAttr):
         generated_replacements: dict[type, str] = {}
 
         @staticmethod
-        def wait(futures, timeout=None):
+        def wait(
+            futures: Sequence[CrossSync._Sync_Impl.Future[T]],
+            timeout: float | None = None,
+        ) -> tuple[
+            set[CrossSync._Sync_Impl.Future[T]], set[CrossSync._Sync_Impl.Future[T]]
+        ]:
             """
             abstraction over asyncio.wait
             """
@@ -188,36 +219,53 @@ class CrossSync(metaclass=_AsyncGetAttr):
             return concurrent.futures.wait(futures, timeout=timeout)
 
         @staticmethod
-        def condition_wait(condition, timeout=None):
+        def condition_wait(
+            condition: CrossSync._Sync_Impl.Condition, timeout: float | None = None
+        ) -> bool:
             """
             returns False if the timeout is reached before the condition is set, otherwise True
             """
             return condition.wait(timeout=timeout)
 
         @staticmethod
-        def event_wait(event, timeout=None, async_break_early=True):
+        def event_wait(
+            event: CrossSync._Sync_Impl.Event,
+            timeout: float | None = None,
+            async_break_early: bool = True,
+        ) -> None:
             event.wait(timeout=timeout)
 
         @staticmethod
-        def gather_partials(partial_list, return_exceptions=False, sync_executor=None):
+        def gather_partials(
+            partial_list: Sequence[Callable[[], T]],
+            return_exceptions: bool = False,
+            sync_executor: concurrent.futures.ThreadPoolExecutor | None = None,
+        ) -> list[T | BaseException]:
             if not partial_list:
                 return []
             if not sync_executor:
                 raise ValueError("sync_executor is required for sync version")
             futures_list = [sync_executor.submit(partial) for partial in partial_list]
-            results_list = []
+            results_list: list[T | BaseException] = []
             for future in futures_list:
-                if future.exception():
+                found_exc = future.exception()
+                if found_exc is not None:
                     if return_exceptions:
-                        results_list.append(future.exception())
+                        results_list.append(found_exc)
                     else:
-                        raise future.exception()
+                        raise found_exc
                 else:
                     results_list.append(future.result())
             return results_list
 
         @staticmethod
-        def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
+        def create_task(
+            fn: Callable[..., T],
+            *fn_args,
+            sync_executor: concurrent.futures.ThreadPoolExecutor | None = None,
+            task_name: str | None = None,
+            **fn_kwargs,
+        ) -> CrossSync._Sync_Impl.Task[T]:
             """
             abstraction over asyncio.create_task. Sync version implemented with threadpool executor
 
@@ -228,5 +276,5 @@ class CrossSync(metaclass=_AsyncGetAttr):
             return sync_executor.submit(fn, *fn_args, **fn_kwargs)
 
         @staticmethod
-        def yield_to_event_loop():
+        def yield_to_event_loop() -> None:
             pass
