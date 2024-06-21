@@ -180,6 +180,7 @@ class _FlowControlAsync:
         "_FlowControlAsync": "_FlowControl",
         "_MutateRowsOperationAsync": "_MutateRowsOperation",
     },
+    mypy_ignore=["unreachable"],
 )
 class MutationsBatcherAsync:
     """

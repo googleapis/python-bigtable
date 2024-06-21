@@ -59,8 +59,9 @@ class CrossSync(metaclass=_AsyncGetAttr):
         return decorator
 
     @classmethod
-    def sync_output(cls, sync_path, replace_symbols=None):
+    def sync_output(cls, sync_path, replace_symbols=None, mypy_ignore=None):
         replace_symbols = replace_symbols or {}
+        mypy_ignore = mypy_ignore or []
 
         # return the async class unchanged
         def decorator(async_cls):
@@ -70,6 +71,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
             async_cls.cross_sync_class_name = sync_path.rsplit(".", 1)[-1]
             async_cls.cross_sync_file_path = "/".join(sync_path.split(".")[:-1]) + ".py"
             async_cls.cross_sync_replace_symbols = replace_symbols
+            async_cls.cross_sync_mypy_ignore = mypy_ignore
             return async_cls
 
         return decorator
