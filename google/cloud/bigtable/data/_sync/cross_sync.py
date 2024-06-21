@@ -28,18 +28,7 @@ import queue
 T = TypeVar("T")
 
 
-class _AsyncGetAttr(type):
-    def __getitem__(cls, item):
-        return item
-
-
-class _SyncGetAttr(type):
-    def __getitem__(cls, item):
-        breakpoint()
-        return CrossSync.generated_replacements[item]
-
-
-class CrossSync(metaclass=_AsyncGetAttr):
+class CrossSync:
     SyncImports = False
     is_async = True
 
@@ -190,7 +179,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
         """
         await asyncio.sleep(0)
 
-    class _Sync_Impl(metaclass=_SyncGetAttr):
+    class _Sync_Impl:
         is_async = False
 
         sleep = time.sleep

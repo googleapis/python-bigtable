@@ -573,7 +573,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        row_merger = CrossSync._Sync_Impl[_ReadRowsOperationAsync](
+        row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1070,7 +1070,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        operation = CrossSync._Sync_Impl[_MutateRowsOperationAsync](
+        operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
             self,
             mutation_entries,

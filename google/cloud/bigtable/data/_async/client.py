@@ -119,6 +119,8 @@ if TYPE_CHECKING:
         "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
         "BigtableAsyncClient": "BigtableClient",
         "AsyncPooledChannel": "PooledChannel",
+        "_ReadRowsOperationAsync": "_ReadRowsOperation",
+        "_MutateRowsOperationAsync": "_MutateRowsOperation",
     },
 )
 class BigtableDataClientAsync(ClientWithProject):
@@ -665,7 +667,7 @@ class TableAsync:
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
 
-        row_merger = CrossSync[_ReadRowsOperationAsync](
+        row_merger = _ReadRowsOperationAsync(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -1180,7 +1182,7 @@ class TableAsync:
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
 
-        operation = CrossSync[_MutateRowsOperationAsync](
+        operation = _MutateRowsOperationAsync(
             self.client._gapic_client,
             self,
             mutation_entries,
