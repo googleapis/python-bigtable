@@ -316,7 +316,7 @@ class MutationsBatcherAsync:
         ):
             self._schedule_flush()
             # yield to the event loop to allow flush to run
-            CrossSync.yield_to_event_loop()
+            await CrossSync.yield_to_event_loop()
 
     def _schedule_flush(self) -> CrossSync.Future[None] | None:
         """Update the flush task to include the latest staged entries"""
