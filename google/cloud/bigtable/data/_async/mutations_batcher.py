@@ -453,8 +453,7 @@ class MutationsBatcherAsync:
         self._closed.set()
         self._flush_timer.cancel()
         self._schedule_flush()
-        await CrossSync.wait(self._flush_jobs)
-        await CrossSync.wait(self._flush_timer)
+        await CrossSync.wait([*self._flush_jobs, self._flush_timer])
         # shut down executor
         if self._sync_executor:
             with self._sync_executor:

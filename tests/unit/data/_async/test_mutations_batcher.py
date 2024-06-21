@@ -267,7 +267,7 @@ class Test_FlowControl:
             max_limit,
         )
         sync_patch = mock.patch(
-            "google.cloud.bigtable.data._sync._autogen._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
+            "google.cloud.bigtable.data.mutations._MUTATE_ROWS_REQUEST_MUTATION_LIMIT",
             max_limit,
         )
         with async_patch, sync_patch:
