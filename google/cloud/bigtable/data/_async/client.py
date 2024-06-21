@@ -37,7 +37,9 @@ from functools import partial
 from grpc import Channel
 
 from google.cloud.bigtable_v2.services.bigtable.client import BigtableClientMeta
-from google.cloud.bigtable_v2.services.bigtable.transports.base import DEFAULT_CLIENT_INFO
+from google.cloud.bigtable_v2.services.bigtable.transports.base import (
+    DEFAULT_CLIENT_INFO,
+)
 from google.cloud.bigtable_v2.types.bigtable import PingAndWarmRequest
 from google.cloud.client import ClientWithProject
 from google.cloud.environment_vars import BIGTABLE_EMULATOR  # type: ignore
@@ -70,7 +72,9 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if CrossSync.is_async:
     from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-    from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
+    from google.cloud.bigtable.data._async.mutations_batcher import (
+        MutationsBatcherAsync,
+    )
     from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledBigtableGrpcAsyncIOTransport,
@@ -78,7 +82,9 @@ if CrossSync.is_async:
     from google.cloud.bigtable_v2.services.bigtable.transports.pooled_grpc_asyncio import (
         PooledChannel as AsyncPooledChannel,
     )
-    from google.cloud.bigtable_v2.services.bigtable.async_client import BigtableAsyncClient
+    from google.cloud.bigtable_v2.services.bigtable.async_client import (
+        BigtableAsyncClient,
+    )
 else:
     from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
     from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
@@ -100,13 +106,15 @@ if TYPE_CHECKING:
 @CrossSync.sync_output(
     "google.cloud.bigtable.data._sync.client.BigtableDataClient",
     replace_symbols={
-        "__aenter__": "__enter__", "__aexit__": "__exit__", 
-        "TableAsync": "Table", "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
-        "BigtableAsyncClient": "BigtableClient", "AsyncPooledChannel": "PooledChannel"
-    }
+        "__aenter__": "__enter__",
+        "__aexit__": "__exit__",
+        "TableAsync": "Table",
+        "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
+        "BigtableAsyncClient": "BigtableClient",
+        "AsyncPooledChannel": "PooledChannel",
+    },
 )
 class BigtableDataClientAsync(ClientWithProject):
-
     def __init__(
         self,
         *,
@@ -188,7 +196,9 @@ class BigtableDataClientAsync(ClientWithProject):
         self._instance_owners: dict[_helpers._WarmedInstanceKey, Set[int]] = {}
         self._channel_init_time = time.monotonic()
         self._channel_refresh_tasks: list[asyncio.Task[None]] = []
-        self._executor = concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
+        self._executor = (
+            concurrent.futures.ThreadPoolExecutor() if not CrossSync.is_async else None
+        )
         if self._emulator_host is not None:
             # connect to an emulator host
             warnings.warn(
@@ -239,12 +249,15 @@ class BigtableDataClientAsync(ClientWithProject):
         ):
             for channel_idx in range(self.transport.pool_size):
                 refresh_task = CrossSync.create_task(
-                    self._manage_channel, channel_idx,
+                    self._manage_channel,
+                    channel_idx,
                     sync_executor=self._executor,
-                    task_name=f"{self.__class__.__name__} channel refresh {channel_idx}"
+                    task_name=f"{self.__class__.__name__} channel refresh {channel_idx}",
                 )
                 self._channel_refresh_tasks.append(refresh_task)
-                refresh_task.add_done_callback(lambda _: self._channel_refresh_tasks.remove(refresh_task))
+                refresh_task.add_done_callback(
+                    lambda _: self._channel_refresh_tasks.remove(refresh_task)
+                )
 
     async def close(self, timeout: float | None = None):
         """
@@ -294,7 +307,9 @@ class BigtableDataClientAsync(ClientWithProject):
             )
             for (instance_name, table_name, app_profile_id) in instance_list
         ]
-        result_list = await CrossSync.gather_partials(partial_list, return_exceptions=True, sync_executor=self._executor)
+        result_list = await CrossSync.gather_partials(
+            partial_list, return_exceptions=True, sync_executor=self._executor
+        )
         return [r or None for r in result_list]
 
     async def _manage_channel(
@@ -464,7 +479,7 @@ class BigtableDataClientAsync(ClientWithProject):
         "AsyncIterable": "Iterable",
         "MutationsBatcherAsync": "MutationsBatcher",
         "BigtableDataClientAsync": "BigtableDataClient",
-    }
+    },
 )
 class TableAsync:
     """
@@ -584,7 +599,9 @@ class TableAsync:
         self.default_retryable_errors = default_retryable_errors or ()
         try:
             self._register_instance_future = CrossSync.create_task(
-                self.client._register_instance, self.instance_id, self,
+                self.client._register_instance,
+                self.instance_id,
+                self,
                 sync_executor=self.client._executor,
             )
         except RuntimeError as e:
@@ -819,7 +836,9 @@ class TableAsync:
                 for query in batch
             ]
             batch_result = await CrossSync.gather_partials(
-                batch_partial_list, return_exceptions=True, sync_executor=self.client._executor
+                batch_partial_list,
+                return_exceptions=True,
+                sync_executor=self.client._executor,
             )
             for result in batch_result:
                 if isinstance(result, Exception):

@@ -52,6 +52,7 @@ _WarmedInstanceKey = namedtuple(
 # used to make more readable default values
 _MB_SIZE = 1024 * 1024
 
+
 # enum used on method calls when table defaults should be used
 class TABLE_DEFAULT(enum.Enum):
     # default for mutate_row, sample_row_keys, check_and_mutate_row, and read_modify_write_row

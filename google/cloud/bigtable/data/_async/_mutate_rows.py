@@ -36,6 +36,7 @@ from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
 if TYPE_CHECKING:
     from google.cloud.bigtable.data.mutations import RowMutationEntry
+
     if CrossSync.is_async:
         from google.cloud.bigtable.data._async.client import TableAsync
         from google.cloud.bigtable_v2.services.bigtable.async_client import (
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     else:
         from google.cloud.bigtable.data._sync.client import Table
         from google.cloud.bigtable_v2.services.bigtable.client import BigtableClient
+
 
 @dataclass
 class _EntryWithProto:
@@ -60,7 +62,7 @@ class _EntryWithProto:
     replace_symbols={
         "BigtableAsyncClient": "BigtableClient",
         "TableAsync": "Table",
-    }
+    },
 )
 class _MutateRowsOperationAsync:
     """
@@ -161,13 +163,9 @@ class _MutateRowsOperationAsync:
                 else:
                     cause_exc = RetryExceptionGroup(exc_list)
                 entry = self.mutations[idx].entry
-                all_errors.append(
-                    FailedMutationEntryError(idx, entry, cause_exc)
-                )
+                all_errors.append(FailedMutationEntryError(idx, entry, cause_exc))
             if all_errors:
-                raise MutationsExceptionGroup(
-                    all_errors, len(self.mutations)
-                )
+                raise MutationsExceptionGroup(all_errors, len(self.mutations))
 
     async def _run_attempt(self):
         """

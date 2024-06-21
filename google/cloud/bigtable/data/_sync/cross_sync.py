@@ -26,18 +26,17 @@ import queue
 
 
 class _AsyncGetAttr(type):
-
     def __getitem__(cls, item):
         return item
 
-class _SyncGetAttr(type):
 
+class _SyncGetAttr(type):
     def __getitem__(cls, item):
         breakpoint()
         return CrossSync.generated_replacements[item]
 
-class CrossSync(metaclass=_AsyncGetAttr):
 
+class CrossSync(metaclass=_AsyncGetAttr):
     SyncImports = False
     is_async = True
 
@@ -56,24 +55,29 @@ class CrossSync(metaclass=_AsyncGetAttr):
     def rename_sync(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator
 
     @classmethod
     def sync_output(cls, sync_path, replace_symbols=None):
         replace_symbols = replace_symbols or {}
+
         # return the async class unchanged
         def decorator(async_cls):
             cls.generated_replacements[async_cls] = sync_path
             async_cls.cross_sync_enabled = True
             async_cls.cross_sync_import_path = sync_path
-            async_cls.cross_sync_class_name = sync_path.rsplit('.', 1)[-1]
+            async_cls.cross_sync_class_name = sync_path.rsplit(".", 1)[-1]
             async_cls.cross_sync_file_path = "/".join(sync_path.split(".")[:-1]) + ".py"
             async_cls.cross_sync_replace_symbols = replace_symbols
             return async_cls
+
         return decorator
 
     @staticmethod
-    async def gather_partials(partial_list, return_exceptions=False, sync_executor=None):
+    async def gather_partials(
+        partial_list, return_exceptions=False, sync_executor=None
+    ):
         """
         abstraction over asyncio.gather
 
@@ -88,7 +92,9 @@ class CrossSync(metaclass=_AsyncGetAttr):
         if not partial_list:
             return []
         awaitable_list = [partial() for partial in partial_list]
-        return await asyncio.gather(*awaitable_list, return_exceptions=return_exceptions)
+        return await asyncio.gather(
+            *awaitable_list, return_exceptions=return_exceptions
+        )
 
     @staticmethod
     async def wait(futures, timeout=None):
@@ -131,9 +137,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
         """
         await asyncio.sleep(0)
 
-
     class _Sync_Impl(metaclass=_SyncGetAttr):
-
         is_async = False
 
         sleep = time.sleep
@@ -141,9 +145,9 @@ class CrossSync(metaclass=_AsyncGetAttr):
         retry_target_stream = retries.retry_target_stream
         Queue: TypeAlias = queue.Queue
         Condition: TypeAlias = threading.Condition
-        Future:TypeAlias = concurrent.futures.Future
-        Task:TypeAlias = concurrent.futures.Future
-        Event:TypeAlias = threading.Event
+        Future: TypeAlias = concurrent.futures.Future
+        Task: TypeAlias = concurrent.futures.Future
+        Event: TypeAlias = threading.Event
 
         generated_replacements: dict[type, str] = {}
 
@@ -169,9 +173,7 @@ class CrossSync(metaclass=_AsyncGetAttr):
                 return []
             if not sync_executor:
                 raise ValueError("sync_executor is required for sync version")
-            futures_list = [
-                sync_executor.submit(partial) for partial in partial_list
-            ]
+            futures_list = [sync_executor.submit(partial) for partial in partial_list]
             results_list = []
             for future in futures_list:
                 if future.exception():
@@ -182,8 +184,6 @@ class CrossSync(metaclass=_AsyncGetAttr):
                 else:
                     results_list.append(future.result())
             return results_list
-
-
 
         @staticmethod
         def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):

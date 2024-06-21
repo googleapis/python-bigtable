@@ -51,10 +51,16 @@ class _ResetRow(Exception):
         self.chunk = chunk
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync._read_rows._ReadRowsOperation",
     replace_symbols={
-        "AsyncIterable": "Iterable", "StopAsyncIteration": "StopIteration", "Awaitable": None, "TableAsync": "Table", "__aiter__": "__iter__", "__anext__": "__next__"
-    }
+        "AsyncIterable": "Iterable",
+        "StopAsyncIteration": "StopIteration",
+        "Awaitable": None,
+        "TableAsync": "Table",
+        "__aiter__": "__iter__",
+        "__anext__": "__next__",
+    },
 )
 class _ReadRowsOperationAsync:
     """
