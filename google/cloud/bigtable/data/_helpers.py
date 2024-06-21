@@ -29,6 +29,7 @@ from google.cloud.bigtable.data.exceptions import RetryExceptionGroup
 if TYPE_CHECKING:
     import grpc
     from google.cloud.bigtable.data import TableAsync
+    from google.cloud.bigtable.data._sync.client import Table
 
 """
 Helper functions used in various places in the library.
@@ -48,6 +49,8 @@ _WarmedInstanceKey = namedtuple(
     "_WarmedInstanceKey", ["instance_name", "table_name", "app_profile_id"]
 )
 
+# used to make more readable default values
+_MB_SIZE = 1024 * 1024
 
 # enum used on method calls when table defaults should be used
 class TABLE_DEFAULT(enum.Enum):
@@ -133,7 +136,7 @@ def _retry_exception_factory(
 def _get_timeouts(
     operation: float | TABLE_DEFAULT,
     attempt: float | None | TABLE_DEFAULT,
-    table: "TableAsync",
+    table: "TableAsync" | "Table",
 ) -> tuple[float, float]:
     """
     Convert passed in timeout values to floats, using table defaults if necessary.
@@ -204,7 +207,7 @@ def _validate_timeouts(
 
 def _get_retryable_errors(
     call_codes: Sequence["grpc.StatusCode" | int | type[Exception]] | TABLE_DEFAULT,
-    table: "TableAsync",
+    table: "TableAsync" | "Table",
 ) -> list[type[Exception]]:
     # load table defaults if necessary
     if call_codes == TABLE_DEFAULT.DEFAULT:

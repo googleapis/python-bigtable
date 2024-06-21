@@ -19,12 +19,14 @@ import asyncio
 import atexit
 import warnings
 from collections import deque
+import concurrent.futures
 
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _MB_SIZE
 
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data.mutations import (
@@ -34,12 +36,15 @@ from google.cloud.bigtable.data.mutations import Mutation
 
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 
+
 if TYPE_CHECKING:
-    from google.cloud.bigtable.data._async.client import TableAsync
+    if CrossSync.is_async:
+        from google.cloud.bigtable.data._async.client import TableAsync
+    else:
+        from google.cloud.bigtable.data._sync.client import Table
+        from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
     from google.cloud.bigtable.data.mutations import RowMutationEntry
 
-# used to make more readable default values
-_MB_SIZE = 1024 * 1024
 
 
 @CrossSync.sync_output("google.cloud.bigtable.data._sync.mutations_batcher._FlowControl")
@@ -167,7 +172,14 @@ class _FlowControlAsync:
             yield mutations[start_idx:end_idx]
 
 
-@CrossSync.sync_output("google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher")
+@CrossSync.sync_output(
+    "google.cloud.bigtable.data._sync.mutations_batcher.MutationsBatcher",
+    replace_symbols={
+        "TableAsync": "Table",
+        "_FlowControlAsync": "_FlowControl",
+        "_MutateRowsOperationAsync": "_MutateRowsOperation",
+    },
+)
 class MutationsBatcherAsync:
     """
     Allows users to send batches using context manager API:
@@ -188,7 +200,7 @@ class MutationsBatcherAsync:
 
     def __init__(
         self,
-        table: CrossSync[TableAsync],
+        table: TableAsync,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -229,7 +241,7 @@ class MutationsBatcherAsync:
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = 0, 0
-        self._flow_control = CrossSync[_FlowControlAsync](
+        self._flow_control = _FlowControlAsync(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
@@ -238,11 +250,6 @@ class MutationsBatcherAsync:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        # in sync mode, use a threadpool executor for background tasks
-        if not CrossSync.is_async:
-            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
-        else:
-            self._sync_executor = None
         self._flush_timer = CrossSync.create_task(self._timer_routine, flush_interval, sync_executor=self._sync_executor)
         self._flush_jobs: set[CrossSync.Future[None]] = set()
         # MutationExceptionGroup reports number of successful entries along with failures
@@ -256,6 +263,15 @@ class MutationsBatcherAsync:
         )
         # clean up on program exit
         atexit.register(self._on_exit)
+
+    @property
+    def _sync_executor(self) -> concurrent.futures.ThreadPoolExecutor:
+        if CrossSync.is_async:
+            raise AttributeError("sync_executor is not available in async mode")
+        if not hasattr(self, "_sync_executor_instance"):
+            self._sync_executor_instance = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        return self._sync_executor_instance
+
     async def _timer_routine(self, interval: float | None) -> None:
         """
         Triggers new flush tasks every `interval` seconds
@@ -344,7 +360,7 @@ class MutationsBatcherAsync:
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = CrossSync[_MutateRowsOperationAsync](
+            operation = _MutateRowsOperationAsync(
                 self._table.client._gapic_client,
                 self._table,
                 batch,

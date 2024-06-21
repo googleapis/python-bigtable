@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing_extensions import TypeAlias
 
 import asyncio
 import sys
@@ -39,13 +40,14 @@ class CrossSync(metaclass=_AsyncGetAttr):
     is_async = True
 
     sleep = asyncio.sleep
-    Queue = asyncio.Queue
-    Condition = asyncio.Condition
-    Future = asyncio.Future
-    Task = asyncio.Task
-    Event = asyncio.Event
     retry_target = retries.retry_target_async
     retry_target_stream = retries.retry_target_stream_async
+    Queue: TypeAlias = asyncio.Queue
+    Condition: TypeAlias = asyncio.Condition
+    Future: TypeAlias = asyncio.Future
+    Task: TypeAlias = asyncio.Task
+    Event: TypeAlias = asyncio.Event
+
     generated_replacements = {}
 
     @staticmethod
@@ -133,13 +135,14 @@ class CrossSync(metaclass=_AsyncGetAttr):
         is_async = False
 
         sleep = time.sleep
-        Queue = queue.Queue
-        Condition = threading.Condition
-        Future = concurrent.futures.Future
-        Task = concurrent.futures.Future
-        Event = threading.Event
         retry_target = retries.retry_target
         retry_target_stream = retries.retry_target_stream
+        Queue: TypeAlias = queue.Queue
+        Condition: TypeAlias = threading.Condition
+        Future:TypeAlias = concurrent.futures.Future
+        Task:TypeAlias = concurrent.futures.Future
+        Event:TypeAlias = threading.Event
+
         generated_replacements = {}
 
         @staticmethod

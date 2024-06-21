@@ -20,14 +20,15 @@ from collections import deque
 from typing import Sequence
 import asyncio
 import atexit
+import concurrent.futures
 import warnings
 
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async.client import TableAsync
-from google.cloud.bigtable.data._async.mutations_batcher import _FlowControlAsync
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data._helpers import _get_retryable_errors
 from google.cloud.bigtable.data._helpers import _get_timeouts
+from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable.data._sync.client import Table
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import FailedMutationEntryError
 from google.cloud.bigtable.data.exceptions import MutationsExceptionGroup
@@ -56,7 +57,7 @@ class MutationsBatcher:
 
     def __init__(
         self,
-        table: CrossSync._Sync_Impl[TableAsync],
+        table: Table,
         *,
         flush_interval: float | None = 5,
         flush_limit_mutation_count: int | None = 1000,
@@ -96,7 +97,7 @@ class MutationsBatcher:
         self._table = table
         self._staged_entries: list[RowMutationEntry] = []
         self._staged_count, self._staged_bytes = (0, 0)
-        self._flow_control = CrossSync._Sync_Impl[_FlowControlAsync](
+        self._flow_control = _FlowControl(
             flow_control_max_mutation_count, flow_control_max_bytes
         )
         self._flush_limit_bytes = flush_limit_bytes
@@ -105,10 +106,6 @@ class MutationsBatcher:
             if flush_limit_mutation_count is not None
             else float("inf")
         )
-        if not CrossSync._Sync_Impl.is_async:
-            self._sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
-        else:
-            self._sync_executor = None
         self._flush_timer = CrossSync._Sync_Impl.create_task(
             self._timer_routine, flush_interval, sync_executor=self._sync_executor
         )
@@ -121,6 +118,16 @@ class MutationsBatcher:
             maxlen=self._exception_list_limit
         )
         atexit.register(self._on_exit)
+
+    @property
+    def _sync_executor(self) -> concurrent.futures.ThreadPoolExecutor:
+        if CrossSync._Sync_Impl.is_async:
+            raise AttributeError("sync_executor is not available in async mode")
+        if not hasattr(self, "_sync_executor_instance"):
+            self._sync_executor_instance = concurrent.futures.ThreadPoolExecutor(
+                max_workers=8
+            )
+        return self._sync_executor_instance
 
     def _timer_routine(self, interval: float | None) -> None:
         """
@@ -210,7 +217,7 @@ class MutationsBatcher:
               FailedMutationEntryError objects will not contain index information
         """
         try:
-            operation = CrossSync._Sync_Impl[_MutateRowsOperationAsync](
+            operation = _MutateRowsOperation(
                 self._table.client._gapic_client,
                 self._table,
                 batch,

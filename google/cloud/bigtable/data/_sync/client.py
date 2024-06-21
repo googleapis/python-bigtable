@@ -39,10 +39,10 @@ from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
-from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
 from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup

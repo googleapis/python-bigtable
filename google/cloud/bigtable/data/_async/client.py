@@ -65,10 +65,10 @@ from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
 
 from google.cloud.bigtable.data import _helpers
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
+from google.cloud.bigtable.data._helpers import _MB_SIZE
 from google.cloud.bigtable.data.mutations import Mutation, RowMutationEntry
 from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
 from google.cloud.bigtable.data._async.mutations_batcher import MutationsBatcherAsync
-from google.cloud.bigtable.data._async.mutations_batcher import _MB_SIZE
 from google.cloud.bigtable.data.read_modify_write_rules import ReadModifyWriteRule
 from google.cloud.bigtable.data.row_filters import RowFilter
 from google.cloud.bigtable.data.row_filters import StripValueTransformerFilter
