@@ -280,6 +280,7 @@ class BigtableDataClientAsync(ClientWithProject):
         if self._executor:
             self._executor.shutdown(wait=False)
         await CrossSync.wait(self._channel_refresh_tasks, timeout=timeout)
+        self._channel_refresh_tasks = []
 
     async def _ping_and_warm_instances(
         self, channel: Channel, instance_key: _helpers._WarmedInstanceKey | None = None

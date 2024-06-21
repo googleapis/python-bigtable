@@ -332,23 +332,16 @@ class TestBigtableDataClientAsync:
         """
         test ping and warm with mocked asyncio.gather
         """
+        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
         client_mock = mock.Mock()
         client_mock._execute_ping_and_warms = (
             lambda *args: self._get_target_class()._execute_ping_and_warms(
                 client_mock, *args
             )
         )
-        gather_tuple = (
-            (asyncio, "gather") if self.is_async else (client_mock._executor, "submit")
-        )
-        with mock.patch.object(*gather_tuple, AsyncMock()) as gather:
-            if self.is_async:
-                # simulate gather by returning the same number of items as passed in
-                # gather is expected to return None for each coroutine passed
-                gather.side_effect = lambda *args, **kwargs: [None for _ in args]
-            else:
-                # submit is expected to call the function passed, and return the result
-                gather.side_effect = lambda fn, **kwargs: [fn(**kwargs)]
+        with mock.patch.object(CrossSync, "gather_partials", AsyncMock()) as gather:
+            # gather_partials is expected to call the function passed, and return the result
+            gather.side_effect = lambda partials, **kwargs: [None for _ in partials]
             channel = mock.Mock()
             # test with no instances
             client_mock._active_instances = []
@@ -356,8 +349,8 @@ class TestBigtableDataClientAsync:
                 client_mock, channel
             )
             assert len(result) == 0
-            if self.is_async:
-                assert gather.call_args.kwargs == {"return_exceptions": True}
+            assert gather.call_args.kwargs["return_exceptions"] is True
+            assert gather.call_args.kwargs["sync_executor"] == client_mock._executor
             # test with instances
             client_mock._active_instances = [
                 (mock.Mock(), mock.Mock(), mock.Mock())
@@ -368,14 +361,12 @@ class TestBigtableDataClientAsync:
                 client_mock, channel
             )
             assert len(result) == 4
+            gather.assert_called_once()
+            # expect one partial for each instance
+            partial_list = gather.call_args.args[0]
+            assert len(partial_list) == 4
             if self.is_async:
-                gather.assert_called_once()
                 gather.assert_awaited_once()
-                # expect one arg for each instance
-                assert len(gather.call_args.args) == 4
-            else:
-                # expect one call for each instance
-                assert gather.call_count == 4
             # check grpc call arguments
             grpc_call_args = channel.unary_unary().call_args_list
             for idx, (_, kwargs) in enumerate(grpc_call_args):
@@ -1052,11 +1043,12 @@ class TestBigtableDataClientAsync:
 
     @pytest.mark.asyncio
     async def test_close_with_timeout(self):
+        from google.cloud.bigtable.data._sync.cross_sync import CrossSync
         pool_size = 7
         expected_timeout = 19
         client = self._make_client(project="project-id", pool_size=pool_size)
         tasks = list(client._channel_refresh_tasks)
-        with mock.patch.object(asyncio, "wait_for", AsyncMock()) as wait_for_mock:
+        with mock.patch.object(CrossSync, "wait", AsyncMock()) as wait_for_mock:
             await client.close(timeout=expected_timeout)
             wait_for_mock.assert_called_once()
             wait_for_mock.assert_awaited()
