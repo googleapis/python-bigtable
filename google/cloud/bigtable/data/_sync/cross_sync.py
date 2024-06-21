@@ -121,6 +121,28 @@ class CrossSync(metaclass=_AsyncGetAttr):
             return False
 
     @staticmethod
+    async def event_wait(event, timeout=None, async_break_early=True):
+        """
+        abstraction over asyncio.Event.wait
+
+        Args:
+            - event: event to wait for
+            - timeout: if set, will break out early after `timeout` seconds
+            - async_break_early: if False, the async version will wait for
+                the full timeout even if the event is set before the timeout.
+                This avoids creating a new background task
+        """
+        if timeout is None:
+            await event.wait()
+        elif not async_break_early:
+            await asyncio.sleep(timeout)
+        else:
+            try:
+                await asyncio.wait_for(event.wait(), timeout=timeout)
+            except asyncio.TimeoutError:
+                pass
+
+    @staticmethod
     def create_task(fn, *fn_args, sync_executor=None, task_name=None, **fn_kwargs):
         """
         abstraction over asyncio.create_task. Sync version implemented with threadpool executor
@@ -168,6 +190,10 @@ class CrossSync(metaclass=_AsyncGetAttr):
             returns False if the timeout is reached before the condition is set, otherwise True
             """
             return condition.wait(timeout=timeout)
+
+        @staticmethod
+        def event_wait(event, timeout=None, async_break_early=True):
+            event.wait(timeout=timeout)
 
         @staticmethod
         def gather_partials(partial_list, return_exceptions=False, sync_executor=None):

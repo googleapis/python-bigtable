@@ -338,7 +338,6 @@ class BigtableDataClientAsync(ClientWithProject):
             grace_period: time to allow previous channel to serve existing
                 requests before closing, in seconds
         """
-        sleep_fn = asyncio.sleep if CrossSync.is_async else self._is_closed.wait
         first_refresh = self._channel_init_time + random.uniform(
             refresh_interval_min, refresh_interval_max
         )
@@ -349,7 +348,7 @@ class BigtableDataClientAsync(ClientWithProject):
             await self._ping_and_warm_instances(channel)
         # continuously refresh the channel every `refresh_interval` seconds
         while not self._is_closed.is_set():
-            await sleep_fn(next_sleep)
+            await CrossSync.event_wait(self._is_closed, next_sleep, async_break_early=False)
             if self._is_closed.is_set():
                 break
             # prepare new channel for use
