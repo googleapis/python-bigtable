@@ -226,7 +226,7 @@ class _ReadRowsOperationAsync:
 
     @staticmethod
     async def merge_rows(
-        chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None
+        chunks: AsyncIterable[ReadRowsResponsePB.CellChunk] | None,
     ) -> AsyncIterable[Row]:
         """
         Merge chunks into rows

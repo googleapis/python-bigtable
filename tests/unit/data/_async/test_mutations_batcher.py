@@ -553,6 +553,7 @@ class TestMutationsBatcherAsync:
     async def test__flush_timer(self, num_staged):
         """Timer should continue to call _schedule_flush in a loop"""
         from google.cloud.bigtable.data._sync.cross_sync import CrossSync
+
         with mock.patch.object(
             self._get_target_class(), "_schedule_flush"
         ) as flush_mock:

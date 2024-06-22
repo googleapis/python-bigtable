@@ -57,7 +57,7 @@ class CrossSync:
     def sync_output(
         cls,
         sync_path: str,
-        replace_symbols: dict["str", "str" | None ] | None = None,
+        replace_symbols: dict["str", "str" | None] | None = None,
         mypy_ignore: list[str] | None = None,
     ):
         replace_symbols = replace_symbols or {}

@@ -838,11 +838,11 @@ class TableAsync:
                     retryable_errors=retryable_errors,
                 )
 
-        routine_list = [partial(read_rows_with_semaphore, query) for query in sharded_query]
+        routine_list = [
+            partial(read_rows_with_semaphore, query) for query in sharded_query
+        ]
         batch_result = await CrossSync.gather_partials(
-            routine_list,
-            return_exceptions=True,
-            sync_executor=self.client._executor
+            routine_list, return_exceptions=True, sync_executor=self.client._executor
         )
 
         # collect results and errors
