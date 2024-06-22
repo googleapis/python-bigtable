@@ -47,6 +47,13 @@ class _ReadRowsOperation:
 
     ReadRowsOperation(request, client) handles row merging logic end-to-end, including
     performing retries on stream errors.
+
+    Args:
+        query: The query to execute
+        table: The table to send the request to
+        operation_timeout: The total time to allow for the operation, in seconds
+        attempt_timeout: The time to allow for each individual attempt, in seconds
+        retryable_exceptions: A list of exceptions that should trigger a retry
     """
 
     __slots__ = (
@@ -87,7 +94,12 @@ class _ReadRowsOperation:
         self._remaining_count: int | None = self.request.rows_limit or None
 
     def start_operation(self) -> Iterable[Row]:
-        """Start the read_rows operation, retrying on retryable errors."""
+        """
+        Start the read_rows operation, retrying on retryable errors.
+
+        Yields:
+            Row: The next row in the stream
+        """
         return CrossSync._Sync_Impl.retry_target_stream(
             self._read_rows_attempt,
             self._predicate,
@@ -102,6 +114,9 @@ class _ReadRowsOperation:
         This function is intended to be wrapped by retry logic,
         which will call this function until it succeeds or
         a non-retryable error is raised.
+
+        Yields:
+            Row: The next row in the stream
         """
         if self._last_yielded_row_key is not None:
             try:
@@ -127,7 +142,14 @@ class _ReadRowsOperation:
     def chunk_stream(
         self, stream: Iterable[ReadRowsResponsePB]
     ) -> Iterable[ReadRowsResponsePB.CellChunk]:
-        """process chunks out of raw read_rows stream"""
+        """
+        process chunks out of raw read_rows stream
+
+        Args:
+            stream: the raw read_rows stream from the gapic client
+        Yields:
+            ReadRowsResponsePB.CellChunk: the next chunk in the stream
+        """
         for resp in stream:
             resp = resp._pb
             if resp.last_scanned_row_key:
@@ -160,8 +182,17 @@ class _ReadRowsOperation:
                     current_key = None
 
     @staticmethod
-    def merge_rows(chunks: Iterable[ReadRowsResponsePB.CellChunk] | None):
-        """Merge chunks into rows"""
+    def merge_rows(
+        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
+    ) -> AsyncGenerator[Row, None]:
+        """
+        Merge chunks into rows
+
+        Args:
+            chunks: the chunk stream to merge
+        Yields:
+            Row: the next row in the stream
+        """
         if chunks is None:
             return
         it = chunks.__iter__()
@@ -257,12 +288,14 @@ class _ReadRowsOperation:
         Revise the rows in the request to avoid ones we've already processed.
 
         Args:
-          - row_set: the row set from the request
-          - last_seen_row_key: the last row key encountered
+            row_set: the row set from the request
+            last_seen_row_key: the last row key encountered
+        Returns:
+            RowSetPB: the new rowset after adusting for the last seen key
         Raises:
-          - _RowSetComplete: if there are no rows left to process after the revision
+            _RowSetComplete: if there are no rows left to process after the revision
         """
-        if row_set is None or (not row_set.row_ranges and row_set.row_keys is not None):
+        if row_set is None or (not row_set.row_ranges and (not row_set.row_keys)):
             last_seen = last_seen_row_key
             return RowSetPB(row_ranges=[RowRangePB(start_key_open=last_seen)])
         adjusted_keys: list[bytes] = [
