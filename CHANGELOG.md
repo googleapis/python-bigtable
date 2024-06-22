@@ -4,6 +4,27 @@
 
 [1]: https://pypi.org/project/google-cloud-bigtable/#history
 
+## [2.24.0](https://github.com/googleapis/python-bigtable/compare/v2.23.1...v2.24.0) (2024-06-11)
+
+
+### Features
+
+* Add String type with Utf8Raw encoding to Bigtable API ([#968](https://github.com/googleapis/python-bigtable/issues/968)) ([2a2bbfd](https://github.com/googleapis/python-bigtable/commit/2a2bbfdba6737c508ab1073d37fef680ca2a8c2f))
+* Improve async sharding ([#977](https://github.com/googleapis/python-bigtable/issues/977)) ([fd1f7da](https://github.com/googleapis/python-bigtable/commit/fd1f7dafd38f7f0e714a3384a27176f485523682))
+
+
+### Bug Fixes
+
+* **backup:** Backup name regex ([#970](https://github.com/googleapis/python-bigtable/issues/970)) ([6ef122a](https://github.com/googleapis/python-bigtable/commit/6ef122ad49f43e3a22cde5cb6fdaefd947670136))
+* Improve rowset revision ([#979](https://github.com/googleapis/python-bigtable/issues/979)) ([da27527](https://github.com/googleapis/python-bigtable/commit/da275279a7e619e4cd3e72b10ac629d6e0e1fe47))
+
+## [2.23.1](https://github.com/googleapis/python-bigtable/compare/v2.23.0...v2.23.1) (2024-04-15)
+
+
+### Bug Fixes
+
+* Use insecure grpc channel with emulator ([#946](https://github.com/googleapis/python-bigtable/issues/946)) ([aa31706](https://github.com/googleapis/python-bigtable/commit/aa3170663f9bd09d70c99d4e76c07f7f293ad935))
+
 ## [2.23.0](https://github.com/googleapis/python-bigtable/compare/v2.22.0...v2.23.0) (2024-02-07)
 
 

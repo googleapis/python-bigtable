@@ -1578,7 +1578,7 @@ class TestReadRowsAsync:
             query = ReadRowsQuery()
             chunks = [self._make_chunk(row_key=b"test_1")]
             read_rows.side_effect = lambda *args, **kwargs: self._make_gapic_stream(
-                chunks, sleep_time=1
+                chunks, sleep_time=0.15
             )
             try:
                 await table.read_rows(query, operation_timeout=operation_timeout)
@@ -1592,7 +1592,6 @@ class TestReadRowsAsync:
         "per_request_t, operation_t, expected_num",
         [
             (0.05, 0.08, 2),
-            (0.05, 0.54, 11),
             (0.05, 0.14, 3),
             (0.05, 0.24, 5),
         ],
@@ -2020,69 +2019,121 @@ class TestReadRowsShardedAsync:
                     assert call_time < 0.2
 
     @pytest.mark.asyncio
-    async def test_read_rows_sharded_batching(self):
+    async def test_read_rows_sharded_concurrency_limit(self):
         """
-        Large queries should be processed in batches to limit concurrency
-        operation timeout should change between batches
+        Only 10 queries should be processed concurrently. Others should be queued
+
+        Should start a new query as soon as previous finishes
         """
         from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
 
         assert _CONCURRENCY_LIMIT == 10  # change this test if this changes
+        num_queries = 15
 
-        n_queries = 90
-        expected_num_batches = n_queries // _CONCURRENCY_LIMIT
-        query_list = [ReadRowsQuery() for _ in range(n_queries)]
+        # each of the first 10 queries take longer than the last
+        # later rpcs will have to wait on first 10
+        increment_time = 0.05
+        max_time = increment_time * (_CONCURRENCY_LIMIT - 1)
+        rpc_times = [min(i * increment_time, max_time) for i in range(num_queries)]
 
-        start_operation_timeout = 10
-        start_attempt_timeout = 3
+        async def mock_call(*args, **kwargs):
+            next_sleep = rpc_times.pop(0)
+            await asyncio.sleep(next_sleep)
+            return [mock.Mock()]
 
-        client = self._make_client(use_emulator=True)
-        table = client.get_table(
-            "instance",
-            "table",
-            default_read_rows_operation_timeout=start_operation_timeout,
-            default_read_rows_attempt_timeout=start_attempt_timeout,
+        starting_timeout = 10
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(num_queries)]
+                    await table.read_rows_sharded(
+                        queries, operation_timeout=starting_timeout
+                    )
+                    assert read_rows.call_count == num_queries
+                    # check operation timeouts to see how far into the operation each rpc started
+                    rpc_start_list = [
+                        starting_timeout - kwargs["operation_timeout"]
+                        for _, kwargs in read_rows.call_args_list
+                    ]
+                    eps = 0.01
+                    # first 10 should start immediately
+                    assert all(
+                        rpc_start_list[i] < eps for i in range(_CONCURRENCY_LIMIT)
+                    )
+                    # next rpcs should start as first ones finish
+                    for i in range(num_queries - _CONCURRENCY_LIMIT):
+                        idx = i + _CONCURRENCY_LIMIT
+                        assert rpc_start_list[idx] - (i * increment_time) < eps
+
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_expirary(self):
+        """
+        If the operation times out before all shards complete, should raise
+        a ShardedReadRowsExceptionGroup
+        """
+        from google.cloud.bigtable.data._helpers import _CONCURRENCY_LIMIT
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        operation_timeout = 0.1
+
+        # let the first batch complete, but the next batch times out
+        num_queries = 15
+        sleeps = [0] * _CONCURRENCY_LIMIT + [DeadlineExceeded("times up")] * (
+            num_queries - _CONCURRENCY_LIMIT
         )
 
-        # make timeout generator that reduces timeout by one each call
-        def mock_time_generator(start_op, _):
-            for i in range(0, 100000):
-                yield start_op - i
+        async def mock_call(*args, **kwargs):
+            next_item = sleeps.pop(0)
+            if isinstance(next_item, Exception):
+                raise next_item
+            else:
+                await asyncio.sleep(next_item)
+            return [mock.Mock()]
 
-        with mock.patch(
-            "google.cloud.bigtable.data._helpers._attempt_timeout_generator"
-        ) as time_gen_mock:
-            time_gen_mock.side_effect = mock_time_generator
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(num_queries)]
+                    with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
+                        await table.read_rows_sharded(
+                            queries, operation_timeout=operation_timeout
+                        )
+                    assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
+                    assert len(exc.value.exceptions) == num_queries - _CONCURRENCY_LIMIT
+                    # should keep successful queries
+                    assert len(exc.value.successful_rows) == _CONCURRENCY_LIMIT
 
-            with mock.patch.object(table, "read_rows", AsyncMock()) as read_rows_mock:
-                read_rows_mock.return_value = []
-                await table.read_rows_sharded(query_list)
-                # should have individual calls for each query
-                assert read_rows_mock.call_count == n_queries
-                # ensure that timeouts decrease over time
-                kwargs = [
-                    read_rows_mock.call_args_list[idx][1] for idx in range(n_queries)
-                ]
-                for batch_idx in range(expected_num_batches):
-                    batch_kwargs = kwargs[
-                        batch_idx
-                        * _CONCURRENCY_LIMIT : (batch_idx + 1)
-                        * _CONCURRENCY_LIMIT
-                    ]
-                    for req_kwargs in batch_kwargs:
-                        # each batch should have the same operation_timeout, and it should decrease in each batch
-                        expected_operation_timeout = start_operation_timeout - (
-                            batch_idx
-                        )
-                        assert (
-                            req_kwargs["operation_timeout"]
-                            == expected_operation_timeout
-                        )
-                        # each attempt_timeout should start with default value, but decrease when operation_timeout reaches it
-                        expected_attempt_timeout = min(
-                            start_attempt_timeout, expected_operation_timeout
-                        )
-                        assert req_kwargs["attempt_timeout"] == expected_attempt_timeout
+    @pytest.mark.asyncio
+    async def test_read_rows_sharded_negative_batch_timeout(self):
+        """
+        try to run with batch that starts after operation timeout
+
+        They should raise DeadlineExceeded errors
+        """
+        from google.cloud.bigtable.data.exceptions import ShardedReadRowsExceptionGroup
+        from google.api_core.exceptions import DeadlineExceeded
+
+        async def mock_call(*args, **kwargs):
+            await asyncio.sleep(0.05)
+            return [mock.Mock()]
+
+        async with self._make_client() as client:
+            async with client.get_table("instance", "table") as table:
+                with mock.patch.object(table, "read_rows") as read_rows:
+                    read_rows.side_effect = mock_call
+                    queries = [ReadRowsQuery() for _ in range(15)]
+                    with pytest.raises(ShardedReadRowsExceptionGroup) as exc:
+                        await table.read_rows_sharded(queries, operation_timeout=0.01)
+                    assert isinstance(exc.value, ShardedReadRowsExceptionGroup)
+                    assert len(exc.value.exceptions) == 5
+                    assert all(
+                        isinstance(e.__cause__, DeadlineExceeded)
+                        for e in exc.value.exceptions
+                    )
 
 
 class TestSampleRowKeysAsync:

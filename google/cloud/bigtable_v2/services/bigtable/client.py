@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import os
 import re
 from typing import (
     Dict,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -186,6 +187,30 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 instance.
         """
         return self._transport
+
+    @staticmethod
+    def authorized_view_path(
+        project: str,
+        instance: str,
+        table: str,
+        authorized_view: str,
+    ) -> str:
+        """Returns a fully-qualified authorized_view string."""
+        return "projects/{project}/instances/{instance}/tables/{table}/authorizedViews/{authorized_view}".format(
+            project=project,
+            instance=instance,
+            table=table,
+            authorized_view=authorized_view,
+        )
+
+    @staticmethod
+    def parse_authorized_view_path(path: str) -> Dict[str, str]:
+        """Parses a authorized_view path into its component segments."""
+        m = re.match(
+            r"^projects/(?P<project>.+?)/instances/(?P<instance>.+?)/tables/(?P<table>.+?)/authorizedViews/(?P<authorized_view>.+?)$",
+            path,
+        )
+        return m.groupdict() if m else {}
 
     @staticmethod
     def instance_path(
@@ -551,7 +576,9 @@ class BigtableClient(metaclass=BigtableClientMeta):
         self,
         *,
         credentials: Optional[ga_credentials.Credentials] = None,
-        transport: Optional[Union[str, BigtableTransport]] = None,
+        transport: Optional[
+            Union[str, BigtableTransport, Callable[..., BigtableTransport]]
+        ] = None,
         client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
         client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
     ) -> None:
@@ -563,9 +590,11 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, BigtableTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
+            transport (Optional[Union[str,BigtableTransport,Callable[..., BigtableTransport]]]):
+                The transport to use, or a Callable that constructs and returns a new transport.
+                If a Callable is given, it will be called with the same set of initialization
+                arguments as used in the BigtableTransport constructor.
+                If set to None, a transport is chosen automatically.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
                 Custom options for the client.
 
@@ -671,8 +700,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
                     api_key_value
                 )
 
-            Transport = type(self).get_transport_class(cast(str, transport))
-            self._transport = Transport(
+            transport_init: Union[
+                Type[BigtableTransport], Callable[..., BigtableTransport]
+            ] = (
+                type(self).get_transport_class(transport)
+                if isinstance(transport, str) or transport is None
+                else cast(Callable[..., BigtableTransport], transport)
+            )
+            # initialize with the provided callable or the passed in class
+            self._transport = transport_init(
                 credentials=credentials,
                 credentials_file=self._client_options.credentials_file,
                 host=self._api_endpoint,
@@ -706,8 +742,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.ReadRows.
             table_name (str):
-                Required. The unique name of the table from which to
-                read. Values are of the form
+                Optional. The unique name of the table from which to
+                read.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -735,8 +773,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -744,10 +782,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.ReadRowsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.ReadRowsRequest):
             request = bigtable.ReadRowsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -772,6 +808,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -813,8 +858,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.SampleRowKeys.
             table_name (str):
-                Required. The unique name of the table from which to
-                sample row keys. Values are of the form
+                Optional. The unique name of the table from which to
+                sample row keys.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -842,8 +889,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -851,10 +898,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.SampleRowKeysRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.SampleRowKeysRequest):
             request = bigtable.SampleRowKeysRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -879,6 +924,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -919,8 +973,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.MutateRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                mutation should be applied. Values are of the form
+                Optional. The unique name of the table to which the
+                mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -966,8 +1022,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, mutations, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -975,10 +1031,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.MutateRowRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.MutateRowRequest):
             request = bigtable.MutateRowRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1007,6 +1061,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -1047,9 +1110,11 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 BigtableService.MutateRows.
             table_name (str):
-                Required. The unique name of the
-                table to which the mutations should be
-                applied.
+                Optional. The unique name of the table to which the
+                mutations should be applied.
+
+                Values are of the form
+                ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1090,8 +1155,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, entries, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1099,10 +1164,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.MutateRowsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.MutateRowsRequest):
             request = bigtable.MutateRowsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1129,6 +1192,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -1171,9 +1243,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.CheckAndMutateRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                conditional mutation should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                conditional mutation should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -1241,8 +1314,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any(
             [
                 table_name,
@@ -1259,10 +1332,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.CheckAndMutateRowRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.CheckAndMutateRowRequest):
             request = bigtable.CheckAndMutateRowRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1295,6 +1366,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -1364,8 +1444,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1373,10 +1453,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.PingAndWarmRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.PingAndWarmRequest):
             request = bigtable.PingAndWarmRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1444,9 +1522,10 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 The request object. Request message for
                 Bigtable.ReadModifyWriteRow.
             table_name (str):
-                Required. The unique name of the table to which the
-                read/modify/write rules should be applied. Values are of
-                the form
+                Optional. The unique name of the table to which the
+                read/modify/write rules should be applied.
+
+                Values are of the form
                 ``projects/<project>/instances/<instance>/tables/<table>``.
 
                 This corresponds to the ``table_name`` field
@@ -1493,8 +1572,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, row_key, rules, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1502,10 +1581,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.ReadModifyWriteRowRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.ReadModifyWriteRowRequest):
             request = bigtable.ReadModifyWriteRowRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1534,6 +1611,15 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         if request.app_profile_id:
             header_params["app_profile_id"] = request.app_profile_id
+
+        routing_param_regex = re.compile(
+            "^(?P<authorized_view_name>projects/[^/]+/instances/[^/]+/tables/[^/]+/authorizedViews/[^/]+)$"
+        )
+        regex_match = routing_param_regex.match(request.authorized_view_name)
+        if regex_match and regex_match.group("authorized_view_name"):
+            header_params["authorized_view_name"] = regex_match.group(
+                "authorized_view_name"
+            )
 
         if header_params:
             metadata = tuple(metadata) + (
@@ -1611,8 +1697,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1620,10 +1706,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.GenerateInitialChangeStreamPartitionsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(
             request, bigtable.GenerateInitialChangeStreamPartitionsRequest
         ):
@@ -1716,8 +1800,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([table_name, app_profile_id])
         if request is not None and has_flattened_params:
             raise ValueError(
@@ -1725,10 +1809,8 @@ class BigtableClient(metaclass=BigtableClientMeta):
                 "the individual field arguments should be set."
             )
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a bigtable.ReadChangeStreamRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, bigtable.ReadChangeStreamRequest):
             request = bigtable.ReadChangeStreamRequest(request)
             # If we have keyword arguments corresponding to fields on the
