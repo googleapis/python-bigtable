@@ -119,8 +119,6 @@ if TYPE_CHECKING:
         "PooledBigtableGrpcAsyncIOTransport": "PooledBigtableGrpcTransport",
         "BigtableAsyncClient": "BigtableClient",
         "AsyncPooledChannel": "PooledChannel",
-        "_ReadRowsOperationAsync": "_ReadRowsOperation",
-        "_MutateRowsOperationAsync": "_MutateRowsOperation",
     },
 )
 class BigtableDataClientAsync(ClientWithProject):
@@ -495,6 +493,8 @@ class BigtableDataClientAsync(ClientWithProject):
         "AsyncIterable": "Iterable",
         "MutationsBatcherAsync": "MutationsBatcher",
         "BigtableDataClientAsync": "BigtableDataClient",
+        "_ReadRowsOperationAsync": "_ReadRowsOperation",
+        "_MutateRowsOperationAsync": "_MutateRowsOperation",
     },
 )
 class TableAsync:

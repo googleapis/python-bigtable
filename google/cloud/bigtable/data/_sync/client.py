@@ -38,12 +38,12 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.api_core.exceptions import ServiceUnavailable
 from google.cloud.bigtable.client import _DEFAULT_BIGTABLE_EMULATOR_CLIENT
 from google.cloud.bigtable.data import _helpers
-from google.cloud.bigtable.data._async._mutate_rows import _MutateRowsOperationAsync
-from google.cloud.bigtable.data._async._read_rows import _ReadRowsOperationAsync
 from google.cloud.bigtable.data._helpers import RowKeySamples
 from google.cloud.bigtable.data._helpers import ShardedQuery
 from google.cloud.bigtable.data._helpers import TABLE_DEFAULT
 from google.cloud.bigtable.data._helpers import _MB_SIZE
+from google.cloud.bigtable.data._sync._mutate_rows import _MutateRowsOperation
+from google.cloud.bigtable.data._sync._read_rows import _ReadRowsOperation
 from google.cloud.bigtable.data._sync.cross_sync import CrossSync
 from google.cloud.bigtable.data._sync.mutations_batcher import MutationsBatcher
 from google.cloud.bigtable.data.exceptions import FailedQueryShardError
@@ -572,7 +572,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        row_merger = _ReadRowsOperationAsync(
+        row_merger = _ReadRowsOperation(
             query,
             self,
             operation_timeout=operation_timeout,
@@ -724,7 +724,7 @@ class Table:
         rpc_timeout_generator = _helpers._attempt_timeout_generator(
             operation_timeout, operation_timeout
         )
-        concurrency_sem = asyncio.Semaphore(_helpers._CONCURRENCY_LIMIT)
+        concurrency_sem = CrossSync._Sync_Impl.Semaphore(_helpers._CONCURRENCY_LIMIT)
 
         def read_rows_with_semaphore(query):
             with concurrency_sem:
@@ -740,8 +740,12 @@ class Table:
                     retryable_errors=retryable_errors,
                 )
 
-        routine_list = [read_rows_with_semaphore(query) for query in sharded_query]
-        batch_result = asyncio.gather(*routine_list, return_exceptions=True)
+        routine_list = [
+            partial(read_rows_with_semaphore, query) for query in sharded_query
+        ]
+        batch_result = CrossSync._Sync_Impl.gather_partials(
+            routine_list, return_exceptions=True, sync_executor=self.client._executor
+        )
         error_dict = {}
         shard_idx = 0
         results_list = []
@@ -1043,7 +1047,7 @@ class Table:
             operation_timeout, attempt_timeout, self
         )
         retryable_excs = _helpers._get_retryable_errors(retryable_errors, self)
-        operation = _MutateRowsOperationAsync(
+        operation = _MutateRowsOperation(
             self.client._gapic_client,
             self,
             mutation_entries,

@@ -183,8 +183,8 @@ class _ReadRowsOperation:
 
     @staticmethod
     def merge_rows(
-        chunks: AsyncGenerator[ReadRowsResponsePB.CellChunk, None] | None
-    ) -> AsyncGenerator[Row, None]:
+        chunks: Iterable[ReadRowsResponsePB.CellChunk] | None,
+    ) -> Iterable[Row]:
         """
         Merge chunks into rows
 

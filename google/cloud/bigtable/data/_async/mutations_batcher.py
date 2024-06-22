@@ -281,8 +281,6 @@ class MutationsBatcherAsync:
         Args:
             flush_interval: Automatically flush every flush_interval seconds.
                 If None, no time-based flushing is performed.
-        Returns:
-            asyncio.Future[None]: future representing the background task
         """
         if not interval or interval <= 0:
             return None
@@ -321,12 +319,12 @@ class MutationsBatcherAsync:
             # yield to the event loop to allow flush to run
             await CrossSync.yield_to_event_loop()
 
-    def _schedule_flush(self) -> asyncio.Future[None] | None:
+    def _schedule_flush(self) -> CrossSync.Future[None] | None:
         """
         Update the flush task to include the latest staged entries
 
         Returns:
-            asyncio.Future[None] | None:
+            Future[None] | None:
                 future representing the background task, if started
         """
         if self._staged_entries:
