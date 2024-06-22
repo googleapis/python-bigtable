@@ -42,6 +42,7 @@ class CrossSync:
     Future: TypeAlias = asyncio.Future
     Task: TypeAlias = asyncio.Task
     Event: TypeAlias = asyncio.Event
+    Semaphore: TypeAlias = asyncio.Semaphore
 
     generated_replacements: dict[type, str] = {}
 
@@ -192,6 +193,7 @@ class CrossSync:
         Future: TypeAlias = concurrent.futures.Future
         Task: TypeAlias = concurrent.futures.Future
         Event: TypeAlias = threading.Event
+        Semaphore: TypeAlias = threading.Semaphore
 
         generated_replacements: dict[type, str] = {}
 

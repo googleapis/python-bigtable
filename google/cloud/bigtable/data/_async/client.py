@@ -821,7 +821,7 @@ class TableAsync:
         )
 
         # limit the number of concurrent requests using a semaphore
-        concurrency_sem = asyncio.Semaphore(_helpers._CONCURRENCY_LIMIT)
+        concurrency_sem = CrossSync.Semaphore(_helpers._CONCURRENCY_LIMIT)
 
         async def read_rows_with_semaphore(query):
             async with concurrency_sem:
@@ -838,8 +838,12 @@ class TableAsync:
                     retryable_errors=retryable_errors,
                 )
 
-        routine_list = [read_rows_with_semaphore(query) for query in sharded_query]
-        batch_result = await asyncio.gather(*routine_list, return_exceptions=True)
+        routine_list = [partial(read_rows_with_semaphore, query) for query in sharded_query]
+        batch_result = await CrossSync.gather_partials(
+            routine_list,
+            return_exceptions=True,
+            sync_executor=self.client._executor
+        )
 
         # collect results and errors
         error_dict = {}
